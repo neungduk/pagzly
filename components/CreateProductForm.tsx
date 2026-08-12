@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import PagzlyLogo from "@/components/PagzlyLogo";
 import { createClient } from "@/lib/supabase";
+import type { GeneratedCopy } from "@/lib/types/generate";
 
 const CATEGORIES = [
   "의류/패션",
@@ -166,7 +167,25 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         createdAt: new Date().toISOString(),
       };
 
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(payload));
+      const generateResponse = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const generateResult = await generateResponse.json();
+
+      if (!generateResponse.ok) {
+        throw new Error(generateResult.error ?? "AI 생성에 실패했습니다.");
+      }
+
+      sessionStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({
+          ...payload,
+          generated: generateResult as GeneratedCopy & { imageAnalysis: string },
+        }),
+      );
       router.push("/create/result");
     } catch (err) {
       setError(err instanceof Error ? err.message : "제출 중 오류가 발생했습니다.");
@@ -466,7 +485,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
             disabled={loading}
             className="flex h-14 w-full items-center justify-center rounded-xl bg-[#6366f1] text-base font-semibold text-white shadow-lg shadow-[#6366f1]/25 transition-all hover:bg-[#5558e3] hover:shadow-xl hover:shadow-[#6366f1]/30 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "업로드 및 생성 준비 중..." : "AI 상세페이지 생성하기"}
+            {loading ? "AI 상세페이지 생성 중..." : "AI 상세페이지 생성하기"}
           </button>
         </form>
       </main>
