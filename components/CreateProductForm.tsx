@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import PagzlyLogo from "@/components/PagzlyLogo";
+import GeneratingOverlay, { type GeneratingStage } from "@/components/GeneratingOverlay";
 import { createClient } from "@/lib/supabase";
 import type { GeneratedCopy, GenerateResponse } from "@/lib/types/generate";
 
@@ -38,7 +39,7 @@ type UploadedImage = {
   path: string;
 };
 
-type LoadingStage = "idle" | "uploading" | "enhancing" | "generating";
+type LoadingStage = "idle" | GeneratingStage;
 
 function validateImage(file: File): string | null {
   if (!ALLOWED_TYPES.includes(file.type)) {
@@ -572,6 +573,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           </button>
         </form>
       </main>
+
+      {loadingStage !== "idle" && <GeneratingOverlay stage={loadingStage} />}
     </div>
   );
 }
