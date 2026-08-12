@@ -109,6 +109,8 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const startHref = user ? "/create" : "/signup";
+
   return (
     <div className="min-h-full bg-white text-gray-900">
       {/* Navigation */}
@@ -137,7 +139,7 @@ export default async function Home() {
                   로그인
                 </Link>
                 <Link
-                  href="/signup"
+                  href={startHref}
                   className="rounded-lg bg-[#6366f1] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#5558e3]"
                 >
                   무료 시작
@@ -172,7 +174,7 @@ export default async function Home() {
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link
-                href="/signup"
+                href={startHref}
                 className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#6366f1] px-8 text-base font-semibold text-white shadow-lg shadow-[#6366f1]/25 transition-all hover:bg-[#5558e3] hover:shadow-xl hover:shadow-[#6366f1]/30 sm:w-auto"
               >
                 무료로 시작하기
@@ -317,12 +319,12 @@ export default async function Home() {
             <p className="mx-auto mt-4 max-w-xl text-lg text-indigo-100">
               상품 사진 하나만 있으면 3분 안에 팔리는 상세페이지가 완성됩니다.
             </p>
-            <a
-              href="#"
+            <Link
+              href={startHref}
               className="mt-8 inline-flex h-12 items-center justify-center rounded-xl bg-white px-8 text-base font-semibold text-[#6366f1] transition-colors hover:bg-indigo-50"
             >
               무료로 시작하기
-            </a>
+            </Link>
           </div>
         </section>
       </main>
