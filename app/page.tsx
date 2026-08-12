@@ -1,4 +1,5 @@
 import PagzlyLogo from "@/components/PagzlyLogo";
+import ShowcaseSection from "@/components/ShowcaseSection";
 
 const features = [
   {
@@ -198,6 +199,8 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <ShowcaseSection />
 
         {/* Pricing */}
         <section id="pricing" className="py-24">
