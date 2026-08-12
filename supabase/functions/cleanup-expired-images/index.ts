@@ -18,9 +18,12 @@ Deno.serve(async () => {
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
     const cutoff = threeDaysAgo.toISOString();
 
+    // product_id가 null인(= 완성된 상품으로 이어지지 않은) 이미지만
+    // 정리 대상으로 삼는다. 상품 저장이 완료된 이미지는 영구 보존한다.
     const { data: expiredImages, error: fetchError } = await supabase
-      .from("products")
+      .from("product_images")
       .select("id, storage_path")
+      .is("product_id", null)
       .lt("image_uploaded_at", cutoff);
 
     if (fetchError) {
@@ -45,7 +48,7 @@ Deno.serve(async () => {
     }
 
     const { error: deleteError } = await supabase
-      .from("products")
+      .from("product_images")
       .delete()
       .in("id", ids);
 

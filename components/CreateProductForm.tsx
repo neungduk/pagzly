@@ -33,6 +33,11 @@ type CreateProductFormProps = {
   userId: string;
 };
 
+type UploadedImage = {
+  url: string;
+  path: string;
+};
+
 function validateImage(file: File): string | null {
   if (!ALLOWED_TYPES.includes(file.type)) {
     return "JPG, PNG 파일만 업로드할 수 있습니다.";
@@ -103,9 +108,9 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     addImages(e.dataTransfer.files);
   }
 
-  async function uploadImages(files: File[]) {
+  async function uploadImages(files: File[]): Promise<UploadedImage[]> {
     const supabase = createClient();
-    const urls: string[] = [];
+    const uploaded: UploadedImage[] = [];
     const uploadedAt = new Date().toISOString();
 
     for (const file of files) {
@@ -122,7 +127,10 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
 
       const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
 
-      const { error: dbError } = await supabase.from("products").insert({
+      // product_images: 완성되기 전 업로드된 이미지를 추적하는 임시 테이블.
+      // 상품 저장이 완료되면 /api/generate 에서 product_id를 연결해
+      // 3일 자동 삭제 대상에서 제외한다.
+      const { error: dbError } = await supabase.from("product_images").insert({
         user_id: userId,
         storage_path: path,
         image_url: data.publicUrl,
@@ -134,10 +142,10 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         throw new Error(`이미지 정보 저장 실패: ${dbError.message}`);
       }
 
-      urls.push(data.publicUrl);
+      uploaded.push({ url: data.publicUrl, path });
     }
 
-    return urls;
+    return uploaded;
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -164,11 +172,14 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     setLoading(true);
 
     try {
-      const imageUrls = await uploadImages(images);
+      const uploaded = await uploadImages(images);
+      const imageUrls = uploaded.map((item) => item.url);
+      const imagePaths = uploaded.map((item) => item.path);
 
       const payload = {
         category,
         imageUrls,
+        imagePaths,
         productName: productName.trim(),
         brandName: brandName.trim() || null,
         price: Number(price),

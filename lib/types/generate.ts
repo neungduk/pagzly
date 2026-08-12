@@ -1,6 +1,7 @@
 export type ProductInput = {
   category: string;
   imageUrls: string[];
+  imagePaths: string[];
   productName: string;
   brandName?: string | null;
   price: number;
@@ -30,4 +31,5 @@ export type GenerateResponse = GeneratedCopy & {
   imageAnalysis: string;
   mfdsReviewed?: boolean;
   replacements?: ComplianceReplacement[];
+  productId: string;
 };

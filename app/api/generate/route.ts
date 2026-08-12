@@ -226,19 +226,68 @@ export async function POST(request: Request) {
 
     const generated = await generateCopyWithDeepSeek(body, imageAnalysis);
 
-    if (isCosmeticsCategory(body.category)) {
-      const reviewed = reviewCosmeticsCopy(generated);
-      return NextResponse.json({
-        ...reviewed.copy,
-        imageAnalysis,
-        mfdsReviewed: reviewed.mfdsReviewed,
-        replacements: reviewed.replacements,
-      });
+    const isCosmetics = isCosmeticsCategory(body.category);
+    const finalCopy = isCosmetics ? reviewCosmeticsCopy(generated) : null;
+    const copyToSave = finalCopy ? finalCopy.copy : generated;
+    const mfdsReviewed = finalCopy?.mfdsReviewed ?? false;
+    const replacements = finalCopy?.replacements ?? [];
+
+    // 완성된 상품 정보 + AI 생성 카피를 products 테이블에 영구 저장
+    const { data: savedProduct, error: insertError } = await supabase
+      .from("products")
+      .insert({
+        user_id: user.id,
+        category: body.category,
+        product_name: body.productName,
+        brand_name: body.brandName ?? null,
+        price: body.price,
+        target_customer: body.targetCustomer ?? null,
+        key_features: body.keyFeatures ?? null,
+        ingredients: body.ingredients ?? null,
+        certifications: body.certifications ?? null,
+        competitor_url: body.competitorUrl ?? null,
+        wholesale_url: body.wholesaleUrl ?? null,
+        image_urls: body.imageUrls,
+        headlines: copyToSave.headlines,
+        description: copyToSave.description,
+        features: copyToSave.features,
+        how_to_use: copyToSave.howToUse,
+        caution: copyToSave.caution,
+        image_analysis: imageAnalysis,
+        mfds_reviewed: mfdsReviewed,
+        replacements,
+      })
+      .select("id")
+      .single();
+
+    if (insertError || !savedProduct) {
+      console.error("[generate] product insert error", insertError);
+      return NextResponse.json(
+        { error: `상품 저장 실패: ${insertError?.message ?? "알 수 없는 오류"}` },
+        { status: 500 },
+      );
+    }
+
+    // 업로드된 이미지(product_images)를 방금 생성된 상품에 연결해
+    // 3일 자동 삭제 대상에서 제외한다.
+    if (body.imagePaths?.length) {
+      const { error: linkError } = await supabase
+        .from("product_images")
+        .update({ product_id: savedProduct.id })
+        .eq("user_id", user.id)
+        .in("storage_path", body.imagePaths);
+
+      if (linkError) {
+        console.error("[generate] product_images link error", linkError);
+      }
     }
 
     return NextResponse.json({
-      ...generated,
+      ...copyToSave,
       imageAnalysis,
+      mfdsReviewed,
+      replacements,
+      productId: savedProduct.id as string,
     });
   } catch (error) {
     console.error("[generate]", error);
