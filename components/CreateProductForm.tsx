@@ -204,14 +204,14 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
 
       <header className="border-b border-gray-100 bg-white/80 backdrop-blur-md">
         <nav className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-          <Link href="/dashboard">
+          <Link href="/">
             <PagzlyLogo className="h-8 w-auto" />
           </Link>
           <Link
-            href="/dashboard"
+            href="/"
             className="text-sm font-medium text-gray-500 hover:text-gray-900"
           >
-            대시보드
+            홈
           </Link>
         </nav>
       </header>
