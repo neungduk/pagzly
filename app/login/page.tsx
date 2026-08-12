@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import PagzlyLogo from "@/components/PagzlyLogo";
+import KakaoLoginButton from "@/components/KakaoLoginButton";
 import { createClient } from "@/lib/supabase";
 
 export default function LoginPage() {
@@ -53,7 +54,23 @@ export default function LoginPage() {
               Pagzly 계정으로 로그인하세요
             </p>
 
-            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+            <div className="mt-8 space-y-5">
+              <KakaoLoginButton
+                label="카카오로 로그인"
+                onError={setError}
+              />
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="bg-white px-3 text-gray-400">또는</span>
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="mt-5 space-y-5">
               <div>
                 <label
                   htmlFor="email"

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import PagzlyLogo from "@/components/PagzlyLogo";
+import KakaoLoginButton from "@/components/KakaoLoginButton";
 import { createClient } from "@/lib/supabase";
 
 export default function SignupPage() {
@@ -54,7 +55,23 @@ export default function SignupPage() {
               Pagzly를 시작하려면 계정을 만드세요
             </p>
 
-            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+            <div className="mt-8 space-y-5">
+              <KakaoLoginButton
+                label="카카오로 시작하기"
+                onError={setError}
+              />
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="bg-white px-3 text-gray-400">또는</span>
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="mt-5 space-y-5">
               <div>
                 <label
                   htmlFor="email"
