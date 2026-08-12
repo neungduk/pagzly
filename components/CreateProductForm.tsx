@@ -26,7 +26,7 @@ const TARGET_CUSTOMERS = [
 
 const MAX_IMAGES = 5;
 const ALLOWED_TYPES = ["image/jpeg", "image/png"];
-const STORAGE_BUCKET = "product-images";
+const STORAGE_BUCKET = "images";
 const SESSION_KEY = "pagzly-create-result";
 
 type CreateProductFormProps = {

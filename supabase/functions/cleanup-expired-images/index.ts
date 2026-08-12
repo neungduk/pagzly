@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const STORAGE_BUCKET = "product-images";
+const STORAGE_BUCKET = "images";
 
 Deno.serve(async () => {
   try {
