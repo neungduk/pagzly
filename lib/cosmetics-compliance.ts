@@ -1,4 +1,4 @@
-import type { GeneratedCopy } from "@/lib/types/generate";
+import type { DetailSection, GeneratedCopy } from "@/lib/types/generate";
 
 export const COSMETICS_CATEGORY = "화장품/뷰티";
 
@@ -76,44 +76,112 @@ export function sanitizeText(text: string): {
   };
 }
 
+function sanitizeSection(
+  section: DetailSection,
+  collect: (replacements: ComplianceReplacement[]) => void,
+): DetailSection {
+  const clean = (value: string) => {
+    const { text, replacements } = sanitizeText(value);
+    collect(replacements);
+    return text;
+  };
+
+  switch (section.type) {
+    case "hero":
+      return {
+        ...section,
+        headline: clean(section.headline),
+        subheadline: section.subheadline ? clean(section.subheadline) : section.subheadline,
+      };
+    case "checklist":
+      return {
+        ...section,
+        heading: clean(section.heading),
+        items: section.items.map(clean),
+      };
+    case "image_text":
+      return {
+        ...section,
+        heading: clean(section.heading),
+        body: clean(section.body),
+      };
+    case "spec_table":
+      return {
+        ...section,
+        heading: clean(section.heading),
+        rows: section.rows.map((row) => ({
+          label: clean(row.label),
+          value: clean(row.value),
+        })),
+      };
+    case "usage_steps":
+      return {
+        ...section,
+        heading: clean(section.heading),
+        steps: section.steps.map(clean),
+      };
+    case "gallery":
+      return { ...section, heading: clean(section.heading) };
+    case "caution":
+      return {
+        ...section,
+        heading: clean(section.heading),
+        body: clean(section.body),
+      };
+    case "cta_price":
+      return {
+        ...section,
+        badges: section.badges?.map(clean),
+      };
+    default:
+      return section;
+  }
+}
+
 export function reviewCosmeticsCopy(copy: GeneratedCopy): {
   copy: GeneratedCopy;
   mfdsReviewed: boolean;
   replacements: ComplianceReplacement[];
 } {
   const allReplacements: ComplianceReplacement[] = [];
+  const collect = (replacements: ComplianceReplacement[]) => {
+    allReplacements.push(...replacements);
+  };
 
   const headlines = copy.headlines.map((headline) => {
     const { text, replacements } = sanitizeText(headline);
-    allReplacements.push(...replacements);
+    collect(replacements);
     return text;
   });
 
   const { text: description, replacements: descReplacements } = sanitizeText(
     copy.description,
   );
-  allReplacements.push(...descReplacements);
+  collect(descReplacements);
 
   const features = copy.features.map((feature) => {
     const { text, replacements } = sanitizeText(feature);
-    allReplacements.push(...replacements);
+    collect(replacements);
     return text;
   });
 
   const { text: howToUse, replacements: howReplacements } = sanitizeText(
     copy.howToUse,
   );
-  allReplacements.push(...howReplacements);
+  collect(howReplacements);
 
   const { text: caution, replacements: cautionReplacements } = sanitizeText(
     copy.caution,
   );
-  allReplacements.push(...cautionReplacements);
+  collect(cautionReplacements);
+
+  const sections = copy.sections.map((section) => sanitizeSection(section, collect));
 
   const mergedReplacements = mergeReplacements(allReplacements);
 
   return {
     copy: {
+      sections,
       headlines,
       description,
       features,

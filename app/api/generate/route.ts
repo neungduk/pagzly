@@ -75,7 +75,11 @@ ${productInfo.ingredients ? `성분/소재: ${productInfo.ingredients}` : ""}
 2. 질감/소재 (보이는 질감, 마감, 재질)
 3. 시각적 특징 (형태, 디자인, 패턴, 포장 등)
 4. 전반적인 인상 및 타겟 고객에게 어필할 포인트
-5. 상세페이지에 강조하면 좋을 USP${cosmeticsNote}`,
+5. 상세페이지에 강조하면 좋을 USP${cosmeticsNote}
+
+각 사진이 몇 번째로 첨부되었는지(0부터 시작하는 순서)도 함께 기억해 두세요.
+이후 상세페이지 섹션을 구성할 때 어떤 사진이 어떤 용도(전체샷/질감클로즈업/사용장면 등)로
+적합한지 판단하는 데 사용됩니다.`,
           },
         ],
       },
@@ -93,14 +97,18 @@ ${productInfo.ingredients ? `성분/소재: ${productInfo.ingredients}` : ""}
 async function generateCopyWithDeepSeek(
   productInfo: ProductInput,
   imageAnalysis: string,
+  imageCount: number,
 ): Promise<GeneratedCopy> {
   const isCosmetics = isCosmeticsCategory(productInfo.category);
   const cosmeticsGuide = isCosmetics
     ? `\n\n## 식약처 화장품 광고 기준 (필수)\n${COSMETICS_AI_PROMPT}`
     : "";
 
-  const prompt = `당신은 한국 이커머스 상세페이지 카피라이터입니다.
-아래 상품 정보와 AI 이미지 분석 결과를 바탕으로 전환율 높은 상세페이지 카피를 작성하세요.
+  const prompt = `당신은 한국 이커머스 상세페이지 기획자 겸 카피라이터입니다.
+아래 상품 정보와 AI 이미지 분석 결과를 바탕으로, 이 상품에 맞는 상세페이지를
+"섹션 배열"로 직접 설계하세요. 상품마다 강조할 포인트가 다르므로
+(화장품이면 성분/사용감, 전자제품이면 스펙, 의류면 소재/핏 등),
+정해진 틀에 맞추지 말고 이 상품에 실제로 필요한 섹션만 고르세요.
 
 ## 상품 정보
 - 상품명: ${productInfo.productName}
@@ -112,25 +120,36 @@ ${productInfo.keyFeatures ? `- 핵심 특징: ${productInfo.keyFeatures}` : ""}
 ${productInfo.ingredients ? `- 성분/소재: ${productInfo.ingredients}` : ""}
 ${productInfo.certifications ? `- 인증/수상: ${productInfo.certifications}` : ""}
 ${productInfo.competitorUrl ? `- 경쟁사 URL: ${productInfo.competitorUrl}` : ""}
+- 업로드된 사진 수: ${imageCount}장 (인덱스 0 ~ ${imageCount - 1})
 
 ## AI 이미지 분석 결과
 ${imageAnalysis}
 
+## 사용 가능한 섹션 타입 (이 중에서만 골라 8~10개, 순서는 자유)
+- hero: { type, headline, subheadline?, imageIndex } — 첫 화면. 반드시 1개, 배열 맨 앞.
+- checklist: { type, heading, items[] } — 핵심 특징 체크리스트
+- image_text: { type, heading, body, imageIndex, imagePosition: "left"|"right" } — 사진+설명 (성분 설명, 사용감, 디자인 포인트 등에 활용, 여러 개 가능)
+- spec_table: { type, heading, rows: [{label, value}] } — 성분표/스펙표/사이즈표 등 (해당 카테고리에 의미있을 때만)
+- usage_steps: { type, heading, steps[] } — 사용 방법 단계
+- gallery: { type, heading, imageIndexes[] } — 남은 사진들을 모아 보여주는 갤러리
+- caution: { type, heading, body } — 주의사항 (반드시 1개 포함)
+- cta_price: { type, price, targetCustomer?, badges[]? } — 가격/타겟/뱃지 강조 (반드시 1개 포함)
+
+imageIndex는 0 ~ ${imageCount - 1} 범위 안에서만 사용하고, 가능하면 여러 사진을 골고루 활용하세요.
+사진이 ${imageCount}장뿐이라면 여러 섹션에서 같은 인덱스를 재사용해도 됩니다.
+
 반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트는 포함하지 마세요.
 {
+  "sections": [ ...위 타입 중 8~10개... ],
   "headlines": ["헤드라인1", "헤드라인2", "헤드라인3"],
   "description": "상품 설명 (2~3문단)",
   "features": ["특징1", "특징2", "특징3", "특징4"],
-  "howToUse": "사용 방법",
-  "caution": "주의사항"
+  "howToUse": "사용 방법 요약",
+  "caution": "주의사항 요약"
 }
 
-작성 가이드:
-- headlines: 구매 욕구를 자극하는 한국어 헤드라인 3개 (각 20자 내외)
-- description: 감성적이면서도 정보가 풍부한 상품 설명
-- features: 핵심 성분/특징/장점을 bullet 형태로 3~5개
-- howToUse: 실용적인 사용 방법
-- caution: 보관/사용 시 주의사항${cosmeticsGuide}`;
+headlines/description/features/howToUse/caution은 목록·검색 화면에 쓰이는 요약용이니
+sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${cosmeticsGuide}`;
 
   const response = await fetch(DEEPSEEK_URL, {
     method: "POST",
@@ -163,6 +182,8 @@ ${imageAnalysis}
   const parsed = JSON.parse(content) as GeneratedCopy;
 
   if (
+    !Array.isArray(parsed.sections) ||
+    parsed.sections.length === 0 ||
     !Array.isArray(parsed.headlines) ||
     typeof parsed.description !== "string" ||
     !Array.isArray(parsed.features) ||
@@ -171,6 +192,24 @@ ${imageAnalysis}
   ) {
     throw new Error("DeepSeek 응답 형식이 올바르지 않습니다.");
   }
+
+  const clampIndex = (i: number) =>
+    Number.isInteger(i) && i >= 0 && i < imageCount ? i : 0;
+
+  parsed.sections = parsed.sections.map((section) => {
+    if (section.type === "hero" || section.type === "image_text") {
+      return { ...section, imageIndex: clampIndex(section.imageIndex) };
+    }
+    if (section.type === "gallery") {
+      return {
+        ...section,
+        imageIndexes: section.imageIndexes
+          .map(clampIndex)
+          .filter((v, i, arr) => arr.indexOf(v) === i),
+      };
+    }
+    return section;
+  });
 
   return parsed;
 }
@@ -224,7 +263,11 @@ export async function POST(request: Request) {
       body,
     );
 
-    const generated = await generateCopyWithDeepSeek(body, imageAnalysis);
+    const generated = await generateCopyWithDeepSeek(
+      body,
+      imageAnalysis,
+      Math.min(body.imageUrls.length, 5),
+    );
 
     const isCosmetics = isCosmeticsCategory(body.category);
     const finalCopy = isCosmetics ? reviewCosmeticsCopy(generated) : null;
@@ -232,7 +275,6 @@ export async function POST(request: Request) {
     const mfdsReviewed = finalCopy?.mfdsReviewed ?? false;
     const replacements = finalCopy?.replacements ?? [];
 
-    // 완성된 상품 정보 + AI 생성 카피를 products 테이블에 영구 저장
     const { data: savedProduct, error: insertError } = await supabase
       .from("products")
       .insert({
@@ -256,6 +298,7 @@ export async function POST(request: Request) {
         image_analysis: imageAnalysis,
         mfds_reviewed: mfdsReviewed,
         replacements,
+        sections: copyToSave.sections,
       })
       .select("id")
       .single();
@@ -268,8 +311,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 업로드된 이미지(product_images)를 방금 생성된 상품에 연결해
-    // 3일 자동 삭제 대상에서 제외한다.
     if (body.imagePaths?.length) {
       const { error: linkError } = await supabase
         .from("product_images")

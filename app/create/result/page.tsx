@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toPng } from "html-to-image";
+import DetailSectionRenderer from "@/components/DetailSectionRenderer";
 import PagzlyLogo from "@/components/PagzlyLogo";
 import { SESSION_KEY } from "@/components/CreateProductForm";
 import type { GenerateResponse } from "@/lib/types/generate";
@@ -25,7 +27,9 @@ type ProductResult = {
 
 export default function CreateResultPage() {
   const router = useRouter();
+  const captureRef = useRef<HTMLDivElement>(null);
   const [data, setData] = useState<ProductResult | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     const raw = sessionStorage.getItem(SESSION_KEY);
@@ -35,11 +39,41 @@ export default function CreateResultPage() {
     }
 
     try {
-      setData(JSON.parse(raw) as ProductResult);
+      const parsed = JSON.parse(raw) as ProductResult;
+      setData(parsed);
+
+      if (parsed.generated?.sections) {
+        console.log("[create/result] sections count:", parsed.generated.sections.length);
+        console.log(
+          "[create/result] section types:",
+          parsed.generated.sections.map((s) => s.type),
+        );
+        console.log("[create/result] sections:", parsed.generated.sections);
+      }
     } catch {
       router.replace("/create");
     }
   }, [router]);
+
+  async function handleDownload() {
+    if (!captureRef.current || !data) return;
+
+    setDownloading(true);
+    try {
+      const dataUrl = await toPng(captureRef.current, {
+        pixelRatio: 2,
+        cacheBust: true,
+      });
+      const link = document.createElement("a");
+      link.download = `${data.productName}-상세페이지.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error("[download]", err);
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   if (!data) {
     return (
@@ -83,7 +117,8 @@ export default function CreateResultPage() {
             {data.productName}
           </h1>
           <p className="mt-2 text-sm text-gray-500">
-            AI가 분석한 상품 정보를 바탕으로 상세페이지 카피를 생성했습니다.
+            AI가 상품 특성에 맞춰 {generated?.sections.length ?? 0}개 섹션으로
+            상세페이지를 구성했습니다.
             {generated?.mfdsReviewed &&
               " 화장품/뷰티 카테고리 식약처 광고 기준이 적용되었습니다."}
           </p>
@@ -111,83 +146,29 @@ export default function CreateResultPage() {
             )}
           </div>
 
-          {data.imageUrls.length > 0 && (
-            <div className="mt-6">
-              <p className="text-sm font-medium text-gray-700">업로드된 사진</p>
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
-                {data.imageUrls.map((url) => (
-                  <div
-                    key={url}
-                    className="aspect-square overflow-hidden rounded-lg border border-gray-100"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt="상품 사진" className="h-full w-full object-cover" />
-                  </div>
-                ))}
-              </div>
-            </div>
+          {generated?.sections && generated.sections.length > 0 && (
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={downloading}
+              className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-[#6366f1] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#5558e3] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {downloading ? "다운로드 준비 중..." : "이미지로 다운로드"}
+            </button>
           )}
         </div>
 
-        {generated && (
-          <>
-            <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
-              <h2 className="text-lg font-semibold text-gray-900">헤드라인</h2>
-              <div className="mt-4 space-y-3">
-                {generated.headlines.map((headline, index) => (
-                  <div
-                    key={headline}
-                    className="rounded-lg bg-[#6366f1]/5 px-4 py-3 text-sm font-medium text-[#6366f1]"
-                  >
-                    {index + 1}. {headline}
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
-              <h2 className="text-lg font-semibold text-gray-900">상품 설명</h2>
-              <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
-                {generated.description}
-              </p>
-            </section>
-
-            <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
-              <h2 className="text-lg font-semibold text-gray-900">핵심 특징</h2>
-              <ul className="mt-4 space-y-2">
-                {generated.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2 text-sm text-gray-700">
-                    <svg
-                      className="mt-0.5 h-5 w-5 shrink-0 text-[#6366f1]"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={2}
-                      stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                    </svg>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <div className="grid gap-6 sm:grid-cols-2">
-              <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900">사용 방법</h2>
-                <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
-                  {generated.howToUse}
-                </p>
-              </section>
-
-              <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900">주의사항</h2>
-                <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
-                  {generated.caution}
-                </p>
-              </section>
-            </div>
-          </>
+        {generated?.sections && generated.sections.length > 0 ? (
+          <div ref={captureRef} className="space-y-6 bg-white p-2">
+            <DetailSectionRenderer
+              sections={generated.sections}
+              imageUrls={data.imageUrls}
+            />
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-gray-100 bg-white p-6 text-sm text-gray-500 shadow-sm">
+            생성된 섹션이 없습니다. 상품을 다시 등록해 주세요.
+          </div>
         )}
 
         <div className="flex flex-col gap-3 sm:flex-row">
