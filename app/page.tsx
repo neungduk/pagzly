@@ -1,6 +1,8 @@
 import Link from "next/link";
+import LogoutButton from "@/components/LogoutButton";
 import PagzlyLogo from "@/components/PagzlyLogo";
 import ShowcaseSection from "@/components/ShowcaseSection";
+import { createClient } from "@/lib/supabase/server";
 
 const features = [
   {
@@ -101,28 +103,47 @@ const plans = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <div className="min-h-full bg-white text-gray-900">
       {/* Navigation */}
       <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-md">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <a href="/" className="flex items-center">
+          <Link href="/" className="flex items-center">
             <PagzlyLogo className="h-8 w-auto" />
-          </a>
+          </Link>
           <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="hidden rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 sm:inline-block"
-            >
-              로그인
-            </Link>
-            <Link
-              href="/signup"
-              className="rounded-lg bg-[#6366f1] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#5558e3]"
-            >
-              무료 시작
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  href="/create"
+                  className="rounded-lg bg-[#6366f1] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#5558e3]"
+                >
+                  상세페이지 만들기
+                </Link>
+                <LogoutButton />
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="hidden rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 sm:inline-block"
+                >
+                  로그인
+                </Link>
+                <Link
+                  href="/signup"
+                  className="rounded-lg bg-[#6366f1] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#5558e3]"
+                >
+                  무료 시작
+                </Link>
+              </>
+            )}
           </div>
         </nav>
       </header>
