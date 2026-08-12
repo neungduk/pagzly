@@ -1,3 +1,5 @@
+import PagzlyLogo from "@/components/PagzlyLogo";
+
 const features = [
   {
     title: "AI 자동 생성",
@@ -66,7 +68,7 @@ const plans = [
     name: "무료",
     price: "0",
     period: "월",
-    description: "PageLab을 처음 시작하는 분께",
+    description: "Pagzly를 처음 시작하는 분께",
     features: ["월 3회 생성", "기본 템플릿", "워터마크 포함"],
     highlighted: false,
     cta: "무료로 시작",
@@ -103,11 +105,8 @@ export default function Home() {
       {/* Navigation */}
       <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-md">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <a href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#6366f1]">
-              <span className="text-sm font-bold text-white">P</span>
-            </div>
-            <span className="text-lg font-semibold tracking-tight">PageLab</span>
+          <a href="/" className="flex items-center">
+            <PagzlyLogo className="h-8 w-auto" />
           </a>
           <div className="flex items-center gap-3">
             <a
@@ -145,7 +144,7 @@ export default function Home() {
               <span className="text-[#6366f1]">팔리는 상세페이지</span> 3분 완성
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gray-500">
-              PageLab은 AI가 상품 이미지를 분석해 전환율 높은 상세페이지를 자동으로
+              Pagzly는 AI가 상품 이미지를 분석해 전환율 높은 상세페이지를 자동으로
               만들어 드립니다. 디자인 경험 없이도 전문가 수준의 결과물을 얻으세요.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -173,7 +172,7 @@ export default function Home() {
           <div className="mx-auto max-w-6xl px-6">
             <div className="text-center">
               <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-                왜 PageLab인가요?
+                왜 Pagzly인가요?
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-500">
                 상세페이지 제작에 드는 시간과 비용을 획기적으로 줄여 드립니다.
@@ -307,12 +306,7 @@ export default function Home() {
       <footer className="border-t border-gray-100 bg-white py-12">
         <div className="mx-auto max-w-6xl px-6">
           <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#6366f1]">
-                <span className="text-xs font-bold text-white">P</span>
-              </div>
-              <span className="font-semibold text-gray-900">PageLab</span>
-            </div>
+            <PagzlyLogo className="h-7 w-auto" />
             <div className="flex gap-6 text-sm text-gray-500">
               <a href="#" className="transition-colors hover:text-gray-900">
                 이용약관
@@ -326,7 +320,7 @@ export default function Home() {
             </div>
           </div>
           <p className="mt-8 text-center text-sm text-gray-400 sm:text-left">
-            © 2026 PageLab. All rights reserved.
+            © 2026 Pagzly. All rights reserved.
           </p>
         </div>
       </footer>
