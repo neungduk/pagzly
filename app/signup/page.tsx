@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import PagzlyLogo from "@/components/PagzlyLogo";
 import { createClient } from "@/lib/supabase";
 
 export default function SignupPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +19,7 @@ export default function SignupPage() {
     setLoading(true);
 
     const supabase = createClient();
-    const { data, error: signUpError } = await supabase.auth.signUp({
+    const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
     });
@@ -33,13 +31,9 @@ export default function SignupPage() {
       return;
     }
 
-    if (data.session) {
-      router.push("/dashboard");
-      router.refresh();
-      return;
-    }
-
-    setMessage("회원가입이 완료되었습니다. 이메일을 확인해 주세요.");
+    setMessage(
+      "회원가입이 완료되었습니다. 가입하신 이메일로 인증 링크를 보냈습니다. 이메일을 확인한 후 로그인해 주세요.",
+    );
   }
 
   return (

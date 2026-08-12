@@ -1,3 +1,4 @@
+import Link from "next/link";
 import PagzlyLogo from "@/components/PagzlyLogo";
 import ShowcaseSection from "@/components/ShowcaseSection";
 
@@ -110,18 +111,18 @@ export default function Home() {
             <PagzlyLogo className="h-8 w-auto" />
           </a>
           <div className="flex items-center gap-3">
-            <a
-              href="#"
+            <Link
+              href="/login"
               className="hidden rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 sm:inline-block"
             >
               로그인
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              href="/signup"
               className="rounded-lg bg-[#6366f1] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#5558e3]"
             >
               무료 시작
-            </a>
+            </Link>
           </div>
         </nav>
       </header>
@@ -149,12 +150,12 @@ export default function Home() {
               만들어 드립니다. 디자인 경험 없이도 전문가 수준의 결과물을 얻으세요.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <a
-                href="#"
+              <Link
+                href="/signup"
                 className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#6366f1] px-8 text-base font-semibold text-white shadow-lg shadow-[#6366f1]/25 transition-all hover:bg-[#5558e3] hover:shadow-xl hover:shadow-[#6366f1]/30 sm:w-auto"
               >
                 무료로 시작하기
-              </a>
+              </Link>
               <a
                 href="#features"
                 className="inline-flex h-12 w-full items-center justify-center rounded-xl border border-gray-200 px-8 text-base font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 sm:w-auto"
