@@ -106,6 +106,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   async function uploadImages(files: File[]) {
     const supabase = createClient();
     const urls: string[] = [];
+    const uploadedAt = new Date().toISOString();
 
     for (const file of files) {
       const ext = file.type === "image/png" ? "png" : "jpg";
@@ -120,6 +121,19 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       }
 
       const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+
+      const { error: dbError } = await supabase.from("products").insert({
+        user_id: userId,
+        storage_path: path,
+        image_url: data.publicUrl,
+        image_uploaded_at: uploadedAt,
+      });
+
+      if (dbError) {
+        await supabase.storage.from(STORAGE_BUCKET).remove([path]);
+        throw new Error(`이미지 정보 저장 실패: ${dbError.message}`);
+      }
+
       urls.push(data.publicUrl);
     }
 

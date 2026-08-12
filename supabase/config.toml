@@ -1,0 +1,11 @@
+# Supabase local development config
+# https://supabase.com/docs/guides/cli/config
+
+[project]
+id = "pagzly"
+
+[functions.cleanup-expired-images]
+verify_jwt = false
+
+[functions.cleanup-expired-images.cron]
+schedule = "0 0 * * *"

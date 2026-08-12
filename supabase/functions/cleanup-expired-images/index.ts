@@ -1,0 +1,73 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+const STORAGE_BUCKET = "product-images";
+
+Deno.serve(async () => {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new Error("Supabase environment variables are not configured.");
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    const cutoff = threeDaysAgo.toISOString();
+
+    const { data: expiredImages, error: fetchError } = await supabase
+      .from("products")
+      .select("id, storage_path")
+      .lt("image_uploaded_at", cutoff);
+
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    if (!expiredImages?.length) {
+      return new Response(JSON.stringify({ deleted: 0, message: "No expired images" }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const paths = expiredImages.map((row) => row.storage_path);
+    const ids = expiredImages.map((row) => row.id);
+
+    const { error: storageError } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .remove(paths);
+
+    if (storageError) {
+      console.error("[cleanup-expired-images] storage error:", storageError);
+    }
+
+    const { error: deleteError } = await supabase
+      .from("products")
+      .delete()
+      .in("id", ids);
+
+    if (deleteError) {
+      throw deleteError;
+    }
+
+    return new Response(
+      JSON.stringify({
+        deleted: ids.length,
+        paths,
+        cutoff,
+      }),
+      { headers: { "Content-Type": "application/json" } },
+    );
+  } catch (error) {
+    console.error("[cleanup-expired-images]", error);
+    return new Response(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Cleanup failed",
+      }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
+    );
+  }
+});
