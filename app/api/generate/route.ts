@@ -1,5 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
+import {
+  COSMETICS_AI_PROMPT,
+  isCosmeticsCategory,
+  reviewCosmeticsCopy,
+} from "@/lib/cosmetics-compliance";
 import type { GeneratedCopy, ProductInput } from "@/lib/types/generate";
 import { createClient } from "@/lib/supabase/server";
 
@@ -42,6 +47,11 @@ async function analyzeImagesWithClaude(
     }),
   );
 
+  const isCosmetics = isCosmeticsCategory(productInfo.category);
+  const cosmeticsNote = isCosmetics
+    ? `\n\n${COSMETICS_AI_PROMPT}\n분석 시에도 의학적 효능·치료 표현은 사용하지 마세요.`
+    : "";
+
   const message = await anthropic.messages.create({
     model: CLAUDE_MODEL,
     max_tokens: 1500,
@@ -65,7 +75,7 @@ ${productInfo.ingredients ? `성분/소재: ${productInfo.ingredients}` : ""}
 2. 질감/소재 (보이는 질감, 마감, 재질)
 3. 시각적 특징 (형태, 디자인, 패턴, 포장 등)
 4. 전반적인 인상 및 타겟 고객에게 어필할 포인트
-5. 상세페이지에 강조하면 좋을 USP`,
+5. 상세페이지에 강조하면 좋을 USP${cosmeticsNote}`,
           },
         ],
       },
@@ -84,6 +94,11 @@ async function generateCopyWithDeepSeek(
   productInfo: ProductInput,
   imageAnalysis: string,
 ): Promise<GeneratedCopy> {
+  const isCosmetics = isCosmeticsCategory(productInfo.category);
+  const cosmeticsGuide = isCosmetics
+    ? `\n\n## 식약처 화장품 광고 기준 (필수)\n${COSMETICS_AI_PROMPT}`
+    : "";
+
   const prompt = `당신은 한국 이커머스 상세페이지 카피라이터입니다.
 아래 상품 정보와 AI 이미지 분석 결과를 바탕으로 전환율 높은 상세페이지 카피를 작성하세요.
 
@@ -115,7 +130,7 @@ ${imageAnalysis}
 - description: 감성적이면서도 정보가 풍부한 상품 설명
 - features: 핵심 성분/특징/장점을 bullet 형태로 3~5개
 - howToUse: 실용적인 사용 방법
-- caution: 보관/사용 시 주의사항`;
+- caution: 보관/사용 시 주의사항${cosmeticsGuide}`;
 
   const response = await fetch(DEEPSEEK_URL, {
     method: "POST",
@@ -210,6 +225,16 @@ export async function POST(request: Request) {
     );
 
     const generated = await generateCopyWithDeepSeek(body, imageAnalysis);
+
+    if (isCosmeticsCategory(body.category)) {
+      const reviewed = reviewCosmeticsCopy(generated);
+      return NextResponse.json({
+        ...reviewed.copy,
+        imageAnalysis,
+        mfdsReviewed: reviewed.mfdsReviewed,
+        replacements: reviewed.replacements,
+      });
+    }
 
     return NextResponse.json({
       ...generated,

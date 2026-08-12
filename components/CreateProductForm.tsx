@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import PagzlyLogo from "@/components/PagzlyLogo";
 import { createClient } from "@/lib/supabase";
-import type { GeneratedCopy } from "@/lib/types/generate";
+import type { GeneratedCopy, GenerateResponse } from "@/lib/types/generate";
 
 const CATEGORIES = [
   "의류/패션",
@@ -183,7 +183,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         SESSION_KEY,
         JSON.stringify({
           ...payload,
-          generated: generateResult as GeneratedCopy & { imageAnalysis: string },
+          generated: generateResult as GenerateResponse,
         }),
       );
       router.push("/create/result");

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import PagzlyLogo from "@/components/PagzlyLogo";
 import { SESSION_KEY } from "@/components/CreateProductForm";
-import type { GeneratedCopy } from "@/lib/types/generate";
+import type { GenerateResponse } from "@/lib/types/generate";
 
 type ProductResult = {
   category: string;
@@ -20,7 +20,7 @@ type ProductResult = {
   competitorUrl: string | null;
   wholesaleUrl: string | null;
   createdAt: string;
-  generated?: GeneratedCopy & { imageAnalysis?: string };
+  generated?: GenerateResponse;
 };
 
 export default function CreateResultPage() {
@@ -71,13 +71,36 @@ export default function CreateResultPage() {
 
       <main className="mx-auto max-w-3xl space-y-6 px-6 py-10 pb-16">
         <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
-          <p className="text-sm font-medium text-[#6366f1]">생성 완료</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-sm font-medium text-[#6366f1]">생성 완료</p>
+            {generated?.mfdsReviewed && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                ✅ 식약처 광고 기준 검수 완료
+              </span>
+            )}
+          </div>
           <h1 className="mt-2 text-2xl font-bold text-gray-900">
             {data.productName}
           </h1>
           <p className="mt-2 text-sm text-gray-500">
             AI가 분석한 상품 정보를 바탕으로 상세페이지 카피를 생성했습니다.
+            {generated?.mfdsReviewed &&
+              " 화장품/뷰티 카테고리 식약처 광고 기준이 적용되었습니다."}
           </p>
+
+          {generated?.replacements && generated.replacements.length > 0 && (
+            <div className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-xs text-amber-800">
+              <p className="font-medium">자동 수정된 표현</p>
+              <ul className="mt-1.5 space-y-1">
+                {generated.replacements.map((item) => (
+                  <li key={`${item.original}-${item.replacement}`}>
+                    &quot;{item.original}&quot; → &quot;{item.replacement}&quot;
+                    {item.count > 1 ? ` (${item.count}회)` : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="mt-6 grid gap-4 text-sm sm:grid-cols-2">
             <InfoItem label="카테고리" value={data.category} />

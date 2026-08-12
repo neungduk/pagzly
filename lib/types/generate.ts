@@ -20,6 +20,14 @@ export type GeneratedCopy = {
   caution: string;
 };
 
+export type ComplianceReplacement = {
+  original: string;
+  replacement: string;
+  count: number;
+};
+
 export type GenerateResponse = GeneratedCopy & {
   imageAnalysis: string;
+  mfdsReviewed?: boolean;
+  replacements?: ComplianceReplacement[];
 };
