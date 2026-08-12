@@ -1,26 +1,43 @@
+import {
+  CheckCircle2,
+  Cpu,
+  Leaf,
+  PawPrint,
+  Shirt,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
+import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import type { DetailSection } from "@/lib/types/generate";
 
 type DetailSectionRendererProps = {
   sections: DetailSection[];
   imageUrls: string[];
+  category: string;
+};
+
+const THEME_ICONS: Record<string, LucideIcon> = {
+  Sparkles,
+  Leaf,
+  Cpu,
+  Shirt,
+  PawPrint,
+  CheckCircle2,
 };
 
 function resolveImage(imageUrls: string[], index: number) {
   return imageUrls[index] ?? imageUrls[0] ?? "";
 }
 
-function CheckIcon() {
+function ThemeIcon({ theme }: { theme: CategoryTheme }) {
+  const Icon = THEME_ICONS[theme.icon] ?? CheckCircle2;
   return (
-    <svg
-      className="mt-0.5 h-5 w-5 shrink-0 text-[#6366f1]"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={2}
-      stroke="currentColor"
+    <Icon
+      className="mt-0.5 shrink-0"
+      size={20}
+      style={{ color: theme.accent }}
       aria-hidden="true"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-    </svg>
+    />
   );
 }
 
@@ -40,27 +57,47 @@ function SectionImage({
   );
 }
 
-function renderSection(section: DetailSection, imageUrls: string[], index: number) {
+function renderSection(
+  section: DetailSection,
+  imageUrls: string[],
+  index: number,
+  category: string,
+  theme: CategoryTheme,
+) {
   switch (section.type) {
     case "hero": {
       const src = resolveImage(imageUrls, section.imageIndex);
       return (
         <section
           key={`hero-${index}`}
-          className="relative min-h-[320px] overflow-hidden rounded-2xl sm:min-h-[420px]"
+          className="relative min-h-[380px] overflow-hidden rounded-2xl sm:min-h-[480px]"
         >
           <SectionImage
             src={src}
             alt={section.headline}
             className="absolute inset-0 h-full w-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-          <div className="relative flex h-full min-h-[320px] flex-col justify-end p-6 sm:min-h-[420px] sm:p-10">
-            <h2 className="font-serif text-3xl text-white sm:text-4xl">
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `linear-gradient(0deg, ${theme.heroScrimFrom} 0%, rgba(0,0,0,0.05) 60%, transparent 100%)`,
+            }}
+          />
+          <div className="relative flex h-full min-h-[380px] flex-col justify-end p-6 sm:min-h-[480px] sm:p-10">
+            <span
+              className="absolute left-6 top-6 rounded-full px-3 py-1 text-xs font-semibold sm:left-10 sm:top-10"
+              style={{
+                backgroundColor: theme.accentSoft,
+                color: theme.accentText,
+              }}
+            >
+              {category}
+            </span>
+            <h2 className="font-serif text-4xl leading-tight text-white sm:text-5xl">
               {section.headline}
             </h2>
             {section.subheadline && (
-              <p className="mt-2 text-sm text-white/85">{section.subheadline}</p>
+              <p className="mt-2 text-base text-white/90">{section.subheadline}</p>
             )}
           </div>
         </section>
@@ -71,13 +108,19 @@ function renderSection(section: DetailSection, imageUrls: string[], index: numbe
       return (
         <section
           key={`checklist-${index}`}
-          className="rounded-2xl border border-gray-100 bg-[#6366f1]/5 p-6 sm:p-8"
+          className="rounded-2xl border border-gray-100 p-8 sm:p-10"
+          style={{ backgroundColor: theme.accentSoft }}
         >
-          <h3 className="font-serif text-lg text-[#3730a3]">{section.heading}</h3>
-          <ul className="mt-4 space-y-3">
+          <h3
+            className="font-serif text-xl"
+            style={{ color: theme.accentText }}
+          >
+            {section.heading}
+          </h3>
+          <ul className="mt-5 space-y-3">
             {section.items.map((item) => (
               <li key={item} className="flex items-start gap-3 text-sm text-gray-700">
-                <CheckIcon />
+                <ThemeIcon theme={theme} />
                 <span>{item}</span>
               </li>
             ))}
@@ -96,7 +139,7 @@ function renderSection(section: DetailSection, imageUrls: string[], index: numbe
       );
       const textEl = (
         <div>
-          <h3 className="font-serif text-xl text-gray-900">{section.heading}</h3>
+          <h3 className="font-serif text-2xl text-gray-900">{section.heading}</h3>
           <p className="mt-3 text-sm leading-relaxed text-gray-600">{section.body}</p>
         </div>
       );
@@ -104,7 +147,7 @@ function renderSection(section: DetailSection, imageUrls: string[], index: numbe
       return (
         <section
           key={`image_text-${index}`}
-          className="rounded-2xl border border-gray-100 bg-white p-6 sm:p-8"
+          className="rounded-2xl border border-gray-100 bg-white p-8 sm:p-10"
         >
           <div className="grid items-center gap-6 sm:grid-cols-2">
             {section.imagePosition === "left" ? (
@@ -127,10 +170,10 @@ function renderSection(section: DetailSection, imageUrls: string[], index: numbe
       return (
         <section
           key={`spec_table-${index}`}
-          className="rounded-2xl border border-gray-100 bg-white p-6 sm:p-8"
+          className="rounded-2xl border border-gray-100 bg-white p-8 sm:p-10"
         >
-          <h3 className="font-serif text-xl text-gray-900">{section.heading}</h3>
-          <div className="mt-4 overflow-hidden rounded-xl border border-gray-100">
+          <h3 className="font-serif text-2xl text-gray-900">{section.heading}</h3>
+          <div className="mt-5 overflow-hidden rounded-xl border border-gray-100">
             <table className="w-full text-sm">
               <tbody>
                 {section.rows.map((row, rowIndex) => (
@@ -154,13 +197,16 @@ function renderSection(section: DetailSection, imageUrls: string[], index: numbe
       return (
         <section
           key={`usage_steps-${index}`}
-          className="rounded-2xl border border-gray-100 bg-white p-6 sm:p-8"
+          className="rounded-2xl border border-gray-100 bg-white p-8 sm:p-10"
         >
-          <h3 className="font-serif text-xl text-gray-900">{section.heading}</h3>
-          <ol className="mt-4 space-y-4">
+          <h3 className="font-serif text-2xl text-gray-900">{section.heading}</h3>
+          <ol className="mt-5 space-y-4">
             {section.steps.map((step, stepIndex) => (
               <li key={step} className="flex items-start gap-3 text-sm text-gray-700">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#6366f1] text-xs font-semibold text-white">
+                <span
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+                  style={{ backgroundColor: theme.accent }}
+                >
                   {stepIndex + 1}
                 </span>
                 <span className="pt-0.5">{step}</span>
@@ -174,10 +220,10 @@ function renderSection(section: DetailSection, imageUrls: string[], index: numbe
       return (
         <section
           key={`gallery-${index}`}
-          className="rounded-2xl border border-gray-100 bg-white p-6 sm:p-8"
+          className="rounded-2xl border border-gray-100 bg-white p-8 sm:p-10"
         >
-          <h3 className="font-serif text-xl text-gray-900">{section.heading}</h3>
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <h3 className="font-serif text-2xl text-gray-900">{section.heading}</h3>
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {section.imageIndexes.map((imageIndex) => {
               const src = resolveImage(imageUrls, imageIndex);
               return (
@@ -197,9 +243,9 @@ function renderSection(section: DetailSection, imageUrls: string[], index: numbe
       return (
         <section
           key={`caution-${index}`}
-          className="rounded-2xl border border-amber-100 bg-amber-50 p-6 sm:p-8"
+          className="rounded-2xl border border-amber-100 bg-amber-50 p-8 sm:p-10"
         >
-          <h3 className="font-serif text-lg text-amber-800">{section.heading}</h3>
+          <h3 className="font-serif text-xl text-amber-800">{section.heading}</h3>
           <p className="mt-2 text-sm leading-relaxed text-amber-700">{section.body}</p>
         </section>
       );
@@ -208,15 +254,25 @@ function renderSection(section: DetailSection, imageUrls: string[], index: numbe
       return (
         <section
           key={`cta_price-${index}`}
-          className="rounded-2xl border-2 border-[#6366f1]/20 bg-white p-6 sm:p-8"
+          className="rounded-2xl border-2 bg-white p-8 sm:p-10"
+          style={{ borderColor: `${theme.accent}33` }}
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-serif text-2xl text-[#6366f1]">
+              <p
+                className="font-serif text-2xl"
+                style={{ color: theme.accent }}
+              >
                 ₩{section.price.toLocaleString()}
               </p>
               {section.targetCustomer && (
-                <span className="mt-2 inline-block rounded-full bg-[#6366f1]/10 px-3 py-1 text-xs text-[#6366f1]">
+                <span
+                  className="mt-2 inline-block rounded-full px-3 py-1 text-xs"
+                  style={{
+                    backgroundColor: theme.accentSoft,
+                    color: theme.accentText,
+                  }}
+                >
                   {section.targetCustomer}
                 </span>
               )}
@@ -226,7 +282,11 @@ function renderSection(section: DetailSection, imageUrls: string[], index: numbe
                 {section.badges.map((badge) => (
                   <span
                     key={badge}
-                    className="rounded-full bg-[#6366f1]/10 px-3 py-1 text-xs text-[#6366f1]"
+                    className="rounded-full px-3 py-1 text-xs"
+                    style={{
+                      backgroundColor: theme.accentSoft,
+                      color: theme.accentText,
+                    }}
                   >
                     {badge}
                   </span>
@@ -245,10 +305,15 @@ function renderSection(section: DetailSection, imageUrls: string[], index: numbe
 export default function DetailSectionRenderer({
   sections,
   imageUrls,
+  category,
 }: DetailSectionRendererProps) {
+  const theme = getCategoryTheme(category);
+
   return (
-    <div className="space-y-6">
-      {sections.map((section, index) => renderSection(section, imageUrls, index))}
+    <div className="space-y-8 sm:space-y-10">
+      {sections.map((section, index) =>
+        renderSection(section, imageUrls, index, category, theme),
+      )}
     </div>
   );
 }

@@ -8,8 +8,8 @@ import {
 import type { GeneratedCopy, ProductInput } from "@/lib/types/generate";
 import { createClient } from "@/lib/supabase/server";
 
-const CLAUDE_MODEL = "claude-sonnet-4-6";
-const DEEPSEEK_MODEL = "deepseek-chat";
+const CLAUDE_MODEL = "claude-sonnet-5";
+const DEEPSEEK_MODEL = "deepseek-v4-flash";
 const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
 
 async function fetchImageAsBase64(url: string) {

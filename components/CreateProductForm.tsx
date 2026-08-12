@@ -38,6 +38,8 @@ type UploadedImage = {
   path: string;
 };
 
+type LoadingStage = "idle" | "uploading" | "enhancing" | "generating";
+
 function validateImage(file: File): string | null {
   if (!ALLOWED_TYPES.includes(file.type)) {
     return "JPG, PNG 파일만 업로드할 수 있습니다.";
@@ -63,7 +65,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const [wholesaleUrl, setWholesaleUrl] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState<LoadingStage>("idle");
+  const loading = loadingStage !== "idle";
 
   const addImages = useCallback(
     (files: FileList | File[]) => {
@@ -148,6 +151,48 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     return uploaded;
   }
 
+  async function enhanceImages(
+    uploaded: UploadedImage[],
+    productCategory: string,
+  ): Promise<UploadedImage[]> {
+    const results = await Promise.all(
+      uploaded.map(async (item) => {
+        try {
+          const response = await fetch("/api/enhance-image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              imageUrl: item.url,
+              storagePath: item.path,
+              category: productCategory,
+            }),
+          });
+
+          const result = (await response.json()) as {
+            enhancedUrl?: string;
+            enhancedPath?: string;
+            error?: string;
+          };
+
+          if (!response.ok || !result.enhancedUrl || !result.enhancedPath) {
+            console.warn(
+              "[enhance-image] 보정 실패, 원본 사용:",
+              result.error ?? item.path,
+            );
+            return item;
+          }
+
+          return { url: result.enhancedUrl, path: result.enhancedPath };
+        } catch (err) {
+          console.warn("[enhance-image] 보정 실패, 원본 사용:", item.path, err);
+          return item;
+        }
+      }),
+    );
+
+    return results;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -169,12 +214,14 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       return;
     }
 
-    setLoading(true);
+    setLoadingStage("uploading");
 
     try {
       const uploaded = await uploadImages(images);
-      const imageUrls = uploaded.map((item) => item.url);
-      const imagePaths = uploaded.map((item) => item.path);
+      setLoadingStage("enhancing");
+      const enhanced = await enhanceImages(uploaded, category);
+      const imageUrls = enhanced.map((item) => item.url);
+      const imagePaths = enhanced.map((item) => item.path);
 
       const payload = {
         category,
@@ -191,6 +238,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         wholesaleUrl: wholesaleUrl.trim() || null,
         createdAt: new Date().toISOString(),
       };
+
+      setLoadingStage("generating");
 
       const generateResponse = await fetch("/api/generate", {
         method: "POST",
@@ -214,9 +263,18 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       router.push("/create/result");
     } catch (err) {
       setError(err instanceof Error ? err.message : "제출 중 오류가 발생했습니다.");
-      setLoading(false);
+      setLoadingStage("idle");
     }
   }
+
+  const loadingLabel =
+    loadingStage === "uploading"
+      ? "사진 업로드 중..."
+      : loadingStage === "enhancing"
+        ? "사진 보정 중..."
+        : loadingStage === "generating"
+          ? "AI 상세페이지 생성 중..."
+          : "AI 상세페이지 생성하기";
 
   const inputClass =
     "mt-1.5 w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/20";
@@ -510,7 +568,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
             disabled={loading}
             className="flex h-14 w-full items-center justify-center rounded-xl bg-[#6366f1] text-base font-semibold text-white shadow-lg shadow-[#6366f1]/25 transition-all hover:bg-[#5558e3] hover:shadow-xl hover:shadow-[#6366f1]/30 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "AI 상세페이지 생성 중..." : "AI 상세페이지 생성하기"}
+            {loading ? loadingLabel : "AI 상세페이지 생성하기"}
           </button>
         </form>
       </main>

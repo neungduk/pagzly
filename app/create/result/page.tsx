@@ -163,6 +163,7 @@ export default function CreateResultPage() {
             <DetailSectionRenderer
               sections={generated.sections}
               imageUrls={data.imageUrls}
+              category={data.category}
             />
           </div>
         ) : (
