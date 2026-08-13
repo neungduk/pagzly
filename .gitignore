@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# claude code local config/state
+/.claude/
+
 # playwright login session (contains auth cookies/tokens)
 scripts/auth-state.json
 
