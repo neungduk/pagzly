@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# playwright login session (contains auth cookies/tokens)
+scripts/auth-state.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
