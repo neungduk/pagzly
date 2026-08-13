@@ -14,6 +14,7 @@ type DetailSectionRendererProps = {
   sections: DetailSection[];
   imageUrls: string[];
   category: string;
+  theme?: CategoryTheme;
 };
 
 const THEME_ICONS: Record<string, LucideIcon> = {
@@ -89,6 +90,7 @@ function renderSection(
               style={{
                 backgroundColor: theme.accentSoft,
                 color: theme.accentText,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
               }}
             >
               {category}
@@ -260,10 +262,10 @@ function renderSection(
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p
-                className="font-serif text-2xl"
+                className="text-2xl"
                 style={{ color: theme.accent }}
               >
-                ₩{section.price.toLocaleString()}
+                ₩<span className="font-serif">{section.price.toLocaleString()}</span>
               </p>
               {section.targetCustomer && (
                 <span
@@ -306,8 +308,9 @@ export default function DetailSectionRenderer({
   sections,
   imageUrls,
   category,
+  theme: themeOverride,
 }: DetailSectionRendererProps) {
-  const theme = getCategoryTheme(category);
+  const theme = themeOverride ?? getCategoryTheme(category);
 
   return (
     <div className="space-y-8 sm:space-y-10">

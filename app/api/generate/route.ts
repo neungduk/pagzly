@@ -7,6 +7,7 @@ import {
 } from "@/lib/cosmetics-compliance";
 import type { GeneratedCopy, ProductInput } from "@/lib/types/generate";
 import { createClient } from "@/lib/supabase/server";
+import { extractProductTheme } from "@/lib/color-extract";
 
 const CLAUDE_MODEL = "claude-sonnet-5";
 const DEEPSEEK_MODEL = "deepseek-v4-flash";
@@ -196,6 +197,15 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${cosm
   const clampIndex = (i: number) =>
     Number.isInteger(i) && i >= 0 && i < imageCount ? i : 0;
 
+  // DeepSeek가 가끔 price를 "29,900원" 같은 포맷된 문자열로 반환할 때가 있어,
+  // 숫자가 아닌 문자를 제거하고 순수 숫자로 강제 변환한다.
+  const sanitizePrice = (value: unknown): number => {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    const digitsOnly = String(value).replace(/[^0-9]/g, "");
+    const parsed = Number(digitsOnly);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
   parsed.sections = parsed.sections.map((section) => {
     if (section.type === "hero" || section.type === "image_text") {
       return { ...section, imageIndex: clampIndex(section.imageIndex) };
@@ -207,6 +217,9 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${cosm
           .map(clampIndex)
           .filter((v, i, arr) => arr.indexOf(v) === i),
       };
+    }
+    if (section.type === "cta_price") {
+      return { ...section, price: sanitizePrice(section.price) };
     }
     return section;
   });
@@ -257,11 +270,13 @@ export async function POST(request: Request) {
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    const imageAnalysis = await analyzeImagesWithClaude(
-      anthropic,
-      body.imageUrls.slice(0, 5),
-      body,
-    );
+    const [imageAnalysis, theme] = await Promise.all([
+      analyzeImagesWithClaude(anthropic, body.imageUrls.slice(0, 5), body),
+      extractProductTheme(body.imageUrls).catch((err) => {
+        console.warn("[generate] 상품 색상 추출 실패, 카테고리 기본 테마로 폴백", err);
+        return null;
+      }),
+    ]);
 
     const generated = await generateCopyWithDeepSeek(
       body,
@@ -329,6 +344,7 @@ export async function POST(request: Request) {
       mfdsReviewed,
       replacements,
       productId: savedProduct.id as string,
+      theme,
     });
   } catch (error) {
     console.error("[generate]", error);

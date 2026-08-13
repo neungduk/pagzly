@@ -90,9 +90,17 @@ export type ComplianceReplacement = {
   count: number;
 };
 
+export type ExtractedTheme = {
+  accent: string;
+  accentSoft: string;
+  accentText: string;
+  heroScrimFrom: string;
+};
+
 export type GenerateResponse = GeneratedCopy & {
   imageAnalysis: string;
   mfdsReviewed?: boolean;
   replacements?: ComplianceReplacement[];
   productId: string;
+  theme?: ExtractedTheme | null;
 };

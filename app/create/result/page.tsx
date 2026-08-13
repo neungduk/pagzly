@@ -8,6 +8,7 @@ import DetailSectionRenderer from "@/components/DetailSectionRenderer";
 import PagzlyLogo from "@/components/PagzlyLogo";
 import { SESSION_KEY } from "@/components/CreateProductForm";
 import type { GenerateResponse } from "@/lib/types/generate";
+import { getCategoryTheme } from "@/lib/category-theme";
 
 type ProductResult = {
   category: string;
@@ -84,6 +85,10 @@ export default function CreateResultPage() {
   }
 
   const { generated } = data;
+  const categoryTheme = getCategoryTheme(data.category);
+  const theme = generated?.theme
+    ? { ...categoryTheme, ...generated.theme }
+    : categoryTheme;
 
   return (
     <div className="min-h-full bg-white text-gray-900">
@@ -164,6 +169,7 @@ export default function CreateResultPage() {
               sections={generated.sections}
               imageUrls={data.imageUrls}
               category={data.category}
+              theme={theme}
             />
           </div>
         ) : (
