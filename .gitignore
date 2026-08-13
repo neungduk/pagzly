@@ -39,6 +39,10 @@ yarn-error.log*
 # playwright login session (contains auth cookies/tokens)
 scripts/auth-state.json
 
+# ad-hoc QA screenshots and test fixture photos (not needed in history)
+review/*.png
+scripts/test-assets/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
