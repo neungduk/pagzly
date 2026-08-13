@@ -22,20 +22,29 @@ export async function POST(request: Request) {
       );
     }
 
-    const { imageUrl, storagePath, category } = (await request.json()) as {
+    const { imageUrl, storagePath, backdropDataUrl } = (await request.json()) as {
       imageUrl?: string;
       storagePath?: string;
-      category?: string;
+      backdropDataUrl?: string;
     };
 
-    if (!imageUrl || !storagePath || !category) {
+    if (!imageUrl || !storagePath || !backdropDataUrl) {
       return NextResponse.json(
-        { error: "imageUrl, storagePath, category가 모두 필요합니다." },
+        { error: "imageUrl, storagePath, backdropDataUrl이 모두 필요합니다." },
         { status: 400 },
       );
     }
 
-    const enhancedBuffer = await enhanceProductImage(imageUrl, category);
+    const base64Data = backdropDataUrl.split(",")[1];
+    if (!base64Data) {
+      return NextResponse.json(
+        { error: "backdropDataUrl 형식이 올바르지 않습니다." },
+        { status: 400 },
+      );
+    }
+    const backdropBuffer = Buffer.from(base64Data, "base64");
+
+    const enhancedBuffer = await enhanceProductImage(imageUrl, backdropBuffer);
     const enhancedPath = storagePath.replace(/\.[^./]+$/, "") + "-enhanced.png";
 
     const { error: uploadError } = await supabase.storage
@@ -53,8 +62,6 @@ export async function POST(request: Request) {
       .from(STORAGE_BUCKET)
       .getPublicUrl(enhancedPath);
 
-    // product_images 테이블의 원본 행을 보정본 경로/URL로 갱신
-    // (원본을 새로 insert하지 않고 같은 행을 업데이트 — 3일 자동삭제 추적이 계속 이어지도록)
     const { error: updateError } = await supabase
       .from("product_images")
       .update({
@@ -68,7 +75,6 @@ export async function POST(request: Request) {
       console.error("[enhance-image] product_images update error", updateError);
     }
 
-    // 원본 파일은 더 이상 필요 없으니 정리 (실패해도 치명적이지 않으므로 로그만)
     const { error: removeError } = await supabase.storage
       .from(STORAGE_BUCKET)
       .remove([storagePath]);

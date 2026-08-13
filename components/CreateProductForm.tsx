@@ -152,9 +152,45 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     return uploaded;
   }
 
+  async function generateBackdrop(
+    productCategory: string,
+    name: string,
+    brand: string | null,
+  ): Promise<string | null> {
+    try {
+      const response = await fetch("/api/generate-backdrop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: productCategory,
+          productName: name,
+          brandName: brand,
+        }),
+      });
+
+      const result = (await response.json()) as {
+        backdropDataUrl?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !result.backdropDataUrl) {
+        console.warn(
+          "[generate-backdrop] 배경 생성 실패, 원본 이미지 사용:",
+          result.error ?? "unknown",
+        );
+        return null;
+      }
+
+      return result.backdropDataUrl;
+    } catch (err) {
+      console.warn("[generate-backdrop] 배경 생성 실패, 원본 이미지 사용:", err);
+      return null;
+    }
+  }
+
   async function enhanceImages(
     uploaded: UploadedImage[],
-    productCategory: string,
+    backdropDataUrl: string,
   ): Promise<UploadedImage[]> {
     const results = await Promise.all(
       uploaded.map(async (item) => {
@@ -165,7 +201,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
             body: JSON.stringify({
               imageUrl: item.url,
               storagePath: item.path,
-              category: productCategory,
+              backdropDataUrl,
             }),
           });
 
@@ -219,10 +255,22 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
 
     try {
       const uploaded = await uploadImages(images);
-      setLoadingStage("enhancing");
-      const enhanced = await enhanceImages(uploaded, category);
-      const imageUrls = enhanced.map((item) => item.url);
-      const imagePaths = enhanced.map((item) => item.path);
+
+      setLoadingStage("backdrop");
+      const backdropDataUrl = await generateBackdrop(
+        category,
+        productName.trim(),
+        brandName.trim() || null,
+      );
+
+      let finalImages = uploaded;
+      if (backdropDataUrl) {
+        setLoadingStage("enhancing");
+        finalImages = await enhanceImages(uploaded, backdropDataUrl);
+      }
+
+      const imageUrls = finalImages.map((item) => item.url);
+      const imagePaths = finalImages.map((item) => item.path);
 
       const payload = {
         category,
@@ -271,11 +319,13 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const loadingLabel =
     loadingStage === "uploading"
       ? "사진 업로드 중..."
-      : loadingStage === "enhancing"
-        ? "사진 보정 중..."
-        : loadingStage === "generating"
-          ? "AI 상세페이지 생성 중..."
-          : "AI 상세페이지 생성하기";
+      : loadingStage === "backdrop"
+        ? "배경 디자인 생성 중..."
+        : loadingStage === "enhancing"
+          ? "사진 보정 중..."
+          : loadingStage === "generating"
+            ? "AI 상세페이지 생성 중..."
+            : "AI 상세페이지 생성하기";
 
   const inputClass =
     "mt-1.5 w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/20";

@@ -1,7 +1,8 @@
-export type GeneratingStage = "uploading" | "enhancing" | "generating";
+export type GeneratingStage = "uploading" | "backdrop" | "enhancing" | "generating";
 
 const STAGE_MESSAGES: Record<GeneratingStage, string> = {
   uploading: "사진 업로드 중",
+  backdrop: "배경 디자인 생성 중",
   enhancing: "사진 보정 중",
   generating: "AI 상세페이지 생성 중",
 };
