@@ -13,8 +13,13 @@ export type ProductInput = {
   wholesaleUrl?: string | null;
 };
 
+// slot: lib/section-templates.ts가 카테고리별로 고정한 슬롯 이름
+// (예: "ingredient_highlight", "size_table"). AI는 이 값을 새로 짓지 않고,
+// 해당 위치의 템플릿이 지정한 slot 이름을 그대로 채워 넣는다. 서버는 응답을
+// 받은 뒤 slot 순서가 템플릿과 일치하는지 검증한다.
 export type HeroSection = {
   type: "hero";
+  slot: string;
   headline: string;
   subheadline?: string;
   imageIndex: number;
@@ -22,12 +27,14 @@ export type HeroSection = {
 
 export type ChecklistSection = {
   type: "checklist";
+  slot: string;
   heading: string;
   items: string[];
 };
 
 export type ImageTextSection = {
   type: "image_text";
+  slot: string;
   heading: string;
   body: string;
   imageIndex: number;
@@ -36,33 +43,55 @@ export type ImageTextSection = {
 
 export type SpecTableSection = {
   type: "spec_table";
+  slot: string;
   heading: string;
   rows: { label: string; value: string }[];
 };
 
 export type UsageStepsSection = {
   type: "usage_steps";
+  slot: string;
   heading: string;
   steps: string[];
 };
 
 export type GallerySection = {
   type: "gallery";
+  slot: string;
   heading: string;
   imageIndexes: number[];
 };
 
 export type CautionSection = {
   type: "caution";
+  slot: string;
   heading: string;
   body: string;
 };
 
 export type CtaPriceSection = {
   type: "cta_price";
+  slot: string;
   price: number;
   targetCustomer?: string | null;
   badges?: string[];
+};
+
+// 스펙 비교(경쟁사/이전 모델 대비) 전용 2열 비교표.
+export type ComparisonTableSection = {
+  type: "comparison_table";
+  slot: string;
+  heading: string;
+  columns: [string, string];
+  rows: { label: string; values: [string, string] }[];
+};
+
+// 컬러/옵션별 스와치 + 착용컷. 패션의 color_variation 슬롯 전용.
+export type ColorVariationSection = {
+  type: "color_variation";
+  slot: string;
+  heading: string;
+  options: { label: string; colorHex: string; imageIndex: number }[];
 };
 
 export type DetailSection =
@@ -73,7 +102,9 @@ export type DetailSection =
   | UsageStepsSection
   | GallerySection
   | CautionSection
-  | CtaPriceSection;
+  | CtaPriceSection
+  | ComparisonTableSection
+  | ColorVariationSection;
 
 export type GeneratedCopy = {
   sections: DetailSection[];
@@ -95,6 +126,8 @@ export type ExtractedTheme = {
   accentSoft: string;
   accentText: string;
   heroScrimFrom: string;
+  baseNeutral: string;
+  deepAccent: string;
 };
 
 export type GenerateResponse = GeneratedCopy & {

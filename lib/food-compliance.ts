@@ -1,13 +1,14 @@
 import type { DetailSection, GeneratedCopy } from "@/lib/types/generate";
 
-export const COSMETICS_CATEGORY = "화장품/뷰티";
+export const FOOD_CATEGORY = "식품/건강기능식품";
 
-export const COSMETICS_AI_PROMPT = `화장품 광고 문구 작성 시 식약처 화장품법 광고 기준을 준수해야 합니다.
-효능·효과를 의학적으로 확정하는 표현, 치료·완치 관련 표현은 절대 사용하지 마세요.
-대신 '케어', '개선에 도움', '진정' 등의 표현을 사용하세요.
+export const FOOD_AI_PROMPT = `식품 표시·광고 문구 작성 시 식품 등의 표시·광고에 관한 법률(식품표시광고법) 기준을
+준수해야 합니다. 질병 예방·치료 효능을 암시하거나 의약품으로 오인할 수 있는 표현,
+객관적 근거 없는 최상급/과장 표현은 절대 사용하지 마세요.
+대신 '~에 도움을 줄 수 있음', '풍부하게 함유' 등 사실 기반 표현을 사용하세요.
 
-금지 표현 예시: 치료, 완치, 제거, 회복, 재생, 의학적으로 증명, 임상 실험,
-주름 제거, 미백 효과, 피부과 처방, 의사 추천, 아토피 치료, 여드름 치료`;
+금지 표현 예시: 치료, 완치, 예방, 효능, 의약품, 다이어트 효과, 100% 효과,
+당뇨 개선, 암 예방, 즉각적인 효과, 부작용 없음, 최고의 효능, 만병통치`;
 
 type ReplacementRule = {
   pattern: RegExp;
@@ -16,23 +17,19 @@ type ReplacementRule = {
 };
 
 const REPLACEMENT_RULES: ReplacementRule[] = [
-  { pattern: /아토피 치료/g, replacement: "아토피 케어", label: "아토피 치료" },
-  { pattern: /여드름 치료/g, replacement: "여드름 케어", label: "여드름 치료" },
-  { pattern: /주름 제거/g, replacement: "주름 개선에 도움", label: "주름 제거" },
-  { pattern: /미백 효과/g, replacement: "피부 톤 개선에 도움", label: "미백 효과" },
-  {
-    pattern: /의학적으로 증명/g,
-    replacement: "성분 기반 케어",
-    label: "의학적으로 증명",
-  },
-  { pattern: /피부과 처방/g, replacement: "전문 케어", label: "피부과 처방" },
-  { pattern: /의사 추천/g, replacement: "전문가 추천", label: "의사 추천" },
-  { pattern: /임상 실험/g, replacement: "성분 연구", label: "임상 실험" },
-  { pattern: /완치/g, replacement: "진정", label: "완치" },
-  { pattern: /재생/g, replacement: "회복에 도움", label: "재생" },
-  { pattern: /제거/g, replacement: "개선에 도움", label: "제거" },
+  { pattern: /당뇨 개선/g, replacement: "건강한 혈당 관리 습관에 도움", label: "당뇨 개선" },
+  { pattern: /암 예방/g, replacement: "건강한 생활습관에 도움", label: "암 예방" },
+  { pattern: /다이어트 효과/g, replacement: "체중 관리에 도움", label: "다이어트 효과" },
+  { pattern: /즉각적인 효과/g, replacement: "꾸준한 섭취에 도움", label: "즉각적인 효과" },
+  { pattern: /부작용 없음/g, replacement: "안심하고 섭취", label: "부작용 없음" },
+  { pattern: /최고의 효능/g, replacement: "우수한 품질", label: "최고의 효능" },
+  { pattern: /만병통치/g, replacement: "건강한 습관", label: "만병통치" },
+  { pattern: /100% 효과/g, replacement: "품질 관리된 제품", label: "100% 효과" },
+  { pattern: /의약품(?!\s*수준)/g, replacement: "건강식품", label: "의약품" },
+  { pattern: /완치/g, replacement: "개선 습관", label: "완치" },
+  { pattern: /예방(?!접종)/g, replacement: "관리에 도움", label: "예방" },
+  { pattern: /효능/g, replacement: "도움", label: "효능" },
   { pattern: /치료/g, replacement: "케어", label: "치료" },
-  { pattern: /회복(?!에 도움)/g, replacement: "회복에 도움", label: "회복" },
 ];
 
 export type ComplianceReplacement = {
@@ -41,8 +38,8 @@ export type ComplianceReplacement = {
   count: number;
 };
 
-export function isCosmeticsCategory(category: string) {
-  return category === COSMETICS_CATEGORY;
+export function isFoodCategory(category: string) {
+  return category === FOOD_CATEGORY;
 }
 
 export function sanitizeText(text: string): {
@@ -153,7 +150,7 @@ function sanitizeSection(
   }
 }
 
-export function reviewCosmeticsCopy(copy: GeneratedCopy): {
+export function reviewFoodCopy(copy: GeneratedCopy): {
   copy: GeneratedCopy;
   mfdsReviewed: boolean;
   replacements: ComplianceReplacement[];

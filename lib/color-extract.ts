@@ -56,14 +56,20 @@ function rgbToHex(r: number, g: number, b: number) {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
 }
 
-async function sampleDominantHue(imageUrl: string): Promise<{ h: number; weight: number } | null> {
+type ImageSample = {
+  hue: { h: number; weight: number } | null;
+  // 상품 배경/그림자 영역(무채색 픽셀)의 평균 RGB. baseNeutral 계산용.
+  neutral: { r: number; g: number; b: number; count: number } | null;
+};
+
+async function sampleImage(imageUrl: string): Promise<ImageSample> {
   const response = await fetch(imageUrl);
-  if (!response.ok) return null;
+  if (!response.ok) return { hue: null, neutral: null };
   const buffer = Buffer.from(await response.arrayBuffer());
 
   const image = sharp(buffer);
   const meta = await image.metadata();
-  if (!meta.width || !meta.height) return null;
+  if (!meta.width || !meta.height) return { hue: null, neutral: null };
 
   const cropW = Math.max(1, Math.round(meta.width * CENTER_CROP_RATIO));
   const cropH = Math.max(1, Math.round(meta.height * CENTER_CROP_RATIO));
@@ -80,6 +86,10 @@ async function sampleDominantHue(imageUrl: string): Promise<{ h: number; weight:
   const channels = info.channels;
   // 15도 단위로 색상(hue)을 버킷팅해서 가장 비중이 큰 색상대를 찾는다.
   const buckets = new Map<number, { weight: number; hueWeightedSum: number }>();
+  // 옅은 무채색(밝은 회색/아이보리) 픽셀 평균 — baseNeutral 후보.
+  let lightNeutral = { r: 0, g: 0, b: 0, count: 0 };
+  // 위 조건에 맞는 픽셀이 없을 때 쓰는 폭넓은 무채색 폴백.
+  let anyNeutral = { r: 0, g: 0, b: 0, count: 0 };
 
   for (let i = 0; i < data.length; i += channels) {
     const r = data[i];
@@ -87,8 +97,28 @@ async function sampleDominantHue(imageUrl: string): Promise<{ h: number; weight:
     const b = data[i + 2];
     const { h, s, l } = rgbToHsl(r, g, b);
 
-    // 채도가 낮은 흰색/회색/검정 픽셀은 스튜디오 배경·그림자일 확률이 높아 제외.
-    if (s < 0.18 || l > 0.93 || l < 0.07) continue;
+    if (s < 0.18) {
+      if (l >= 0.05 && l <= 0.97) {
+        anyNeutral = {
+          r: anyNeutral.r + r,
+          g: anyNeutral.g + g,
+          b: anyNeutral.b + b,
+          count: anyNeutral.count + 1,
+        };
+      }
+      if (l >= 0.55 && l <= 0.95) {
+        lightNeutral = {
+          r: lightNeutral.r + r,
+          g: lightNeutral.g + g,
+          b: lightNeutral.b + b,
+          count: lightNeutral.count + 1,
+        };
+      }
+      // 채도가 낮은 흰색/회색/검정 픽셀은 스튜디오 배경·그림자일 확률이 높아
+      // hue 버킷에서는 제외 (accentColor는 유채색 픽셀에서만 뽑는다).
+      continue;
+    }
+    if (l > 0.93 || l < 0.07) continue;
 
     const bucketKey = Math.round(h / 15) * 15;
     const entry = buckets.get(bucketKey) ?? { weight: 0, hueWeightedSum: 0 };
@@ -103,7 +133,22 @@ async function sampleDominantHue(imageUrl: string): Promise<{ h: number; weight:
       best = { h: entry.hueWeightedSum / entry.weight, weight: entry.weight };
     }
   }
-  return best;
+
+  const neutral = lightNeutral.count > 0 ? lightNeutral : anyNeutral.count > 0 ? anyNeutral : null;
+
+  return { hue: best, neutral };
+}
+
+// accentColor를 20~30% 어둡게 만든 deepAccent 계산 (텍스트/버튼 강조용).
+function darken(hex: string, amount = 0.25): string {
+  const normalized = hex.replace("#", "");
+  const bigint = parseInt(normalized, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  const { h, s, l } = rgbToHsl(r, g, b);
+  const [dr, dg, db] = hslToRgb(h, s, Math.max(0, l * (1 - amount)));
+  return rgbToHex(dr, dg, db);
 }
 
 // 업로드된 상품 사진들 중 가장 채도가 강하게 드러난 색상대를 골라 테마를
@@ -111,15 +156,24 @@ async function sampleDominantHue(imageUrl: string): Promise<{ h: number; weight:
 // 호출부는 카테고리 기본 테마로 폴백해야 한다.
 export async function extractProductTheme(imageUrls: string[]): Promise<ExtractedTheme | null> {
   const samples = await Promise.all(
-    imageUrls.slice(0, 3).map((url) => sampleDominantHue(url).catch(() => null)),
+    imageUrls.slice(0, 3).map((url) => sampleImage(url).catch(() => null)),
   );
 
   let bestHue: number | null = null;
   let bestWeight = 0;
+  const neutralTotal = { r: 0, g: 0, b: 0, count: 0 };
+
   for (const sample of samples) {
-    if (sample && sample.weight > bestWeight) {
-      bestWeight = sample.weight;
-      bestHue = sample.h;
+    if (!sample) continue;
+    if (sample.hue && sample.hue.weight > bestWeight) {
+      bestWeight = sample.hue.weight;
+      bestHue = sample.hue.h;
+    }
+    if (sample.neutral) {
+      neutralTotal.r += sample.neutral.r;
+      neutralTotal.g += sample.neutral.g;
+      neutralTotal.b += sample.neutral.b;
+      neutralTotal.count += sample.neutral.count;
     }
   }
 
@@ -128,11 +182,23 @@ export async function extractProductTheme(imageUrls: string[]): Promise<Extracte
   const [ar, ag, ab] = hslToRgb(bestHue, 0.62, 0.32);
   const [sr, sg, sb] = hslToRgb(bestHue, 0.55, 0.96);
   const [tr, tg, tb] = hslToRgb(bestHue, 0.55, 0.26);
+  const accent = rgbToHex(ar, ag, ab);
+
+  const baseNeutral =
+    neutralTotal.count > 0
+      ? rgbToHex(
+          Math.round(neutralTotal.r / neutralTotal.count),
+          Math.round(neutralTotal.g / neutralTotal.count),
+          Math.round(neutralTotal.b / neutralTotal.count),
+        )
+      : rgbToHex(sr, sg, sb); // 배경/그림자에서 무채색 픽셀을 못 찾으면 accentSoft로 폴백.
 
   return {
-    accent: rgbToHex(ar, ag, ab),
+    accent,
     accentSoft: rgbToHex(sr, sg, sb),
     accentText: rgbToHex(tr, tg, tb),
     heroScrimFrom: `rgba(${ar},${ag},${ab},0.72)`,
+    baseNeutral,
+    deepAccent: darken(accent, 0.25),
   };
 }

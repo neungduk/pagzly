@@ -5,9 +5,11 @@ import {
   isCosmeticsCategory,
   reviewCosmeticsCopy,
 } from "@/lib/cosmetics-compliance";
-import type { GeneratedCopy, ProductInput } from "@/lib/types/generate";
+import { FOOD_AI_PROMPT, isFoodCategory, reviewFoodCopy } from "@/lib/food-compliance";
+import type { DetailSection, GeneratedCopy, ProductInput } from "@/lib/types/generate";
 import { createClient } from "@/lib/supabase/server";
 import { extractProductTheme } from "@/lib/color-extract";
+import { getSlotImageRatio, getSlotTemplate, type SlotDefinition } from "@/lib/section-templates";
 
 const CLAUDE_MODEL = "claude-sonnet-5";
 const DEEPSEEK_MODEL = "deepseek-v4-flash";
@@ -95,21 +97,61 @@ ${productInfo.ingredients ? `성분/소재: ${productInfo.ingredients}` : ""}
   return textBlock.text;
 }
 
+// 섹션 타입별 JSON 필드 형식. slot 값은 템플릿이 지정한 이름을 그대로 써야 한다.
+const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
+  hero: `{ type: "hero", slot, headline, subheadline?, imageIndex }`,
+  checklist: `{ type: "checklist", slot, heading, items[] }`,
+  image_text: `{ type: "image_text", slot, heading, body, imageIndex, imagePosition: "left"|"right" }`,
+  spec_table: `{ type: "spec_table", slot, heading, rows: [{label, value}] }`,
+  usage_steps: `{ type: "usage_steps", slot, heading, steps[] }`,
+  gallery: `{ type: "gallery", slot, heading, imageIndexes[] }`,
+  caution: `{ type: "caution", slot, heading, body }`,
+  cta_price: `{ type: "cta_price", slot, price, targetCustomer?, badges[]? }`,
+  comparison_table: `{ type: "comparison_table", slot, heading, columns: [string,string], rows: [{label, values: [string,string]}] }`,
+  color_variation: `{ type: "color_variation", slot, heading, options: [{label, colorHex, imageIndex}] }`,
+};
+
+// 카테고리별 고정 슬롯 순서를 프롬프트용 텍스트로 변환한다. AI는 레이아웃을
+// 설계하지 않고, 이 순서/타입 그대로 콘텐츠(카피/이미지 선택)만 채운다.
+function buildSlotInstructions(template: SlotDefinition[]): string {
+  return template
+    .map((def, i) => {
+      const ratio = getSlotImageRatio(def);
+      const ratioNote = ratio === "aspect-square" && !SECTION_TYPE_SHAPES[def.type].includes("imageIndex")
+        ? ""
+        : ` (이미지 비율 ${ratio.replace("aspect-[", "").replace("]", "").replace("aspect-square", "1:1")})`;
+      const repeatNote = def.repeatable
+        ? ` — 이 슬롯은 연속해서 ${def.minCount ?? 1}~${def.maxCount ?? 1}개까지 만들 수 있습니다. 각 섹션의 slot 값은 "${def.slot}"로 동일하게 유지하세요.`
+        : "";
+      const countNote =
+        !def.repeatable && (def.minCount || def.maxCount)
+          ? ` (이미지 ${def.minCount ?? def.maxCount}~${def.maxCount ?? def.minCount}장)`
+          : "";
+      return `${i + 1}. slot="${def.slot}" / type="${def.type}" / ${def.required ? "필수" : "선택(불필요하면 생략 가능, 순서는 유지)"} — ${def.note}${ratioNote}${countNote}${repeatNote}\n   형식: ${SECTION_TYPE_SHAPES[def.type]}`;
+    })
+    .join("\n");
+}
+
 async function generateCopyWithDeepSeek(
   productInfo: ProductInput,
   imageAnalysis: string,
   imageCount: number,
 ): Promise<GeneratedCopy> {
   const isCosmetics = isCosmeticsCategory(productInfo.category);
+  const isFood = isFoodCategory(productInfo.category);
   const cosmeticsGuide = isCosmetics
     ? `\n\n## 식약처 화장품 광고 기준 (필수)\n${COSMETICS_AI_PROMPT}`
     : "";
+  const foodGuide = isFood ? `\n\n## 식품 표시광고 기준 (필수)\n${FOOD_AI_PROMPT}` : "";
+
+  const template = getSlotTemplate(productInfo.category);
+  const slotInstructions = buildSlotInstructions(template);
 
   const prompt = `당신은 한국 이커머스 상세페이지 기획자 겸 카피라이터입니다.
-아래 상품 정보와 AI 이미지 분석 결과를 바탕으로, 이 상품에 맞는 상세페이지를
-"섹션 배열"로 직접 설계하세요. 상품마다 강조할 포인트가 다르므로
-(화장품이면 성분/사용감, 전자제품이면 스펙, 의류면 소재/핏 등),
-정해진 틀에 맞추지 말고 이 상품에 실제로 필요한 섹션만 고르세요.
+이 서비스는 레이아웃을 AI가 즉흥적으로 설계하지 않고, 카테고리별로 검증된
+"고정 슬롯 순서" 안에 콘텐츠(카피/이미지 선택)만 채우는 방식으로 운영됩니다.
+아래 슬롯 목록의 순서와 종류를 절대 바꾸지 말고, 각 슬롯에 이 상품에 맞는
+카피와 이미지 인덱스를 채우세요. 슬롯을 새로 만들거나 순서를 섞지 마세요.
 
 ## 상품 정보
 - 상품명: ${productInfo.productName}
@@ -126,22 +168,17 @@ ${productInfo.competitorUrl ? `- 경쟁사 URL: ${productInfo.competitorUrl}` : 
 ## AI 이미지 분석 결과
 ${imageAnalysis}
 
-## 사용 가능한 섹션 타입 (이 중에서만 골라 8~10개, 순서는 자유)
-- hero: { type, headline, subheadline?, imageIndex } — 첫 화면. 반드시 1개, 배열 맨 앞.
-- checklist: { type, heading, items[] } — 핵심 특징 체크리스트
-- image_text: { type, heading, body, imageIndex, imagePosition: "left"|"right" } — 사진+설명 (성분 설명, 사용감, 디자인 포인트 등에 활용, 여러 개 가능)
-- spec_table: { type, heading, rows: [{label, value}] } — 성분표/스펙표/사이즈표 등 (해당 카테고리에 의미있을 때만)
-- usage_steps: { type, heading, steps[] } — 사용 방법 단계
-- gallery: { type, heading, imageIndexes[] } — 남은 사진들을 모아 보여주는 갤러리
-- caution: { type, heading, body } — 주의사항 (반드시 1개 포함)
-- cta_price: { type, price, targetCustomer?, badges[]? } — 가격/타겟/뱃지 강조 (반드시 1개 포함)
+## 고정 슬롯 순서 (이 순서/종류를 그대로 따르세요)
+${slotInstructions}
 
-imageIndex는 0 ~ ${imageCount - 1} 범위 안에서만 사용하고, 가능하면 여러 사진을 골고루 활용하세요.
-사진이 ${imageCount}장뿐이라면 여러 섹션에서 같은 인덱스를 재사용해도 됩니다.
+imageIndex는 0 ~ ${imageCount - 1} 범위 안에서만 사용하고, 가능하면 여러 사진을 골고루
+활용하세요. 사진이 ${imageCount}장뿐이라면 여러 슬롯에서 같은 인덱스를 재사용해도 됩니다.
+표(spec_table 등) 항목은 상품 정보에 없는 수치를 지어내지 말고, 근거가 없으면
+"판매자 확인 필요" 또는 공란으로 표시하세요.
 
 반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트는 포함하지 마세요.
 {
-  "sections": [ ...위 타입 중 8~10개... ],
+  "sections": [ ...위 슬롯 순서 그대로, 각 항목은 지정된 type/slot 형식... ],
   "headlines": ["헤드라인1", "헤드라인2", "헤드라인3"],
   "description": "상품 설명 (2~3문단)",
   "features": ["특징1", "특징2", "특징3", "특징4"],
@@ -150,7 +187,7 @@ imageIndex는 0 ~ ${imageCount - 1} 범위 안에서만 사용하고, 가능하�
 }
 
 headlines/description/features/howToUse/caution은 목록·검색 화면에 쓰이는 요약용이니
-sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${cosmeticsGuide}`;
+sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${cosmeticsGuide}${foodGuide}`;
 
   const response = await fetch(DEEPSEEK_URL, {
     method: "POST",
@@ -218,13 +255,67 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${cosm
           .filter((v, i, arr) => arr.indexOf(v) === i),
       };
     }
+    if (section.type === "color_variation") {
+      return {
+        ...section,
+        options: section.options.map((option) => ({
+          ...option,
+          imageIndex: clampIndex(option.imageIndex),
+        })),
+      };
+    }
     if (section.type === "cta_price") {
       return { ...section, price: sanitizePrice(section.price) };
     }
     return section;
   });
 
+  // AI가 슬롯 순서를 어겼거나 알 수 없는 slot을 만들었더라도, 최종 출력은
+  // 항상 카테고리 고정 템플릿 순서를 따르도록 강제 재정렬한다. 레이아웃
+  // 틀은 서버가 지키고, AI는 콘텐츠만 책임진다는 원칙을 코드로도 보장.
+  parsed.sections = normalizeSectionsToTemplate(parsed.sections, template);
+
+  if (!parsed.sections.some((section) => section.type === "hero")) {
+    throw new Error("DeepSeek 응답에 필수 hero 섹션이 없습니다.");
+  }
+
   return parsed;
+}
+
+// 파싱된 섹션들을 slot 이름 기준으로 템플릿 순서에 맞게 재배치한다.
+// - 템플릿에 없는 slot/type 조합은 버린다 (AI의 즉흥 슬롯 생성 방지).
+// - repeatable 슬롯은 최대 maxCount개까지, 그 외는 첫 번째 매치만 사용한다.
+// - 필수인데 매치가 없으면 경고만 남기고 넘어간다 (전체 생성 실패보다
+//   해당 슬롯만 비는 편이 낫다는 판단 — review/CHECKLIST.md에서 QA로 걸러낸다).
+function normalizeSectionsToTemplate(
+  sections: DetailSection[],
+  template: SlotDefinition[],
+): DetailSection[] {
+  const bySlot = new Map<string, DetailSection[]>();
+  for (const section of sections) {
+    const slot = (section as { slot?: unknown }).slot;
+    if (typeof slot !== "string" || !slot) continue;
+    const arr = bySlot.get(slot) ?? [];
+    arr.push(section);
+    bySlot.set(slot, arr);
+  }
+
+  const ordered: DetailSection[] = [];
+  for (const def of template) {
+    const matches = (bySlot.get(def.slot) ?? []).filter((s) => s.type === def.type);
+    if (matches.length === 0) {
+      if (def.required) {
+        console.warn(`[generate] 필수 슬롯 누락: ${def.slot}`);
+      }
+      continue;
+    }
+    if (def.repeatable) {
+      ordered.push(...matches.slice(0, def.maxCount ?? matches.length));
+    } else {
+      ordered.push(matches[0]);
+    }
+  }
+  return ordered;
 }
 
 export async function POST(request: Request) {
@@ -285,7 +376,12 @@ export async function POST(request: Request) {
     );
 
     const isCosmetics = isCosmeticsCategory(body.category);
-    const finalCopy = isCosmetics ? reviewCosmeticsCopy(generated) : null;
+    const isFood = isFoodCategory(body.category);
+    const finalCopy = isCosmetics
+      ? reviewCosmeticsCopy(generated)
+      : isFood
+        ? reviewFoodCopy(generated)
+        : null;
     const copyToSave = finalCopy ? finalCopy.copy : generated;
     const mfdsReviewed = finalCopy?.mfdsReviewed ?? false;
     const replacements = finalCopy?.replacements ?? [];
