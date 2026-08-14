@@ -49,15 +49,16 @@ export async function POST(request: Request) {
       }
     }
 
-    const { buffer: backdropBuffer, cost } = await generateBackdrop(
+    const { buffer: backdropBuffer, cost, shadow } = await generateBackdrop(
       category,
       productName,
       brandName ?? null,
       theme,
+      imageUrls?.[0],
     );
     const backdropDataUrl = `data:image/png;base64,${backdropBuffer.toString("base64")}`;
 
-    return NextResponse.json({ backdropDataUrl, cost });
+    return NextResponse.json({ backdropDataUrl, cost, shadowAnalysis: shadow });
   } catch (error) {
     console.error("[generate-backdrop]", error);
     return NextResponse.json(

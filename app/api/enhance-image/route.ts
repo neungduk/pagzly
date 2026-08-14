@@ -22,10 +22,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const { imageUrl, storagePath, backdropDataUrl } = (await request.json()) as {
+    const { imageUrl, storagePath, backdropDataUrl, shadowAnalysis } = (await request.json()) as {
       imageUrl?: string;
       storagePath?: string;
       backdropDataUrl?: string;
+      shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis;
     };
 
     if (!imageUrl || !storagePath || !backdropDataUrl) {
@@ -44,7 +45,11 @@ export async function POST(request: Request) {
     }
     const backdropBuffer = Buffer.from(base64Data, "base64");
 
-    const { buffer: enhancedBuffer, cost } = await enhanceProductImage(imageUrl, backdropBuffer);
+    const { buffer: enhancedBuffer, cost } = await enhanceProductImage(
+      imageUrl,
+      backdropBuffer,
+      shadowAnalysis,
+    );
     const enhancedPath = storagePath.replace(/\.[^./]+$/, "") + "-enhanced.png";
 
     const { error: uploadError } = await supabase.storage

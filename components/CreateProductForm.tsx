@@ -157,7 +157,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     name: string,
     brand: string | null,
     imageUrls: string[],
-  ): Promise<{ backdropDataUrl: string; cost: number } | null> {
+  ): Promise<{ backdropDataUrl: string; cost: number; shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis } | null> {
     try {
       const response = await fetch("/api/generate-backdrop", {
         method: "POST",
@@ -173,6 +173,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       const result = (await response.json()) as {
         backdropDataUrl?: string;
         cost?: number;
+        shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis;
         error?: string;
       };
 
@@ -184,7 +185,11 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         return null;
       }
 
-      return { backdropDataUrl: result.backdropDataUrl, cost: result.cost ?? 0 };
+      return {
+        backdropDataUrl: result.backdropDataUrl,
+        cost: result.cost ?? 0,
+        shadowAnalysis: result.shadowAnalysis,
+      };
     } catch (err) {
       console.warn("[generate-backdrop] 배경 생성 실패, 원본 이미지 사용:", err);
       return null;
@@ -194,6 +199,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   async function enhanceImages(
     uploaded: UploadedImage[],
     backdropDataUrl: string,
+    shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis,
   ): Promise<{ images: UploadedImage[]; cost: number }> {
     let totalCost = 0;
     const results = await Promise.all(
@@ -206,6 +212,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
               imageUrl: item.url,
               storagePath: item.path,
               backdropDataUrl,
+              shadowAnalysis,
             }),
           });
 
@@ -276,7 +283,11 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       if (backdropResult) {
         photoProcessingCost += backdropResult.cost;
         setLoadingStage("enhancing");
-        const enhanced = await enhanceImages(uploaded, backdropResult.backdropDataUrl);
+        const enhanced = await enhanceImages(
+          uploaded,
+          backdropResult.backdropDataUrl,
+          backdropResult.shadowAnalysis,
+        );
         finalImages = enhanced.images;
         photoProcessingCost += enhanced.cost;
       }

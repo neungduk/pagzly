@@ -4,9 +4,11 @@ import sharp from "sharp";
 import { describeColorTone } from "@/lib/color-extract";
 import type { CategoryTheme } from "@/lib/category-theme";
 import {
+  analyzeShadowDirection,
   applySafeCrop,
   computeSafeCanvasPlacement,
   detectTextRegionsFromUrl,
+  type ShadowAnalysis,
   type TextRegion,
 } from "@/lib/vision-utils";
 
@@ -61,19 +63,19 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 
 const BACKDROP_PROMPTS: Record<string, string> = {
   "화장품/뷰티":
-    "minimalist skincare studio background, soft pastel marble surface, gentle natural window light, subtle water droplets, empty product photography backdrop, no text, no logo, no product",
+    "minimalist skincare studio background, soft pastel marble surface, gentle natural window light, subtle water droplets, empty product photography backdrop, maintain natural product shadow direction and intensity from the original photo, realistic studio lighting, no text, no logo, no product",
   "식품/건강기능식품":
-    "warm rustic wooden table background, soft natural light, fresh ingredients softly blurred in background, empty food photography backdrop, no text, no logo, no product",
+    "warm rustic wooden table background, soft natural light, fresh ingredients softly blurred in background, empty food photography backdrop, maintain natural product shadow direction and intensity from the original photo, realistic studio lighting, no text, no logo, no product",
   "전자제품":
-    "clean minimal tech studio background, cool gray gradient, soft studio lighting, subtle geometric shapes, empty product photography backdrop, no text, no logo, no product",
+    "clean minimal tech studio background, cool gray gradient, soft studio lighting, subtle geometric shapes, empty product photography backdrop, maintain natural product shadow direction and intensity from the original photo, realistic studio lighting, no text, no logo, no product",
   "의류/패션":
-    "soft neutral fabric-textured studio background, warm editorial lighting, empty product photography backdrop, no text, no logo, no product",
+    "soft neutral fabric-textured studio background, warm editorial lighting, empty product photography backdrop, maintain natural product shadow direction and intensity from the original photo, realistic studio lighting, no text, no logo, no product",
   "생활용품":
-    "bright airy home interior background, soft natural light, minimal styling, empty product photography backdrop, no text, no logo, no product",
+    "bright airy home interior background, soft natural light, minimal styling, empty product photography backdrop, maintain natural product shadow direction and intensity from the original photo, realistic studio lighting, no text, no logo, no product",
   "반려동물":
-    "warm cozy home background, soft natural light, playful pastel tones, empty product photography backdrop, no text, no logo, no product",
+    "warm cozy home background, soft natural light, playful pastel tones, empty product photography backdrop, maintain natural product shadow direction and intensity from the original photo, realistic studio lighting, no text, no logo, no product",
   "기타":
-    "clean minimal product photography studio background, soft gradient, empty backdrop, no text, no logo, no product",
+    "clean minimal product photography studio background, soft gradient, empty backdrop, maintain natural product shadow direction and intensity from the original photo, realistic studio lighting, no text, no logo, no product",
 };
 
 function extractFluxImageUrl(output: unknown): string | null {
@@ -148,6 +150,29 @@ const CLARITY_UPSCALER_REF: ModelRef =
 const FLUX_FILL_DEV_REF: ModelRef =
   "black-forest-labs/flux-fill-dev:a053f84125613d83e65328a289e14eb6639e10725c243e8fb0c24128e5573f4c";
 
+function buildShadowSvg(shadow: ShadowAnalysis): string {
+  const cx = CANVAS_SIZE * shadow.shadowCenterX;
+  const cy = CANVAS_SIZE * shadow.shadowCenterY;
+  const opacity = Math.min(0.28, Math.max(0.08, shadow.shadowIntensity));
+  return `
+    <svg width="${CANVAS_SIZE}" height="${CANVAS_SIZE}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="shadow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="rgba(0,0,0,${opacity})" />
+          <stop offset="100%" stop-color="rgba(0,0,0,0)" />
+        </radialGradient>
+      </defs>
+      <ellipse cx="${cx}" cy="${cy}" rx="${CANVAS_SIZE * 0.26}" ry="${CANVAS_SIZE * 0.045}" fill="url(#shadow)" />
+    </svg>
+  `;
+}
+
+async function fetchSourceBuffer(url: string): Promise<Buffer> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`이미지 fetch 실패: ${url}`);
+  return Buffer.from(await response.arrayBuffer());
+}
+
 // 카테고리+상품 정보 기반으로 flux-fill-dev로 배경 후보 3장을 생성하고,
 // Claude Vision이 그중 가장 상품 사진과 어울릴 배경을 골라 반환한다.
 // 상품 1건당 한 번만 호출해서, 모든 사진에 같은 배경을 재사용한다.
@@ -159,10 +184,28 @@ export async function generateBackdrop(
   productName: string,
   brandName: string | null,
   theme: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
-): Promise<{ buffer: Buffer; cost: number }> {
+  sourceImageUrl?: string,
+): Promise<{ buffer: Buffer; cost: number; shadow: ShadowAnalysis }> {
   const replicate = getReplicateClient();
   const basePrompt = BACKDROP_PROMPTS[category] ?? BACKDROP_PROMPTS["기타"];
-  const prompt = `${basePrompt}, soft ${describeColorTone(theme.baseNeutral)} tone, subtle ${describeColorTone(theme.accent)} accent lighting`;
+
+  let shadow: ShadowAnalysis = {
+    promptHint: "soft studio lighting from upper left, natural product shadow falling gently to the lower right",
+    shadowCenterX: 0.5,
+    shadowCenterY: 0.83,
+    shadowIntensity: 0.18,
+  };
+  if (sourceImageUrl) {
+    try {
+      const sourceBuffer = await fetchSourceBuffer(sourceImageUrl);
+      shadow = await analyzeShadowDirection(sourceBuffer);
+      console.log(`[shadow] 분석 결과: ${shadow.promptHint}`);
+    } catch (error) {
+      console.warn("[shadow] 원본 그림자 분석 실패, 기본 조명 사용", error);
+    }
+  }
+
+  const prompt = `${basePrompt}, ${shadow.promptHint}, soft ${describeColorTone(theme.baseNeutral)} tone, subtle ${describeColorTone(theme.accent)} accent lighting`;
 
   const [baseImage, fullMask] = await Promise.all([
     buildSolidCanvas(theme.baseNeutral),
@@ -265,7 +308,7 @@ export async function generateBackdrop(
     throw new Error("선택된 배경 이미지를 불러오지 못했습니다.");
   }
   const buffer = Buffer.from(await chosenResponse.arrayBuffer());
-  return { buffer, cost };
+  return { buffer, cost, shadow };
 }
 
 async function pickBestBackdrop(
@@ -395,6 +438,7 @@ async function sharpenCutout(cutoutUrl: string): Promise<{ url: string; cost: nu
 export async function enhanceProductImage(
   sourceImageUrl: string,
   backdropBuffer: Buffer,
+  shadowHint?: ShadowAnalysis,
 ): Promise<{ buffer: Buffer; cost: number }> {
   const replicate = getReplicateClient();
   const modelRef = await getBackgroundRemoverRef(replicate);
@@ -441,17 +485,22 @@ export async function enhanceProductImage(
     .png()
     .toBuffer();
 
-  const shadowSvg = `
-    <svg width="${CANVAS_SIZE}" height="${CANVAS_SIZE}" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <radialGradient id="shadow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="rgba(0,0,0,0.18)" />
-          <stop offset="100%" stop-color="rgba(0,0,0,0)" />
-        </radialGradient>
-      </defs>
-      <ellipse cx="${CANVAS_SIZE / 2}" cy="${CANVAS_SIZE * 0.83}" rx="${CANVAS_SIZE * 0.26}" ry="${CANVAS_SIZE * 0.045}" fill="url(#shadow)" />
-    </svg>
-  `;
+  let shadow = shadowHint;
+  if (!shadow) {
+    try {
+      const sourceBuffer = await fetchSourceBuffer(sourceImageUrl);
+      shadow = await analyzeShadowDirection(sourceBuffer);
+    } catch {
+      shadow = {
+        promptHint: "soft studio lighting from upper left",
+        shadowCenterX: 0.5,
+        shadowCenterY: 0.83,
+        shadowIntensity: 0.18,
+      };
+    }
+  }
+
+  const shadowSvg = buildShadowSvg(shadow);
   const shadowBuffer = await sharp(Buffer.from(shadowSvg)).png().toBuffer();
 
   const cutoutMetaRaw = await sharp(safeCutout).metadata();
