@@ -26,22 +26,28 @@ export default function PipelineCard() {
         </svg>
       </div>
 
-      {/* COLOR EXTRACT */}
+      {/* COLOR EXTRACT — accent / base / deep 스와치 (히어로 핵심 시각 요소) */}
       <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink/40">
         02 · Color Extract
       </p>
-      <div className="mt-2 flex items-center justify-center gap-6 border border-line py-4">
-        <div className="flex flex-col items-center gap-1.5">
-          <span className="h-7 w-7 rounded-full bg-mustard" />
-          <span className="font-mono text-[9px] text-ink/40">ACCENT</span>
+      <div className="mt-3 flex items-center justify-center gap-5 border border-line bg-paper/50 py-6 sm:gap-8 sm:py-8">
+        <div className="flex flex-col items-center gap-2">
+          <span className="h-14 w-14 rounded-full bg-mustard shadow-[0_4px_16px_rgba(227,167,46,0.35)] ring-2 ring-paper sm:h-16 sm:w-16" />
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.15em] text-mustard">
+            Accent
+          </span>
         </div>
-        <div className="flex flex-col items-center gap-1.5">
-          <span className="h-7 w-7 rounded-full border border-line bg-paper" />
-          <span className="font-mono text-[9px] text-ink/40">BASE</span>
+        <div className="flex flex-col items-center gap-2">
+          <span className="h-14 w-14 rounded-full border-2 border-line bg-paper shadow-[0_4px_14px_rgba(27,27,24,0.08)] ring-2 ring-white sm:h-16 sm:w-16" />
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.15em] text-ink/50">
+            Base
+          </span>
         </div>
-        <div className="flex flex-col items-center gap-1.5">
-          <span className="h-7 w-7 rounded-full bg-slate-blue" />
-          <span className="font-mono text-[9px] text-ink/40">DEEP</span>
+        <div className="flex flex-col items-center gap-2">
+          <span className="h-14 w-14 rounded-full bg-slate-blue shadow-[0_4px_16px_rgba(47,72,88,0.35)] ring-2 ring-paper sm:h-16 sm:w-16" />
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-blue">
+            Deep
+          </span>
         </div>
       </div>
 

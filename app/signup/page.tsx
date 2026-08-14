@@ -38,8 +38,8 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-full flex-col bg-white text-gray-900">
-      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[#6366f1]/5 to-white" />
+    <div className="flex min-h-full flex-col bg-paper text-ink">
+      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-registration-red/5 to-paper" />
 
       <header className="px-6 py-6">
         <Link href="/">
@@ -49,9 +49,9 @@ export default function SignupPage() {
 
       <main className="flex flex-1 items-center justify-center px-6 pb-16">
         <div className="w-full max-w-md">
-          <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
-            <h1 className="text-2xl font-bold text-gray-900">회원가입</h1>
-            <p className="mt-2 text-sm text-gray-500">
+          <div className="rounded-2xl border border-line bg-white p-8 shadow-sm">
+            <h1 className="text-2xl font-bold text-ink">회원가입</h1>
+            <p className="mt-2 text-sm text-ink/60">
               Pagzly를 시작하려면 계정을 만드세요
             </p>
 
@@ -75,7 +75,7 @@ export default function SignupPage() {
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-medium text-ink/80"
                 >
                   이메일
                 </label>
@@ -86,14 +86,14 @@ export default function SignupPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="mt-1.5 w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/20"
+                  className="mt-1.5 w-full rounded-lg border border-line px-4 py-2.5 text-sm outline-none transition-colors focus:border-registration-red focus:ring-2 focus:ring-registration-red/20"
                 />
               </div>
 
               <div>
                 <label
                   htmlFor="password"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-medium text-ink/80"
                 >
                   비밀번호
                 </label>
@@ -105,7 +105,7 @@ export default function SignupPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="6자 이상"
-                  className="mt-1.5 w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/20"
+                  className="mt-1.5 w-full rounded-lg border border-line px-4 py-2.5 text-sm outline-none transition-colors focus:border-registration-red focus:ring-2 focus:ring-registration-red/20"
                 />
               </div>
 
@@ -116,7 +116,7 @@ export default function SignupPage() {
               )}
 
               {message && (
-                <p className="rounded-lg bg-[#6366f1]/10 px-4 py-3 text-sm text-[#6366f1]">
+                <p className="rounded-lg bg-registration-red/10 px-4 py-3 text-sm text-registration-red">
                   {message}
                 </p>
               )}
@@ -124,17 +124,17 @@ export default function SignupPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-lg bg-[#6366f1] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#5558e3] disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? "가입 중..." : "회원가입"}
               </button>
             </form>
 
-            <p className="mt-6 text-center text-sm text-gray-500">
+            <p className="mt-6 text-center text-sm text-ink/60">
               이미 계정이 있으신가요?{" "}
               <Link
                 href="/login"
-                className="font-medium text-[#6366f1] hover:text-[#5558e3]"
+                className="font-medium text-registration-red hover:text-registration-red/80"
               >
                 로그인
               </Link>

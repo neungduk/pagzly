@@ -76,7 +76,7 @@ async function main() {
   await page.locator("select").first().selectOption({ label: category.label });
 
   // 사진 업로드
-  await page.setInputFiles('input[type="file"]', testImages.slice(0, 5));
+  await page.setInputFiles('input[type="file"]', testImages.slice(0, 3));
 
   // 상품 기본 정보
   await page.fill("#productName", customProductName ?? `테스트 상품 ${categoryKey} ${attemptNumber}`);
@@ -94,7 +94,7 @@ async function main() {
   // 화질 보정(clarity-upscaler)/flux-fill-dev 배경 생성 단계가 추가되면서
   // 파이프라인 총 소요 시간이 늘어나(2~3분대) 기존 180s로는 종종 타임아웃이
   // 나서 여유를 뒀다.
-  await page.waitForURL(`${BASE_URL}/create/result`, { timeout: 240000 });
+  await page.waitForURL(`${BASE_URL}/create/result`, { timeout: 360000 });
   await page.waitForTimeout(2000);
 
   if (!fs.existsSync(OUTPUT_DIR)) {

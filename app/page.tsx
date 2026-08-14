@@ -6,6 +6,7 @@ import ComparisonTable from "@/components/ComparisonTable";
 import FaqAccordion from "@/components/FaqAccordion";
 import CropMarks from "@/components/CropMarks";
 import PipelineCard from "@/components/PipelineCard";
+import CategoryColorEngine from "@/components/CategoryColorEngine";
 import { createClient } from "@/lib/supabase/server";
 
 const features = [
@@ -13,6 +14,7 @@ const features = [
     title: "AI 자동 생성",
     description:
       "상품 사진만 업로드하면 AI가 카피, 레이아웃, 디자인까지 자동으로 완성합니다.",
+    iconBg: "bg-mustard/15 text-mustard border-mustard/30",
     icon: (
       <svg
         className="h-6 w-6"
@@ -33,6 +35,7 @@ const features = [
     title: "스마트스토어 원클릭 업로드",
     description:
       "완성된 상세페이지를 네이버 스마트스토어에 바로 업로드하세요. 복사·붙여넣기는 이제 그만.",
+    iconBg: "bg-slate-blue/10 text-slate-blue border-slate-blue/25",
     icon: (
       <svg
         className="h-6 w-6"
@@ -53,6 +56,7 @@ const features = [
     title: "직접 편집 가능",
     description:
       "AI가 만든 결과물을 그대로 쓰거나, 텍스트·이미지·섹션을 자유롭게 수정할 수 있습니다.",
+    iconBg: "bg-registration-red/10 text-registration-red border-registration-red/25",
     icon: (
       <svg
         className="h-6 w-6"
@@ -218,6 +222,8 @@ export default async function Home() {
           </div>
         </section>
 
+        <CategoryColorEngine />
+
         {/* Comparison */}
         <section id="comparison" className="border-b border-line bg-white py-24">
           <div className="mx-auto max-w-6xl px-6">
@@ -289,7 +295,9 @@ export default async function Home() {
                   className="group relative border border-line bg-white p-8 transition-colors hover:border-ink/30"
                 >
                   <CropMarks />
-                  <div className="mb-5 inline-flex h-12 w-12 items-center justify-center border border-line text-ink transition-colors group-hover:border-ink group-hover:bg-ink group-hover:text-paper">
+                  <div
+                    className={`mb-5 inline-flex h-12 w-12 items-center justify-center border transition-colors ${feature.iconBg}`}
+                  >
                     {feature.icon}
                   </div>
                   <h3 className="text-xl font-semibold text-ink">
