@@ -1,10 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-
-const CARD_WIDTH = 280;
-const CARD_GAP = 24;
-const STEP = CARD_WIDTH + CARD_GAP;
+import { useEffect, useState } from "react";
+import CropMarks from "@/components/CropMarks";
 
 const samples = [
   {
@@ -12,172 +9,146 @@ const samples = [
     category: "화장품",
     emoji: "🧴",
     conversion: "+32%",
-    bg: "from-pink-50 to-rose-100",
+    bg: "from-rose-500/20 to-rose-900/40",
   },
   {
     name: "무선 이어폰",
     category: "전자제품",
     emoji: "🎧",
     conversion: "+28%",
-    bg: "from-slate-50 to-blue-100",
+    bg: "from-slate-500/20 to-slate-900/40",
   },
   {
     name: "린넨 셔츠",
     category: "의류",
     emoji: "👔",
     conversion: "+41%",
-    bg: "from-amber-50 to-orange-100",
+    bg: "from-amber-500/20 to-amber-900/40",
   },
   {
     name: "프로틴 쉐이크",
     category: "식품",
     emoji: "🥤",
     conversion: "+35%",
-    bg: "from-green-50 to-emerald-100",
+    bg: "from-emerald-500/20 to-emerald-900/40",
   },
   {
     name: "반려동물 간식",
     category: "펫",
     emoji: "🐾",
     conversion: "+29%",
-    bg: "from-violet-50 to-purple-100",
+    bg: "from-orange-500/20 to-orange-900/40",
+  },
+  {
+    name: "캠핑 랜턴",
+    category: "생활용품",
+    emoji: "🏮",
+    conversion: "+24%",
+    bg: "from-yellow-500/20 to-yellow-900/40",
   },
 ];
 
-function ShowcaseCard({
-  item,
-  isVisible,
-  delay,
-}: {
-  item: (typeof samples)[number];
-  isVisible: boolean;
-  delay: number;
-}) {
-  return (
-    <div
-      className={`w-[280px] shrink-0 rounded-2xl bg-white p-5 shadow-lg transition-all duration-500 hover:-translate-y-2 hover:shadow-xl ${
-        isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
-      }`}
-      style={{ transitionDelay: `${delay}ms` }}
-    >
-      <div
-        className={`flex h-44 items-center justify-center rounded-xl bg-gradient-to-br ${item.bg}`}
-      >
-        <span className="text-6xl" role="img" aria-label={item.name}>
-          {item.emoji}
-        </span>
-      </div>
-      <h3 className="mt-4 text-lg font-semibold text-gray-900">{item.name}</h3>
-      <span className="mt-2 inline-block rounded-full bg-[#6366f1]/10 px-3 py-1 text-xs font-medium text-[#6366f1]">
-        {item.category}
-      </span>
-      <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4 text-sm">
-        <span className="text-gray-500">3분 만에 완성</span>
-        <span className="font-semibold text-[#6366f1]">
-          전환율 {item.conversion}
-        </span>
-      </div>
-    </div>
-  );
-}
-
 export default function ShowcaseSection() {
-  const [index, setIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-  const [enableTransition, setEnableTransition] = useState(true);
-  const sectionRef = useRef<HTMLElement>(null);
-
-  const duplicated = [...samples, ...samples];
+  const [selected, setSelected] = useState<number | null>(null);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-        }
-      },
-      { threshold: 0.15 },
-    );
+    if (selected === null) return;
 
-    const section = sectionRef.current;
-    if (section) observer.observe(section);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (isPaused || !isVisible) return;
-
-    const timer = setInterval(() => {
-      setIndex((prev) => prev + 1);
-    }, 3000);
-
-    return () => clearInterval(timer);
-  }, [isPaused, isVisible]);
-
-  useEffect(() => {
-    if (index !== samples.length) return;
-
-    const timeout = setTimeout(() => {
-      setEnableTransition(false);
-      setIndex(0);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setEnableTransition(true));
-      });
-    }, 500);
-
-    return () => clearTimeout(timeout);
-  }, [index]);
-
-  const translateX = -index * STEP;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setSelected(null);
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [selected]);
 
   return (
-    <section
-      ref={sectionRef}
-      id="showcase"
-      className="overflow-hidden bg-gradient-to-b from-[#6366f1]/10 via-[#6366f1]/5 to-[#6366f1]/10 py-24"
-    >
+    <section id="showcase" className="bg-ink py-24">
       <div className="mx-auto max-w-6xl px-6">
-        <div
-          className={`text-center transition-all duration-700 ${
-            isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
-          }`}
-        >
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+        <div className="text-center">
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-paper/40">
+            Gallery
+          </p>
+          <h2 className="mt-3 font-heading text-3xl font-bold tracking-tight text-paper sm:text-4xl">
             Pagzly로 만든 상세페이지
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-500">
-            실제 셀러들이 사용한 결과물을 확인하세요
+          <p className="mx-auto mt-4 max-w-2xl text-lg text-paper/60">
+            실제 셀러들이 사용한 결과물을 확인하세요. 클릭하면 크게 볼 수
+            있어요.
           </p>
         </div>
-      </div>
 
-      <div
-        className={`relative mt-16 transition-all duration-700 delay-200 ${
-          isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
-        }`}
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-      >
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-[#6366f1]/10 to-transparent" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-[#6366f1]/10 to-transparent" />
-
-        <div className="overflow-hidden px-6">
-          <div
-            className={`flex w-max gap-6 ${enableTransition ? "transition-transform duration-500 ease-in-out" : ""}`}
-            style={{ transform: `translateX(${translateX}px)` }}
-          >
-            {duplicated.map((item, i) => (
-              <ShowcaseCard
-                key={`${item.name}-${i}`}
-                item={item}
-                isVisible={isVisible}
-                delay={Math.min(i, samples.length - 1) * 100}
-              />
-            ))}
-          </div>
+        <div className="mt-16 grid grid-cols-2 gap-5 sm:grid-cols-3">
+          {samples.map((item, index) => (
+            <button
+              key={item.name}
+              type="button"
+              onClick={() => setSelected(index)}
+              className="group relative aspect-[3/4] overflow-hidden border border-paper/10 bg-gradient-to-br p-0 text-left transition-transform hover:-translate-y-1"
+            >
+              <div
+                className={`flex h-full w-full flex-col items-center justify-center gap-3 bg-gradient-to-br ${item.bg}`}
+              >
+                <span className="text-5xl sm:text-6xl" role="img" aria-label={item.name}>
+                  {item.emoji}
+                </span>
+                <span className="font-mono text-xs text-paper/70">
+                  {item.category}
+                </span>
+              </div>
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-ink/80 px-3 py-2.5 backdrop-blur-sm">
+                <span className="text-sm font-medium text-paper">
+                  {item.name}
+                </span>
+                <span className="rounded-none border border-mustard/40 px-1.5 py-0.5 font-mono text-xs text-mustard">
+                  {item.conversion}
+                </span>
+              </div>
+            </button>
+          ))}
         </div>
       </div>
+
+      {selected !== null && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/95 p-6"
+          onClick={() => setSelected(null)}
+        >
+          <div
+            className="relative w-full max-w-lg border border-paper/15 bg-ink p-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CropMarks color="text-paper/30" />
+            <button
+              type="button"
+              onClick={() => setSelected(null)}
+              aria-label="닫기"
+              className="absolute right-4 top-4 font-mono text-sm text-paper/50 transition-colors hover:text-paper"
+            >
+              CLOSE ✕
+            </button>
+            <div
+              className={`flex aspect-square w-full items-center justify-center bg-gradient-to-br ${samples[selected].bg}`}
+            >
+              <span className="text-8xl" role="img" aria-label={samples[selected].name}>
+                {samples[selected].emoji}
+              </span>
+            </div>
+            <div className="mt-6 flex items-center justify-between">
+              <div>
+                <p className="font-mono text-xs uppercase tracking-wider text-paper/40">
+                  {samples[selected].category}
+                </p>
+                <h3 className="mt-1 font-heading text-xl font-bold text-paper">
+                  {samples[selected].name}
+                </h3>
+              </div>
+              <span className="border border-mustard/40 px-2 py-1 font-mono text-sm text-mustard">
+                전환율 {samples[selected].conversion}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
