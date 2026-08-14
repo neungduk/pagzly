@@ -128,6 +128,17 @@ export default function CreateResultPage() {
               " 화장품/뷰티 카테고리 식약처 광고 기준이 적용되었습니다."}
           </p>
 
+          {generated?.urlAnalysisNotices && generated.urlAnalysisNotices.length > 0 && (
+            <div className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-xs text-gray-600">
+              <p className="font-medium text-gray-700">URL 자동 분석 안내</p>
+              <ul className="mt-1.5 space-y-1">
+                {generated.urlAnalysisNotices.map((notice) => (
+                  <li key={notice}>{notice}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {generated?.replacements && generated.replacements.length > 0 && (
             <div className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-xs text-amber-800">
               <p className="font-medium">자동 수정된 표현</p>

@@ -10,6 +10,7 @@ import type { DetailSection, GeneratedCopy, ProductInput } from "@/lib/types/gen
 import { createClient } from "@/lib/supabase/server";
 import { extractProductTheme } from "@/lib/color-extract";
 import { getSlotImageRatio, getSlotTemplate, type SlotDefinition } from "@/lib/section-templates";
+import { extractUrlSummary, type UrlSummaryResult } from "@/lib/url-crawler";
 
 const CLAUDE_MODEL = "claude-sonnet-5";
 const DEEPSEEK_MODEL = "deepseek-v4-flash";
@@ -158,11 +159,30 @@ function buildSlotInstructions(template: SlotDefinition[]): string {
     .join("\n");
 }
 
+// 자동 수집한 URL 요약을 프롬프트 블록으로 만든다. 실패한 경우 실패 사실을
+// AI에게도 명시해 "URL은 있는데 내용이 없어" 혼란스러워하다 빈 응답을
+// 내놓는 상황(과거 "DeepSeek API 응답이 비어 있습니다" 원인)을 막고, 대신
+// notices에 사유를 남겨 호출부가 사용자에게 안내할 수 있게 한다.
+function buildUrlReferenceBlock(
+  label: string,
+  result: UrlSummaryResult | null,
+  notices: string[],
+): string {
+  if (!result) return "";
+
+  if (result.ok) {
+    return `\n\n## ${label} 참고 자료 (자동 수집 — 부정확할 수 있으니 표현을 그대로 베끼지 말고, 이 상품만의 차별화 포인트(USP)를 찾는 용도로만 참고)\n제목: ${result.title || "(제목 없음)"}\n내용: ${result.excerpt || "(본문 없음)"}`;
+  }
+
+  notices.push(`${label}(${result.url}) 자동 분석 실패 — ${result.reason} 이 URL은 자동 분석이 어렵습니다.`);
+  return `\n\n## ${label} 참고 자료\n(입력된 URL은 자동으로 분석하지 못했습니다. 이 URL 내용은 추측하지 말고, 상품 정보만으로 분석하세요.)`;
+}
+
 async function generateCopyWithDeepSeek(
   productInfo: ProductInput,
   imageAnalysis: string,
   imageCount: number,
-): Promise<{ copy: GeneratedCopy; cost: number }> {
+): Promise<{ copy: GeneratedCopy; cost: number; notices: string[] }> {
   const isCosmetics = isCosmeticsCategory(productInfo.category);
   const isFood = isFoodCategory(productInfo.category);
   const cosmeticsGuide = isCosmetics
@@ -172,6 +192,19 @@ async function generateCopyWithDeepSeek(
 
   const template = getSlotTemplate(productInfo.category);
   const slotInstructions = buildSlotInstructions(template);
+
+  const [competitorResult, wholesaleResult] = await Promise.all([
+    productInfo.competitorUrl ? extractUrlSummary(productInfo.competitorUrl) : null,
+    productInfo.wholesaleUrl ? extractUrlSummary(productInfo.wholesaleUrl) : null,
+  ]);
+
+  const notices: string[] = [];
+  const competitorBlock = buildUrlReferenceBlock("경쟁사 페이지", competitorResult, notices);
+  const wholesaleBlock = buildUrlReferenceBlock(
+    "위탁/도매 원본 상품 페이지(1688·도매꾹)",
+    wholesaleResult,
+    notices,
+  );
 
   const prompt = `당신은 한국 이커머스 상세페이지 기획자 겸 카피라이터입니다.
 이 서비스는 레이아웃을 AI가 즉흥적으로 설계하지 않고, 카테고리별로 검증된
@@ -188,11 +221,10 @@ ${productInfo.targetCustomer ? `- 타겟 고객: ${productInfo.targetCustomer}` 
 ${productInfo.keyFeatures ? `- 핵심 특징: ${productInfo.keyFeatures}` : ""}
 ${productInfo.ingredients ? `- 성분/소재: ${productInfo.ingredients}` : ""}
 ${productInfo.certifications ? `- 인증/수상: ${productInfo.certifications}` : ""}
-${productInfo.competitorUrl ? `- 경쟁사 URL: ${productInfo.competitorUrl}` : ""}
 - 업로드된 사진 수: ${imageCount}장 (인덱스 0 ~ ${imageCount - 1})
 
 ## AI 이미지 분석 결과
-${imageAnalysis}
+${imageAnalysis}${competitorBlock}${wholesaleBlock}
 
 ## 고정 슬롯 순서 (이 순서/종류를 그대로 따르세요)
 ${slotInstructions}
@@ -308,7 +340,7 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${cosm
     throw new Error("DeepSeek 응답에 필수 hero 섹션이 없습니다.");
   }
 
-  return { copy: parsed, cost: deepSeekCost };
+  return { copy: parsed, cost: deepSeekCost, notices };
 }
 
 // 파싱된 섹션들을 slot 이름 기준으로 템플릿 순서에 맞게 재배치한다.
@@ -398,11 +430,11 @@ export async function POST(request: Request) {
       }),
     ]);
 
-    const { copy: generated, cost: deepSeekCost } = await generateCopyWithDeepSeek(
-      body,
-      imageAnalysis,
-      Math.min(body.imageUrls.length, 5),
-    );
+    const {
+      copy: generated,
+      cost: deepSeekCost,
+      notices: urlAnalysisNotices,
+    } = await generateCopyWithDeepSeek(body, imageAnalysis, Math.min(body.imageUrls.length, 5));
     const generationCost = (body.photoProcessingCost ?? 0) + deepSeekCost;
     console.log(
       `[cost] product="${body.productName}" photoProcessingCost=$${(body.photoProcessingCost ?? 0).toFixed(4)} deepSeekCost=$${deepSeekCost.toFixed(4)} total=$${generationCost.toFixed(4)}`,
@@ -475,6 +507,7 @@ export async function POST(request: Request) {
       replacements,
       productId: savedProduct.id as string,
       theme,
+      urlAnalysisNotices,
     });
   } catch (error) {
     console.error("[generate]", error);
