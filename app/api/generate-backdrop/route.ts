@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateBackdrop } from "@/lib/photo-enhance";
+import { extractProductTheme } from "@/lib/color-extract";
+import { getCategoryTheme } from "@/lib/category-theme";
 
 export async function POST(request: Request) {
   try {
@@ -20,10 +22,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const { category, productName, brandName } = (await request.json()) as {
+    const { category, productName, brandName, imageUrls } = (await request.json()) as {
       category?: string;
       productName?: string;
       brandName?: string | null;
+      imageUrls?: string[];
     };
 
     if (!category || !productName) {
@@ -33,10 +36,28 @@ export async function POST(request: Request) {
       );
     }
 
-    const backdropBuffer = await generateBackdrop(category, productName, brandName ?? null);
+    // 배경 생성 프롬프트에 상품 고유 색감을 반영하기 위해, 업로드된 원본
+    // 사진에서 먼저 색을 뽑아본다. 실패(무채색 상품, 사진 없음 등)하면
+    // 카테고리 기본 테마로 폴백 — 배경 생성 자체를 막지 않는다.
+    let theme = getCategoryTheme(category);
+    if (imageUrls?.length) {
+      try {
+        const extracted = await extractProductTheme(imageUrls);
+        if (extracted) theme = { ...theme, ...extracted };
+      } catch (err) {
+        console.warn("[generate-backdrop] 색상 추출 실패, 카테고리 기본 테마로 폴백", err);
+      }
+    }
+
+    const { buffer: backdropBuffer, cost } = await generateBackdrop(
+      category,
+      productName,
+      brandName ?? null,
+      theme,
+    );
     const backdropDataUrl = `data:image/png;base64,${backdropBuffer.toString("base64")}`;
 
-    return NextResponse.json({ backdropDataUrl });
+    return NextResponse.json({ backdropDataUrl, cost });
   } catch (error) {
     console.error("[generate-backdrop]", error);
     return NextResponse.json(

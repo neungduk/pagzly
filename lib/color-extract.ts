@@ -151,6 +151,53 @@ function darken(hex: string, amount = 0.25): string {
   return rgbToHex(dr, dg, db);
 }
 
+const HUE_NAME_BOUNDARIES: [number, string][] = [
+  [15, "red"],
+  [45, "orange"],
+  [70, "amber"],
+  [95, "yellow-green"],
+  [150, "green"],
+  [180, "teal"],
+  [210, "cyan-blue"],
+  [255, "blue"],
+  [290, "indigo"],
+  [320, "purple"],
+  [345, "magenta"],
+  [360, "red"],
+];
+
+function hueName(h: number): string {
+  const hue = ((h % 360) + 360) % 360;
+  for (const [max, name] of HUE_NAME_BOUNDARIES) {
+    if (hue <= max) return name;
+  }
+  return "red";
+}
+
+// hex 색상을 이미지 생성 프롬프트에 넣기 좋은 영어 톤 표현으로 변환한다.
+// (예: "#B45309" → "rich amber", "#FAF7F2" → "soft neutral ivory")
+// 정확한 색상명이 아니라 생성형 이미지 모델이 이해할 대략적인 톤 힌트가
+// 목적이므로, HSL 버킷팅 기반의 근사치로 충분하다.
+export function describeColorTone(hex: string): string {
+  const normalized = hex.replace("#", "");
+  const bigint = parseInt(normalized, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  const { h, s, l } = rgbToHsl(r, g, b);
+
+  if (s < 0.12) {
+    if (l > 0.85) return "soft neutral ivory";
+    if (l > 0.55) return "warm neutral gray";
+    if (l > 0.25) return "muted charcoal gray";
+    return "deep charcoal";
+  }
+
+  const name = hueName(h);
+  const lightness = l > 0.75 ? "pale" : l > 0.5 ? "soft" : l > 0.3 ? "rich" : "deep";
+  return `${lightness} ${name}`;
+}
+
 // 업로드된 상품 사진들 중 가장 채도가 강하게 드러난 색상대를 골라 테마를
 // 만든다. 유채색 픽셀을 충분히 찾지 못하면(무채색 상품 등) null을 반환하고,
 // 호출부는 카테고리 기본 테마로 폴백해야 한다.

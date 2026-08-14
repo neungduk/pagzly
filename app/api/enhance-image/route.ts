@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     }
     const backdropBuffer = Buffer.from(base64Data, "base64");
 
-    const enhancedBuffer = await enhanceProductImage(imageUrl, backdropBuffer);
+    const { buffer: enhancedBuffer, cost } = await enhanceProductImage(imageUrl, backdropBuffer);
     const enhancedPath = storagePath.replace(/\.[^./]+$/, "") + "-enhanced.png";
 
     const { error: uploadError } = await supabase.storage
@@ -86,6 +86,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       enhancedUrl: publicUrlData.publicUrl,
       enhancedPath,
+      cost,
     });
   } catch (error) {
     console.error("[enhance-image]", error);

@@ -11,6 +11,7 @@ export type ProductInput = {
   certifications?: string | null;
   competitorUrl?: string | null;
   wholesaleUrl?: string | null;
+  photoProcessingCost?: number;
 };
 
 // slot: lib/section-templates.ts가 카테고리별로 고정한 슬롯 이름

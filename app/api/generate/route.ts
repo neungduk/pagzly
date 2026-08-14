@@ -15,6 +15,32 @@ const CLAUDE_MODEL = "claude-sonnet-5";
 const DEEPSEEK_MODEL = "deepseek-v4-flash";
 const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
 
+// DeepSeek 토큰당 단가(USD / 1M tokens). 공식 pricing 문서 기준(2026-08-14 확인).
+const DEEPSEEK_COST_PER_MILLION = {
+  inputCacheHit: 0.0028,
+  inputCacheMiss: 0.14,
+  output: 0.28,
+} as const;
+
+function calculateDeepSeekCost(usage: unknown): number {
+  if (!usage || typeof usage !== "object") return 0;
+  const u = usage as Record<string, number | undefined>;
+
+  const cacheHitTokens = u.prompt_cache_hit_tokens ?? 0;
+  const inputTokens = u.input_tokens ?? u.prompt_tokens ?? 0;
+  // cache_miss 토큰 수를 응답이 별도로 안 주면, 전체 입력 토큰에서 히트분을
+  // 빼서 근사한다.
+  const cacheMissTokens = u.prompt_cache_miss_tokens ?? Math.max(0, inputTokens - cacheHitTokens);
+  const outputTokens = u.output_tokens ?? u.completion_tokens ?? 0;
+
+  const inputCost =
+    (cacheHitTokens / 1_000_000) * DEEPSEEK_COST_PER_MILLION.inputCacheHit +
+    (cacheMissTokens / 1_000_000) * DEEPSEEK_COST_PER_MILLION.inputCacheMiss;
+  const outputCost = (outputTokens / 1_000_000) * DEEPSEEK_COST_PER_MILLION.output;
+
+  return inputCost + outputCost;
+}
+
 async function fetchImageAsBase64(url: string) {
   const response = await fetch(url);
   if (!response.ok) {
@@ -136,7 +162,7 @@ async function generateCopyWithDeepSeek(
   productInfo: ProductInput,
   imageAnalysis: string,
   imageCount: number,
-): Promise<GeneratedCopy> {
+): Promise<{ copy: GeneratedCopy; cost: number }> {
   const isCosmetics = isCosmeticsCategory(productInfo.category);
   const isFood = isFoodCategory(productInfo.category);
   const cosmeticsGuide = isCosmetics
@@ -214,7 +240,13 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${cosm
 
   const data = JSON.parse(rawBody) as {
     choices?: { message?: { content?: string } }[];
+    usage?: unknown;
   };
+
+  const deepSeekCost = calculateDeepSeekCost(data.usage);
+  console.log(
+    `[cost] generateCopyWithDeepSeek: $${deepSeekCost.toFixed(4)} usage=${JSON.stringify(data.usage)}`,
+  );
 
   const content = data.choices?.[0]?.message?.content;
   if (!content) {
@@ -276,7 +308,7 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${cosm
     throw new Error("DeepSeek 응답에 필수 hero 섹션이 없습니다.");
   }
 
-  return parsed;
+  return { copy: parsed, cost: deepSeekCost };
 }
 
 // 파싱된 섹션들을 slot 이름 기준으로 템플릿 순서에 맞게 재배치한다.
@@ -366,10 +398,14 @@ export async function POST(request: Request) {
       }),
     ]);
 
-    const generated = await generateCopyWithDeepSeek(
+    const { copy: generated, cost: deepSeekCost } = await generateCopyWithDeepSeek(
       body,
       imageAnalysis,
       Math.min(body.imageUrls.length, 5),
+    );
+    const generationCost = (body.photoProcessingCost ?? 0) + deepSeekCost;
+    console.log(
+      `[cost] product="${body.productName}" photoProcessingCost=$${(body.photoProcessingCost ?? 0).toFixed(4)} deepSeekCost=$${deepSeekCost.toFixed(4)} total=$${generationCost.toFixed(4)}`,
     );
 
     const isCosmetics = isCosmeticsCategory(body.category);
@@ -407,6 +443,7 @@ export async function POST(request: Request) {
         mfds_reviewed: mfdsReviewed,
         replacements,
         sections: copyToSave.sections,
+        generation_cost: generationCost,
       })
       .select("id")
       .single();

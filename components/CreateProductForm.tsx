@@ -156,7 +156,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     productCategory: string,
     name: string,
     brand: string | null,
-  ): Promise<string | null> {
+    imageUrls: string[],
+  ): Promise<{ backdropDataUrl: string; cost: number } | null> {
     try {
       const response = await fetch("/api/generate-backdrop", {
         method: "POST",
@@ -165,11 +166,13 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           category: productCategory,
           productName: name,
           brandName: brand,
+          imageUrls,
         }),
       });
 
       const result = (await response.json()) as {
         backdropDataUrl?: string;
+        cost?: number;
         error?: string;
       };
 
@@ -181,7 +184,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         return null;
       }
 
-      return result.backdropDataUrl;
+      return { backdropDataUrl: result.backdropDataUrl, cost: result.cost ?? 0 };
     } catch (err) {
       console.warn("[generate-backdrop] 배경 생성 실패, 원본 이미지 사용:", err);
       return null;
@@ -191,7 +194,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   async function enhanceImages(
     uploaded: UploadedImage[],
     backdropDataUrl: string,
-  ): Promise<UploadedImage[]> {
+  ): Promise<{ images: UploadedImage[]; cost: number }> {
+    let totalCost = 0;
     const results = await Promise.all(
       uploaded.map(async (item) => {
         try {
@@ -208,6 +212,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           const result = (await response.json()) as {
             enhancedUrl?: string;
             enhancedPath?: string;
+            cost?: number;
             error?: string;
           };
 
@@ -219,6 +224,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
             return item;
           }
 
+          totalCost += result.cost ?? 0;
           return { url: result.enhancedUrl, path: result.enhancedPath };
         } catch (err) {
           console.warn("[enhance-image] 보정 실패, 원본 사용:", item.path, err);
@@ -227,7 +233,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       }),
     );
 
-    return results;
+    return { images: results, cost: totalCost };
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -256,17 +262,23 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     try {
       const uploaded = await uploadImages(images);
 
+      let photoProcessingCost = 0;
+
       setLoadingStage("backdrop");
-      const backdropDataUrl = await generateBackdrop(
+      const backdropResult = await generateBackdrop(
         category,
         productName.trim(),
         brandName.trim() || null,
+        uploaded.map((item) => item.url),
       );
 
       let finalImages = uploaded;
-      if (backdropDataUrl) {
+      if (backdropResult) {
+        photoProcessingCost += backdropResult.cost;
         setLoadingStage("enhancing");
-        finalImages = await enhanceImages(uploaded, backdropDataUrl);
+        const enhanced = await enhanceImages(uploaded, backdropResult.backdropDataUrl);
+        finalImages = enhanced.images;
+        photoProcessingCost += enhanced.cost;
       }
 
       const imageUrls = finalImages.map((item) => item.url);
@@ -286,6 +298,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         competitorUrl: competitorUrl.trim() || null,
         wholesaleUrl: wholesaleUrl.trim() || null,
         createdAt: new Date().toISOString(),
+        photoProcessingCost,
       };
 
       setLoadingStage("generating");

@@ -1,8 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import Replicate from "replicate";
 import sharp from "sharp";
+import { describeColorTone } from "@/lib/color-extract";
+import type { CategoryTheme } from "@/lib/category-theme";
 
 const CANVAS_SIZE = 1200;
+const FILL_BASE_SIZE = 1024;
 
 let replicateClient: Replicate | null = null;
 
@@ -20,6 +23,34 @@ function getReplicateClient(): Replicate {
     });
   }
   return replicateClient;
+}
+
+// Replicate 각 모델의 실행당 비용(USD). 모델 페이지에 공개된 단가
+// (2026-08-14 확인) 기준으로 고정값을 쓴다 — 매 요청마다 가격 API를 조회하지
+// 않고, 단가가 바뀌면 이 상수만 갱신하면 된다.
+const REPLICATE_COST_USD = {
+  backgroundRemover: 0.00047, // 851-labs/background-remover — Nvidia T4, ~3s/run
+  clarityUpscaler: 0.016, // philz1337x/clarity-upscaler — Nvidia A100(40GB), ~14s/run
+  // black-forest-labs/flux-fill-dev: Replicate가 이 모델 전용 단가를 페이지에
+  // 공개하지 않아, 같은 체급(FLUX.1 [dev])의 공식 단가($0.025/image)로 근사한다.
+  // 정확한 단가가 확인되면 이 값만 교체하면 된다.
+  fluxFillDev: 0.025,
+} as const;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} 타임아웃 (${ms}ms)`)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
 }
 
 const BACKDROP_PROMPTS: Record<string, string> = {
@@ -44,9 +75,6 @@ function extractFluxImageUrl(output: unknown): string | null {
   return typeof url === "string" && url.length > 0 ? url : null;
 }
 
-// 카테고리+상품 정보 기반으로 Flux(flux-schnell)로 배경 후보 3장을 생성하고,
-// Claude Vision이 그중 가장 상품 사진과 어울릴 배경을 골라 반환한다.
-// 상품 1건당 한 번만 호출해서, 모든 사진에 같은 배경을 재사용한다.
 // Replicate ApiError는 message에 상태코드/본문이 항상 담기지 않아서,
 // response가 있으면 status + body를 직접 읽어 로그/에러 메시지에 남긴다.
 async function describeReplicateError(error: unknown): Promise<string> {
@@ -73,34 +101,103 @@ async function describeReplicateError(error: unknown): Promise<string> {
   return String(error);
 }
 
+async function buildSolidCanvas(hexColor: string): Promise<Buffer> {
+  return sharp({
+    create: {
+      width: FILL_BASE_SIZE,
+      height: FILL_BASE_SIZE,
+      channels: 3,
+      background: hexColor,
+    },
+  })
+    .png()
+    .toBuffer();
+}
+
+// black-forest-labs/flux-fill-dev는 인페인팅 모델이라 prompt만으로는 호출할
+// 수 없고 image(+선택적 mask)가 필수다. 전체를 새로 그리게 하려면 흰색
+// (= 전부 채워 넣기) 마스크를 함께 준다. base 이미지 자체는 baseNeutral
+// 색으로 깔아 두어, 모델이 그 톤 근처에서 배경을 생성하도록 유도한다.
+const FULL_INPAINT_MASK = sharp({
+  create: {
+    width: FILL_BASE_SIZE,
+    height: FILL_BASE_SIZE,
+    channels: 3,
+    background: "#FFFFFF",
+  },
+})
+  .png()
+  .toBuffer();
+
+// Replicate 모델 버전을 코드에 직접 고정한다. owner/name 형식으로만
+// predictions를 생성하면 비공식(커뮤니티) 모델은 항상 404가 나고
+// (851-labs/background-remover 사례), 매 호출마다 models.get()으로 최신
+// 버전을 조회하면 트래픽이 몰릴 때 429가 날 수 있다. 아래 버전 ID는
+// Replicate API(models.get)로 2026-08-14에 직접 조회해 고정한 값이며,
+// 모델이 새 버전을 배포하면 이 상수도 함께 갱신해야 한다.
+type ModelRef = `${string}/${string}:${string}`;
+
+const CLARITY_UPSCALER_REF: ModelRef =
+  "philz1337x/clarity-upscaler:dfad41707589d68ecdccd1dfa600d55a208f9310748e44bfe35b4a6291453d5e";
+const FLUX_FILL_DEV_REF: ModelRef =
+  "black-forest-labs/flux-fill-dev:a053f84125613d83e65328a289e14eb6639e10725c243e8fb0c24128e5573f4c";
+
+// 카테고리+상품 정보 기반으로 flux-fill-dev로 배경 후보 3장을 생성하고,
+// Claude Vision이 그중 가장 상품 사진과 어울릴 배경을 골라 반환한다.
+// 상품 1건당 한 번만 호출해서, 모든 사진에 같은 배경을 재사용한다.
+// theme(accent/baseNeutral/deepAccent)은 호출부(색상 추출 실패 시
+// 카테고리 기본 테마로 폴백)가 결정해서 넘긴다 — 이 함수는 그 값을
+// 프롬프트 톤 힌트로만 사용한다.
 export async function generateBackdrop(
   category: string,
   productName: string,
-  brandName?: string | null,
-): Promise<Buffer> {
+  brandName: string | null,
+  theme: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
+): Promise<{ buffer: Buffer; cost: number }> {
   const replicate = getReplicateClient();
-  const prompt = BACKDROP_PROMPTS[category] ?? BACKDROP_PROMPTS["기타"];
+  const basePrompt = BACKDROP_PROMPTS[category] ?? BACKDROP_PROMPTS["기타"];
+  const prompt = `${basePrompt}, soft ${describeColorTone(theme.baseNeutral)} tone, subtle ${describeColorTone(theme.accent)} accent lighting`;
+
+  const [baseImage, fullMask] = await Promise.all([
+    buildSolidCanvas(theme.baseNeutral),
+    FULL_INPAINT_MASK,
+  ]);
+
+  const CANDIDATE_COUNT = 3;
+  const cost = CANDIDATE_COUNT * REPLICATE_COST_USD.fluxFillDev;
+  console.log(
+    `[cost] generateBackdrop (flux-fill-dev x${CANDIDATE_COUNT}): $${cost.toFixed(4)}`,
+  );
 
   // run()의 반환값(output만 추출된 값)만으로는 실패 원인을 알 수 없어서,
   // progress 콜백으로 완료 시점의 원본 prediction(status/error/logs)을 같이 받아둔다.
   const rawPredictions: unknown[] = [];
 
   const results = await Promise.allSettled(
-    Array.from({ length: 3 }).map((_, i) =>
-      replicate.run(
-        "black-forest-labs/flux-schnell",
-        {
-          input: { prompt, aspect_ratio: "1:1", output_format: "png" },
-          // 기본 wait:{mode:"block"}은 Replicate 서버 쪽 동기 대기 타임아웃이
-          // 만료되면 prediction이 "processing" 상태로 남아있어도 완료로
-          // 간주해 output: null을 반환하는 문제가 있어(SDK의 isDone이
-          // status !== "starting"만 확인), poll 모드로 강제해 실제
-          // 종료 상태(succeeded/failed)까지 폴링하도록 한다.
-          wait: { mode: "poll", interval: 1000 },
-        },
-        (prediction) => {
-          rawPredictions[i] = prediction;
-        },
+    Array.from({ length: CANDIDATE_COUNT }).map((_, i) =>
+      withTimeout(
+        replicate.run(
+          FLUX_FILL_DEV_REF,
+          {
+            input: {
+              prompt,
+              image: baseImage,
+              mask: fullMask,
+              output_format: "png",
+            },
+            // 기본 wait:{mode:"block"}은 Replicate 서버 쪽 동기 대기 타임아웃이
+            // 만료되면 prediction이 "processing" 상태로 남아있어도 완료로
+            // 간주해 output: null을 반환하는 문제가 있어(generate-backdrop
+            // 500 에러의 원인이었음), poll 모드로 강제해 실제 종료 상태
+            // (succeeded/failed)까지 폴링하도록 한다.
+            wait: { mode: "poll", interval: 1000 },
+          },
+          (prediction) => {
+            rawPredictions[i] = prediction;
+          },
+        ),
+        120000,
+        "flux-fill-dev 배경 생성",
       ),
     ),
   );
@@ -112,7 +209,7 @@ export async function generateBackdrop(
       results.map(async (result, i) => {
         if (result.status !== "fulfilled") {
           const detail = await describeReplicateError(result.reason);
-          console.error("[generateBackdrop] flux-schnell 호출 실패:", detail);
+          console.error("[generateBackdrop] flux-fill-dev 호출 실패:", detail);
           failureReasons.push(detail);
           return null;
         }
@@ -129,7 +226,7 @@ export async function generateBackdrop(
                 })
               : JSON.stringify(rawPrediction);
           console.error(
-            "[generateBackdrop] flux-schnell 결과 URL 없음. output:",
+            "[generateBackdrop] flux-fill-dev 결과 URL 없음. output:",
             JSON.stringify(result.value),
             "prediction:",
             predictionSummary,
@@ -161,7 +258,8 @@ export async function generateBackdrop(
   if (!chosenResponse.ok) {
     throw new Error("선택된 배경 이미지를 불러오지 못했습니다.");
   }
-  return Buffer.from(await chosenResponse.arrayBuffer());
+  const buffer = Buffer.from(await chosenResponse.arrayBuffer());
+  return { buffer, cost };
 }
 
 async function pickBestBackdrop(
@@ -233,8 +331,6 @@ async function pickBestBackdrop(
 // 지정하지 않고 "owner/name"으로 predictions를 생성하면 항상 404가 난다
 // (owner/name 미지정 경로는 공식 모델에만 열려 있음. flux-schnell은 공식
 // 모델이라 문제없이 동작). 최신 버전 해시를 조회해 버전을 명시해서 호출한다.
-type ModelRef = `${string}/${string}:${string}`;
-
 let backgroundRemoverVersionRef: ModelRef | null = null;
 
 async function getBackgroundRemoverRef(replicate: Replicate): Promise<ModelRef> {
@@ -249,10 +345,51 @@ async function getBackgroundRemoverRef(replicate: Replicate): Promise<ModelRef> 
   return backgroundRemoverVersionRef;
 }
 
+// 배경 제거 직후, 배경 합성 이전에 clarity-upscaler로 화질(디테일/노이즈)을
+// 보정한다. 실패해도(타임아웃 포함) 전체 파이프라인을 막지 않도록 배경
+// 제거 결과(cutout)로 조용히 폴백한다.
+async function sharpenCutout(cutoutUrl: string): Promise<{ url: string; cost: number }> {
+  try {
+    const replicate = getReplicateClient();
+    const output = await withTimeout(
+      replicate.run(
+        CLARITY_UPSCALER_REF,
+        {
+          input: { image: cutoutUrl },
+          // flux-fill-dev와 동일한 이유로 poll 모드 강제 (조기 반환 방지).
+          wait: { mode: "poll", interval: 1000 },
+        },
+      ),
+      90000,
+      "clarity-upscaler 화질 보정",
+    );
+
+    const upscaledUrl = extractFluxImageUrl(output);
+    if (!upscaledUrl) {
+      console.warn(
+        "[sharpenCutout] clarity-upscaler 결과 URL 없음, 보정 전 컷아웃 사용. output:",
+        JSON.stringify(output),
+      );
+      return { url: cutoutUrl, cost: REPLICATE_COST_USD.backgroundRemover };
+    }
+
+    return {
+      url: upscaledUrl,
+      cost: REPLICATE_COST_USD.backgroundRemover + REPLICATE_COST_USD.clarityUpscaler,
+    };
+  } catch (error) {
+    console.warn(
+      "[sharpenCutout] clarity-upscaler 실패, 보정 전 컷아웃으로 폴백:",
+      await describeReplicateError(error),
+    );
+    return { url: cutoutUrl, cost: REPLICATE_COST_USD.backgroundRemover };
+  }
+}
+
 export async function enhanceProductImage(
   sourceImageUrl: string,
   backdropBuffer: Buffer,
-): Promise<Buffer> {
+): Promise<{ buffer: Buffer; cost: number }> {
   const replicate = getReplicateClient();
   const modelRef = await getBackgroundRemoverRef(replicate);
 
@@ -265,9 +402,12 @@ export async function enhanceProductImage(
     throw new Error("배경 제거 결과를 받지 못했습니다.");
   }
 
-  const cutoutResponse = await fetch(cutoutUrl);
+  const { url: sharpenedUrl, cost } = await sharpenCutout(cutoutUrl);
+  console.log(`[cost] enhanceProductImage: $${cost.toFixed(5)}`);
+
+  const cutoutResponse = await fetch(sharpenedUrl);
   if (!cutoutResponse.ok) {
-    throw new Error("배경 제거된 이미지를 불러오지 못했습니다.");
+    throw new Error("보정된 이미지를 불러오지 못했습니다.");
   }
   const cutoutBuffer = Buffer.from(await cutoutResponse.arrayBuffer());
 
@@ -307,5 +447,5 @@ export async function enhanceProductImage(
     .png()
     .toBuffer();
 
-  return finalBuffer;
+  return { buffer: finalBuffer, cost };
 }
