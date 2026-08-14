@@ -6,6 +6,7 @@ import { useCallback, useRef, useState } from "react";
 import PagzlyLogo from "@/components/PagzlyLogo";
 import GeneratingOverlay, { type GeneratingStage } from "@/components/GeneratingOverlay";
 import { createClient } from "@/lib/supabase";
+import { getCategoryTheme } from "@/lib/category-theme";
 import type { GeneratedCopy, GenerateResponse } from "@/lib/types/generate";
 
 const CATEGORIES = [
@@ -157,7 +158,18 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     name: string,
     brand: string | null,
     imageUrls: string[],
-  ): Promise<{ backdropDataUrl: string; cost: number; shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis } | null> {
+    formPrice: string,
+    formKeyFeatures: string,
+    formIngredients: string,
+    formTargetCustomer: string,
+  ): Promise<{
+    backdropDataUrl: string;
+    cost: number;
+    conceptBriefCost: number;
+    backdropCost: number;
+    shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis;
+    conceptBrief?: import("@/lib/concept-brief").ConceptBrief;
+  } | null> {
     try {
       const response = await fetch("/api/generate-backdrop", {
         method: "POST",
@@ -167,13 +179,20 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           productName: name,
           brandName: brand,
           imageUrls,
+          price: Number(formPrice) || undefined,
+          keyFeatures: formKeyFeatures.trim() || null,
+          ingredients: formIngredients.trim() || null,
+          targetCustomer: formTargetCustomer.trim() || null,
         }),
       });
 
       const result = (await response.json()) as {
         backdropDataUrl?: string;
         cost?: number;
+        conceptBriefCost?: number;
+        backdropCost?: number;
         shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis;
+        conceptBrief?: import("@/lib/concept-brief").ConceptBrief;
         error?: string;
       };
 
@@ -188,7 +207,10 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       return {
         backdropDataUrl: result.backdropDataUrl,
         cost: result.cost ?? 0,
+        conceptBriefCost: result.conceptBriefCost ?? 0,
+        backdropCost: result.backdropCost ?? result.cost ?? 0,
         shadowAnalysis: result.shadowAnalysis,
+        conceptBrief: result.conceptBrief,
       };
     } catch (err) {
       console.warn("[generate-backdrop] 배경 생성 실패, 원본 이미지 사용:", err);
@@ -200,47 +222,72 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     uploaded: UploadedImage[],
     backdropDataUrl: string,
     shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis,
-  ): Promise<{ images: UploadedImage[]; cost: number }> {
+    conceptBrief?: import("@/lib/concept-brief").ConceptBrief,
+    productCategory?: string,
+  ): Promise<{ images: UploadedImage[]; cost: number; decorCost: number }> {
     let totalCost = 0;
-    const results = await Promise.all(
-      uploaded.map(async (item) => {
-        try {
-          const response = await fetch("/api/enhance-image", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              imageUrl: item.url,
-              storagePath: item.path,
-              backdropDataUrl,
-              shadowAnalysis,
-            }),
-          });
-
-          const result = (await response.json()) as {
-            enhancedUrl?: string;
-            enhancedPath?: string;
-            cost?: number;
-            error?: string;
-          };
-
-          if (!response.ok || !result.enhancedUrl || !result.enhancedPath) {
-            console.warn(
-              "[enhance-image] 보정 실패, 원본 사용:",
-              result.error ?? item.path,
-            );
-            return item;
-          }
-
-          totalCost += result.cost ?? 0;
-          return { url: result.enhancedUrl, path: result.enhancedPath };
-        } catch (err) {
-          console.warn("[enhance-image] 보정 실패, 원본 사용:", item.path, err);
-          return item;
+    let decorCost = 0;
+    let decorDataUrl: string | undefined;
+    const categoryTheme = productCategory ? getCategoryTheme(productCategory) : null;
+    const themeColors = categoryTheme
+      ? {
+          accent: categoryTheme.accent,
+          baseNeutral: categoryTheme.baseNeutral,
+          deepAccent: categoryTheme.deepAccent,
         }
-      }),
-    );
+      : undefined;
 
-    return { images: results, cost: totalCost };
+    const results: UploadedImage[] = [];
+    for (let index = 0; index < uploaded.length; index++) {
+      const item = uploaded[index];
+      const isHero = index === 0;
+      try {
+        const response = await fetch("/api/enhance-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            imageUrl: item.url,
+            storagePath: item.path,
+            backdropDataUrl,
+            shadowAnalysis,
+            conceptBrief,
+            applyDecor: isHero,
+            decorDataUrl: isHero ? undefined : decorDataUrl,
+            theme: themeColors,
+          }),
+        });
+
+        const result = (await response.json()) as {
+          enhancedUrl?: string;
+          enhancedPath?: string;
+          cost?: number;
+          decorCost?: number;
+          decorDataUrl?: string;
+          error?: string;
+        };
+
+        if (!response.ok || !result.enhancedUrl || !result.enhancedPath) {
+          console.warn(
+            "[enhance-image] 보정 실패, 원본 사용:",
+            result.error ?? item.path,
+          );
+          results.push(item);
+          continue;
+        }
+
+        totalCost += result.cost ?? 0;
+        decorCost += result.decorCost ?? 0;
+        if (result.decorDataUrl) {
+          decorDataUrl = result.decorDataUrl;
+        }
+        results.push({ url: result.enhancedUrl, path: result.enhancedPath });
+      } catch (err) {
+        console.warn("[enhance-image] 보정 실패, 원본 사용:", item.path, err);
+        results.push(item);
+      }
+    }
+
+    return { images: results, cost: totalCost, decorCost };
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -270,6 +317,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       const uploaded = await uploadImages(images);
 
       let photoProcessingCost = 0;
+      let conceptBrief: import("@/lib/concept-brief").ConceptBrief | undefined;
+      let photoCostBreakdown: import("@/lib/types/generate").PhotoCostBreakdown = {};
 
       setLoadingStage("backdrop");
       const backdropResult = await generateBackdrop(
@@ -277,19 +326,35 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         productName.trim(),
         brandName.trim() || null,
         uploaded.map((item) => item.url),
+        price,
+        keyFeatures,
+        ingredients,
+        targetCustomer,
       );
 
       let finalImages = uploaded;
       if (backdropResult) {
         photoProcessingCost += backdropResult.cost;
+        conceptBrief = backdropResult.conceptBrief;
+        photoCostBreakdown = {
+          conceptBrief: backdropResult.conceptBriefCost,
+          backdrop: backdropResult.backdropCost,
+        };
         setLoadingStage("enhancing");
         const enhanced = await enhanceImages(
           uploaded,
           backdropResult.backdropDataUrl,
           backdropResult.shadowAnalysis,
+          conceptBrief,
+          category,
         );
         finalImages = enhanced.images;
         photoProcessingCost += enhanced.cost;
+        photoCostBreakdown = {
+          ...photoCostBreakdown,
+          enhance: enhanced.cost - enhanced.decorCost,
+          decor: enhanced.decorCost,
+        };
       }
 
       const imageUrls = finalImages.map((item) => item.url);
@@ -310,6 +375,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         wholesaleUrl: wholesaleUrl.trim() || null,
         createdAt: new Date().toISOString(),
         photoProcessingCost,
+        conceptBrief,
+        photoCostBreakdown,
       };
 
       setLoadingStage("generating");

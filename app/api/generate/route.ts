@@ -12,6 +12,9 @@ import { extractProductTheme } from "@/lib/color-extract";
 import { getSlotImageRatio, getSlotTemplate, type SlotDefinition } from "@/lib/section-templates";
 import { extractUrlSummary, type UrlSummaryResult } from "@/lib/url-crawler";
 import { buildQAFixPrompt, runDetailPageQA } from "@/lib/detail-page-qa";
+import { formatConceptCopyBlock, type ConceptBrief } from "@/lib/concept-brief";
+import { generateConceptIcons } from "@/lib/concept-icons";
+import { getCategoryTheme } from "@/lib/category-theme";
 
 const CLAUDE_MODEL = "claude-sonnet-5";
 const DEEPSEEK_MODEL = "deepseek-v4-flash";
@@ -234,6 +237,10 @@ async function generateCopyWithDeepSeek(
     productInfo.wholesaleUrl,
   );
 
+  const conceptBlock = productInfo.conceptBrief
+    ? `\n\n${formatConceptCopyBlock(productInfo.conceptBrief)}`
+    : "";
+
   const prompt = `당신은 한국 이커머스 상세페이지 기획자 겸 카피라이터입니다.
 이 서비스는 레이아웃을 AI가 즉흥적으로 설계하지 않고, 카테고리별로 검증된
 "고정 슬롯 순서" 안에 콘텐츠(카피/이미지 선택)만 채우는 방식으로 운영됩니다.
@@ -287,7 +294,7 @@ imageIndex는 0 ~ ${imageCount - 1} 범위 안에서만 사용하고, 가능하�
 }
 
 headlines/description/features/howToUse/caution은 목록·검색 화면에 쓰이는 요약용이니
-sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${cosmeticsGuide}${foodGuide}${qaFixAppendix}`;
+sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conceptBlock}${cosmeticsGuide}${foodGuide}${qaFixAppendix}`;
 
   const response = await fetch(DEEPSEEK_URL, {
     method: "POST",
@@ -515,11 +522,6 @@ export async function POST(request: Request) {
       console.log(`[qa-retry] ${qaResult.summary}`);
     }
 
-    const generationCost = (body.photoProcessingCost ?? 0) + totalDeepSeekCost;
-    console.log(
-      `[cost] product="${body.productName}" photoProcessingCost=$${(body.photoProcessingCost ?? 0).toFixed(4)} deepSeekCost=$${totalDeepSeekCost.toFixed(4)} total=$${generationCost.toFixed(4)}`,
-    );
-
     const isCosmetics = isCosmeticsCategory(body.category);
     const isFood = isFoodCategory(body.category);
     const finalCopy = isCosmetics
@@ -530,6 +532,49 @@ export async function POST(request: Request) {
     const savedCopy = finalCopy ? finalCopy.copy : copyToSave;
     const mfdsReviewed = finalCopy?.mfdsReviewed ?? false;
     const replacements = finalCopy?.replacements ?? [];
+
+    // 컨셉 기반 원형 배지 아이콘 (checklist / usage_steps)
+    let conceptIcons = undefined;
+    let iconCost = 0;
+    if (body.conceptBrief) {
+      const checklistSection = savedCopy.sections.find((s) => s.type === "checklist");
+      const usageSection = savedCopy.sections.find((s) => s.type === "usage_steps");
+      const checklistItems =
+        checklistSection?.type === "checklist" ? checklistSection.items : [];
+      const usageSteps =
+        usageSection?.type === "usage_steps" ? usageSection.steps : [];
+
+      const iconTheme = theme
+        ? { accent: theme.accent, deepAccent: theme.deepAccent }
+        : getCategoryTheme(body.category);
+
+      const iconResult = await generateConceptIcons(
+        body.conceptBrief,
+        iconTheme,
+        checklistItems,
+        usageSteps,
+      );
+      conceptIcons = iconResult.icons;
+      iconCost = iconResult.cost;
+    }
+
+    const photoCostBreakdown = {
+      ...body.photoCostBreakdown,
+      icons: iconCost,
+    };
+
+    const generationCost =
+      (body.photoProcessingCost ?? 0) + totalDeepSeekCost + iconCost;
+    console.log(
+      `[cost] product="${body.productName}" ` +
+        `conceptBrief=$${(photoCostBreakdown.conceptBrief ?? 0).toFixed(4)} ` +
+        `backdrop=$${(photoCostBreakdown.backdrop ?? 0).toFixed(4)} ` +
+        `enhance=$${(photoCostBreakdown.enhance ?? 0).toFixed(4)} ` +
+        `decor=$${(photoCostBreakdown.decor ?? 0).toFixed(4)} ` +
+        `icons=$${iconCost.toFixed(4)} ` +
+        `deepSeek=$${totalDeepSeekCost.toFixed(4)} ` +
+        `total=$${generationCost.toFixed(4)}`,
+    );
 
     const { data: savedProduct, error: insertError } = await supabase
       .from("products")
@@ -589,6 +634,8 @@ export async function POST(request: Request) {
       theme,
       urlAnalysisNotices,
       qaSummary: qaResult.summary,
+      conceptIcons,
+      photoCostBreakdown,
     });
   } catch (error) {
     console.error("[generate]", error);

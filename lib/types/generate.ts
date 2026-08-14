@@ -1,3 +1,14 @@
+import type { ConceptBrief } from "@/lib/concept-brief";
+import type { ConceptIconMap } from "@/lib/concept-icons";
+
+export type PhotoCostBreakdown = {
+  conceptBrief?: number;
+  backdrop?: number;
+  enhance?: number;
+  decor?: number;
+  icons?: number;
+};
+
 export type ProductInput = {
   category: string;
   imageUrls: string[];
@@ -14,6 +25,8 @@ export type ProductInput = {
   // 붙여넣은 텍스트(상품명/스펙/설명). 필드명은 하위 호환을 위해 유지.
   wholesaleUrl?: string | null;
   photoProcessingCost?: number;
+  conceptBrief?: ConceptBrief;
+  photoCostBreakdown?: PhotoCostBreakdown;
 };
 
 // slot: lib/section-templates.ts가 카테고리별로 고정한 슬롯 이름
@@ -143,4 +156,6 @@ export type GenerateResponse = GeneratedCopy & {
   // (예: 봇 차단, 타임아웃). 성공했거나 URL을 입력하지 않았으면 빈 배열.
   urlAnalysisNotices?: string[];
   qaSummary?: string;
+  conceptIcons?: ConceptIconMap;
+  photoCostBreakdown?: PhotoCostBreakdown;
 };
