@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { enhanceProductImage } from "@/lib/photo-enhance";
+import type { ConceptBrief } from "@/lib/concept-brief";
 
 const STORAGE_BUCKET = "images";
 
@@ -22,11 +23,24 @@ export async function POST(request: Request) {
       );
     }
 
-    const { imageUrl, storagePath, backdropDataUrl, shadowAnalysis } = (await request.json()) as {
+    const {
+      imageUrl,
+      storagePath,
+      backdropDataUrl,
+      shadowAnalysis,
+      conceptBrief,
+      applyDecor,
+      decorDataUrl,
+      theme,
+    } = (await request.json()) as {
       imageUrl?: string;
       storagePath?: string;
       backdropDataUrl?: string;
       shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis;
+      conceptBrief?: ConceptBrief;
+      applyDecor?: boolean;
+      decorDataUrl?: string;
+      theme?: { accent: string; baseNeutral: string; deepAccent: string };
     };
 
     if (!imageUrl || !storagePath || !backdropDataUrl) {
@@ -45,11 +59,32 @@ export async function POST(request: Request) {
     }
     const backdropBuffer = Buffer.from(base64Data, "base64");
 
-    const { buffer: enhancedBuffer, cost } = await enhanceProductImage(
-      imageUrl,
-      backdropBuffer,
-      shadowAnalysis,
-    );
+    let decorBuffer: Buffer | undefined;
+    if (decorDataUrl) {
+      const decorBase64 = decorDataUrl.split(",")[1];
+      if (decorBase64) {
+        decorBuffer = Buffer.from(decorBase64, "base64");
+      }
+    }
+
+    const {
+      buffer: enhancedBuffer,
+      cost,
+      decorBuffer: newDecorBuffer,
+      decorCost,
+    } = await enhanceProductImage(imageUrl, backdropBuffer, {
+      shadowHint: shadowAnalysis,
+      conceptBrief,
+      applyDecor: applyDecor ?? false,
+      decorBuffer,
+      theme,
+    });
+
+    const decorDataUrlOut =
+      newDecorBuffer != null
+        ? `data:image/png;base64,${newDecorBuffer.toString("base64")}`
+        : decorDataUrl;
+
     const enhancedPath = storagePath.replace(/\.[^./]+$/, "") + "-enhanced.png";
 
     const { error: uploadError } = await supabase.storage
@@ -92,6 +127,8 @@ export async function POST(request: Request) {
       enhancedUrl: publicUrlData.publicUrl,
       enhancedPath,
       cost,
+      decorCost: decorCost ?? 0,
+      decorDataUrl: decorDataUrlOut,
     });
   } catch (error) {
     console.error("[enhance-image]", error);

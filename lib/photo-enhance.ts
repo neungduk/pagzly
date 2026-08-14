@@ -3,6 +3,8 @@ import Replicate from "replicate";
 import sharp from "sharp";
 import { describeColorTone } from "@/lib/color-extract";
 import type { CategoryTheme } from "@/lib/category-theme";
+import type { ConceptBrief } from "@/lib/concept-brief";
+import { formatConceptPromptBlock } from "@/lib/concept-brief";
 import {
   analyzeShadowDirection,
   applySafeCrop,
@@ -43,6 +45,8 @@ const REPLICATE_COST_USD = {
   // 공개하지 않아, 같은 체급(FLUX.1 [dev])의 공식 단가($0.025/image)로 근사한다.
   // 정확한 단가가 확인되면 이 값만 교체하면 된다.
   fluxFillDev: 0.025,
+  // black-forest-labs/flux-schnell — 공식 단가 ~$0.003/image (2026-08-14)
+  fluxSchnell: 0.003,
 } as const;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -149,6 +153,82 @@ const CLARITY_UPSCALER_REF: ModelRef =
   "philz1337x/clarity-upscaler:dfad41707589d68ecdccd1dfa600d55a208f9310748e44bfe35b4a6291453d5e";
 const FLUX_FILL_DEV_REF: ModelRef =
   "black-forest-labs/flux-fill-dev:a053f84125613d83e65328a289e14eb6639e10725c243e8fb0c24128e5573f4c";
+const FLUX_SCHNELL_REF = "black-forest-labs/flux-schnell" as const;
+
+export type EnhanceImageOptions = {
+  shadowHint?: ShadowAnalysis;
+  conceptBrief?: ConceptBrief;
+  /** 장식 그래픽 합성 여부 (히어로 섹션 필수) */
+  applyDecor?: boolean;
+  /** 첫 히어로에서 생성한 장식을 재사용할 때 */
+  decorBuffer?: Buffer;
+  theme?: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">;
+};
+
+/** 컨셉 모티프 기반 장식 그래픽 — flux-schnell로 저비용 생성 */
+export async function generateDecorativeGraphic(
+  conceptBrief: ConceptBrief,
+  theme: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
+  shadow: ShadowAnalysis,
+): Promise<{ buffer: Buffer; cost: number }> {
+  const replicate = getReplicateClient();
+  const prompt = [
+    conceptBrief.decor_prompt,
+    formatConceptPromptBlock(conceptBrief),
+    `soft ${describeColorTone(theme.accent)} accent tones on ${describeColorTone(theme.baseNeutral)} background`,
+    shadow.promptHint,
+    "decorative graphic elements only, no product, no packaging, no text, no logo",
+    "soft edges, professional ecommerce detail page ornament, scattered around frame edges",
+  ].join(", ");
+
+  const cost = REPLICATE_COST_USD.fluxSchnell;
+  console.log(`[cost] generateDecorativeGraphic (flux-schnell): $${cost.toFixed(4)}`);
+
+  const output = await withTimeout(
+    replicate.run(FLUX_SCHNELL_REF, {
+      input: {
+        prompt,
+        num_outputs: 1,
+        aspect_ratio: "1:1",
+        output_format: "png",
+        output_quality: 90,
+      },
+      wait: { mode: "poll", interval: 1000 },
+    }),
+    60000,
+    "flux-schnell 장식 그래픽",
+  );
+
+  const url = extractFluxImageUrl(output);
+  if (!url) {
+    throw new Error("장식 그래픽 생성 결과 URL을 받지 못했습니다.");
+  }
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error("장식 그래픽 이미지를 불러오지 못했습니다.");
+  }
+  const buffer = Buffer.from(await response.arrayBuffer());
+  return { buffer, cost };
+}
+
+async function compositeDecorOnBackdrop(
+  backdropBuffer: Buffer,
+  decorBuffer: Buffer,
+  opacity = 0.48,
+): Promise<Buffer> {
+  const decorWithAlpha = await sharp(decorBuffer)
+    .resize(CANVAS_SIZE, CANVAS_SIZE, { fit: "cover" })
+    .ensureAlpha()
+    .linear([1, 1, 1, opacity], [0, 0, 0, 0])
+    .png()
+    .toBuffer();
+
+  return sharp(backdropBuffer)
+    .composite([{ input: decorWithAlpha, blend: "over" }])
+    .png()
+    .toBuffer();
+}
 
 function buildShadowSvg(shadow: ShadowAnalysis): string {
   const cx = CANVAS_SIZE * shadow.shadowCenterX;
@@ -162,9 +242,8 @@ function buildShadowSvg(shadow: ShadowAnalysis): string {
           <stop offset="100%" stop-color="rgba(0,0,0,0)" />
         </radialGradient>
       </defs>
-      <ellipse cx="${cx}" cy="${cy}" rx="${CANVAS_SIZE * 0.26}" ry="${CANVAS_SIZE * 0.045}" fill="url(#shadow)" />
-    </svg>
-  `;
+      <ellipse cx="${cx}" cy="${cy}" rx="${CANVAS_SIZE * 0.22}" ry="${CANVAS_SIZE * 0.06}" fill="url(#shadow)" />
+    </svg>`;
 }
 
 async function fetchSourceBuffer(url: string): Promise<Buffer> {
@@ -185,6 +264,7 @@ export async function generateBackdrop(
   brandName: string | null,
   theme: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
   sourceImageUrl?: string,
+  conceptBrief?: ConceptBrief,
 ): Promise<{ buffer: Buffer; cost: number; shadow: ShadowAnalysis }> {
   const replicate = getReplicateClient();
   const basePrompt = BACKDROP_PROMPTS[category] ?? BACKDROP_PROMPTS["기타"];
@@ -205,7 +285,8 @@ export async function generateBackdrop(
     }
   }
 
-  const prompt = `${basePrompt}, ${shadow.promptHint}, soft ${describeColorTone(theme.baseNeutral)} tone, subtle ${describeColorTone(theme.accent)} accent lighting`;
+  const conceptBlock = conceptBrief ? `, ${formatConceptPromptBlock(conceptBrief)}` : "";
+  const prompt = `${basePrompt}${conceptBlock}, ${shadow.promptHint}, soft ${describeColorTone(theme.baseNeutral)} tone, subtle ${describeColorTone(theme.accent)} accent lighting`;
 
   const [baseImage, fullMask] = await Promise.all([
     buildSolidCanvas(theme.baseNeutral),
@@ -438,8 +519,9 @@ async function sharpenCutout(cutoutUrl: string): Promise<{ url: string; cost: nu
 export async function enhanceProductImage(
   sourceImageUrl: string,
   backdropBuffer: Buffer,
-  shadowHint?: ShadowAnalysis,
-): Promise<{ buffer: Buffer; cost: number }> {
+  options: EnhanceImageOptions = {},
+): Promise<{ buffer: Buffer; cost: number; decorBuffer?: Buffer; decorCost?: number }> {
+  const { shadowHint, conceptBrief, applyDecor, decorBuffer: reuseDecor, theme } = options;
   const replicate = getReplicateClient();
   const modelRef = await getBackgroundRemoverRef(replicate);
 
@@ -500,6 +582,23 @@ export async function enhanceProductImage(
     }
   }
 
+  let decorCost = 0;
+  let decorBuffer = reuseDecor;
+  if (applyDecor && conceptBrief && theme && !decorBuffer) {
+    try {
+      const generated = await generateDecorativeGraphic(conceptBrief, theme, shadow);
+      decorBuffer = generated.buffer;
+      decorCost = generated.cost;
+    } catch (error) {
+      console.warn("[decor] 장식 그래픽 생성 실패, 배경만 사용", error);
+    }
+  }
+
+  const backdropWithDecor =
+    decorBuffer != null
+      ? await compositeDecorOnBackdrop(backdropResized, decorBuffer)
+      : backdropResized;
+
   const shadowSvg = buildShadowSvg(shadow);
   const shadowBuffer = await sharp(Buffer.from(shadowSvg)).png().toBuffer();
 
@@ -520,7 +619,7 @@ export async function enhanceProductImage(
     .resize(targetW, targetH, { fit: "inside", withoutEnlargement: false })
     .toBuffer();
 
-  const finalBuffer = await sharp(backdropResized)
+  const finalBuffer = await sharp(backdropWithDecor)
     .composite([
       { input: shadowBuffer, left: 0, top: 0 },
       { input: cutoutResized, left: placement.left, top: placement.top },
@@ -528,5 +627,12 @@ export async function enhanceProductImage(
     .png()
     .toBuffer();
 
-  return { buffer: finalBuffer, cost };
+  const totalCost = cost + decorCost;
+  if (decorCost > 0) {
+    console.log(
+      `[cost] enhanceProductImage total=$${totalCost.toFixed(5)} (enhance=$${cost.toFixed(5)} decor=$${decorCost.toFixed(4)})`,
+    );
+  }
+
+  return { buffer: finalBuffer, cost: totalCost, decorBuffer, decorCost: decorCost || undefined };
 }
