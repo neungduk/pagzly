@@ -222,13 +222,13 @@ export default async function Home() {
         <section id="comparison" className="border-b border-line bg-white py-24">
           <div className="mx-auto max-w-6xl px-6">
             <div className="text-center">
-              <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink/40">
+              <p className="font-mono text-xs uppercase tracking-[0.2em] text-registration-red">
                 Comparison
               </p>
-              <h2 className="mt-3 font-heading text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+              <h2 className="mt-2.5 font-heading text-2xl font-bold tracking-tight text-ink sm:text-[28px]">
                 외주도, 템플릿 툴도 아닌 이유
               </h2>
-              <p className="mx-auto mt-4 max-w-2xl text-lg text-ink/60">
+              <p className="mx-auto mt-2.5 max-w-2xl text-sm text-ink/50">
                 같은 상세페이지를 만드는 세 가지 방법을 나란히 놓고 비교했습니다.
               </p>
             </div>

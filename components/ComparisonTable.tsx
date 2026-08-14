@@ -34,25 +34,41 @@ const rows: Row[] = [
   },
 ];
 
+const cellClass = "px-3 py-4 align-top sm:px-5";
+const bodyTextClass = "font-mono text-[11px] leading-relaxed sm:text-sm";
+
 export default function ComparisonTable() {
   return (
     <div>
-      <div className="relative mx-auto max-w-4xl overflow-x-auto rounded-none border border-line bg-paper">
+      <div className="relative mx-auto max-w-4xl border border-line bg-white">
         <CropMarks />
-        <table className="w-full min-w-[640px] border-collapse text-left">
+        <table className="w-full table-fixed border-collapse text-left">
+          <colgroup>
+            <col style={{ width: "22%" }} />
+            <col style={{ width: "22%" }} />
+            <col style={{ width: "22%" }} />
+            <col style={{ width: "34%" }} />
+          </colgroup>
           <thead>
             <tr className="border-b border-line">
-              <th className="w-1/4 p-4 text-sm font-semibold text-ink/50 sm:p-6">
-                &nbsp;
+              <th className={`${cellClass} text-xs font-semibold text-ink/40 sm:text-sm`}>
+                <span className="sr-only">비교 항목</span>
               </th>
-              <th className="p-4 text-sm font-semibold text-ink sm:p-6">
+              <th className={`${cellClass} bg-white text-xs font-semibold text-ink sm:text-sm`}>
                 디자인 외주
               </th>
-              <th className="p-4 text-sm font-semibold text-ink sm:p-6">
+              <th className={`${cellClass} bg-white text-xs font-semibold text-ink sm:text-sm`}>
                 템플릿 툴
               </th>
-              <th className="bg-registration-red/5 p-4 text-sm font-bold text-registration-red sm:p-6">
-                Pagzly
+              <th className={`${cellClass} bg-[#FBEAEA]`}>
+                <span className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs font-bold text-registration-red sm:text-sm">
+                    Pagzly
+                  </span>
+                  <span className="rounded-full bg-registration-red px-2 py-0.5 font-mono text-[9px] font-semibold text-paper">
+                    추천
+                  </span>
+                </span>
               </th>
             </tr>
           </thead>
@@ -64,17 +80,19 @@ export default function ComparisonTable() {
               >
                 <th
                   scope="row"
-                  className="p-4 align-top text-sm font-semibold text-ink sm:p-6"
+                  className={`${cellClass} text-xs font-semibold text-ink sm:text-sm`}
                 >
                   {row.label}
                 </th>
-                <td className="p-4 align-top font-mono text-sm text-ink/70 sm:p-6">
+                <td className={`${cellClass} bg-white text-ink/70 ${bodyTextClass}`}>
                   {row.outsourcing}
                 </td>
-                <td className="p-4 align-top font-mono text-sm text-ink/70 sm:p-6">
+                <td className={`${cellClass} bg-white text-ink/70 ${bodyTextClass}`}>
                   {row.template}
                 </td>
-                <td className="bg-registration-red/5 p-4 align-top font-mono text-sm font-semibold text-registration-red sm:p-6">
+                <td
+                  className={`${cellClass} bg-[#FBEAEA] font-semibold text-registration-red ${bodyTextClass}`}
+                >
                   {row.pagzly}
                 </td>
               </tr>
@@ -82,7 +100,7 @@ export default function ComparisonTable() {
           </tbody>
         </table>
       </div>
-      <p className="mx-auto mt-4 max-w-4xl text-xs leading-relaxed text-ink/40">
+      <p className="mx-auto mt-8 max-w-4xl px-1 text-xs leading-relaxed text-ink/40">
         * Pagzly의 소요 시간·비용은 사진 5장 기준 실제 파이프라인(배경 제거·화질
         보정·배경 생성 + AI 카피 생성) 실행 원가를 집계한 값입니다. 디자인
         외주·템플릿 툴 수치는 국내 셀러들이 일반적으로 겪는 시세 범위입니다.
