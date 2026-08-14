@@ -3,6 +3,12 @@ import Replicate from "replicate";
 import sharp from "sharp";
 import { describeColorTone } from "@/lib/color-extract";
 import type { CategoryTheme } from "@/lib/category-theme";
+import {
+  applySafeCrop,
+  computeSafeCanvasPlacement,
+  detectTextRegionsFromUrl,
+  type TextRegion,
+} from "@/lib/vision-utils";
 
 const CANVAS_SIZE = 1200;
 const FILL_BASE_SIZE = 1024;
@@ -393,6 +399,20 @@ export async function enhanceProductImage(
   const replicate = getReplicateClient();
   const modelRef = await getBackgroundRemoverRef(replicate);
 
+  // 크롭 안전: 원본에서 라벨/로고/텍스트 영역을 Haiku 비전으로 감지
+  let textRegions: TextRegion[] = [];
+  try {
+    textRegions = await detectTextRegionsFromUrl(sourceImageUrl);
+    if (textRegions.length > 0) {
+      console.log(
+        `[safeCrop] ${textRegions.length}개 텍스트 영역 감지:`,
+        textRegions.map((r) => r.kind).join(", "),
+      );
+    }
+  } catch (error) {
+    console.warn("[safeCrop] 텍스트 영역 감지 실패, 기본 crop 사용", error);
+  }
+
   const output = await replicate.run(modelRef, {
     input: { image: sourceImageUrl },
   });
@@ -410,6 +430,11 @@ export async function enhanceProductImage(
     throw new Error("보정된 이미지를 불러오지 못했습니다.");
   }
   const cutoutBuffer = Buffer.from(await cutoutResponse.arrayBuffer());
+
+  // 라벨·로고가 잘리지 않도록 안전 여백 crop (배경 제거 후 동일 좌표계)
+  const safeCutout = textRegions.length > 0
+    ? await applySafeCrop(cutoutBuffer, textRegions)
+    : cutoutBuffer;
 
   const backdropResized = await sharp(backdropBuffer)
     .resize(CANVAS_SIZE, CANVAS_SIZE, { fit: "cover" })
@@ -429,20 +454,27 @@ export async function enhanceProductImage(
   `;
   const shadowBuffer = await sharp(Buffer.from(shadowSvg)).png().toBuffer();
 
-  const targetSize = Math.round(CANVAS_SIZE * 0.68);
-  const cutoutResized = await sharp(cutoutBuffer)
-    .resize(targetSize, targetSize, { fit: "inside", withoutEnlargement: false })
+  const cutoutMetaRaw = await sharp(safeCutout).metadata();
+  const rawW = cutoutMetaRaw.width ?? 1;
+  const rawH = cutoutMetaRaw.height ?? 1;
+
+  const placement = computeSafeCanvasPlacement(
+    CANVAS_SIZE,
+    rawW,
+    rawH,
+    textRegions,
+  );
+  const targetW = Math.round(rawW * placement.scale);
+  const targetH = Math.round(rawH * placement.scale);
+
+  const cutoutResized = await sharp(safeCutout)
+    .resize(targetW, targetH, { fit: "inside", withoutEnlargement: false })
     .toBuffer();
-  const cutoutMeta = await sharp(cutoutResized).metadata();
-  const width = cutoutMeta.width ?? targetSize;
-  const height = cutoutMeta.height ?? targetSize;
-  const left = Math.round((CANVAS_SIZE - width) / 2);
-  const top = Math.round((CANVAS_SIZE - height) / 2) - Math.round(CANVAS_SIZE * 0.02);
 
   const finalBuffer = await sharp(backdropResized)
     .composite([
       { input: shadowBuffer, left: 0, top: 0 },
-      { input: cutoutResized, left, top },
+      { input: cutoutResized, left: placement.left, top: placement.top },
     ])
     .png()
     .toBuffer();
