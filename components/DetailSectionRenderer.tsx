@@ -128,7 +128,7 @@ function renderSection(
               >
                 {category}
               </span>
-              <h2 className="line-clamp-2 font-serif text-4xl leading-tight text-white sm:text-5xl">
+              <h2 className="line-clamp-2 font-heading text-4xl font-bold leading-tight text-white sm:text-5xl">
                 {section.headline}
               </h2>
               {section.subheadline && (
@@ -144,18 +144,18 @@ function renderSection(
       return (
         <section
           key={`checklist-${index}`}
-          className={`rounded-2xl border border-gray-100 ${SECTION_PADDING_CLASS}`}
+          className={`rounded-2xl border border-line ${SECTION_PADDING_CLASS}`}
           style={sectionBackgroundStyle(theme, pattern)}
         >
           <h3
-            className="font-serif text-xl"
+            className="font-heading text-xl font-bold"
             style={{ color: theme.deepAccent }}
           >
             {section.heading}
           </h3>
           <ul className="mt-5 space-y-3">
             {section.items.map((item) => (
-              <li key={item} className="flex items-start gap-3 text-sm text-gray-700">
+              <li key={item} className="flex items-start gap-3 text-sm text-ink/80">
                 <ThemeIcon theme={theme} />
                 <span>{item}</span>
               </li>
@@ -176,15 +176,15 @@ function renderSection(
       );
       const textEl = (
         <div>
-          <h3 className="line-clamp-2 font-serif text-2xl text-gray-900">{section.heading}</h3>
-          <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-gray-600">{section.body}</p>
+          <h3 className="line-clamp-2 font-heading text-2xl font-bold text-ink">{section.heading}</h3>
+          <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-ink/65">{section.body}</p>
         </div>
       );
 
       return (
         <section
           key={`image_text-${index}`}
-          className={`rounded-2xl border border-gray-100 ${SECTION_PADDING_CLASS}`}
+          className={`rounded-2xl border border-line ${SECTION_PADDING_CLASS}`}
           style={sectionBackgroundStyle(theme, pattern)}
         >
           <div className="grid items-center gap-6 sm:grid-cols-2">
@@ -208,22 +208,22 @@ function renderSection(
       return (
         <section
           key={`spec_table-${index}`}
-          className={`rounded-2xl border border-gray-100 ${SECTION_PADDING_CLASS}`}
+          className={`rounded-2xl border border-line ${SECTION_PADDING_CLASS}`}
           style={sectionBackgroundStyle(theme, pattern)}
         >
-          <h3 className="font-serif text-2xl text-gray-900">{section.heading}</h3>
-          <div className="mt-5 overflow-hidden rounded-xl border border-gray-100">
+          <h3 className="font-heading text-2xl font-bold text-ink">{section.heading}</h3>
+          <div className="mt-5 overflow-hidden rounded-xl border border-line">
             <table className="w-full text-sm">
               <tbody>
                 {section.rows.map((row, rowIndex) => (
                   <tr
                     key={`${row.label}-${rowIndex}`}
-                    className={rowIndex % 2 === 0 ? "bg-white/60" : "bg-white"}
+                    className={rowIndex % 2 === 0 ? "bg-paper/80" : "bg-paper"}
                   >
-                    <td className="w-1/3 px-4 py-3 font-medium text-gray-500">
+                    <td className="w-1/3 px-4 py-3 font-medium text-ink/55">
                       {row.label}
                     </td>
-                    <td className="px-4 py-3 text-gray-800">{row.value}</td>
+                    <td className="px-4 py-3 text-ink">{row.value}</td>
                   </tr>
                 ))}
               </tbody>
@@ -236,16 +236,16 @@ function renderSection(
       return (
         <section
           key={`comparison_table-${index}`}
-          className={`rounded-2xl border border-gray-100 ${SECTION_PADDING_CLASS}`}
+          className={`rounded-2xl border border-line ${SECTION_PADDING_CLASS}`}
           style={sectionBackgroundStyle(theme, pattern)}
         >
-          <h3 className="font-serif text-2xl text-gray-900">{section.heading}</h3>
-          <div className="mt-5 overflow-x-auto rounded-xl border border-gray-100">
+          <h3 className="font-heading text-2xl font-bold text-ink">{section.heading}</h3>
+          <div className="mt-5 overflow-x-auto rounded-xl border border-line">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-white/60">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500" />
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">
+                <tr className="bg-paper/80">
+                  <th className="px-4 py-3 text-left font-medium text-ink/55" />
+                  <th className="px-4 py-3 text-left font-medium text-ink/55">
                     {section.columns[0]}
                   </th>
                   <th className="px-4 py-3 text-left font-semibold" style={{ color: theme.deepAccent }}>
@@ -257,11 +257,11 @@ function renderSection(
                 {section.rows.map((row, rowIndex) => (
                   <tr
                     key={`${row.label}-${rowIndex}`}
-                    className={rowIndex % 2 === 0 ? "bg-white/60" : "bg-white"}
+                    className={rowIndex % 2 === 0 ? "bg-paper/80" : "bg-paper"}
                   >
-                    <td className="px-4 py-3 font-medium text-gray-500">{row.label}</td>
-                    <td className="px-4 py-3 text-gray-800">{row.values[0]}</td>
-                    <td className="px-4 py-3 font-semibold text-gray-900">{row.values[1]}</td>
+                    <td className="px-4 py-3 font-medium text-ink/55">{row.label}</td>
+                    <td className="px-4 py-3 text-ink">{row.values[0]}</td>
+                    <td className="px-4 py-3 font-semibold text-ink">{row.values[1]}</td>
                   </tr>
                 ))}
               </tbody>
@@ -275,10 +275,10 @@ function renderSection(
       return (
         <section
           key={`color_variation-${index}`}
-          className={`rounded-2xl border border-gray-100 ${SECTION_PADDING_CLASS}`}
+          className={`rounded-2xl border border-line ${SECTION_PADDING_CLASS}`}
           style={sectionBackgroundStyle(theme, pattern)}
         >
-          <h3 className="font-serif text-2xl text-gray-900">{section.heading}</h3>
+          <h3 className="font-heading text-2xl font-bold text-ink">{section.heading}</h3>
           <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
             {section.options.map((option) => {
               const src = resolveImage(imageUrls, option.imageIndex);
@@ -289,9 +289,9 @@ function renderSection(
                     alt={option.label}
                     className={`${ratioClass} w-full rounded-lg object-cover`}
                   />
-                  <div className="flex items-center gap-2 text-sm text-gray-700">
+                  <div className="flex items-center gap-2 text-sm text-ink/80">
                     <span
-                      className="h-4 w-4 shrink-0 rounded-full border border-gray-200"
+                      className="h-4 w-4 shrink-0 rounded-full border border-line"
                       style={{ backgroundColor: option.colorHex }}
                       aria-hidden="true"
                     />
@@ -309,15 +309,15 @@ function renderSection(
       return (
         <section
           key={`usage_steps-${index}`}
-          className={`rounded-2xl border border-gray-100 ${SECTION_PADDING_CLASS}`}
+          className={`rounded-2xl border border-line ${SECTION_PADDING_CLASS}`}
           style={sectionBackgroundStyle(theme, pattern)}
         >
-          <h3 className="font-serif text-2xl text-gray-900">{section.heading}</h3>
+          <h3 className="font-heading text-2xl font-bold text-ink">{section.heading}</h3>
           <ol className="mt-5 space-y-4">
             {section.steps.map((step, stepIndex) => (
-              <li key={step} className="flex items-start gap-3 text-sm text-gray-700">
+              <li key={step} className="flex items-start gap-3 text-sm text-ink/80">
                 <span
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-paper"
                   style={{ backgroundColor: theme.accent }}
                 >
                   {stepIndex + 1}
@@ -334,10 +334,10 @@ function renderSection(
       return (
         <section
           key={`gallery-${index}`}
-          className={`rounded-2xl border border-gray-100 ${SECTION_PADDING_CLASS}`}
+          className={`rounded-2xl border border-line ${SECTION_PADDING_CLASS}`}
           style={sectionBackgroundStyle(theme, pattern)}
         >
-          <h3 className="font-serif text-2xl text-gray-900">{section.heading}</h3>
+          <h3 className="font-heading text-2xl font-bold text-ink">{section.heading}</h3>
           <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {section.imageIndexes.map((imageIndex) => {
               const src = resolveImage(imageUrls, imageIndex);
@@ -359,13 +359,13 @@ function renderSection(
       return (
         <section
           key={`caution-${index}`}
-          className={`rounded-2xl border border-gray-100 ${SECTION_PADDING_CLASS}`}
+          className={`rounded-2xl border border-line ${SECTION_PADDING_CLASS}`}
           style={sectionBackgroundStyle(theme, pattern)}
         >
-          <h3 className="font-serif text-xl" style={{ color: theme.deepAccent }}>
+          <h3 className="font-heading text-xl font-bold" style={{ color: theme.deepAccent }}>
             {section.heading}
           </h3>
-          <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-gray-600">{section.body}</p>
+          <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-ink/65">{section.body}</p>
         </section>
       );
 
@@ -382,7 +382,7 @@ function renderSection(
                 className="text-2xl"
                 style={{ color: theme.accent }}
               >
-                ₩<span className="font-serif">{section.price.toLocaleString()}</span>
+                ₩<span className="font-heading font-bold">{section.price.toLocaleString()}</span>
               </p>
               {section.targetCustomer && (
                 <span

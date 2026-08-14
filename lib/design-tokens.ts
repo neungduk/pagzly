@@ -6,6 +6,25 @@
 import type { CategoryTheme } from "@/lib/category-theme";
 
 // ---------------------------------------------------------------------------
+// 0. 브랜드 팔레트 — globals.css @theme 와 1:1 대응
+// ---------------------------------------------------------------------------
+
+export const BRAND = {
+  ink: "#1B1B18",
+  paper: "#FAF8F3",
+  registrationRed: "#C1272D",
+  slateBlue: "#2F4858",
+  mustard: "#E3A72E",
+  line: "#DAD5C9",
+} as const;
+
+export const BRAND_SOFT = {
+  slate: "#E8EDF0",
+  mustard: "#FBF3E0",
+  red: "#F5DEDE",
+} as const;
+
+// ---------------------------------------------------------------------------
 // 1. 컬러 — 페이지 전체에서 accentColor / baseNeutral / deepAccent 3개만 순환.
 // ---------------------------------------------------------------------------
 

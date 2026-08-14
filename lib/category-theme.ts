@@ -1,82 +1,99 @@
 // 카테고리별 상세페이지 테마. DetailSectionRenderer가 category를 받아
 // 이 테이블에서 팔레트/아이콘을 찾아 적용한다. 매핑에 없는 카테고리는
 // DEFAULT_THEME으로 폴백.
+//
+// 팔레트는 DESIGN_SYSTEM 브랜드 토큰(ink / paper / slate-blue /
+// registration-red / mustard)만 사용한다.
+
+import { BRAND, BRAND_SOFT } from "@/lib/design-tokens";
 
 export type CategoryTheme = {
-  accent: string; // 헤드라인 강조색, 버튼, 가격 등 (색 3종 중 1)
-  accentSoft: string; // 카드/배지 배경 (연한 틴트)
-  accentText: string; // accentSoft 위에 올라가는 텍스트 (충분한 대비)
-  heroScrimFrom: string; // 히어로 그라데이션 시작색 (accent 기반, half-opacity)
-  baseNeutral: string; // 상품 사진 배경/그림자에서 뽑은 무채색 톤 (색 3종 중 1, 패턴 A 배경)
-  deepAccent: string; // accent를 20~30% 어둡게 만든 값 (색 3종 중 1, 텍스트/버튼 강조, hero 그라데이션)
-  icon: string; // lucide-react 아이콘 이름 (checklist bullet에 사용)
+  accent: string;
+  accentSoft: string;
+  accentText: string;
+  heroScrimFrom: string;
+  baseNeutral: string;
+  deepAccent: string;
+  icon: string;
 };
 
-export const DEFAULT_THEME: CategoryTheme = {
-  accent: "#6366F1",
-  accentSoft: "#EEF2FF",
-  accentText: "#3730A3",
-  heroScrimFrom: "rgba(55,48,163,0.75)",
-  baseNeutral: "#F5F5F4",
-  deepAccent: "#4338CA",
-  icon: "Sparkles",
-};
+function theme(
+  accent: string,
+  accentSoft: string,
+  accentText: string,
+  heroScrimFrom: string,
+  baseNeutral: string,
+  deepAccent: string,
+  icon: string,
+): CategoryTheme {
+  return { accent, accentSoft, accentText, heroScrimFrom, baseNeutral, deepAccent, icon };
+}
+
+export const DEFAULT_THEME: CategoryTheme = theme(
+  BRAND.slateBlue,
+  BRAND_SOFT.slate,
+  BRAND.slateBlue,
+  "rgba(47,72,88,0.75)",
+  BRAND.paper,
+  "#1F3340",
+  "Sparkles",
+);
 
 export const CATEGORY_THEMES: Record<string, CategoryTheme> = {
-  "의류/패션": {
-    accent: "#57534E",
-    accentSoft: "#F5F5F4",
-    accentText: "#44403C",
-    heroScrimFrom: "rgba(41,37,36,0.75)",
-    baseNeutral: "#FAFAF9",
-    deepAccent: "#292524",
-    icon: "Shirt",
-  },
-  "화장품/뷰티": {
-    accent: "#0E7490",
-    accentSoft: "#ECFEFF",
-    accentText: "#155E75",
-    heroScrimFrom: "rgba(14,116,144,0.7)",
-    baseNeutral: "#F8FAFA",
-    deepAccent: "#0C5A72",
-    icon: "Sparkles",
-  },
-  "식품/건강기능식품": {
-    accent: "#B45309",
-    accentSoft: "#FFFBEB",
-    accentText: "#92400E",
-    heroScrimFrom: "rgba(180,83,9,0.7)",
-    baseNeutral: "#FAF7F2",
-    deepAccent: "#7C3D07",
-    icon: "Leaf",
-  },
-  "전자제품": {
-    accent: "#3730A3",
-    accentSoft: "#EEF2FF",
-    accentText: "#3730A3",
-    heroScrimFrom: "rgba(30,27,75,0.75)",
-    baseNeutral: "#F7F7F9",
-    deepAccent: "#2A2582",
-    icon: "Cpu",
-  },
-  "생활용품": {
-    accent: "#15803D",
-    accentSoft: "#F0FDF4",
-    accentText: "#166534",
-    heroScrimFrom: "rgba(21,128,61,0.7)",
-    baseNeutral: "#F7FAF7",
-    deepAccent: "#116530",
-    icon: "Leaf",
-  },
-  "반려동물": {
-    accent: "#C2410C",
-    accentSoft: "#FFF7ED",
-    accentText: "#9A3412",
-    heroScrimFrom: "rgba(194,65,12,0.7)",
-    baseNeutral: "#FAF8F5",
-    deepAccent: "#9A340A",
-    icon: "PawPrint",
-  },
+  "의류/패션": theme(
+    BRAND.ink,
+    "#F0EEEA",
+    BRAND.ink,
+    "rgba(27,27,24,0.72)",
+    BRAND.paper,
+    BRAND.ink,
+    "Shirt",
+  ),
+  "화장품/뷰티": theme(
+    BRAND.slateBlue,
+    BRAND_SOFT.slate,
+    BRAND.slateBlue,
+    "rgba(47,72,88,0.7)",
+    BRAND.paper,
+    "#1F3340",
+    "Sparkles",
+  ),
+  "식품/건강기능식품": theme(
+    BRAND.mustard,
+    BRAND_SOFT.mustard,
+    "#92400E",
+    "rgba(179,120,30,0.72)",
+    BRAND.paper,
+    "#B8871F",
+    "Leaf",
+  ),
+  "전자제품": theme(
+    BRAND.slateBlue,
+    BRAND_SOFT.slate,
+    BRAND.slateBlue,
+    "rgba(31,51,64,0.78)",
+    "#F5F7F8",
+    "#1F3340",
+    "Cpu",
+  ),
+  "생활용품": theme(
+    BRAND.slateBlue,
+    BRAND_SOFT.slate,
+    BRAND.slateBlue,
+    "rgba(47,72,88,0.68)",
+    BRAND.paper,
+    "#243845",
+    "Leaf",
+  ),
+  "반려동물": theme(
+    BRAND.registrationRed,
+    BRAND_SOFT.red,
+    BRAND.registrationRed,
+    "rgba(193,39,45,0.68)",
+    BRAND.paper,
+    "#9A1F24",
+    "PawPrint",
+  ),
   "기타": DEFAULT_THEME,
 };
 

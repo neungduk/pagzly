@@ -341,22 +341,22 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
             : "AI 상세페이지 생성하기";
 
   const inputClass =
-    "mt-1.5 w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/20";
-  const labelClass = "block text-sm font-medium text-gray-700";
-  const sectionClass = "rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8";
+    "mt-1.5 w-full rounded-lg border border-line px-4 py-2.5 text-sm text-ink outline-none transition-colors focus:border-registration-red focus:ring-2 focus:ring-registration-red/20";
+  const labelClass = "block text-sm font-medium text-ink/80";
+  const sectionClass = "rounded-2xl border border-line bg-paper p-6 shadow-sm sm:p-8";
 
   return (
-    <div className="min-h-full bg-white text-gray-900">
-      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[#6366f1]/5 to-white" />
+    <div className="min-h-full bg-paper text-ink">
+      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-line/40 to-paper" />
 
-      <header className="border-b border-gray-100 bg-white/80 backdrop-blur-md">
+      <header className="border-b border-line bg-paper/80 backdrop-blur-md">
         <nav className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
           <Link href="/">
             <PagzlyLogo className="h-8 w-auto" />
           </Link>
           <Link
             href="/"
-            className="text-sm font-medium text-gray-500 hover:text-gray-900"
+            className="text-sm font-medium text-ink/60 hover:text-ink"
           >
             홈
           </Link>
@@ -365,11 +365,13 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
 
       <main className="mx-auto max-w-3xl px-6 py-10 pb-16">
         <div className="mb-8">
-          <p className="text-sm font-medium text-[#6366f1]">상세페이지 생성</p>
-          <h1 className="mt-2 text-2xl font-bold text-gray-900 sm:text-3xl">
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-registration-red">
+            상세페이지 생성
+          </p>
+          <h1 className="mt-2 font-heading text-2xl font-bold text-ink sm:text-3xl">
             상품 정보 입력
           </h1>
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-ink/60">
             AI가 상세페이지를 만들 수 있도록 상품 정보를 입력해 주세요.
           </p>
         </div>
@@ -377,8 +379,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* 1. 카테고리 */}
           <section className={sectionClass}>
-            <h2 className="text-lg font-semibold text-gray-900">카테고리</h2>
-            <p className="mt-1 text-sm text-gray-500">상품 카테고리를 선택해 주세요.</p>
+            <h2 className="font-heading text-lg font-bold text-ink">카테고리</h2>
+            <p className="mt-1 text-sm text-ink/60">상품 카테고리를 선택해 주세요.</p>
             <select
               required
               value={category}
@@ -396,8 +398,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
 
           {/* 2. 상품 사진 */}
           <section className={sectionClass}>
-            <h2 className="text-lg font-semibold text-gray-900">상품 사진</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <h2 className="font-heading text-lg font-bold text-ink">상품 사진</h2>
+            <p className="mt-1 text-sm text-ink/60">
               JPG, PNG · 최대 {MAX_IMAGES}장
             </p>
 
@@ -411,19 +413,19 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
               onClick={() => fileInputRef.current?.click()}
               className={`mt-4 cursor-pointer rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors ${
                 dragOver
-                  ? "border-[#6366f1] bg-[#6366f1]/5"
-                  : "border-gray-200 hover:border-[#6366f1]/40 hover:bg-gray-50"
+                  ? "border-registration-red bg-registration-red/5"
+                  : "border-line hover:border-registration-red/40 hover:bg-line/20"
               }`}
             >
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#6366f1]/10 text-[#6366f1]">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-registration-red/10 text-registration-red">
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
                 </svg>
               </div>
-              <p className="mt-4 text-sm font-medium text-gray-700">
+              <p className="mt-4 text-sm font-medium text-ink/80">
                 클릭하거나 파일을 드래그하여 업로드
               </p>
-              <p className="mt-1 text-xs text-gray-400">
+              <p className="mt-1 text-xs text-ink/40">
                 {images.length}/{MAX_IMAGES}장 업로드됨
               </p>
               <input
@@ -442,7 +444,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
             {previews.length > 0 && (
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
                 {previews.map((src, index) => (
-                  <div key={src} className="group relative aspect-square overflow-hidden rounded-lg border border-gray-100">
+                  <div key={src} className="group relative aspect-square overflow-hidden rounded-lg border border-line">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={src} alt={`상품 사진 ${index + 1}`} className="h-full w-full object-cover" />
                     <button
@@ -466,11 +468,11 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
 
           {/* 3. 상품 기본 정보 */}
           <section className={sectionClass}>
-            <h2 className="text-lg font-semibold text-gray-900">상품 기본 정보</h2>
+            <h2 className="font-heading text-lg font-bold text-ink">상품 기본 정보</h2>
             <div className="mt-5 space-y-5">
               <div>
                 <label htmlFor="productName" className={labelClass}>
-                  상품명 <span className="text-[#6366f1]">*</span>
+                  상품명 <span className="text-registration-red">*</span>
                 </label>
                 <input
                   id="productName"
@@ -500,10 +502,10 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
                   <label htmlFor="price" className={labelClass}>
-                    판매 가격 <span className="text-[#6366f1]">*</span>
+                    판매 가격 <span className="text-registration-red">*</span>
                   </label>
                   <div className="relative mt-1.5">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">₩</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-ink/40">₩</span>
                     <input
                       id="price"
                       type="number"
@@ -541,7 +543,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
 
           {/* 4. 상품 특징 */}
           <section className={sectionClass}>
-            <h2 className="text-lg font-semibold text-gray-900">상품 특징</h2>
+            <h2 className="font-heading text-lg font-bold text-ink">상품 특징</h2>
             <div className="mt-5 space-y-5">
               <div>
                 <label htmlFor="keyFeatures" className={labelClass}>
@@ -589,7 +591,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
 
           {/* 5. 추가 옵션 */}
           <section className={sectionClass}>
-            <h2 className="text-lg font-semibold text-gray-900">추가 옵션</h2>
+            <h2 className="font-heading text-lg font-bold text-ink">추가 옵션</h2>
             <div className="mt-5 space-y-5">
               <div>
                 <label htmlFor="competitorUrl" className={labelClass}>
@@ -603,7 +605,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
                   placeholder="https://..."
                   className={inputClass}
                 />
-                <p className="mt-1.5 text-xs text-gray-400">AI가 USP를 분석합니다</p>
+                <p className="mt-1.5 text-xs text-ink/40">AI가 USP를 분석합니다</p>
               </div>
 
               <div>
@@ -618,7 +620,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
                   placeholder="원본 판매 페이지의 상품명, 스펙, 상세 설명 등을 그대로 붙여넣어 주세요."
                   className={`${inputClass} resize-none`}
                 />
-                <p className="mt-1.5 text-xs text-gray-400">위탁 셀러용 원본 상품 정보 붙여넣기</p>
+                <p className="mt-1.5 text-xs text-ink/40">위탁 셀러용 원본 상품 정보 붙여넣기</p>
               </div>
             </div>
           </section>
@@ -630,7 +632,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           <button
             type="submit"
             disabled={loading}
-            className="flex h-14 w-full items-center justify-center rounded-xl bg-[#6366f1] text-base font-semibold text-white shadow-lg shadow-[#6366f1]/25 transition-all hover:bg-[#5558e3] hover:shadow-xl hover:shadow-[#6366f1]/30 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex h-14 w-full items-center justify-center rounded-xl bg-registration-red text-base font-semibold text-paper transition-colors hover:bg-registration-red/85 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? loadingLabel : "AI 상세페이지 생성하기"}
           </button>
