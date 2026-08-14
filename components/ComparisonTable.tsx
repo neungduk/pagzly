@@ -1,3 +1,4 @@
+import { IconCheck, IconMinus } from "@tabler/icons-react";
 import CropMarks from "@/components/CropMarks";
 
 type Row = {
@@ -34,71 +35,91 @@ const rows: Row[] = [
   },
 ];
 
-const cellClass = "px-3 py-4 align-top sm:px-5";
+const cellClass = "px-3 py-5 align-top sm:px-5";
 const bodyTextClass = "font-mono text-[11px] leading-relaxed sm:text-sm";
+
+function MinusCell({ children }: { children: string }) {
+  return (
+    <span className="flex items-start gap-1.5">
+      <IconMinus size={14} stroke={2.5} className="mt-0.5 shrink-0 text-ink/30" />
+      {children}
+    </span>
+  );
+}
+
+function CheckCell({ children }: { children: string }) {
+  return (
+    <span className="flex items-start gap-1.5">
+      <IconCheck size={14} stroke={2.5} className="mt-0.5 shrink-0 text-registration-red" />
+      {children}
+    </span>
+  );
+}
 
 export default function ComparisonTable() {
   return (
     <div>
-      <div className="relative mx-auto max-w-4xl border border-line bg-white">
+      <div className="relative mx-auto max-w-4xl">
         <CropMarks />
-        <table className="w-full table-fixed border-collapse text-left">
-          <colgroup>
-            <col style={{ width: "22%" }} />
-            <col style={{ width: "22%" }} />
-            <col style={{ width: "22%" }} />
-            <col style={{ width: "34%" }} />
-          </colgroup>
-          <thead>
-            <tr className="border-b border-line">
-              <th className={`${cellClass} text-xs font-semibold text-ink/40 sm:text-sm`}>
-                <span className="sr-only">비교 항목</span>
-              </th>
-              <th className={`${cellClass} bg-white text-xs font-semibold text-ink sm:text-sm`}>
-                디자인 외주
-              </th>
-              <th className={`${cellClass} bg-white text-xs font-semibold text-ink sm:text-sm`}>
-                템플릿 툴
-              </th>
-              <th className={`${cellClass} bg-[#FBEAEA]`}>
-                <span className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-xs font-bold text-registration-red sm:text-sm">
-                    Pagzly
-                  </span>
-                  <span className="rounded-full bg-registration-red px-2 py-0.5 font-mono text-[9px] font-semibold text-paper">
-                    추천
-                  </span>
-                </span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, i) => (
-              <tr
-                key={row.label}
-                className={i !== rows.length - 1 ? "border-b border-line" : ""}
-              >
-                <th
-                  scope="row"
-                  className={`${cellClass} text-xs font-semibold text-ink sm:text-sm`}
-                >
-                  {row.label}
+        <div className="overflow-hidden rounded-[4px] border border-line bg-white">
+          <table className="w-full table-fixed border-collapse text-left">
+            <colgroup>
+              <col style={{ width: "22%" }} />
+              <col style={{ width: "22%" }} />
+              <col style={{ width: "22%" }} />
+              <col style={{ width: "34%" }} />
+            </colgroup>
+            <thead>
+              <tr className="border-b border-line">
+                <th className={`${cellClass} text-xs font-semibold text-ink/40 sm:text-sm`}>
+                  <span className="sr-only">비교 항목</span>
                 </th>
-                <td className={`${cellClass} bg-white text-ink/70 ${bodyTextClass}`}>
-                  {row.outsourcing}
-                </td>
-                <td className={`${cellClass} bg-white text-ink/70 ${bodyTextClass}`}>
-                  {row.template}
-                </td>
-                <td
-                  className={`${cellClass} bg-[#FBEAEA] font-semibold text-registration-red ${bodyTextClass}`}
-                >
-                  {row.pagzly}
-                </td>
+                <th className={`${cellClass} bg-white text-xs font-semibold text-ink sm:text-sm`}>
+                  디자인 외주
+                </th>
+                <th className={`${cellClass} bg-white text-xs font-semibold text-ink sm:text-sm`}>
+                  템플릿 툴
+                </th>
+                <th className={`${cellClass} bg-registration-red`}>
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-xs font-bold text-paper sm:text-sm">
+                      Pagzly
+                    </span>
+                    <span className="rounded-full bg-paper px-2 py-0.5 font-mono text-[9px] font-semibold text-registration-red">
+                      추천
+                    </span>
+                  </span>
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr
+                  key={row.label}
+                  className={i !== rows.length - 1 ? "border-b border-line" : ""}
+                >
+                  <th
+                    scope="row"
+                    className={`${cellClass} text-xs font-semibold text-ink sm:text-sm`}
+                  >
+                    {row.label}
+                  </th>
+                  <td className={`${cellClass} bg-white text-ink/70 ${bodyTextClass}`}>
+                    <MinusCell>{row.outsourcing}</MinusCell>
+                  </td>
+                  <td className={`${cellClass} bg-white text-ink/70 ${bodyTextClass}`}>
+                    <MinusCell>{row.template}</MinusCell>
+                  </td>
+                  <td
+                    className={`${cellClass} bg-[#F5DEDE] font-semibold text-registration-red ${bodyTextClass}`}
+                  >
+                    <CheckCell>{row.pagzly}</CheckCell>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
       <p className="mx-auto mt-8 max-w-4xl px-1 text-xs leading-relaxed text-ink/40">
         * Pagzly의 소요 시간·비용은 사진 5장 기준 실제 파이프라인(배경 제거·화질
