@@ -140,6 +140,24 @@ const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
 
 // 카테고리별 고정 슬롯 순서를 프롬프트용 텍스트로 변환한다. AI는 레이아웃을
 // 설계하지 않고, 이 순서/타입 그대로 콘텐츠(카피/이미지 선택)만 채운다.
+function getAidaPhase(def: SlotDefinition): string {
+  switch (def.type) {
+    case "hero":
+      return "AIDA-A (Attention): 시선을 끄는 훅 — 질문·숫자·강렬한 한 줄 헤드라인";
+    case "checklist":
+      return "AIDA-I (Interest): 타겟의 문제·니즈·불편을 구체적으로 환기";
+    case "cta_price":
+      return "AIDA-A (Action): 지금 구매/시도를 유도하는 명확한 행동 문구";
+    case "usage_steps":
+      return "AIDA-D (Desire): 사용하면 얻는 구체적 이득·기대 결과";
+    case "caution":
+    case "spec_table":
+      return "신뢰 보조 (과장 없이 사실만, AIDA 흐름 유지)";
+    default:
+      return "AIDA-D (Desire): 제품이 주는 구체적 이득·차별점·사용 장면";
+  }
+}
+
 function buildSlotInstructions(template: SlotDefinition[]): string {
   return template
     .map((def, i) => {
@@ -154,7 +172,8 @@ function buildSlotInstructions(template: SlotDefinition[]): string {
         !def.repeatable && (def.minCount || def.maxCount)
           ? ` (이미지 ${def.minCount ?? def.maxCount}~${def.maxCount ?? def.minCount}장)`
           : "";
-      return `${i + 1}. slot="${def.slot}" / type="${def.type}" / ${def.required ? "필수" : "선택(불필요하면 생략 가능, 순서는 유지)"} — ${def.note}${ratioNote}${countNote}${repeatNote}\n   형식: ${SECTION_TYPE_SHAPES[def.type]}`;
+      const aidaNote = getAidaPhase(def);
+      return `${i + 1}. slot="${def.slot}" / type="${def.type}" / ${def.required ? "필수" : "선택(불필요하면 생략 가능, 순서는 유지)"} — ${def.note}${ratioNote}${countNote}${repeatNote}\n   AIDA 역할: ${aidaNote}\n   형식: ${SECTION_TYPE_SHAPES[def.type]}`;
     })
     .join("\n");
 }
@@ -218,6 +237,20 @@ async function generateCopyWithDeepSeek(
 "고정 슬롯 순서" 안에 콘텐츠(카피/이미지 선택)만 채우는 방식으로 운영됩니다.
 아래 슬롯 목록의 순서와 종류를 절대 바꾸지 말고, 각 슬롯에 이 상품에 맞는
 카피와 이미지 인덱스를 채우세요. 슬롯을 새로 만들거나 순서를 섞지 마세요.
+
+## AIDA 카피 프레임워크 (구조 강제)
+슬롯 순서/종류는 고정이지만, 전체 상세페이지는 아래 AIDA 흐름을 반드시 따르세요.
+각 슬롯의 "AIDA 역할" 안내를 그대로 지키세요.
+
+1. **Attention (주의)** — hero: 한눈에 끄는 훅 (질문·숫자·강렬한 한 줄). 상투적
+   "최고의 상품" 같은 문구 금지.
+2. **Interest (관심)** — checklist·초반 image_text: 타겟 고객의 문제·니즈·불편을
+   구체적으로 환기 ("건조한 피부", "매일 아침 고민" 등).
+3. **Desire (욕구)** — 중반 image_text·gallery·usage_steps: 제품이 주는 구체적
+   이득·차별점·사용 장면 (추상적 형용사만 나열하지 말 것).
+4. **Action (행동)** — cta_price: 지금 구매·시도를 유도하는 명확한 행동 문구.
+
+카테고리별 톤(section-templates note)은 그대로 유지하되, 위 AIDA 구조만 강제합니다.
 
 ## 상품 정보
 - 상품명: ${productInfo.productName}
