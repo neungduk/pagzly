@@ -18,7 +18,9 @@
   --color-line: #dad5c9;
 
   --font-sans: "Pretendard", var(--font-geist-sans), -apple-system, sans-serif;
-  --font-heading: "GmarketSansBold", "Pretendard", var(--font-geist-sans), sans-serif;
+  /* "Gmarket Sans"는 font-weight 300/500/700 세 웨이트를 한 family로 등록하므로,
+     헤드라인에는 항상 font-bold(700)를 같이 써야 Bold 웨이트가 실제로 걸린다. */
+  --font-heading: "Gmarket Sans", "Pretendard", var(--font-geist-sans), sans-serif;
   --font-mono: var(--font-jetbrains-mono), "JetBrains Mono", monospace;
 }
 
