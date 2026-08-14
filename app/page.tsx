@@ -175,7 +175,7 @@ export default async function Home() {
 
       <main>
         {/* Hero */}
-        <section className="relative overflow-hidden border-b border-line">
+        <section className="relative overflow-hidden border-b border-line bg-paper">
           <div className="mx-auto grid max-w-6xl items-center gap-16 px-6 py-20 sm:py-28 lg:grid-cols-2 lg:gap-12">
             <div>
               <div className="mb-6 inline-flex items-center gap-2 border border-line px-4 py-1.5 font-mono text-xs uppercase tracking-wider text-ink/50">
@@ -219,7 +219,7 @@ export default async function Home() {
         </section>
 
         {/* Comparison */}
-        <section id="comparison" className="border-b border-line bg-paper py-24">
+        <section id="comparison" className="border-b border-line bg-white py-24">
           <div className="mx-auto max-w-6xl px-6">
             <div className="text-center">
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink/40">
@@ -269,7 +269,7 @@ export default async function Home() {
         </section>
 
         {/* Features */}
-        <section id="features" className="border-b border-line bg-paper py-24">
+        <section id="features" className="border-b border-line bg-[#EEF2F1] py-24">
           <div className="mx-auto max-w-6xl px-6">
             <div className="text-center">
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink/40">
@@ -305,7 +305,7 @@ export default async function Home() {
         </section>
 
         {/* FAQ */}
-        <section id="faq" className="border-b border-line bg-paper py-24">
+        <section id="faq" className="border-b border-line bg-white py-24">
           <div className="mx-auto max-w-6xl px-6">
             <div className="text-center">
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink/40">
@@ -324,7 +324,7 @@ export default async function Home() {
         <ShowcaseSection />
 
         {/* Pricing */}
-        <section id="pricing" className="py-24">
+        <section id="pricing" className="border-b border-line bg-paper py-24">
           <div className="mx-auto max-w-6xl px-6">
             <div className="text-center">
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink/40">
