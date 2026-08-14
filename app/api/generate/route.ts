@@ -203,12 +203,16 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${cosm
     }),
   });
 
+  const rawBody = await response.text();
+  console.log(
+    `[generateCopyWithDeepSeek] status=${response.status} bodyLength=${rawBody.length} body=${rawBody.slice(0, 4000)}`,
+  );
+
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`DeepSeek API 오류: ${errorText}`);
+    throw new Error(`DeepSeek API 오류: ${rawBody}`);
   }
 
-  const data = (await response.json()) as {
+  const data = JSON.parse(rawBody) as {
     choices?: { message?: { content?: string } }[];
   };
 
@@ -234,15 +238,6 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${cosm
   const clampIndex = (i: number) =>
     Number.isInteger(i) && i >= 0 && i < imageCount ? i : 0;
 
-  // DeepSeek가 가끔 price를 "29,900원" 같은 포맷된 문자열로 반환할 때가 있어,
-  // 숫자가 아닌 문자를 제거하고 순수 숫자로 강제 변환한다.
-  const sanitizePrice = (value: unknown): number => {
-    if (typeof value === "number" && Number.isFinite(value)) return value;
-    const digitsOnly = String(value).replace(/[^0-9]/g, "");
-    const parsed = Number(digitsOnly);
-    return Number.isFinite(parsed) ? parsed : 0;
-  };
-
   parsed.sections = parsed.sections.map((section) => {
     if (section.type === "hero" || section.type === "image_text") {
       return { ...section, imageIndex: clampIndex(section.imageIndex) };
@@ -265,7 +260,9 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${cosm
       };
     }
     if (section.type === "cta_price") {
-      return { ...section, price: sanitizePrice(section.price) };
+      // DeepSeek가 가끔 price를 0이나 다른 값으로 잘못 반환하는 경우가 있어,
+      // AI 출력을 신뢰하지 않고 서버가 이미 아는 실제 판매가로 강제한다.
+      return { ...section, price: productInfo.price };
     }
     return section;
   });
