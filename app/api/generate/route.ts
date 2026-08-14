@@ -178,6 +178,15 @@ function buildUrlReferenceBlock(
   return `\n\n## ${label} 참고 자료\n(입력된 URL은 자동으로 분석하지 못했습니다. 이 URL 내용은 추측하지 말고, 상품 정보만으로 분석하세요.)`;
 }
 
+// 1688/도매꾹은 봇 차단이 심해 크롤링이 자주 실패하므로, URL이 아니라
+// 판매자가 원본 페이지에서 직접 복사해 붙여넣은 텍스트(상품명/스펙/설명)를
+// 그대로 프롬프트에 넣는다. 크롤링이 아니라 사용자 입력이라 실패할 일이
+// 없어 notices에 남길 것도 없다.
+function buildPastedTextBlock(label: string, text: string | null | undefined): string {
+  if (!text || !text.trim()) return "";
+  return `\n\n## ${label} 참고 자료 (판매자가 원본 페이지에서 직접 붙여넣은 텍스트 — 표현을 그대로 베끼지 말고, 이 상품만의 차별화 포인트(USP)를 찾는 용도로만 참고)\n${text.trim()}`;
+}
+
 async function generateCopyWithDeepSeek(
   productInfo: ProductInput,
   imageAnalysis: string,
@@ -193,17 +202,15 @@ async function generateCopyWithDeepSeek(
   const template = getSlotTemplate(productInfo.category);
   const slotInstructions = buildSlotInstructions(template);
 
-  const [competitorResult, wholesaleResult] = await Promise.all([
-    productInfo.competitorUrl ? extractUrlSummary(productInfo.competitorUrl) : null,
-    productInfo.wholesaleUrl ? extractUrlSummary(productInfo.wholesaleUrl) : null,
-  ]);
+  const competitorResult = productInfo.competitorUrl
+    ? await extractUrlSummary(productInfo.competitorUrl)
+    : null;
 
   const notices: string[] = [];
   const competitorBlock = buildUrlReferenceBlock("경쟁사 페이지", competitorResult, notices);
-  const wholesaleBlock = buildUrlReferenceBlock(
-    "위탁/도매 원본 상품 페이지(1688·도매꾹)",
-    wholesaleResult,
-    notices,
+  const wholesaleBlock = buildPastedTextBlock(
+    "위탁/도매 원본 상품 정보(1688·도매꾹)",
+    productInfo.wholesaleUrl,
   );
 
   const prompt = `당신은 한국 이커머스 상세페이지 기획자 겸 카피라이터입니다.

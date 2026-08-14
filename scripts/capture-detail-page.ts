@@ -7,8 +7,9 @@
 // 카테고리키 생략 시 화장품-뷰티. 상품명/가격 생략 시 CATEGORY_MAP 기본값 사용.
 // 사진은 scripts/test-assets/<카테고리키>/ 폴더에서 읽는다 (CATEGORY_MAP 참고).
 //
-// "추가 옵션"(경쟁사 URL/1688·도매꾹 URL) 테스트가 필요하면 환경변수로:
-//   TEST_COMPETITOR_URL=https://... TEST_WHOLESALE_URL=https://... npx tsx scripts/capture-detail-page.ts ...
+// "추가 옵션"(경쟁사 URL / 1688·도매꾹 원본 상품 정보 붙여넣기) 테스트가
+// 필요하면 환경변수로: TEST_COMPETITOR_URL=https://...
+//   TEST_WHOLESALE_TEXT="원본 상품명/스펙/설명..." npx tsx scripts/capture-detail-page.ts ...
 //
 // ⚠️ 셀렉터(#productName 등)는 CreateProductForm.tsx의 실제 구조와
 // 맞아야 합니다. 폼 구조가 바뀌면 이 스크립트도 같이 고쳐야 해요.
@@ -84,8 +85,8 @@ async function main() {
   if (process.env.TEST_COMPETITOR_URL) {
     await page.fill("#competitorUrl", process.env.TEST_COMPETITOR_URL);
   }
-  if (process.env.TEST_WHOLESALE_URL) {
-    await page.fill("#wholesaleUrl", process.env.TEST_WHOLESALE_URL);
+  if (process.env.TEST_WHOLESALE_TEXT) {
+    await page.fill("#wholesaleUrl", process.env.TEST_WHOLESALE_TEXT);
   }
 
   // 제출

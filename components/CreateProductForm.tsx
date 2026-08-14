@@ -608,17 +608,17 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
 
               <div>
                 <label htmlFor="wholesaleUrl" className={labelClass}>
-                  1688 / 도매꾹 URL
+                  1688 / 도매꾹 원본 상품명/스펙/설명 붙여넣기
                 </label>
-                <input
+                <textarea
                   id="wholesaleUrl"
-                  type="url"
+                  rows={4}
                   value={wholesaleUrl}
                   onChange={(e) => setWholesaleUrl(e.target.value)}
-                  placeholder="https://..."
-                  className={inputClass}
+                  placeholder="원본 판매 페이지의 상품명, 스펙, 상세 설명 등을 그대로 붙여넣어 주세요."
+                  className={`${inputClass} resize-none`}
                 />
-                <p className="mt-1.5 text-xs text-gray-400">위탁 셀러용 원본 상품 링크</p>
+                <p className="mt-1.5 text-xs text-gray-400">위탁 셀러용 원본 상품 정보 붙여넣기</p>
               </div>
             </div>
           </section>

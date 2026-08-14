@@ -10,6 +10,8 @@ export type ProductInput = {
   ingredients?: string | null;
   certifications?: string | null;
   competitorUrl?: string | null;
+  // URL이 아니라, 판매자가 1688/도매꾹 원본 상품 페이지에서 직접 복사해
+  // 붙여넣은 텍스트(상품명/스펙/설명). 필드명은 하위 호환을 위해 유지.
   wholesaleUrl?: string | null;
   photoProcessingCost?: number;
 };
