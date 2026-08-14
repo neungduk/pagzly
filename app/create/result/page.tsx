@@ -183,6 +183,7 @@ export default function CreateResultPage() {
               imageUrls={data.imageUrls}
               category={data.category}
               theme={theme}
+              conceptIcons={generated.conceptIcons}
             />
           </div>
         ) : (

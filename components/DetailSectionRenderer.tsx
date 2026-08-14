@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import type { DetailSection } from "@/lib/types/generate";
+import type { ConceptIconMap } from "@/lib/concept-icons";
 import {
   SECTION_GAP_CLASS,
   SECTION_PADDING_CLASS,
@@ -25,6 +26,7 @@ type DetailSectionRendererProps = {
   imageUrls: string[];
   category: string;
   theme?: CategoryTheme;
+  conceptIcons?: ConceptIconMap;
 };
 
 const THEME_ICONS: Record<string, LucideIcon> = {
@@ -80,6 +82,41 @@ function SectionImage({
 
 // 섹션 배경은 패턴 A(baseNeutral 단색) / 패턴 B(accentColor 옅은 단색) 2가지만
 // 허용. 홀수 번째(0-based 짝수 index) = A, 짝수 번째 = B로 교차시킨다.
+function ConceptBadgeIcon({
+  src,
+  theme,
+  fallbackIndex,
+}: {
+  src?: string;
+  theme: CategoryTheme;
+  fallbackIndex?: number;
+}) {
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt=""
+        className="mt-0.5 h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-white/80"
+        style={{ boxShadow: `0 0 0 1px ${theme.accent}33` }}
+        aria-hidden="true"
+      />
+    );
+  }
+  if (fallbackIndex != null) {
+    return (
+      <span
+        className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-paper"
+        style={{ backgroundColor: theme.accent }}
+        aria-hidden="true"
+      >
+        {fallbackIndex + 1}
+      </span>
+    );
+  }
+  return <ThemeIcon theme={theme} />;
+}
+
 function sectionBackgroundStyle(theme: CategoryTheme, pattern: SectionColorPattern) {
   return { backgroundColor: getSectionBackground(theme, pattern) };
 }
@@ -91,6 +128,7 @@ function renderSection(
   category: string,
   theme: CategoryTheme,
   pattern: SectionColorPattern,
+  conceptIcons?: ConceptIconMap,
 ) {
   switch (section.type) {
     case "hero": {
@@ -154,9 +192,12 @@ function renderSection(
             {section.heading}
           </h3>
           <ul className="mt-5 space-y-3">
-            {section.items.map((item) => (
+            {section.items.map((item, itemIndex) => (
               <li key={item} className="flex items-start gap-3 text-sm text-ink/80">
-                <ThemeIcon theme={theme} />
+                <ConceptBadgeIcon
+                  src={conceptIcons?.checklist?.[itemIndex]}
+                  theme={theme}
+                />
                 <span>{item}</span>
               </li>
             ))}
@@ -316,13 +357,12 @@ function renderSection(
           <ol className="mt-5 space-y-4">
             {section.steps.map((step, stepIndex) => (
               <li key={step} className="flex items-start gap-3 text-sm text-ink/80">
-                <span
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-paper"
-                  style={{ backgroundColor: theme.accent }}
-                >
-                  {stepIndex + 1}
-                </span>
-                <span className="pt-0.5">{step}</span>
+                <ConceptBadgeIcon
+                  src={conceptIcons?.usageSteps?.[stepIndex]}
+                  theme={theme}
+                  fallbackIndex={stepIndex}
+                />
+                <span className="pt-2">{step}</span>
               </li>
             ))}
           </ol>
@@ -426,6 +466,7 @@ export default function DetailSectionRenderer({
   imageUrls,
   category,
   theme: themeOverride,
+  conceptIcons,
 }: DetailSectionRendererProps) {
   const theme = themeOverride ?? getCategoryTheme(category);
 
@@ -433,12 +474,11 @@ export default function DetailSectionRenderer({
     <div className={SECTION_GAP_CLASS}>
       {sections.map((section, index) => {
         if (section.type === "hero") {
-          return renderSection(section, imageUrls, index, category, theme, "A");
+          return renderSection(section, imageUrls, index, category, theme, "A", conceptIcons);
         }
-        // hero를 제외한 본문 섹션 중 몇 번째인지로 패턴 A/B를 교차시킨다.
         const bodyIndex = sections.slice(0, index).filter((s) => s.type !== "hero").length;
         const pattern = getSectionPattern(bodyIndex);
-        return renderSection(section, imageUrls, index, category, theme, pattern);
+        return renderSection(section, imageUrls, index, category, theme, pattern, conceptIcons);
       })}
     </div>
   );
