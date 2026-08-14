@@ -142,4 +142,5 @@ export type GenerateResponse = GeneratedCopy & {
   // 경쟁사/1688·도매꾹 URL 자동 분석에 실패한 경우의 사유 안내
   // (예: 봇 차단, 타임아웃). 성공했거나 URL을 입력하지 않았으면 빈 배열.
   urlAnalysisNotices?: string[];
+  qaSummary?: string;
 };

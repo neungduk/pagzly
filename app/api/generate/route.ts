@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { extractProductTheme } from "@/lib/color-extract";
 import { getSlotImageRatio, getSlotTemplate, type SlotDefinition } from "@/lib/section-templates";
 import { extractUrlSummary, type UrlSummaryResult } from "@/lib/url-crawler";
+import { buildQAFixPrompt, runDetailPageQA } from "@/lib/detail-page-qa";
 
 const CLAUDE_MODEL = "claude-sonnet-5";
 const DEEPSEEK_MODEL = "deepseek-v4-flash";
@@ -210,6 +211,7 @@ async function generateCopyWithDeepSeek(
   productInfo: ProductInput,
   imageAnalysis: string,
   imageCount: number,
+  qaFixAppendix = "",
 ): Promise<{ copy: GeneratedCopy; cost: number; notices: string[] }> {
   const isCosmetics = isCosmeticsCategory(productInfo.category);
   const isFood = isFoodCategory(productInfo.category);
@@ -285,7 +287,7 @@ imageIndex는 0 ~ ${imageCount - 1} 범위 안에서만 사용하고, 가능하�
 }
 
 headlines/description/features/howToUse/caution은 목록·검색 화면에 쓰이는 요약용이니
-sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${cosmeticsGuide}${foodGuide}`;
+sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${cosmeticsGuide}${foodGuide}${qaFixAppendix}`;
 
   const response = await fetch(DEEPSEEK_URL, {
     method: "POST",
@@ -475,19 +477,57 @@ export async function POST(request: Request) {
       cost: deepSeekCost,
       notices: urlAnalysisNotices,
     } = await generateCopyWithDeepSeek(body, imageAnalysis, Math.min(body.imageUrls.length, 5));
-    const generationCost = (body.photoProcessingCost ?? 0) + deepSeekCost;
+
+    // 생성 직후 Haiku 비전/텍스트 QA — critical 이슈 시 카피만 1회 재생성
+    let copyToSave = generated;
+    let qaResult = await runDetailPageQA({
+      imageUrls: body.imageUrls,
+      sections: generated.sections,
+      category: body.category,
+      productName: body.productName,
+    });
+
+    const copyFixable = qaResult.issues.some(
+      (i) =>
+        i.severity === "critical" &&
+        (i.category === "copy" || i.category === "text_overlap"),
+    );
+
+    let totalDeepSeekCost = deepSeekCost;
+
+    if (!qaResult.pass && copyFixable) {
+      console.log("[qa] critical 카피 이슈 — 1회 재생성 시도");
+      const fixAppendix = buildQAFixPrompt(qaResult.issues);
+      const retry = await generateCopyWithDeepSeek(
+        body,
+        imageAnalysis,
+        Math.min(body.imageUrls.length, 5),
+        fixAppendix,
+      );
+      copyToSave = retry.copy;
+      totalDeepSeekCost += retry.cost;
+      qaResult = await runDetailPageQA({
+        imageUrls: body.imageUrls,
+        sections: retry.copy.sections,
+        category: body.category,
+        productName: body.productName,
+      });
+      console.log(`[qa-retry] ${qaResult.summary}`);
+    }
+
+    const generationCost = (body.photoProcessingCost ?? 0) + totalDeepSeekCost;
     console.log(
-      `[cost] product="${body.productName}" photoProcessingCost=$${(body.photoProcessingCost ?? 0).toFixed(4)} deepSeekCost=$${deepSeekCost.toFixed(4)} total=$${generationCost.toFixed(4)}`,
+      `[cost] product="${body.productName}" photoProcessingCost=$${(body.photoProcessingCost ?? 0).toFixed(4)} deepSeekCost=$${totalDeepSeekCost.toFixed(4)} total=$${generationCost.toFixed(4)}`,
     );
 
     const isCosmetics = isCosmeticsCategory(body.category);
     const isFood = isFoodCategory(body.category);
     const finalCopy = isCosmetics
-      ? reviewCosmeticsCopy(generated)
+      ? reviewCosmeticsCopy(copyToSave)
       : isFood
-        ? reviewFoodCopy(generated)
+        ? reviewFoodCopy(copyToSave)
         : null;
-    const copyToSave = finalCopy ? finalCopy.copy : generated;
+    const savedCopy = finalCopy ? finalCopy.copy : copyToSave;
     const mfdsReviewed = finalCopy?.mfdsReviewed ?? false;
     const replacements = finalCopy?.replacements ?? [];
 
@@ -506,15 +546,15 @@ export async function POST(request: Request) {
         competitor_url: body.competitorUrl ?? null,
         wholesale_url: body.wholesaleUrl ?? null,
         image_urls: body.imageUrls,
-        headlines: copyToSave.headlines,
-        description: copyToSave.description,
-        features: copyToSave.features,
-        how_to_use: copyToSave.howToUse,
-        caution: copyToSave.caution,
+        headlines: savedCopy.headlines,
+        description: savedCopy.description,
+        features: savedCopy.features,
+        how_to_use: savedCopy.howToUse,
+        caution: savedCopy.caution,
         image_analysis: imageAnalysis,
         mfds_reviewed: mfdsReviewed,
         replacements,
-        sections: copyToSave.sections,
+        sections: savedCopy.sections,
         generation_cost: generationCost,
       })
       .select("id")
@@ -541,13 +581,14 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      ...copyToSave,
+      ...savedCopy,
       imageAnalysis,
       mfdsReviewed,
       replacements,
       productId: savedProduct.id as string,
       theme,
       urlAnalysisNotices,
+      qaSummary: qaResult.summary,
     });
   } catch (error) {
     console.error("[generate]", error);

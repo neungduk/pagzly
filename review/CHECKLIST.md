@@ -88,4 +88,6 @@ Claude Code가 스크린샷(review/attempt-N.png)을 보고 이 기준으로 통
   - 이미지 비율/crop 관련 실패라면 `lib/design-tokens.ts`의
     `SLOT_IMAGE_RATIO`와 `components/DetailSectionRenderer.tsx`의
     `resolveImageRatioClass`를 먼저 확인.
+  - 자동 QA(`lib/detail-page-qa.ts`) 로그 `[qa]` / `[qa-retry]`를 함께
+    확인 — Haiku 비전·텍스트 1차 검수 결과가 review 판단 참고 자료가 된다.
 - 5번 반복해도 통과 못 하면 → 중단하고 어떤 항목이 계속 실패하는지 요약 보고
