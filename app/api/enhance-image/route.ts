@@ -1,0 +1,145 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { enhanceProductImage } from "@/lib/photo-enhance";
+import type { ConceptBrief } from "@/lib/concept-brief";
+
+const STORAGE_BUCKET = "images";
+
+export async function POST(request: Request) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    }
+
+    if (!process.env.REPLICATE_API_TOKEN) {
+      return NextResponse.json(
+        { error: "REPLICATE_API_TOKEN이 설정되지 않았습니다." },
+        { status: 500 },
+      );
+    }
+
+    const {
+      imageUrl,
+      storagePath,
+      backdropDataUrl,
+      shadowAnalysis,
+      conceptBrief,
+      applyDecor,
+      decorDataUrl,
+      theme,
+    } = (await request.json()) as {
+      imageUrl?: string;
+      storagePath?: string;
+      backdropDataUrl?: string;
+      shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis;
+      conceptBrief?: ConceptBrief;
+      applyDecor?: boolean;
+      decorDataUrl?: string;
+      theme?: { accent: string; baseNeutral: string; deepAccent: string };
+    };
+
+    if (!imageUrl || !storagePath || !backdropDataUrl) {
+      return NextResponse.json(
+        { error: "imageUrl, storagePath, backdropDataUrl이 모두 필요합니다." },
+        { status: 400 },
+      );
+    }
+
+    const base64Data = backdropDataUrl.split(",")[1];
+    if (!base64Data) {
+      return NextResponse.json(
+        { error: "backdropDataUrl 형식이 올바르지 않습니다." },
+        { status: 400 },
+      );
+    }
+    const backdropBuffer = Buffer.from(base64Data, "base64");
+
+    let decorBuffer: Buffer | undefined;
+    if (decorDataUrl) {
+      const decorBase64 = decorDataUrl.split(",")[1];
+      if (decorBase64) {
+        decorBuffer = Buffer.from(decorBase64, "base64");
+      }
+    }
+
+    const {
+      buffer: enhancedBuffer,
+      cost,
+      decorBuffer: newDecorBuffer,
+      decorCost,
+    } = await enhanceProductImage(imageUrl, backdropBuffer, {
+      shadowHint: shadowAnalysis,
+      conceptBrief,
+      applyDecor: applyDecor ?? false,
+      decorBuffer,
+      theme,
+    });
+
+    const decorDataUrlOut =
+      newDecorBuffer != null
+        ? `data:image/png;base64,${newDecorBuffer.toString("base64")}`
+        : decorDataUrl;
+
+    const enhancedPath = storagePath.replace(/\.[^./]+$/, "") + "-enhanced.png";
+
+    const { error: uploadError } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(enhancedPath, enhancedBuffer, {
+        contentType: "image/png",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      throw new Error(`보정 이미지 업로드 실패: ${uploadError.message}`);
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(enhancedPath);
+
+    const { error: updateError } = await supabase
+      .from("product_images")
+      .update({
+        storage_path: enhancedPath,
+        image_url: publicUrlData.publicUrl,
+      })
+      .eq("user_id", user.id)
+      .eq("storage_path", storagePath);
+
+    if (updateError) {
+      console.error("[enhance-image] product_images update error", updateError);
+    }
+
+    const { error: removeError } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .remove([storagePath]);
+
+    if (removeError) {
+      console.error("[enhance-image] original remove error", removeError);
+    }
+
+    return NextResponse.json({
+      enhancedUrl: publicUrlData.publicUrl,
+      enhancedPath,
+      cost,
+      decorCost: decorCost ?? 0,
+      decorDataUrl: decorDataUrlOut,
+    });
+  } catch (error) {
+    console.error("[enhance-image]", error);
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "이미지 보정 중 오류가 발생했습니다.",
+      },
+      { status: 500 },
+    );
+  }
+}

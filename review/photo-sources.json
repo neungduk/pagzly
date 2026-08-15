@@ -1,0 +1,263 @@
+[
+  {
+    "category": "화장품-뷰티",
+    "file": "scripts/test-assets/화장품-뷰티/01-pexels-16008945.jpeg",
+    "pexelsId": 16008945,
+    "pexelsUrl": "https://www.pexels.com/photo/creams-in-bottles-with-pumps-standing-on-a-mirror-and-on-yellow-background-16008945/",
+    "photographer": "by Natallia",
+    "photographerUrl": "https://www.pexels.com/@by-natallia-311038782",
+    "query": "skincare cream product"
+  },
+  {
+    "category": "화장품-뷰티",
+    "file": "scripts/test-assets/화장품-뷰티/02-pexels-10897819.jpeg",
+    "pexelsId": 10897819,
+    "pexelsUrl": "https://www.pexels.com/photo/cream-tube-on-white-background-10897819/",
+    "photographer": "Mathilde Langevin",
+    "photographerUrl": "https://www.pexels.com/@mathilde",
+    "query": "skincare cream product"
+  },
+  {
+    "category": "화장품-뷰티",
+    "file": "scripts/test-assets/화장품-뷰티/03-pexels-6800936.jpeg",
+    "pexelsId": 6800936,
+    "pexelsUrl": "https://www.pexels.com/photo/a-cosmetic-product-over-a-box-6800936/",
+    "photographer": "Artem Podrez",
+    "photographerUrl": "https://www.pexels.com/@artempodrez",
+    "query": "cosmetic serum bottle"
+  },
+  {
+    "category": "화장품-뷰티",
+    "file": "scripts/test-assets/화장품-뷰티/04-pexels-8131568.jpeg",
+    "pexelsId": 8131568,
+    "pexelsUrl": "https://www.pexels.com/photo/crop-photo-of-woman-holding-brown-glass-bottle-8131568/",
+    "photographer": "Ron Lach",
+    "photographerUrl": "https://www.pexels.com/@ron-lach",
+    "query": "cosmetic serum bottle"
+  },
+  {
+    "category": "화장품-뷰티",
+    "file": "scripts/test-assets/화장품-뷰티/05-pexels-10756339.jpeg",
+    "pexelsId": 10756339,
+    "pexelsUrl": "https://www.pexels.com/photo/close-up-shot-of-a-perfume-beside-a-pink-lingerie-10756339/",
+    "photographer": "Anastasiia Melnykova",
+    "photographerUrl": "https://www.pexels.com/@anastasiia-melnykova-158522451",
+    "query": "beauty product flat lay"
+  },
+  {
+    "category": "화장품-뷰티",
+    "file": "scripts/test-assets/화장품-뷰티/06-pexels-10199353.jpeg",
+    "pexelsId": 10199353,
+    "pexelsUrl": "https://www.pexels.com/photo/close-up-of-cosmetics-10199353/",
+    "photographer": "PinkWitch 诸葛筱暖",
+    "photographerUrl": "https://www.pexels.com/@pinkwitch-3302622",
+    "query": "beauty product flat lay"
+  },
+  {
+    "category": "의류-패션",
+    "file": "scripts/test-assets/의류-패션/01-pexels-8408556.jpeg",
+    "pexelsId": 8408556,
+    "pexelsUrl": "https://www.pexels.com/photo/clothes-and-a-boot-on-white-surface-8408556/",
+    "photographer": "Sarah Dorweiler",
+    "photographerUrl": "https://www.pexels.com/@sarahdorweiler",
+    "query": "clothing flat lay"
+  },
+  {
+    "category": "의류-패션",
+    "file": "scripts/test-assets/의류-패션/02-pexels-1107604.jpeg",
+    "pexelsId": 1107604,
+    "pexelsUrl": "https://www.pexels.com/photo/women-s-white-spaghetti-strap-top-and-brown-pumps-1107604/",
+    "photographer": "Lisa Fotios",
+    "photographerUrl": "https://www.pexels.com/@fotios-photos",
+    "query": "clothing flat lay"
+  },
+  {
+    "category": "의류-패션",
+    "file": "scripts/test-assets/의류-패션/03-pexels-35625406.jpeg",
+    "pexelsId": 35625406,
+    "pexelsUrl": "https://www.pexels.com/photo/black-t-shirts-on-rack-in-studio-setting-35625406/",
+    "photographer": "Joint X",
+    "photographerUrl": "https://www.pexels.com/@joint-x-2158831780",
+    "query": "shirt product photo"
+  },
+  {
+    "category": "의류-패션",
+    "file": "scripts/test-assets/의류-패션/04-pexels-20669538.jpeg",
+    "pexelsId": 20669538,
+    "pexelsUrl": "https://www.pexels.com/photo/hand-holds-hanger-with-t-shirt-20669538/",
+    "photographer": "Dmitriy Steinke",
+    "photographerUrl": "https://www.pexels.com/@dmitriy-steinke-559643503",
+    "query": "shirt product photo"
+  },
+  {
+    "category": "의류-패션",
+    "file": "scripts/test-assets/의류-패션/05-pexels-11674381.jpeg",
+    "pexelsId": 11674381,
+    "pexelsUrl": "https://www.pexels.com/photo/a-hand-holding-a-hanger-with-white-polo-long-sleeves-11674381/",
+    "photographer": "Marina Podrez",
+    "photographerUrl": "https://www.pexels.com/@marina-podrez-3269296",
+    "query": "fashion apparel isolated"
+  },
+  {
+    "category": "의류-패션",
+    "file": "scripts/test-assets/의류-패션/06-pexels-6786666.jpeg",
+    "pexelsId": 6786666,
+    "pexelsUrl": "https://www.pexels.com/photo/a-person-holding-a-brown-hoodie-6786666/",
+    "photographer": "Artem Podrez",
+    "photographerUrl": "https://www.pexels.com/@artempodrez",
+    "query": "fashion apparel isolated"
+  },
+  {
+    "category": "식품",
+    "file": "scripts/test-assets/식품/01-pexels-27939228.jpeg",
+    "pexelsId": 27939228,
+    "pexelsUrl": "https://www.pexels.com/photo/a-shelf-filled-with-snacks-and-other-food-items-27939228/",
+    "photographer": "Allen Boguslavsky",
+    "photographerUrl": "https://www.pexels.com/@allen-boguslavsky-1344061",
+    "query": "packaged food product"
+  },
+  {
+    "category": "식품",
+    "file": "scripts/test-assets/식품/02-pexels-18925020.jpeg",
+    "pexelsId": 18925020,
+    "pexelsUrl": "https://www.pexels.com/photo/selection-of-snacks-on-shelves-in-store-18925020/",
+    "photographer": "Sulav Jung Hamal",
+    "photographerUrl": "https://www.pexels.com/@sulav-jung-hamal-742656",
+    "query": "packaged food product"
+  },
+  {
+    "category": "식품",
+    "file": "scripts/test-assets/식품/03-pexels-16513595.jpeg",
+    "pexelsId": 16513595,
+    "pexelsUrl": "https://www.pexels.com/photo/a-bottle-with-a-protein-shake-standing-on-a-machine-at-the-gym-16513595/",
+    "photographer": "Anete Lusina",
+    "photographerUrl": "https://www.pexels.com/@anete-lusina",
+    "query": "protein shake bottle"
+  },
+  {
+    "category": "식품",
+    "file": "scripts/test-assets/식품/04-pexels-4378522.jpeg",
+    "pexelsId": 4378522,
+    "pexelsUrl": "https://www.pexels.com/photo/a-man-holding-a-plastic-tumbler-4378522/",
+    "photographer": "https://kaboompics.com/",
+    "photographerUrl": "https://www.pexels.com/@karola-g",
+    "query": "protein shake bottle"
+  },
+  {
+    "category": "식품",
+    "file": "scripts/test-assets/식품/05-pexels-7196443.jpeg",
+    "pexelsId": 7196443,
+    "pexelsUrl": "https://www.pexels.com/photo/set-of-various-snacks-in-car-7196443/",
+    "photographer": "Erik Mclean",
+    "photographerUrl": "https://www.pexels.com/@introspectivedsgn",
+    "query": "snack food packaging"
+  },
+  {
+    "category": "전자제품",
+    "file": "scripts/test-assets/전자제품/01-pexels-10104890.jpeg",
+    "pexelsId": 10104890,
+    "pexelsUrl": "https://www.pexels.com/photo/photo-of-a-person-s-hand-holding-a-white-box-of-wireless-earbuds-10104890/",
+    "photographer": "I'm Zion",
+    "photographerUrl": "https://www.pexels.com/@zion",
+    "query": "wireless earbuds product"
+  },
+  {
+    "category": "전자제품",
+    "file": "scripts/test-assets/전자제품/02-pexels-33936400.jpeg",
+    "pexelsId": 33936400,
+    "pexelsUrl": "https://www.pexels.com/photo/wireless-earbuds-with-charging-case-in-warm-light-33936400/",
+    "photographer": "mohammad mohebbi",
+    "photographerUrl": "https://www.pexels.com/@slytonic",
+    "query": "wireless earbuds product"
+  },
+  {
+    "category": "전자제품",
+    "file": "scripts/test-assets/전자제품/03-pexels-14541068.jpeg",
+    "pexelsId": 14541068,
+    "pexelsUrl": "https://www.pexels.com/photo/boxes-with-tablets-and-smartphones-14541068/",
+    "photographer": "Alan Quirván",
+    "photographerUrl": "https://www.pexels.com/@quirva",
+    "query": "electronics gadget white background"
+  },
+  {
+    "category": "전자제품",
+    "file": "scripts/test-assets/전자제품/04-pexels-5208869.jpeg",
+    "pexelsId": 5208869,
+    "pexelsUrl": "https://www.pexels.com/photo/personal-electronic-technology-5208869/",
+    "photographer": "https://kaboompics.com/",
+    "photographerUrl": "https://www.pexels.com/@karola-g",
+    "query": "electronics gadget white background"
+  },
+  {
+    "category": "전자제품",
+    "file": "scripts/test-assets/전자제품/05-pexels-1279107.jpeg",
+    "pexelsId": 1279107,
+    "pexelsUrl": "https://www.pexels.com/photo/white-and-gray-bluetooth-speaker-on-brown-wooden-surface-1279107/",
+    "photographer": "Caio",
+    "photographerUrl": "https://www.pexels.com/@caio",
+    "query": "smart speaker product"
+  },
+  {
+    "category": "전자제품",
+    "file": "scripts/test-assets/전자제품/06-pexels-14309807.jpeg",
+    "pexelsId": 14309807,
+    "pexelsUrl": "https://www.pexels.com/photo/close-up-shot-of-gray-speaker-14309807/",
+    "photographer": "Jonathan Borba",
+    "photographerUrl": "https://www.pexels.com/@jonathanborba",
+    "query": "smart speaker product"
+  },
+  {
+    "category": "생활용품",
+    "file": "scripts/test-assets/생활용품/01-pexels-4202326.jpeg",
+    "pexelsId": 4202326,
+    "pexelsUrl": "https://www.pexels.com/photo/set-of-cosmetic-products-on-marble-shelf-in-modern-room-4202326/",
+    "photographer": "https://kaboompics.com/",
+    "photographerUrl": "https://www.pexels.com/@karola-g",
+    "query": "home decor product"
+  },
+  {
+    "category": "생활용품",
+    "file": "scripts/test-assets/생활용품/02-pexels-7796691.jpeg",
+    "pexelsId": 7796691,
+    "pexelsUrl": "https://www.pexels.com/photo/still-life-with-essential-oils-bottles-and-a-twig-with-green-leaves-7796691/",
+    "photographer": "Alesia  Kozik",
+    "photographerUrl": "https://www.pexels.com/@alesiakozik",
+    "query": "home decor product"
+  },
+  {
+    "category": "생활용품",
+    "file": "scripts/test-assets/생활용품/03-pexels-12663430.jpeg",
+    "pexelsId": 12663430,
+    "pexelsUrl": "https://www.pexels.com/photo/composition-of-a-camera-two-female-body-shaped-candles-and-a-globe-on-a-table-12663430/",
+    "photographer": "Amar  Preciado",
+    "photographerUrl": "https://www.pexels.com/@amar",
+    "query": "candle product photo"
+  },
+  {
+    "category": "생활용품",
+    "file": "scripts/test-assets/생활용품/04-pexels-30676123.jpeg",
+    "pexelsId": 30676123,
+    "pexelsUrl": "https://www.pexels.com/photo/elegant-cbd-infused-candle-on-lavender-background-30676123/",
+    "photographer": "Gaea CBD",
+    "photographerUrl": "https://www.pexels.com/@gaeahealthco",
+    "query": "candle product photo"
+  },
+  {
+    "category": "생활용품",
+    "file": "scripts/test-assets/생활용품/05-pexels-34005916.jpeg",
+    "pexelsId": 34005916,
+    "pexelsUrl": "https://www.pexels.com/photo/variety-of-non-stick-frying-pans-on-store-display-34005916/",
+    "photographer": "Théo Cold",
+    "photographerUrl": "https://www.pexels.com/@theo-cold-814199886",
+    "query": "kitchen utensil product"
+  },
+  {
+    "category": "생활용품",
+    "file": "scripts/test-assets/생활용품/06-pexels-9475278.jpeg",
+    "pexelsId": 9475278,
+    "pexelsUrl": "https://www.pexels.com/photo/close-up-photo-of-wooden-chopsticks-and-wooden-bread-knife-9475278/",
+    "photographer": "Greta Hoffman",
+    "photographerUrl": "https://www.pexels.com/@greta-hoffman",
+    "query": "kitchen utensil product"
+  }
+]
