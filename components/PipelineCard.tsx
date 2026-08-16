@@ -12,7 +12,7 @@ export default function PipelineCard() {
       <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink/40">
         01 · Raw Input
       </p>
-      <div className="mt-2 flex aspect-[4/3] items-center justify-center border border-line bg-[repeating-linear-gradient(135deg,theme(colors.line/40%),theme(colors.line/40%)_1px,transparent_1px,transparent_10px)]">
+      <div className="mt-2 flex aspect-[4/5] items-center justify-center border border-line bg-[repeating-linear-gradient(135deg,theme(colors.line/40%),theme(colors.line/40%)_1px,transparent_1px,transparent_10px)]">
         <svg
           viewBox="0 0 48 48"
           className="h-12 w-12 text-ink/30"

@@ -5,10 +5,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import DetailSectionRenderer from "@/components/DetailSectionRenderer";
+import DetailActionBar from "@/components/DetailActionBar";
 import PagzlyLogo from "@/components/PagzlyLogo";
+import ToastBanner from "@/components/ToastBanner";
 import { SESSION_KEY } from "@/components/CreateProductForm";
-import type { GenerateResponse } from "@/lib/types/generate";
+import type { DetailSection, GenerateResponse } from "@/lib/types/generate";
 import { getCategoryTheme } from "@/lib/category-theme";
+import { validateImageFile } from "@/lib/image-upload";
+import { createClient } from "@/lib/supabase";
 
 type ProductResult = {
   category: string;
@@ -29,8 +33,17 @@ type ProductResult = {
 export default function CreateResultPage() {
   const router = useRouter();
   const captureRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [data, setData] = useState<ProductResult | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [replaceImageIndex, setReplaceImageIndex] = useState(0);
+  const [toast, setToast] = useState<{ message: string; tone: "error" | "info" | "ok" } | null>(
+    null,
+  );
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiText, setAiText] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     const raw = sessionStorage.getItem(SESSION_KEY);
@@ -42,6 +55,7 @@ export default function CreateResultPage() {
     try {
       const parsed = JSON.parse(raw) as ProductResult;
       setData(parsed);
+      setAiText(parsed.wholesaleUrl ?? "");
 
       if (parsed.generated?.sections) {
         console.log("[create/result] sections count:", parsed.generated.sections.length);
@@ -55,6 +69,120 @@ export default function CreateResultPage() {
       router.replace("/create");
     }
   }, [router]);
+
+  function persist(next: ProductResult) {
+    setData(next);
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
+  }
+
+  function handleSectionChange(index: number, section: DetailSection) {
+    if (!data?.generated) return;
+    const sections = data.generated.sections.map((item, i) => (i === index ? section : item));
+    persist({ ...data, generated: { ...data.generated, sections } });
+  }
+
+  function handleSave() {
+    if (!data) return;
+    try {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
+      setEditMode(false);
+      setToast({ tone: "ok", message: "수정 내용이 저장되었습니다." });
+    } catch {
+      setToast({ tone: "error", message: "저장에 실패했습니다. 다시 시도해 주세요." });
+    }
+  }
+
+  async function handleFileSelected(file: File | undefined) {
+    if (!file || !data) return;
+    const error = validateImageFile(file);
+    if (error) {
+      setToast({ tone: "error", message: error });
+      return;
+    }
+
+    const localUrl = URL.createObjectURL(file);
+    const nextUrls = [...data.imageUrls];
+    const target = Math.min(replaceImageIndex, Math.max(0, nextUrls.length - 1));
+    nextUrls[target] = localUrl;
+    persist({ ...data, imageUrls: nextUrls });
+    setToast({ tone: "ok", message: "미리보기에 반영했습니다. 저장을 누르면 유지됩니다." });
+
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const ext = file.type === "image/png" ? "png" : "jpg";
+      const path = `${user.id}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("images")
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (uploadError) {
+        setToast({ tone: "error", message: `업로드 실패: ${uploadError.message}` });
+        return;
+      }
+      const { data: publicData } = supabase.storage.from("images").getPublicUrl(path);
+      const uploaded = [...nextUrls];
+      uploaded[target] = publicData.publicUrl;
+      persist({ ...data, imageUrls: uploaded });
+    } catch (err) {
+      console.warn("[one-click-upload] storage skip", err);
+    }
+  }
+
+  async function handleAiGenerate() {
+    const trimmed = aiText.trim();
+    console.log("[ai-generate] wholesale length", trimmed.length, "preview", trimmed.slice(0, 80));
+    if (!trimmed) {
+      setToast({
+        tone: "info",
+        message:
+          "1688/도매꾹 원본 상품명·스펙·설명을 붙여넣은 뒤 다시 시도해 주세요. 빈 상태에서는 AI를 호출하지 않습니다.",
+      });
+      return;
+    }
+    if (!data) return;
+    setAiLoading(true);
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: data.category,
+          imageUrls: data.imageUrls,
+          imagePaths: [],
+          productName: data.productName,
+          brandName: data.brandName,
+          price: data.price,
+          targetCustomer: data.targetCustomer,
+          keyFeatures: data.keyFeatures,
+          ingredients: data.ingredients,
+          certifications: data.certifications,
+          competitorUrl: data.competitorUrl,
+          wholesaleUrl: trimmed,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error ?? "AI 생성에 실패했습니다.");
+      }
+      persist({
+        ...data,
+        wholesaleUrl: trimmed,
+        generated: result as GenerateResponse,
+      });
+      setAiOpen(false);
+      setToast({ tone: "ok", message: "AI가 상세페이지를 다시 구성했습니다." });
+    } catch (err) {
+      setToast({
+        tone: "error",
+        message: err instanceof Error ? err.message : "AI 생성에 실패했습니다.",
+      });
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   async function handleDownload() {
     if (!captureRef.current || !data) return;
@@ -155,6 +283,65 @@ export default function CreateResultPage() {
             </div>
           )}
 
+          <div className="mt-6">
+            <DetailActionBar
+              editMode={editMode}
+              onToggleEdit={() => setEditMode((v) => !v)}
+              onSave={handleSave}
+              onUploadClick={() => fileInputRef.current?.click()}
+              onAiClick={() => setAiOpen(true)}
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png"
+              className="hidden"
+              onChange={(e) => {
+                void handleFileSelected(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+            {editMode && (
+              <p className="mt-2 text-xs text-ink/45">
+                텍스트를 직접 수정하거나, 사진을 눌러 교체할 이미지를 고른 뒤 원클릭
+                업로드를 사용하세요. 저장을 눌러야 세션에 반영됩니다.
+              </p>
+            )}
+          </div>
+
+          {aiOpen && (
+            <div className="mt-4 rounded-xl border border-line bg-line/15 p-4">
+              <p className="text-sm font-semibold text-ink">AI 자동 생성</p>
+              <p className="mt-1 text-xs text-ink/55">
+                1688/도매꾹 원본 상품 정보를 붙여넣으면 그 내용을 참고해 카피를 다시
+                만듭니다. 비어 있으면 AI를 호출하지 않습니다.
+              </p>
+              <textarea
+                value={aiText}
+                onChange={(e) => setAiText(e.target.value)}
+                rows={5}
+                placeholder="원본 판매 페이지의 상품명, 스펙, 상세 설명을 붙여넣어 주세요."
+                className="mt-3 w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm"
+              />
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleAiGenerate()}
+                  disabled={aiLoading}
+                  className="h-10 rounded-lg bg-registration-red px-4 text-sm font-semibold text-paper disabled:opacity-50"
+                >
+                  {aiLoading ? "생성 중..." : "생성 요청"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAiOpen(false)}
+                  className="h-10 rounded-lg border border-line px-4 text-sm"
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+          )}
           <div className="mt-6 grid gap-4 text-sm sm:grid-cols-2">
             <InfoItem label="카테고리" value={data.category} />
             <InfoItem label="판매 가격" value={`₩${data.price.toLocaleString()}`} />
@@ -177,13 +364,21 @@ export default function CreateResultPage() {
         </div>
 
         {generated?.sections && generated.sections.length > 0 ? (
-          <div ref={captureRef} className="rounded-2xl border border-line bg-paper p-2">
+          <div ref={captureRef} className="overflow-hidden rounded-2xl border border-line bg-paper">
             <DetailSectionRenderer
               sections={generated.sections}
               imageUrls={data.imageUrls}
               category={data.category}
               theme={theme}
               conceptIcons={generated.conceptIcons}
+              edit={{
+                enabled: editMode,
+                onChange: handleSectionChange,
+                onReplaceImage: (imageIndex) => {
+                  setReplaceImageIndex(imageIndex);
+                  fileInputRef.current?.click();
+                },
+              }}
             />
           </div>
         ) : (
@@ -207,6 +402,13 @@ export default function CreateResultPage() {
           </Link>
         </div>
       </main>
+      {toast && (
+        <ToastBanner
+          message={toast.message}
+          tone={toast.tone}
+          onDismiss={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

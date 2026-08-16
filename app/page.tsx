@@ -180,13 +180,13 @@ export default async function Home() {
       <main>
         {/* Hero */}
         <section className="relative overflow-hidden border-b border-line bg-paper">
-          <div className="mx-auto grid max-w-6xl items-center gap-16 px-6 py-20 sm:py-28 lg:grid-cols-2 lg:gap-12">
+          <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-16 sm:py-24 lg:grid-cols-2 lg:gap-16">
             <div>
               <div className="mb-6 inline-flex items-center gap-2 border border-line px-4 py-1.5 font-mono text-xs uppercase tracking-wider text-ink/50">
                 <span className="h-1.5 w-1.5 rounded-full bg-registration-red" />
                 AI 상세페이지 자동 생성
               </div>
-              <h1 className="font-heading text-4xl font-bold leading-[1.15] tracking-tight text-ink sm:text-5xl">
+              <h1 className="font-heading text-5xl font-bold leading-[1.1] tracking-tight text-ink sm:text-6xl">
                 상세페이지가 늦어질수록,
                 <br />
                 <span className="text-registration-red">놓치는 주문</span>이

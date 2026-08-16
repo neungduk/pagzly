@@ -10,16 +10,22 @@ import {
 import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import type { DetailSection } from "@/lib/types/generate";
 import type { ConceptIconMap } from "@/lib/concept-icons";
+import EditableText from "@/components/EditableText";
 import {
-  SECTION_GAP_CLASS,
-  SECTION_PADDING_CLASS,
   SLOT_IMAGE_RATIO,
   getDecorationColor,
   getHeroGradient,
   getSectionBackground,
   getSectionPattern,
+  hexToRgba,
   type SectionColorPattern,
 } from "@/lib/design-tokens";
+
+export type SectionEditApi = {
+  enabled: boolean;
+  onChange: (index: number, section: DetailSection) => void;
+  onReplaceImage?: (imageIndex: number) => void;
+};
 
 type DetailSectionRendererProps = {
   sections: DetailSection[];
@@ -27,6 +33,7 @@ type DetailSectionRendererProps = {
   category: string;
   theme?: CategoryTheme;
   conceptIcons?: ConceptIconMap;
+  edit?: SectionEditApi;
 };
 
 const THEME_ICONS: Record<string, LucideIcon> = {
@@ -38,12 +45,19 @@ const THEME_ICONS: Record<string, LucideIcon> = {
   CheckCircle2,
 };
 
+// 토큰 스케일: 가로는 SECTION_PADDING(24/40), 세로는 SECTION_GAP(48/80).
+// 레퍼런스는 카드 갭이 아니라 맞붙은 풀폭 블록 안의 호흡이므로 space-y 대신
+// 내부 py로 같은 숫자를 쓴다.
+const BLOCK_PAD_CLASS = "px-6 py-12 sm:px-10 sm:py-20";
+const TEXT_COL_CLASS = "mx-auto max-w-xl text-center";
+const POINT_PAD_CLASS = "px-6 pt-6 pb-10 sm:px-10 sm:pt-8 sm:pb-14";
+const HEADLINE_CLAMP = "line-clamp-2";
+const BODY_CLAMP = "line-clamp-3";
+
 function resolveImage(imageUrls: string[], index: number) {
   return imageUrls[index] ?? imageUrls[0] ?? "";
 }
 
-// 슬롯별 고정 이미지 비율 (lib/design-tokens.ts). 지정 안 된 슬롯은 섹션
-// 타입 기준으로 폴백하고, 그마저 없으면 정사각형으로 고정한다.
 function resolveImageRatioClass(section: { type: string; slot?: string }) {
   return (
     (section.slot && SLOT_IMAGE_RATIO[section.slot]) ??
@@ -56,8 +70,8 @@ function ThemeIcon({ theme }: { theme: CategoryTheme }) {
   const Icon = THEME_ICONS[theme.icon] ?? CheckCircle2;
   return (
     <Icon
-      className="mt-0.5 shrink-0"
-      size={20}
+      className="shrink-0"
+      size={22}
       style={{ color: theme.accent }}
       aria-hidden="true"
     />
@@ -80,8 +94,6 @@ function SectionImage({
   );
 }
 
-// 섹션 배경은 패턴 A(baseNeutral 단색) / 패턴 B(accentColor 옅은 단색) 2가지만
-// 허용. 홀수 번째(0-based 짝수 index) = A, 짝수 번째 = B로 교차시킨다.
 function ConceptBadgeIcon({
   src,
   theme,
@@ -97,7 +109,7 @@ function ConceptBadgeIcon({
       <img
         src={src}
         alt=""
-        className="mt-0.5 h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-white/80"
+        className="h-14 w-14 shrink-0 rounded-full object-cover ring-2 ring-white/80"
         style={{ boxShadow: `0 0 0 1px ${theme.accent}33` }}
         aria-hidden="true"
       />
@@ -106,7 +118,7 @@ function ConceptBadgeIcon({
   if (fallbackIndex != null) {
     return (
       <span
-        className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-paper"
+        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-paper"
         style={{ backgroundColor: theme.accent }}
         aria-hidden="true"
       >
@@ -114,11 +126,38 @@ function ConceptBadgeIcon({
       </span>
     );
   }
-  return <ThemeIcon theme={theme} />;
+  return (
+    <span
+      className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full"
+      style={{ backgroundColor: hexToRgba(theme.accent, 0.12) }}
+      aria-hidden="true"
+    >
+      <ThemeIcon theme={theme} />
+    </span>
+  );
 }
 
 function sectionBackgroundStyle(theme: CategoryTheme, pattern: SectionColorPattern) {
   return { backgroundColor: getSectionBackground(theme, pattern) };
+}
+
+function ImageReplaceHit({
+  enabled,
+  onReplace,
+}: {
+  enabled?: boolean;
+  onReplace?: () => void;
+}) {
+  if (!enabled || !onReplace) return null;
+  return (
+    <button
+      type="button"
+      onClick={onReplace}
+      className="absolute inset-0 z-10 flex items-center justify-center bg-ink/35 text-sm font-semibold text-paper opacity-0 transition-opacity hover:opacity-100"
+    >
+      이미지 교체
+    </button>
+  );
 }
 
 function renderSection(
@@ -129,49 +168,60 @@ function renderSection(
   theme: CategoryTheme,
   pattern: SectionColorPattern,
   conceptIcons?: ConceptIconMap,
+  pointIndex?: number,
+  edit?: SectionEditApi,
 ) {
   switch (section.type) {
     case "hero": {
       const src = resolveImage(imageUrls, section.imageIndex);
       return (
         <div key={`hero-wrap-${index}`} className="relative">
-          {/* 장식 요소: hero에서만, accentColor 8~12% 투명도, 블러 처리해
-              카드 뒤쪽에서만 살짝 비치도록 배치 (상품 사진 위로 겹치지 않음). */}
+          {/* 장식 요소: hero에서만, accentColor 8~12% 투명도, 상품 이미지 뒤쪽. */}
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -right-10 -top-10 h-56 w-56 rounded-full blur-3xl sm:h-72 sm:w-72"
             style={{ backgroundColor: getDecorationColor(theme), zIndex: 0 }}
           />
           <section
-            className="relative z-10 min-h-[380px] overflow-hidden rounded-2xl sm:min-h-[480px]"
+            className={`relative z-10 w-full overflow-hidden ${SLOT_IMAGE_RATIO.hero} min-h-[85svh] sm:min-h-[760px]`}
           >
             <SectionImage
               src={src}
               alt={section.headline}
               className="absolute inset-0 h-full w-full object-cover"
             />
-            {/* hero만 예외적으로 accentColor 그라데이션(진→연) 허용 */}
             <div
               className="absolute inset-0"
               style={{ background: getHeroGradient(theme) }}
             />
-            <div className={`relative flex h-full min-h-[380px] flex-col justify-end ${SECTION_PADDING_CLASS} sm:min-h-[480px]`}>
-              <span
-                className="absolute left-6 top-6 rounded-full px-3 py-1 text-xs font-semibold sm:left-10 sm:top-10"
-                style={{
-                  backgroundColor: theme.baseNeutral,
-                  color: theme.deepAccent,
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
-                }}
-              >
+            <ImageReplaceHit
+              enabled={edit?.enabled}
+              onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
+            />
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-end px-6 pb-12 text-center sm:px-10 sm:pb-16">
+              <p className="mb-3 text-xs font-semibold tracking-[0.22em] text-white/80">
                 {category}
-              </span>
-              <h2 className="line-clamp-2 font-heading text-4xl font-bold leading-tight text-white sm:text-5xl">
-                {section.headline}
-              </h2>
-              {section.subheadline && (
-                <p className="mt-2 line-clamp-2 text-base text-white/90">{section.subheadline}</p>
-              )}
+              </p>
+              <EditableText
+                as="h2"
+                enabled={edit?.enabled}
+                value={section.headline}
+                onChange={(headline) =>
+                  edit?.onChange(index, { ...section, headline })
+                }
+                className={`${HEADLINE_CLAMP} font-heading text-5xl font-bold leading-[1.1] tracking-tight text-white sm:text-6xl`}
+              />
+              {(section.subheadline || edit?.enabled) ? (
+                <EditableText
+                  as="p"
+                  enabled={edit?.enabled}
+                  value={section.subheadline ?? ""}
+                  onChange={(subheadline) =>
+                    edit?.onChange(index, { ...section, subheadline })
+                  }
+                  className={`mt-3 max-w-xl ${HEADLINE_CLAMP} text-base text-white/90 sm:text-lg`}
+                />
+              ) : null}
             </div>
           </section>
         </div>
@@ -182,23 +232,47 @@ function renderSection(
       return (
         <section
           key={`checklist-${index}`}
-          className={`rounded-2xl border border-line ${SECTION_PADDING_CLASS}`}
+          className={BLOCK_PAD_CLASS}
           style={sectionBackgroundStyle(theme, pattern)}
         >
-          <h3
-            className="font-heading text-xl font-bold"
-            style={{ color: theme.deepAccent }}
+          <div className={TEXT_COL_CLASS}>
+            <EditableText
+              as="h3"
+              enabled={edit?.enabled}
+              value={section.heading}
+              onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+              className={`${HEADLINE_CLAMP} font-heading text-2xl font-bold sm:text-3xl`}
+            />
+          </div>
+          <ul
+            className={`mt-10 grid gap-x-4 gap-y-8 ${
+              section.items.length === 3
+                ? "grid-cols-3"
+                : section.items.length >= 4
+                  ? "grid-cols-2 sm:grid-cols-4"
+                  : "grid-cols-2"
+            }`}
           >
-            {section.heading}
-          </h3>
-          <ul className="mt-5 space-y-3">
             {section.items.map((item, itemIndex) => (
-              <li key={item} className="flex items-start gap-3 text-sm text-ink/80">
+              <li
+                key={`${itemIndex}-${item.slice(0, 12)}`}
+                className="flex flex-col items-center text-center text-sm leading-snug text-ink/80"
+              >
                 <ConceptBadgeIcon
                   src={conceptIcons?.checklist?.[itemIndex]}
                   theme={theme}
                 />
-                <span>{item}</span>
+                <EditableText
+                  as="span"
+                  enabled={edit?.enabled}
+                  value={item}
+                  onChange={(next) => {
+                    const items = [...section.items];
+                    items[itemIndex] = next;
+                    edit?.onChange(index, { ...section, items });
+                  }}
+                  className="mt-3"
+                />
               </li>
             ))}
           </ul>
@@ -208,38 +282,51 @@ function renderSection(
     case "image_text": {
       const src = resolveImage(imageUrls, section.imageIndex);
       const ratioClass = resolveImageRatioClass(section);
-      const imageEl = (
-        <SectionImage
-          src={src}
-          alt={section.heading}
-          className={`${ratioClass} w-full rounded-xl object-cover`}
-        />
-      );
-      const textEl = (
-        <div>
-          <h3 className="line-clamp-2 font-heading text-2xl font-bold text-ink">{section.heading}</h3>
-          <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-ink/65">{section.body}</p>
-        </div>
-      );
+      const pointLabel =
+        pointIndex != null
+          ? `POINT ${String(pointIndex + 1).padStart(2, "0")}`
+          : null;
 
       return (
         <section
           key={`image_text-${index}`}
-          className={`rounded-2xl border border-line ${SECTION_PADDING_CLASS}`}
           style={sectionBackgroundStyle(theme, pattern)}
         >
-          <div className="grid items-center gap-6 sm:grid-cols-2">
-            {section.imagePosition === "left" ? (
-              <>
-                {imageEl}
-                {textEl}
-              </>
-            ) : (
-              <>
-                {textEl}
-                {imageEl}
-              </>
+          <div className="relative">
+            <SectionImage
+              src={src}
+              alt={section.heading}
+              className={`${ratioClass} w-full object-cover`}
+            />
+            <ImageReplaceHit
+              enabled={edit?.enabled}
+              onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
+            />
+          </div>
+          <div className={`${POINT_PAD_CLASS} ${TEXT_COL_CLASS}`}>
+            {pointLabel && (
+              <p
+                className="mb-3 text-xs font-semibold tracking-[0.22em]"
+                style={{ color: theme.accent }}
+              >
+                {pointLabel}
+              </p>
             )}
+            <EditableText
+              as="h3"
+              enabled={edit?.enabled}
+              value={section.heading}
+              onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+              className={`${HEADLINE_CLAMP} font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl`}
+            />
+            <EditableText
+              as="p"
+              multiline
+              enabled={edit?.enabled}
+              value={section.body}
+              onChange={(body) => edit?.onChange(index, { ...section, body })}
+              className={`mt-4 ${BODY_CLAMP} text-sm leading-7 text-ink/65 sm:text-base`}
+            />
           </div>
         </section>
       );
@@ -249,22 +336,29 @@ function renderSection(
       return (
         <section
           key={`spec_table-${index}`}
-          className={`rounded-2xl border border-line ${SECTION_PADDING_CLASS}`}
+          className={BLOCK_PAD_CLASS}
           style={sectionBackgroundStyle(theme, pattern)}
         >
-          <h3 className="font-heading text-2xl font-bold text-ink">{section.heading}</h3>
-          <div className="mt-5 overflow-hidden rounded-xl border border-line">
+          <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl`}>
+            {section.heading}
+          </h3>
+          <div className="mt-8 overflow-hidden">
             <table className="w-full text-sm">
               <tbody>
                 {section.rows.map((row, rowIndex) => (
                   <tr
                     key={`${row.label}-${rowIndex}`}
-                    className={rowIndex % 2 === 0 ? "bg-paper/80" : "bg-paper"}
+                    style={{
+                      backgroundColor:
+                        rowIndex % 2 === 0
+                          ? theme.baseNeutral
+                          : hexToRgba(theme.accent, 0.08),
+                    }}
                   >
-                    <td className="w-1/3 px-4 py-3 font-medium text-ink/55">
+                    <td className="w-1/3 px-4 py-3.5 font-medium text-ink/55">
                       {row.label}
                     </td>
-                    <td className="px-4 py-3 text-ink">{row.value}</td>
+                    <td className="px-4 py-3.5 text-ink">{row.value}</td>
                   </tr>
                 ))}
               </tbody>
@@ -277,19 +371,24 @@ function renderSection(
       return (
         <section
           key={`comparison_table-${index}`}
-          className={`rounded-2xl border border-line ${SECTION_PADDING_CLASS}`}
+          className={BLOCK_PAD_CLASS}
           style={sectionBackgroundStyle(theme, pattern)}
         >
-          <h3 className="font-heading text-2xl font-bold text-ink">{section.heading}</h3>
-          <div className="mt-5 overflow-x-auto rounded-xl border border-line">
+          <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl`}>
+            {section.heading}
+          </h3>
+          <div className="mx-auto mt-8 max-w-xl overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-paper/80">
+                <tr style={{ backgroundColor: hexToRgba(theme.accent, 0.08) }}>
                   <th className="px-4 py-3 text-left font-medium text-ink/55" />
                   <th className="px-4 py-3 text-left font-medium text-ink/55">
                     {section.columns[0]}
                   </th>
-                  <th className="px-4 py-3 text-left font-semibold" style={{ color: theme.deepAccent }}>
+                  <th
+                    className="px-4 py-3 text-left font-semibold"
+                    style={{ color: theme.deepAccent }}
+                  >
                     {section.columns[1]}
                   </th>
                 </tr>
@@ -298,11 +397,16 @@ function renderSection(
                 {section.rows.map((row, rowIndex) => (
                   <tr
                     key={`${row.label}-${rowIndex}`}
-                    className={rowIndex % 2 === 0 ? "bg-paper/80" : "bg-paper"}
+                    style={{
+                      backgroundColor:
+                        rowIndex % 2 === 0
+                          ? theme.baseNeutral
+                          : hexToRgba(theme.accent, 0.08),
+                    }}
                   >
-                    <td className="px-4 py-3 font-medium text-ink/55">{row.label}</td>
-                    <td className="px-4 py-3 text-ink">{row.values[0]}</td>
-                    <td className="px-4 py-3 font-semibold text-ink">{row.values[1]}</td>
+                    <td className="px-4 py-3.5 font-medium text-ink/55">{row.label}</td>
+                    <td className="px-4 py-3.5 text-ink">{row.values[0]}</td>
+                    <td className="px-4 py-3.5 font-semibold text-ink">{row.values[1]}</td>
                   </tr>
                 ))}
               </tbody>
@@ -316,24 +420,29 @@ function renderSection(
       return (
         <section
           key={`color_variation-${index}`}
-          className={`rounded-2xl border border-line ${SECTION_PADDING_CLASS}`}
+          className={BLOCK_PAD_CLASS}
           style={sectionBackgroundStyle(theme, pattern)}
         >
-          <h3 className="font-heading text-2xl font-bold text-ink">{section.heading}</h3>
-          <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl`}>
+            {section.heading}
+          </h3>
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
             {section.options.map((option) => {
               const src = resolveImage(imageUrls, option.imageIndex);
               return (
-                <div key={option.label} className="space-y-2">
+                <div key={option.label} className="space-y-2 text-center">
                   <SectionImage
                     src={src}
                     alt={option.label}
-                    className={`${ratioClass} w-full rounded-lg object-cover`}
+                    className={`${ratioClass} w-full object-cover`}
                   />
-                  <div className="flex items-center gap-2 text-sm text-ink/80">
+                  <div className="flex items-center justify-center gap-2 text-sm text-ink/80">
                     <span
-                      className="h-4 w-4 shrink-0 rounded-full border border-line"
-                      style={{ backgroundColor: option.colorHex }}
+                      className="h-4 w-4 shrink-0 rounded-full"
+                      style={{
+                        backgroundColor: option.colorHex,
+                        boxShadow: `0 0 0 1px ${theme.accent}33`,
+                      }}
                       aria-hidden="true"
                     />
                     {option.label}
@@ -350,19 +459,38 @@ function renderSection(
       return (
         <section
           key={`usage_steps-${index}`}
-          className={`rounded-2xl border border-line ${SECTION_PADDING_CLASS}`}
+          className={BLOCK_PAD_CLASS}
           style={sectionBackgroundStyle(theme, pattern)}
         >
-          <h3 className="font-heading text-2xl font-bold text-ink">{section.heading}</h3>
-          <ol className="mt-5 space-y-4">
+          <EditableText
+            as="h3"
+            enabled={edit?.enabled}
+            value={section.heading}
+            onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl`}
+          />
+          <ol className="mx-auto mt-8 max-w-xl space-y-8">
             {section.steps.map((step, stepIndex) => (
-              <li key={step} className="flex items-start gap-3 text-sm text-ink/80">
+              <li
+                key={stepIndex}
+                className="flex flex-col items-center text-center text-sm leading-relaxed text-ink/80"
+              >
                 <ConceptBadgeIcon
                   src={conceptIcons?.usageSteps?.[stepIndex]}
                   theme={theme}
                   fallbackIndex={stepIndex}
                 />
-                <span className="pt-2">{step}</span>
+                <EditableText
+                  as="span"
+                  enabled={edit?.enabled}
+                  value={step}
+                  onChange={(next) => {
+                    const steps = [...section.steps];
+                    steps[stepIndex] = next;
+                    edit?.onChange(index, { ...section, steps });
+                  }}
+                  className="mt-3 max-w-sm"
+                />
               </li>
             ))}
           </ol>
@@ -374,20 +502,35 @@ function renderSection(
       return (
         <section
           key={`gallery-${index}`}
-          className={`rounded-2xl border border-line ${SECTION_PADDING_CLASS}`}
           style={sectionBackgroundStyle(theme, pattern)}
         >
-          <h3 className="font-heading text-2xl font-bold text-ink">{section.heading}</h3>
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="px-6 pb-1 pt-6 text-center sm:px-10 sm:pb-2 sm:pt-10">
+            <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl`}>
+              {section.heading}
+            </h3>
+          </div>
+          <div
+            className={
+              section.imageIndexes.length <= 2
+                ? "grid grid-cols-1 gap-px"
+                : "grid grid-cols-2 gap-px sm:grid-cols-3"
+            }
+            style={{ backgroundColor: hexToRgba(theme.accent, 0.18) }}
+          >
             {section.imageIndexes.map((imageIndex) => {
               const src = resolveImage(imageUrls, imageIndex);
               return (
-                <SectionImage
-                  key={`${imageIndex}-${src}`}
-                  src={src}
-                  alt={`${section.heading} ${imageIndex + 1}`}
-                  className={`${ratioClass} w-full rounded-lg object-cover`}
-                />
+                <div key={`${imageIndex}-${src}`} className="relative">
+                  <SectionImage
+                    src={src}
+                    alt={`${section.heading} ${imageIndex + 1}`}
+                    className={`${ratioClass} w-full object-cover`}
+                  />
+                  <ImageReplaceHit
+                    enabled={edit?.enabled}
+                    onReplace={() => edit?.onReplaceImage?.(imageIndex)}
+                  />
+                </div>
               );
             })}
           </div>
@@ -399,13 +542,26 @@ function renderSection(
       return (
         <section
           key={`caution-${index}`}
-          className={`rounded-2xl border border-line ${SECTION_PADDING_CLASS}`}
+          className={BLOCK_PAD_CLASS}
           style={sectionBackgroundStyle(theme, pattern)}
         >
-          <h3 className="font-heading text-xl font-bold" style={{ color: theme.deepAccent }}>
-            {section.heading}
-          </h3>
-          <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-ink/65">{section.body}</p>
+          <div className={TEXT_COL_CLASS}>
+            <EditableText
+              as="h3"
+              enabled={edit?.enabled}
+              value={section.heading}
+              onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+              className={`${HEADLINE_CLAMP} font-heading text-xl font-bold sm:text-2xl`}
+            />
+            <EditableText
+              as="p"
+              multiline
+              enabled={edit?.enabled}
+              value={section.body}
+              onChange={(body) => edit?.onChange(index, { ...section, body })}
+              className={`mt-4 ${BODY_CLAMP} text-sm leading-relaxed text-ink/65`}
+            />
+          </div>
         </section>
       );
 
@@ -413,37 +569,32 @@ function renderSection(
       return (
         <section
           key={`cta_price-${index}`}
-          className={`rounded-2xl border-2 ${SECTION_PADDING_CLASS}`}
-          style={{ ...sectionBackgroundStyle(theme, pattern), borderColor: `${theme.accent}33` }}
+          className={BLOCK_PAD_CLASS}
+          style={sectionBackgroundStyle(theme, pattern)}
         >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p
-                className="text-2xl"
-                style={{ color: theme.accent }}
+          <div className={`${TEXT_COL_CLASS} space-y-4`}>
+            <p className="font-heading text-4xl font-bold tracking-tight sm:text-5xl" style={{ color: theme.accent }}>
+              ₩{section.price.toLocaleString()}
+            </p>
+            {section.targetCustomer && (
+              <span
+                className="inline-block rounded-full px-3 py-1 text-xs"
+                style={{
+                  backgroundColor: hexToRgba(theme.accent, 0.12),
+                  color: theme.deepAccent,
+                }}
               >
-                ₩<span className="font-heading font-bold">{section.price.toLocaleString()}</span>
-              </p>
-              {section.targetCustomer && (
-                <span
-                  className="mt-2 inline-block rounded-full px-3 py-1 text-xs"
-                  style={{
-                    backgroundColor: theme.baseNeutral,
-                    color: theme.deepAccent,
-                  }}
-                >
-                  {section.targetCustomer}
-                </span>
-              )}
-            </div>
+                {section.targetCustomer}
+              </span>
+            )}
             {section.badges && section.badges.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap justify-center gap-2">
                 {section.badges.map((badge) => (
                   <span
                     key={badge}
                     className="rounded-full px-3 py-1 text-xs"
                     style={{
-                      backgroundColor: theme.baseNeutral,
+                      backgroundColor: hexToRgba(theme.accent, 0.12),
                       color: theme.deepAccent,
                     }}
                   >
@@ -467,18 +618,42 @@ export default function DetailSectionRenderer({
   category,
   theme: themeOverride,
   conceptIcons,
+  edit,
 }: DetailSectionRendererProps) {
   const theme = themeOverride ?? getCategoryTheme(category);
+  let imageTextCount = 0;
 
   return (
-    <div className={SECTION_GAP_CLASS}>
+    <div className="overflow-hidden">
       {sections.map((section, index) => {
+        const pointIndex =
+          section.type === "image_text" ? imageTextCount++ : undefined;
         if (section.type === "hero") {
-          return renderSection(section, imageUrls, index, category, theme, "A", conceptIcons);
+          return renderSection(
+            section,
+            imageUrls,
+            index,
+            category,
+            theme,
+            "A",
+            conceptIcons,
+            undefined,
+            edit,
+          );
         }
         const bodyIndex = sections.slice(0, index).filter((s) => s.type !== "hero").length;
         const pattern = getSectionPattern(bodyIndex);
-        return renderSection(section, imageUrls, index, category, theme, pattern, conceptIcons);
+        return renderSection(
+          section,
+          imageUrls,
+          index,
+          category,
+          theme,
+          pattern,
+          conceptIcons,
+          pointIndex,
+          edit,
+        );
       })}
     </div>
   );

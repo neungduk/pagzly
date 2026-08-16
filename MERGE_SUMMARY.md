@@ -1,8 +1,41 @@
-# 병합 분석: origin/main ↔ origin/pagelab-work
+# 병합 요약: origin/main ← pagelab-work (선택 A)
 
-상태: **병합 보류**. `merge-pagelab-work`는 `origin/main`과 동일한 커밋에 멈춰 있고, 충돌을 임의로 해결하지 않았습니다.
+상태: **적용 완료** (`merge-pagelab-work`만). **main은 변경·push하지 않음.**
 
-확인용 브랜치: `merge-check` → `origin/pagelab-work`를 추적합니다.
+방법: unrelated-histories merge 대신 `git checkout origin/pagelab-work -- <파일>`로
+work 쪽 트리만 덮어씀. main 커밋 그래프는 유지됩니다.
+
+확인용 브랜치: `merge-check` → `origin/pagelab-work`
+
+---
+
+## 5. 선택 A 적용 결과 (2026-08-16)
+
+`origin/pagelab-work` 버전으로 아래를 덮어썼습니다.
+
+- 충돌 7개 파일 → work 내용으로 교체
+- work에만 있던 신규 파일 15개 → 추가 (`PROGRESS_LOG.md`, 프리뷰, 툴바 컴포넌트, 스크린샷 등)
+- `lib/design-tokens.ts`는 손대지 않음 (양쪽 동일)
+
+### 7개 충돌 파일에서 덮어써진 내용
+
+| 파일 | main에 있던 것 (버려짐) | pagelab-work으로 들어온 것 |
+|------|-------------------------|------------------------------|
+| `components/DetailSectionRenderer.tsx` | 카드 레이아웃 (`rounded-2xl border` + `SECTION_GAP_CLASS` / `SECTION_PADDING_CLASS`). 히어로 `min-h-[380/480]`, 섹션 제목은 일반 텍스트. | 풀폭 단색 블록 (`BLOCK_PAD_CLASS`), 히어로 `aspect-[4/5]` + `min-h-[85svh]`, POINT 스택, 갤러리 `gap-px`, 인라인 편집 (`SectionEditApi` + `EditableText`). `conceptIcons`는 유지. |
+| `app/create/result/page.tsx` | 생성 결과 표시 + PNG 다운로드만. | `DetailActionBar`(직접 편집/저장/원클릭 업로드/AI 자동 생성), 빈 wholesale 가드, 토스트, 세션 저장. |
+| `review/reference-patterns.md` | 2026-08-14 컨셉 패턴 가이드 (세계관·슬롯·비용 로그). | 위 내용 유지 + 2026-08-15 외부 레퍼런스 §8, 토큰 대비 §9, 디자인 시스템 소스 주석. |
+| `app/page.tsx` | 히어로 그리드 `gap-16 py-20 sm:py-28`, 제목 `text-4xl sm:text-5xl`. | `gap-12 py-16 sm:py-24 lg:gap-16`, 제목 `text-5xl sm:text-6xl`. 카피/구조는 동일. |
+| `components/PipelineCard.tsx` | RAW 영역 `aspect-[4/3]`. | `aspect-[4/5]`. 나머지 카드 구성은 동일. |
+| `components/CreateProductForm.tsx` | `/api/generate` fetch 직전 로그 없음. | `[generate payload wholesale]` 콘솔 로그 (길이·null 여부·미리보기). |
+| `app/api/generate/route.ts` | `request.json()` 직후 로그 없음. | `[generate incoming wholesaleUrl]` 콘솔 로그. DeepSeek 호출 로직은 그대로. |
+
+수치 (`git diff` vs 적용 전 HEAD): 7 files, **+653 / −139**.
+
+### 의도적으로 버리지 않은 것
+
+- main의 커밋 히스토리 (concept brief, QA, AIDA 등)
+- `lib/design-tokens.ts` 3색·슬롯 비율
+- `review/CHECKLIST.md` 등 `reference-patterns.md` 외 review 문서
 
 ---
 
@@ -17,7 +50,7 @@
 
 `pagelab-work`는 다른 폴더에서 `git init` 후 스냅샷을 올린 것으로 보입니다. 커밋 그래프는 갈라져 있지만, **파일 트리**는 main과 거의 같고 22개 파일만 다릅니다.
 
-`--allow-unrelated-histories`로 시험 병합했다가 충돌이 커서 `git merge --abort`로 되돌렸습니다.
+`--allow-unrelated-histories`로 시험 병합했다가 충돌이 커서 `git merge --abort`로 되돌린 뒤, 선택 A로 파일만 가져왔습니다.
 
 ---
 
@@ -25,7 +58,7 @@
 
 `git diff origin/main origin/pagelab-work` → **22 files, +1128 / −139**
 
-### 새로 추가됨 (pagelab-work만, 충돌 없음)
+### 새로 추가됨 (pagelab-work만)
 
 - `PROGRESS_LOG.md`
 - `app/dev/detail-preview/page.tsx`
@@ -40,56 +73,18 @@
 
 없음.
 
-### 양쪽 모두 있고 내용이 다름 (시험 병합 시 add/add 충돌)
-
-| 파일 | 규모 | 성격 |
-|------|------|------|
-| `components/DetailSectionRenderer.tsx` | +441/−136급, 충돌 마커 **30곳 이상** | main은 카드(`rounded-2xl border` + `SECTION_GAP`). work는 풀폭 블록 + 인라인 편집 API. 둘 다 `conceptIcons`는 있음. |
-| `app/create/result/page.tsx` | +206, 충돌 **8곳** | work가 직접편집/업로드/AI 툴바를 추가. |
-| `review/reference-patterns.md` | +122, 충돌 **6곳** | work가 2026-08-15 외부 레퍼런스 §8–§9를 추가. |
-| `app/page.tsx` | 충돌 **2곳** | 랜딩 히어로 타이포·여백. |
-| `components/PipelineCard.tsx` | 충돌 **1곳** | RAW 영역 비율 `4/3` → `4/5`. |
-| `components/CreateProductForm.tsx` | 충돌 **1곳** | wholesale 요청 body 콘솔 로그. |
-| `app/api/generate/route.ts` | 충돌 **1곳** | incoming `wholesaleUrl` 로그. |
-
 ### 최근에 같이 손댄 파일
 
-- `components/DetailSectionRenderer.tsx` — **겹침, 충돌 많음**
-- `lib/design-tokens.ts` — **차이 없음** (3색·슬롯 비율 토큰 동일)
-- `review/` — `reference-patterns.md`만 다름. `CHECKLIST.md` 등은 동일
+- `components/DetailSectionRenderer.tsx` — 겹침 → **A로 work 채택**
+- `lib/design-tokens.ts` — 차이 없음
+- `review/` — `reference-patterns.md`만 다름 → **A로 work 채택**
 
 ---
 
-## 3. 시험 병합 결과
+## 3. 시험 병합 (중단됨)
 
 `git merge origin/pagelab-work --allow-unrelated-histories` 기준:
 
-- 신규 파일 15개는 자동 추가됨
-- 위 7개 파일은 `CONFLICT (add/add)`
-- 렌더러 한 파일만 충돌 구간이 수십 개라, 자동으로 한쪽을 고르지 않고 중단함
-
----
-
-## 4. 선택지 (아직 적용하지 않음)
-
-**A. pagelab-work 버전으로 그 7개 파일을 덮어쓰기**  
-`merge-pagelab-work`(main) 위에서:
-
-```
-git checkout origin/pagelab-work -- <충돌 7개 + 신규 파일들>
-```
-
-- 얻는 것: 6시간 작업(풀폭 레이아웃, 편집/업로드/AI 가드, 레퍼런스 §8)
-- 잃을 위험: main에만 있고 work 스냅샷에 없는 **그 7개 파일 안의** 이후 수정. 트리 비교상 그 7개는 work가 main을 확장한 형태로 보임(기능 삭제는 카드 레이아웃을 풀폭으로 바꾼 것).
-- 히스토리: main의 커밋 그래프는 유지되고, 파일만 work 내용이 됨. unrelated merge 커밋은 없음.
-
-**B. main 버전 유지**  
-6시간 작업의 렌더러·툴바·레퍼런스 보강이 빠짐. 신규 파일도 안 들어옴.
-
-**C. 파일마다 수동 병합**  
-렌더러는 레이아웃이 통째로 달라 줄 단위 병합 이득이 적음. 로그 한 줄짜리(`generate/route.ts`, `CreateProductForm.tsx`)만 수동으로 맞춰도 되고, 렌더러/결과페이지는 A가 사실상 필요.
-
-**D. unrelated-histories merge를 끝까지 밀고 충돌을 손으로 제거**  
-A와 결과 트리는 비슷하지만 커밋이 두 루트를 합친 merge commit이 됨. 충돌 마커가 커서 실수 위험이 큼.
-
-권장(아직 실행 안 함): **A**. 확인 후 `merge-pagelab-work`에 커밋하고 origin에만 push. **main에는 병합·push 하지 않음.**
+- 신규 파일은 자동 추가
+- 위 7개 파일은 `CONFLICT (add/add)`, 렌더러만 충돌 구간 수십 개
+- 임의 해결하지 않고 abort한 뒤 A로 전환
