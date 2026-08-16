@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import DetailSectionRenderer from "@/components/DetailSectionRenderer";
-import DetailActionBar from "@/components/DetailActionBar";
+import DetailActionBar, { type DetailToolTab } from "@/components/DetailActionBar";
 import ToastBanner from "@/components/ToastBanner";
 import type { DetailSection } from "@/lib/types/generate";
 import { validateImageFile } from "@/lib/image-upload";
@@ -86,12 +86,17 @@ export default function DetailPreviewPage() {
   const [sections, setSections] = useState(initialSections);
   const [imageUrls, setImageUrls] = useState(initialImageUrls);
   const [editMode, setEditMode] = useState(false);
+  const [toolTab, setToolTab] = useState<DetailToolTab>("edit");
   const [replaceImageIndex, setReplaceImageIndex] = useState(0);
-  const [aiOpen, setAiOpen] = useState(false);
   const [aiText, setAiText] = useState("");
   const [toast, setToast] = useState<{ message: string; tone: "error" | "info" | "ok" } | null>(
     null,
   );
+
+  function handleTabChange(next: DetailToolTab) {
+    setToolTab(next);
+    if (next === "edit") setEditMode(true);
+  }
 
   function handleAiGenerate() {
     const trimmed = aiText.trim();
@@ -111,11 +116,13 @@ export default function DetailPreviewPage() {
 
   return (
     <div className="min-h-full bg-paper pb-24">
-      <div className="mx-auto max-w-[430px] space-y-3 px-3 py-3">
+      <div className="sticky top-0 z-30 mx-auto max-w-[430px] space-y-3 bg-paper/95 px-3 py-3 backdrop-blur-md">
         <p className="text-center text-xs text-ink/45">
           /dev/detail-preview — 레이아웃·버튼 확인용
         </p>
         <DetailActionBar
+          tab={toolTab}
+          onTabChange={handleTabChange}
           editMode={editMode}
           onToggleEdit={() => setEditMode((v) => !v)}
           onSave={() => {
@@ -123,7 +130,12 @@ export default function DetailPreviewPage() {
             setToast({ tone: "ok", message: "수정 내용이 저장되었습니다." });
           }}
           onUploadClick={() => fileInputRef.current?.click()}
-          onAiClick={() => setAiOpen(true)}
+          replaceImageIndex={replaceImageIndex}
+          imageCount={imageUrls.length}
+          onReplaceIndexChange={setReplaceImageIndex}
+          aiText={aiText}
+          onAiTextChange={setAiText}
+          onAiSubmit={handleAiGenerate}
         />
         <input
           ref={fileInputRef}
@@ -149,26 +161,6 @@ export default function DetailPreviewPage() {
             setToast({ tone: "ok", message: "미리보기에 반영했습니다." });
           }}
         />
-        {aiOpen && (
-          <div className="rounded-xl border border-line p-3">
-            <textarea
-              data-testid="ai-wholesale"
-              value={aiText}
-              onChange={(e) => setAiText(e.target.value)}
-              rows={4}
-              placeholder="원본 상품 정보를 붙여넣어 주세요."
-              className="w-full rounded-lg border border-line px-3 py-2 text-sm"
-            />
-            <button
-              type="button"
-              data-testid="ai-submit"
-              onClick={handleAiGenerate}
-              className="mt-2 h-10 rounded-lg bg-registration-red px-4 text-sm font-semibold text-paper"
-            >
-              생성 요청
-            </button>
-          </div>
-        )}
       </div>
       <div className="mx-auto max-w-[430px] overflow-hidden border-x border-line bg-paper shadow-sm">
         <DetailSectionRenderer
@@ -182,6 +174,7 @@ export default function DetailPreviewPage() {
             },
             onReplaceImage: (imageIndex) => {
               setReplaceImageIndex(imageIndex);
+              setToolTab("upload");
               fileInputRef.current?.click();
             },
           }}

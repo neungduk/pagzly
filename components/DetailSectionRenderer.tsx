@@ -153,7 +153,7 @@ function ImageReplaceHit({
     <button
       type="button"
       onClick={onReplace}
-      className="absolute inset-0 z-10 flex items-center justify-center bg-ink/35 text-sm font-semibold text-paper opacity-0 transition-opacity hover:opacity-100"
+      className="absolute right-3 top-3 z-30 rounded-full bg-ink/80 px-3 py-1.5 text-xs font-semibold tracking-wide text-paper shadow-sm transition-transform hover:scale-[1.03] active:scale-[0.98]"
     >
       이미지 교체
     </button>
@@ -188,7 +188,7 @@ function renderSection(
             <SectionImage
               src={src}
               alt={section.headline}
-              className="absolute inset-0 h-full w-full object-cover"
+              className="pagzly-hero-photo absolute inset-0 h-full w-full object-cover"
             />
             <div
               className="absolute inset-0"
@@ -199,7 +199,7 @@ function renderSection(
               onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
             />
             <div className="absolute inset-0 z-20 flex flex-col items-center justify-end px-6 pb-12 text-center sm:px-10 sm:pb-16">
-              <p className="mb-3 text-xs font-semibold tracking-[0.22em] text-white/80">
+              <p className="mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.28em] text-white/80">
                 {category}
               </p>
               <EditableText
@@ -306,7 +306,7 @@ function renderSection(
           <div className={`${POINT_PAD_CLASS} ${TEXT_COL_CLASS}`}>
             {pointLabel && (
               <p
-                className="mb-3 text-xs font-semibold tracking-[0.22em]"
+                className="mb-3 font-mono text-[11px] font-semibold tracking-[0.28em]"
                 style={{ color: theme.accent }}
               >
                 {pointLabel}
@@ -339,9 +339,13 @@ function renderSection(
           className={BLOCK_PAD_CLASS}
           style={sectionBackgroundStyle(theme, pattern)}
         >
-          <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl`}>
-            {section.heading}
-          </h3>
+          <EditableText
+            as="h3"
+            enabled={edit?.enabled}
+            value={section.heading}
+            onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl`}
+          />
           <div className="mt-8 overflow-hidden">
             <table className="w-full text-sm">
               <tbody>
@@ -356,9 +360,31 @@ function renderSection(
                     }}
                   >
                     <td className="w-1/3 px-4 py-3.5 font-medium text-ink/55">
-                      {row.label}
+                      <EditableText
+                        as="span"
+                        enabled={edit?.enabled}
+                        value={row.label}
+                        onChange={(label) => {
+                          const rows = section.rows.map((item, i) =>
+                            i === rowIndex ? { ...item, label } : item,
+                          );
+                          edit?.onChange(index, { ...section, rows });
+                        }}
+                      />
                     </td>
-                    <td className="px-4 py-3.5 text-ink">{row.value}</td>
+                    <td className="px-4 py-3.5 text-ink">
+                      <EditableText
+                        as="span"
+                        enabled={edit?.enabled}
+                        value={row.value}
+                        onChange={(value) => {
+                          const rows = section.rows.map((item, i) =>
+                            i === rowIndex ? { ...item, value } : item,
+                          );
+                          edit?.onChange(index, { ...section, rows });
+                        }}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -469,7 +495,7 @@ function renderSection(
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
             className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl`}
           />
-          <ol className="mx-auto mt-8 max-w-xl space-y-8">
+          <ol className="mx-auto mt-10 max-w-xl space-y-6">
             {section.steps.map((step, stepIndex) => (
               <li
                 key={stepIndex}
@@ -504,10 +530,14 @@ function renderSection(
           key={`gallery-${index}`}
           style={sectionBackgroundStyle(theme, pattern)}
         >
-          <div className="px-6 pb-1 pt-6 text-center sm:px-10 sm:pb-2 sm:pt-10">
-            <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl`}>
-              {section.heading}
-            </h3>
+          <div className="px-6 pb-0 pt-8 text-center sm:px-10 sm:pt-12">
+            <EditableText
+              as="h3"
+              enabled={edit?.enabled}
+              value={section.heading}
+              onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+              className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl`}
+            />
           </div>
           <div
             className={
@@ -573,7 +603,10 @@ function renderSection(
           style={sectionBackgroundStyle(theme, pattern)}
         >
           <div className={`${TEXT_COL_CLASS} space-y-4`}>
-            <p className="font-heading text-4xl font-bold tracking-tight sm:text-5xl" style={{ color: theme.accent }}>
+            <p
+              className="font-heading text-4xl font-bold tracking-tight sm:text-5xl"
+              style={{ color: theme.accent, letterSpacing: "-0.03em" }}
+            >
               ₩{section.price.toLocaleString()}
             </p>
             {section.targetCustomer && (
