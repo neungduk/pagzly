@@ -5,7 +5,7 @@ import CropMarks from "@/components/CropMarks";
 // 실제 상품 사진을 마케팅 자료에 무단으로 쓰지 않기 위함).
 export default function PipelineCard() {
   return (
-    <div className="relative rotate-1 border border-line bg-white p-5 shadow-[6px_6px_0_0_#DAD5C9] sm:p-6">
+    <div className="pagzly-pipeline-float relative rotate-1 border border-line bg-white p-5 shadow-[6px_6px_0_0_#DAD5C9] sm:p-6">
       <CropMarks />
 
       {/* RAW INPUT */}

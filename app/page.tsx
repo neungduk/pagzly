@@ -7,6 +7,7 @@ import FaqAccordion from "@/components/FaqAccordion";
 import CropMarks from "@/components/CropMarks";
 import PipelineCard from "@/components/PipelineCard";
 import CategoryColorEngine from "@/components/CategoryColorEngine";
+import RevealOnScroll from "@/components/RevealOnScroll";
 import { createClient } from "@/lib/supabase/server";
 
 const features = [
@@ -200,13 +201,13 @@ export default async function Home() {
               <div className="mt-10 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
                 <Link
                   href={startHref}
-                  className="inline-flex h-12 w-full items-center justify-center bg-ink px-8 text-base font-semibold text-paper transition-colors hover:bg-ink/85 sm:w-auto"
+                  className="inline-flex h-12 w-full items-center justify-center bg-ink px-8 text-base font-semibold text-paper transition-transform transition-colors duration-200 hover:bg-ink/85 active:scale-[0.98] sm:w-auto"
                 >
                   무료로 시작하기
                 </Link>
                 <a
                   href="#features"
-                  className="inline-flex h-12 w-full items-center justify-center border border-ink px-8 text-base font-semibold text-ink transition-colors hover:bg-ink hover:text-paper sm:w-auto"
+                  className="inline-flex h-12 w-full items-center justify-center border border-ink px-8 text-base font-semibold text-ink transition-transform transition-colors duration-200 hover:bg-ink hover:text-paper active:scale-[0.98] sm:w-auto"
                 >
                   기능 살펴보기
                 </a>
@@ -226,7 +227,7 @@ export default async function Home() {
 
         {/* Comparison */}
         <section id="comparison" className="border-b border-line bg-white py-24">
-          <div className="mx-auto max-w-6xl px-6">
+          <RevealOnScroll className="mx-auto max-w-6xl px-6">
             <div className="text-center">
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-registration-red">
                 Comparison
@@ -241,12 +242,12 @@ export default async function Home() {
             <div className="mt-16">
               <ComparisonTable />
             </div>
-          </div>
+          </RevealOnScroll>
         </section>
 
         {/* Process */}
         <section className="border-b border-line bg-paper py-24">
-          <div className="mx-auto max-w-6xl px-6">
+          <RevealOnScroll className="mx-auto max-w-6xl px-6">
             <div className="text-center">
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink/40">
                 Process
@@ -257,7 +258,10 @@ export default async function Home() {
             </div>
             <div className="mt-16 grid gap-8 sm:grid-cols-3">
               {processSteps.map((item) => (
-                <div key={item.step} className="relative border border-line bg-white p-8">
+                <div
+                  key={item.step}
+                  className="relative border border-line bg-white p-8 transition-transform duration-300 hover:-translate-y-1"
+                >
                   <CropMarks />
                   <span className="font-mono text-sm font-semibold text-registration-red">
                     STEP {item.step}
@@ -271,12 +275,12 @@ export default async function Home() {
                 </div>
               ))}
             </div>
-          </div>
+          </RevealOnScroll>
         </section>
 
         {/* Features */}
         <section id="features" className="border-b border-line bg-[#EEF2F1] py-24">
-          <div className="mx-auto max-w-6xl px-6">
+          <RevealOnScroll className="mx-auto max-w-6xl px-6">
             <div className="text-center">
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink/40">
                 Features
@@ -292,7 +296,7 @@ export default async function Home() {
               {features.map((feature) => (
                 <div
                   key={feature.title}
-                  className="group relative border border-line bg-white p-8 transition-colors hover:border-ink/30"
+                  className="group relative border border-line bg-white p-8 transition-transform duration-300 hover:-translate-y-1 hover:border-ink/30"
                 >
                   <CropMarks />
                   <div
@@ -309,12 +313,12 @@ export default async function Home() {
                 </div>
               ))}
             </div>
-          </div>
+          </RevealOnScroll>
         </section>
 
         {/* FAQ */}
         <section id="faq" className="border-b border-line bg-white py-24">
-          <div className="mx-auto max-w-6xl px-6">
+          <RevealOnScroll className="mx-auto max-w-6xl px-6">
             <div className="text-center">
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink/40">
                 FAQ
@@ -326,14 +330,14 @@ export default async function Home() {
             <div className="mt-16">
               <FaqAccordion />
             </div>
-          </div>
+          </RevealOnScroll>
         </section>
 
         <ShowcaseSection />
 
         {/* Pricing */}
         <section id="pricing" className="border-b border-line bg-paper py-24">
-          <div className="mx-auto max-w-6xl px-6">
+          <RevealOnScroll className="mx-auto max-w-6xl px-6">
             <div className="text-center">
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink/40">
                 Pricing
@@ -349,7 +353,7 @@ export default async function Home() {
               {plans.map((plan) => (
                 <div
                   key={plan.name}
-                  className={`relative flex flex-col bg-white p-8 ${
+                  className={`relative flex flex-col bg-white p-8 transition-transform duration-300 hover:-translate-y-1 ${
                     plan.highlighted
                       ? "border-2 border-registration-red"
                       : "border border-line"
@@ -416,12 +420,12 @@ export default async function Home() {
                 </div>
               ))}
             </div>
-          </div>
+          </RevealOnScroll>
         </section>
 
         {/* CTA */}
         <section className="bg-ink py-20">
-          <div className="mx-auto max-w-6xl px-6 text-center">
+          <RevealOnScroll className="mx-auto max-w-6xl px-6 text-center">
             <h2 className="font-heading text-3xl font-bold tracking-tight text-paper sm:text-4xl">
               지금 바로 시작해 보세요
             </h2>
@@ -430,11 +434,11 @@ export default async function Home() {
             </p>
             <Link
               href={startHref}
-              className="mt-8 inline-flex h-12 items-center justify-center bg-registration-red px-8 text-base font-semibold text-paper transition-colors hover:bg-registration-red/85"
+              className="mt-8 inline-flex h-12 items-center justify-center bg-registration-red px-8 text-base font-semibold text-paper transition-transform transition-colors duration-200 hover:bg-registration-red/85 active:scale-[0.98]"
             >
               무료로 시작하기
             </Link>
-          </div>
+          </RevealOnScroll>
         </section>
       </main>
 
