@@ -1,66 +1,57 @@
 # Pagzly 자동 작업 로그
 
-## 전체 요약
+## 전체 요약 (2026-08-16 무감독 런)
 
 **완료**
-- 상세페이지 렌더러를 레퍼런스 리듬(풀폭 히어로, POINT 스택, 갤러리 밀착, 3색·히어로-only)에 맞춤. 후기/인증/솔리드 밴드는 슬롯·토큰 밖이라 추가하지 않음.
-- 결과 페이지(+프리뷰)에 **직접 편집 / 저장 / 원클릭 업로드 / AI 자동 생성** 최소 동작 구현.
-- 빈 도매 textarea → AI 미호출 가드 확인됨 (Playwright).
-- 원클릭 업로드: JPG/PNG·8MB 검증, 미리보기 반영, 잘못된 형식 에러 토스트 확인됨.
-- 직접 편집: 인라인 수정 후 저장 토스트 확인됨.
-- `/api/generate`·폼에 wholesale 요청 body 로그 추가.
-- 랜딩 히어로 타이포·파이프라인 카드 이미지 비중을 기존 브랜드 토큰 안에서 키움.
-- `npx tsc --noEmit` 통과.
+- `/create/result`·`/dev/detail-preview` 수정 도구를 **직접 편집 / 원클릭 업로드 / AI 자동 생성 3탭**으로 고정 노출. 스크롤해도 보이도록 sticky.
+- 직접 편집: 히어로·체크리스트·POINT·사용법·주의·스펙 표 인라인 수정, 저장 토스트, 실패 시 에러 토스트.
+- 원클릭 업로드: JPG/PNG·8MB 가드, 미리보기 즉시 반영, 모바일에서도 보이는 "이미지 교체" 뱃지.
+- AI 자동 생성: 빈 textarea면 fetch 없이 안내. Playwright에서 가드 확인.
+- 랜딩: 스크롤 fade/slide, 파이프라인 카드 미세 플로트, 카드 호버. 새 색/장식 없음. `prefers-reduced-motion` 존중.
+- 상세 히어로: 기존 사진에 ken-burns만. 다운로드를 가리지 않으려고 상세에는 opacity reveal 미적용.
+- 레퍼런스 연습 6사이클 후 조기 종료 (quality-log.md). 이미지 재생성·QA API 없음.
 
 **⚠️ 미해결 / 확인 필요**
-- 이 폴더에 원래 `.git`이 없었음. `git init`은 했으나 **user.name/email이 없어 커밋 실패**. git config는 수정하지 않음.
-- 원격도 없어 **push 불가**.
-- AI 자동 생성의 **텍스트가 채워진 실제 `/api/generate` 호출은 과금 API라 테스트하지 않음**.
-- 메인 상품 생성(`/create` 제출)은 도매 텍스트가 비어도 DeepSeek를 호출함. 가드는 **AI 자동 생성 버튼에만** 적용. 메인 생성을 막으면 핵심 기능이 죽음.
-- 스마트스토어 실제 연동(네이버 API)은 없음. 원클릭 업로드는 **상세 이미지 교체**로 구현.
-- 후기/인증/뷰티 비교표/deepAccent 솔리드 밴드는 디자인 시스템 밖이라 재현하지 않음.
+- 채워진 도매 텍스트로 `/api/generate` 실호출은 과금이라 이번에도 안 함.
+- `/create/result`는 sessionStorage가 있어야 해서 Playwright는 프리뷰만 클릭 검증.
+- 스마트스토어 네이버 API 연동 없음. 업로드는 상세 이미지 교체.
+- 후기/인증/네이비 솔리드 밴드는 슬롯·토큰 밖이라 재현하지 않음.
+- 지시문의 "풀 옵션 1건 재생성"은 호출하지 않음 (과금 + 로그인 세션).
 
-**다음에 우선 확인할 3가지**
-1. `/dev/detail-preview`에서 직접 편집·업로드·빈 AI 가드가 기대한 UX인지.
-2. `/create/result`에서 실제 생성본에 툴바가 붙는지 (세션 필요).
-3. Git 원격 연결 후 push, 그리고 AI 채워진 재생성은 과금 감수하고 한 번만 실호출할지.
+**다음에 확인할 3가지**
+1. 실제 생성본 `/create/result`에서 3탭이 기대한 UX인지 (세션 필요).
+2. 도매 텍스트를 채운 AI 재생성 1회만 과금 감수하고 볼지.
+3. 랜딩 모션이 너무 조용한지 / 줄일지 (`prefers-reduced-motion` 포함).
 
 ---
 
 ## 시간순 기록
 
-### 시작 — 상태 파악
+### 시작
 
-- `.git` 없음. 커밋/push 지시가 있어 init을 선택.
-- 랜딩 `features` 카드 3개는 클릭 동작이 없고, 결과 페이지에도 버튼이 없었음 → **결과 페이지에 툴바를 신설**하는 게 최소 동작에 맞다고 판단.
-- 메인 `/api/generate`를 빈 wholesale로 막으면 상세 생성이 불가능 → 가드는 AI 버튼에만 적용.
-  - ⚠️ 확인 필요: 예전 “메인 생성까지 스킵” 요청과 다를 수 있음.
+- 브랜치 `merge-pagelab-work` (main 손대지 않음). working tree 깨끗.
+- 이전 런의 버튼은 있었으나 탭이 아니고, 이미지 교체가 hover-only라 모바일에서 안 보임 → 탭 + 상시 뱃지로 가기로 함.
+- 상세 opacity 스크롤 애니메이션은 `html-to-image` 다운로드를 가릴 수 있어 **랜딩만** 적용.
 
-### 1순위 — 레퍼런스 사이클
+### 1순위 — 결과 수정 탭
 
-토큰·슬롯·3색·히어로-only를 유지한 채 배치만 조정. 후기/인증 섹션은 만들지 않음.
+- `DetailActionBar`를 3탭 패널로 재구성. 결과/프리뷰 공통.
+- 편집 탭 진입 시 편집 모드 ON. 스펙 표도 인라인 수정.
+- 업로드 탭: 교체할 사진 번호 선택 + 8MB/형식 메시지.
+- AI 탭: 빈 입력이면 API 호출 없음 (가드 유지).
+- Playwright `scripts/test-action-bar.ts`: saveToast / emptyGuard / typeError / sizeError / hadInput 전부 true.
 
-- 히어로 `aspect-[4/5]` + `min-h-[85svh]`, 제목 `text-5xl/6xl` — 레퍼런스처럼 첫 화면을 사진이 채우게.
-- 갤러리 제목–사진 밀착, `gap-px` + accent 헤어라인.
-- POINT 본문 `leading-7`, 스펙표 폭 확대, CTA 가격 `text-4xl/5xl`.
-- 스크린샷: `review/layout-cycle-9.png` (gitignore라 히스토리에는 안 들어감).
+### 2순위 — 역동성
 
-**8회 전에 멈춘 이유:** 슬롯 없이 흉내 낼 수 있는 배치(풀폭·한 메시지·여백·타이포)는 레퍼런스와 충분히 가깝고, 남은 차이(후기 모자이크, 인증 그리드, 네이비 솔리드 밴드)는 `reference-patterns.md` §9에서 금지한 영역.
+- `RevealOnScroll` + `globals.css` ken-burns/float. 브랜드 토큰 색만 사용.
+- 프로세스/기능/요금 카드 `hover:-translate-y-1`. CTA `active:scale-[0.98]`.
 
-### 2순위 — 버튼
+### 3순위 — 레퍼런스 연습
 
-- 직접 편집: `EditableText` + 저장 시 sessionStorage. Playwright에서 저장 토스트 **성공**.
-- 원클릭 업로드: 파일창 → `validateImageFile` → object URL 미리보기 → 가능하면 Supabase storage. txt 파일 업로드 시 형식 에러 토스트 **성공**.
-- AI 자동 생성: textarea 비면 fetch 없이 안내. Playwright **성공**. 채워진 실호출은 과금 금지라 스킵.
-  - ⚠️ 미해결: 채워진 텍스트로 `/api/generate` 재생성 실전 검증 없음.
-
-### 3순위 — 랜딩 비주얼
-
-- 홈 히어로 제목 한 단계 키움, 파이프라인 카드 RAW 영역을 `4/5`로. 새 색/장식 없음 (브랜드 `ink`/`paper`/`line`).
+- Cycle 2–4: POINT/히어로 라벨 mono, 사용법 간격, 갤러리 제목–사진 밀착, CTA 자간.
+- Cycle 5–6: 무변경. 후기·솔리드 밴드는 §9 금이라 중단.
+- 평균 4.45. 풀 옵션 재생성 스킵.
 
 ### Git
 
-- `git init` 성공 (`pagelab/.git`).
-- ⚠️ 실패: `git commit` — Author identity unknown. `git config`는 지시문상 수정하지 않음.
-- ⚠️ 실패: `git push` — 커밋도 원격도 없음.
-- 스테이징은 되어 있을 수 있음. 돌아오시면 `user.name`/`user.email` 설정 후 커밋·원격 추가·push가 필요함.
+- 커밋은 `merge-pagelab-work`만. `origin/main`은 그대로.
