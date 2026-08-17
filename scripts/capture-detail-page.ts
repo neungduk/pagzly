@@ -18,7 +18,7 @@ import { chromium } from "playwright";
 import path from "path";
 import fs from "fs";
 
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 const STORAGE_STATE_PATH = path.join(__dirname, "auth-state.json");
 const OUTPUT_DIR = path.join(__dirname, "..", "review");
 const TEST_ASSETS_ROOT = path.join(__dirname, "test-assets");

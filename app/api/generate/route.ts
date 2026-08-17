@@ -261,6 +261,14 @@ async function generateCopyWithDeepSeek(
 
 카테고리별 톤(section-templates note)은 그대로 유지하되, 위 AIDA 구조만 강제합니다.
 
+## 카피 리듬·톤 (전문 상세페이지, 과장 금지)
+- 문장 길이에 강약: 임팩트 구간(hero, checklist items)은 5~14자 짧은 문장 위주.
+  image_text body·caution은 2~3문장 안에서 **짧은 문장 + 설명 문장**을 교차해 리듬을 만드세요.
+- 신뢰감: 구체적 사실·사용 장면·성분/소재 근거. "~할 수 있습니다", "일상에서", "부담 없이" 등 담백한 표현.
+- 금지: "최고", "완벽", "기적", "100% 효과" 등 근거 없는 최상급·과장.
+- cta_price badges: 구매 결정에 도움이 되는 **짧은 사실 키워드** 2~4개 (용량·무향·인증·소재 등, 있을 때만).
+- hero headline은 질문·숫자·한 줄 훅. subheadline은 상품명 또는 한 줄 보조 설명.
+
 ## 상품 정보
 - 상품명: ${productInfo.productName}
 - 카테고리: ${productInfo.category}
@@ -320,7 +328,7 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
   }
 
   const data = JSON.parse(rawBody) as {
-    choices?: { message?: { content?: string } }[];
+    choices?: { message?: { content?: string; reasoning_content?: string } }[];
     usage?: unknown;
   };
 
@@ -329,7 +337,11 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
     `[cost] generateCopyWithDeepSeek: $${deepSeekCost.toFixed(4)} usage=${JSON.stringify(data.usage)}`,
   );
 
-  const content = data.choices?.[0]?.message?.content;
+  const firstMessage = data.choices?.[0]?.message;
+  const content =
+    firstMessage?.content?.trim() ||
+    firstMessage?.reasoning_content?.trim() ||
+    "";
   if (!content) {
     throw new Error("DeepSeek API 응답이 비어 있습니다.");
   }

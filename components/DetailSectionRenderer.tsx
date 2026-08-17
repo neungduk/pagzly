@@ -12,7 +12,9 @@ import type { DetailSection } from "@/lib/types/generate";
 import type { ConceptIconMap } from "@/lib/concept-icons";
 import EditableText from "@/components/EditableText";
 import {
+  SECTION_BLOCK_PAD,
   SLOT_IMAGE_RATIO,
+  getCtaBandBackground,
   getDecorationColor,
   getHeroGradient,
   getSectionBackground,
@@ -45,14 +47,23 @@ const THEME_ICONS: Record<string, LucideIcon> = {
   CheckCircle2,
 };
 
-// 토큰 스케일: 가로는 SECTION_PADDING(24/40), 세로는 SECTION_GAP(48/80).
-// 레퍼런스는 카드 갭이 아니라 맞붙은 풀폭 블록 안의 호흡이므로 space-y 대신
-// 내부 py로 같은 숫자를 쓴다.
-const BLOCK_PAD_CLASS = "px-6 py-12 sm:px-10 sm:py-20";
 const TEXT_COL_CLASS = "mx-auto max-w-xl text-center";
-const POINT_PAD_CLASS = "px-6 pt-6 pb-10 sm:px-10 sm:pt-8 sm:pb-14";
 const HEADLINE_CLAMP = "line-clamp-2";
 const BODY_CLAMP = "line-clamp-3";
+
+const TYPO = {
+  heroCategory:
+    "mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.28em] text-white/80",
+  heroTitle:
+    "font-heading text-5xl font-bold leading-[1.08] tracking-tight text-white sm:text-6xl",
+  heroSub: "mt-4 max-w-xl text-base font-normal leading-relaxed text-white/88 sm:text-lg",
+  sectionTitle:
+    "font-heading text-[1.75rem] font-bold leading-tight tracking-tight text-ink sm:text-4xl",
+  sectionLabel: "font-mono text-[11px] font-semibold uppercase tracking-[0.28em]",
+  body: "text-[0.9375rem] font-normal leading-8 text-ink/70 sm:text-base",
+  checklistItem: "mt-3 text-sm font-medium leading-snug text-ink/85",
+  stepItem: "mt-3 max-w-sm text-sm font-normal leading-relaxed text-ink/80",
+} as const;
 
 function resolveImage(imageUrls: string[], index: number) {
   return imageUrls[index] ?? imageUrls[0] ?? "";
@@ -141,6 +152,16 @@ function sectionBackgroundStyle(theme: CategoryTheme, pattern: SectionColorPatte
   return { backgroundColor: getSectionBackground(theme, pattern) };
 }
 
+function SectionAccentHairline({ theme }: { theme: CategoryTheme }) {
+  return (
+    <div
+      className="mx-auto mb-6 h-px w-12"
+      style={{ backgroundColor: hexToRgba(theme.accent, 0.45) }}
+      aria-hidden="true"
+    />
+  );
+}
+
 function ImageReplaceHit({
   enabled,
   onReplace,
@@ -176,7 +197,6 @@ function renderSection(
       const src = resolveImage(imageUrls, section.imageIndex);
       return (
         <div key={`hero-wrap-${index}`} className="relative">
-          {/* 장식 요소: hero에서만, accentColor 8~12% 투명도, 상품 이미지 뒤쪽. */}
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -right-10 -top-10 h-56 w-56 rounded-full blur-3xl sm:h-72 sm:w-72"
@@ -198,10 +218,8 @@ function renderSection(
               enabled={edit?.enabled}
               onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
             />
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-end px-6 pb-12 text-center sm:px-10 sm:pb-16">
-              <p className="mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.28em] text-white/80">
-                {category}
-              </p>
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-end px-6 pb-14 text-center sm:px-10 sm:pb-20">
+              <p className={TYPO.heroCategory}>{category}</p>
               <EditableText
                 as="h2"
                 enabled={edit?.enabled}
@@ -209,7 +227,7 @@ function renderSection(
                 onChange={(headline) =>
                   edit?.onChange(index, { ...section, headline })
                 }
-                className={`${HEADLINE_CLAMP} font-heading text-5xl font-bold leading-[1.1] tracking-tight text-white sm:text-6xl`}
+                className={`${HEADLINE_CLAMP} ${TYPO.heroTitle}`}
               />
               {(section.subheadline || edit?.enabled) ? (
                 <EditableText
@@ -219,7 +237,7 @@ function renderSection(
                   onChange={(subheadline) =>
                     edit?.onChange(index, { ...section, subheadline })
                   }
-                  className={`mt-3 max-w-xl ${HEADLINE_CLAMP} text-base text-white/90 sm:text-lg`}
+                  className={`${HEADLINE_CLAMP} ${TYPO.heroSub}`}
                 />
               ) : null}
             </div>
@@ -232,20 +250,21 @@ function renderSection(
       return (
         <section
           key={`checklist-${index}`}
-          className={BLOCK_PAD_CLASS}
+          className={SECTION_BLOCK_PAD.generous}
           style={sectionBackgroundStyle(theme, pattern)}
         >
           <div className={TEXT_COL_CLASS}>
+            <SectionAccentHairline theme={theme} />
             <EditableText
               as="h3"
               enabled={edit?.enabled}
               value={section.heading}
               onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-              className={`${HEADLINE_CLAMP} font-heading text-2xl font-bold sm:text-3xl`}
+              className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
             />
           </div>
           <ul
-            className={`mt-10 grid gap-x-4 gap-y-8 ${
+            className={`mt-12 grid gap-x-6 gap-y-10 ${
               section.items.length === 3
                 ? "grid-cols-3"
                 : section.items.length >= 4
@@ -256,7 +275,7 @@ function renderSection(
             {section.items.map((item, itemIndex) => (
               <li
                 key={`${itemIndex}-${item.slice(0, 12)}`}
-                className="flex flex-col items-center text-center text-sm leading-snug text-ink/80"
+                className="flex flex-col items-center text-center"
               >
                 <ConceptBadgeIcon
                   src={conceptIcons?.checklist?.[itemIndex]}
@@ -271,7 +290,7 @@ function renderSection(
                     items[itemIndex] = next;
                     edit?.onChange(index, { ...section, items });
                   }}
-                  className="mt-3"
+                  className={TYPO.checklistItem}
                 />
               </li>
             ))}
@@ -303,12 +322,9 @@ function renderSection(
               onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
             />
           </div>
-          <div className={`${POINT_PAD_CLASS} ${TEXT_COL_CLASS}`}>
+          <div className={`${SECTION_BLOCK_PAD.pointText} ${TEXT_COL_CLASS}`}>
             {pointLabel && (
-              <p
-                className="mb-3 font-mono text-[11px] font-semibold tracking-[0.28em]"
-                style={{ color: theme.accent }}
-              >
+              <p className={`mb-4 ${TYPO.sectionLabel}`} style={{ color: theme.accent }}>
                 {pointLabel}
               </p>
             )}
@@ -317,7 +333,7 @@ function renderSection(
               enabled={edit?.enabled}
               value={section.heading}
               onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-              className={`${HEADLINE_CLAMP} font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl`}
+              className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
             />
             <EditableText
               as="p"
@@ -325,7 +341,7 @@ function renderSection(
               enabled={edit?.enabled}
               value={section.body}
               onChange={(body) => edit?.onChange(index, { ...section, body })}
-              className={`mt-4 ${BODY_CLAMP} text-sm leading-7 text-ink/65 sm:text-base`}
+              className={`mt-5 ${BODY_CLAMP} ${TYPO.body}`}
             />
           </div>
         </section>
@@ -336,17 +352,18 @@ function renderSection(
       return (
         <section
           key={`spec_table-${index}`}
-          className={BLOCK_PAD_CLASS}
+          className={SECTION_BLOCK_PAD.compact}
           style={sectionBackgroundStyle(theme, pattern)}
         >
+          <SectionAccentHairline theme={theme} />
           <EditableText
             as="h3"
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl`}
+            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
           />
-          <div className="mt-8 overflow-hidden">
+          <div className="mx-auto mt-10 max-w-xl overflow-hidden rounded-sm">
             <table className="w-full text-sm">
               <tbody>
                 {section.rows.map((row, rowIndex) => (
@@ -359,7 +376,7 @@ function renderSection(
                           : hexToRgba(theme.accent, 0.08),
                     }}
                   >
-                    <td className="w-1/3 px-4 py-3.5 font-medium text-ink/55">
+                    <td className="w-1/3 px-4 py-4 text-xs font-semibold uppercase tracking-wide text-ink/50">
                       <EditableText
                         as="span"
                         enabled={edit?.enabled}
@@ -372,7 +389,7 @@ function renderSection(
                         }}
                       />
                     </td>
-                    <td className="px-4 py-3.5 text-ink">
+                    <td className="px-4 py-4 font-medium text-ink">
                       <EditableText
                         as="span"
                         enabled={edit?.enabled}
@@ -397,13 +414,14 @@ function renderSection(
       return (
         <section
           key={`comparison_table-${index}`}
-          className={BLOCK_PAD_CLASS}
+          className={SECTION_BLOCK_PAD.generous}
           style={sectionBackgroundStyle(theme, pattern)}
         >
-          <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl`}>
+          <SectionAccentHairline theme={theme} />
+          <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}>
             {section.heading}
           </h3>
-          <div className="mx-auto mt-8 max-w-xl overflow-x-auto">
+          <div className="mx-auto mt-10 max-w-xl overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ backgroundColor: hexToRgba(theme.accent, 0.08) }}>
@@ -446,13 +464,14 @@ function renderSection(
       return (
         <section
           key={`color_variation-${index}`}
-          className={BLOCK_PAD_CLASS}
+          className={SECTION_BLOCK_PAD.generous}
           style={sectionBackgroundStyle(theme, pattern)}
         >
-          <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl`}>
+          <SectionAccentHairline theme={theme} />
+          <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}>
             {section.heading}
           </h3>
-          <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3">
             {section.options.map((option) => {
               const src = resolveImage(imageUrls, option.imageIndex);
               return (
@@ -485,21 +504,22 @@ function renderSection(
       return (
         <section
           key={`usage_steps-${index}`}
-          className={BLOCK_PAD_CLASS}
+          className={SECTION_BLOCK_PAD.generous}
           style={sectionBackgroundStyle(theme, pattern)}
         >
+          <SectionAccentHairline theme={theme} />
           <EditableText
             as="h3"
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl`}
+            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
           />
-          <ol className="mx-auto mt-10 max-w-xl space-y-6">
+          <ol className="mx-auto mt-12 max-w-xl space-y-8">
             {section.steps.map((step, stepIndex) => (
               <li
                 key={stepIndex}
-                className="flex flex-col items-center text-center text-sm leading-relaxed text-ink/80"
+                className="flex flex-col items-center text-center"
               >
                 <ConceptBadgeIcon
                   src={conceptIcons?.usageSteps?.[stepIndex]}
@@ -515,7 +535,7 @@ function renderSection(
                     steps[stepIndex] = next;
                     edit?.onChange(index, { ...section, steps });
                   }}
-                  className="mt-3 max-w-sm"
+                  className={TYPO.stepItem}
                 />
               </li>
             ))}
@@ -530,13 +550,14 @@ function renderSection(
           key={`gallery-${index}`}
           style={sectionBackgroundStyle(theme, pattern)}
         >
-          <div className="px-6 pb-0 pt-8 text-center sm:px-10 sm:pt-12">
+          <div className={SECTION_BLOCK_PAD.galleryTitle}>
+            <SectionAccentHairline theme={theme} />
             <EditableText
               as="h3"
               enabled={edit?.enabled}
               value={section.heading}
               onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-              className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl`}
+              className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
             />
           </div>
           <div
@@ -572,10 +593,16 @@ function renderSection(
       return (
         <section
           key={`caution-${index}`}
-          className={BLOCK_PAD_CLASS}
+          className={SECTION_BLOCK_PAD.compact}
           style={sectionBackgroundStyle(theme, pattern)}
         >
           <div className={TEXT_COL_CLASS}>
+            <p
+              className={`mb-3 ${TYPO.sectionLabel}`}
+              style={{ color: theme.deepAccent }}
+            >
+              NOTICE
+            </p>
             <EditableText
               as="h3"
               enabled={edit?.enabled}
@@ -589,7 +616,7 @@ function renderSection(
               enabled={edit?.enabled}
               value={section.body}
               onChange={(body) => edit?.onChange(index, { ...section, body })}
-              className={`mt-4 ${BODY_CLAMP} text-sm leading-relaxed text-ink/65`}
+              className={`mt-4 ${BODY_CLAMP} ${TYPO.body}`}
             />
           </div>
         </section>
@@ -599,10 +626,13 @@ function renderSection(
       return (
         <section
           key={`cta_price-${index}`}
-          className={BLOCK_PAD_CLASS}
-          style={sectionBackgroundStyle(theme, pattern)}
+          className={SECTION_BLOCK_PAD.cta}
+          style={{ backgroundColor: getCtaBandBackground(theme) }}
         >
-          <div className={`${TEXT_COL_CLASS} space-y-4`}>
+          <div className={`${TEXT_COL_CLASS} space-y-5`}>
+            <p className={TYPO.sectionLabel} style={{ color: theme.deepAccent }}>
+              PRICE
+            </p>
             <p
               className="font-heading text-4xl font-bold tracking-tight sm:text-5xl"
               style={{ color: theme.accent, letterSpacing: "-0.03em" }}
@@ -611,9 +641,9 @@ function renderSection(
             </p>
             {section.targetCustomer && (
               <span
-                className="inline-block rounded-full px-3 py-1 text-xs"
+                className="inline-block rounded-full px-4 py-1.5 text-xs font-medium"
                 style={{
-                  backgroundColor: hexToRgba(theme.accent, 0.12),
+                  backgroundColor: hexToRgba(theme.accent, 0.14),
                   color: theme.deepAccent,
                 }}
               >
@@ -621,21 +651,39 @@ function renderSection(
               </span>
             )}
             {section.badges && section.badges.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-2">
+              <div className="flex flex-wrap justify-center gap-2 pt-1">
                 {section.badges.map((badge) => (
                   <span
                     key={badge}
-                    className="rounded-full px-3 py-1 text-xs"
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium"
                     style={{
-                      backgroundColor: hexToRgba(theme.accent, 0.12),
+                      backgroundColor: hexToRgba(theme.baseNeutral, 0.85),
                       color: theme.deepAccent,
+                      boxShadow: `inset 0 0 0 1px ${hexToRgba(theme.accent, 0.2)}`,
                     }}
                   >
+                    <CheckCircle2
+                      className="h-3.5 w-3.5 shrink-0"
+                      style={{ color: theme.accent }}
+                      aria-hidden="true"
+                    />
                     {badge}
                   </span>
                 ))}
               </div>
             )}
+            <div className="pt-4">
+              <span
+                className="inline-flex h-12 min-w-[11rem] items-center justify-center rounded-full px-8 text-sm font-semibold text-paper shadow-sm"
+                style={{ backgroundColor: theme.deepAccent }}
+                role="presentation"
+              >
+                지금 구매하기
+              </span>
+              <p className="mt-3 text-xs leading-relaxed text-ink/50">
+                배송·교환·환불은 판매자 정책을 확인해 주세요.
+              </p>
+            </div>
           </div>
         </section>
       );

@@ -43,15 +43,12 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
-
   .pagzly-hero-photo {
     animation: pagzly-kenburns 18s ease-in-out infinite alternate;
   }
-
   .pagzly-pipeline-float {
     animation: pagzly-float 8s ease-in-out infinite;
   }
-
   @keyframes pagzly-kenburns {
     from {
       transform: scale(1);

@@ -85,6 +85,20 @@ export const SECTION_GAP_CLASS = "space-y-12 sm:space-y-20";
 // 섹션 내부 좌우 패딩 고정값 (텍스트가 화면 끝까지 붙지 않도록)
 export const SECTION_PADDING_CLASS = "p-6 sm:p-10";
 
+/** 렌더러 전용 — 레퍼런스급 여백 리듬(넉넉한 본문 / 타이트한 갤러리 헤더). */
+export const SECTION_BLOCK_PAD = {
+  generous: "px-6 py-14 sm:px-10 sm:py-24",
+  compact: "px-6 py-10 sm:px-10 sm:py-16",
+  pointText: "px-6 pt-8 pb-16 sm:px-10 sm:pt-10 sm:pb-20",
+  galleryTitle: "px-6 pt-10 pb-0 text-center sm:px-10 sm:pt-12",
+  cta: "px-6 py-16 sm:px-10 sm:py-28",
+} as const;
+
+/** CTA 마감 밴드 — deepAccent 3색 안에서만 (별도 네이비/신규 색 금지). */
+export function getCtaBandBackground(theme: CategoryTheme): string {
+  return hexToRgba(theme.deepAccent, 0.1);
+}
+
 // ---------------------------------------------------------------------------
 // 4. 이미지 비율 — 슬롯별 고정, AI/crop 로직이 임의 비율을 쓰지 않는다.
 // ---------------------------------------------------------------------------

@@ -12,11 +12,11 @@
 - 레퍼런스 연습 6사이클 후 조기 종료 (quality-log.md). 이미지 재생성·QA API 없음.
 
 **⚠️ 미해결 / 확인 필요**
-- 채워진 도매 텍스트로 `/api/generate` 실호출은 과금이라 이번에도 안 함.
+- 최종 승인 후 1회 실호출은 완료. 다만 QA에서 `label_clip` critical 1건(이미지 1 라벨 상단 절단) 남음.
 - `/create/result`는 sessionStorage가 있어야 해서 Playwright는 프리뷰만 클릭 검증.
 - 스마트스토어 네이버 API 연동 없음. 업로드는 상세 이미지 교체.
 - 후기/인증/네이비 솔리드 밴드는 슬롯·토큰 밖이라 재현하지 않음.
-- 지시문의 "풀 옵션 1건 재생성"은 호출하지 않음 (과금 + 로그인 세션).
+- 장식 그래픽은 1회 503으로 실패 후 배경-only 폴백되어 decor 비용 0으로 집계됨.
 
 **다음에 확인할 3가지**
 1. 실제 생성본 `/create/result`에서 3탭이 기대한 UX인지 (세션 필요).
@@ -55,3 +55,17 @@
 ### Git
 
 - 커밋은 `merge-pagelab-work`만. `origin/main`은 그대로.
+
+### 최종 승인 런 (유료 1회)
+
+- 실행: `scripts/capture-detail-page.ts`로 `/create` 자동 제출 (BASE_URL 3001, wholesale 텍스트 포함)
+- 결과: `review/attempt-화장품-뷰티-final-approved-2.png` 저장 로그 확인
+- 비용 로그:
+  - `generateConceptBrief: $0.0001`
+  - `generateBackdrop (flux-fill-dev x3): $0.0750`
+  - `enhanceProductImage x3: $0.01647`씩 (총 enhance 약 $0.0494)
+  - `generateConceptIcons (6/6): $0.0180`
+  - `deepSeek total: $0.0021` (재생성 1회 포함)
+  - `total: $0.1446`
+- QA: `label_clip#img1` critical 1건으로 남음(라벨 상단 절단). 카피 길이 관련 경고 몇 건.
+- 안정화 수정: DeepSeek가 `content` 대신 `reasoning_content`에 JSON을 줄 때도 파싱하도록 `/api/generate` 보완.
