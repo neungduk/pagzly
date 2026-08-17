@@ -454,6 +454,13 @@ export async function POST(request: Request) {
     }
 
     const body = (await request.json()) as ProductInput;
+    const wholesale = body.wholesaleUrl ?? "";
+    console.log("[generate incoming wholesaleUrl]", {
+      type: typeof body.wholesaleUrl,
+      isNull: body.wholesaleUrl == null,
+      length: wholesale.length,
+      preview: wholesale.slice(0, 120),
+    });
 
     if (!body.productName || !body.category || !body.price) {
       return NextResponse.json(

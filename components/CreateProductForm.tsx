@@ -381,6 +381,16 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
 
       setLoadingStage("generating");
 
+      console.log("[generate payload wholesale]", {
+        rawLength: wholesaleUrl.length,
+        trimmedLength: wholesaleUrl.trim().length,
+        sent:
+          payload.wholesaleUrl === null
+            ? "null (empty)"
+            : `string(${String(payload.wholesaleUrl).length})`,
+        preview: (payload.wholesaleUrl ?? "").slice(0, 120),
+      });
+
       const generateResponse = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

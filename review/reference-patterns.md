@@ -5,7 +5,9 @@ Claude Code / QA 루프가 상세페이지 품질을 판단할 때 참고하는 
 상세페이지처럼 보이려면 어떤 시각 언어를 써야 하는가"에 대한 방향성 레퍼런스입니다.
 
 생성 일: 2026-08-14  
-파이프라인 버전: concept-brief v1 (컨셉 브리프 → 배경/장식/아이콘/카피 공통 주입)
+업데이트: 2026-08-15 — 외부 상세페이지 4곳 스크린샷 분석 반영  
+파이프라인 버전: concept-brief v1 (컨셉 브리프 → 배경/장식/아이콘/카피 공통 주입)  
+디자인 시스템 소스: `lib/design-tokens.ts` (`review/DESIGN_SYSTEM.md`는 저장소에 없음)
 
 ---
 
@@ -148,17 +150,21 @@ hero → checklist → usage_scene → detail_zoom → usage_steps
 - flux-fill-dev 배경 + **flux-schnell 장식 합성** (모티프)
 - accentColor 그라데이션 오버레이 (hero만 예외 허용)
 - 헤드라인 2줄 이내, 배경과 대비 확보
+- 레이아웃: 카드가 아니라 풀폭. 제목은 하단·가운데 정렬에 가깝게
 
 ### checklist (컨셉 아이콘)
 
 - 항목당 flux-schnell 원형 배지 아이콘
 - 3색 규칙 내 accent / deepAccent 통일
 - Lucide 폴백은 생성 실패 시만
+- 레이아웃: 세로 리스트보다 **원형 배지 + 짧은 문구 가로/그리드**
 
 ### image_text / gallery
 
 - 동일 배경 톤·촬영 톤 유지 (갤러리 슬롯 특히 중요)
 - 장식 그래픽: 히어로 외 섹션은 **옵션** (현재 파이프라인: 히어로만 필수)
+- 레이아웃: 2열 카드가 아니라 **위 풀폭 이미지 → 아래 짧은 가운데 카피**
+  (한 섹션에 주장 하나. POINT 번호는 카피/라벨일 뿐 새 슬롯이 아님)
 
 ### usage_steps (컨셉 아이콘)
 
@@ -169,6 +175,8 @@ hero → checklist → usage_scene → detail_zoom → usage_steps
 
 - AIDA Action — 명확한 행동 유도
 - 가격 + 배지 (baseNeutral / deepAccent)
+- 레이아웃: 가운데 정렬된 마감 블록. deepAccent 솔리드 풀폭 밴드는 쓰지 않음
+  (3색 배경 규칙: A 단색 / B 12% 워시 / hero 그라데이션만)
 
 ---
 
@@ -210,3 +218,115 @@ hero → checklist → usage_scene → detail_zoom → usage_steps
 | `lib/section-templates.ts` | 슬롯 순서 |
 | `review/CHECKLIST.md` | pass/fail 체크리스트 |
 | `review/photo-sources.md` | 테스트용 스톡 사진 출처 |
+| `lib/design-tokens.ts` | 토큰·3색·히어로-only 장식의 실제 소스 |
+
+---
+
+## 8. 외부 레퍼런스 상세페이지 (2026-08-15)
+
+스크린샷 기준으로 분석. URL 직접 접속이 안 되면 첨부 캡처가 근거.
+
+| 페이지 | URL |
+|--------|-----|
+| Shooter Official (히팅 속눈썹 고데기) | https://shooterofficial.co.kr/255 |
+| Polo Ralph Lauren 브라 | https://pixelvibe.net/product/폴로-랄프로렌/576/category/84/display/1/ |
+| 코슈마드 RDM | https://pixelvibe.net/product/코슈마드-rdm/554/category/84/display/1/ |
+| 로이엘 내추럴 부분속눈썹 | https://pixelvibe.net/product/로이엘-내추럴-부분속눈썹/543/category/84/display/1/ |
+
+### 8.1 공통 섹션 리듬 (목표 연출 — 슬롯 순서는 §3 유지)
+
+레퍼런스는 대략 아래 설득 흐름이다. **우리 슬롯 순서/종류는 바꾸지 않고**,
+같은 흐름을 기존 슬롯 연출로만 흉내 낸다.
+
+```
+풀폭 히어로
+  → 짧은 훅 (checklist)
+  → POINT형 기능/품질 (image_text 반복)
+  → 다각도/무드 (gallery)
+  → 사용법 (usage_steps)
+  → 스펙/주의 (spec_table, caution)
+  → CTA (cta_price)
+```
+
+후기·인증·채팅형 리뷰는 레퍼런스에 있으나 **우리 슬롯에 없으므로 따라하지 않는다.**
+뷰티 vs 비교표도 `comparison_table`이 전자제품 선택 슬롯일 때만 쓴다.
+
+### 8.2 페이지별 톤·구성
+
+**Shooter Official** — 메디컬-클린, 틸/라이트블루/화이트.
+히어로(물 스플래시 풀블리드) → 실패 컷 그리드(Why) → 메커니즘 → 후기 →
+구조 다이어그램 → 매크로 결과. 장식(물)은 히어로에만 있고 본문은 단색 블록.
+
+**Polo Ralph Lauren** — 미니멀 프리미엄, 네이비/화이트/누드.
+라이프스타일 히어로 → 스튜디오 단독컷 → 네이비 풀폭 USP → 앞/옆/뒤 갤러리 →
+디테일 POINT 그리드 → 소재 → 스펙·사이즈표. 패션은 카피보다 다각도 사진이 본문.
+
+**코슈마드 RDM** — 웜 미니멀, 크림/골드/차콜. 3색 규칙과 가장 가깝다.
+히어로 → USP+원형 아이콘 행 → POINT 01·02 → 비교 → 사용법 → 갤러리 →
+후기 → 스펙 → CTA. `POINT 01` 장식 숫자가 위계의 핵심.
+
+**로이엘 부분속눈썹** — 소프트 뷰티, 라벤더/화이트/블랙.
+히어로(박스+플로럴) → Before/After → POINT 01~03 매크로 → vs 표 →
+변형 → 사용 3스텝 → 후기 모자이크 → 무드. 배경은 화이트↔연라벤더만 교차.
+
+### 8.3 텍스트/이미지 배치 리듬
+
+- 비율: 대략 텍스트 30~40% / 이미지 60~70%
+- 풀블리드 사진과, 가운데 정렬된 짧은 텍스트 블록이 **한 섹션에 하나씩** 교차
+- 카드 테두리·2열 그리드보다 **풀폭 단색 블록이 맞붙어** 스크롤됨
+- 한 스크롤 깊이에 주장 하나 (One Big Point per Section)
+
+### 8.4 타이포그래피 위계
+
+| 위계 | 레퍼런스 | 우리 토큰/렌더러 |
+|------|----------|------------------|
+| 히어로 제목 | 화면을 가르는 초대형, 자주 가운데 | heading + `headlineMaxLines: 2` |
+| 섹션 라벨 | POINT 01, 작은 트래킹/액센트색 | 새 슬롯 아님. image_text 라벨로만 |
+| 섹션 제목 | 크고 짧음, 가운데 많음 | heading 2줄 |
+| 본문 | 2~3줄, 넓은 line-height | `bodyMaxLines: 3` |
+
+### 8.5 여백과 섹션 간 호흡
+
+- 레퍼런스: 섹션 사이 빈 카드 갭이 아니라, 블록 내부 세로 패딩이 80~120px급
+- 우리 토큰: `SECTION_GAP` = 모바일 48 / 데스크톱 80, `SECTION_PADDING` = 24 / 40
+- 재현 방법: 블록을 맞붙이고, 내부 세로 패딩에 GAP 스케일(48/80)을 써서 호흡
+- 가로: 텍스트는 중앙 컬럼, 이미지는 가장자리까지
+
+### 8.6 톤앤매너
+
+네 페이지 모두 **미니멀·프리미엄**. 장식을 쌓지 않고 상품 고유 색 1개로 묶는다.
+화려함은 히어로 사진(스플래시, 플로럴, 라이프)에만 있고 본문은 기능적이다.
+
+---
+
+## 9. 토큰·슬롯·3색·히어로-only와 비교 (`lib/design-tokens.ts`)
+
+### 재현 가능 (배치·크기·여백만)
+
+- 상품 추출 3색(`accent` / `baseNeutral` / `deepAccent`)으로 페이지를 묶기
+- 본문 A(baseNeutral 단색) / B(accent 12% 워시) 교차 — 로이엘·코슈마드와 동일
+- 히어로에만 그라데이션·블러 장식 (`DECORATION_ALLOWED_SECTION_TYPES = hero`)
+- image_text를 위 사진 / 아래 카피로 스택
+- checklist를 원형 배지 그리드로
+- gallery를 다각도·여백 적은 컷으로
+- 헤드라인 2줄·본문 3줄
+- 섹션 내부 호흡을 48/80px 토큰 스케일에 맞추기
+
+### 흉내는 가능, 슬롯/토큰 밖이면 하지 말 것
+
+| 레퍼런스 | 우리 시스템 |
+|----------|-------------|
+| 후기 / 채팅 버블 / 리얼후기 모자이크 | 슬롯 없음 → 신설 금지 |
+| 인증·QC 그리드 | 슬롯 없음 |
+| 뷰티 vs 비교표 | `comparison_table`은 전자제품 선택 슬롯만 |
+| POINT 01 전용 섹션 타입 | `image_text` 라벨/카피로만 |
+| 폴로의 네이비 솔리드 풀폭 USP 밴드 | 허용 배경은 A / B 12% / hero 그라데이션뿐 |
+| 확대경 콜아웃, 히어로 밖 플로럴 | 히어로-only 장식 위반 |
+
+### 렌더러 작업 시 지킬 것
+
+1. 슬롯 순서·종류는 `lib/section-templates.ts`를 바꾸지 않는다.
+2. 색은 `getSectionBackground` / `getHeroGradient` / `getDecorationColor`만.
+3. 장식 도형은 hero 밖에서 추가하지 않는다.
+4. 이미지 비율은 `SLOT_IMAGE_RATIO`를 유지한다.
+5. 후기·인증 섹션을 새로 만들지 않는다.

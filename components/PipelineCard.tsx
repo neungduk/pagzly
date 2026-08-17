@@ -5,14 +5,14 @@ import CropMarks from "@/components/CropMarks";
 // 실제 상품 사진을 마케팅 자료에 무단으로 쓰지 않기 위함).
 export default function PipelineCard() {
   return (
-    <div className="relative rotate-1 border border-line bg-white p-5 shadow-[6px_6px_0_0_#DAD5C9] sm:p-6">
+    <div className="pagzly-pipeline-float relative rotate-1 border border-line bg-white p-5 shadow-[6px_6px_0_0_#DAD5C9] sm:p-6">
       <CropMarks />
 
       {/* RAW INPUT */}
       <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink/40">
         01 · Raw Input
       </p>
-      <div className="mt-2 flex aspect-[4/3] items-center justify-center border border-line bg-[repeating-linear-gradient(135deg,theme(colors.line/40%),theme(colors.line/40%)_1px,transparent_1px,transparent_10px)]">
+      <div className="mt-2 flex aspect-[4/5] items-center justify-center border border-line bg-[repeating-linear-gradient(135deg,theme(colors.line/40%),theme(colors.line/40%)_1px,transparent_1px,transparent_10px)]">
         <svg
           viewBox="0 0 48 48"
           className="h-12 w-12 text-ink/30"

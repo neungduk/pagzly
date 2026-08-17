@@ -29,3 +29,52 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  .pagzly-reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+      opacity 0.7s ease,
+      transform 0.7s ease;
+  }
+
+  .pagzly-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .pagzly-hero-photo {
+    animation: pagzly-kenburns 18s ease-in-out infinite alternate;
+  }
+
+  .pagzly-pipeline-float {
+    animation: pagzly-float 8s ease-in-out infinite;
+  }
+
+  @keyframes pagzly-kenburns {
+    from {
+      transform: scale(1);
+    }
+    to {
+      transform: scale(1.045);
+    }
+  }
+
+  @keyframes pagzly-float {
+    0%,
+    100% {
+      transform: rotate(1deg) translateY(0);
+    }
+    50% {
+      transform: rotate(1deg) translateY(-8px);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pagzly-reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
