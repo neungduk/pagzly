@@ -2,6 +2,8 @@
  * 상품별 시각 컨셉 브리프 — 이후 배경/장식/카피/아이콘 생성 프롬프트에 공통 주입.
  */
 
+import { resolvePhotographyTemplate } from "@/lib/backdrop-prompt-templates";
+
 const DEEPSEEK_MODEL = "deepseek-v4-flash";
 const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
 
@@ -54,9 +56,9 @@ const FALLBACK_BY_CATEGORY: Record<string, ConceptBrief> = {
     theme: "수분/물방울",
     motif_keywords: ["물방울", "청량감", "촉촉함", "은은한 빛"],
     mood: "시원하고 맑은",
-    backdrop_hint: "soft dewy water droplets, clean hydration studio, fresh moisture atmosphere",
+    backdrop_hint: "soft side lighting, diffused window light, shallow depth of field, condensation droplets on glass, dewy marble sheen, empty hydration studio, no product",
     copy_tone: "촉촉하고 산뜻한 수분 케어 톤. 과장 없이 피부 결에 대한 공감.",
-    decor_prompt: "floating soft water droplets and gentle light bokeh, subtle moisture mist",
+    decor_prompt: "soft side lighting, condensation droplets on glass, dewy surface sheen, no text, no product",
     icon_style: "minimal water droplet and sparkle badge icon, soft circular frame",
   },
 };
@@ -118,13 +120,19 @@ ${input.targetCustomer ? `- 타겟: ${input.targetCustomer}` : ""}
   "theme": "한국어 테마명 (예: 수분/물방울, 따뜻한 원재료, 테크 미니멀)",
   "motif_keywords": ["한국어 또는 영문 모티프 3~5개"],
   "mood": "한국어 무드 한 줄 (예: 시원하고 맑은)",
-  "backdrop_hint": "영문 — flux 배경 생성용 장면 설명 (product 없음)",
+  "backdrop_hint": "영문 — 촬영 용어로 조명/구도/질감을 구체적으로 (soft side lighting, shallow depth of field, condensation on glass 등). 추상어 moist/luxurious만 쓰지 말 것. product 없음",
   "copy_tone": "한국어 — 카피라이터 톤 가이드",
-  "decor_prompt": "영문 — 물방울/잎사귀/빛번짐 등 장식 요소 설명 (no text, no product)",
+  "decor_prompt": "영문 — 물방울/미스트 등도 촬영 용어로 (no text, no product)",
   "icon_style": "영문 — 원형 배지 아이콘 스타일 (flat, minimal, single motif)"
 }
 
-카테고리에 맞는 전문 상세페이지 수준의 통일된 컨셉을 제안하세요.`;
+카테고리에 맞는 전문 상세페이지 수준의 통일된 컨셉을 제안하세요.
+화장품/뷰티면 theme은 아래 중 하나에 가깝게 고르세요 (여러 개를 섞지 말 것).
+- 수분/보습 — 물방울, 촉촉, 맑은. 조명: soft side lighting, diffused light. 질감: 유리 결로, 표면 반사광
+- 진정/쿨링 — 민트, 시원, 미스트 (따뜻·골드·온기 표현 금지). 조명: cool diffused high-key
+- 영양/농축 — 오일, 골드, 크리미. 조명: soft side lighting + warm bounce
+- 클렌징 — 거품, 버블, 세안. 조명: bright diffused high-key
+backdrop_hint와 decor_prompt는 영문만, 상품·텍스트·로고 없이.`;
 
   try {
     const response = await fetch(DEEPSEEK_URL, {
@@ -171,7 +179,8 @@ ${input.targetCustomer ? `- 타겟: ${input.targetCustomer}` : ""}
 
 /** 이미지/카피 프롬프트에 주입할 공통 컨셉 문장 */
 export function formatConceptPromptBlock(brief: ConceptBrief): string {
-  return `Visual concept theme: "${brief.theme}". Mood: ${brief.mood}. Motif elements: ${brief.motif_keywords.join(", ")}. ${brief.backdrop_hint}`;
+  const photography = resolvePhotographyTemplate(brief);
+  return `Visual concept theme: "${brief.theme}". Mood: ${brief.mood}. Motif elements: ${brief.motif_keywords.join(", ")}. ${brief.backdrop_hint}. Photography: lighting=${photography.lighting}; composition=${photography.composition}; texture=${photography.texture}`;
 }
 
 /** DeepSeek 카피 프롬프트용 한국어 블록 */
@@ -181,5 +190,7 @@ export function formatConceptCopyBlock(brief: ConceptBrief): string {
 - 무드: ${brief.mood}
 - 모티프: ${brief.motif_keywords.join(", ")}
 - 카피 톤: ${brief.copy_tone}
-헤드라인·본문·배지 문구가 위 컨셉과 시각적으로 같은 세계관을 유지하도록 작성하세요.`;
+헤드라인·본문·배지 문구가 위 컨셉과 시각적으로 같은 세계관을 유지하도록 작성하세요.
+카피는 이미지 연출과 모순되면 안 됩니다. 예: 쿨링/진정 테마인데 따뜻·온기·골드 카피,
+수분 테마인데 오일리·번들거림, 클렌징 테마인데 보습 도포를 주효능처럼 쓰기.`;
 }

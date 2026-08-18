@@ -6,6 +6,7 @@ import Replicate from "replicate";
 import { describeColorTone } from "@/lib/color-extract";
 import type { CategoryTheme } from "@/lib/category-theme";
 import type { ConceptBrief } from "@/lib/concept-brief";
+import { isTestMode } from "@/lib/test-mode";
 
 const FLUX_SCHNELL_REF = "black-forest-labs/flux-schnell" as const;
 const ICON_COST_USD = 0.003;
@@ -93,7 +94,12 @@ export async function generateConceptIcons(
 
   const checklistCount = checklistItems.length;
   const usageCount = usageStepLabels.length;
-  const totalToGenerate = Math.min(checklistCount + usageCount, 8);
+  const maxIcons = isTestMode() ? 1 : 8;
+  const totalToGenerate = Math.min(checklistCount + usageCount, maxIcons);
+
+  if (isTestMode() && totalToGenerate > 0) {
+    console.log(`[concept-icons] TEST_MODE — 아이콘 ${totalToGenerate}장만 생성`);
+  }
 
   if (totalToGenerate === 0) {
     return { icons: {}, cost: 0 };

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import DetailSectionRenderer from "@/components/DetailSectionRenderer";
+import { freezeScrollRevealAnimations } from "@/components/DetailScrollReveal";
 import DetailActionBar, { type DetailToolTab } from "@/components/DetailActionBar";
 import PagzlyLogo from "@/components/PagzlyLogo";
 import ToastBanner from "@/components/ToastBanner";
@@ -27,6 +28,7 @@ type ProductResult = {
   competitorUrl: string | null;
   wholesaleUrl: string | null;
   createdAt: string;
+  testMode?: boolean;
   generated?: GenerateResponse;
 };
 
@@ -197,6 +199,8 @@ export default function CreateResultPage() {
 
     setDownloading(true);
     try {
+      freezeScrollRevealAnimations(captureRef.current);
+      await new Promise((r) => setTimeout(r, 80));
       const dataUrl = await toPng(captureRef.current, {
         pixelRatio: 2,
         cacheBust: true,
@@ -221,6 +225,7 @@ export default function CreateResultPage() {
   }
 
   const { generated } = data;
+  const isTestMode = data.testMode ?? generated?.testMode ?? false;
   const categoryTheme = getCategoryTheme(data.category);
   const theme = generated?.theme
     ? { ...categoryTheme, ...generated.theme }
@@ -250,6 +255,11 @@ export default function CreateResultPage() {
             <p className="font-mono text-xs uppercase tracking-[0.2em] text-registration-red">
               생성 완료
             </p>
+            {isTestMode && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-mustard/40 bg-mustard/15 px-3 py-1 text-xs font-semibold text-ink/70">
+                TEST MODE — 저비용 테스트 결과
+              </span>
+            )}
             {generated?.mfdsReviewed && (
               <span className="inline-flex items-center gap-1 rounded-full bg-slate-blue/10 px-3 py-1 text-xs font-semibold text-slate-blue">
                 ✅ 식약처 광고 기준 검수 완료
@@ -262,6 +272,8 @@ export default function CreateResultPage() {
           <p className="mt-2 text-sm text-ink/60">
             AI가 상품 특성에 맞춰 {generated?.sections.length ?? 0}개 섹션으로
             상세페이지를 구성했습니다.
+            {isTestMode &&
+              " 테스트 모드로 생성되어 clarity-upscaler·장식·QA 등 일부 단계가 생략되었습니다. 합성(누끼·배경) 품질 확인은 TEST_MODE=false 실행 결과로만 판단하세요."}
             {generated?.mfdsReviewed &&
               " 화장품/뷰티 카테고리 식약처 광고 기준이 적용되었습니다."}
           </p>
@@ -343,7 +355,11 @@ export default function CreateResultPage() {
         </div>
 
         {generated?.sections && generated.sections.length > 0 ? (
-          <div ref={captureRef} className="overflow-hidden rounded-2xl border border-line bg-paper">
+          <div
+            ref={captureRef}
+            data-testid="detail-preview"
+            className="overflow-hidden rounded-2xl border border-line bg-paper"
+          >
             <DetailSectionRenderer
               sections={generated.sections}
               imageUrls={data.imageUrls}

@@ -30,6 +30,13 @@ body {
   font-family: var(--font-sans);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  [data-scroll-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .pagzly-reveal {
     opacity: 0;

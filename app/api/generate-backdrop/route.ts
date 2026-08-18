@@ -3,10 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { generateBackdrop } from "@/lib/photo-enhance";
 import { extractProductTheme } from "@/lib/color-extract";
 import { getCategoryTheme } from "@/lib/category-theme";
-import { generateConceptBrief, type ConceptBrief } from "@/lib/concept-brief";
+import { generateConceptBrief } from "@/lib/concept-brief";
+import { isTestMode } from "@/lib/test-mode";
+import { logForceRegenerateStatus } from "@/lib/force-regenerate";
 
 export async function POST(request: Request) {
   try {
+    logForceRegenerateStatus();
     const supabase = await createClient();
     const {
       data: { user },
@@ -73,7 +76,8 @@ export async function POST(request: Request) {
       }
     }
 
-    const { buffer: backdropBuffer, cost: backdropCost, shadow } = await generateBackdrop(
+    const { buffer, candidateUrls, cost: backdropCost, shadow, claudeCost, autoPicked } =
+      await generateBackdrop(
       category,
       productName,
       brandName ?? null,
@@ -81,15 +85,46 @@ export async function POST(request: Request) {
       imageUrls?.[0],
       conceptBrief,
     );
-    const backdropDataUrl = `data:image/png;base64,${backdropBuffer.toString("base64")}`;
+
+    let backdropDataUrl: string | undefined;
+    if (buffer) {
+      backdropDataUrl = `data:image/png;base64,${buffer.toString("base64")}`;
+    }
+
+    let storedCandidateUrls = candidateUrls;
+    if (candidateUrls.length > 0) {
+      storedCandidateUrls = [];
+      const stamp = Date.now();
+      for (let i = 0; i < candidateUrls.length; i += 1) {
+        const response = await fetch(candidateUrls[i]);
+        if (!response.ok) continue;
+        const fileBuffer = Buffer.from(await response.arrayBuffer());
+        const path = `${user.id}/backdrop-candidates/${stamp}-${i}.png`;
+        const { error: uploadError } = await supabase.storage.from("images").upload(path, fileBuffer, {
+          contentType: "image/png",
+          upsert: true,
+        });
+        if (uploadError) {
+          console.warn("[generate-backdrop] 후보 업로드 실패, 원본 URL 유지:", uploadError.message);
+          storedCandidateUrls.push(candidateUrls[i]);
+          continue;
+        }
+        const { data: publicData } = supabase.storage.from("images").getPublicUrl(path);
+        storedCandidateUrls.push(publicData.publicUrl);
+      }
+    }
 
     return NextResponse.json({
       backdropDataUrl,
+      candidateUrls: storedCandidateUrls,
+      autoPicked,
       cost: backdropCost + conceptBriefCost,
       conceptBriefCost,
       backdropCost,
+      claudeCost,
       shadowAnalysis: shadow,
       conceptBrief,
+      testMode: isTestMode(),
     });
   } catch (error) {
     console.error("[generate-backdrop]", error);

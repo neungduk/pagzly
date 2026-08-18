@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 
 type RevealOnScrollProps = {
   children: ReactNode;
@@ -8,43 +12,46 @@ type RevealOnScrollProps = {
   delayMs?: number;
 };
 
-/** 랜딩 전용. 상세페이지 다운로드(html-to-image)를 가리지 않도록 결과 화면에는 쓰지 않는다. */
+/** 랜딩 전용 GSAP ScrollTrigger 등장. prefers-reduced-motion 시 즉시 표시. */
 export default function RevealOnScroll({
   children,
   className = "",
   delayMs = 0,
 }: RevealOnScrollProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const node = ref.current;
-    if (!node) return;
+    const el = ref.current;
+    if (!el) return;
 
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setVisible(true);
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      gsap.set(el, { opacity: 1, y: 0 });
       return;
     }
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          observer.disconnect();
-        }
+    gsap.set(el, { opacity: 0, y: 28 });
+    const tween = gsap.to(el, {
+      opacity: 1,
+      y: 0,
+      duration: 0.9,
+      delay: delayMs / 1000,
+      ease: "power2.out",
+      scrollTrigger: {
+        trigger: el,
+        start: "top 88%",
+        once: true,
       },
-      { threshold: 0.12, rootMargin: "0px 0px -8% 0px" },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
+    });
+
+    return () => {
+      tween.scrollTrigger?.kill();
+      tween.kill();
+    };
+  }, [delayMs]);
 
   return (
-    <div
-      ref={ref}
-      className={`pagzly-reveal ${visible ? "is-visible" : ""} ${className}`}
-      style={{ transitionDelay: visible ? `${delayMs}ms` : "0ms" }}
-    >
+    <div ref={ref} className={className}>
       {children}
     </div>
   );

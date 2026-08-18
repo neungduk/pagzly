@@ -8,10 +8,10 @@ import type { DetailSection } from "@/lib/types/generate";
 import { validateImageFile } from "@/lib/image-upload";
 
 const initialImageUrls = [
-  "https://picsum.photos/seed/pagzly-hero/800/1000",
-  "https://picsum.photos/seed/pagzly-a/800/800",
-  "https://picsum.photos/seed/pagzly-b/800/800",
-  "https://picsum.photos/seed/pagzly-c/800/1067",
+  "/iteration-fixtures/01.jpg",
+  "/iteration-fixtures/02.jpg",
+  "/iteration-fixtures/03.jpg",
+  "/iteration-fixtures/04.jpg",
 ];
 
 const initialSections: DetailSection[] = [
@@ -120,7 +120,10 @@ export default function DetailPreviewPage() {
 
   return (
     <div className="min-h-full bg-paper pb-24">
-      <div className="sticky top-0 z-30 mx-auto max-w-[430px] space-y-3 bg-paper/95 px-3 py-3 backdrop-blur-md">
+      <div
+        data-preview-chrome
+        className="sticky top-0 z-30 mx-auto max-w-[430px] space-y-3 bg-paper/95 px-3 py-3 backdrop-blur-md"
+      >
         <p className="text-center text-xs text-ink/45">
           /dev/detail-preview — 레이아웃·버튼 확인용
         </p>

@@ -15,8 +15,22 @@ import { buildQAFixPrompt, runDetailPageQA } from "@/lib/detail-page-qa";
 import { formatConceptCopyBlock, type ConceptBrief } from "@/lib/concept-brief";
 import { generateConceptIcons } from "@/lib/concept-icons";
 import { getCategoryTheme } from "@/lib/category-theme";
+import { calculateClaudeCost, logClaudeCost } from "@/lib/claude-cost";
+import { isTestMode } from "@/lib/test-mode";
+import { isForceRegenerate } from "@/lib/force-regenerate";
+import { assignDistinctSectionImages } from "@/lib/assign-section-images";
+import { applyConceptOverlaysToProductImages } from "@/lib/concept-effects";
+import { makeComparisonPair } from "@/lib/photo-composite";
+import { uploadPngBuffer } from "@/lib/upload-png";
+import {
+  buildImageAnalysisCacheKey,
+  readImageAnalysisCache,
+  writeImageAnalysisCache,
+} from "@/lib/image-analysis-cache";
+import { HAIKU_VISION_MODEL } from "@/lib/vision-utils";
 
 const CLAUDE_MODEL = "claude-sonnet-5";
+const TEST_MODE_ANALYSIS_MAX_IMAGES = 2;
 const DEEPSEEK_MODEL = "deepseek-v4-flash";
 const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
 
@@ -46,6 +60,20 @@ function calculateDeepSeekCost(usage: unknown): number {
   return inputCost + outputCost;
 }
 
+/** DeepSeek가 content 대신 reasoning_content에 JSON을 주거나, 제어문자/따옴표 오류를 섞어 줄 때 복구 */
+function parseDeepSeekCopyJson(raw: string): GeneratedCopy {
+  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  let text = (fenced?.[1] ?? raw).trim();
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start >= 0 && end > start) {
+    text = text.slice(start, end + 1);
+  }
+  // JSON 문자열 안의 잘못된 제어문자(개행·탭 제외) 제거
+  text = text.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, " ");
+  return JSON.parse(text) as GeneratedCopy;
+}
+
 async function fetchImageAsBase64(url: string) {
   const response = await fetch(url);
   if (!response.ok) {
@@ -66,28 +94,58 @@ async function analyzeImagesWithClaude(
   anthropic: Anthropic,
   imageUrls: string[],
   productInfo: ProductInput,
-) {
-  const imageBlocks = await Promise.all(
-    imageUrls.map(async (url) => {
-      const { mediaType, data } = await fetchImageAsBase64(url);
-      return {
-        type: "image" as const,
-        source: {
-          type: "base64" as const,
-          media_type: mediaType,
-          data,
-        },
-      };
-    }),
-  );
+): Promise<{ analysis: string; cost: number }> {
+  const testMode = isTestMode();
+  const analysisUrls = testMode
+    ? imageUrls.slice(0, TEST_MODE_ANALYSIS_MAX_IMAGES)
+    : imageUrls;
+  const model = testMode ? HAIKU_VISION_MODEL : CLAUDE_MODEL;
+
+  const payloads = await Promise.all(analysisUrls.map((url) => fetchImageAsBase64(url)));
+
+  if (testMode) {
+    const cacheKey = buildImageAnalysisCacheKey({
+      imagePayloads: payloads,
+      category: productInfo.category,
+      brandName: productInfo.brandName,
+      keyFeatures: productInfo.keyFeatures,
+      ingredients: productInfo.ingredients,
+      imageCacheKey: productInfo.imageCacheKey,
+    });
+    const cached = readImageAnalysisCache(cacheKey);
+    if (cached && !isForceRegenerate()) {
+      console.log(
+        `[image-analysis] TEST_MODE 캐시 히트 (${payloads.length}장, model=${cached.model}) — Claude 호출 생략`,
+      );
+      return { analysis: cached.analysis, cost: 0 };
+    }
+    if (cached && isForceRegenerate()) {
+      console.log("[image-analysis] FORCE_REGENERATE — 캐시 무시, Claude 재분석");
+    }
+  }
+
+  const imageBlocks = payloads.map((payload) => ({
+    type: "image" as const,
+    source: {
+      type: "base64" as const,
+      media_type: payload.mediaType,
+      data: payload.data,
+    },
+  }));
 
   const isCosmetics = isCosmeticsCategory(productInfo.category);
   const cosmeticsNote = isCosmetics
     ? `\n\n${COSMETICS_AI_PROMPT}\n분석 시에도 의학적 효능·치료 표현은 사용하지 마세요.`
     : "";
 
+  if (testMode) {
+    console.log(
+      `[image-analysis] TEST_MODE — ${model}로 대표 이미지 ${payloads.length}장만 분석`,
+    );
+  }
+
   const message = await anthropic.messages.create({
-    model: CLAUDE_MODEL,
+    model,
     max_tokens: 1500,
     messages: [
       {
@@ -125,7 +183,27 @@ ${productInfo.ingredients ? `성분/소재: ${productInfo.ingredients}` : ""}
     throw new Error("Claude Vision 분석 결과를 받지 못했습니다.");
   }
 
-  return textBlock.text;
+  const cost = calculateClaudeCost(model, message.usage);
+  logClaudeCost("imageAnalysis", model, cost);
+
+  if (testMode) {
+    const cacheKey = buildImageAnalysisCacheKey({
+      imagePayloads: payloads,
+      category: productInfo.category,
+      brandName: productInfo.brandName,
+      keyFeatures: productInfo.keyFeatures,
+      ingredients: productInfo.ingredients,
+      imageCacheKey: productInfo.imageCacheKey,
+    });
+    writeImageAnalysisCache(cacheKey, {
+      analysis: textBlock.text,
+      model,
+      imageCount: payloads.length,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  return { analysis: textBlock.text, cost };
 }
 
 // 섹션 타입별 JSON 필드 형식. slot 값은 템플릿이 지정한 이름을 그대로 써야 한다.
@@ -268,6 +346,17 @@ async function generateCopyWithDeepSeek(
 - 금지: "최고", "완벽", "기적", "100% 효과" 등 근거 없는 최상급·과장.
 - cta_price badges: 구매 결정에 도움이 되는 **짧은 사실 키워드** 2~4개 (용량·무향·인증·소재 등, 있을 때만).
 - hero headline은 질문·숫자·한 줄 훅. subheadline은 상품명 또는 한 줄 보조 설명.
+${isCosmetics ? `
+## 화장품 카피 길이·컨셉 정합
+- hero headline: 한 줄, 공백 포함 22자 이내, 핵심 효능 1개만.
+- hero subheadline: 헤드라인을 보충하는 1문장. 상품명만 반복하지 말 것.
+- ingredient_highlight body: 2~3문장.
+- texture_feel body: 2문장.
+- usage_steps: 각 단계 1문장, 앞에 STEP 01/02/03.
+- checklist items: 각 14자 내외.
+- spec_table 값에 없는 % 수치를 만들지 말 것 (임상 막대용 가짜 데이터 금지).
+- 시각 컨셉과 모순 금지: 쿨링/진정이면 따뜻·온기·골드 카피 금지. 수분이면 오일리·번들 표현 금지. 클렌징이면 보습 도포를 주효능처럼 쓰지 말 것.
+` : ""}
 
 ## 상품 정보
 - 상품명: ${productInfo.productName}
@@ -286,8 +375,13 @@ ${imageAnalysis}${competitorBlock}${wholesaleBlock}
 ## 고정 슬롯 순서 (이 순서/종류를 그대로 따르세요)
 ${slotInstructions}
 
-imageIndex는 0 ~ ${imageCount - 1} 범위 안에서만 사용하고, 가능하면 여러 사진을 골고루
-활용하세요. 사진이 ${imageCount}장뿐이라면 여러 슬롯에서 같은 인덱스를 재사용해도 됩니다.
+imageIndex는 0 ~ ${imageCount - 1} 범위 안에서만 사용하세요.
+- hero: 대표 컷 1장 (이 인덱스는 히어로에서만 반복해도 됩니다).
+- image_text (ingredient_highlight, texture_feel, detail_zoom, feature_detail,
+  material_feature, usage_scenario, package_contents 등): 사진이 2장 이상이면
+  **서로 다른 imageIndex**를 쓰세요. 히어로와 같은 사진을 모든 POINT에 반복하지 마세요.
+- gallery / model_multicut: 서로 다른 인덱스를 넣고, 히어로 컷을 그중 한 장만 포함해도 됩니다.
+사진이 1장뿐일 때만 같은 인덱스를 재사용하세요.
 표(spec_table 등) 항목은 상품 정보에 없는 수치를 지어내지 말고, 근거가 없으면
 "판매자 확인 필요" 또는 공란으로 표시하세요.
 
@@ -346,7 +440,7 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
     throw new Error("DeepSeek API 응답이 비어 있습니다.");
   }
 
-  const parsed = JSON.parse(content) as GeneratedCopy;
+  const parsed = parseDeepSeekCopyJson(content);
 
   if (
     !Array.isArray(parsed.sections) ||
@@ -396,6 +490,21 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
   // 항상 카테고리 고정 템플릿 순서를 따르도록 강제 재정렬한다. 레이아웃
   // 틀은 서버가 지키고, AI는 콘텐츠만 책임진다는 원칙을 코드로도 보장.
   parsed.sections = normalizeSectionsToTemplate(parsed.sections, template);
+  parsed.sections = assignDistinctSectionImages(parsed.sections, imageCount);
+  console.log(
+    `[images] assigned indexes: ${parsed.sections
+      .map((section) => {
+        if (section.type === "hero" || section.type === "image_text") {
+          return `${section.slot}:${section.imageIndex}`;
+        }
+        if (section.type === "gallery") {
+          return `${section.slot}:[${section.imageIndexes.join(",")}]`;
+        }
+        return null;
+      })
+      .filter(Boolean)
+      .join(" ")} (imageCount=${imageCount})`,
+  );
 
   if (!parsed.sections.some((section) => section.type === "hero")) {
     throw new Error("DeepSeek 응답에 필수 hero 섹션이 없습니다.");
@@ -490,19 +599,22 @@ export async function POST(request: Request) {
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    const [imageAnalysis, theme] = await Promise.all([
-      analyzeImagesWithClaude(anthropic, body.imageUrls.slice(0, 5), body),
+    const analysisImageLimit = isTestMode() ? TEST_MODE_ANALYSIS_MAX_IMAGES : 5;
+    const [imageAnalysisResult, theme] = await Promise.all([
+      analyzeImagesWithClaude(anthropic, body.imageUrls.slice(0, analysisImageLimit), body),
       extractProductTheme(body.imageUrls).catch((err) => {
         console.warn("[generate] 상품 색상 추출 실패, 카테고리 기본 테마로 폴백", err);
         return null;
       }),
     ]);
+    const imageAnalysis = imageAnalysisResult.analysis;
+    let claudeCost = imageAnalysisResult.cost + (body.photoCostBreakdown?.claude ?? 0);
 
     const {
       copy: generated,
       cost: deepSeekCost,
       notices: urlAnalysisNotices,
-    } = await generateCopyWithDeepSeek(body, imageAnalysis, Math.min(body.imageUrls.length, 5));
+    } = await generateCopyWithDeepSeek(body, imageAnalysis, body.imageUrls.length);
 
     // 생성 직후 Haiku 비전/텍스트 QA — critical 이슈 시 카피만 1회 재생성
     let copyToSave = generated;
@@ -512,6 +624,7 @@ export async function POST(request: Request) {
       category: body.category,
       productName: body.productName,
     });
+    claudeCost += qaResult.cost;
 
     const copyFixable = qaResult.issues.some(
       (i) =>
@@ -527,7 +640,7 @@ export async function POST(request: Request) {
       const retry = await generateCopyWithDeepSeek(
         body,
         imageAnalysis,
-        Math.min(body.imageUrls.length, 5),
+        body.imageUrls.length,
         fixAppendix,
       );
       copyToSave = retry.copy;
@@ -538,6 +651,7 @@ export async function POST(request: Request) {
         category: body.category,
         productName: body.productName,
       });
+      claudeCost += qaResult.cost;
       console.log(`[qa-retry] ${qaResult.summary}`);
     }
 
@@ -551,6 +665,89 @@ export async function POST(request: Request) {
     const savedCopy = finalCopy ? finalCopy.copy : copyToSave;
     const mfdsReviewed = finalCopy?.mfdsReviewed ?? false;
     const replacements = finalCopy?.replacements ?? [];
+
+    let imageUrls = [...body.imageUrls];
+    let imagePaths = [...(body.imagePaths ?? [])];
+    const productImageCount = imageUrls.length;
+    let effectsCost = 0;
+    if (isCosmetics) {
+      try {
+        const heroSection = savedCopy.sections.find((section) => section.type === "hero");
+        const heroIndex =
+          heroSection?.type === "hero" ? heroSection.imageIndex : 0;
+        const heroUrl = imageUrls[heroIndex] ?? imageUrls[0];
+        if (heroUrl) {
+          const heroRes = await fetch(heroUrl);
+          if (heroRes.ok) {
+            const pair = await makeComparisonPair(Buffer.from(await heroRes.arrayBuffer()));
+            const stamp = Date.now();
+            const pairIndexes: number[] = [];
+            for (const item of [
+              { kind: "before", buffer: pair.before },
+              { kind: "after", buffer: pair.after },
+            ] as const) {
+              const comparePath = `${user.id}/${stamp}-compare-${item.kind}.png`;
+              const uploaded = await uploadPngBuffer(supabase, comparePath, item.buffer);
+              if ("error" in uploaded) {
+                console.warn(
+                  `[compare] 업로드 실패 (${item.kind}, ${item.buffer.length} bytes):`,
+                  uploaded.error,
+                );
+                continue;
+              }
+              pairIndexes.push(imageUrls.length);
+              imageUrls.push(uploaded.publicUrl);
+              imagePaths.push(uploaded.path);
+            }
+            if (pairIndexes.length === 2) {
+              savedCopy.sections = savedCopy.sections.map((section) =>
+                section.type === "gallery"
+                  ? { ...section, imageIndexes: pairIndexes }
+                  : section,
+              );
+              console.log(
+                `[gallery] before/after → [${pairIndexes.join(",")}] from hero[${heroIndex}]`,
+              );
+            }
+          }
+        }
+      } catch (error) {
+        console.warn("[compare] Before/After 생략", error);
+      }
+    }
+    if (isCosmetics && body.conceptBrief) {
+      try {
+        const extraText = savedCopy.sections
+          .flatMap((section) => {
+            if (section.type === "hero") return [section.headline, section.subheadline ?? ""];
+            if ("heading" in section) return [section.heading];
+            return [];
+          })
+          .join(" ");
+        const overlayResult = await applyConceptOverlaysToProductImages({
+          imageUrls: imageUrls.slice(0, productImageCount),
+          brief: body.conceptBrief,
+          sections: savedCopy.sections,
+          extraText,
+          cosmeticsOnly: true,
+        });
+        effectsCost = overlayResult.cost;
+        for (const overlay of overlayResult.overlays) {
+          const basePath =
+            imagePaths[overlay.imageIndex] ?? `${user.id}/${Date.now()}-${overlay.imageIndex}.png`;
+          const fxPath = basePath.replace(/\.[^./]+$/, "") + `-fx-${overlay.specId}.png`;
+          const uploaded = await uploadPngBuffer(supabase, fxPath, overlay.buffer);
+          if ("error" in uploaded) {
+            console.warn("[effects] 업로드 실패, 원본 유지:", uploaded.error);
+            continue;
+          }
+          imageUrls[overlay.imageIndex] = uploaded.publicUrl;
+          imagePaths[overlay.imageIndex] = uploaded.path;
+        }
+      } catch (error) {
+        console.warn("[effects] 합성 생략 — 원본 이미지 유지", error);
+      }
+    }
 
     // 컨셉 기반 원형 배지 아이콘 (checklist / usage_steps)
     let conceptIcons = undefined;
@@ -580,17 +777,27 @@ export async function POST(request: Request) {
     const photoCostBreakdown = {
       ...body.photoCostBreakdown,
       icons: iconCost,
+      claude: claudeCost,
+      effects: effectsCost,
     };
 
     const generationCost =
-      (body.photoProcessingCost ?? 0) + totalDeepSeekCost + iconCost;
+      (body.photoProcessingCost ?? 0) +
+      totalDeepSeekCost +
+      iconCost +
+      claudeCost +
+      effectsCost;
     console.log(
-      `[cost] product="${body.productName}" ` +
-        `conceptBrief=$${(photoCostBreakdown.conceptBrief ?? 0).toFixed(4)} ` +
+      `[cost] product="${body.productName}"` +
+        (isTestMode() ? " (TEST_MODE)" : "") +
+        ` conceptBrief=$${(photoCostBreakdown.conceptBrief ?? 0).toFixed(4)} ` +
         `backdrop=$${(photoCostBreakdown.backdrop ?? 0).toFixed(4)} ` +
+        `sectionBackdrops=$${(photoCostBreakdown.sectionBackdrops ?? 0).toFixed(4)} ` +
         `enhance=$${(photoCostBreakdown.enhance ?? 0).toFixed(4)} ` +
         `decor=$${(photoCostBreakdown.decor ?? 0).toFixed(4)} ` +
+        `effects=$${effectsCost.toFixed(4)} ` +
         `icons=$${iconCost.toFixed(4)} ` +
+        `claude=$${claudeCost.toFixed(4)} ` +
         `deepSeek=$${totalDeepSeekCost.toFixed(4)} ` +
         `total=$${generationCost.toFixed(4)}`,
     );
@@ -609,7 +816,7 @@ export async function POST(request: Request) {
         certifications: body.certifications ?? null,
         competitor_url: body.competitorUrl ?? null,
         wholesale_url: body.wholesaleUrl ?? null,
-        image_urls: body.imageUrls,
+        image_urls: imageUrls,
         headlines: savedCopy.headlines,
         description: savedCopy.description,
         features: savedCopy.features,
@@ -655,6 +862,8 @@ export async function POST(request: Request) {
       qaSummary: qaResult.summary,
       conceptIcons,
       photoCostBreakdown,
+      testMode: isTestMode(),
+      imageUrls,
     });
   } catch (error) {
     console.error("[generate]", error);

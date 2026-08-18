@@ -44,7 +44,12 @@ scripts/auth-state.json
 
 # ad-hoc QA screenshots and test fixture photos (not needed in history)
 review/*.png
+review/iteration/
 scripts/test-assets/
+public/iteration-fixtures/
+
+# local TEST_MODE image-analysis cache (Claude vision)
+.cache/
 
 # typescript
 *.tsbuildinfo

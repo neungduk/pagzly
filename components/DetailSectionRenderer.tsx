@@ -11,10 +11,12 @@ import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import type { DetailSection } from "@/lib/types/generate";
 import type { ConceptIconMap } from "@/lib/concept-icons";
 import EditableText from "@/components/EditableText";
+import DetailScrollReveal from "@/components/DetailScrollReveal";
+import SectionImage from "@/components/SectionImage";
 import {
-  SECTION_BLOCK_PAD,
   SLOT_IMAGE_RATIO,
   getCtaBandBackground,
+  getCategoryRhythm,
   getDecorationColor,
   getHeroGradient,
   getSectionBackground,
@@ -55,14 +57,14 @@ const TYPO = {
   heroCategory:
     "mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.28em] text-white/80",
   heroTitle:
-    "font-heading text-5xl font-bold leading-[1.08] tracking-tight text-white sm:text-6xl",
+    "font-heading text-[2.75rem] font-bold leading-[1.05] tracking-[-0.03em] text-white sm:text-6xl",
   heroSub: "mt-4 max-w-xl text-base font-normal leading-relaxed text-white/88 sm:text-lg",
   sectionTitle:
-    "font-heading text-[1.75rem] font-bold leading-tight tracking-tight text-ink sm:text-4xl",
-  sectionLabel: "font-mono text-[11px] font-semibold uppercase tracking-[0.28em]",
-  body: "text-[0.9375rem] font-normal leading-8 text-ink/70 sm:text-base",
-  checklistItem: "mt-3 text-sm font-medium leading-snug text-ink/85",
-  stepItem: "mt-3 max-w-sm text-sm font-normal leading-relaxed text-ink/80",
+    "font-heading text-[1.75rem] font-bold leading-[1.2] tracking-[-0.02em] text-ink sm:text-4xl",
+  sectionLabel: "font-mono text-[10px] font-semibold uppercase tracking-[0.32em]",
+  body: "text-[0.9375rem] font-normal leading-[1.85] text-ink/68 sm:text-base",
+  checklistItem: "mt-2.5 text-[11px] font-medium leading-snug text-ink/85 sm:text-sm",
+  stepItem: "mt-2.5 max-w-[7.5rem] text-[11px] font-normal leading-relaxed text-ink/80 sm:max-w-sm sm:text-sm",
 } as const;
 
 function resolveImage(imageUrls: string[], index: number) {
@@ -89,22 +91,6 @@ function ThemeIcon({ theme }: { theme: CategoryTheme }) {
   );
 }
 
-function SectionImage({
-  src,
-  alt,
-  className,
-}: {
-  src: string;
-  alt: string;
-  className?: string;
-}) {
-  if (!src) return null;
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt} className={className} />
-  );
-}
-
 function ConceptBadgeIcon({
   src,
   theme,
@@ -120,7 +106,7 @@ function ConceptBadgeIcon({
       <img
         src={src}
         alt=""
-        className="h-14 w-14 shrink-0 rounded-full object-cover ring-2 ring-white/80"
+        className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-white/80"
         style={{ boxShadow: `0 0 0 1px ${theme.accent}33` }}
         aria-hidden="true"
       />
@@ -129,7 +115,7 @@ function ConceptBadgeIcon({
   if (fallbackIndex != null) {
     return (
       <span
-        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-paper"
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-paper"
         style={{ backgroundColor: theme.accent }}
         aria-hidden="true"
       >
@@ -139,7 +125,7 @@ function ConceptBadgeIcon({
   }
   return (
     <span
-      className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full"
+      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
       style={{ backgroundColor: hexToRgba(theme.accent, 0.12) }}
       aria-hidden="true"
     >
@@ -148,8 +134,50 @@ function ConceptBadgeIcon({
   );
 }
 
+function parseMetricPercent(value: string): number | null {
+  const match = value.match(/(\d+(?:\.\d+)?)\s*%/);
+  if (!match) return null;
+  const n = Number(match[1]);
+  if (!Number.isFinite(n) || n < 0 || n > 100) return null;
+  return n;
+}
+
+function MetricBar({
+  percent,
+  theme,
+}: {
+  percent: number;
+  theme: CategoryTheme;
+}) {
+  return (
+    <div
+      className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full"
+      style={{ backgroundColor: hexToRgba(theme.accent, 0.16) }}
+      aria-hidden="true"
+    >
+      <div
+        className="h-full rounded-full"
+        style={{
+          width: `${percent}%`,
+          backgroundColor: theme.accent,
+        }}
+      />
+    </div>
+  );
+}
+
 function sectionBackgroundStyle(theme: CategoryTheme, pattern: SectionColorPattern) {
   return { backgroundColor: getSectionBackground(theme, pattern) };
+}
+
+/** 텍스트 블록 섹션의 B 패턴만 상단 액센트 바로 구획을 읽히게 한다. 사진 위에는 쓰지 않음. */
+function textSectionStyle(theme: CategoryTheme, pattern: SectionColorPattern) {
+  return {
+    backgroundColor: getSectionBackground(theme, pattern),
+    ...(pattern === "B"
+      ? { boxShadow: `inset 0 4px 0 ${hexToRgba(theme.accent, 0.28)}` }
+      : {}),
+  };
 }
 
 function SectionAccentHairline({ theme }: { theme: CategoryTheme }) {
@@ -192,6 +220,7 @@ function renderSection(
   pointIndex?: number,
   edit?: SectionEditApi,
 ) {
+  const heroFallback = imageUrls[0] ?? "";
   switch (section.type) {
     case "hero": {
       const src = resolveImage(imageUrls, section.imageIndex);
@@ -203,11 +232,12 @@ function renderSection(
             style={{ backgroundColor: getDecorationColor(theme), zIndex: 0 }}
           />
           <section
-            className={`relative z-10 w-full overflow-hidden ${SLOT_IMAGE_RATIO.hero} min-h-[85svh] sm:min-h-[760px]`}
+            className={`relative z-10 w-full overflow-hidden ${SLOT_IMAGE_RATIO.hero} ${getCategoryRhythm(category).heroMinClass}`}
           >
             <SectionImage
               src={src}
               alt={section.headline}
+              fallbackSrc={heroFallback}
               className="pagzly-hero-photo absolute inset-0 h-full w-full object-cover"
             />
             <div
@@ -218,7 +248,7 @@ function renderSection(
               enabled={edit?.enabled}
               onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
             />
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-end px-6 pb-14 text-center sm:px-10 sm:pb-20">
+            <div className={getCategoryRhythm(category).heroOverlayClass}>
               <p className={TYPO.heroCategory}>{category}</p>
               <EditableText
                 as="h2"
@@ -227,7 +257,7 @@ function renderSection(
                 onChange={(headline) =>
                   edit?.onChange(index, { ...section, headline })
                 }
-                className={`${HEADLINE_CLAMP} ${TYPO.heroTitle}`}
+                className={`${HEADLINE_CLAMP} ${TYPO.heroTitle} ${getCategoryRhythm(category).heroTitleExtra}`}
               />
               {(section.subheadline || edit?.enabled) ? (
                 <EditableText
@@ -250,8 +280,8 @@ function renderSection(
       return (
         <section
           key={`checklist-${index}`}
-          className={SECTION_BLOCK_PAD.generous}
-          style={sectionBackgroundStyle(theme, pattern)}
+          className={getCategoryRhythm(category).generousPadClass}
+          style={textSectionStyle(theme, pattern)}
         >
           <div className={TEXT_COL_CLASS}>
             <SectionAccentHairline theme={theme} />
@@ -264,12 +294,10 @@ function renderSection(
             />
           </div>
           <ul
-            className={`mt-12 grid gap-x-6 gap-y-10 ${
+            className={`mt-12 grid ${getCategoryRhythm(category).checklistGapClass} ${
               section.items.length === 3
                 ? "grid-cols-3"
-                : section.items.length >= 4
-                  ? "grid-cols-2 sm:grid-cols-4"
-                  : "grid-cols-2"
+                : getCategoryRhythm(category).checklistGridFour
             }`}
           >
             {section.items.map((item, itemIndex) => (
@@ -322,7 +350,14 @@ function renderSection(
               onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
             />
           </div>
-          <div className={`${SECTION_BLOCK_PAD.pointText} ${TEXT_COL_CLASS}`}>
+          <div className={`${getCategoryRhythm(category).pointTextPadClass} ${TEXT_COL_CLASS}`}>
+            {section.slot === "ingredient_highlight" ? (
+              <div
+                className="mx-auto mb-6 h-1.5 w-16"
+                style={{ backgroundColor: theme.accent }}
+                aria-hidden="true"
+              />
+            ) : null}
             {pointLabel && (
               <p className={`mb-4 ${TYPO.sectionLabel}`} style={{ color: theme.accent }}>
                 {pointLabel}
@@ -341,7 +376,7 @@ function renderSection(
               enabled={edit?.enabled}
               value={section.body}
               onChange={(body) => edit?.onChange(index, { ...section, body })}
-              className={`mt-5 ${BODY_CLAMP} ${TYPO.body}`}
+              className={`mt-4 ${BODY_CLAMP} ${TYPO.body}`}
             />
           </div>
         </section>
@@ -352,31 +387,34 @@ function renderSection(
       return (
         <section
           key={`spec_table-${index}`}
-          className={SECTION_BLOCK_PAD.compact}
-          style={sectionBackgroundStyle(theme, pattern)}
+          className={getCategoryRhythm(category).trustPadClass}
+          style={textSectionStyle(theme, pattern)}
         >
-          <SectionAccentHairline theme={theme} />
+          <p
+            className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`}
+            style={{ color: theme.deepAccent }}
+          >
+            INFO
+          </p>
           <EditableText
             as="h3"
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} font-heading text-2xl font-bold tracking-[-0.02em] text-ink sm:text-3xl`}
           />
-          <div className="mx-auto mt-10 max-w-xl overflow-hidden rounded-sm">
+          <div className="mx-auto mt-10 max-w-xl">
             <table className="w-full text-sm">
               <tbody>
                 {section.rows.map((row, rowIndex) => (
                   <tr
                     key={`${row.label}-${rowIndex}`}
+                    className="border-b last:border-b-0"
                     style={{
-                      backgroundColor:
-                        rowIndex % 2 === 0
-                          ? theme.baseNeutral
-                          : hexToRgba(theme.accent, 0.08),
+                      borderColor: hexToRgba(theme.accent, 0.22),
                     }}
                   >
-                    <td className="w-1/3 px-4 py-4 text-xs font-semibold uppercase tracking-wide text-ink/50">
+                    <td className={`w-[38%] py-3.5 pr-4 ${TYPO.sectionLabel} text-ink/45`}>
                       <EditableText
                         as="span"
                         enabled={edit?.enabled}
@@ -389,7 +427,7 @@ function renderSection(
                         }}
                       />
                     </td>
-                    <td className="px-4 py-4 font-medium text-ink">
+                    <td className="py-3.5 font-medium tracking-tight text-ink">
                       <EditableText
                         as="span"
                         enabled={edit?.enabled}
@@ -401,6 +439,12 @@ function renderSection(
                           edit?.onChange(index, { ...section, rows });
                         }}
                       />
+                      {(() => {
+                        const percent = parseMetricPercent(row.value);
+                        return percent != null ? (
+                          <MetricBar percent={percent} theme={theme} />
+                        ) : null;
+                      })()}
                     </td>
                   </tr>
                 ))}
@@ -414,10 +458,15 @@ function renderSection(
       return (
         <section
           key={`comparison_table-${index}`}
-          className={SECTION_BLOCK_PAD.generous}
-          style={sectionBackgroundStyle(theme, pattern)}
+          className={getCategoryRhythm(category).generousPadClass}
+          style={textSectionStyle(theme, pattern)}
         >
-          <SectionAccentHairline theme={theme} />
+          <p
+            className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`}
+            style={{ color: theme.deepAccent }}
+          >
+            COMPARE
+          </p>
           <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}>
             {section.heading}
           </h3>
@@ -464,8 +513,8 @@ function renderSection(
       return (
         <section
           key={`color_variation-${index}`}
-          className={SECTION_BLOCK_PAD.generous}
-          style={sectionBackgroundStyle(theme, pattern)}
+          className={getCategoryRhythm(category).generousPadClass}
+          style={textSectionStyle(theme, pattern)}
         >
           <SectionAccentHairline theme={theme} />
           <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}>
@@ -504,8 +553,8 @@ function renderSection(
       return (
         <section
           key={`usage_steps-${index}`}
-          className={SECTION_BLOCK_PAD.generous}
-          style={sectionBackgroundStyle(theme, pattern)}
+          className={getCategoryRhythm(category).generousPadClass}
+          style={textSectionStyle(theme, pattern)}
         >
           <SectionAccentHairline theme={theme} />
           <EditableText
@@ -515,12 +564,24 @@ function renderSection(
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
             className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
           />
-          <ol className="mx-auto mt-12 max-w-xl space-y-8">
+          <ol
+            className={`mx-auto mt-12 max-w-xl ${
+              section.steps.length === 3
+                ? "grid grid-cols-3 gap-x-3 gap-y-6"
+                : "space-y-8"
+            }`}
+          >
             {section.steps.map((step, stepIndex) => (
               <li
                 key={stepIndex}
                 className="flex flex-col items-center text-center"
               >
+                <p
+                  className={`mb-3 ${TYPO.sectionLabel}`}
+                  style={{ color: theme.accent }}
+                >
+                  STEP {String(stepIndex + 1).padStart(2, "0")}
+                </p>
                 <ConceptBadgeIcon
                   src={conceptIcons?.usageSteps?.[stepIndex]}
                   theme={theme}
@@ -545,13 +606,14 @@ function renderSection(
 
     case "gallery": {
       const ratioClass = resolveImageRatioClass(section);
+      const pairCompare =
+        category === "화장품/뷰티" && section.imageIndexes.length >= 2;
       return (
         <section
           key={`gallery-${index}`}
           style={sectionBackgroundStyle(theme, pattern)}
         >
-          <div className={SECTION_BLOCK_PAD.galleryTitle}>
-            <SectionAccentHairline theme={theme} />
+          <div className={getCategoryRhythm(category).galleryTitlePadClass}>
             <EditableText
               as="h3"
               enabled={edit?.enabled}
@@ -562,21 +624,36 @@ function renderSection(
           </div>
           <div
             className={
-              section.imageIndexes.length <= 2
-                ? "grid grid-cols-1 gap-px"
-                : "grid grid-cols-2 gap-px sm:grid-cols-3"
+              pairCompare
+                ? "grid grid-cols-2 gap-px"
+                : section.imageIndexes.length <= 2
+                  ? `grid grid-cols-1 ${getCategoryRhythm(category).galleryGapClass}`
+                  : `grid grid-cols-2 ${getCategoryRhythm(category).galleryGapClass} sm:grid-cols-3`
             }
             style={{ backgroundColor: hexToRgba(theme.accent, 0.18) }}
           >
-            {section.imageIndexes.map((imageIndex) => {
+            {section.imageIndexes.map((imageIndex, pairIndex) => {
               const src = resolveImage(imageUrls, imageIndex);
+              const pairLabel =
+                pairCompare && pairIndex === 0
+                  ? "BEFORE"
+                  : pairCompare && pairIndex === 1
+                    ? "AFTER"
+                    : null;
               return (
-                <div key={`${imageIndex}-${src}`} className="relative">
+                <div key={`${imageIndex}-${src}-${pairIndex}`} className="relative">
                   <SectionImage
                     src={src}
                     alt={`${section.heading} ${imageIndex + 1}`}
                     className={`${ratioClass} w-full object-cover`}
                   />
+                  {pairLabel ? (
+                    <span
+                      className={`absolute left-3 top-3 ${TYPO.sectionLabel} text-white`}
+                    >
+                      {pairLabel}
+                    </span>
+                  ) : null}
                   <ImageReplaceHit
                     enabled={edit?.enabled}
                     onReplace={() => edit?.onReplaceImage?.(imageIndex)}
@@ -593,12 +670,12 @@ function renderSection(
       return (
         <section
           key={`caution-${index}`}
-          className={SECTION_BLOCK_PAD.compact}
-          style={sectionBackgroundStyle(theme, pattern)}
+          className={getCategoryRhythm(category).trustPadClass}
+          style={textSectionStyle(theme, pattern)}
         >
           <div className={TEXT_COL_CLASS}>
             <p
-              className={`mb-3 ${TYPO.sectionLabel}`}
+              className={`mb-4 ${TYPO.sectionLabel}`}
               style={{ color: theme.deepAccent }}
             >
               NOTICE
@@ -608,7 +685,7 @@ function renderSection(
               enabled={edit?.enabled}
               value={section.heading}
               onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-              className={`${HEADLINE_CLAMP} font-heading text-xl font-bold sm:text-2xl`}
+              className={`${HEADLINE_CLAMP} font-heading text-lg font-bold tracking-[-0.02em] text-ink sm:text-xl`}
             />
             <EditableText
               as="p"
@@ -616,7 +693,7 @@ function renderSection(
               enabled={edit?.enabled}
               value={section.body}
               onChange={(body) => edit?.onChange(index, { ...section, body })}
-              className={`mt-4 ${BODY_CLAMP} ${TYPO.body}`}
+              className={`mt-5 ${BODY_CLAMP} ${TYPO.body}`}
             />
           </div>
         </section>
@@ -626,7 +703,7 @@ function renderSection(
       return (
         <section
           key={`cta_price-${index}`}
-          className={SECTION_BLOCK_PAD.cta}
+          className={getCategoryRhythm(category).ctaPadClass}
           style={{ backgroundColor: getCtaBandBackground(theme) }}
         >
           <div className={`${TEXT_COL_CLASS} space-y-5`}>
@@ -634,8 +711,8 @@ function renderSection(
               PRICE
             </p>
             <p
-              className="font-heading text-4xl font-bold tracking-tight sm:text-5xl"
-              style={{ color: theme.accent, letterSpacing: "-0.03em" }}
+              className="font-heading text-[2.75rem] font-bold sm:text-5xl"
+              style={{ color: theme.accent, letterSpacing: "-0.04em" }}
             >
               ₩{section.price.toLocaleString()}
             </p>
@@ -674,7 +751,7 @@ function renderSection(
             )}
             <div className="pt-4">
               <span
-                className="inline-flex h-12 min-w-[11rem] items-center justify-center rounded-full px-8 text-sm font-semibold text-paper shadow-sm"
+                className={getCategoryRhythm(category).ctaButtonClass}
                 style={{ backgroundColor: theme.deepAccent }}
                 role="presentation"
               >
@@ -709,22 +786,9 @@ export default function DetailSectionRenderer({
       {sections.map((section, index) => {
         const pointIndex =
           section.type === "image_text" ? imageTextCount++ : undefined;
-        if (section.type === "hero") {
-          return renderSection(
-            section,
-            imageUrls,
-            index,
-            category,
-            theme,
-            "A",
-            conceptIcons,
-            undefined,
-            edit,
-          );
-        }
         const bodyIndex = sections.slice(0, index).filter((s) => s.type !== "hero").length;
-        const pattern = getSectionPattern(bodyIndex);
-        return renderSection(
+        const pattern = section.type === "hero" ? "A" : getSectionPattern(bodyIndex);
+        const content = renderSection(
           section,
           imageUrls,
           index,
@@ -734,6 +798,15 @@ export default function DetailSectionRenderer({
           conceptIcons,
           pointIndex,
           edit,
+        );
+        return (
+          <DetailScrollReveal
+            key={`${section.type}-${section.slot}-${index}`}
+            index={index}
+            variant={section.type === "hero" ? "hero" : "section"}
+          >
+            {content}
+          </DetailScrollReveal>
         );
       })}
     </div>

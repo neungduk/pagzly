@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import PagzlyLogo from "@/components/PagzlyLogo";
 import GeneratingOverlay, { type GeneratingStage } from "@/components/GeneratingOverlay";
+import BackdropCandidatePicker from "@/components/BackdropCandidatePicker";
 import { createClient } from "@/lib/supabase";
 import { getCategoryTheme } from "@/lib/category-theme";
 import type { GeneratedCopy, GenerateResponse } from "@/lib/types/generate";
@@ -68,7 +69,9 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingStage, setLoadingStage] = useState<LoadingStage>("idle");
-  const loading = loadingStage !== "idle";
+  const [backdropCandidates, setBackdropCandidates] = useState<string[] | null>(null);
+  const backdropPickRef = useRef<((url: string) => void) | null>(null);
+  const loading = loadingStage !== "idle" || backdropCandidates !== null;
 
   const addImages = useCallback(
     (files: FileList | File[]) => {
@@ -153,6 +156,14 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     return uploaded;
   }
 
+  function waitForBackdropPick(urls: string[]): Promise<string> {
+    return new Promise((resolve) => {
+      backdropPickRef.current = resolve;
+      setBackdropCandidates(urls);
+      setLoadingStage("idle");
+    });
+  }
+
   async function generateBackdrop(
     productCategory: string,
     name: string,
@@ -163,10 +174,14 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     formIngredients: string,
     formTargetCustomer: string,
   ): Promise<{
-    backdropDataUrl: string;
+    backdropDataUrl?: string;
+    candidateUrls?: string[];
+    autoPicked?: boolean;
     cost: number;
     conceptBriefCost: number;
     backdropCost: number;
+    claudeCost?: number;
+    testMode?: boolean;
     shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis;
     conceptBrief?: import("@/lib/concept-brief").ConceptBrief;
   } | null> {
@@ -188,15 +203,19 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
 
       const result = (await response.json()) as {
         backdropDataUrl?: string;
+        candidateUrls?: string[];
+        autoPicked?: boolean;
         cost?: number;
         conceptBriefCost?: number;
         backdropCost?: number;
+        claudeCost?: number;
+        testMode?: boolean;
         shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis;
         conceptBrief?: import("@/lib/concept-brief").ConceptBrief;
         error?: string;
       };
 
-      if (!response.ok || !result.backdropDataUrl) {
+      if (!response.ok) {
         console.warn(
           "[generate-backdrop] 배경 생성 실패, 원본 이미지 사용:",
           result.error ?? "unknown",
@@ -204,11 +223,21 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         return null;
       }
 
+      const candidates = result.candidateUrls?.filter(Boolean) ?? [];
+      if (!result.backdropDataUrl && candidates.length === 0) {
+        console.warn("[generate-backdrop] 배경 후보가 없습니다.");
+        return null;
+      }
+
       return {
         backdropDataUrl: result.backdropDataUrl,
+        candidateUrls: candidates,
+        autoPicked: result.autoPicked ?? true,
         cost: result.cost ?? 0,
         conceptBriefCost: result.conceptBriefCost ?? 0,
         backdropCost: result.backdropCost ?? result.cost ?? 0,
+        claudeCost: result.claudeCost ?? 0,
+        testMode: result.testMode ?? false,
         shadowAnalysis: result.shadowAnalysis,
         conceptBrief: result.conceptBrief,
       };
@@ -220,13 +249,16 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
 
   async function enhanceImages(
     uploaded: UploadedImage[],
-    backdropDataUrl: string,
+    heroBackdrop: string,
     shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis,
     conceptBrief?: import("@/lib/concept-brief").ConceptBrief,
     productCategory?: string,
-  ): Promise<{ images: UploadedImage[]; cost: number; decorCost: number }> {
+    testMode?: boolean,
+    sectionBackdrops?: { ingredientUrl?: string | null; textureUrl?: string | null },
+  ): Promise<{ images: UploadedImage[]; cost: number; decorCost: number; claudeCost: number }> {
     let totalCost = 0;
     let decorCost = 0;
+    let claudeCost = 0;
     let decorDataUrl: string | undefined;
     const categoryTheme = productCategory ? getCategoryTheme(productCategory) : null;
     const themeColors = categoryTheme
@@ -236,58 +268,122 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           deepAccent: categoryTheme.deepAccent,
         }
       : undefined;
+    const isBeauty = productCategory === "화장품/뷰티";
+    const backdropByIndex = [
+      heroBackdrop,
+      sectionBackdrops?.ingredientUrl || heroBackdrop,
+      sectionBackdrops?.textureUrl || heroBackdrop,
+    ];
+
+    async function enhanceOne(
+      item: UploadedImage,
+      backdropDataUrl: string,
+      options: {
+        applyDecor: boolean;
+        keepOriginal?: boolean;
+        pathSuffix?: string;
+        reuseDecor?: boolean;
+      },
+    ): Promise<UploadedImage | null> {
+      const response = await fetch("/api/enhance-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageUrl: item.url,
+          storagePath: item.path,
+          backdropDataUrl,
+          shadowAnalysis,
+          conceptBrief,
+          applyDecor: options.applyDecor,
+          decorDataUrl: options.reuseDecor ? decorDataUrl : undefined,
+          theme: themeColors,
+          keepOriginal: options.keepOriginal,
+          pathSuffix: options.pathSuffix,
+        }),
+      });
+
+      const result = (await response.json()) as {
+        enhancedUrl?: string;
+        enhancedPath?: string;
+        cost?: number;
+        decorCost?: number;
+        claudeCost?: number;
+        decorDataUrl?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !result.enhancedUrl || !result.enhancedPath) {
+        console.warn(
+          "[enhance-image] 보정 실패, 원본 사용:",
+          result.error ?? item.path,
+        );
+        return null;
+      }
+
+      totalCost += result.cost ?? 0;
+      decorCost += result.decorCost ?? 0;
+      claudeCost += result.claudeCost ?? 0;
+      if (result.decorDataUrl) {
+        decorDataUrl = result.decorDataUrl;
+      }
+      return { url: result.enhancedUrl, path: result.enhancedPath };
+    }
+
+    const extras: UploadedImage[] = [];
+    if (isBeauty) {
+      if (uploaded.length < 2 && sectionBackdrops?.ingredientUrl) {
+        try {
+          const extra = await enhanceOne(uploaded[0], sectionBackdrops.ingredientUrl, {
+            applyDecor: false,
+            keepOriginal: true,
+            pathSuffix: "ingredient",
+          });
+          if (extra) extras.push(extra);
+        } catch (err) {
+          console.warn("[enhance-image] 성분 배경 추가 합성 실패:", err);
+        }
+      }
+      if (uploaded.length + extras.length < 3 && sectionBackdrops?.textureUrl) {
+        try {
+          const extra = await enhanceOne(uploaded[0], sectionBackdrops.textureUrl, {
+            applyDecor: false,
+            keepOriginal: true,
+            pathSuffix: "texture",
+          });
+          if (extra) extras.push(extra);
+        } catch (err) {
+          console.warn("[enhance-image] 텍스처 배경 추가 합성 실패:", err);
+        }
+      }
+    }
 
     const results: UploadedImage[] = [];
     for (let index = 0; index < uploaded.length; index++) {
       const item = uploaded[index];
       const isHero = index === 0;
+
+      // TEST_MODE에서도 모든 업로드 사진에 배경 제거+합성을 적용한다.
+      // (index>0 스킵은 비용 절감용이었으나, 원본 사진 사각형이 섹션에 그대로
+      //  노출되어 QA/데모 품질을 망가뜨림 — P0 버그)
+
       try {
-        const response = await fetch("/api/enhance-image", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            imageUrl: item.url,
-            storagePath: item.path,
-            backdropDataUrl,
-            shadowAnalysis,
-            conceptBrief,
+        const enhanced = await enhanceOne(
+          item,
+          backdropByIndex[index] ?? heroBackdrop,
+          {
             applyDecor: isHero,
-            decorDataUrl: isHero ? undefined : decorDataUrl,
-            theme: themeColors,
-          }),
-        });
-
-        const result = (await response.json()) as {
-          enhancedUrl?: string;
-          enhancedPath?: string;
-          cost?: number;
-          decorCost?: number;
-          decorDataUrl?: string;
-          error?: string;
-        };
-
-        if (!response.ok || !result.enhancedUrl || !result.enhancedPath) {
-          console.warn(
-            "[enhance-image] 보정 실패, 원본 사용:",
-            result.error ?? item.path,
-          );
-          results.push(item);
-          continue;
-        }
-
-        totalCost += result.cost ?? 0;
-        decorCost += result.decorCost ?? 0;
-        if (result.decorDataUrl) {
-          decorDataUrl = result.decorDataUrl;
-        }
-        results.push({ url: result.enhancedUrl, path: result.enhancedPath });
+            reuseDecor: !isHero,
+            pathSuffix: "enhanced",
+          },
+        );
+        results.push(enhanced ?? item);
       } catch (err) {
         console.warn("[enhance-image] 보정 실패, 원본 사용:", item.path, err);
         results.push(item);
       }
     }
 
-    return { images: results, cost: totalCost, decorCost };
+    return { images: [...results, ...extras], cost: totalCost, decorCost, claudeCost };
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -319,6 +415,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       let photoProcessingCost = 0;
       let conceptBrief: import("@/lib/concept-brief").ConceptBrief | undefined;
       let photoCostBreakdown: import("@/lib/types/generate").PhotoCostBreakdown = {};
+      let testMode = false;
 
       setLoadingStage("backdrop");
       const backdropResult = await generateBackdrop(
@@ -334,19 +431,75 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
 
       let finalImages = uploaded;
       if (backdropResult) {
+        testMode = backdropResult.testMode ?? false;
         photoProcessingCost += backdropResult.cost;
         conceptBrief = backdropResult.conceptBrief;
         photoCostBreakdown = {
           conceptBrief: backdropResult.conceptBriefCost,
           backdrop: backdropResult.backdropCost,
+          claude: backdropResult.claudeCost ?? 0,
         };
+
+        let chosenBackdrop = backdropResult.backdropDataUrl;
+        const candidates = backdropResult.candidateUrls ?? [];
+        if (!testMode && candidates.length > 1) {
+          chosenBackdrop = await waitForBackdropPick(candidates);
+          setLoadingStage("enhancing");
+        } else if (candidates.length >= 1) {
+          // fill-dev 단일 후보: Supabase에 올린 안정 URL 우선 (Replicate 임시 URL 만료 방지)
+          chosenBackdrop = candidates[0];
+        }
+
+        if (!chosenBackdrop) {
+          throw new Error("배경이 선택되지 않았습니다.");
+        }
+
+        let sectionBackdrops:
+          | { ingredientUrl?: string | null; textureUrl?: string | null }
+          | undefined;
+        if (category === "화장품/뷰티" && backdropResult.shadowAnalysis) {
+          try {
+            const sectionRes = await fetch("/api/section-backdrops", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                shadowAnalysis: backdropResult.shadowAnalysis,
+                conceptBrief,
+              }),
+            });
+            const sectionJson = (await sectionRes.json()) as {
+              ingredientUrl?: string | null;
+              textureUrl?: string | null;
+              cost?: number;
+              error?: string;
+            };
+            if (sectionRes.ok) {
+              sectionBackdrops = {
+                ingredientUrl: sectionJson.ingredientUrl,
+                textureUrl: sectionJson.textureUrl,
+              };
+              photoProcessingCost += sectionJson.cost ?? 0;
+              photoCostBreakdown = {
+                ...photoCostBreakdown,
+                sectionBackdrops: sectionJson.cost ?? 0,
+              };
+            } else {
+              console.warn("[section-backdrops] 생략:", sectionJson.error);
+            }
+          } catch (err) {
+            console.warn("[section-backdrops] 생략:", err);
+          }
+        }
+
         setLoadingStage("enhancing");
         const enhanced = await enhanceImages(
           uploaded,
-          backdropResult.backdropDataUrl,
+          chosenBackdrop,
           backdropResult.shadowAnalysis,
           conceptBrief,
           category,
+          testMode,
+          sectionBackdrops,
         );
         finalImages = enhanced.images;
         photoProcessingCost += enhanced.cost;
@@ -354,6 +507,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           ...photoCostBreakdown,
           enhance: enhanced.cost - enhanced.decorCost,
           decor: enhanced.decorCost,
+          claude: (photoCostBreakdown.claude ?? 0) + enhanced.claudeCost,
         };
       }
 
@@ -377,6 +531,11 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         photoProcessingCost,
         conceptBrief,
         photoCostBreakdown,
+        testMode,
+        imageCacheKey: images
+          .map((file) => `${file.name}:${file.size}`)
+          .sort()
+          .join("|"),
       };
 
       setLoadingStage("generating");
@@ -407,11 +566,16 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         SESSION_KEY,
         JSON.stringify({
           ...payload,
+          imageUrls: (generateResult as GenerateResponse).imageUrls ?? payload.imageUrls,
+          photoCostBreakdown:
+            (generateResult as GenerateResponse).photoCostBreakdown ?? payload.photoCostBreakdown,
+          testMode: generateResult.testMode ?? testMode,
           generated: generateResult as GenerateResponse,
         }),
       );
       router.push("/create/result");
     } catch (err) {
+      setBackdropCandidates(null);
       setError(err instanceof Error ? err.message : "제출 중 오류가 발생했습니다.");
       setLoadingStage("idle");
     }
@@ -727,7 +891,20 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         </form>
       </main>
 
-      {loadingStage !== "idle" && <GeneratingOverlay stage={loadingStage} />}
+      {loadingStage !== "idle" && !backdropCandidates && (
+        <GeneratingOverlay stage={loadingStage} />
+      )}
+      {backdropCandidates && (
+        <BackdropCandidatePicker
+          urls={backdropCandidates}
+          onConfirm={(url) => {
+            const resolve = backdropPickRef.current;
+            backdropPickRef.current = null;
+            setBackdropCandidates(null);
+            resolve?.(url);
+          }}
+        />
+      )}
     </div>
   );
 }

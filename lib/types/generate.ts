@@ -4,9 +4,12 @@ import type { ConceptIconMap } from "@/lib/concept-icons";
 export type PhotoCostBreakdown = {
   conceptBrief?: number;
   backdrop?: number;
+  sectionBackdrops?: number;
   enhance?: number;
   decor?: number;
+  effects?: number;
   icons?: number;
+  claude?: number;
 };
 
 export type ProductInput = {
@@ -27,6 +30,8 @@ export type ProductInput = {
   photoProcessingCost?: number;
   conceptBrief?: ConceptBrief;
   photoCostBreakdown?: PhotoCostBreakdown;
+  /** TEST_MODE: 원본 파일명+크기 지문으로 비전 분석 캐시 키를 고정 */
+  imageCacheKey?: string;
 };
 
 // slot: lib/section-templates.ts가 카테고리별로 고정한 슬롯 이름
@@ -158,4 +163,6 @@ export type GenerateResponse = GeneratedCopy & {
   qaSummary?: string;
   conceptIcons?: ConceptIconMap;
   photoCostBreakdown?: PhotoCostBreakdown;
+  testMode?: boolean;
+  imageUrls?: string[];
 };

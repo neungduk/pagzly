@@ -32,6 +32,8 @@ export async function POST(request: Request) {
       applyDecor,
       decorDataUrl,
       theme,
+      keepOriginal,
+      pathSuffix,
     } = (await request.json()) as {
       imageUrl?: string;
       storagePath?: string;
@@ -41,6 +43,8 @@ export async function POST(request: Request) {
       applyDecor?: boolean;
       decorDataUrl?: string;
       theme?: { accent: string; baseNeutral: string; deepAccent: string };
+      keepOriginal?: boolean;
+      pathSuffix?: string;
     };
 
     if (!imageUrl || !storagePath || !backdropDataUrl) {
@@ -50,14 +54,26 @@ export async function POST(request: Request) {
       );
     }
 
-    const base64Data = backdropDataUrl.split(",")[1];
-    if (!base64Data) {
-      return NextResponse.json(
-        { error: "backdropDataUrl 형식이 올바르지 않습니다." },
-        { status: 400 },
-      );
+    let backdropBuffer: Buffer;
+    if (backdropDataUrl.startsWith("data:")) {
+      const base64Data = backdropDataUrl.split(",")[1];
+      if (!base64Data) {
+        return NextResponse.json(
+          { error: "backdropDataUrl 형식이 올바르지 않습니다." },
+          { status: 400 },
+        );
+      }
+      backdropBuffer = Buffer.from(base64Data, "base64");
+    } else {
+      const backdropRes = await fetch(backdropDataUrl);
+      if (!backdropRes.ok) {
+        return NextResponse.json(
+          { error: "선택한 배경 이미지를 불러오지 못했습니다." },
+          { status: 400 },
+        );
+      }
+      backdropBuffer = Buffer.from(await backdropRes.arrayBuffer());
     }
-    const backdropBuffer = Buffer.from(base64Data, "base64");
 
     let decorBuffer: Buffer | undefined;
     if (decorDataUrl) {
@@ -72,6 +88,7 @@ export async function POST(request: Request) {
       cost,
       decorBuffer: newDecorBuffer,
       decorCost,
+      claudeCost,
     } = await enhanceProductImage(imageUrl, backdropBuffer, {
       shadowHint: shadowAnalysis,
       conceptBrief,
@@ -85,7 +102,8 @@ export async function POST(request: Request) {
         ? `data:image/png;base64,${newDecorBuffer.toString("base64")}`
         : decorDataUrl;
 
-    const enhancedPath = storagePath.replace(/\.[^./]+$/, "") + "-enhanced.png";
+    const suffix = pathSuffix?.replace(/[^a-zA-Z0-9_-]/g, "") || "enhanced";
+    const enhancedPath = storagePath.replace(/\.[^./]+$/, "") + `-${suffix}.png`;
 
     const { error: uploadError } = await supabase.storage
       .from(STORAGE_BUCKET)
@@ -102,25 +120,37 @@ export async function POST(request: Request) {
       .from(STORAGE_BUCKET)
       .getPublicUrl(enhancedPath);
 
-    const { error: updateError } = await supabase
-      .from("product_images")
-      .update({
+    if (keepOriginal) {
+      const { error: insertError } = await supabase.from("product_images").insert({
+        user_id: user.id,
         storage_path: enhancedPath,
         image_url: publicUrlData.publicUrl,
-      })
-      .eq("user_id", user.id)
-      .eq("storage_path", storagePath);
+        image_uploaded_at: new Date().toISOString(),
+      });
+      if (insertError) {
+        console.error("[enhance-image] extra product_images insert error", insertError);
+      }
+    } else {
+      const { error: updateError } = await supabase
+        .from("product_images")
+        .update({
+          storage_path: enhancedPath,
+          image_url: publicUrlData.publicUrl,
+        })
+        .eq("user_id", user.id)
+        .eq("storage_path", storagePath);
 
-    if (updateError) {
-      console.error("[enhance-image] product_images update error", updateError);
-    }
+      if (updateError) {
+        console.error("[enhance-image] product_images update error", updateError);
+      }
 
-    const { error: removeError } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .remove([storagePath]);
+      const { error: removeError } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .remove([storagePath]);
 
-    if (removeError) {
-      console.error("[enhance-image] original remove error", removeError);
+      if (removeError) {
+        console.error("[enhance-image] original remove error", removeError);
+      }
     }
 
     return NextResponse.json({
@@ -128,6 +158,7 @@ export async function POST(request: Request) {
       enhancedPath,
       cost,
       decorCost: decorCost ?? 0,
+      claudeCost: claudeCost ?? 0,
       decorDataUrl: decorDataUrlOut,
     });
   } catch (error) {
