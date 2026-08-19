@@ -54,105 +54,6 @@
     "query": "beauty product flat lay"
   },
   {
-    "category": "의류-패션",
-    "file": "scripts/test-assets/의류-패션/01-pexels-8408556.jpeg",
-    "pexelsId": 8408556,
-    "pexelsUrl": "https://www.pexels.com/photo/clothes-and-a-boot-on-white-surface-8408556/",
-    "photographer": "Sarah Dorweiler",
-    "photographerUrl": "https://www.pexels.com/@sarahdorweiler",
-    "query": "clothing flat lay"
-  },
-  {
-    "category": "의류-패션",
-    "file": "scripts/test-assets/의류-패션/02-pexels-1107604.jpeg",
-    "pexelsId": 1107604,
-    "pexelsUrl": "https://www.pexels.com/photo/women-s-white-spaghetti-strap-top-and-brown-pumps-1107604/",
-    "photographer": "Lisa Fotios",
-    "photographerUrl": "https://www.pexels.com/@fotios-photos",
-    "query": "clothing flat lay"
-  },
-  {
-    "category": "의류-패션",
-    "file": "scripts/test-assets/의류-패션/03-pexels-35625406.jpeg",
-    "pexelsId": 35625406,
-    "pexelsUrl": "https://www.pexels.com/photo/black-t-shirts-on-rack-in-studio-setting-35625406/",
-    "photographer": "Joint X",
-    "photographerUrl": "https://www.pexels.com/@joint-x-2158831780",
-    "query": "shirt product photo"
-  },
-  {
-    "category": "의류-패션",
-    "file": "scripts/test-assets/의류-패션/04-pexels-20669538.jpeg",
-    "pexelsId": 20669538,
-    "pexelsUrl": "https://www.pexels.com/photo/hand-holds-hanger-with-t-shirt-20669538/",
-    "photographer": "Dmitriy Steinke",
-    "photographerUrl": "https://www.pexels.com/@dmitriy-steinke-559643503",
-    "query": "shirt product photo"
-  },
-  {
-    "category": "의류-패션",
-    "file": "scripts/test-assets/의류-패션/05-pexels-11674381.jpeg",
-    "pexelsId": 11674381,
-    "pexelsUrl": "https://www.pexels.com/photo/a-hand-holding-a-hanger-with-white-polo-long-sleeves-11674381/",
-    "photographer": "Marina Podrez",
-    "photographerUrl": "https://www.pexels.com/@marina-podrez-3269296",
-    "query": "fashion apparel isolated"
-  },
-  {
-    "category": "의류-패션",
-    "file": "scripts/test-assets/의류-패션/06-pexels-6786666.jpeg",
-    "pexelsId": 6786666,
-    "pexelsUrl": "https://www.pexels.com/photo/a-person-holding-a-brown-hoodie-6786666/",
-    "photographer": "Artem Podrez",
-    "photographerUrl": "https://www.pexels.com/@artempodrez",
-    "query": "fashion apparel isolated"
-  },
-  {
-    "category": "식품",
-    "file": "scripts/test-assets/식품/01-pexels-27939228.jpeg",
-    "pexelsId": 27939228,
-    "pexelsUrl": "https://www.pexels.com/photo/a-shelf-filled-with-snacks-and-other-food-items-27939228/",
-    "photographer": "Allen Boguslavsky",
-    "photographerUrl": "https://www.pexels.com/@allen-boguslavsky-1344061",
-    "query": "packaged food product"
-  },
-  {
-    "category": "식품",
-    "file": "scripts/test-assets/식품/02-pexels-18925020.jpeg",
-    "pexelsId": 18925020,
-    "pexelsUrl": "https://www.pexels.com/photo/selection-of-snacks-on-shelves-in-store-18925020/",
-    "photographer": "Sulav Jung Hamal",
-    "photographerUrl": "https://www.pexels.com/@sulav-jung-hamal-742656",
-    "query": "packaged food product"
-  },
-  {
-    "category": "식품",
-    "file": "scripts/test-assets/식품/03-pexels-16513595.jpeg",
-    "pexelsId": 16513595,
-    "pexelsUrl": "https://www.pexels.com/photo/a-bottle-with-a-protein-shake-standing-on-a-machine-at-the-gym-16513595/",
-    "photographer": "Anete Lusina",
-    "photographerUrl": "https://www.pexels.com/@anete-lusina",
-    "query": "protein shake bottle"
-  },
-  {
-    "category": "식품",
-    "file": "scripts/test-assets/식품/04-pexels-4378522.jpeg",
-    "pexelsId": 4378522,
-    "pexelsUrl": "https://www.pexels.com/photo/a-man-holding-a-plastic-tumbler-4378522/",
-    "photographer": "https://kaboompics.com/",
-    "photographerUrl": "https://www.pexels.com/@karola-g",
-    "query": "protein shake bottle"
-  },
-  {
-    "category": "식품",
-    "file": "scripts/test-assets/식품/05-pexels-7196443.jpeg",
-    "pexelsId": 7196443,
-    "pexelsUrl": "https://www.pexels.com/photo/set-of-various-snacks-in-car-7196443/",
-    "photographer": "Erik Mclean",
-    "photographerUrl": "https://www.pexels.com/@introspectivedsgn",
-    "query": "snack food packaging"
-  },
-  {
     "category": "전자제품",
     "file": "scripts/test-assets/전자제품/01-pexels-10104890.jpeg",
     "pexelsId": 10104890,
@@ -207,57 +108,84 @@
     "query": "smart speaker product"
   },
   {
-    "category": "생활용품",
-    "file": "scripts/test-assets/생활용품/01-pexels-4202326.jpeg",
-    "pexelsId": 4202326,
-    "pexelsUrl": "https://www.pexels.com/photo/set-of-cosmetic-products-on-marble-shelf-in-modern-room-4202326/",
+    "category": "식품",
+    "file": "scripts/test-assets/식품/01-pexels-16513595.jpeg",
+    "pexelsId": 16513595,
+    "pexelsUrl": "https://www.pexels.com/photo/a-bottle-with-a-protein-shake-standing-on-a-machine-at-the-gym-16513595/",
+    "photographer": "Anete Lusina",
+    "photographerUrl": "https://www.pexels.com/@anete-lusina",
+    "query": "protein shake bottle hero"
+  },
+  {
+    "category": "식품",
+    "file": "scripts/test-assets/식품/02-pexels-4378601.jpeg",
+    "pexelsId": 4378601,
+    "pexelsUrl": "https://www.pexels.com/photo/a-man-holding-a-drink-in-a-plastic-tumbler-4378601/",
     "photographer": "https://kaboompics.com/",
     "photographerUrl": "https://www.pexels.com/@karola-g",
-    "query": "home decor product"
+    "query": "protein shaker bottle white background"
+  },
+  {
+    "category": "식품",
+    "file": "scripts/test-assets/식품/03-pexels-13779116.jpeg",
+    "pexelsId": 13779116,
+    "pexelsUrl": "https://www.pexels.com/photo/a-white-container-and-a-pile-of-dry-food-with-a-clear-spoon-13779116/",
+    "photographer": "Supplements On Demand",
+    "photographerUrl": "https://www.pexels.com/@supliful",
+    "query": "supplement powder container product"
   },
   {
     "category": "생활용품",
-    "file": "scripts/test-assets/생활용품/02-pexels-7796691.jpeg",
-    "pexelsId": 7796691,
-    "pexelsUrl": "https://www.pexels.com/photo/still-life-with-essential-oils-bottles-and-a-twig-with-green-leaves-7796691/",
-    "photographer": "Alesia  Kozik",
-    "photographerUrl": "https://www.pexels.com/@alesiakozik",
-    "query": "home decor product"
-  },
-  {
-    "category": "생활용품",
-    "file": "scripts/test-assets/생활용품/03-pexels-12663430.jpeg",
-    "pexelsId": 12663430,
-    "pexelsUrl": "https://www.pexels.com/photo/composition-of-a-camera-two-female-body-shaped-candles-and-a-globe-on-a-table-12663430/",
+    "file": "scripts/test-assets/생활용품/01-pexels-10196698.jpeg",
+    "pexelsId": 10196698,
+    "pexelsUrl": "https://www.pexels.com/photo/close-up-shot-of-a-person-holding-a-lamp-10196698/",
     "photographer": "Amar  Preciado",
     "photographerUrl": "https://www.pexels.com/@amar",
-    "query": "candle product photo"
+    "query": "camping lantern product"
   },
   {
     "category": "생활용품",
-    "file": "scripts/test-assets/생활용품/04-pexels-30676123.jpeg",
-    "pexelsId": 30676123,
-    "pexelsUrl": "https://www.pexels.com/photo/elegant-cbd-infused-candle-on-lavender-background-30676123/",
-    "photographer": "Gaea CBD",
-    "photographerUrl": "https://www.pexels.com/@gaeahealthco",
-    "query": "candle product photo"
+    "file": "scripts/test-assets/생활용품/02-pexels-20413588.jpeg",
+    "pexelsId": 20413588,
+    "pexelsUrl": "https://www.pexels.com/photo/portable-electric-lamp-20413588/",
+    "photographer": "Buğra Özcan",
+    "photographerUrl": "https://www.pexels.com/@bugra-ozcan-237904777",
+    "query": "portable led lantern"
   },
   {
     "category": "생활용품",
-    "file": "scripts/test-assets/생활용품/05-pexels-34005916.jpeg",
-    "pexelsId": 34005916,
-    "pexelsUrl": "https://www.pexels.com/photo/variety-of-non-stick-frying-pans-on-store-display-34005916/",
-    "photographer": "Théo Cold",
-    "photographerUrl": "https://www.pexels.com/@theo-cold-814199886",
-    "query": "kitchen utensil product"
+    "file": "scripts/test-assets/생활용품/03-pexels-31200877.jpeg",
+    "pexelsId": 31200877,
+    "pexelsUrl": "https://www.pexels.com/photo/outdoor-camping-lantern-illuminating-at-dusk-31200877/",
+    "photographer": "Võ Nguyễn ( Terri )",
+    "photographerUrl": "https://www.pexels.com/@vo-nguy-n-terri-2150303799",
+    "query": "outdoor camping light lantern"
   },
   {
-    "category": "생활용품",
-    "file": "scripts/test-assets/생활용품/06-pexels-9475278.jpeg",
-    "pexelsId": 9475278,
-    "pexelsUrl": "https://www.pexels.com/photo/close-up-photo-of-wooden-chopsticks-and-wooden-bread-knife-9475278/",
-    "photographer": "Greta Hoffman",
-    "photographerUrl": "https://www.pexels.com/@greta-hoffman",
-    "query": "kitchen utensil product"
+    "category": "의류-패션",
+    "file": "scripts/test-assets/의류-패션/01-pexels-22441291.jpeg",
+    "pexelsId": 22441291,
+    "pexelsUrl": "https://www.pexels.com/photo/shirt-on-hanger-on-branch-22441291/",
+    "photographer": "dayong tien",
+    "photographerUrl": "https://www.pexels.com/@dayong-tien-681073045",
+    "query": "linen shirt product white background"
+  },
+  {
+    "category": "의류-패션",
+    "file": "scripts/test-assets/의류-패션/02-pexels-22441297.jpeg",
+    "pexelsId": 22441297,
+    "pexelsUrl": "https://www.pexels.com/photo/shirt-on-hanger-on-branch-22441297/",
+    "photographer": "dayong tien",
+    "photographerUrl": "https://www.pexels.com/@dayong-tien-681073045",
+    "query": "beige linen shirt flat lay"
+  },
+  {
+    "category": "의류-패션",
+    "file": "scripts/test-assets/의류-패션/03-pexels-17315934.jpeg",
+    "pexelsId": 17315934,
+    "pexelsUrl": "https://www.pexels.com/photo/white-shirts-on-hangers-17315934/",
+    "photographer": "Pew Nguyen",
+    "photographerUrl": "https://www.pexels.com/@nguyendesigner",
+    "query": "white linen shirt on hanger product"
   }
 ]
