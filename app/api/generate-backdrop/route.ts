@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { generateBackdrop, generateBackdropViaBria, getBackdropProvider } from "@/lib/photo-enhance";
+import {
+  generateBackdrop,
+  generateBackdropViaBria,
+  generateBackdropViaBriaGenFill,
+  getBackdropProvider,
+} from "@/lib/photo-enhance";
 import { extractProductTheme } from "@/lib/color-extract";
 import { getCategoryTheme } from "@/lib/category-theme";
 import { generateConceptBrief } from "@/lib/concept-brief";
@@ -78,24 +83,20 @@ export async function POST(request: Request) {
 
     const provider = getBackdropProvider(category);
     console.log(`[generate-backdrop] BACKDROP_PROVIDER=${provider}`);
+    const backdropArgs = [
+      category,
+      productName,
+      brandName ?? null,
+      theme,
+      imageUrls?.[0],
+      conceptBrief,
+    ] as const;
     const { buffer, candidateUrls, cost: backdropCost, shadow, claudeCost, autoPicked } =
-      provider === "bria"
-        ? await generateBackdropViaBria(
-            category,
-            productName,
-            brandName ?? null,
-            theme,
-            imageUrls?.[0],
-            conceptBrief,
-          )
-        : await generateBackdrop(
-            category,
-            productName,
-            brandName ?? null,
-            theme,
-            imageUrls?.[0],
-            conceptBrief,
-          );
+      provider === "bria-replace"
+        ? await generateBackdropViaBria(...backdropArgs)
+        : provider === "bria-genfill"
+          ? await generateBackdropViaBriaGenFill(...backdropArgs)
+          : await generateBackdrop(...backdropArgs);
 
     let backdropDataUrl: string | undefined;
     if (buffer) {

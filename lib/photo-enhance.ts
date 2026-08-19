@@ -59,6 +59,8 @@ const REPLICATE_COST_USD = {
   fluxSchnell: 0.003,
   // bria/generate-background — Background Replace. Replicate 페이지 단가 근사 $0.04/image
   briaBackgroundReplace: 0.04,
+  // bria/genfill — 마스크 기반 배경 생성. Replicate 페이지 단가 근사 $0.04/image
+  briaGenfill: 0.04,
 } as const;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -99,12 +101,17 @@ export function getBackdropCandidateCount(): number {
   return 7;
 }
 
-const BRIA_BACKDROP_WHITELIST = new Set<string>(["화장품/뷰티", "전자제품"]);
+const BRIA_REPLACE_CATEGORIES = new Set<string>(["화장품/뷰티", "전자제품"]);
+const BRIA_GENFILL_CATEGORIES = new Set<string>(["의류/패션", "식품/건강기능식품"]);
 
-/** `.env.local` BACKDROP_PROVIDER=bria 이더라도 화이트리스트 카테고리만 Bria 허용. */
-export function getBackdropProvider(category?: string): "flux" | "bria" {
+export type BackdropProvider = "flux" | "bria-replace" | "bria-genfill";
+
+/** `.env.local` BACKDROP_PROVIDER=bria 일 때 카테고리별 Bria 경로 분기. */
+export function getBackdropProvider(category?: string): BackdropProvider {
   if (process.env.BACKDROP_PROVIDER !== "bria") return "flux";
-  return category && BRIA_BACKDROP_WHITELIST.has(category) ? "bria" : "flux";
+  if (category && BRIA_GENFILL_CATEGORIES.has(category)) return "bria-genfill";
+  if (category && BRIA_REPLACE_CATEGORIES.has(category)) return "bria-replace";
+  return "flux";
 }
 
 /** Bria Background Replace 후보 수. `.env.local` BRIA_BACKDROP_CANDIDATES (기본 2, 1–3). */
@@ -260,6 +267,10 @@ const FLUX_FILL_DEV_REF: ModelRef =
 const FLUX_SCHNELL_REF = "black-forest-labs/flux-schnell" as const;
 const BRIA_GENERATE_BACKGROUND_REF: ModelRef =
   "bria/generate-background:ba437a62603f1205b253fd7bad0d0b5c326d7857242d11753c0cbcd2c5008602";
+const BRIA_GENFILL_REF: ModelRef =
+  "bria/genfill:797f0f06f83cbf44562f704989c06d1d00d637fb41b505828947524385740352";
+const GENFILL_ALPHA_KEEP_THRESHOLD = 16;
+const GENFILL_MASK_BLUR = 6;
 
 export type EnhanceImageOptions = {
   shadowHint?: ShadowAnalysis;
@@ -382,6 +393,106 @@ async function fetchSourceBuffer(url: string): Promise<Buffer> {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`이미지 fetch 실패: ${url}`);
   return Buffer.from(await response.arrayBuffer()) as Buffer;
+}
+
+function toDataUri(buffer: Buffer): string {
+  return `data:image/png;base64,${buffer.toString("base64")}`;
+}
+
+async function buildGenfillSolidCanvas(hexColor: string): Promise<Buffer> {
+  return sharp({
+    create: {
+      width: FILL_BASE_SIZE,
+      height: FILL_BASE_SIZE,
+      channels: 3,
+      background: hexColor,
+    },
+  })
+    .png()
+    .toBuffer();
+}
+
+async function placeCutoutOnGenfillCanvas(
+  cutout: Buffer,
+  canvasHex: string,
+): Promise<{
+  canvas: Buffer;
+  resizedCutout: Buffer;
+  left: number;
+  top: number;
+}> {
+  const meta = await sharp(cutout).metadata();
+  const rawW = meta.width ?? 1;
+  const rawH = meta.height ?? 1;
+  const placement = computeSafeCanvasPlacement(FILL_BASE_SIZE, rawW, rawH, []);
+  const targetW = Math.max(1, Math.round(rawW * placement.scale));
+  const targetH = Math.max(1, Math.round(rawH * placement.scale));
+  const resizedCutout = await sharp(cutout)
+    .resize(targetW, targetH, { fit: "inside", withoutEnlargement: false })
+    .png()
+    .toBuffer();
+  const base = await buildGenfillSolidCanvas(canvasHex);
+  const canvas = await sharp(base)
+    .composite([{ input: resizedCutout, left: placement.left, top: placement.top }])
+    .png()
+    .toBuffer();
+  return {
+    canvas,
+    resizedCutout,
+    left: placement.left,
+    top: placement.top,
+  };
+}
+
+/** GenFill: 검정=상품 유지, 흰색=배경 편집 영역 */
+async function buildGenfillKeepProductMask(
+  resizedCutout: Buffer,
+  left: number,
+  top: number,
+): Promise<Buffer> {
+  const { data, info } = await sharp(resizedCutout)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const mask = Buffer.alloc(FILL_BASE_SIZE * FILL_BASE_SIZE, 255);
+  for (let y = 0; y < info.height; y += 1) {
+    const destY = top + y;
+    if (destY < 0 || destY >= FILL_BASE_SIZE) continue;
+    for (let x = 0; x < info.width; x += 1) {
+      const destX = left + x;
+      if (destX < 0 || destX >= FILL_BASE_SIZE) continue;
+      const alpha = data[(y * info.width + x) * 4 + 3];
+      if (alpha > GENFILL_ALPHA_KEEP_THRESHOLD) {
+        mask[destY * FILL_BASE_SIZE + destX] = 0;
+      }
+    }
+  }
+  return sharp(mask, {
+    raw: { width: FILL_BASE_SIZE, height: FILL_BASE_SIZE, channels: 1 },
+  })
+    .blur(GENFILL_MASK_BLUR)
+    .png()
+    .toBuffer();
+}
+
+function buildBriaBackdropPrompt(
+  category: string,
+  theme: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
+  shadow: ShadowAnalysis,
+  conceptBrief?: ConceptBrief,
+): string {
+  const basePrompt = BACKDROP_PROMPTS[category] ?? BACKDROP_PROMPTS["기타"];
+  const photography = resolvePhotographyTemplate(conceptBrief);
+  const conceptBlock = conceptBrief ? `, ${formatConceptPromptBlock(conceptBrief)}` : "";
+  const lock = lightingLockPrompt(shadow);
+  const accentClause =
+    shadow.colorTemperature === "warm"
+      ? `subtle ${describeColorTone(theme.accent)} accent lighting`
+      : "no warm accent gel, no amber bounce, keep white balance locked to the product";
+  const fluxStylePrompt = `${basePrompt}${conceptBlock}, ${photography.prompt}, ${lock}, ${accentClause}, soft ${describeColorTone(theme.baseNeutral)} set color without shifting key light`;
+  return sanitizePromptForBria(
+    `${fluxStylePrompt}, keep the original product unchanged, replace only the surrounding background, realistic studio set`,
+  );
 }
 
 export type GenerateBackdropResult = {
@@ -621,7 +732,6 @@ export async function generateBackdropViaBria(
   }
 
   const replicate = getReplicateClient();
-  const basePrompt = BACKDROP_PROMPTS[category] ?? BACKDROP_PROMPTS["기타"];
   let claudeCost = 0;
 
   let shadow: ShadowAnalysis = { ...DEFAULT_SHADOW };
@@ -635,22 +745,12 @@ export async function generateBackdropViaBria(
     console.warn("[shadow] 원본 그림자 분석 실패, 기본 조명 사용", error);
   }
 
-  const photography = resolvePhotographyTemplate(conceptBrief);
-  const conceptBlock = conceptBrief ? `, ${formatConceptPromptBlock(conceptBrief)}` : "";
   const lock = lightingLockPrompt(shadow);
-  const accentClause =
-    shadow.colorTemperature === "warm"
-      ? `subtle ${describeColorTone(theme.accent)} accent lighting`
-      : "no warm accent gel, no amber bounce, keep white balance locked to the product";
-  const fluxStylePrompt = `${basePrompt}${conceptBlock}, ${photography.prompt}, ${lock}, ${accentClause}, soft ${describeColorTone(theme.baseNeutral)} set color without shifting key light`;
-  const bgPrompt = sanitizePromptForBria(
-    `${fluxStylePrompt}, keep the original product unchanged, replace only the surrounding background, realistic studio set`,
-  );
-
+  const bgPrompt = buildBriaBackdropPrompt(category, theme, shadow, conceptBrief);
   const candidateCount = getBriaBackdropCandidateCount();
   logForceRegenerateStatus();
   console.log(`[shadow] 조명 잠금: ${lock}`);
-  console.log(`[prompt] generateBackdropViaBria (BACKDROP_PROVIDER=bria): ${bgPrompt}`);
+  console.log(`[prompt] generateBackdropViaBria (bria-replace): ${bgPrompt}`);
   console.log(`[replicate] CALL bria/generate-background x${candidateCount} (sequential)`);
 
   const candidateUrls: string[] = [];
@@ -705,6 +805,140 @@ export async function generateBackdropViaBria(
 
   console.log(
     `[generateBackdropViaBria] "${productName}"${brandName ? ` (${brandName})` : ""} 후보 ${candidateUrls.length}장`,
+  );
+  return {
+    buffer: null,
+    candidateUrls,
+    cost,
+    shadow,
+    claudeCost,
+    candidateCount: candidateUrls.length,
+    autoPicked: candidateUrls.length === 1,
+  };
+}
+
+/**
+ * Bria GenFill — 컷아웃 알파 마스크로 상품을 고정하고 배경 영역만 inpaint.
+ * 반환 타입은 generateBackdrop()과 동일.
+ * 스키마: image, mask, prompt, mask_type, preserve_alpha, seed
+ */
+export async function generateBackdropViaBriaGenFill(
+  category: string,
+  productName: string,
+  brandName: string | null,
+  theme: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
+  sourceImageUrl?: string,
+  conceptBrief?: ConceptBrief,
+): Promise<GenerateBackdropResult> {
+  if (!sourceImageUrl) {
+    throw new Error("Bria GenFill은 원본 상품 사진(sourceImageUrl)이 필요합니다.");
+  }
+
+  const replicate = getReplicateClient();
+  let claudeCost = 0;
+
+  let shadow: ShadowAnalysis = { ...DEFAULT_SHADOW };
+  try {
+    const sourceBuffer = await fetchSourceBuffer(sourceImageUrl);
+    const shadowResult = await analyzeShadowDirection(sourceBuffer);
+    shadow = shadowResult.shadow;
+    claudeCost += shadowResult.cost;
+    console.log(`[shadow] 분석 결과: ${shadow.promptHint}`);
+  } catch (error) {
+    console.warn("[shadow] 원본 그림자 분석 실패, 기본 조명 사용", error);
+  }
+
+  const lock = lightingLockPrompt(shadow);
+  const bgPrompt = buildBriaBackdropPrompt(category, theme, shadow, conceptBrief);
+  const candidateCount = getBriaBackdropCandidateCount();
+  logForceRegenerateStatus();
+  console.log(`[shadow] 조명 잠금: ${lock}`);
+  console.log(`[prompt] generateBackdropViaBriaGenFill (bria-genfill): ${bgPrompt}`);
+
+  const bgRemoverRef = await getBackgroundRemoverRef(replicate);
+  const cutoutOutput = await runReplicateWithRetry("851-labs/background-remover", () =>
+    replicate.run(bgRemoverRef, {
+      input: { image: sourceImageUrl },
+      wait: { mode: "poll", interval: 1000 },
+    }),
+  );
+  const cutoutUrl = extractFluxImageUrl(cutoutOutput);
+  if (!cutoutUrl) {
+    throw new Error("Bria GenFill용 배경 제거 결과 URL을 받지 못했습니다.");
+  }
+  const cutoutResponse = await fetch(cutoutUrl);
+  if (!cutoutResponse.ok) {
+    throw new Error("Bria GenFill용 컷아웃 이미지를 불러오지 못했습니다.");
+  }
+  const cutoutBuffer = Buffer.from(await cutoutResponse.arrayBuffer()) as Buffer;
+
+  const placed = await placeCutoutOnGenfillCanvas(cutoutBuffer, theme.baseNeutral);
+  const keepMask = await buildGenfillKeepProductMask(
+    placed.resizedCutout,
+    placed.left,
+    placed.top,
+  );
+  const imageDataUri = toDataUri(placed.canvas);
+  const maskDataUri = toDataUri(keepMask);
+
+  console.log(
+    `[cost] generateBackdrop (851-labs/background-remover x1): $${REPLICATE_COST_USD.backgroundRemover.toFixed(4)}`,
+  );
+  console.log(`[replicate] CALL bria/genfill x${candidateCount} (sequential)`);
+
+  const candidateUrls: string[] = [];
+  const failureReasons: string[] = [];
+  for (let i = 0; i < candidateCount; i += 1) {
+    const candidatePrompt = sanitizePromptForBria(
+      `${bgPrompt}, ${CANDIDATE_VARIATIONS[i % CANDIDATE_VARIATIONS.length]}`,
+    );
+    console.log(`[prompt] generateBackdropViaBriaGenFill candidate-${i}: ${candidatePrompt}`);
+    try {
+      const output = await runReplicateWithRetry(`bria/genfill#${i}`, () =>
+        withTimeout(
+          replicate.run(BRIA_GENFILL_REF, {
+            input: {
+              image: imageDataUri,
+              mask: maskDataUri,
+              prompt: candidatePrompt,
+              mask_type: "manual",
+              preserve_alpha: true,
+              sync: true,
+              seed: 2100 + i * 137,
+            },
+            wait: { mode: "poll", interval: 1000 },
+          }),
+          120000,
+          "bria/genfill",
+        ),
+      );
+      const url = extractFluxImageUrl(output);
+      if (!url) {
+        failureReasons.push(`결과에 URL 없음 (candidate=${i})`);
+        continue;
+      }
+      candidateUrls.push(url);
+    } catch (error) {
+      const detail = await describeReplicateError(error);
+      console.error("[generateBackdropViaBriaGenFill] 호출 실패:", detail);
+      failureReasons.push(detail);
+    }
+  }
+
+  const genfillCost = candidateUrls.length * REPLICATE_COST_USD.briaGenfill;
+  const cost = REPLICATE_COST_USD.backgroundRemover + genfillCost;
+  console.log(
+    `[cost] generateBackdrop (bria/genfill x${candidateUrls.length}): $${genfillCost.toFixed(4)}`,
+  );
+
+  if (candidateUrls.length === 0) {
+    throw new Error(
+      `Bria GenFill 배경 생성에 모두 실패했습니다. 원인: ${failureReasons.join(" | ")}`,
+    );
+  }
+
+  console.log(
+    `[generateBackdropViaBriaGenFill] "${productName}"${brandName ? ` (${brandName})` : ""} 후보 ${candidateUrls.length}장`,
   );
   return {
     buffer: null,
