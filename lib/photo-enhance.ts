@@ -99,9 +99,12 @@ export function getBackdropCandidateCount(): number {
   return 7;
 }
 
-/** `.env.local` BACKDROP_PROVIDER=bria | flux(기본). flux-fill-dev 경로는 유지. */
-export function getBackdropProvider(): "flux" | "bria" {
-  return process.env.BACKDROP_PROVIDER === "bria" ? "bria" : "flux";
+const BRIA_BACKDROP_WHITELIST = new Set<string>(["화장품/뷰티", "전자제품"]);
+
+/** `.env.local` BACKDROP_PROVIDER=bria 이더라도 화이트리스트 카테고리만 Bria 허용. */
+export function getBackdropProvider(category?: string): "flux" | "bria" {
+  if (process.env.BACKDROP_PROVIDER !== "bria") return "flux";
+  return category && BRIA_BACKDROP_WHITELIST.has(category) ? "bria" : "flux";
 }
 
 /** Bria Background Replace 후보 수. `.env.local` BRIA_BACKDROP_CANDIDATES (기본 2, 1–3). */

@@ -76,7 +76,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const provider = getBackdropProvider();
+    const provider = getBackdropProvider(category);
     console.log(`[generate-backdrop] BACKDROP_PROVIDER=${provider}`);
     const { buffer, candidateUrls, cost: backdropCost, shadow, claudeCost, autoPicked } =
       provider === "bria"
