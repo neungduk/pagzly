@@ -103,7 +103,7 @@ export function getBackdropCandidateCount(): number {
   return 7;
 }
 
-const BRIA_REPLACE_CATEGORIES = new Set<string>(["화장품/뷰티", "전자제품"]);
+const BRIA_REPLACE_CATEGORIES = new Set<string>(["화장품/뷰티", "전자제품", "생활용품"]);
 const BRIA_GENFILL_CATEGORIES = new Set<string>(["의류/패션", "식품/건강기능식품"]);
 
 export type BackdropProvider = "flux" | "bria-replace" | "bria-genfill";
@@ -1195,9 +1195,63 @@ export async function enhanceProductImage(
     console.warn("[safeCrop] 텍스트 영역 감지 실패, 기본 crop 사용", error);
   }
 
+  // ── 사전 단계: productName이 있으면 상품 영역을 먼저 감지해서 원본 크롭 ──
+  let bgRemoveInput: string = sourceImageUrl;
+  let preCropCost = 0;
+  if (productName) {
+    try {
+      const sourceRes = await fetch(sourceImageUrl);
+      if (sourceRes.ok) {
+        const sourceBuf = Buffer.from(await sourceRes.arrayBuffer());
+        const contentType = sourceRes.headers.get("content-type");
+        const mType: "image/jpeg" | "image/png" =
+          contentType?.includes("png") ? "image/png" : "image/jpeg";
+
+        const { box, cost: detectCost } = await detectProductRegion(sourceBuf, productName, mType);
+        claudeCost += detectCost;
+        preCropCost += detectCost;
+
+        if (box) {
+          const boxArea = (box.xMax - box.xMin) * (box.yMax - box.yMin);
+          if (boxArea >= 0.90) {
+            console.log(
+              `[preCrop] box 면적 ${(boxArea * 100).toFixed(0)}% ≥ 90% — 크롭 스킵, 원본 그대로 배경제거`,
+            );
+          } else {
+            const srcMeta = await sharp(sourceBuf).metadata();
+            const sw = srcMeta.width ?? 1;
+            const sh = srcMeta.height ?? 1;
+            const pad = 0.08;
+            const cropLeft = Math.max(0, Math.round((box.xMin - pad) * sw));
+            const cropTop = Math.max(0, Math.round((box.yMin - pad) * sh));
+            const cropRight = Math.min(sw, Math.round((box.xMax + pad) * sw));
+            const cropBottom = Math.min(sh, Math.round((box.yMax + pad) * sh));
+            const cropW = Math.max(1, cropRight - cropLeft);
+            const cropH = Math.max(1, cropBottom - cropTop);
+
+            console.log(
+              `[preCrop] '${productName}' box: [${box.xMin.toFixed(2)},${box.yMin.toFixed(2)}]→[${box.xMax.toFixed(2)},${box.yMax.toFixed(2)}] area=${(boxArea * 100).toFixed(0)}% → crop [${cropLeft},${cropTop} ${cropW}x${cropH}]`,
+            );
+
+            const croppedBuf = await sharp(sourceBuf)
+              .extract({ left: cropLeft, top: cropTop, width: cropW, height: cropH })
+              .png()
+              .toBuffer();
+
+            bgRemoveInput = `data:image/png;base64,${croppedBuf.toString("base64")}`;
+          }
+        } else {
+          console.log("[preCrop] 상품 영역 감지 실패 — 원본 그대로 배경제거");
+        }
+      }
+    } catch (error) {
+      console.warn("[preCrop] 상품 영역 감지 중 오류, 원본 그대로 배경제거", error);
+    }
+  }
+
   const output = await runReplicateWithRetry("851-labs/background-remover", () =>
     replicate.run(modelRef, {
-      input: { image: sourceImageUrl },
+      input: { image: bgRemoveInput },
     }),
   );
 
@@ -1213,94 +1267,17 @@ export async function enhanceProductImage(
   if (!cutoutResponse.ok) {
     throw new Error("보정된 이미지를 불러오지 못했습니다.");
   }
-  const cutoutBuffer = Buffer.from(await cutoutResponse.arrayBuffer()) as Buffer;
-  let cutoutAlpha = await measureTransparentRatio(cutoutBuffer);
+  const finalCutoutBuffer = Buffer.from(await cutoutResponse.arrayBuffer()) as Buffer;
+  const cutoutAlpha = await measureTransparentRatio(finalCutoutBuffer);
   console.log(
     `[cutout] transparentRatio=${cutoutAlpha.toFixed(3)} source=${sourceImageUrl.slice(-48)}`,
   );
 
-  let useFallbackOriginal = false;
-  let finalCutoutBuffer = cutoutBuffer;
-  let retryCost = 0;
-
   if (cutoutAlpha < 0.05) {
     console.warn(
-      "[cutout] 배경 제거 결과에 투명 영역이 거의 없음 — 상품 영역 감지 후 재시도 시작",
+      "[cutout] 배경 제거 결과에 투명 영역이 거의 없음 — fallback: 원본 이미지 사용 (배경 합성 스킵)",
     );
 
-    let retrySucceeded = false;
-
-    if (productName) {
-      try {
-        const sourceRes = await fetch(sourceImageUrl);
-        if (sourceRes.ok) {
-          const sourceBuf = Buffer.from(await sourceRes.arrayBuffer());
-          const contentType = sourceRes.headers.get("content-type");
-          const mType: "image/jpeg" | "image/png" =
-            contentType?.includes("png") ? "image/png" : "image/jpeg";
-
-          const { box, cost: detectCost } = await detectProductRegion(sourceBuf, productName, mType);
-          claudeCost += detectCost;
-
-          if (box) {
-            const srcMeta = await sharp(sourceBuf).metadata();
-            const sw = srcMeta.width ?? 1;
-            const sh = srcMeta.height ?? 1;
-            const pad = 0.08;
-            const cropLeft = Math.max(0, Math.round((box.xMin - pad) * sw));
-            const cropTop = Math.max(0, Math.round((box.yMin - pad) * sh));
-            const cropRight = Math.min(sw, Math.round((box.xMax + pad) * sw));
-            const cropBottom = Math.min(sh, Math.round((box.yMax + pad) * sh));
-            const cropW = Math.max(1, cropRight - cropLeft);
-            const cropH = Math.max(1, cropBottom - cropTop);
-
-            console.log(
-              `[cutout] retry: cropping source to product region [${cropLeft},${cropTop} ${cropW}x${cropH}]`,
-            );
-
-            const croppedBuf = await sharp(sourceBuf)
-              .extract({ left: cropLeft, top: cropTop, width: cropW, height: cropH })
-              .png()
-              .toBuffer();
-
-            const croppedDataUri = `data:image/png;base64,${croppedBuf.toString("base64")}`;
-
-            const retryOutput = await runReplicateWithRetry("851-labs/background-remover (retry)", () =>
-              replicate.run(modelRef, { input: { image: croppedDataUri } }),
-            );
-            retryCost += REPLICATE_COST_USD.backgroundRemover;
-
-            const retryCutoutUrl = Array.isArray(retryOutput) ? retryOutput[0] : retryOutput;
-            if (retryCutoutUrl && typeof retryCutoutUrl === "string") {
-              const retryRes = await fetch(retryCutoutUrl);
-              if (retryRes.ok) {
-                const retryBuf = Buffer.from(await retryRes.arrayBuffer()) as Buffer;
-                const retryAlpha = await measureTransparentRatio(retryBuf);
-                console.log(`[cutout] retry transparentRatio=${retryAlpha.toFixed(3)}`);
-
-                if (retryAlpha >= 0.05) {
-                  console.log("[cutout] retry 성공 — 재시도 컷아웃 사용");
-                  finalCutoutBuffer = retryBuf;
-                  cutoutAlpha = retryAlpha;
-                  retrySucceeded = true;
-                }
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.warn("[cutout] retry 과정 중 오류, fallback으로 이동", error);
-      }
-    }
-
-    if (!retrySucceeded) {
-      useFallbackOriginal = true;
-      console.log("[cutout] fallback: 원본 이미지 사용 (배경 합성 스킵)");
-    }
-  }
-
-  // fallback: 원본 이미지를 안전하게 크롭해서 바로 반환
-  if (useFallbackOriginal) {
     const sourceRes = await fetch(sourceImageUrl);
     if (!sourceRes.ok) throw new Error("원본 이미지를 불러오지 못했습니다 (fallback).");
     const sourceBuf = Buffer.from(await sourceRes.arrayBuffer());
@@ -1309,13 +1286,13 @@ export async function enhanceProductImage(
     const sh = srcMeta.height ?? 1;
 
     const cropBox = computeSafeCropBox(sw, sh, textRegions, 0.04);
-    let croppedSource = await sharp(sourceBuf)
+    const croppedSource = await sharp(sourceBuf)
       .extract(cropBox)
       .resize(CANVAS_SIZE, CANVAS_SIZE, { fit: "cover" })
       .png()
       .toBuffer();
 
-    const totalCost = cost + retryCost;
+    const totalCost = cost + preCropCost;
     return { buffer: croppedSource, cost: totalCost, claudeCost };
   }
 
