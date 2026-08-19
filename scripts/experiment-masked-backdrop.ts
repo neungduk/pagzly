@@ -182,19 +182,33 @@ async function placeCutoutOnCanvas(
   };
 }
 
-/** 제품(알파>임계값) = 검정(유지), 나머지 = 흰색(재생성). 경계 blur로 페더. */
-async function buildKeepProductMask(placedCanvas: Buffer): Promise<Buffer> {
-  const { data, info } = await sharp(placedCanvas)
+/** 제품(알파>임계값) = 검정(유지), 나머지 = 흰색(재생성). 경계 blur로 페더.
+ *  RGB로 합성된 캔버스는 알파가 사라져서 마스크를 뽑을 수 없으므로,
+ *  리사이즈된 컷아웃 알파를 같은 left/top에 직접 찍는다. */
+async function buildKeepProductMask(
+  resizedCutout: Buffer,
+  left: number,
+  top: number,
+): Promise<Buffer> {
+  const { data, info } = await sharp(resizedCutout)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
-  const mask = Buffer.alloc(info.width * info.height);
-  for (let i = 0; i < info.width * info.height; i += 1) {
-    const alpha = data[i * 4 + 3];
-    mask[i] = alpha > ALPHA_KEEP_THRESHOLD ? 0 : 255;
+  const mask = Buffer.alloc(CANVAS_SIZE * CANVAS_SIZE, 255);
+  for (let y = 0; y < info.height; y += 1) {
+    const destY = top + y;
+    if (destY < 0 || destY >= CANVAS_SIZE) continue;
+    for (let x = 0; x < info.width; x += 1) {
+      const destX = left + x;
+      if (destX < 0 || destX >= CANVAS_SIZE) continue;
+      const alpha = data[(y * info.width + x) * 4 + 3];
+      if (alpha > ALPHA_KEEP_THRESHOLD) {
+        mask[destY * CANVAS_SIZE + destX] = 0;
+      }
+    }
   }
   return sharp(mask, {
-    raw: { width: info.width, height: info.height, channels: 1 },
+    raw: { width: CANVAS_SIZE, height: CANVAS_SIZE, channels: 1 },
   })
     .blur(MASK_BLUR)
     .png()
@@ -304,27 +318,38 @@ async function main() {
     }
     const cutoutBuf = fs.readFileSync(cutoutPath);
     const placed = await placeCutoutOnCanvas(cutoutBuf, theme.baseNeutral);
-    const keepMask = await buildKeepProductMask(placed.canvas);
-
-    fs.writeFileSync(path.join(OUT_DIR, `${cutout.id}-input-canvas.png`), placed.canvas);
-    fs.writeFileSync(path.join(OUT_DIR, `${cutout.id}-mask.png`), keepMask);
-
-    const currentFill = await runFluxFill({
-      replicate,
-      prompt: `${prompt}, ${CANDIDATE_VARIATIONS[0]}`,
-      image: emptyCanvas,
-      mask: fullMask,
-      label: `${cutout.id}-current`,
-    });
-    calls += 1;
-    const currentPipeline = await overlayCutoutOnBackdrop(
-      currentFill,
+    const keepMask = await buildKeepProductMask(
       placed.resizedCutout,
       placed.left,
       placed.top,
     );
-    fs.writeFileSync(path.join(OUT_DIR, `${cutout.id}-current-pipeline.png`), currentPipeline);
-    console.log(`[cost] ${cutout.id}-current-pipeline flux-fill-dev: $${FLUX_FILL_DEV_USD.toFixed(3)}`);
+
+    fs.writeFileSync(path.join(OUT_DIR, `${cutout.id}-input-canvas.png`), placed.canvas);
+    fs.writeFileSync(path.join(OUT_DIR, `${cutout.id}-mask.png`), keepMask);
+
+    const currentPath = path.join(OUT_DIR, `${cutout.id}-current-pipeline.png`);
+    let currentPipeline: Buffer;
+    if (fs.existsSync(currentPath)) {
+      currentPipeline = fs.readFileSync(currentPath);
+      console.log(`[skip] ${cutout.id}-current-pipeline.png 재사용 (fill-dev 미호출)`);
+    } else {
+      const currentFill = await runFluxFill({
+        replicate,
+        prompt: `${prompt}, ${CANDIDATE_VARIATIONS[0]}`,
+        image: emptyCanvas,
+        mask: fullMask,
+        label: `${cutout.id}-current`,
+      });
+      calls += 1;
+      currentPipeline = await overlayCutoutOnBackdrop(
+        currentFill,
+        placed.resizedCutout,
+        placed.left,
+        placed.top,
+      );
+      fs.writeFileSync(currentPath, currentPipeline);
+      console.log(`[cost] ${cutout.id}-current-pipeline flux-fill-dev: $${FLUX_FILL_DEV_USD.toFixed(3)}`);
+    }
 
     const maskedResults: Buffer[] = [];
     for (let i = 0; i < CANDIDATE_COUNT; i += 1) {
