@@ -23,9 +23,10 @@ export async function POST(request: Request) {
 
     const userId = user.id;
 
-    const { shadowAnalysis, conceptBrief } = (await request.json()) as {
+    const { shadowAnalysis, conceptBrief, category } = (await request.json()) as {
       shadowAnalysis?: ShadowAnalysis;
       conceptBrief?: ConceptBrief;
+      category?: string;
     };
 
     if (!shadowAnalysis) {
@@ -59,6 +60,7 @@ export async function POST(request: Request) {
     const { ingredientUrl, textureUrl, cost } = await generateSectionBackdropVariants(
       shadowAnalysis,
       conceptBrief,
+      category ?? "기타",
     );
 
     if (isTestMode() && ingredientUrl && textureUrl) {

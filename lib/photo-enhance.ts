@@ -342,7 +342,7 @@ async function compositeDecorOnBackdrop(
 async function fetchSourceBuffer(url: string): Promise<Buffer> {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`이미지 fetch 실패: ${url}`);
-  return Buffer.from(await response.arrayBuffer());
+  return Buffer.from(await response.arrayBuffer()) as Buffer;
 }
 
 export type GenerateBackdropResult = {
@@ -548,12 +548,59 @@ export async function generateBackdrop(
   };
 }
 
-const SECTION_BACKDROP_PROMPTS = {
-  ingredient:
-    "extreme close-up of empty clear glass with condensation water droplets and specular reflections, wet glass surface only, no bottle, no dropper, no product, no packaging, no text, no logo, no human skin, product photography empty backdrop",
-  texture:
-    "macro photograph of a clear watery serum formula slowly dripping and flowing across a glass plane, viscous ribbon smear, shallow depth of field, no bottle, no packaging, no hands, no text, no logo, empty formula-only frame",
-} as const;
+type SectionBackdropKind = "ingredient" | "texture";
+
+const SECTION_BACKDROP_PROMPTS_BY_CATEGORY: Record<
+  string,
+  Record<SectionBackdropKind, string>
+> = {
+  "화장품/뷰티": {
+    ingredient:
+      "extreme close-up of empty clear glass with condensation water droplets and specular reflections, wet glass surface only, no bottle, no dropper, no product, no packaging, no text, no logo, no human skin, product photography empty backdrop",
+    texture:
+      "macro photograph of a clear watery serum formula slowly dripping and flowing across a glass plane, viscous ribbon smear, shallow depth of field, no bottle, no packaging, no hands, no text, no logo, empty formula-only frame",
+  },
+  "전자제품": {
+    ingredient:
+      "extreme macro of brushed aluminum and matte polymer texture, cool gray tech surface detail, subtle geometric light streaks, empty product photography backdrop, no device, no cable, no logo, no text",
+    texture:
+      "soft bokeh modern desk workspace ambient blur, minimal tech lifestyle background, cool neutral tones, shallow depth of field, empty center, no product, no screen, no logo, no text",
+  },
+  "식품/건강기능식품": {
+    ingredient:
+      "macro wooden table grain with fresh ingredient texture hints softly blurred, warm natural food photography surface, empty backdrop, no plate, no packaging, no logo, no text",
+    texture:
+      "soft steam wisps over ceramic surface, warm kitchen ambient blur, shallow depth of field, empty food photography backdrop, no dish, no product, no logo, no text",
+  },
+  "의류/패션": {
+    ingredient:
+      "extreme macro fabric weave and stitch detail, soft textile texture, neutral editorial studio surface, empty backdrop, no garment, no model, no logo, no text",
+    texture:
+      "soft neutral fashion studio floor and wall blur, editorial runway ambient, shallow depth of field, empty center, no model, no clothing, no logo, no text",
+  },
+  "생활용품": {
+    ingredient:
+      "macro natural material texture, linen or ceramic micro-detail, bright airy home surface, empty lifestyle photography backdrop, no product, no logo, no text",
+    texture:
+      "bright home interior soft bokeh, minimal styled shelf ambient blur, warm natural light, empty backdrop, no product, no logo, no text",
+  },
+  "반려동물": {
+    ingredient:
+      "soft cozy fabric texture macro, warm pastel home surface detail, empty pet product photography backdrop, no animal, no product, no logo, no text",
+    texture:
+      "warm cozy home interior bokeh, playful pastel ambient blur, shallow depth of field, empty backdrop, no pet, no product, no logo, no text",
+  },
+  "기타": {
+    ingredient:
+      "macro subtle surface grain and soft specular highlights, clean minimal studio plane, empty product photography backdrop, no product, no logo, no text",
+    texture:
+      "soft gradient studio ambient blur, neutral minimal backdrop variation, shallow depth of field, empty center, no product, no logo, no text",
+  },
+};
+
+function getSectionBackdropPrompts(category: string): Record<SectionBackdropKind, string> {
+  return SECTION_BACKDROP_PROMPTS_BY_CATEGORY[category] ?? SECTION_BACKDROP_PROMPTS_BY_CATEGORY["기타"];
+}
 
 async function generateSchnellPng(prompt: string): Promise<string> {
   const replicate = getReplicateClient();
@@ -578,18 +625,20 @@ async function generateSchnellPng(prompt: string): Promise<string> {
   return url;
 }
 
-/** 히어로에서 고른 스튜디오 배경과 다른 성분/텍스처 연출. flux-schnell ×2. */
+/** 히어로에서 고른 스튜디오 배경과 다른 섹션(업로드 2·3번) 연출. flux-schnell ×2. */
 export async function generateSectionBackdropVariants(
   shadow: ShadowAnalysis,
   conceptBrief?: ConceptBrief,
+  category = "기타",
 ): Promise<{ ingredientUrl: string | null; textureUrl: string | null; cost: number }> {
   const lock = lightingLockPrompt(shadow);
   const conceptBlock = conceptBrief ? formatConceptPromptBlock(conceptBrief) : "";
+  const sectionPrompts = getSectionBackdropPrompts(category);
   const kinds = ["ingredient", "texture"] as const;
   const results = await Promise.allSettled(
     kinds.map(async (kind) => {
       const prompt = [
-        SECTION_BACKDROP_PROMPTS[kind],
+        sectionPrompts[kind],
         conceptBlock,
         lock,
         "obey lighting lock color temperature exactly, no golden hour, no amber gel",
@@ -757,7 +806,7 @@ export async function enhanceProductImage(
   if (!cutoutResponse.ok) {
     throw new Error("보정된 이미지를 불러오지 못했습니다.");
   }
-  const cutoutBuffer = Buffer.from(await cutoutResponse.arrayBuffer());
+  const cutoutBuffer = Buffer.from(await cutoutResponse.arrayBuffer()) as Buffer;
   const cutoutAlpha = await measureTransparentRatio(cutoutBuffer);
   console.log(
     `[cutout] transparentRatio=${cutoutAlpha.toFixed(3)} source=${sourceImageUrl.slice(-48)}`,
@@ -816,7 +865,7 @@ export async function enhanceProductImage(
     console.log("[decor] TEST_MODE — 장식 그래픽 생성 생략, 기본 배경 사용");
   }
 
-  let backdropWithDecor = backdropResized;
+  let backdropWithDecor: Buffer = backdropResized;
   if (decorBuffer != null) {
     try {
       backdropWithDecor = await compositeDecorOnBackdrop(backdropResized, decorBuffer);
@@ -842,7 +891,7 @@ export async function enhanceProductImage(
     .resize(targetW, targetH, { fit: "inside", withoutEnlargement: false })
     .toBuffer();
 
-  let cutoutForComposite = cutoutResized;
+  let cutoutForComposite: Buffer = cutoutResized;
   try {
     const feathered = await featherCutout(cutoutResized);
     cutoutForComposite = await matchCutoutWhiteBalance(feathered, backdropWithDecor);
@@ -853,7 +902,16 @@ export async function enhanceProductImage(
     console.warn("[composite] feather/WB 실패, 컷아웃 그대로 합성", error);
   }
 
-  const shadowSvg = buildProductShadowSvg(CANVAS_SIZE, placement, shadow);
+  const shadowSvg = buildProductShadowSvg(
+    CANVAS_SIZE,
+    {
+      left: placement.left,
+      top: placement.top,
+      width: targetW,
+      height: targetH,
+    },
+    shadow,
+  );
   const shadowBuffer = await sharp(Buffer.from(shadowSvg)).png().toBuffer();
 
   const finalBuffer = await sharp(backdropWithDecor)

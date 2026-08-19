@@ -457,7 +457,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         let sectionBackdrops:
           | { ingredientUrl?: string | null; textureUrl?: string | null }
           | undefined;
-        if (category === "화장품/뷰티" && backdropResult.shadowAnalysis) {
+        // 업로드 2·3번(성분/기능·텍스처/사용 장면)마다 히어로와 다른 배경을 쓴다.
+        if (backdropResult.shadowAnalysis && uploaded.length >= 2) {
           try {
             const sectionRes = await fetch("/api/section-backdrops", {
               method: "POST",
@@ -465,6 +466,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
               body: JSON.stringify({
                 shadowAnalysis: backdropResult.shadowAnalysis,
                 conceptBrief,
+                category,
               }),
             });
             const sectionJson = (await sectionRes.json()) as {

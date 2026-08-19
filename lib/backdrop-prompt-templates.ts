@@ -108,7 +108,7 @@ const KEYWORD_TO_ID: Array<{ id: PhotographyTemplateId; keywords: string[] }> = 
 
 export function resolvePhotographyTemplate(brief?: BriefLike | null): PhotographyTemplate {
   if (!brief) return PHOTOGRAPHY_TEMPLATES.studio;
-  const haystack = [brief.theme, brief.mood, ...brief.motif_keywords, brief.backdrop_hint]
+  const haystack = [brief.theme, brief.mood, ...(brief.motif_keywords ?? []), brief.backdrop_hint]
     .join(" ")
     .toLowerCase();
   for (const row of KEYWORD_TO_ID) {
