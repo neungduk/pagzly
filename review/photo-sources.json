@@ -135,33 +135,6 @@
     "query": "supplement powder container product"
   },
   {
-    "category": "생활용품",
-    "file": "scripts/test-assets/생활용품/01-pexels-10196698.jpeg",
-    "pexelsId": 10196698,
-    "pexelsUrl": "https://www.pexels.com/photo/close-up-shot-of-a-person-holding-a-lamp-10196698/",
-    "photographer": "Amar  Preciado",
-    "photographerUrl": "https://www.pexels.com/@amar",
-    "query": "camping lantern product"
-  },
-  {
-    "category": "생활용품",
-    "file": "scripts/test-assets/생활용품/02-pexels-20413588.jpeg",
-    "pexelsId": 20413588,
-    "pexelsUrl": "https://www.pexels.com/photo/portable-electric-lamp-20413588/",
-    "photographer": "Buğra Özcan",
-    "photographerUrl": "https://www.pexels.com/@bugra-ozcan-237904777",
-    "query": "portable led lantern"
-  },
-  {
-    "category": "생활용품",
-    "file": "scripts/test-assets/생활용품/03-pexels-31200877.jpeg",
-    "pexelsId": 31200877,
-    "pexelsUrl": "https://www.pexels.com/photo/outdoor-camping-lantern-illuminating-at-dusk-31200877/",
-    "photographer": "Võ Nguyễn ( Terri )",
-    "photographerUrl": "https://www.pexels.com/@vo-nguy-n-terri-2150303799",
-    "query": "outdoor camping light lantern"
-  },
-  {
     "category": "의류-패션",
     "file": "scripts/test-assets/의류-패션/01-pexels-22441291.jpeg",
     "pexelsId": 22441291,
@@ -187,5 +160,65 @@
     "photographer": "Pew Nguyen",
     "photographerUrl": "https://www.pexels.com/@nguyendesigner",
     "query": "white linen shirt on hanger product"
+  },
+  {
+    "category": "생활용품",
+    "file": "scripts/test-assets/생활용품/01-pexels-6762494.jpeg",
+    "pexelsId": 6762494,
+    "pexelsUrl": "https://www.pexels.com/photo/white-and-gray-throw-pillows-on-the-sofa-6762494/",
+    "photographer": "Rachel Claire",
+    "photographerUrl": "https://www.pexels.com/@rachel-claire",
+    "query": "linen throw pillow product white background",
+    "note": "product=린넨 데코 쿠션; altVerified=Soft throw pillows on a bed next to a sunlit window with sheer curtains, creating a cozy atmosphere."
+  },
+  {
+    "category": "생활용품",
+    "file": "scripts/test-assets/생활용품/02-pexels-6801218.jpeg",
+    "pexelsId": 6801218,
+    "pexelsUrl": "https://www.pexels.com/photo/pillows-on-the-floor-near-white-curtain-6801218/",
+    "photographer": "Artem Podrez",
+    "photographerUrl": "https://www.pexels.com/@artempodrez",
+    "query": "decorative cushion pillow isolated",
+    "note": "product=린넨 데코 쿠션; altVerified=A stylish collection of textured cushions against a beige wall, showcasing minimalist elegance."
+  },
+  {
+    "category": "생활용품",
+    "file": "scripts/test-assets/생활용품/03-pexels-33299770.jpeg",
+    "pexelsId": 33299770,
+    "pexelsUrl": "https://www.pexels.com/photo/cozy-interior-with-vintage-photo-album-33299770/",
+    "photographer": "Golboo Maghooli",
+    "photographerUrl": "https://www.pexels.com/@golboo",
+    "query": "soft cushion on sofa product photo",
+    "note": "product=린넨 데코 쿠션; altVerified=Open vintage photo album on a blue sofa with green cushion, creating a nostalgic feel."
+  },
+  {
+    "category": "반려동물",
+    "file": "scripts/test-assets/반려동물/01-pexels-28948931.jpeg",
+    "pexelsId": 28948931,
+    "pexelsUrl": "https://www.pexels.com/photo/durable-dog-leash-on-paved-surface-28948931/",
+    "photographer": "Impact Dog Crates",
+    "photographerUrl": "https://www.pexels.com/@impact-dog-crates-1789722873",
+    "query": "dog leash product white background",
+    "note": "product=강아지 리드줄; altVerified=A high-quality dog leash lies on a paved path, showcasing premium craftsmanship."
+  },
+  {
+    "category": "반려동물",
+    "file": "scripts/test-assets/반려동물/02-pexels-14945757.jpeg",
+    "pexelsId": 14945757,
+    "pexelsUrl": "https://www.pexels.com/photo/dog-on-leash-14945757/",
+    "photographer": "Hope Pontifex",
+    "photographerUrl": "https://www.pexels.com/@animalsofbne",
+    "query": "pet leash coiled product photo",
+    "note": "product=강아지 리드줄; altVerified=Brown dog on a leash looking curiously at the camera on a paved path."
+  },
+  {
+    "category": "반려동물",
+    "file": "scripts/test-assets/반려동물/03-pexels-10994369.jpeg",
+    "pexelsId": 10994369,
+    "pexelsUrl": "https://www.pexels.com/photo/two-dogs-on-leash-10994369/",
+    "photographer": "chickenbunny",
+    "photographerUrl": "https://www.pexels.com/@chickenbunny-102941452",
+    "query": "leash and collar product photography",
+    "note": "product=강아지 리드줄; altVerified=Two dogs with leashes walking side by side on a path, showcasing companionship."
   }
 ]

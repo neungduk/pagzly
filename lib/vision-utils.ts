@@ -212,6 +212,99 @@ export async function detectTextRegionsFromUrl(
   return detectTextRegions(buffer, mediaType);
 }
 
+export type ProductBoundingBox = {
+  xMin: number;
+  yMin: number;
+  xMax: number;
+  yMax: number;
+};
+
+/**
+ * Haiku Vision으로 원본 사진에서 실제 판매 상품의 bounding box를 감지.
+ * 배경제거 재시도 시 상품 영역만 크롭해서 넘기는 용도.
+ * TEST_MODE이거나 API키 없으면 null 반환.
+ */
+export async function detectProductRegion(
+  imageBuffer: Buffer,
+  productName: string,
+  mediaType: "image/jpeg" | "image/png" = "image/jpeg",
+): Promise<{ box: ProductBoundingBox | null; cost: number }> {
+  if (!process.env.ANTHROPIC_API_KEY) return { box: null, cost: 0 };
+  if (isTestMode()) {
+    console.log("[detectProductRegion] TEST_MODE — 스킵");
+    return { box: null, cost: 0 };
+  }
+
+  try {
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const message = await anthropic.messages.create({
+      model: HAIKU_VISION_MODEL,
+      max_tokens: 300,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: mediaType,
+                data: imageBuffer.toString("base64"),
+              },
+            },
+            {
+              type: "text",
+              text: `이 사진에서 실제 판매 상품인 '${productName}'이 정확히 어디 있는지 bounding box 하나만 0~1 정규화 좌표로 반환하세요.
+강아지·사람·다른 배경 물체는 제외하고, 상품 자체의 경계만 잡아주세요.
+
+JSON만 반환:
+{ "xMin": 0.1, "yMin": 0.2, "xMax": 0.8, "yMax": 0.9 }
+
+상품이 식별되지 않으면 null`,
+            },
+          ],
+        },
+      ],
+    });
+
+    const cost = calculateClaudeCost(HAIKU_VISION_MODEL, message.usage);
+    logClaudeCost("productRegionDetect", HAIKU_VISION_MODEL, cost);
+
+    const textBlock = message.content.find((b) => b.type === "text");
+    if (!textBlock || textBlock.type !== "text") return { box: null, cost };
+
+    const raw = textBlock.text.trim();
+    if (/null/i.test(raw) && !raw.includes("{")) return { box: null, cost };
+
+    const jsonMatch = raw.match(/\{[\s\S]*?\}/);
+    if (!jsonMatch) return { box: null, cost };
+
+    const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+    const xMin = Number(parsed.xMin ?? parsed.x_min);
+    const yMin = Number(parsed.yMin ?? parsed.y_min);
+    const xMax = Number(parsed.xMax ?? parsed.x_max);
+    const yMax = Number(parsed.yMax ?? parsed.y_max);
+
+    if ([xMin, yMin, xMax, yMax].some((n) => Number.isNaN(n))) return { box: null, cost };
+    if (xMax - xMin < 0.02 || yMax - yMin < 0.02) return { box: null, cost };
+
+    const box: ProductBoundingBox = {
+      xMin: clamp01(Math.min(xMin, xMax)),
+      yMin: clamp01(Math.min(yMin, yMax)),
+      xMax: clamp01(Math.max(xMin, xMax)),
+      yMax: clamp01(Math.max(yMin, yMax)),
+    };
+
+    console.log(
+      `[detectProductRegion] '${productName}' box: [${box.xMin.toFixed(2)},${box.yMin.toFixed(2)}]→[${box.xMax.toFixed(2)},${box.yMax.toFixed(2)}]`,
+    );
+    return { box, cost };
+  } catch (error) {
+    console.warn("[detectProductRegion] 실패, 상품 영역 감지 생략", error);
+    return { box: null, cost: 0 };
+  }
+}
+
 /** 원본 상품 사진의 그림자 방향·강도를 분석해 flux 프롬프트 힌트로 변환한다. */
 export async function analyzeShadowDirection(
   imageBuffer: Buffer,

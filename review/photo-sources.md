@@ -99,3 +99,25 @@
 - 발급: https://www.pexels.com/api/
 - 환경변수: `.env.local` → `PEXELS_API_KEY`
 - 라이선스: https://www.pexels.com/license/
+
+---
+
+## 2026-08-17 카테고리 루프 (이번 작업)
+
+크롤링 없음. **Pexels License**만 사용 (무료, 상업적 이용 허용, 출처 표기 불필요 — 기록은 남김).  
+브랜드 로고/워터마크 컷은 다운로드 후 폐기.
+
+manifest: `review/photo-sources-category-loop.json`  
+다운로드: `scripts/download-category-stock.ts`
+
+| 카테고리 | 파일 | Pexels ID | 촬영 | 라이선스 확인 |
+|----------|------|-----------|------|----------------|
+| 화장품-뷰티 | `01-pexels-18350885.jpeg` | 18350885 | Carlos Diaz | Pexels License ✓ |
+| 화장품-뷰티 | `02-pexels-8101529.jpeg` | 8101529 | Polina | Pexels License ✓ |
+| 패션-소품 | `01-pexels-37762707.jpeg` | 37762707 | Emrah | Pexels License ✓ |
+| 패션-소품 | `02-pexels-4550837.jpeg` | 4550837 | Leeloo The First | Pexels License ✓ |
+| 리빙-소품 | `01-pexels-35082703.jpeg` | 35082703 | giang pham | Pexels License ✓ |
+| 리빙-소품 | `02-pexels-6634662.jpeg` | 6634662 | Vlada Karpovich | Pexels License ✓ |
+| 전자기기-액세서리 | `01-pexels-35599938.jpeg` | 35599938 | Ivett M | Pexels License ✓ |
+
+폐기(로고 포함, 미사용): 패션 가방 21897309·토트 19197737, JBL 헤드폰 36230830, Acer 마우스 20510026.

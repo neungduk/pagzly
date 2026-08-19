@@ -1,0 +1,18 @@
+[
+  {
+    "file": "C:\\Users\\tjsmd\\Desktop\\pagelab\\pagelab\\scripts\\test-assets\\화장품-확장\\미스트\\type-01-pexels-6167872.jpeg",
+    "id": 6167872,
+    "photographer": "Vie Studio",
+    "url": "https://www.pexels.com/photo/cosmetic-bottles-in-close-up-shot-6167872/",
+    "alt": "Brown glass bottles for skincare products on a marble background.",
+    "query": "skincare spray bottle mockup no label white background"
+  },
+  {
+    "file": "C:\\Users\\tjsmd\\Desktop\\pagelab\\pagelab\\scripts\\test-assets\\화장품-확장\\마스크팩\\type-01-pexels-8947551.jpeg",
+    "id": 8947551,
+    "photographer": "https://kaboompics.com/",
+    "url": "https://www.pexels.com/photo/blue-bottle-in-white-surface-8947551/",
+    "alt": "Simple blue container with label on a textured white background, perfect for mock-ups or product presentations.",
+    "query": "sleeping pack cream jar no label"
+  }
+]

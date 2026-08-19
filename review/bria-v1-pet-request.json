@@ -1,0 +1,21 @@
+{
+  "capturedAt": "2026-08-19T07:34:42.014Z",
+  "productName": "강아지 리드줄",
+  "category": "반려동물",
+  "mode": "bria-replace",
+  "imageUrls": [
+    "https://sblnthhayvrfkvaksest.supabase.co/storage/v1/object/public/images/d13edd16-c92e-478b-a678-2e7d9641a866/1787124818265-88638eff-ed22-475e-b565-7c8565932e10.jpg",
+    "https://sblnthhayvrfkvaksest.supabase.co/storage/v1/object/public/images/d13edd16-c92e-478b-a678-2e7d9641a866/1787124818937-be885ebb-15b4-4bb8-9c7a-f7fd95a1fb72.jpg",
+    "https://sblnthhayvrfkvaksest.supabase.co/storage/v1/object/public/images/d13edd16-c92e-478b-a678-2e7d9641a866/1787124819468-f963eb1a-f138-4ac9-8a44-c14d84db02ed.jpg"
+  ],
+  "localFixtures": [
+    "scripts\\test-assets\\반려동물\\01-pexels-28948931.jpeg",
+    "scripts\\test-assets\\반려동물\\02-pexels-14945757.jpeg",
+    "scripts\\test-assets\\반려동물\\03-pexels-10994369.jpeg"
+  ],
+  "candidateCount": 2,
+  "candidateUrls": [
+    "https://replicate.delivery/xezq/04X8yb3PdYIcNhXWlpzxyKtaJao9ILphejWRWGcEE7WAdYiLA/tmp_3uas8xs.png",
+    "https://replicate.delivery/xezq/nzAHo1aj8w7bI1R7Vz8kGjTr7hYekdgZGijGF60cDSqIdYiLA/tmp3teralsc.png"
+  ]
+}

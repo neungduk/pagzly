@@ -330,3 +330,30 @@ hero → checklist → usage_scene → detail_zoom → usage_steps
 3. 장식 도형은 hero 밖에서 추가하지 않는다.
 4. 이미지 비율은 `SLOT_IMAGE_RATIO`를 유지한다.
 5. 후기·인증 섹션을 새로 만들지 않는다.
+
+배경·합성 촬영 용어(수분/쿨링/영양/클렌징)는 `review/backdrop-prompt-templates.md`와 `lib/backdrop-prompt-templates.ts`를 따른다. 최종 승인 배경 후보 수는 `BACKDROP_CANDIDATES`(기본 7).
+
+---
+
+## 10. 카테고리 구조 패턴 (카피·모델컷 비복제)
+
+브랜드명·세일즈 문구·특정 모델 사진은 베끼지 않는다. **배치 구조만** 참고한다.
+
+### 뷰티/스킨케어
+
+| 구조 | 우리 슬롯·렌더러 | 하지 말 것 |
+|------|-------------------|------------|
+| 두 컷 나란히 비교 | `gallery` 2열 + BEFORE/AFTER **레이블만** (구조). 임상 전후 연출·효능 단정 금지 | 특정 브랜드 B/A 카피 복제 |
+| 성분·질감 매크로 | `ingredient_highlight` / `texture_feel`에 서로 다른 원본 배정. 성분 슬롯은 짧은 액센트 밴드 | 히어로 장식을 본문에 복제 |
+| 수치 막대 | `spec_table` 값에 `%`가 **이미 있을 때만** 가로 바. 없는 수치는 만들지 않음 | 가짜 임상 데이터 |
+| 단계 사용법 | `usage_steps`에 STEP 01/02/03 라벨 | 새 슬롯 신설 |
+| 성분 하이라이트 밴드 | ingredient 텍스트 블록 위 짧은 accent 바 (3색 안) | 네이비 솔리드 풀폭 밴드 |
+
+### 전자기기
+
+| 구조 | 우리 슬롯·렌더러 | 하지 말 것 |
+|------|-------------------|------------|
+| 스펙 비교표 | `comparison_table` (COMPARE 라벨) + 필수 `spec_table` | 없는 스펙 날조 |
+| 구성품 플랫레이 | `package_contents` 1:1 컷 | 브랜드 언박싱 박스 로고 |
+| 숫자 강조 헤드라인 | 히어로 `tabular-nums` + feature 카피의 짧은 숫자 훅 | 타사 슬로건 복제 |
+| 사용 시나리오 | `usage_scenario` 라이프스타일 컷 | 후기 모자이크 |

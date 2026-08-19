@@ -1,0 +1,72 @@
+[
+  {
+    "category": "화장품-뷰티",
+    "file": "scripts/test-assets/화장품-뷰티/01-pexels-18350885.jpeg",
+    "pexelsId": 18350885,
+    "pexelsUrl": "https://www.pexels.com/photo/box-of-cream-18350885/",
+    "photographer": "Carlos Diaz",
+    "photographerUrl": "https://www.pexels.com/@carlos-diaz-216017",
+    "query": "skincare cream jar marble",
+    "license": "Pexels License (free, commercial use allowed)"
+  },
+  {
+    "category": "화장품-뷰티",
+    "file": "scripts/test-assets/화장품-뷰티/02-pexels-8101529.jpeg",
+    "pexelsId": 8101529,
+    "pexelsUrl": "https://www.pexels.com/photo/cosmetic-containers-on-gray-textile-8101529/",
+    "photographer": "Polina ⠀",
+    "photographerUrl": "https://www.pexels.com/@polina-kovaleva",
+    "query": "glass dropper bottle skincare",
+    "license": "Pexels License (free, commercial use allowed)"
+  },
+  {
+    "category": "패션-소품",
+    "file": "scripts/test-assets/패션-소품/01-pexels-37762707.jpeg",
+    "pexelsId": 37762707,
+    "pexelsUrl": "https://www.pexels.com/photo/cozy-cafe-scene-with-coffee-and-sunglasses-37762707/",
+    "photographer": "Emrah",
+    "photographerUrl": "https://www.pexels.com/@emrah-398670870",
+    "query": "sunglasses still life no people",
+    "license": "Pexels License (free, commercial use allowed)"
+  },
+  {
+    "category": "패션-소품",
+    "file": "scripts/test-assets/패션-소품/02-pexels-4550837.jpeg",
+    "pexelsId": 4550837,
+    "pexelsUrl": "https://www.pexels.com/photo/a-person-in-plaid-blazer-wearing-silver-necklace-4550837/",
+    "photographer": "Leeloo The First",
+    "photographerUrl": "https://www.pexels.com/@leeloothefirst",
+    "query": "minimal gold jewelry necklace",
+    "license": "Pexels License (free, commercial use allowed)"
+  },
+  {
+    "category": "리빙-소품",
+    "file": "scripts/test-assets/리빙-소품/01-pexels-35082703.jpeg",
+    "pexelsId": 35082703,
+    "pexelsUrl": "https://www.pexels.com/photo/minimalist-still-life-with-ceramic-vases-on-shelves-35082703/",
+    "photographer": "giang pham",
+    "photographerUrl": "https://www.pexels.com/@giang-pham-497039972",
+    "query": "ceramic vase still life",
+    "license": "Pexels License (free, commercial use allowed)"
+  },
+  {
+    "category": "리빙-소품",
+    "file": "scripts/test-assets/리빙-소품/02-pexels-6634662.jpeg",
+    "pexelsId": 6634662,
+    "pexelsUrl": "https://www.pexels.com/photo/handmade-soy-wax-candles-6634662/",
+    "photographer": "Vlada Karpovich",
+    "photographerUrl": "https://www.pexels.com/@vlada-karpovich",
+    "query": "beige soy candle product",
+    "license": "Pexels License (free, commercial use allowed)"
+  },
+  {
+    "category": "전자기기-액세서리",
+    "file": "scripts/test-assets/전자기기-액세서리/01-pexels-35599938.jpeg",
+    "pexelsId": 35599938,
+    "pexelsUrl": "https://www.pexels.com/photo/hand-holding-wireless-earbuds-in-charging-case-35599938/",
+    "photographer": "Ivett M",
+    "photographerUrl": "https://www.pexels.com/@ivett",
+    "query": "black wireless earbuds case",
+    "license": "Pexels License (free, commercial use allowed)"
+  }
+]

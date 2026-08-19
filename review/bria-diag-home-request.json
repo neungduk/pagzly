@@ -1,0 +1,24 @@
+{
+  "capturedAt": "2026-08-19T06:04:42.249Z",
+  "category": "생활용품",
+  "categoryKey": "생활용품",
+  "productName": "USB 캠핑 랜턴",
+  "localSourceFile": "scripts\\test-assets\\생활용품\\01-pexels-4202326.jpeg",
+  "uploadImagePaths": [
+    "scripts\\test-assets\\생활용품\\01-pexels-4202326.jpeg",
+    "scripts\\test-assets\\생활용품\\02-pexels-7796691.jpeg",
+    "scripts\\test-assets\\생활용품\\03-pexels-12663430.jpeg"
+  ],
+  "model": "bria/generate-background",
+  "version": "ba437a62603f1205b253fd7bad0d0b5c326d7857242d11753c0cbcd2c5008602",
+  "candidateIndex": 0,
+  "input": {
+    "image_url": "https://sblnthhayvrfkvaksest.supabase.co/storage/v1/object/public/images/d13edd16-c92e-478b-a678-2e7d9641a866/1787119470180-8cc343b8-175c-48d9-91f3-1c5a6e951b2a.jpg",
+    "bg_prompt": "bright airy home interior background, soft natural light, minimal styling, maintain natural product shadow direction and intensity from the original photo, realistic studio lighting, Visual concept theme: \"자연의 따뜻함\". Mood: 포근하고 아늑한. Motif elements: moonlight, campfire, pine tree, soft glow, starry sky. Warm golden hour side lighting, dappled sunlight through leaves, soft bokeh of fairy lights in background, textured wood surface, subtle smoke haze. Photography: lighting=soft side lighting with warm but controlled bounce, diffused key, gentle rim highlight; composition=shallow depth of field, close-up of a smooth plane, third for a bottle; texture=creamy surface sheen, golden oil-like speculars on a dark glass hint, satin reflections, soft side lighting, diffused key, shallow depth of field, close-up empty surface, creamy satin sheen, golden oil specular highlights, LIGHTING LOCK: neutral white 5000K studio, no warm golden cast, no orange bounce. key light from upper left, shadow falling lower right. Neutral cool daylight from upper left, soft diffused shadows falling toward lower right and front of products, minimal contrast, no warm accent gel, no amber bounce, keep white balance locked to the product, soft warm neutral gray set color without shifting key light, keep the original product unchanged, replace only the surrounding background, realistic studio set, identical color temperature to the lighting lock, more negative space around",
+    "seed": 1100,
+    "fast": true,
+    "refine_prompt": true,
+    "original_quality": true,
+    "force_rmbg": false
+  }
+}
