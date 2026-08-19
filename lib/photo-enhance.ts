@@ -57,6 +57,8 @@ const REPLICATE_COST_USD = {
   fluxFillDev: 0.025,
   // black-forest-labs/flux-schnell — 공식 단가 ~$0.003/image (2026-08-14)
   fluxSchnell: 0.003,
+  // bria/generate-background — Background Replace. Replicate 페이지 단가 근사 $0.04/image
+  briaBackgroundReplace: 0.04,
 } as const;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -95,6 +97,38 @@ export function getBackdropCandidateCount(): number {
     return Math.min(10, Math.max(1, Math.round(raw)));
   }
   return 7;
+}
+
+/** `.env.local` BACKDROP_PROVIDER=bria | flux(기본). flux-fill-dev 경로는 유지. */
+export function getBackdropProvider(): "flux" | "bria" {
+  return process.env.BACKDROP_PROVIDER === "bria" ? "bria" : "flux";
+}
+
+/** Bria Background Replace 후보 수. `.env.local` BRIA_BACKDROP_CANDIDATES (기본 2, 1–3). */
+export function getBriaBackdropCandidateCount(): number {
+  const raw = Number(process.env.BRIA_BACKDROP_CANDIDATES);
+  if (Number.isFinite(raw) && raw >= 1) {
+    return Math.min(3, Math.max(1, Math.round(raw)));
+  }
+  return 2;
+}
+
+/** Bria는 상품을 유지한 채 배경만 바꾸므로 empty/no-product 문구를 뺀다. */
+function sanitizePromptForBria(prompt: string): string {
+  return prompt
+    .replace(/\bno product\b/gi, "")
+    .replace(/\bno packaging\b/gi, "")
+    .replace(/\bno bottle\b/gi, "")
+    .replace(/\bno text\b/gi, "")
+    .replace(/\bno logo\b/gi, "")
+    .replace(/\bempty product photography backdrop\b/gi, "")
+    .replace(/\bempty dimensional set\b/gi, "")
+    .replace(/\bempty backdrop\b/gi, "")
+    .replace(/\bempty center(?: for product placement)?\b/gi, "")
+    .replace(/(?:,\s*){2,}/g, ", ")
+    .replace(/\s{2,}/g, " ")
+    .replace(/^,\s*|\s*,$/g, "")
+    .trim();
 }
 
 const BACKDROP_PROMPTS: Record<string, string> = {
@@ -221,6 +255,8 @@ const CLARITY_UPSCALER_REF: ModelRef =
 const FLUX_FILL_DEV_REF: ModelRef =
   "black-forest-labs/flux-fill-dev:a053f84125613d83e65328a289e14eb6639e10725c243e8fb0c24128e5573f4c";
 const FLUX_SCHNELL_REF = "black-forest-labs/flux-schnell" as const;
+const BRIA_GENERATE_BACKGROUND_REF: ModelRef =
+  "bria/generate-background:ba437a62603f1205b253fd7bad0d0b5c326d7857242d11753c0cbcd2c5008602";
 
 export type EnhanceImageOptions = {
   shadowHint?: ShadowAnalysis;
@@ -561,6 +597,120 @@ export async function generateBackdrop(
     claudeCost,
     candidateCount: candidateUrls.length,
     autoPicked: false,
+  };
+}
+
+/**
+ * Bria Background Replace — 원본 상품 사진을 넣고 배경만 교체.
+ * 반환 타입은 generateBackdrop()과 동일해서 enhanceProductImage() 호출부를 바꾸지 않는다.
+ * 스키마: image | image_url, bg_prompt | ref_image_url, seed, fast, refine_prompt, original_quality, force_rmbg
+ */
+export async function generateBackdropViaBria(
+  category: string,
+  productName: string,
+  brandName: string | null,
+  theme: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
+  sourceImageUrl?: string,
+  conceptBrief?: ConceptBrief,
+): Promise<GenerateBackdropResult> {
+  if (!sourceImageUrl) {
+    throw new Error("Bria Background Replace는 원본 상품 사진(sourceImageUrl)이 필요합니다.");
+  }
+
+  const replicate = getReplicateClient();
+  const basePrompt = BACKDROP_PROMPTS[category] ?? BACKDROP_PROMPTS["기타"];
+  let claudeCost = 0;
+
+  let shadow: ShadowAnalysis = { ...DEFAULT_SHADOW };
+  try {
+    const sourceBuffer = await fetchSourceBuffer(sourceImageUrl);
+    const shadowResult = await analyzeShadowDirection(sourceBuffer);
+    shadow = shadowResult.shadow;
+    claudeCost += shadowResult.cost;
+    console.log(`[shadow] 분석 결과: ${shadow.promptHint}`);
+  } catch (error) {
+    console.warn("[shadow] 원본 그림자 분석 실패, 기본 조명 사용", error);
+  }
+
+  const photography = resolvePhotographyTemplate(conceptBrief);
+  const conceptBlock = conceptBrief ? `, ${formatConceptPromptBlock(conceptBrief)}` : "";
+  const lock = lightingLockPrompt(shadow);
+  const accentClause =
+    shadow.colorTemperature === "warm"
+      ? `subtle ${describeColorTone(theme.accent)} accent lighting`
+      : "no warm accent gel, no amber bounce, keep white balance locked to the product";
+  const fluxStylePrompt = `${basePrompt}${conceptBlock}, ${photography.prompt}, ${lock}, ${accentClause}, soft ${describeColorTone(theme.baseNeutral)} set color without shifting key light`;
+  const bgPrompt = sanitizePromptForBria(
+    `${fluxStylePrompt}, keep the original product unchanged, replace only the surrounding background, realistic studio set`,
+  );
+
+  const candidateCount = getBriaBackdropCandidateCount();
+  logForceRegenerateStatus();
+  console.log(`[shadow] 조명 잠금: ${lock}`);
+  console.log(`[prompt] generateBackdropViaBria (BACKDROP_PROVIDER=bria): ${bgPrompt}`);
+  console.log(`[replicate] CALL bria/generate-background x${candidateCount} (sequential)`);
+
+  const candidateUrls: string[] = [];
+  const failureReasons: string[] = [];
+  for (let i = 0; i < candidateCount; i += 1) {
+    const candidatePrompt = sanitizePromptForBria(
+      `${bgPrompt}, ${CANDIDATE_VARIATIONS[i % CANDIDATE_VARIATIONS.length]}`,
+    );
+    console.log(`[prompt] generateBackdropViaBria candidate-${i}: ${candidatePrompt}`);
+    try {
+      const output = await runReplicateWithRetry(`bria/generate-background#${i}`, () =>
+        withTimeout(
+          replicate.run(BRIA_GENERATE_BACKGROUND_REF, {
+            input: {
+              image_url: sourceImageUrl,
+              bg_prompt: candidatePrompt,
+              seed: 1100 + i * 137,
+              fast: true,
+              refine_prompt: true,
+              original_quality: true,
+              force_rmbg: false,
+            },
+            wait: { mode: "poll", interval: 1000 },
+          }),
+          120000,
+          "bria/generate-background",
+        ),
+      );
+      const url = extractFluxImageUrl(output);
+      if (!url) {
+        failureReasons.push(`결과에 URL 없음 (candidate=${i})`);
+        continue;
+      }
+      candidateUrls.push(url);
+    } catch (error) {
+      const detail = await describeReplicateError(error);
+      console.error("[generateBackdropViaBria] 호출 실패:", detail);
+      failureReasons.push(detail);
+    }
+  }
+
+  const cost = candidateUrls.length * REPLICATE_COST_USD.briaBackgroundReplace;
+  console.log(
+    `[cost] generateBackdrop (bria/generate-background x${candidateUrls.length}): $${cost.toFixed(4)}`,
+  );
+
+  if (candidateUrls.length === 0) {
+    throw new Error(
+      `Bria 배경 생성에 모두 실패했습니다. 원인: ${failureReasons.join(" | ")}`,
+    );
+  }
+
+  console.log(
+    `[generateBackdropViaBria] "${productName}"${brandName ? ` (${brandName})` : ""} 후보 ${candidateUrls.length}장`,
+  );
+  return {
+    buffer: null,
+    candidateUrls,
+    cost,
+    shadow,
+    claudeCost,
+    candidateCount: candidateUrls.length,
+    autoPicked: candidateUrls.length === 1,
   };
 }
 
