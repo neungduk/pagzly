@@ -160,16 +160,7 @@ export function buildProductShadowSvg(
   const opacity = Math.min(0.32, Math.max(0.12, shadow.shadowIntensity + 0.06));
   const rx = placement.width * 0.34;
   const ry = Math.max(18, placement.height * 0.055);
-  return `
-    <svg width="${canvasSize}" height="${canvasSize}" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <radialGradient id="shadow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="rgba(0,0,0,${opacity})" />
-          <stop offset="100%" stop-color="rgba(0,0,0,0)" />
-        </radialGradient>
-      </defs>
-      <ellipse cx="${cx + offsetX}" cy="${baseY + offsetY}" rx="${rx}" ry="${ry}" fill="url(#shadow)" />
-    </svg>`;
+  return `<svg width="${canvasSize}" height="${canvasSize}" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="shadow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#000000" stop-opacity="${opacity.toFixed(2)}"/><stop offset="100%" stop-color="#000000" stop-opacity="0"/></radialGradient></defs><ellipse cx="${cx + offsetX}" cy="${baseY + offsetY}" rx="${rx}" ry="${ry}" fill="url(#shadow)"/></svg>`;
 }
 
 /** 같은 구도의 사용 전(건조·매트) / 사용 후(촉촉 광택). 대비를 강하게 유지. */
@@ -196,17 +187,7 @@ export async function makeComparisonPair(
   })
     .composite([
       {
-        input: Buffer.from(`
-          <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <radialGradient id="g" cx="38%" cy="28%" r="48%">
-                <stop offset="0%" stop-color="rgba(255,255,255,0.55)" />
-                <stop offset="55%" stop-color="rgba(200,230,255,0.18)" />
-                <stop offset="100%" stop-color="rgba(255,255,255,0)" />
-              </radialGradient>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#g)" />
-          </svg>`),
+        input: Buffer.from(`<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="g" cx="38%" cy="28%" r="48%"><stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"/><stop offset="55%" stop-color="#c8e6ff" stop-opacity="0.18"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0"/></radialGradient></defs><rect width="100%" height="100%" fill="url(#g)"/></svg>`),
         blend: "screen",
       },
     ])

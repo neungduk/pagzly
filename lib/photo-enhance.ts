@@ -1401,10 +1401,10 @@ export async function enhanceProductImage(
     .png()
     .toBuffer();
 
-  const totalCost = cost + decorCost + retryCost;
-  if (decorCost > 0 || retryCost > 0) {
+  const totalCost = cost + decorCost + preCropCost;
+  if (decorCost > 0 || preCropCost > 0) {
     console.log(
-      `[cost] enhanceProductImage total=$${totalCost.toFixed(5)} (enhance=$${cost.toFixed(5)} decor=$${decorCost.toFixed(4)} retry=$${retryCost.toFixed(4)})`,
+      `[cost] enhanceProductImage total=$${totalCost.toFixed(5)} (enhance=$${cost.toFixed(5)} decor=$${decorCost.toFixed(4)} preCrop=$${preCropCost.toFixed(4)})`,
     );
   }
 

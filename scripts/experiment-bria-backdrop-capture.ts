@@ -27,9 +27,13 @@ const STORAGE_STATE_PATH = path.join(__dirname, "auth-state.json");
 const OUTPUT_DIR = path.join(__dirname, "..", "review");
 const TEST_ASSETS_ROOT = path.join(__dirname, "test-assets");
 
-const CATEGORY_MAP: Record<string, { label: string }> = {
+const CATEGORY_MAP: Record<string, { label: string; folder?: string }> = {
   "생활용품": { label: "생활용품" },
   "반려동물": { label: "반려동물" },
+  "화장품/뷰티": { label: "화장품/뷰티", folder: "화장품-뷰티" },
+  "전자제품": { label: "전자제품" },
+  "의류/패션": { label: "의류/패션", folder: "의류-패션" },
+  "식품/건강기능식품": { label: "식품/건강기능식품", folder: "식품" },
 };
 
 function loadEnvLocal() {
@@ -69,8 +73,9 @@ async function main() {
     throw new Error("REPLICATE_API_TOKEN 필요");
   }
 
-  const categoryLabel = CATEGORY_MAP[categoryKey].label;
-  const testAssetsDir = path.join(TEST_ASSETS_ROOT, categoryKey);
+  const catEntry = CATEGORY_MAP[categoryKey];
+  const categoryLabel = catEntry.label;
+  const testAssetsDir = path.join(TEST_ASSETS_ROOT, catEntry.folder ?? categoryKey);
   const uploadImages = fs
     .readdirSync(testAssetsDir)
     .filter((f) => /\.(jpe?g|png)$/i.test(f))
