@@ -482,7 +482,7 @@ export async function generateBackdrop(
             rawPredictions[i] = prediction;
           },
         ),
-        120000,
+        180000,
         "flux-fill-dev 배경 생성",
       );
     }),
@@ -529,9 +529,25 @@ export async function generateBackdrop(
   ).filter((url): url is string => url !== null);
 
   if (candidateUrls.length === 0) {
-    throw new Error(
-      `배경 이미지 생성에 모두 실패했습니다. 원인: ${failureReasons.join(" | ")}`,
+    console.warn(
+      `[generateBackdrop] flux-fill-dev 전부 실패, flux-schnell 폴백. 원인: ${failureReasons.join(" | ")}`,
     );
+    try {
+      const fallbackUrl = await generateSchnellPng(prompt);
+      return {
+        buffer: null,
+        candidateUrls: [fallbackUrl],
+        cost: cost + REPLICATE_COST_USD.fluxSchnell,
+        shadow,
+        claudeCost,
+        candidateCount: 1,
+        autoPicked: false,
+      };
+    } catch (fallbackError) {
+      throw new Error(
+        `배경 이미지 생성에 모두 실패했습니다. 원인: ${failureReasons.join(" | ")} | schnell 폴백: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`,
+      );
+    }
   }
 
   console.log(
@@ -615,7 +631,7 @@ async function generateSchnellPng(prompt: string): Promise<string> {
       },
       wait: { mode: "poll", interval: 1000 },
     }),
-    60000,
+    90000,
     "flux-schnell 섹션 배경",
   );
   const url = extractFluxImageUrl(output);
