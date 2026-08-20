@@ -103,7 +103,7 @@ export function getBackdropCandidateCount(): number {
   return 7;
 }
 
-const BRIA_REPLACE_CATEGORIES = new Set<string>(["화장품/뷰티", "전자제품", "생활용품"]);
+const BRIA_REPLACE_CATEGORIES = new Set<string>(["화장품/뷰티", "전자제품", "생활용품", "반려동물"]);
 const BRIA_GENFILL_CATEGORIES = new Set<string>(["의류/패션", "식품/건강기능식품"]);
 
 export type BackdropProvider = "flux" | "bria-replace" | "bria-genfill";
