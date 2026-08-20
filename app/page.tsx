@@ -33,9 +33,9 @@ const features = [
     ),
   },
   {
-    title: "스마트스토어 원클릭 업로드",
+    title: "완성 즉시 다운로드",
     description:
-      "완성된 상세페이지를 네이버 스마트스토어에 바로 업로드하세요. 복사·붙여넣기는 이제 그만.",
+      "완성된 상세페이지를 고해상도 이미지로 바로 다운로드해, 스마트스토어·쿠팡 등 어디든 즉시 등록할 수 있습니다.",
     iconBg: "bg-slate-blue/10 text-slate-blue border-slate-blue/25",
     icon: (
       <svg
@@ -110,7 +110,7 @@ const plans = [
     price: "19,900",
     period: "월",
     description: "소규모 셀러를 위한 플랜",
-    features: ["월 30회 생성", "프리미엄 템플릿", "스마트스토어 업로드", "워터마크 제거"],
+    features: ["월 30회 생성", "프리미엄 템플릿", "고해상도 이미지 즉시 다운로드", "워터마크 제거"],
     highlighted: true,
     cta: "스타터 시작하기",
   },
@@ -122,7 +122,7 @@ const plans = [
     features: [
       "무제한 생성",
       "모든 템플릿",
-      "스마트스토어 업로드",
+      "고해상도 이미지 즉시 다운로드",
       "우선 AI 처리",
       "팀 협업 (3명)",
     ],
@@ -294,9 +294,10 @@ export default async function Home() {
             </div>
             <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
               {features.map((feature) => (
-                <div
+                <Link
                   key={feature.title}
-                  className="group relative border border-line bg-white p-8 transition-transform duration-300 hover:-translate-y-1 hover:border-ink/30"
+                  href={startHref}
+                  className="group relative block border border-line bg-white p-8 transition-transform duration-300 hover:-translate-y-1 hover:border-ink/30"
                 >
                   <CropMarks />
                   <div
@@ -310,7 +311,7 @@ export default async function Home() {
                   <p className="mt-3 leading-relaxed text-ink/60">
                     {feature.description}
                   </p>
-                </div>
+                </Link>
               ))}
             </div>
           </RevealOnScroll>
