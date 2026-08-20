@@ -228,6 +228,22 @@ export const SLOT_IMAGE_RATIO: Record<string, string> = {
   packaging: IMAGE_RATIO.portrait3x4,
   usage_scenario: IMAGE_RATIO.landscape4x5,
   coordination: IMAGE_RATIO.landscape4x5,
+  packaging_design: IMAGE_RATIO.square,
+  how_it_works: IMAGE_RATIO.square,
+  size_options: IMAGE_RATIO.square,
+  customer_scenario: IMAGE_RATIO.landscape4x5,
+  fabric_composition: IMAGE_RATIO.square,
+  fit_guide: IMAGE_RATIO.landscape4x5,
+  seasonal_styling: IMAGE_RATIO.landscape4x5,
+  sourcing_story: IMAGE_RATIO.square,
+  serving_suggestion: IMAGE_RATIO.landscape4x5,
+  storage_tip: IMAGE_RATIO.square,
+  design_detail: IMAGE_RATIO.square,
+  connectivity: IMAGE_RATIO.square,
+  install_scenario: IMAGE_RATIO.landscape4x5,
+  material_detail: IMAGE_RATIO.square,
+  usage_scenario_extra: IMAGE_RATIO.landscape4x5,
+  care_tip: IMAGE_RATIO.square,
 };
 
 // ---------------------------------------------------------------------------

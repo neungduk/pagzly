@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import CreateProductForm from "@/components/CreateProductForm";
 
@@ -11,5 +12,9 @@ export default async function CreatePage() {
     return null;
   }
 
-  return <CreateProductForm userId={user.id} />;
+  return (
+    <Suspense fallback={<div className="p-10 text-sm text-ink/50">불러오는 중…</div>}>
+      <CreateProductForm userId={user.id} />
+    </Suspense>
+  );
 }

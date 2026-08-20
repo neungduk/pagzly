@@ -871,6 +871,39 @@ function renderSection(
         </section>
       );
 
+    case "ai_disclosure":
+      return (
+        <section
+          key={`ai_disclosure-${index}`}
+          className={getCategoryRhythm(category).trustPadClass}
+          style={textSectionStyle(theme, pattern)}
+        >
+          <div className={TEXT_COL_CLASS}>
+            <p
+              className={`mb-4 ${TYPO.sectionLabel}`}
+              style={{ color: theme.deepAccent }}
+            >
+              AI DISCLOSURE
+            </p>
+            <EditableText
+              as="h3"
+              enabled={edit?.enabled}
+              value={section.heading}
+              onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+              className={`${HEADLINE_CLAMP} font-heading text-lg font-bold tracking-[-0.02em] text-ink sm:text-xl`}
+            />
+            <EditableText
+              as="p"
+              multiline
+              enabled={edit?.enabled}
+              value={section.body}
+              onChange={(body) => edit?.onChange(index, { ...section, body })}
+              className={`mt-5 ${BODY_CLAMP} ${TYPO.body} text-ink/70`}
+            />
+          </div>
+        </section>
+      );
+
     case "brand_story":
       return (
         <section

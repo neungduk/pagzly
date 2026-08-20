@@ -46,6 +46,7 @@ const SLOT_LABELS: Record<string, string> = {
   faq: "FAQ",
   caution: "주의사항",
   shipping_info: "배송/교환",
+  ai_disclosure: "AI 고지",
   cta_price: "가격/구매",
 };
 

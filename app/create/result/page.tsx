@@ -8,7 +8,7 @@ import DetailSectionRenderer from "@/components/DetailSectionRenderer";
 import { freezeScrollRevealAnimations } from "@/components/DetailScrollReveal";
 import DetailActionBar, { type DetailToolTab } from "@/components/DetailActionBar";
 import ToastBanner from "@/components/ToastBanner";
-import { SESSION_KEY } from "@/components/CreateProductForm";
+import { DRAFT_SESSION_KEY, SESSION_KEY } from "@/components/CreateProductForm";
 import type { DetailSection, GenerateResponse } from "@/lib/types/generate";
 import { getCategoryTheme } from "@/lib/category-theme";
 import { validateImageFile } from "@/lib/image-upload";
@@ -103,6 +103,9 @@ function CreateResultContent() {
   );
   const [aiText, setAiText] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const [downloadPlatform, setDownloadPlatform] = useState<"smartstore" | "coupang">(
+    "smartstore",
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -110,6 +113,24 @@ function CreateResultContent() {
     async function load() {
       const id = searchParams.get("id");
       const raw = sessionStorage.getItem(SESSION_KEY);
+      const draftRaw = sessionStorage.getItem(DRAFT_SESSION_KEY);
+
+      // 미승인 draft 세션이면 draft로 되돌림
+      if (!id && raw) {
+        try {
+          const parsed = JSON.parse(raw) as ProductResult & { draftApproved?: boolean };
+          if (parsed.draftApproved === false) {
+            router.replace("/create/draft");
+            return;
+          }
+        } catch {
+          /* fall through */
+        }
+      }
+      if (!id && draftRaw && !raw) {
+        router.replace("/create/draft");
+        return;
+      }
 
       if (id) {
         if (raw) {
@@ -140,7 +161,11 @@ function CreateResultContent() {
 
         if (error || !row) {
           console.warn("[create/result] DB load failed", error);
-          router.replace("/create");
+          if (draftRaw) {
+            router.replace("/create/draft");
+          } else {
+            router.replace("/create");
+          }
           return;
         }
 
@@ -302,12 +327,16 @@ function CreateResultContent() {
     try {
       freezeScrollRevealAnimations(captureRef.current);
       await new Promise((r) => setTimeout(r, 80));
+      const targetWidth = downloadPlatform === "coupang" ? 780 : 860;
+      const elWidth = Math.max(1, captureRef.current.offsetWidth);
+      const pixelRatio = targetWidth / elWidth;
       const dataUrl = await toPng(captureRef.current, {
-        pixelRatio: 2,
+        pixelRatio,
         cacheBust: true,
       });
+      const platformLabel = downloadPlatform === "coupang" ? "쿠팡" : "스마트스토어";
       const link = document.createElement("a");
-      link.download = `${data.productName}-상세페이지.png`;
+      link.download = `${data.productName}-상세페이지-${platformLabel}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -430,14 +459,40 @@ function CreateResultContent() {
           </div>
 
           {generated?.sections && generated.sections.length > 0 && (
-            <button
-              type="button"
-              onClick={handleDownload}
-              disabled={downloading}
-              className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-registration-red px-5 text-sm font-semibold text-paper transition-colors hover:bg-registration-red/85 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {downloading ? "다운로드 준비 중..." : "이미지로 다운로드"}
-            </button>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <div className="inline-flex rounded-lg border border-line bg-paper p-1">
+                <button
+                  type="button"
+                  onClick={() => setDownloadPlatform("smartstore")}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    downloadPlatform === "smartstore"
+                      ? "bg-ink text-paper"
+                      : "text-ink/60 hover:text-ink"
+                  }`}
+                >
+                  스마트스토어 860px
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDownloadPlatform("coupang")}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    downloadPlatform === "coupang"
+                      ? "bg-ink text-paper"
+                      : "text-ink/60 hover:text-ink"
+                  }`}
+                >
+                  쿠팡 780px
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={downloading}
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-registration-red px-5 text-sm font-semibold text-paper transition-colors hover:bg-registration-red/85 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {downloading ? "다운로드 준비 중..." : "이미지로 다운로드"}
+              </button>
+            </div>
           )}
         </div>
 
@@ -463,6 +518,10 @@ function CreateResultContent() {
                 },
               }}
             />
+            <p className="border-t border-line bg-line/10 px-6 py-3 text-center text-[11px] text-ink/45">
+              이 상세페이지는 AI가 자동 생성한 콘텐츠를 포함합니다. 게시 전 실제 상품 정보와 대조
+              확인해 주세요.
+            </p>
           </div>
         ) : (
           <div className="rounded-2xl border border-line bg-paper p-6 text-sm text-ink/60 shadow-sm">

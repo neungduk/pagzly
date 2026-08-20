@@ -8,7 +8,10 @@ const NAV_ITEMS = [
   {
     href: "/create",
     label: "상세페이지 만들기",
-    match: (path: string) => path === "/create" || path.startsWith("/create/result"),
+    match: (path: string) =>
+      path === "/create" ||
+      path.startsWith("/create/result") ||
+      path.startsWith("/create/draft"),
     icon: (
       <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />

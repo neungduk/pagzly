@@ -46,6 +46,7 @@ scripts/auth-state.json
 review/*.png
 review/iteration/
 scripts/test-assets/
+test-assets/
 public/iteration-fixtures/
 
 # local TEST_MODE image-analysis cache (Claude vision)
@@ -58,7 +59,7 @@ next-env.d.ts
 # supabase CLI local temp state
 supabase/.temp/
 
-# review capture logs/debug output (review/*.png와 같은 성격)
+# review capture logs/debug output (review/*.png?? ???? ????)
 review/*.log
 review/**/*.json
 review/*.txt
