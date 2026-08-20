@@ -66,6 +66,9 @@ const TYPO = {
   heroSub: "mt-4 max-w-xl text-base font-normal leading-relaxed text-white/88 sm:text-lg",
   bannerSub:
     "mt-3 max-w-md text-sm font-normal leading-relaxed text-white/88 sm:text-base",
+  compactTitle:
+    "font-heading text-base font-bold leading-snug tracking-[-0.02em] text-ink sm:text-lg",
+  compactBody: "mt-1 text-sm leading-relaxed text-ink/72",
   sectionTitle:
     "font-heading text-[1.75rem] font-bold leading-[1.2] tracking-[-0.02em] text-ink sm:text-4xl",
   sectionLabel: "font-mono text-[10px] font-semibold uppercase tracking-[0.32em]",
@@ -228,6 +231,7 @@ function renderSection(
   conceptIcons?: ConceptIconMap,
   pointIndex?: number,
   edit?: SectionEditApi,
+  followPattern?: SectionColorPattern,
 ) {
   const heroFallback = imageUrls[0] ?? "";
   switch (section.type) {
@@ -285,15 +289,21 @@ function renderSection(
       );
     }
 
-    case "checklist":
+    case "checklist": {
+      const compactFollow = section.compactFollow === true;
+      const checklistPattern = compactFollow && followPattern ? followPattern : pattern;
       return (
         <section
           key={`checklist-${index}`}
-          className={getCategoryRhythm(category).generousPadClass}
-          style={textSectionStyle(theme, pattern)}
+          className={
+            compactFollow
+              ? "px-6 pb-10 pt-2 sm:px-10 sm:pb-14"
+              : getCategoryRhythm(category).generousPadClass
+          }
+          style={textSectionStyle(theme, checklistPattern)}
         >
           <div className={TEXT_COL_CLASS}>
-            <SectionAccentHairline theme={theme} />
+            {!compactFollow ? <SectionAccentHairline theme={theme} /> : null}
             <EditableText
               as="h3"
               enabled={edit?.enabled}
@@ -303,7 +313,9 @@ function renderSection(
             />
           </div>
           <ul
-            className={`mt-12 grid ${getCategoryRhythm(category).checklistGapClass} ${
+            className={`${compactFollow ? "mt-8" : "mt-12"} grid ${
+              compactFollow ? "gap-x-3 gap-y-6" : getCategoryRhythm(category).checklistGapClass
+            } ${
               section.items.length === 3
                 ? "grid-cols-3"
                 : getCategoryRhythm(category).checklistGridFour
@@ -334,9 +346,58 @@ function renderSection(
           </ul>
         </section>
       );
+    }
 
     case "image_text": {
       const src = resolveImage(imageUrls, section.imageIndex);
+      const isCompact = section.layout === "compact";
+
+      if (isCompact) {
+        const imageFirst = section.imagePosition !== "right";
+        return (
+          <section
+            key={`image_text-${index}`}
+            className="px-6 py-5 sm:px-10 sm:py-6"
+            style={textSectionStyle(theme, pattern)}
+          >
+            <div
+              className={`mx-auto flex max-w-xl items-center gap-4 ${
+                imageFirst ? "flex-row" : "flex-row-reverse"
+              }`}
+            >
+              <div className="relative shrink-0">
+                <SectionImage
+                  src={src}
+                  alt={section.heading}
+                  className="h-24 w-24 rounded-xl object-cover sm:h-[7.5rem] sm:w-[7.5rem]"
+                />
+                <ImageReplaceHit
+                  enabled={edit?.enabled}
+                  onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
+                />
+              </div>
+              <div className={`min-w-0 flex-1 ${imageFirst ? "text-left" : "text-right"}`}>
+                <EditableText
+                  as="h3"
+                  enabled={edit?.enabled}
+                  value={section.heading}
+                  onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+                  className={TYPO.compactTitle}
+                />
+                <EditableText
+                  as="p"
+                  multiline
+                  enabled={edit?.enabled}
+                  value={section.body}
+                  onChange={(body) => edit?.onChange(index, { ...section, body })}
+                  className={TYPO.compactBody}
+                />
+              </div>
+            </div>
+          </section>
+        );
+      }
+
       const ratioClass = resolveImageRatioClass(section);
       const pointLabel =
         pointIndex != null
@@ -895,10 +956,21 @@ export default function DetailSectionRenderer({
   return (
     <div className="overflow-hidden">
       {sections.map((section, index) => {
-        const pointIndex =
-          section.type === "image_text" ? imageTextCount++ : undefined;
+        const isFullPoint =
+          section.type === "image_text" &&
+          section.layout !== "compact" &&
+          section.slot !== "quick_points";
+        const pointIndex = isFullPoint ? imageTextCount++ : undefined;
         const bodyIndex = sections.slice(0, index).filter((s) => s.type !== "hero").length;
         const pattern = section.type === "hero" ? "A" : getSectionPattern(bodyIndex);
+        const prevBodyIndex = sections.slice(0, index).filter((s) => s.type !== "hero").length - 1;
+        const followPattern =
+          section.type === "checklist" &&
+          section.compactFollow === true &&
+          index > 0 &&
+          sections[index - 1].type !== "hero"
+            ? getSectionPattern(Math.max(0, prevBodyIndex))
+            : undefined;
         const content = renderSection(
           section,
           imageUrls,
@@ -909,6 +981,7 @@ export default function DetailSectionRenderer({
           conceptIcons,
           pointIndex,
           edit,
+          followPattern,
         );
         return (
           <DetailScrollReveal

@@ -212,8 +212,8 @@ ${productInfo.ingredients ? `성분/소재: ${productInfo.ingredients}` : ""}
 // 섹션 타입별 JSON 필드 형식. slot 값은 템플릿이 지정한 이름을 그대로 써야 한다.
 const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
   hero: `{ type: "hero", slot, headline, subheadline?, imageIndex }`,
-  checklist: `{ type: "checklist", slot, heading, items[] }`,
-  image_text: `{ type: "image_text", slot, heading, body, imageIndex, imagePosition: "left"|"right" }`,
+  checklist: `{ type: "checklist", slot, heading, items[], compactFollow?: boolean } — gallery/image_text 직후 checklist일 때만 true`,
+  image_text: `{ type: "image_text", slot, heading, body, imageIndex, imagePosition: "left"|"right", layout?: "full"|"compact" } — quick_points는 layout:"compact" 필수`,
   spec_table: `{ type: "spec_table", slot, heading, rows: [{label, value}] }`,
   usage_steps: `{ type: "usage_steps", slot, heading, steps[] }`,
   gallery: `{ type: "gallery", slot, heading, imageIndexes[] }`,
@@ -362,6 +362,8 @@ ${isCosmetics ? `
 - texture_feel body: 2문장.
 - usage_steps: 각 단계 1문장, 앞에 STEP 01/02/03.
 - checklist items: 각 14자 내외.
+- quick_points: layout 반드시 "compact". heading 8자 내외, body 1문장. 사진은 텍스처/디테일 컷.
+- compact layout은 사진이 작아지므로 텍스트도 짧게 (heading·body 모두 위 길이 준수).
 - spec_table 값에 없는 % 수치를 만들지 말 것 (임상 막대용 가짜 데이터 금지).
 - stat_infographic: keyFeatures·ingredients·certifications 등 **입력에 명시된 수치**만 metrics에 사용. 근거 없으면 stat_infographic 슬롯 전체를 생략. "판매자 확인 필요"나 임의 percent 금지.
 - 시각 컨셉과 모순 금지: 쿨링/진정이면 따뜻·온기·골드 카피 금지. 수분이면 오일리·번들 표현 금지. 클렌징이면 보습 도포를 주효능처럼 쓰지 말 것.
@@ -398,6 +400,9 @@ stat_infographic 섹션은 keyFeatures·ingredients·certifications 등 입력�
 "판매자 확인 필요"를 metrics value로 쓰지 마세요.
 illustration_banner의 illustrationUrl은 항상 빈 문자열("")로 두세요 (서버가 생성).
 illustration_banner의 body는 이 섹션 분위기를 설명하는 1~2문장 카피입니다 (image_text body와 비슷한 톤).
+quick_points 슬롯은 layout:"compact"로 2~3개 채우세요. heading 8자 내외, body 1문장, 사진은 작은 텍스처/디테일 컷.
+compact layout은 사진이 작아지므로 텍스트도 짧게 작성하세요.
+checklist의 compactFollow는 gallery 또는 image_text 섹션 **바로 다음**에 오는 checklist일 때만 true. 그 외에는 생략하거나 false.
 
 반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트는 포함하지 마세요.
 {
@@ -472,8 +477,17 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
     Number.isInteger(i) && i >= 0 && i < imageCount ? i : 0;
 
   parsed.sections = parsed.sections.map((section) => {
-    if (section.type === "hero" || section.type === "image_text") {
+    if (section.type === "hero") {
       return { ...section, imageIndex: clampIndex(section.imageIndex) };
+    }
+    if (section.type === "image_text") {
+      const layout =
+        section.slot === "quick_points"
+          ? "compact"
+          : section.layout === "compact"
+            ? "compact"
+            : "full";
+      return { ...section, imageIndex: clampIndex(section.imageIndex), layout };
     }
     if (section.type === "gallery") {
       return {

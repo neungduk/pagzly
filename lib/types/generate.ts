@@ -52,6 +52,8 @@ export type ChecklistSection = {
   slot: string;
   heading: string;
   items: string[];
+  /** gallery/image_text 직후에 붙는 체크리스트 — 상단 여백·헤어라인 생략 */
+  compactFollow?: boolean;
 };
 
 export type ImageTextSection = {
@@ -61,6 +63,8 @@ export type ImageTextSection = {
   body: string;
   imageIndex: number;
   imagePosition: "left" | "right";
+  /** 기본 "full" = 기존 풀사이즈 이미지+텍스트. "compact" = 작은 썸네일+텍스트 한 줄 */
+  layout?: "full" | "compact";
 };
 
 export type SpecTableSection = {

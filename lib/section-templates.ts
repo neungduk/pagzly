@@ -27,6 +27,15 @@ const BEAUTY: SlotDefinition[] = [
   { slot: "hero", type: "hero", required: true, note: "히어로 (제품 단독/사용 컷, 4:5)" },
   { slot: "checklist", type: "checklist", required: true, note: "핵심 포인트 3~4개" },
   {
+    slot: "quick_points",
+    type: "image_text",
+    required: false,
+    repeatable: true,
+    minCount: 2,
+    maxCount: 3,
+    note: "짧은 미니 포인트 2~3개, layout: 'compact'로 채울 것. 사진은 작은 텍스처/디테일 컷, 헤딩은 8자 내외, 본문은 1문장",
+  },
+  {
     slot: "ingredient_highlight",
     type: "image_text",
     required: true,
@@ -78,6 +87,15 @@ const FASHION: SlotDefinition[] = [
   { slot: "hero", type: "hero", required: true, note: "히어로 (착장 컷, 4:5)" },
   { slot: "checklist", type: "checklist", required: true, note: "핏/소재 핵심 포인트" },
   {
+    slot: "quick_points",
+    type: "image_text",
+    required: false,
+    repeatable: true,
+    minCount: 2,
+    maxCount: 3,
+    note: "짧은 미니 포인트 2~3개, layout: 'compact'로 채울 것. 사진은 작은 텍스처/디테일 컷, 헤딩은 8자 내외, 본문은 1문장",
+  },
+  {
     slot: "detail_zoom",
     type: "image_text",
     required: true,
@@ -127,6 +145,15 @@ const FASHION: SlotDefinition[] = [
 const FOOD: SlotDefinition[] = [
   { slot: "hero", type: "hero", required: true, note: "히어로 (완성/플레이팅 컷, 4:5)" },
   { slot: "checklist", type: "checklist", required: true, note: "맛/원재료 핵심 포인트" },
+  {
+    slot: "quick_points",
+    type: "image_text",
+    required: false,
+    repeatable: true,
+    minCount: 2,
+    maxCount: 3,
+    note: "짧은 미니 포인트 2~3개, layout: 'compact'로 채울 것. 사진은 작은 텍스처/디테일 컷, 헤딩은 8자 내외, 본문은 1문장",
+  },
   {
     slot: "ingredient_highlight",
     type: "image_text",
@@ -184,6 +211,15 @@ const ELECTRONICS: SlotDefinition[] = [
   { slot: "hero", type: "hero", required: true, note: "히어로 (제품 단독 컷, 4:5)" },
   { slot: "checklist", type: "checklist", required: true, note: "핵심 스펙 3~4개" },
   {
+    slot: "quick_points",
+    type: "image_text",
+    required: false,
+    repeatable: true,
+    minCount: 2,
+    maxCount: 3,
+    note: "짧은 미니 포인트 2~3개, layout: 'compact'로 채울 것. 사진은 작은 텍스처/디테일 컷, 헤딩은 8자 내외, 본문은 1문장",
+  },
+  {
     slot: "feature_detail",
     type: "image_text",
     required: true,
@@ -240,6 +276,15 @@ const ELECTRONICS: SlotDefinition[] = [
 const HOME_FALLBACK: SlotDefinition[] = [
   { slot: "hero", type: "hero", required: true, note: "히어로 (4:5)" },
   { slot: "checklist", type: "checklist", required: true, note: "핵심 포인트 3~4개" },
+  {
+    slot: "quick_points",
+    type: "image_text",
+    required: false,
+    repeatable: true,
+    minCount: 2,
+    maxCount: 3,
+    note: "짧은 미니 포인트 2~3개, layout: 'compact'로 채울 것. 사진은 작은 텍스처/디테일 컷, 헤딩은 8자 내외, 본문은 1문장",
+  },
   {
     slot: "material_feature",
     type: "image_text",
