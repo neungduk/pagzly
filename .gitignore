@@ -60,5 +60,5 @@ supabase/.temp/
 
 # review capture logs/debug output (review/*.png와 같은 성격)
 review/*.log
-review/*.json
+review/**/*.json
 review/*.txt
