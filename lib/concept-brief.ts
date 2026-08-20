@@ -35,6 +35,7 @@ export type ConceptBriefInput = {
   keyFeatures?: string | null;
   ingredients?: string | null;
   targetCustomer?: string | null;
+  referenceAnalysis?: { colorHex: string[]; moodKeywords: string[] };
 };
 
 function calculateDeepSeekCost(usage: unknown): number {
@@ -114,6 +115,11 @@ ${input.price ? `- 판매가: ₩${input.price.toLocaleString()}` : ""}
 ${input.keyFeatures ? `- 핵심 특징: ${input.keyFeatures}` : ""}
 ${input.ingredients ? `- 성분/소재: ${input.ingredients}` : ""}
 ${input.targetCustomer ? `- 타겟: ${input.targetCustomer}` : ""}
+${input.referenceAnalysis ? `
+## 레퍼런스 이미지 분석 (visual concept에 이 색상/무드를 우선 반영)
+- 주요 색상: ${input.referenceAnalysis.colorHex.join(", ")}
+- 무드 키워드: ${input.referenceAnalysis.moodKeywords.join(", ")}
+카테고리 fallback보다 레퍼런스 무드를 우선하되, 상품 정보와 모순되면 안 됩니다.` : ""}
 
 ## 출력 형식 (JSON만, 다른 텍스트 금지)
 {

@@ -11,6 +11,18 @@ export type PhotoCostBreakdown = {
   icons?: number;
   illustrations?: number;
   claude?: number;
+  referenceAnalysis?: number;
+  reviewInsights?: number;
+};
+
+export type ReferenceAnalysisInput = {
+  colorHex: string[];
+  moodKeywords: string[];
+};
+
+export type ReviewInsightsInput = {
+  commonPraises: string[];
+  commonComplaints: string[];
 };
 
 export type ProductInput = {
@@ -28,6 +40,16 @@ export type ProductInput = {
   // URL이 아니라, 판매자가 1688/도매꾹 원본 상품 페이지에서 직접 복사해
   // 붙여넣은 텍스트(상품명/스펙/설명). 필드명은 하위 호환을 위해 유지.
   wholesaleUrl?: string | null;
+  /** 레퍼런스 무드/색상 참고 이미지 (Supabase Storage URL) */
+  referenceImageUrl?: string | null;
+  /** 고객 리뷰 엑셀/txt (Supabase Storage URL) */
+  reviewFileUrl?: string | null;
+  /** 기획안 PDF/DOCX (Supabase Storage URL) */
+  planningDocUrl?: string | null;
+  /** 서버 분석 결과 — generate-backdrop/generate에서 채움 */
+  referenceAnalysis?: ReferenceAnalysisInput | null;
+  reviewInsights?: ReviewInsightsInput | null;
+  planningDocText?: string | null;
   photoProcessingCost?: number;
   conceptBrief?: ConceptBrief;
   photoCostBreakdown?: PhotoCostBreakdown;
@@ -213,4 +235,7 @@ export type GenerateResponse = GeneratedCopy & {
   photoCostBreakdown?: PhotoCostBreakdown;
   testMode?: boolean;
   imageUrls?: string[];
+  referenceAnalysis?: ReferenceAnalysisInput | null;
+  reviewInsights?: ReviewInsightsInput | null;
+  planningDocText?: string | null;
 };
