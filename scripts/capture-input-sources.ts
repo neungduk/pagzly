@@ -44,12 +44,12 @@ const SCENARIOS: Record<
     label: "기획안만",
     output: "real-generation-input-planning.png",
     attach: async (page) => {
-      const planningPath = path.join(FIXTURES, "cosmetics-planning.pdf");
-      if (!fs.existsSync(planningPath)) {
-        throw new Error(`기획안 PDF fixture 없음: ${planningPath}`);
+      const docxPath = path.join(FIXTURES, "cosmetics-planning.docx");
+      if (!fs.existsSync(docxPath)) {
+        throw new Error(`기획안 DOCX fixture 없음: ${docxPath}`);
       }
-      await page.setInputFiles("#planningDoc", planningPath);
-      console.log("[input-sources] planning doc attached");
+      await page.setInputFiles("#planningDoc", docxPath);
+      console.log("[input-sources] planning doc (docx) attached");
     },
   },
 };
