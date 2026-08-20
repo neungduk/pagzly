@@ -25,6 +25,12 @@ export type TemplateCategory =
 
 const BEAUTY: SlotDefinition[] = [
   { slot: "hero", type: "hero", required: true, note: "히어로 (제품 단독/사용 컷, 4:5)" },
+  {
+    slot: "brand_story",
+    type: "brand_story",
+    required: false,
+    note: "brandName이 입력되지 않았으면 이 슬롯 전체를 생략. 입력된 브랜드명 기반으로만 작성, 없는 브랜드 히스토리·수상내역 지어내지 말 것",
+  },
   { slot: "checklist", type: "checklist", required: true, note: "핵심 포인트 3~4개" },
   {
     slot: "quick_points",
@@ -32,8 +38,14 @@ const BEAUTY: SlotDefinition[] = [
     required: false,
     repeatable: true,
     minCount: 2,
-    maxCount: 3,
-    note: "짧은 미니 포인트 2~3개, layout: 'compact'로 채울 것. 사진은 작은 텍스처/디테일 컷, 헤딩은 8자 내외, 본문은 1문장",
+    maxCount: 4,
+    note: "짧은 미니 포인트 2~4개, layout: 'compact'로 채울 것. 사진은 작은 텍스처/디테일 컷, 헤딩은 8자 내외, 본문은 1문장",
+  },
+  {
+    slot: "target_persona",
+    type: "target_persona",
+    required: false,
+    note: "targetCustomer·keyFeatures 입력 기반으로만 작성",
   },
   {
     slot: "ingredient_highlight",
@@ -75,16 +87,36 @@ const BEAUTY: SlotDefinition[] = [
     note: "용량/성분/사용기한",
   },
   {
+    slot: "faq",
+    type: "faq",
+    required: false,
+    minCount: 3,
+    maxCount: 5,
+    note: "답변은 입력된 상품 정보(keyFeatures·ingredients·certifications)에 근거한 것만. 근거 없는 질문은 답변에 '판매자에게 문의해주세요'로 표시, 효능·의학적 답변 단정 금지",
+  },
+  {
     slot: "caution",
     type: "caution",
     required: true,
     note: "주의사항 (식약처 표현 검수 대상 — 효능 단정 표현 금지)",
+  },
+  {
+    slot: "shipping_info",
+    type: "spec_table",
+    required: false,
+    note: "배송비/배송기간/교환·환불 안내. 구체적 수치가 입력에 없으면 '판매자 정책을 확인해주세요'로 값 채움 (기존 spec_table 규칙과 동일)",
   },
   { slot: "cta_price", type: "cta_price", required: true, note: "가격/구매 정보" },
 ];
 
 const FASHION: SlotDefinition[] = [
   { slot: "hero", type: "hero", required: true, note: "히어로 (착장 컷, 4:5)" },
+  {
+    slot: "brand_story",
+    type: "brand_story",
+    required: false,
+    note: "brandName이 입력되지 않았으면 이 슬롯 전체를 생략. 입력된 브랜드명 기반으로만 작성, 없는 브랜드 히스토리·수상내역 지어내지 말 것",
+  },
   { slot: "checklist", type: "checklist", required: true, note: "핏/소재 핵심 포인트" },
   {
     slot: "quick_points",
@@ -92,8 +124,14 @@ const FASHION: SlotDefinition[] = [
     required: false,
     repeatable: true,
     minCount: 2,
-    maxCount: 3,
-    note: "짧은 미니 포인트 2~3개, layout: 'compact'로 채울 것. 사진은 작은 텍스처/디테일 컷, 헤딩은 8자 내외, 본문은 1문장",
+    maxCount: 4,
+    note: "짧은 미니 포인트 2~4개, layout: 'compact'로 채울 것. 사진은 작은 텍스처/디테일 컷, 헤딩은 8자 내외, 본문은 1문장",
+  },
+  {
+    slot: "target_persona",
+    type: "target_persona",
+    required: false,
+    note: "targetCustomer·keyFeatures 입력 기반으로만 작성",
   },
   {
     slot: "detail_zoom",
@@ -114,6 +152,14 @@ const FASHION: SlotDefinition[] = [
     type: "spec_table",
     required: true,
     note: "사이즈표 + 모델 착용 사이즈. 실측 데이터가 없는 항목은 지어내지 말고 '판매자 확인 필요'로 표시",
+  },
+  {
+    slot: "faq",
+    type: "faq",
+    required: false,
+    minCount: 3,
+    maxCount: 5,
+    note: "답변은 입력된 상품 정보(keyFeatures·ingredients·certifications)에 근거한 것만. 근거 없는 질문은 답변에 '판매자에게 문의해주세요'로 표시, 효능·의학적 답변 단정 금지",
   },
   {
     slot: "color_variation",
@@ -139,11 +185,23 @@ const FASHION: SlotDefinition[] = [
     required: true,
     note: "세탁/보관 방법",
   },
+  {
+    slot: "shipping_info",
+    type: "spec_table",
+    required: false,
+    note: "배송비/배송기간/교환·환불 안내. 구체적 수치가 입력에 없으면 '판매자 정책을 확인해주세요'로 값 채움 (기존 spec_table 규칙과 동일)",
+  },
   { slot: "cta_price", type: "cta_price", required: true, note: "가격/구매 정보" },
 ];
 
 const FOOD: SlotDefinition[] = [
   { slot: "hero", type: "hero", required: true, note: "히어로 (완성/플레이팅 컷, 4:5)" },
+  {
+    slot: "brand_story",
+    type: "brand_story",
+    required: false,
+    note: "brandName이 입력되지 않았으면 이 슬롯 전체를 생략. 입력된 브랜드명 기반으로만 작성, 없는 브랜드 히스토리·수상내역 지어내지 말 것",
+  },
   { slot: "checklist", type: "checklist", required: true, note: "맛/원재료 핵심 포인트" },
   {
     slot: "quick_points",
@@ -151,8 +209,14 @@ const FOOD: SlotDefinition[] = [
     required: false,
     repeatable: true,
     minCount: 2,
-    maxCount: 3,
-    note: "짧은 미니 포인트 2~3개, layout: 'compact'로 채울 것. 사진은 작은 텍스처/디테일 컷, 헤딩은 8자 내외, 본문은 1문장",
+    maxCount: 4,
+    note: "짧은 미니 포인트 2~4개, layout: 'compact'로 채울 것. 사진은 작은 텍스처/디테일 컷, 헤딩은 8자 내외, 본문은 1문장",
+  },
+  {
+    slot: "target_persona",
+    type: "target_persona",
+    required: false,
+    note: "targetCustomer·keyFeatures 입력 기반으로만 작성",
   },
   {
     slot: "ingredient_highlight",
@@ -199,16 +263,36 @@ const FOOD: SlotDefinition[] = [
     note: "영양성분표 + 알레르기 정보",
   },
   {
+    slot: "faq",
+    type: "faq",
+    required: false,
+    minCount: 3,
+    maxCount: 5,
+    note: "답변은 입력된 상품 정보(keyFeatures·ingredients·certifications)에 근거한 것만. 근거 없는 질문은 답변에 '판매자에게 문의해주세요'로 표시, 효능·의학적 답변 단정 금지",
+  },
+  {
     slot: "caution",
     type: "caution",
     required: true,
     note: "유통기한/보관방법/알레르기 경고. 효능을 암시하는 과장 표현 금지",
+  },
+  {
+    slot: "shipping_info",
+    type: "spec_table",
+    required: false,
+    note: "배송비/배송기간/교환·환불 안내. 구체적 수치가 입력에 없으면 '판매자 정책을 확인해주세요'로 값 채움 (기존 spec_table 규칙과 동일)",
   },
   { slot: "cta_price", type: "cta_price", required: true, note: "가격/구매 정보" },
 ];
 
 const ELECTRONICS: SlotDefinition[] = [
   { slot: "hero", type: "hero", required: true, note: "히어로 (제품 단독 컷, 4:5)" },
+  {
+    slot: "brand_story",
+    type: "brand_story",
+    required: false,
+    note: "brandName이 입력되지 않았으면 이 슬롯 전체를 생략. 입력된 브랜드명 기반으로만 작성, 없는 브랜드 히스토리·수상내역 지어내지 말 것",
+  },
   { slot: "checklist", type: "checklist", required: true, note: "핵심 스펙 3~4개" },
   {
     slot: "quick_points",
@@ -216,8 +300,14 @@ const ELECTRONICS: SlotDefinition[] = [
     required: false,
     repeatable: true,
     minCount: 2,
-    maxCount: 3,
-    note: "짧은 미니 포인트 2~3개, layout: 'compact'로 채울 것. 사진은 작은 텍스처/디테일 컷, 헤딩은 8자 내외, 본문은 1문장",
+    maxCount: 4,
+    note: "짧은 미니 포인트 2~4개, layout: 'compact'로 채울 것. 사진은 작은 텍스처/디테일 컷, 헤딩은 8자 내외, 본문은 1문장",
+  },
+  {
+    slot: "target_persona",
+    type: "target_persona",
+    required: false,
+    note: "targetCustomer·keyFeatures 입력 기반으로만 작성",
   },
   {
     slot: "feature_detail",
@@ -226,7 +316,7 @@ const ELECTRONICS: SlotDefinition[] = [
     note: "기능별 확대/작동 예시 (1:1). 기능이 여러 개면 이 슬롯을 연속으로 반복 가능. 헤드라인에 재생시간·출력 등 숫자 훅이 있으면 짧게 넣기",
     repeatable: true,
     minCount: 1,
-    maxCount: 3,
+    maxCount: 5,
   },
   {
     slot: "comparison_table",
@@ -253,6 +343,14 @@ const ELECTRONICS: SlotDefinition[] = [
     note: "전체 스펙 표 — 규격/전력/호환성. 입력 데이터에 없는 수치는 공란 처리",
   },
   {
+    slot: "faq",
+    type: "faq",
+    required: false,
+    minCount: 3,
+    maxCount: 5,
+    note: "답변은 입력된 상품 정보(keyFeatures·ingredients·certifications)에 근거한 것만. 근거 없는 질문은 답변에 '판매자에게 문의해주세요'로 표시, 효능·의학적 답변 단정 금지",
+  },
+  {
     slot: "package_contents",
     type: "image_text",
     required: true,
@@ -270,11 +368,23 @@ const ELECTRONICS: SlotDefinition[] = [
     required: true,
     note: "A/S, 주의사항",
   },
+  {
+    slot: "shipping_info",
+    type: "spec_table",
+    required: false,
+    note: "배송비/배송기간/교환·환불 안내. 구체적 수치가 입력에 없으면 '판매자 정책을 확인해주세요'로 값 채움 (기존 spec_table 규칙과 동일)",
+  },
   { slot: "cta_price", type: "cta_price", required: true, note: "가격/구매 정보" },
 ];
 
 const HOME_FALLBACK: SlotDefinition[] = [
   { slot: "hero", type: "hero", required: true, note: "히어로 (4:5)" },
+  {
+    slot: "brand_story",
+    type: "brand_story",
+    required: false,
+    note: "brandName이 입력되지 않았으면 이 슬롯 전체를 생략. 입력된 브랜드명 기반으로만 작성, 없는 브랜드 히스토리·수상내역 지어내지 말 것",
+  },
   { slot: "checklist", type: "checklist", required: true, note: "핵심 포인트 3~4개" },
   {
     slot: "quick_points",
@@ -282,8 +392,14 @@ const HOME_FALLBACK: SlotDefinition[] = [
     required: false,
     repeatable: true,
     minCount: 2,
-    maxCount: 3,
-    note: "짧은 미니 포인트 2~3개, layout: 'compact'로 채울 것. 사진은 작은 텍스처/디테일 컷, 헤딩은 8자 내외, 본문은 1문장",
+    maxCount: 4,
+    note: "짧은 미니 포인트 2~4개, layout: 'compact'로 채울 것. 사진은 작은 텍스처/디테일 컷, 헤딩은 8자 내외, 본문은 1문장",
+  },
+  {
+    slot: "target_persona",
+    type: "target_persona",
+    required: false,
+    note: "targetCustomer·keyFeatures 입력 기반으로만 작성",
   },
   {
     slot: "material_feature",
@@ -318,10 +434,24 @@ const HOME_FALLBACK: SlotDefinition[] = [
     note: "사이즈/소재/구성",
   },
   {
+    slot: "faq",
+    type: "faq",
+    required: false,
+    minCount: 3,
+    maxCount: 5,
+    note: "답변은 입력된 상품 정보(keyFeatures·ingredients·certifications)에 근거한 것만. 근거 없는 질문은 답변에 '판매자에게 문의해주세요'로 표시, 효능·의학적 답변 단정 금지",
+  },
+  {
     slot: "caution",
     type: "caution",
     required: false,
     note: "사용 시 주의사항",
+  },
+  {
+    slot: "shipping_info",
+    type: "spec_table",
+    required: false,
+    note: "배송비/배송기간/교환·환불 안내. 구체적 수치가 입력에 없으면 '판매자 정책을 확인해주세요'로 값 채움 (기존 spec_table 규칙과 동일)",
   },
   { slot: "cta_price", type: "cta_price", required: true, note: "가격/구매 정보" },
 ];

@@ -223,6 +223,9 @@ const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
   color_variation: `{ type: "color_variation", slot, heading, options: [{label, colorHex, imageIndex}] }`,
   stat_infographic: `{ type: "stat_infographic", slot, heading, metrics: [{label, value, percent: 0-100}] } — 입력에 실제 수치 근거가 있을 때만 포함. 근거 없으면 섹션 생략`,
   illustration_banner: `{ type: "illustration_banner", slot, heading?, body?, illustrationUrl: "" } — body는 분위기 1~2문장, illustrationUrl은 서버가 채우므로 빈 문자열`,
+  faq: `{ type: "faq", slot, heading, items: [{question, answer}] } — 3~5개. 근거 없으면 슬롯 생략. 근거 없는 개별 질문은 답변을 "판매자에게 문의해주세요"`,
+  target_persona: `{ type: "target_persona", slot, heading, personas[] } — 3~5개, 각 20자 내외. targetCustomer·keyFeatures 기반으로만`,
+  brand_story: `{ type: "brand_story", slot, heading, body } — brandName이 없으면 슬롯 전체 생략. 없는 히스토리·수상 지어내지 말 것`,
 };
 
 // 카테고리별 고정 슬롯 순서를 프롬프트용 텍스트로 변환한다. AI는 레이아웃을
@@ -240,7 +243,12 @@ function getAidaPhase(def: SlotDefinition): string {
     case "caution":
     case "spec_table":
     case "stat_infographic":
+    case "faq":
       return "신뢰 보조 (과장 없이 사실만, AIDA 흐름 유지)";
+    case "brand_story":
+      return "AIDA-I (Interest): 입력된 브랜드명만으로 신뢰 맥락을 짧게 — 지어낸 히스토리 금지";
+    case "target_persona":
+      return "AIDA-I (Interest): 입력된 타겟·특징 기반으로 '이런 분께'를 짧게";
     case "illustration_banner":
       return "AIDA-D (Desire): 컨셉 분위기를 시각적으로 강화하는 장식 (카피는 heading만, 이미지는 서버 생성)";
     default:
@@ -260,7 +268,9 @@ function buildSlotInstructions(template: SlotDefinition[]): string {
         : "";
       const countNote =
         !def.repeatable && (def.minCount || def.maxCount)
-          ? ` (이미지 ${def.minCount ?? def.maxCount}~${def.maxCount ?? def.minCount}장)`
+          ? def.type === "faq"
+            ? ` (항목 ${def.minCount ?? def.maxCount}~${def.maxCount ?? def.minCount}개)`
+            : ` (이미지 ${def.minCount ?? def.maxCount}~${def.maxCount ?? def.minCount}장)`
           : "";
       const aidaNote = getAidaPhase(def);
       return `${i + 1}. slot="${def.slot}" / type="${def.type}" / ${def.required ? "필수" : "선택(불필요하면 생략 가능, 순서는 유지)"} — ${def.note}${ratioNote}${countNote}${repeatNote}\n   AIDA 역할: ${aidaNote}\n   형식: ${SECTION_TYPE_SHAPES[def.type]}`;
@@ -400,9 +410,13 @@ stat_infographic 섹션은 keyFeatures·ingredients·certifications 등 입력�
 "판매자 확인 필요"를 metrics value로 쓰지 마세요.
 illustration_banner의 illustrationUrl은 항상 빈 문자열("")로 두세요 (서버가 생성).
 illustration_banner의 body는 이 섹션 분위기를 설명하는 1~2문장 카피입니다 (image_text body와 비슷한 톤).
-quick_points 슬롯은 layout:"compact"로 2~3개 채우세요. heading 8자 내외, body 1문장, 사진은 작은 텍스처/디테일 컷.
+quick_points 슬롯은 layout:"compact"로 2~4개 채우세요. heading 8자 내외, body 1문장, 사진은 작은 텍스처/디테일 컷.
 compact layout은 사진이 작아지므로 텍스트도 짧게 작성하세요.
 checklist의 compactFollow는 gallery 또는 image_text 섹션 **바로 다음**에 오는 checklist일 때만 true. 그 외에는 생략하거나 false.
+brand_story는 brandName이 입력된 경우에만 포함하세요. 없으면 슬롯 전체를 생략하고, 브랜드 히스토리·설립연도·수상내역을 지어내지 마세요.
+target_persona는 targetCustomer·keyFeatures 입력 기반으로만 3~5개 작성하세요. 근거가 없으면 슬롯을 생략하세요.
+faq는 keyFeatures·ingredients·certifications 등 입력에 근거한 질문만 3~5개. 근거가 전혀 없으면 슬롯 전체를 생략하세요. 개별 질문에 근거가 없으면 답변을 "판매자에게 문의해주세요"로 두고, 효능·의학적 단정은 금지합니다.
+shipping_info는 type:"spec_table"로 배송비/기간/교환·환불 행을 채우세요. 구체 수치가 없으면 값을 "판매자 정책을 확인해주세요"로 두세요.
 
 반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트는 포함하지 마세요.
 {
@@ -522,6 +536,18 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
     }
     if (section.type === "illustration_banner") {
       return { ...section, illustrationUrl: "" };
+    }
+    if (section.type === "faq") {
+      return {
+        ...section,
+        items: Array.isArray(section.items) ? section.items.slice(0, 5) : [],
+      };
+    }
+    if (section.type === "target_persona") {
+      return {
+        ...section,
+        personas: Array.isArray(section.personas) ? section.personas.slice(0, 5) : [],
+      };
     }
     return section;
   });

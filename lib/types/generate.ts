@@ -137,6 +137,27 @@ export type IllustrationBannerSection = {
   illustrationUrl: string;
 };
 
+export type FaqSection = {
+  type: "faq";
+  slot: string;
+  heading: string;
+  items: { question: string; answer: string }[];
+};
+
+export type TargetPersonaSection = {
+  type: "target_persona";
+  slot: string;
+  heading: string;
+  personas: string[];
+};
+
+export type BrandStorySection = {
+  type: "brand_story";
+  slot: string;
+  heading: string;
+  body: string;
+};
+
 export type DetailSection =
   | HeroSection
   | ChecklistSection
@@ -149,7 +170,10 @@ export type DetailSection =
   | ComparisonTableSection
   | ColorVariationSection
   | StatInfographicSection
-  | IllustrationBannerSection;
+  | IllustrationBannerSection
+  | FaqSection
+  | TargetPersonaSection
+  | BrandStorySection;
 
 export type GeneratedCopy = {
   sections: DetailSection[];

@@ -871,6 +871,146 @@ function renderSection(
         </section>
       );
 
+    case "brand_story":
+      return (
+        <section
+          key={`brand_story-${index}`}
+          className={getCategoryRhythm(category).trustPadClass}
+          style={textSectionStyle(theme, pattern)}
+        >
+          <div className={TEXT_COL_CLASS}>
+            <p
+              className={`mb-4 ${TYPO.sectionLabel}`}
+              style={{ color: theme.deepAccent }}
+            >
+              STORY
+            </p>
+            <EditableText
+              as="h3"
+              enabled={edit?.enabled}
+              value={section.heading}
+              onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+              className={`${HEADLINE_CLAMP} font-heading text-lg font-bold tracking-[-0.02em] text-ink sm:text-xl`}
+            />
+            <EditableText
+              as="p"
+              multiline
+              enabled={edit?.enabled}
+              value={section.body}
+              onChange={(body) => edit?.onChange(index, { ...section, body })}
+              className={`mt-5 ${BODY_CLAMP} ${TYPO.body}`}
+            />
+          </div>
+        </section>
+      );
+
+    case "faq":
+      return (
+        <section
+          key={`faq-${index}`}
+          className={getCategoryRhythm(category).trustPadClass}
+          style={textSectionStyle(theme, pattern)}
+        >
+          <EditableText
+            as="h3"
+            enabled={edit?.enabled}
+            value={section.heading}
+            onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+          />
+          <div className="mx-auto mt-10 max-w-xl space-y-8 text-left">
+            {section.items.map((item, itemIndex) => (
+              <div key={`${itemIndex}-${item.question.slice(0, 12)}`}>
+                <p className={`${TYPO.sectionLabel} mb-2`} style={{ color: theme.accent }}>
+                  Q.
+                </p>
+                <EditableText
+                  as="p"
+                  enabled={edit?.enabled}
+                  value={item.question}
+                  onChange={(question) => {
+                    const items = section.items.map((entry, i) =>
+                      i === itemIndex ? { ...entry, question } : entry,
+                    );
+                    edit?.onChange(index, { ...section, items });
+                  }}
+                  className="font-heading text-base font-bold leading-snug tracking-[-0.02em] text-ink"
+                />
+                <p
+                  className={`${TYPO.sectionLabel} mb-2 mt-4`}
+                  style={{ color: theme.deepAccent }}
+                >
+                  A.
+                </p>
+                <EditableText
+                  as="p"
+                  multiline
+                  enabled={edit?.enabled}
+                  value={item.answer}
+                  onChange={(answer) => {
+                    const items = section.items.map((entry, i) =>
+                      i === itemIndex ? { ...entry, answer } : entry,
+                    );
+                    edit?.onChange(index, { ...section, items });
+                  }}
+                  className={TYPO.body}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      );
+
+    case "target_persona":
+      return (
+        <section
+          key={`target_persona-${index}`}
+          className={getCategoryRhythm(category).generousPadClass}
+          style={textSectionStyle(theme, pattern)}
+        >
+          <div className={TEXT_COL_CLASS}>
+            <SectionAccentHairline theme={theme} />
+            <EditableText
+              as="h3"
+              enabled={edit?.enabled}
+              value={section.heading}
+              onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+              className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
+            />
+          </div>
+          <ul className="mx-auto mt-8 flex max-w-xl flex-col items-stretch gap-2.5">
+            {section.personas.map((persona, personaIndex) => (
+              <li
+                key={`${personaIndex}-${persona.slice(0, 12)}`}
+                className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium"
+                style={{
+                  backgroundColor: hexToRgba(theme.baseNeutral, 0.85),
+                  color: theme.deepAccent,
+                  boxShadow: `inset 0 0 0 1px ${hexToRgba(theme.accent, 0.2)}`,
+                }}
+              >
+                <CheckCircle2
+                  className="h-3.5 w-3.5 shrink-0"
+                  style={{ color: theme.accent }}
+                  aria-hidden="true"
+                />
+                <EditableText
+                  as="span"
+                  enabled={edit?.enabled}
+                  value={persona}
+                  onChange={(next) => {
+                    const personas = [...section.personas];
+                    personas[personaIndex] = next;
+                    edit?.onChange(index, { ...section, personas });
+                  }}
+                  className="min-w-0 flex-1 text-left"
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+
     case "cta_price":
       return (
         <section

@@ -148,6 +148,27 @@ function sanitizeSection(
         heading: clean(section.heading),
         options: section.options.map((option) => ({ ...option, label: clean(option.label) })),
       };
+    case "faq":
+      return {
+        ...section,
+        heading: clean(section.heading),
+        items: section.items.map((item) => ({
+          question: clean(item.question),
+          answer: clean(item.answer),
+        })),
+      };
+    case "target_persona":
+      return {
+        ...section,
+        heading: clean(section.heading),
+        personas: section.personas.map(clean),
+      };
+    case "brand_story":
+      return {
+        ...section,
+        heading: clean(section.heading),
+        body: clean(section.body),
+      };
     default:
       return section;
   }
