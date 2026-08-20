@@ -16,8 +16,11 @@ function samplePlanningText(text: string, maxChars = 8000): string {
 }
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
-  // pdf-parse v1은 import 시 테스트 PDF를 읽으려 해 dynamic import 사용
-  const pdfParse = (await import("pdf-parse")).default;
+  const mod = await import("pdf-parse");
+  const pdfParse =
+    typeof mod === "function"
+      ? mod
+      : (mod as { default: (buf: Buffer) => Promise<{ text: string }> }).default;
   const result = await pdfParse(buffer);
   return typeof result.text === "string" ? result.text : "";
 }
