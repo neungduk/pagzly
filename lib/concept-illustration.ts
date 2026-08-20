@@ -36,6 +36,7 @@ export async function generateIllustrationBanner(
   brief: ConceptBrief,
   theme: Pick<CategoryTheme, "accent" | "deepAccent">,
   heading?: string,
+  body?: string,
 ): Promise<{ dataUrl: string; cost: number }> {
   if (!process.env.REPLICATE_API_TOKEN) {
     console.warn("[concept-illustration] REPLICATE_API_TOKEN 없음 — 일러스트 생성 생략");
@@ -54,6 +55,7 @@ export async function generateIllustrationBanner(
     `visual theme: ${brief.theme}`,
     motif ? `motif elements: ${motif}` : "",
     heading ? `mood inspired by: ${heading.slice(0, 60)}` : "",
+    body ? `atmosphere: ${body.slice(0, 120)}` : "",
     `${describeColorTone(theme.accent)} and ${describeColorTone(theme.deepAccent)} color palette`,
     "soft abstract shapes, ecommerce detail page section background art",
     "no text, no letters, no numbers, no words, no watermark",
@@ -61,16 +63,38 @@ export async function generateIllustrationBanner(
     .filter(Boolean)
     .join(", ");
 
-  const output = await replicate.run(FLUX_SCHNELL_REF, {
-    input: {
-      prompt,
-      num_outputs: 1,
-      aspect_ratio: "16:9",
-      output_format: "png",
-      output_quality: 85,
-    },
-    wait: { mode: "poll", interval: 1000 },
-  });
+  let output: unknown;
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      output = await replicate.run(FLUX_SCHNELL_REF, {
+        input: {
+          prompt,
+          num_outputs: 1,
+          aspect_ratio: "16:9",
+          output_format: "png",
+          output_quality: 85,
+        },
+        wait: { mode: "poll", interval: 1000 },
+      });
+      lastError = undefined;
+      break;
+    } catch (error) {
+      lastError = error;
+      const status = (error as { response?: { status?: number } }).response?.status;
+      const retryable = status === 503 || status === 429 || status === 502;
+      if (!retryable || attempt === 3) {
+        throw error;
+      }
+      console.warn(
+        `[concept-illustration] flux-schnell ${status} — ${attempt}/3 재시도`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
+    }
+  }
+  if (lastError) {
+    throw lastError;
+  }
 
   const url = extractImageUrl(output);
   if (!url) {
