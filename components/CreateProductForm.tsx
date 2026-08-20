@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import PagzlyLogo from "@/components/PagzlyLogo";
-import GeneratingOverlay, { type GeneratingStage } from "@/components/GeneratingOverlay";
+import GeneratingOverlay, { type GeneratingStage, SNAP_HOLD_MS } from "@/components/GeneratingOverlay";
 import BackdropCandidatePicker from "@/components/BackdropCandidatePicker";
 import { createClient } from "@/lib/supabase";
 import { getCategoryTheme } from "@/lib/category-theme";
@@ -86,6 +86,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingStage, setLoadingStage] = useState<LoadingStage>("idle");
+  const [overlaySnapComplete, setOverlaySnapComplete] = useState(false);
   const [backdropCandidates, setBackdropCandidates] = useState<string[] | null>(null);
   const backdropPickRef = useRef<((url: string) => void) | null>(null);
   const loading = loadingStage !== "idle" || backdropCandidates !== null;
@@ -494,6 +495,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     }
 
     setLoadingStage("uploading");
+    setOverlaySnapComplete(false);
 
     try {
       const uploaded = await uploadImages(images);
@@ -672,6 +674,9 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         throw new Error(generateResult.error ?? "AI 생성에 실패했습니다.");
       }
 
+      setOverlaySnapComplete(true);
+      await new Promise((r) => setTimeout(r, SNAP_HOLD_MS));
+
       sessionStorage.setItem(
         SESSION_KEY,
         JSON.stringify({
@@ -690,6 +695,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       router.push("/create/result");
     } catch (err) {
       setBackdropCandidates(null);
+      setOverlaySnapComplete(false);
       setError(err instanceof Error ? err.message : "제출 중 오류가 발생했습니다.");
       setLoadingStage("idle");
     }
@@ -1146,7 +1152,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       </main>
 
       {loadingStage !== "idle" && !backdropCandidates && (
-        <GeneratingOverlay stage={loadingStage} />
+        <GeneratingOverlay stage={loadingStage} category={category} productName={productName} snapComplete={overlaySnapComplete} />
       )}
       {backdropCandidates && (
         <BackdropCandidatePicker
