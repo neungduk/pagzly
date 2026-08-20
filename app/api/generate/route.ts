@@ -222,7 +222,7 @@ const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
   comparison_table: `{ type: "comparison_table", slot, heading, columns: [string,string], rows: [{label, values: [string,string]}] }`,
   color_variation: `{ type: "color_variation", slot, heading, options: [{label, colorHex, imageIndex}] }`,
   stat_infographic: `{ type: "stat_infographic", slot, heading, metrics: [{label, value, percent: 0-100}] } — 입력에 실제 수치 근거가 있을 때만 포함. 근거 없으면 섹션 생략`,
-  illustration_banner: `{ type: "illustration_banner", slot, heading?, illustrationUrl: "" } — illustrationUrl은 서버가 채우므로 빈 문자열로 두세요`,
+  illustration_banner: `{ type: "illustration_banner", slot, heading?, body?, illustrationUrl: "" } — body는 분위기 1~2문장, illustrationUrl은 서버가 채우므로 빈 문자열`,
 };
 
 // 카테고리별 고정 슬롯 순서를 프롬프트용 텍스트로 변환한다. AI는 레이아웃을
@@ -397,6 +397,7 @@ stat_infographic 섹션은 keyFeatures·ingredients·certifications 등 입력�
 있을 때만 포함하세요. 근거 없으면 해당 슬롯을 생략하고, 수치를 지어내거나
 "판매자 확인 필요"를 metrics value로 쓰지 마세요.
 illustration_banner의 illustrationUrl은 항상 빈 문자열("")로 두세요 (서버가 생성).
+illustration_banner의 body는 이 섹션 분위기를 설명하는 1~2문장 카피입니다 (image_text body와 비슷한 톤).
 
 반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트는 포함하지 마세요.
 {
@@ -816,6 +817,7 @@ export async function POST(request: Request) {
             body.conceptBrief,
             iconTheme,
             section.heading,
+            section.body,
           );
           if (dataUrl) {
             savedCopy.sections[sectionIndex] = { ...section, illustrationUrl: dataUrl };

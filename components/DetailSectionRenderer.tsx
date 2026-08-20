@@ -53,12 +53,19 @@ const TEXT_COL_CLASS = "mx-auto max-w-xl text-center";
 const HEADLINE_CLAMP = "line-clamp-2";
 const BODY_CLAMP = "line-clamp-3";
 
+const BANNER_OVERLAY_CLASS =
+  "absolute inset-0 z-20 flex flex-col items-center justify-center px-6 text-center sm:px-10";
+
 const TYPO = {
   heroCategory:
     "mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.28em] text-white/80",
   heroTitle:
     "font-heading text-[2.75rem] font-bold leading-[1.05] tracking-[-0.03em] text-white sm:text-6xl",
+  bannerTitle:
+    "font-heading text-[1.65rem] font-bold leading-[1.15] tracking-[-0.03em] text-white sm:text-[1.85rem]",
   heroSub: "mt-4 max-w-xl text-base font-normal leading-relaxed text-white/88 sm:text-lg",
+  bannerSub:
+    "mt-3 max-w-md text-sm font-normal leading-relaxed text-white/88 sm:text-base",
   sectionTitle:
     "font-heading text-[1.75rem] font-bold leading-[1.2] tracking-[-0.02em] text-ink sm:text-4xl",
   sectionLabel: "font-mono text-[10px] font-semibold uppercase tracking-[0.32em]",
@@ -609,32 +616,47 @@ function renderSection(
       return (
         <section
           key={`illustration_banner-${index}`}
-          className={getCategoryRhythm(category).generousPadClass}
-          style={sectionBackgroundStyle(theme, pattern)}
+          className="relative aspect-video w-full overflow-hidden"
         >
-          {(section.heading || edit?.enabled) && (
-            <EditableText
-              as="h3"
-              enabled={edit?.enabled}
-              value={section.heading ?? ""}
-              onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-              className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} mb-6 ${TYPO.sectionTitle}`}
-            />
-          )}
           {section.illustrationUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={section.illustrationUrl}
               alt={section.heading ?? "컨셉 일러스트"}
-              className="aspect-video w-full object-cover"
+              className="absolute inset-0 h-full w-full object-cover"
             />
           ) : (
             <div
-              className="aspect-video w-full"
-              style={{ backgroundColor: hexToRgba(theme.accent, 0.08) }}
+              className="absolute inset-0"
+              style={{ backgroundColor: hexToRgba(theme.accent, 0.12) }}
               aria-hidden="true"
             />
           )}
+          <div
+            className="absolute inset-0"
+            style={{ background: getHeroGradient(theme) }}
+          />
+          <div className={BANNER_OVERLAY_CLASS}>
+            {(section.heading || edit?.enabled) && (
+              <EditableText
+                as="h2"
+                enabled={edit?.enabled}
+                value={section.heading ?? ""}
+                onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+                className={`${TYPO.bannerTitle} ${getCategoryRhythm(category).heroTitleExtra}`}
+              />
+            )}
+            {(section.body || edit?.enabled) && (
+              <EditableText
+                as="p"
+                multiline
+                enabled={edit?.enabled}
+                value={section.body ?? ""}
+                onChange={(body) => edit?.onChange(index, { ...section, body })}
+                className={TYPO.bannerSub}
+              />
+            )}
+          </div>
         </section>
       );
 

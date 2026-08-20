@@ -48,6 +48,7 @@ const initialSections: DetailSection[] = [
     type: "illustration_banner",
     slot: "illustration_banner",
     heading: "수분 레이어의 리듬",
+    body: "겹겹이 쌓인 수분감이 피부 결 사이로 스며듭니다. 아침과 저녁, 같은 리듬으로 케어하세요.",
     illustrationUrl: "/iteration-fixtures/04.jpg",
   },
   {

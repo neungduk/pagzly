@@ -42,7 +42,7 @@ const BEAUTY: SlotDefinition[] = [
     slot: "illustration_banner",
     type: "illustration_banner",
     required: false,
-    note: "컨셉 장식 일러스트 배너 (16:9, 텍스트 없음). heading만 작성하고 illustrationUrl은 비워 둠",
+    note: "컨셉 장식 일러스트 배너 (16:9). heading+body가 이미지 위에 오버레이되므로 body도 함께 작성. illustrationUrl은 비워 둠",
   },
   { slot: "usage_steps", type: "usage_steps", required: true, note: "사용법 단계. STEP 01/02/03 구조로 3단계 권장" },
   {
@@ -113,7 +113,7 @@ const FASHION: SlotDefinition[] = [
     slot: "illustration_banner",
     type: "illustration_banner",
     required: false,
-    note: "컨셉 장식 일러스트 배너 (16:9, 텍스트 없음). heading만 작성하고 illustrationUrl은 비워 둠",
+    note: "컨셉 장식 일러스트 배너 (16:9). heading+body가 이미지 위에 오버레이되므로 body도 함께 작성. illustrationUrl은 비워 둠",
   },
   {
     slot: "care_info",
@@ -143,7 +143,7 @@ const FOOD: SlotDefinition[] = [
     slot: "illustration_banner",
     type: "illustration_banner",
     required: false,
-    note: "컨셉 장식 일러스트 배너 (16:9, 텍스트 없음). heading만 작성하고 illustrationUrl은 비워 둠",
+    note: "컨셉 장식 일러스트 배너 (16:9). heading+body가 이미지 위에 오버레이되므로 body도 함께 작성. illustrationUrl은 비워 둠",
   },
   {
     slot: "cooking_steps",
@@ -226,7 +226,7 @@ const ELECTRONICS: SlotDefinition[] = [
     slot: "illustration_banner",
     type: "illustration_banner",
     required: false,
-    note: "컨셉 장식 일러스트 배너 (16:9, 텍스트 없음). heading만 작성하고 illustrationUrl은 비워 둠",
+    note: "컨셉 장식 일러스트 배너 (16:9). heading+body가 이미지 위에 오버레이되므로 body도 함께 작성. illustrationUrl은 비워 둠",
   },
   {
     slot: "warranty_caution",
@@ -256,7 +256,7 @@ const HOME_FALLBACK: SlotDefinition[] = [
     slot: "illustration_banner",
     type: "illustration_banner",
     required: false,
-    note: "컨셉 장식 일러스트 배너 (16:9, 텍스트 없음). heading만 작성하고 illustrationUrl은 비워 둠",
+    note: "컨셉 장식 일러스트 배너 (16:9). heading+body가 이미지 위에 오버레이되므로 body도 함께 작성. illustrationUrl은 비워 둠",
   },
   {
     slot: "gallery",

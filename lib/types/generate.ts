@@ -127,6 +127,8 @@ export type IllustrationBannerSection = {
   type: "illustration_banner";
   slot: string;
   heading?: string;
+  /** 1~2문장 분위기/설득 카피 — 이미지 위 오버레이 */
+  body?: string;
   /** 서버가 generateIllustrationBanner() 후 채움. DeepSeek은 비워 둠 */
   illustrationUrl: string;
 };
