@@ -54,3 +54,11 @@ public/iteration-fixtures/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# supabase CLI local temp state
+supabase/.temp/
+
+# review capture logs/debug output (review/*.png와 같은 성격)
+review/*.log
+review/*.json
+review/*.txt
