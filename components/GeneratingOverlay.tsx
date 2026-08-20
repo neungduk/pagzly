@@ -66,6 +66,8 @@ type GeneratingOverlayProps = {
   stage: GeneratingStage;
   category: string;
   productName: string;
+  /** 짧은 구성일 때 슬롯 카드 수 감소 */
+  length?: "short" | "long";
   /** API가 먼저 끝나면 true → 남은 카드 즉시 완료 */
   snapComplete?: boolean;
 };
@@ -109,9 +111,10 @@ export default function GeneratingOverlay({
   stage,
   category,
   productName,
+  length = "long",
   snapComplete = false,
 }: GeneratingOverlayProps) {
-  const slots = useMemo(() => getSlotTemplate(category), [category]);
+  const slots = useMemo(() => getSlotTemplate(category, length), [category, length]);
   const [completedCount, setCompletedCount] = useState(0);
   const listRef = useRef<HTMLUListElement>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);

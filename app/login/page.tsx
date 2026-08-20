@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import PagzlyLogo from "@/components/PagzlyLogo";
 import KakaoLoginButton from "@/components/KakaoLoginButton";
+import GoogleLoginButton from "@/components/GoogleLoginButton";
 import { createClient } from "@/lib/supabase";
+import { hasCompletedOnboarding } from "@/lib/onboarding";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,7 +22,7 @@ export default function LoginPage() {
     setLoading(true);
 
     const supabase = createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -29,6 +31,13 @@ export default function LoginPage() {
 
     if (signInError) {
       setError(signInError.message);
+      return;
+    }
+
+    const userId = data.user?.id;
+    if (userId && !(await hasCompletedOnboarding(supabase, userId))) {
+      router.push("/onboarding");
+      router.refresh();
       return;
     }
 
@@ -54,9 +63,13 @@ export default function LoginPage() {
               Pagzly 계정으로 로그인하세요
             </p>
 
-            <div className="mt-8 space-y-5">
+            <div className="mt-8 space-y-3">
               <KakaoLoginButton
                 label="카카오로 로그인"
+                onError={setError}
+              />
+              <GoogleLoginButton
+                label="Google로 로그인"
                 onError={setError}
               />
 

@@ -1,5 +1,17 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { hasCompletedOnboarding } from "@/lib/onboarding";
+
+function redirectWithCookies(
+  url: URL,
+  supabaseResponse: NextResponse,
+) {
+  const redirectResponse = NextResponse.redirect(url);
+  supabaseResponse.cookies.getAll().forEach((cookie) => {
+    redirectResponse.cookies.set(cookie);
+  });
+  return redirectResponse;
+}
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -25,7 +37,31 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const path = request.nextUrl.pathname;
+
+  if (path.startsWith("/onboarding")) {
+    if (!user) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      return redirectWithCookies(url, supabaseResponse);
+    }
+    if (await hasCompletedOnboarding(supabase, user.id)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/create";
+      return redirectWithCookies(url, supabaseResponse);
+    }
+  }
+
+  if (path.startsWith("/create")) {
+    if (user && !(await hasCompletedOnboarding(supabase, user.id))) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/onboarding";
+      return redirectWithCookies(url, supabaseResponse);
+    }
+  }
 
   return supabaseResponse;
 }

@@ -25,8 +25,12 @@ export type ReviewInsightsInput = {
   commonComplaints: string[];
 };
 
+export type SlotLength = "short" | "long";
+
 export type ProductInput = {
   category: string;
+  /** 짧은 구성: required 슬롯만. 기본 long */
+  length?: SlotLength;
   imageUrls: string[];
   imagePaths: string[];
   productName: string;

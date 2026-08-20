@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import PagzlyLogo from "@/components/PagzlyLogo";
 import KakaoLoginButton from "@/components/KakaoLoginButton";
+import GoogleLoginButton from "@/components/GoogleLoginButton";
 import { createClient } from "@/lib/supabase";
+import { hasCompletedOnboarding } from "@/lib/onboarding";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +24,7 @@ export default function SignupPage() {
     setLoading(true);
 
     const supabase = createClient();
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
     });
@@ -29,6 +33,17 @@ export default function SignupPage() {
 
     if (signUpError) {
       setError(signUpError.message);
+      return;
+    }
+
+    if (data.session && data.user) {
+      if (!(await hasCompletedOnboarding(supabase, data.user.id))) {
+        router.push("/onboarding");
+        router.refresh();
+        return;
+      }
+      router.push("/");
+      router.refresh();
       return;
     }
 
@@ -55,9 +70,13 @@ export default function SignupPage() {
               Pagzly를 시작하려면 계정을 만드세요
             </p>
 
-            <div className="mt-8 space-y-5">
+            <div className="mt-8 space-y-3">
               <KakaoLoginButton
                 label="카카오로 시작하기"
+                onError={setError}
+              />
+              <GoogleLoginButton
+                label="Google로 시작하기"
                 onError={setError}
               />
 

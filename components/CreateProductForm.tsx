@@ -1,13 +1,12 @@
-"use client";
+﻿"use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState } from "react";
-import PagzlyLogo from "@/components/PagzlyLogo";
+import { useCallback, useMemo, useRef, useState } from "react";
 import GeneratingOverlay, { type GeneratingStage, SNAP_HOLD_MS } from "@/components/GeneratingOverlay";
 import BackdropCandidatePicker from "@/components/BackdropCandidatePicker";
 import { createClient } from "@/lib/supabase";
 import { getCategoryTheme } from "@/lib/category-theme";
+import { countSlotSections, type SlotLength } from "@/lib/section-templates";
 import type { GeneratedCopy, GenerateResponse } from "@/lib/types/generate";
 
 const CATEGORIES = [
@@ -65,6 +64,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [category, setCategory] = useState("");
+  const [compositionLength, setCompositionLength] = useState<SlotLength>("long");
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [productName, setProductName] = useState("");
@@ -90,6 +90,11 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const [backdropCandidates, setBackdropCandidates] = useState<string[] | null>(null);
   const backdropPickRef = useRef<((url: string) => void) | null>(null);
   const loading = loadingStage !== "idle" || backdropCandidates !== null;
+
+  const sectionCountHint = useMemo(() => {
+    if (!category) return null;
+    return countSlotSections(category, compositionLength);
+  }, [category, compositionLength]);
 
   const addImages = useCallback(
     (files: FileList | File[]) => {
@@ -624,6 +629,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
 
       const payload = {
         category,
+        length: compositionLength,
         imageUrls,
         imagePaths,
         productName: productName.trim(),
@@ -692,7 +698,9 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           generated: generateResult as GenerateResponse,
         }),
       );
-      router.push("/create/result");
+      router.push(
+        `/create/result?id=${encodeURIComponent((generateResult as GenerateResponse).productId)}`,
+      );
     } catch (err) {
       setBackdropCandidates(null);
       setOverlaySnapComplete(false);
@@ -721,20 +729,6 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     <div className="min-h-full bg-paper text-ink">
       <div className="absolute inset-0 -z-10 bg-gradient-to-b from-line/40 to-paper" />
 
-      <header className="border-b border-line bg-paper/80 backdrop-blur-md">
-        <nav className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-          <Link href="/">
-            <PagzlyLogo className="h-8 w-auto" />
-          </Link>
-          <Link
-            href="/"
-            className="text-sm font-medium text-ink/60 hover:text-ink"
-          >
-            홈
-          </Link>
-        </nav>
-      </header>
-
       <main className="mx-auto max-w-3xl px-6 py-10 pb-16">
         <div className="mb-8">
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-registration-red">
@@ -746,6 +740,38 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           <p className="mt-2 text-sm text-ink/60">
             AI가 상세페이지를 만들 수 있도록 상품 정보를 입력해 주세요.
           </p>
+
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <div className="inline-flex rounded-lg border border-line bg-paper p-1">
+              <button
+                type="button"
+                onClick={() => setCompositionLength("short")}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  compositionLength === "short"
+                    ? "bg-ink text-paper"
+                    : "text-ink/60 hover:text-ink"
+                }`}
+              >
+                짧은 구성
+              </button>
+              <button
+                type="button"
+                onClick={() => setCompositionLength("long")}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  compositionLength === "long"
+                    ? "bg-ink text-paper"
+                    : "text-ink/60 hover:text-ink"
+                }`}
+              >
+                긴 구성
+              </button>
+            </div>
+            <span className="text-sm text-ink/50">
+              {sectionCountHint != null
+                ? `약 ${sectionCountHint}개 섹션`
+                : "카테고리 선택 후 섹션 수 표시"}
+            </span>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -1152,7 +1178,13 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       </main>
 
       {loadingStage !== "idle" && !backdropCandidates && (
-        <GeneratingOverlay stage={loadingStage} category={category} productName={productName} snapComplete={overlaySnapComplete} />
+        <GeneratingOverlay
+          stage={loadingStage}
+          category={category}
+          productName={productName}
+          length={compositionLength}
+          snapComplete={overlaySnapComplete}
+        />
       )}
       {backdropCandidates && (
         <BackdropCandidatePicker

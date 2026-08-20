@@ -5,9 +5,12 @@ import ShowcaseSection from "@/components/ShowcaseSection";
 import ComparisonTable from "@/components/ComparisonTable";
 import FaqAccordion from "@/components/FaqAccordion";
 import CropMarks from "@/components/CropMarks";
-import PipelineCard from "@/components/PipelineCard";
 import CategoryColorEngine from "@/components/CategoryColorEngine";
 import RevealOnScroll from "@/components/RevealOnScroll";
+import ScrollProgressBar from "@/components/ScrollProgressBar";
+import ProcessSteps from "@/components/ProcessSteps";
+import SpotlightCard from "@/components/SpotlightCard";
+import HeroShowcaseVisual from "@/components/HeroShowcaseVisual";
 import { createClient } from "@/lib/supabase/server";
 
 const features = [
@@ -176,18 +179,19 @@ export default async function Home() {
             )}
           </div>
         </nav>
+        <ScrollProgressBar />
       </header>
 
       <main>
         {/* Hero */}
-        <section className="relative overflow-hidden border-b border-line bg-paper">
+        <section className="relative border-b border-line bg-paper">
           <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-16 sm:py-24 lg:grid-cols-2 lg:gap-16">
             <div>
               <div className="mb-6 inline-flex items-center gap-2 border border-line px-4 py-1.5 font-mono text-xs uppercase tracking-wider text-ink/50">
                 <span className="h-1.5 w-1.5 rounded-full bg-registration-red" />
                 AI 상세페이지 자동 생성
               </div>
-              <h1 className="font-heading text-5xl font-bold leading-[1.1] tracking-tight text-ink sm:text-6xl">
+              <h1 className="font-heading text-5xl font-bold leading-[1.05] tracking-tighter text-ink sm:text-6xl lg:text-7xl">
                 상세페이지가 늦어질수록,
                 <br />
                 <span className="text-registration-red">놓치는 주문</span>이
@@ -217,9 +221,7 @@ export default async function Home() {
               </p>
             </div>
 
-            <div className="mx-auto w-full max-w-xs sm:max-w-sm lg:mx-0 lg:ml-auto">
-              <PipelineCard />
-            </div>
+            <HeroShowcaseVisual />
           </div>
         </section>
 
@@ -232,7 +234,7 @@ export default async function Home() {
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-registration-red">
                 Comparison
               </p>
-              <h2 className="mt-2.5 font-heading text-2xl font-bold tracking-tight text-ink sm:text-[28px]">
+              <h2 className="mt-2 font-heading text-xl font-semibold tracking-normal text-ink sm:text-2xl">
                 외주도, 템플릿 툴도 아닌 이유
               </h2>
               <p className="mx-auto mt-2.5 max-w-2xl text-sm text-ink/50">
@@ -245,76 +247,91 @@ export default async function Home() {
           </RevealOnScroll>
         </section>
 
-        {/* Process */}
-        <section className="border-b border-line bg-paper py-24">
-          <RevealOnScroll className="mx-auto max-w-6xl px-6">
-            <div className="text-center">
-              <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink/40">
-                Process
-              </p>
-              <h2 className="mt-3 font-heading text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-                3단계면 충분합니다
-              </h2>
-            </div>
-            <div className="mt-16 grid gap-8 sm:grid-cols-3">
-              {processSteps.map((item) => (
-                <div
-                  key={item.step}
-                  className="relative border border-line bg-white p-8 transition-transform duration-300 hover:-translate-y-1"
-                >
-                  <CropMarks />
-                  <span className="font-mono text-sm font-semibold text-registration-red">
-                    STEP {item.step}
-                  </span>
-                  <h3 className="mt-4 font-heading text-xl font-bold text-ink">
-                    {item.title}
-                  </h3>
-                  <p className="mt-3 leading-relaxed text-ink/60">
-                    {item.description}
-                  </p>
-                </div>
-              ))}
-            </div>
+        <ShowcaseSection />
+
+        {/* Color band */}
+        <section className="relative overflow-hidden border-b border-line">
+          <div
+            className="absolute inset-0 bg-gradient-to-br from-mustard via-registration-red to-slate-blue"
+            aria-hidden="true"
+          />
+          <div className="absolute inset-0 bg-ink/10" aria-hidden="true" />
+          <RevealOnScroll className="relative mx-auto max-w-6xl px-6 py-20 sm:py-28">
+            <p className="font-mono text-xs uppercase tracking-[0.25em] text-paper/60">
+              Pagzly Pipeline
+            </p>
+            <h2 className="mt-3 max-w-3xl font-heading text-2xl font-semibold leading-snug tracking-normal text-paper sm:text-3xl lg:text-4xl">
+              사진 한 장이면,
+              <br />
+              팔리는 상세페이지가 완성됩니다
+            </h2>
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-paper/75 sm:text-lg">
+              색 추출, 카피 작성, 레이아웃 구성까지 2~3분. 디자이너 시안을 기다리는 동안
+              놓치는 주문을 줄이세요.
+            </p>
           </RevealOnScroll>
         </section>
 
-        {/* Features */}
-        <section id="features" className="border-b border-line bg-[#EEF2F1] py-24">
-          <RevealOnScroll className="mx-auto max-w-6xl px-6">
-            <div className="text-center">
-              <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink/40">
-                Features
+        {/* Process */}
+        <section className="border-b border-line bg-[#F0F4F3] py-24">
+          <div className="mx-auto max-w-6xl px-6">
+            <RevealOnScroll>
+              <p className="font-mono text-xs uppercase tracking-[0.2em] text-registration-red">
+                Process
               </p>
-              <h2 className="mt-3 font-heading text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-                왜 Pagzly인가요?
+              <h2 className="mt-2 font-heading text-xl font-semibold tracking-normal text-ink sm:text-2xl">
+                3단계면 충분합니다
               </h2>
-              <p className="mx-auto mt-4 max-w-2xl text-lg text-ink/60">
-                상세페이지 제작에 드는 시간과 비용을 획기적으로 줄여 드립니다.
-              </p>
-            </div>
-            <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {features.map((feature) => (
-                <Link
-                  key={feature.title}
-                  href={startHref}
-                  className="group relative block border border-line bg-white p-8 transition-transform duration-300 hover:-translate-y-1 hover:border-ink/30"
-                >
-                  <CropMarks />
-                  <div
-                    className={`mb-5 inline-flex h-12 w-12 items-center justify-center border transition-colors ${feature.iconBg}`}
+            </RevealOnScroll>
+            <ProcessSteps steps={processSteps} />
+          </div>
+        </section>
+
+        {/* Features */}
+        <section id="features" className="border-b border-line bg-paper py-24">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="grid items-start gap-12 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-16">
+              <RevealOnScroll className="lg:sticky lg:top-28">
+                <p className="font-mono text-xs uppercase tracking-[0.2em] text-mustard">Features</p>
+                <h2 className="mt-2 font-heading text-xl font-semibold tracking-normal text-ink sm:text-2xl lg:text-3xl">
+                  왜 Pagzly인가요?
+                </h2>
+                <p className="mt-4 max-w-md text-base leading-relaxed text-ink/60 sm:text-lg">
+                  상세페이지 제작에 드는 시간과 비용을 획기적으로 줄여 드립니다.
+                </p>
+                <div
+                  className="mt-8 hidden h-28 max-w-xs border border-line bg-gradient-to-br from-mustard/25 via-registration-red/15 to-slate-blue/25 lg:block"
+                  aria-hidden="true"
+                />
+              </RevealOnScroll>
+              <RevealOnScroll stagger className="flex flex-col gap-6">
+                {features.map((feature) => (
+                  <SpotlightCard
+                    key={feature.title}
+                    href={startHref}
+                    className="relative block border border-line bg-white p-6 transition-transform duration-300 hover:-translate-y-1 hover:border-ink/30 sm:p-8"
                   >
-                    {feature.icon}
-                  </div>
-                  <h3 className="text-xl font-semibold text-ink">
-                    {feature.title}
-                  </h3>
-                  <p className="mt-3 leading-relaxed text-ink/60">
-                    {feature.description}
-                  </p>
-                </Link>
-              ))}
+                    <CropMarks />
+                    <div className="relative flex gap-5 sm:items-start">
+                      <div
+                        className={`inline-flex h-12 w-12 shrink-0 items-center justify-center border transition-colors ${feature.iconBg}`}
+                      >
+                        {feature.icon}
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="relative text-lg font-semibold text-ink sm:text-xl">
+                          {feature.title}
+                        </h3>
+                        <p className="relative mt-2 leading-relaxed text-ink/60">
+                          {feature.description}
+                        </p>
+                      </div>
+                    </div>
+                  </SpotlightCard>
+                ))}
+              </RevealOnScroll>
             </div>
-          </RevealOnScroll>
+          </div>
         </section>
 
         {/* FAQ */}
@@ -324,7 +341,7 @@ export default async function Home() {
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink/40">
                 FAQ
               </p>
-              <h2 className="mt-3 font-heading text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+              <h2 className="mt-2 font-heading text-xl font-semibold tracking-normal text-ink sm:text-2xl">
                 자주 묻는 질문
               </h2>
             </div>
@@ -334,25 +351,21 @@ export default async function Home() {
           </RevealOnScroll>
         </section>
 
-        <ShowcaseSection />
-
         {/* Pricing */}
         <section id="pricing" className="border-b border-line bg-paper py-24">
-          <RevealOnScroll className="mx-auto max-w-6xl px-6">
-            <div className="text-center">
-              <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink/40">
-                Pricing
-              </p>
-              <h2 className="mt-3 font-heading text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+          <div className="mx-auto max-w-6xl px-6">
+            <RevealOnScroll className="text-center">
+              <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink/40">Pricing</p>
+              <h2 className="mt-2 font-heading text-xl font-semibold tracking-normal text-ink sm:text-2xl">
                 합리적인 요금제
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-lg text-ink/60">
                 규모에 맞는 플랜을 선택하세요. 언제든 업그레이드할 수 있습니다.
               </p>
-            </div>
-            <div className="mt-16 grid gap-8 lg:grid-cols-3">
+            </RevealOnScroll>
+            <RevealOnScroll stagger className="mt-16 grid gap-8 lg:grid-cols-3">
               {plans.map((plan) => (
-                <div
+                <SpotlightCard
                   key={plan.name}
                   className={`relative flex flex-col bg-white p-8 transition-transform duration-300 hover:-translate-y-1 ${
                     plan.highlighted
@@ -360,18 +373,18 @@ export default async function Home() {
                       : "border border-line"
                   }`}
                 >
-                  <CropMarks color={plan.highlighted ? "text-registration-red/50" : "text-line"} />
+                  <CropMarks
+                    color={plan.highlighted ? "text-registration-red/50" : "text-line"}
+                  />
                   {plan.highlighted && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                    <div className="absolute -top-3.5 left-1/2 z-[1] -translate-x-1/2">
                       <span className="bg-registration-red px-4 py-1 font-mono text-xs font-semibold text-paper">
                         추천
                       </span>
                     </div>
                   )}
-                  <div>
-                    <h3 className="text-lg font-semibold text-ink">
-                      {plan.name}
-                    </h3>
+                  <div className="relative">
+                    <h3 className="text-lg font-semibold text-ink">{plan.name}</h3>
                     <p className="mt-1 text-sm text-ink/60">{plan.description}</p>
                     <div className="mt-6 flex items-baseline gap-1">
                       {plan.price === "0" ? (
@@ -388,7 +401,7 @@ export default async function Home() {
                       )}
                     </div>
                   </div>
-                  <ul className="mt-8 flex-1 space-y-3">
+                  <ul className="relative mt-8 flex-1 space-y-3">
                     {plan.features.map((item) => (
                       <li key={item} className="flex items-start gap-3 text-sm text-ink/70">
                         <svg
@@ -410,7 +423,7 @@ export default async function Home() {
                   </ul>
                   <a
                     href="#"
-                    className={`mt-8 inline-flex h-11 items-center justify-center text-sm font-semibold transition-colors ${
+                    className={`relative mt-8 inline-flex h-11 items-center justify-center text-sm font-semibold transition-colors ${
                       plan.highlighted
                         ? "bg-ink text-paper hover:bg-ink/85"
                         : "border border-line text-ink hover:border-ink"
@@ -418,16 +431,16 @@ export default async function Home() {
                   >
                     {plan.cta}
                   </a>
-                </div>
+                </SpotlightCard>
               ))}
-            </div>
-          </RevealOnScroll>
+            </RevealOnScroll>
+          </div>
         </section>
 
         {/* CTA */}
         <section className="bg-ink py-20">
           <RevealOnScroll className="mx-auto max-w-6xl px-6 text-center">
-            <h2 className="font-heading text-3xl font-bold tracking-tight text-paper sm:text-4xl">
+            <h2 className="font-heading text-2xl font-semibold tracking-normal text-paper sm:text-3xl">
               지금 바로 시작해 보세요
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-lg text-paper/60">

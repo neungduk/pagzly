@@ -477,12 +477,37 @@ const CATEGORY_TO_TEMPLATE: Record<string, TemplateCategory> = {
   "기타": "생활/리빙",
 };
 
+export type SlotLength = "short" | "long";
+
 export function resolveTemplateCategory(category: string): TemplateCategory {
   return CATEGORY_TO_TEMPLATE[category] ?? "생활/리빙";
 }
 
-export function getSlotTemplate(category: string): SlotDefinition[] {
-  return CATEGORY_SLOT_TEMPLATES[resolveTemplateCategory(category)];
+/** 짧은 구성: required 슬롯만. repeatable은 minCount개 템플릿 행으로 펼침. */
+function applyShortTemplate(template: SlotDefinition[]): SlotDefinition[] {
+  const result: SlotDefinition[] = [];
+  for (const def of template) {
+    if (!def.required) continue;
+    const rowCount = def.repeatable && def.minCount ? def.minCount : 1;
+    for (let i = 0; i < rowCount; i++) {
+      result.push({ ...def, repeatable: false });
+    }
+  }
+  return result;
+}
+
+export function getSlotTemplate(
+  category: string,
+  length: SlotLength = "long",
+): SlotDefinition[] {
+  const template = CATEGORY_SLOT_TEMPLATES[resolveTemplateCategory(category)];
+  if (length === "long") return template;
+  return applyShortTemplate(template);
+}
+
+/** UI 힌트용 — 실제 생성될 슬롯(섹션) 개수 */
+export function countSlotSections(category: string, length: SlotLength = "long"): number {
+  return getSlotTemplate(category, length).length;
 }
 
 export function getSlotImageRatio(slot: SlotDefinition): string {

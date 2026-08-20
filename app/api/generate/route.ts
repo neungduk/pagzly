@@ -419,8 +419,13 @@ async function generateCopyWithDeepSeek(
     : "";
   const foodGuide = isFood ? `\n\n## 식품 표시광고 기준 (필수)\n${FOOD_AI_PROMPT}` : "";
 
-  const template = getSlotTemplate(productInfo.category);
+  const length = productInfo.length === "short" ? "short" : "long";
+  const template = getSlotTemplate(productInfo.category, length);
   const slotInstructions = buildSlotInstructions(template);
+  const lengthGuide =
+    length === "short"
+      ? "\n\n## 구성 길이: 짧은 구성\n위 슬롯 목록은 **필수 슬롯만** 포함합니다. 목록에 없는 선택 슬롯은 절대 추가하지 마세요. repeatable 슬롯이 여러 행으로 나뉘어 있으면 각 행을 별도 섹션으로 채우세요."
+      : "";
 
   const competitorResult = productInfo.competitorUrl
     ? await extractUrlSummary(productInfo.competitorUrl)
@@ -446,7 +451,7 @@ async function generateCopyWithDeepSeek(
     ? `\n\n${formatPlanningDocBlock(productInfo.planningDocText)}`
     : "";
 
-  const prompt = `당신은 한국 이커머스 상세페이지 기획자 겸 카피라이터입니다.
+  const prompt = `당신은 한국 이커머스 상세페이지 기획자 겸 카피라이터입니다.${lengthGuide}
 이 서비스는 레이아웃을 AI가 즉흥적으로 설계하지 않고, 카테고리별로 검증된
 "고정 슬롯 순서" 안에 콘텐츠(카피/이미지 선택)만 채우는 방식으로 운영됩니다.
 아래 슬롯 목록의 순서와 종류를 절대 바꾸지 말고, 각 슬롯에 이 상품에 맞는
@@ -707,6 +712,7 @@ function normalizeSectionsToTemplate(
   }
 
   const ordered: DetailSection[] = [];
+  const slotCursor = new Map<string, number>();
   for (const def of template) {
     const matches = (bySlot.get(def.slot) ?? []).filter((s) => s.type === def.type);
     if (matches.length === 0) {
@@ -718,7 +724,15 @@ function normalizeSectionsToTemplate(
     if (def.repeatable) {
       ordered.push(...matches.slice(0, def.maxCount ?? matches.length));
     } else {
-      ordered.push(matches[0]);
+      const idx = slotCursor.get(def.slot) ?? 0;
+      if (idx >= matches.length) {
+        if (def.required) {
+          console.warn(`[generate] 필수 슬롯 누락(인덱스): ${def.slot} #${idx + 1}`);
+        }
+        continue;
+      }
+      ordered.push(matches[idx]);
+      slotCursor.set(def.slot, idx + 1);
     }
   }
   return ordered;

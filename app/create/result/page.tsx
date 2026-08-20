@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import DetailSectionRenderer from "@/components/DetailSectionRenderer";
 import { freezeScrollRevealAnimations } from "@/components/DetailScrollReveal";
 import DetailActionBar, { type DetailToolTab } from "@/components/DetailActionBar";
-import PagzlyLogo from "@/components/PagzlyLogo";
 import ToastBanner from "@/components/ToastBanner";
 import { SESSION_KEY } from "@/components/CreateProductForm";
 import type { DetailSection, GenerateResponse } from "@/lib/types/generate";
@@ -32,8 +31,65 @@ type ProductResult = {
   generated?: GenerateResponse;
 };
 
-export default function CreateResultPage() {
+type ProductRow = {
+  id: string;
+  category: string;
+  product_name: string;
+  brand_name: string | null;
+  price: number | string;
+  target_customer: string | null;
+  key_features: string | null;
+  ingredients: string | null;
+  certifications: string | null;
+  competitor_url: string | null;
+  wholesale_url: string | null;
+  image_urls: string[] | null;
+  headlines: string[] | null;
+  description: string | null;
+  features: string[] | null;
+  how_to_use: string | null;
+  caution: string | null;
+  mfds_reviewed: boolean | null;
+  replacements: GenerateResponse["replacements"];
+  sections: DetailSection[] | null;
+  created_at: string;
+};
+
+function mapProductRow(row: ProductRow): ProductResult {
+  const generated: GenerateResponse = {
+    sections: row.sections ?? [],
+    headlines: row.headlines ?? [],
+    description: row.description ?? "",
+    features: row.features ?? [],
+    howToUse: row.how_to_use ?? "",
+    caution: row.caution ?? "",
+    imageAnalysis: "",
+    productId: row.id,
+    mfdsReviewed: row.mfds_reviewed ?? false,
+    replacements: row.replacements ?? [],
+    imageUrls: row.image_urls ?? [],
+  };
+
+  return {
+    category: row.category,
+    imageUrls: row.image_urls ?? [],
+    productName: row.product_name,
+    brandName: row.brand_name,
+    price: Number(row.price),
+    targetCustomer: row.target_customer,
+    keyFeatures: row.key_features,
+    ingredients: row.ingredients,
+    certifications: row.certifications,
+    competitorUrl: row.competitor_url,
+    wholesaleUrl: row.wholesale_url,
+    createdAt: row.created_at,
+    generated,
+  };
+}
+
+function CreateResultContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const captureRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [data, setData] = useState<ProductResult | null>(null);
@@ -49,29 +105,74 @@ export default function CreateResultPage() {
   const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
-    const raw = sessionStorage.getItem(SESSION_KEY);
-    if (!raw) {
-      router.replace("/create");
-      return;
-    }
+    let cancelled = false;
 
-    try {
-      const parsed = JSON.parse(raw) as ProductResult;
-      setData(parsed);
-      setAiText(parsed.wholesaleUrl ?? "");
+    async function load() {
+      const id = searchParams.get("id");
+      const raw = sessionStorage.getItem(SESSION_KEY);
 
-      if (parsed.generated?.sections) {
-        console.log("[create/result] sections count:", parsed.generated.sections.length);
-        console.log(
-          "[create/result] section types:",
-          parsed.generated.sections.map((s) => s.type),
-        );
-        console.log("[create/result] sections:", parsed.generated.sections);
+      if (id) {
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw) as ProductResult;
+            if (parsed.generated?.productId === id) {
+              if (!cancelled) {
+                setData(parsed);
+                setAiText(parsed.wholesaleUrl ?? "");
+              }
+              return;
+            }
+          } catch {
+            sessionStorage.removeItem(SESSION_KEY);
+          }
+        }
+
+        const supabase = createClient();
+        const { data: row, error } = await supabase
+          .from("products")
+          .select(
+            "id, category, product_name, brand_name, price, target_customer, key_features, ingredients, certifications, competitor_url, wholesale_url, image_urls, headlines, description, features, how_to_use, caution, mfds_reviewed, replacements, sections, created_at",
+          )
+          .eq("id", id)
+          .single();
+
+        if (cancelled) return;
+
+        if (error || !row) {
+          console.warn("[create/result] DB load failed", error);
+          router.replace("/create");
+          return;
+        }
+
+        const mapped = mapProductRow(row as ProductRow);
+        setData(mapped);
+        setAiText(mapped.wholesaleUrl ?? "");
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(mapped));
+        return;
       }
-    } catch {
+
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw) as ProductResult;
+          if (!cancelled) {
+            setData(parsed);
+            setAiText(parsed.wholesaleUrl ?? "");
+          }
+          return;
+        } catch {
+          sessionStorage.removeItem(SESSION_KEY);
+        }
+      }
+
       router.replace("/create");
     }
-  }, [router]);
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router, searchParams]);
 
   function persist(next: ProductResult) {
     setData(next);
@@ -235,20 +336,6 @@ export default function CreateResultPage() {
     <div className="min-h-full bg-paper text-ink">
       <div className="absolute inset-0 -z-10 bg-gradient-to-b from-line/40 to-paper" />
 
-      <header className="border-b border-line bg-paper/80 backdrop-blur-md">
-        <nav className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-          <Link href="/">
-            <PagzlyLogo className="h-8 w-auto" />
-          </Link>
-          <Link
-            href="/create"
-            className="text-sm font-medium text-ink/60 hover:text-ink"
-          >
-            다시 입력
-          </Link>
-        </nav>
-      </header>
-
       <main className="mx-auto max-w-3xl space-y-6 px-6 py-10 pb-16">
         <div className="rounded-2xl border border-line bg-paper p-6 shadow-sm sm:p-8">
           <div className="flex flex-wrap items-center gap-3">
@@ -391,6 +478,12 @@ export default function CreateResultPage() {
             정보 수정
           </Link>
           <Link
+            href="/create/history"
+            className="inline-flex h-12 flex-1 items-center justify-center rounded-xl border border-line text-sm font-semibold text-ink/80 transition-colors hover:bg-line/20"
+          >
+            작업 내역
+          </Link>
+          <Link
             href="/"
             className="inline-flex h-12 flex-1 items-center justify-center rounded-xl bg-registration-red text-sm font-semibold text-paper transition-colors hover:bg-registration-red/85"
           >
@@ -415,5 +508,19 @@ function InfoItem({ label, value }: { label: string; value: string }) {
       <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-ink/45">{label}</p>
       <p className="mt-0.5 font-medium text-ink">{value}</p>
     </div>
+  );
+}
+
+export default function CreateResultPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-full items-center justify-center bg-paper text-ink/60">
+          불러오는 중...
+        </div>
+      }
+    >
+      <CreateResultContent />
+    </Suspense>
   );
 }
