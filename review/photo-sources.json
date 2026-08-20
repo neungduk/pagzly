@@ -198,27 +198,27 @@
     "pexelsUrl": "https://www.pexels.com/photo/durable-dog-leash-on-paved-surface-28948931/",
     "photographer": "Impact Dog Crates",
     "photographerUrl": "https://www.pexels.com/@impact-dog-crates-1789722873",
-    "query": "dog leash product white background",
+    "query": "verified",
     "note": "product=강아지 리드줄; altVerified=A high-quality dog leash lies on a paved path, showcasing premium craftsmanship."
   },
   {
     "category": "반려동물",
-    "file": "scripts/test-assets/반려동물/02-pexels-14945757.jpeg",
-    "pexelsId": 14945757,
-    "pexelsUrl": "https://www.pexels.com/photo/dog-on-leash-14945757/",
-    "photographer": "Hope Pontifex",
-    "photographerUrl": "https://www.pexels.com/@animalsofbne",
-    "query": "pet leash coiled product photo",
-    "note": "product=강아지 리드줄; altVerified=Brown dog on a leash looking curiously at the camera on a paved path."
+    "file": "scripts/test-assets/반려동물/02-pexels-28948913.jpeg",
+    "pexelsId": 28948913,
+    "pexelsUrl": "https://www.pexels.com/photo/durable-dog-leash-on-broken-glass-surface-28948913/",
+    "photographer": "Impact Dog Crates",
+    "photographerUrl": "https://www.pexels.com/@impact-dog-crates-1789722873",
+    "query": "verified",
+    "note": "product=강아지 리드줄; altVerified=Black dog leash with a strong metal clip on shattered glass, showcasing durability."
   },
   {
     "category": "반려동물",
-    "file": "scripts/test-assets/반려동물/03-pexels-10994369.jpeg",
-    "pexelsId": 10994369,
-    "pexelsUrl": "https://www.pexels.com/photo/two-dogs-on-leash-10994369/",
-    "photographer": "chickenbunny",
-    "photographerUrl": "https://www.pexels.com/@chickenbunny-102941452",
-    "query": "leash and collar product photography",
-    "note": "product=강아지 리드줄; altVerified=Two dogs with leashes walking side by side on a path, showcasing companionship."
+    "file": "scripts/test-assets/반려동물/03-pexels-28948917.jpeg",
+    "pexelsId": 28948917,
+    "pexelsUrl": "https://www.pexels.com/photo/durable-dog-leash-with-carabiner-clip-on-glass-surface-28948917/",
+    "photographer": "Impact Dog Crates",
+    "photographerUrl": "https://www.pexels.com/@impact-dog-crates-1789722873",
+    "query": "verified",
+    "note": "product=강아지 리드줄; altVerified=High-quality dog leash featuring a durable carabiner clip, resting on a textured glass surface."
   }
 ]

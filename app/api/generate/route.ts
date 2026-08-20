@@ -71,6 +71,8 @@ function parseDeepSeekCopyJson(raw: string): GeneratedCopy {
   }
   // JSON 문자열 안의 잘못된 제어문자(개행·탭 제외) 제거
   text = text.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, " ");
+  // DeepSeek가 trailing comma를 넣는 경우 복구 (예: "body": "...",\n    },)
+  text = text.replace(/,\s*([}\]])/g, "$1");
   return JSON.parse(text) as GeneratedCopy;
 }
 
