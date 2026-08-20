@@ -2,12 +2,27 @@
  * 기획안 PDF/DOCX 텍스트 추출 (구조화 없음).
  */
 
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 import mammoth from "mammoth";
 
 export type PlanningDocResult = {
   text: string;
   cost: number;
 };
+
+let pdfWorkerReady = false;
+
+async function ensurePdfWorker(): Promise<void> {
+  if (pdfWorkerReady) return;
+  const { PDFParse } = await import("pdf-parse");
+  const workerPath = path.join(
+    process.cwd(),
+    "node_modules/pdf-parse/dist/pdf-parse/esm/pdf.worker.mjs",
+  );
+  PDFParse.setWorker(pathToFileURL(workerPath).href);
+  pdfWorkerReady = true;
+}
 
 function samplePlanningText(text: string, maxChars = 8000): string {
   const trimmed = text.replace(/\s+/g, " ").trim();
@@ -16,6 +31,7 @@ function samplePlanningText(text: string, maxChars = 8000): string {
 }
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
+  await ensurePdfWorker();
   const { PDFParse } = await import("pdf-parse");
   const parser = new PDFParse({ data: buffer });
   try {
