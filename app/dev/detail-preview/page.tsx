@@ -45,6 +45,12 @@ const initialSections: DetailSection[] = [
     imagePosition: "right",
   },
   {
+    type: "illustration_banner",
+    slot: "illustration_banner",
+    heading: "수분 레이어의 리듬",
+    illustrationUrl: "/iteration-fixtures/04.jpg",
+  },
+  {
     type: "usage_steps",
     slot: "usage_steps",
     heading: "사용 순서",
@@ -59,6 +65,16 @@ const initialSections: DetailSection[] = [
     slot: "gallery",
     heading: "실제 사용 장면",
     imageIndexes: [0, 3],
+  },
+  {
+    type: "stat_infographic",
+    slot: "stat_infographic",
+    heading: "수치로 보는 핵심 포인트",
+    metrics: [
+      { label: "수분 개선", value: "87%", percent: 87 },
+      { label: "피부 장벽", value: "72%", percent: 72 },
+      { label: "만족도", value: "94%", percent: 94 },
+    ],
   },
   {
     type: "spec_table",

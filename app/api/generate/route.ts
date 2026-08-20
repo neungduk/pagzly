@@ -14,6 +14,7 @@ import { extractUrlSummary, type UrlSummaryResult } from "@/lib/url-crawler";
 import { buildQAFixPrompt, runDetailPageQA } from "@/lib/detail-page-qa";
 import { formatConceptCopyBlock, type ConceptBrief } from "@/lib/concept-brief";
 import { generateConceptIcons } from "@/lib/concept-icons";
+import { generateIllustrationBanner } from "@/lib/concept-illustration";
 import { getCategoryTheme } from "@/lib/category-theme";
 import { calculateClaudeCost, logClaudeCost } from "@/lib/claude-cost";
 import { isTestMode } from "@/lib/test-mode";
@@ -220,6 +221,8 @@ const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
   cta_price: `{ type: "cta_price", slot, price, targetCustomer?, badges[]? }`,
   comparison_table: `{ type: "comparison_table", slot, heading, columns: [string,string], rows: [{label, values: [string,string]}] }`,
   color_variation: `{ type: "color_variation", slot, heading, options: [{label, colorHex, imageIndex}] }`,
+  stat_infographic: `{ type: "stat_infographic", slot, heading, metrics: [{label, value, percent: 0-100}] } — 입력에 실제 수치 근거가 있을 때만 포함. 근거 없으면 섹션 생략`,
+  illustration_banner: `{ type: "illustration_banner", slot, heading?, illustrationUrl: "" } — illustrationUrl은 서버가 채우므로 빈 문자열로 두세요`,
 };
 
 // 카테고리별 고정 슬롯 순서를 프롬프트용 텍스트로 변환한다. AI는 레이아웃을
@@ -236,7 +239,10 @@ function getAidaPhase(def: SlotDefinition): string {
       return "AIDA-D (Desire): 사용하면 얻는 구체적 이득·기대 결과";
     case "caution":
     case "spec_table":
+    case "stat_infographic":
       return "신뢰 보조 (과장 없이 사실만, AIDA 흐름 유지)";
+    case "illustration_banner":
+      return "AIDA-D (Desire): 컨셉 분위기를 시각적으로 강화하는 장식 (카피는 heading만, 이미지는 서버 생성)";
     default:
       return "AIDA-D (Desire): 제품이 주는 구체적 이득·차별점·사용 장면";
   }
@@ -357,6 +363,7 @@ ${isCosmetics ? `
 - usage_steps: 각 단계 1문장, 앞에 STEP 01/02/03.
 - checklist items: 각 14자 내외.
 - spec_table 값에 없는 % 수치를 만들지 말 것 (임상 막대용 가짜 데이터 금지).
+- stat_infographic: keyFeatures·ingredients·certifications 등 **입력에 명시된 수치**만 metrics에 사용. 근거 없으면 stat_infographic 슬롯 전체를 생략. "판매자 확인 필요"나 임의 percent 금지.
 - 시각 컨셉과 모순 금지: 쿨링/진정이면 따뜻·온기·골드 카피 금지. 수분이면 오일리·번들 표현 금지. 클렌징이면 보습 도포를 주효능처럼 쓰지 말 것.
 ` : ""}
 
@@ -386,6 +393,10 @@ imageIndex는 0 ~ ${imageCount - 1} 범위 안에서만 사용하세요.
 사진이 1장뿐일 때만 같은 인덱스를 재사용하세요.
 표(spec_table 등) 항목은 상품 정보에 없는 수치를 지어내지 말고, 근거가 없으면
 "판매자 확인 필요" 또는 공란으로 표시하세요.
+stat_infographic 섹션은 keyFeatures·ingredients·certifications 등 입력에 **실제 수치 근거**가
+있을 때만 포함하세요. 근거 없으면 해당 슬롯을 생략하고, 수치를 지어내거나
+"판매자 확인 필요"를 metrics value로 쓰지 마세요.
+illustration_banner의 illustrationUrl은 항상 빈 문자열("")로 두세요 (서버가 생성).
 
 반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트는 포함하지 마세요.
 {
@@ -484,6 +495,18 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
       // DeepSeek가 가끔 price를 0이나 다른 값으로 잘못 반환하는 경우가 있어,
       // AI 출력을 신뢰하지 않고 서버가 이미 아는 실제 판매가로 강제한다.
       return { ...section, price: productInfo.price };
+    }
+    if (section.type === "stat_infographic") {
+      return {
+        ...section,
+        metrics: section.metrics.map((metric) => ({
+          ...metric,
+          percent: Math.min(100, Math.max(0, Number(metric.percent) || 0)),
+        })),
+      };
+    }
+    if (section.type === "illustration_banner") {
+      return { ...section, illustrationUrl: "" };
     }
     return section;
   });
@@ -754,6 +777,7 @@ export async function POST(request: Request) {
     // 컨셉 기반 원형 배지 아이콘 (checklist / usage_steps)
     let conceptIcons = undefined;
     let iconCost = 0;
+    let illustrationCost = 0;
     if (body.conceptBrief) {
       const checklistSection = savedCopy.sections.find((s) => s.type === "checklist");
       const usageSection = savedCopy.sections.find((s) => s.type === "usage_steps");
@@ -774,11 +798,39 @@ export async function POST(request: Request) {
       );
       conceptIcons = iconResult.icons;
       iconCost = iconResult.cost;
+
+      const bannerIndexes = savedCopy.sections
+        .map((section, index) => (section.type === "illustration_banner" ? index : -1))
+        .filter((index) => index >= 0);
+
+      for (let i = 0; i < bannerIndexes.length; i++) {
+        const sectionIndex = bannerIndexes[i];
+        const section = savedCopy.sections[sectionIndex];
+        if (section.type !== "illustration_banner") continue;
+        if (isTestMode() && i > 0) {
+          console.log("[concept-illustration] TEST_MODE — 추가 illustration_banner 생략");
+          break;
+        }
+        try {
+          const { dataUrl, cost } = await generateIllustrationBanner(
+            body.conceptBrief,
+            iconTheme,
+            section.heading,
+          );
+          if (dataUrl) {
+            savedCopy.sections[sectionIndex] = { ...section, illustrationUrl: dataUrl };
+            illustrationCost += cost;
+          }
+        } catch (error) {
+          console.warn("[concept-illustration] illustration_banner 생성 실패", error);
+        }
+      }
     }
 
     const photoCostBreakdown = {
       ...body.photoCostBreakdown,
       icons: iconCost,
+      illustrations: illustrationCost,
       claude: claudeCost,
       effects: effectsCost,
     };
@@ -787,6 +839,7 @@ export async function POST(request: Request) {
       (body.photoProcessingCost ?? 0) +
       totalDeepSeekCost +
       iconCost +
+      illustrationCost +
       claudeCost +
       effectsCost;
     console.log(
@@ -799,6 +852,7 @@ export async function POST(request: Request) {
         `decor=$${(photoCostBreakdown.decor ?? 0).toFixed(4)} ` +
         `effects=$${effectsCost.toFixed(4)} ` +
         `icons=$${iconCost.toFixed(4)} ` +
+        `illustrations=$${illustrationCost.toFixed(4)} ` +
         `claude=$${claudeCost.toFixed(4)} ` +
         `deepSeek=$${totalDeepSeekCost.toFixed(4)} ` +
         `total=$${generationCost.toFixed(4)}`,
