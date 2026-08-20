@@ -9,6 +9,7 @@ export type PhotoCostBreakdown = {
   decor?: number;
   effects?: number;
   icons?: number;
+  illustrations?: number;
   claude?: number;
 };
 
@@ -115,6 +116,21 @@ export type ColorVariationSection = {
   options: { label: string; colorHex: string; imageIndex: number }[];
 };
 
+export type StatInfographicSection = {
+  type: "stat_infographic";
+  slot: string;
+  heading: string;
+  metrics: { label: string; value: string; percent: number }[];
+};
+
+export type IllustrationBannerSection = {
+  type: "illustration_banner";
+  slot: string;
+  heading?: string;
+  /** 서버가 generateIllustrationBanner() 후 채움. DeepSeek은 비워 둠 */
+  illustrationUrl: string;
+};
+
 export type DetailSection =
   | HeroSection
   | ChecklistSection
@@ -125,7 +141,9 @@ export type DetailSection =
   | CautionSection
   | CtaPriceSection
   | ComparisonTableSection
-  | ColorVariationSection;
+  | ColorVariationSection
+  | StatInfographicSection
+  | IllustrationBannerSection;
 
 export type GeneratedCopy = {
   sections: DetailSection[];

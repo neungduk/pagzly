@@ -38,6 +38,12 @@ const BEAUTY: SlotDefinition[] = [
     required: false,
     note: "질감/사용감 (1:1). 매크로 텍스처 컷을 배정",
   },
+  {
+    slot: "illustration_banner",
+    type: "illustration_banner",
+    required: false,
+    note: "컨셉 장식 일러스트 배너 (16:9, 텍스트 없음). heading만 작성하고 illustrationUrl은 비워 둠",
+  },
   { slot: "usage_steps", type: "usage_steps", required: true, note: "사용법 단계. STEP 01/02/03 구조로 3단계 권장" },
   {
     slot: "gallery",
@@ -46,6 +52,12 @@ const BEAUTY: SlotDefinition[] = [
     note: "두 컷 비교 구조 (3:4). 카피는 상품 고유. 레이아웃만 나란히",
     minCount: 2,
     maxCount: 2,
+  },
+  {
+    slot: "stat_infographic",
+    type: "stat_infographic",
+    required: false,
+    note: "입력 데이터에 실제 수치 근거가 있을 때만 채움. 근거 없으면 이 섹션 자체를 생략(판매자 확인 필요 금지, 수치 지어내기 금지). metrics 3~5개, percent는 0~100 막대 길이",
   },
   {
     slot: "spec_table",
@@ -98,6 +110,12 @@ const FASHION: SlotDefinition[] = [
     note: "코디 제안, 다른 아이템과 매치 (4:5)",
   },
   {
+    slot: "illustration_banner",
+    type: "illustration_banner",
+    required: false,
+    note: "컨셉 장식 일러스트 배너 (16:9, 텍스트 없음). heading만 작성하고 illustrationUrl은 비워 둠",
+  },
+  {
     slot: "care_info",
     type: "caution",
     required: true,
@@ -122,6 +140,12 @@ const FOOD: SlotDefinition[] = [
     note: "조직감/단면 확대 (1:1)",
   },
   {
+    slot: "illustration_banner",
+    type: "illustration_banner",
+    required: false,
+    note: "컨셉 장식 일러스트 배너 (16:9, 텍스트 없음). heading만 작성하고 illustrationUrl은 비워 둠",
+  },
+  {
     slot: "cooking_steps",
     type: "usage_steps",
     required: false,
@@ -134,6 +158,12 @@ const FOOD: SlotDefinition[] = [
     note: "포장/보관 상태 (3:4)",
     minCount: 1,
     maxCount: 2,
+  },
+  {
+    slot: "stat_infographic",
+    type: "stat_infographic",
+    required: false,
+    note: "입력 데이터에 실제 수치 근거가 있을 때만 채움. 근거 없으면 이 섹션 자체를 생략(판매자 확인 필요 금지, 수치 지어내기 금지). metrics 3~5개, percent는 0~100 막대 길이",
   },
   {
     slot: "nutrition_table",
@@ -175,6 +205,12 @@ const ELECTRONICS: SlotDefinition[] = [
     note: "실사용 장면 (4:5)",
   },
   {
+    slot: "stat_infographic",
+    type: "stat_infographic",
+    required: false,
+    note: "입력 데이터에 실제 수치 근거가 있을 때만 채움. 근거 없으면 이 섹션 자체를 생략(판매자 확인 필요 금지, 수치 지어내기 금지). metrics 3~5개, percent는 0~100 막대 길이",
+  },
+  {
     slot: "spec_table",
     type: "spec_table",
     required: true,
@@ -185,6 +221,12 @@ const ELECTRONICS: SlotDefinition[] = [
     type: "image_text",
     required: true,
     note: "구성품 안내 (1:1). 가능하면 플랫레이에 가까운 컷",
+  },
+  {
+    slot: "illustration_banner",
+    type: "illustration_banner",
+    required: false,
+    note: "컨셉 장식 일러스트 배너 (16:9, 텍스트 없음). heading만 작성하고 illustrationUrl은 비워 둠",
   },
   {
     slot: "warranty_caution",
@@ -209,6 +251,12 @@ const HOME_FALLBACK: SlotDefinition[] = [
     type: "image_text",
     required: false,
     note: "실사용 장면 (4:5)",
+  },
+  {
+    slot: "illustration_banner",
+    type: "illustration_banner",
+    required: false,
+    note: "컨셉 장식 일러스트 배너 (16:9, 텍스트 없음). heading만 작성하고 illustrationUrl은 비워 둠",
   },
   {
     slot: "gallery",

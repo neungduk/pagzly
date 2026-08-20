@@ -145,13 +145,15 @@ function parseMetricPercent(value: string): number | null {
 function MetricBar({
   percent,
   theme,
+  large = false,
 }: {
   percent: number;
   theme: CategoryTheme;
+  large?: boolean;
 }) {
   return (
     <div
-      className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full"
+      className={`${large ? "mt-3 h-3" : "mt-1.5 h-1.5"} w-full overflow-hidden rounded-full`}
       style={{ backgroundColor: hexToRgba(theme.accent, 0.16) }}
       aria-hidden="true"
     >
@@ -548,6 +550,93 @@ function renderSection(
         </section>
       );
     }
+
+    case "stat_infographic":
+      return (
+        <section
+          key={`stat_infographic-${index}`}
+          className={getCategoryRhythm(category).generousPadClass}
+          style={textSectionStyle(theme, pattern)}
+        >
+          <SectionAccentHairline theme={theme} />
+          <EditableText
+            as="h3"
+            enabled={edit?.enabled}
+            value={section.heading}
+            onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+          />
+          <div className="mx-auto mt-10 max-w-xl space-y-7">
+            {section.metrics.map((metric, metricIndex) => {
+              const percent = Math.min(100, Math.max(0, metric.percent));
+              return (
+                <div key={`${metric.label}-${metricIndex}`}>
+                  <div className="flex items-baseline justify-between gap-4">
+                    <EditableText
+                      as="span"
+                      enabled={edit?.enabled}
+                      value={metric.label}
+                      onChange={(label) => {
+                        const metrics = section.metrics.map((item, i) =>
+                          i === metricIndex ? { ...item, label } : item,
+                        );
+                        edit?.onChange(index, { ...section, metrics });
+                      }}
+                      className="text-sm font-medium text-ink/65 sm:text-base"
+                    />
+                    <EditableText
+                      as="span"
+                      enabled={edit?.enabled}
+                      value={metric.value}
+                      onChange={(value) => {
+                        const metrics = section.metrics.map((item, i) =>
+                          i === metricIndex ? { ...item, value } : item,
+                        );
+                        edit?.onChange(index, { ...section, metrics });
+                      }}
+                      className="font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl"
+                    />
+                  </div>
+                  <MetricBar percent={percent} theme={theme} large />
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      );
+
+    case "illustration_banner":
+      return (
+        <section
+          key={`illustration_banner-${index}`}
+          className={getCategoryRhythm(category).generousPadClass}
+          style={sectionBackgroundStyle(theme, pattern)}
+        >
+          {(section.heading || edit?.enabled) && (
+            <EditableText
+              as="h3"
+              enabled={edit?.enabled}
+              value={section.heading ?? ""}
+              onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+              className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} mb-6 ${TYPO.sectionTitle}`}
+            />
+          )}
+          {section.illustrationUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={section.illustrationUrl}
+              alt={section.heading ?? "컨셉 일러스트"}
+              className="aspect-video w-full object-cover"
+            />
+          ) : (
+            <div
+              className="aspect-video w-full"
+              style={{ backgroundColor: hexToRgba(theme.accent, 0.08) }}
+              aria-hidden="true"
+            />
+          )}
+        </section>
+      );
 
     case "usage_steps":
       return (
