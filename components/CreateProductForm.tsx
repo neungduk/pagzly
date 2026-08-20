@@ -28,7 +28,17 @@ const TARGET_CUSTOMERS = [
 ] as const;
 
 const MAX_IMAGES = 5;
+const MAX_REVIEW_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png"];
+const REVIEW_TYPES = [
+  "text/plain",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+];
+const PLANNING_TYPES = [
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
 const STORAGE_BUCKET = "images";
 const SESSION_KEY = "pagzly-create-result";
 
@@ -66,6 +76,13 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const [certifications, setCertifications] = useState("");
   const [competitorUrl, setCompetitorUrl] = useState("");
   const [wholesaleUrl, setWholesaleUrl] = useState("");
+  const [referenceImage, setReferenceImage] = useState<File | null>(null);
+  const [referencePreview, setReferencePreview] = useState<string | null>(null);
+  const [reviewFile, setReviewFile] = useState<File | null>(null);
+  const [planningDoc, setPlanningDoc] = useState<File | null>(null);
+  const referenceInputRef = useRef<HTMLInputElement>(null);
+  const reviewInputRef = useRef<HTMLInputElement>(null);
+  const planningInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingStage, setLoadingStage] = useState<LoadingStage>("idle");
@@ -156,6 +173,67 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     return uploaded;
   }
 
+  async function uploadAuxFile(file: File, prefix: string): Promise<string> {
+    const supabase = createClient();
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
+    const path = `${userId}/aux/${prefix}-${Date.now()}-${crypto.randomUUID()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(path, file, { contentType: file.type || undefined, upsert: false });
+
+    if (uploadError) {
+      throw new Error(`파일 업로드 실패: ${uploadError.message}`);
+    }
+
+    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+    return data.publicUrl;
+  }
+
+  function handleReferenceImage(file: File | null) {
+    if (!file) return;
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setError("레퍼런스 이미지는 JPG, PNG만 업로드할 수 있습니다.");
+      return;
+    }
+    if (referencePreview) URL.revokeObjectURL(referencePreview);
+    setError(null);
+    setReferenceImage(file);
+    setReferencePreview(URL.createObjectURL(file));
+  }
+
+  function handleReviewFile(file: File | null) {
+    if (!file) return;
+    const lower = file.name.toLowerCase();
+    const okExt = lower.endsWith(".txt") || lower.endsWith(".xlsx") || lower.endsWith(".xls");
+    if (!okExt && !REVIEW_TYPES.includes(file.type)) {
+      setError("리뷰 파일은 txt 또는 xlsx만 업로드할 수 있습니다.");
+      return;
+    }
+    if (file.size > MAX_REVIEW_BYTES) {
+      setError("리뷰 파일은 2MB 이하만 업로드할 수 있습니다.");
+      return;
+    }
+    setError(null);
+    setReviewFile(file);
+  }
+
+  function handlePlanningDoc(file: File | null) {
+    if (!file) return;
+    const lower = file.name.toLowerCase();
+    if (lower.endsWith(".hwp") || lower.endsWith(".pptx") || lower.endsWith(".ppt")) {
+      setError("HWP·PPTX는 아직 지원하지 않습니다. PDF 또는 DOCX를 사용해 주세요.");
+      return;
+    }
+    const okExt = lower.endsWith(".pdf") || lower.endsWith(".docx");
+    if (!okExt && !PLANNING_TYPES.includes(file.type)) {
+      setError("기획안은 PDF 또는 DOCX만 업로드할 수 있습니다.");
+      return;
+    }
+    setError(null);
+    setPlanningDoc(file);
+  }
+
   function waitForBackdropPick(urls: string[]): Promise<string> {
     return new Promise((resolve) => {
       backdropPickRef.current = resolve;
@@ -173,6 +251,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     formKeyFeatures: string,
     formIngredients: string,
     formTargetCustomer: string,
+    referenceImageUrl: string | null,
   ): Promise<{
     backdropDataUrl?: string;
     candidateUrls?: string[];
@@ -181,6 +260,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     conceptBriefCost: number;
     backdropCost: number;
     claudeCost?: number;
+    referenceAnalysisCost?: number;
+    referenceAnalysis?: import("@/lib/types/generate").ReferenceAnalysisInput;
     testMode?: boolean;
     shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis;
     conceptBrief?: import("@/lib/concept-brief").ConceptBrief;
@@ -198,6 +279,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           keyFeatures: formKeyFeatures.trim() || null,
           ingredients: formIngredients.trim() || null,
           targetCustomer: formTargetCustomer.trim() || null,
+          referenceImageUrl,
         }),
       });
 
@@ -209,6 +291,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         conceptBriefCost?: number;
         backdropCost?: number;
         claudeCost?: number;
+        referenceAnalysisCost?: number;
+        referenceAnalysis?: import("@/lib/types/generate").ReferenceAnalysisInput;
         testMode?: boolean;
         shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis;
         conceptBrief?: import("@/lib/concept-brief").ConceptBrief;
@@ -237,6 +321,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         conceptBriefCost: result.conceptBriefCost ?? 0,
         backdropCost: result.backdropCost ?? result.cost ?? 0,
         claudeCost: result.claudeCost ?? 0,
+        referenceAnalysisCost: result.referenceAnalysisCost ?? 0,
+        referenceAnalysis: result.referenceAnalysis,
         testMode: result.testMode ?? false,
         shadowAnalysis: result.shadowAnalysis,
         conceptBrief: result.conceptBrief,
@@ -412,6 +498,21 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     try {
       const uploaded = await uploadImages(images);
 
+      let referenceImageUrl: string | null = null;
+      let reviewFileUrl: string | null = null;
+      let planningDocUrl: string | null = null;
+      let referenceAnalysis: import("@/lib/types/generate").ReferenceAnalysisInput | undefined;
+
+      if (referenceImage) {
+        referenceImageUrl = await uploadAuxFile(referenceImage, "reference");
+      }
+      if (reviewFile) {
+        reviewFileUrl = await uploadAuxFile(reviewFile, "review");
+      }
+      if (planningDoc) {
+        planningDocUrl = await uploadAuxFile(planningDoc, "planning");
+      }
+
       let photoProcessingCost = 0;
       let conceptBrief: import("@/lib/concept-brief").ConceptBrief | undefined;
       let photoCostBreakdown: import("@/lib/types/generate").PhotoCostBreakdown = {};
@@ -427,6 +528,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         keyFeatures,
         ingredients,
         targetCustomer,
+        referenceImageUrl,
       );
 
       let finalImages = uploaded;
@@ -438,7 +540,9 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           conceptBrief: backdropResult.conceptBriefCost,
           backdrop: backdropResult.backdropCost,
           claude: backdropResult.claudeCost ?? 0,
+          referenceAnalysis: backdropResult.referenceAnalysisCost ?? 0,
         };
+        referenceAnalysis = backdropResult.referenceAnalysis;
 
         let chosenBackdrop = backdropResult.backdropDataUrl;
         const candidates = backdropResult.candidateUrls ?? [];
@@ -529,6 +633,10 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         certifications: certifications.trim() || null,
         competitorUrl: competitorUrl.trim() || null,
         wholesaleUrl: wholesaleUrl.trim() || null,
+        referenceImageUrl,
+        reviewFileUrl,
+        planningDocUrl,
+        referenceAnalysis: referenceAnalysis ?? null,
         createdAt: new Date().toISOString(),
         photoProcessingCost,
         conceptBrief,
@@ -571,6 +679,10 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           imageUrls: (generateResult as GenerateResponse).imageUrls ?? payload.imageUrls,
           photoCostBreakdown:
             (generateResult as GenerateResponse).photoCostBreakdown ?? payload.photoCostBreakdown,
+          referenceAnalysis:
+            (generateResult as GenerateResponse).referenceAnalysis ?? payload.referenceAnalysis,
+          reviewInsights: (generateResult as GenerateResponse).reviewInsights ?? null,
+          planningDocText: (generateResult as GenerateResponse).planningDocText ?? null,
           testMode: generateResult.testMode ?? testMode,
           generated: generateResult as GenerateResponse,
         }),
@@ -843,7 +955,147 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
             </div>
           </section>
 
-          {/* 5. 추가 옵션 */}
+          {/* 5. 참고 자료 (선택) */}
+          <section className={sectionClass}>
+            <h2 className="font-heading text-lg font-bold text-ink">참고 자료 (선택)</h2>
+            <p className="mt-1 text-sm text-ink/60">
+              레퍼런스 이미지·리뷰·기획안을 첨부하면 AI가 색감·후기 톤·기획 톤을 참고합니다.
+            </p>
+            <div className="mt-5 space-y-5">
+              <div>
+                <label htmlFor="referenceImage" className={labelClass}>
+                  레퍼런스 이미지 (선택)
+                </label>
+                <p className="mt-1 text-xs text-ink/40">색상·무드 참고용 JPG/PNG</p>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => referenceInputRef.current?.click()}
+                    className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink/80 hover:bg-line/30"
+                  >
+                    {referenceImage ? "다른 이미지 선택" : "이미지 선택"}
+                  </button>
+                  {referenceImage && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (referencePreview) URL.revokeObjectURL(referencePreview);
+                        setReferenceImage(null);
+                        setReferencePreview(null);
+                      }}
+                      className="text-sm text-ink/50 hover:text-registration-red"
+                    >
+                      제거
+                    </button>
+                  )}
+                  {referenceImage && (
+                    <span className="text-xs text-ink/50">{referenceImage.name}</span>
+                  )}
+                </div>
+                {referencePreview && (
+                  <div className="mt-3 h-24 w-24 overflow-hidden rounded-lg border border-line">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={referencePreview} alt="레퍼런스 미리보기" className="h-full w-full object-cover" />
+                  </div>
+                )}
+                <input
+                  id="referenceImage"
+                  ref={referenceInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleReferenceImage(e.target.files?.[0] ?? null);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="reviewFile" className={labelClass}>
+                  리뷰 파일 (선택)
+                </label>
+                <p className="mt-1 text-xs text-ink/40">엑셀(xlsx) 또는 txt · 최대 2MB</p>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => reviewInputRef.current?.click()}
+                    className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink/80 hover:bg-line/30"
+                  >
+                    {reviewFile ? "다른 파일 선택" : "파일 선택"}
+                  </button>
+                  {reviewFile && (
+                    <button
+                      type="button"
+                      onClick={() => setReviewFile(null)}
+                      className="text-sm text-ink/50 hover:text-registration-red"
+                    >
+                      제거
+                    </button>
+                  )}
+                  {reviewFile && (
+                    <span className="text-xs text-ink/50">
+                      {reviewFile.name} ({(reviewFile.size / 1024).toFixed(0)}KB)
+                    </span>
+                  )}
+                </div>
+                <input
+                  id="reviewFile"
+                  ref={reviewInputRef}
+                  type="file"
+                  accept=".txt,.xlsx,.xls,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleReviewFile(e.target.files?.[0] ?? null);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="planningDoc" className={labelClass}>
+                  기획안 (선택)
+                </label>
+                <p className="mt-1 text-xs text-ink/40">
+                  PDF 또는 DOCX만 지원 · HWP는 아직 지원하지 않습니다 · PPTX는 지원 예정
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => planningInputRef.current?.click()}
+                    className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink/80 hover:bg-line/30"
+                  >
+                    {planningDoc ? "다른 파일 선택" : "파일 선택"}
+                  </button>
+                  {planningDoc && (
+                    <button
+                      type="button"
+                      onClick={() => setPlanningDoc(null)}
+                      className="text-sm text-ink/50 hover:text-registration-red"
+                    >
+                      제거
+                    </button>
+                  )}
+                  {planningDoc && (
+                    <span className="text-xs text-ink/50">{planningDoc.name}</span>
+                  )}
+                </div>
+                <input
+                  id="planningDoc"
+                  ref={planningInputRef}
+                  type="file"
+                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="hidden"
+                  onChange={(e) => {
+                    handlePlanningDoc(e.target.files?.[0] ?? null);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* 6. 추가 옵션 */}
           <section className={sectionClass}>
             <h2 className="font-heading text-lg font-bold text-ink">추가 옵션</h2>
             <div className="mt-5 space-y-5">

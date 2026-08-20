@@ -12,9 +12,22 @@ import { extractProductTheme } from "@/lib/color-extract";
 import { getSlotImageRatio, getSlotTemplate, type SlotDefinition } from "@/lib/section-templates";
 import { extractUrlSummary, type UrlSummaryResult } from "@/lib/url-crawler";
 import { buildQAFixPrompt, runDetailPageQA } from "@/lib/detail-page-qa";
-import { formatConceptCopyBlock, type ConceptBrief } from "@/lib/concept-brief";
+import { formatConceptCopyBlock, generateConceptBrief } from "@/lib/concept-brief";
 import { generateConceptIcons } from "@/lib/concept-icons";
 import { generateIllustrationBanner } from "@/lib/concept-illustration";
+import { fetchFileBuffer } from "@/lib/fetch-file-buffer";
+import {
+  analyzeReferenceImage,
+  formatReferencePromptBlock,
+} from "@/lib/reference-analysis";
+import {
+  extractReviewInsights,
+  formatReviewInsightsBlock,
+} from "@/lib/review-insights";
+import {
+  extractPlanningDocText,
+  formatPlanningDocBlock,
+} from "@/lib/planning-doc";
 import { getCategoryTheme } from "@/lib/category-theme";
 import { calculateClaudeCost, logClaudeCost } from "@/lib/claude-cost";
 import { isTestMode } from "@/lib/test-mode";
@@ -306,6 +319,93 @@ function buildPastedTextBlock(label: string, text: string | null | undefined): s
   return `\n\n## ${label} 참고 자료 (판매자가 원본 페이지에서 직접 붙여넣은 텍스트 — 표현을 그대로 베끼지 말고, 이 상품만의 차별화 포인트(USP)를 찾는 용도로만 참고)\n${text.trim()}`;
 }
 
+function inferMediaType(url: string): "image/jpeg" | "image/png" {
+  return url.toLowerCase().includes(".png") ? "image/png" : "image/jpeg";
+}
+
+function inferReviewFileType(url: string): "xlsx" | "txt" {
+  return url.toLowerCase().endsWith(".txt") ? "txt" : "xlsx";
+}
+
+function inferPlanningFileType(url: string): "pdf" | "docx" {
+  return url.toLowerCase().endsWith(".docx") ? "docx" : "pdf";
+}
+
+/** 레퍼런스/리뷰/기획안 URL에서 분석 결과를 채운다 (이미 있으면 스킵). */
+async function loadAuxiliaryInputs(body: ProductInput): Promise<{
+  enriched: ProductInput;
+  referenceAnalysisCost: number;
+  reviewInsightsCost: number;
+  conceptBriefCost: number;
+}> {
+  const enriched: ProductInput = { ...body };
+  let referenceAnalysisCost = 0;
+  let reviewInsightsCost = 0;
+  let conceptBriefCost = 0;
+
+  if (body.referenceImageUrl && !body.referenceAnalysis) {
+    try {
+      const buf = await fetchFileBuffer(body.referenceImageUrl);
+      const result = await analyzeReferenceImage(buf, inferMediaType(body.referenceImageUrl));
+      enriched.referenceAnalysis = {
+        colorHex: result.colorHex,
+        moodKeywords: result.moodKeywords,
+      };
+      referenceAnalysisCost = result.cost;
+    } catch (err) {
+      console.warn("[generate] reference-analysis 실패", err);
+    }
+  }
+
+  if (body.reviewFileUrl && !body.reviewInsights) {
+    try {
+      const buf = await fetchFileBuffer(body.reviewFileUrl);
+      const result = await extractReviewInsights(buf, inferReviewFileType(body.reviewFileUrl));
+      enriched.reviewInsights = {
+        commonPraises: result.commonPraises,
+        commonComplaints: result.commonComplaints,
+      };
+      reviewInsightsCost = result.cost;
+    } catch (err) {
+      console.warn("[generate] review-insights 실패", err);
+    }
+  }
+
+  if (body.planningDocUrl && !body.planningDocText) {
+    try {
+      const buf = await fetchFileBuffer(body.planningDocUrl);
+      const result = await extractPlanningDocText(
+        buf,
+        inferPlanningFileType(body.planningDocUrl),
+      );
+      enriched.planningDocText = result.text || null;
+    } catch (err) {
+      console.warn("[generate] planning-doc 실패", err);
+    }
+  }
+
+  if (enriched.referenceAnalysis && !enriched.conceptBrief) {
+    try {
+      const { brief, cost } = await generateConceptBrief({
+        category: body.category,
+        productName: body.productName,
+        brandName: body.brandName ?? null,
+        price: body.price,
+        keyFeatures: body.keyFeatures ?? null,
+        ingredients: body.ingredients ?? null,
+        targetCustomer: body.targetCustomer ?? null,
+        referenceAnalysis: enriched.referenceAnalysis,
+      });
+      enriched.conceptBrief = brief;
+      conceptBriefCost = cost;
+    } catch (err) {
+      console.warn("[generate] conceptBrief(레퍼런스) 생성 실패", err);
+    }
+  }
+
+  return { enriched, referenceAnalysisCost, reviewInsightsCost, conceptBriefCost };
+}
+
 async function generateCopyWithDeepSeek(
   productInfo: ProductInput,
   imageAnalysis: string,
@@ -335,6 +435,15 @@ async function generateCopyWithDeepSeek(
 
   const conceptBlock = productInfo.conceptBrief
     ? `\n\n${formatConceptCopyBlock(productInfo.conceptBrief)}`
+    : "";
+  const referenceBlock = productInfo.referenceAnalysis
+    ? `\n\n${formatReferencePromptBlock(productInfo.referenceAnalysis)}`
+    : "";
+  const reviewBlock = productInfo.reviewInsights
+    ? `\n\n${formatReviewInsightsBlock(productInfo.reviewInsights)}`
+    : "";
+  const planningBlock = productInfo.planningDocText
+    ? `\n\n${formatPlanningDocBlock(productInfo.planningDocText)}`
     : "";
 
   const prompt = `당신은 한국 이커머스 상세페이지 기획자 겸 카피라이터입니다.
@@ -391,7 +500,7 @@ ${productInfo.certifications ? `- 인증/수상: ${productInfo.certifications}` 
 - 업로드된 사진 수: ${imageCount}장 (인덱스 0 ~ ${imageCount - 1})
 
 ## AI 이미지 분석 결과
-${imageAnalysis}${competitorBlock}${wholesaleBlock}
+${imageAnalysis}${competitorBlock}${wholesaleBlock}${conceptBlock}${referenceBlock}${reviewBlock}${planningBlock}
 
 ## 고정 슬롯 순서 (이 순서/종류를 그대로 따르세요)
 ${slotInstructions}
@@ -677,10 +786,22 @@ export async function POST(request: Request) {
     let claudeCost = imageAnalysisResult.cost + (body.photoCostBreakdown?.claude ?? 0);
 
     const {
+      enriched: enrichedBody,
+      referenceAnalysisCost,
+      reviewInsightsCost,
+      conceptBriefCost: auxConceptBriefCost,
+    } = await loadAuxiliaryInputs(body);
+    claudeCost += referenceAnalysisCost + auxConceptBriefCost;
+
+    const {
       copy: generated,
       cost: deepSeekCost,
       notices: urlAnalysisNotices,
-    } = await generateCopyWithDeepSeek(body, imageAnalysis, body.imageUrls.length);
+    } = await generateCopyWithDeepSeek(
+      enrichedBody,
+      imageAnalysis,
+      enrichedBody.imageUrls.length,
+    );
 
     // 생성 직후 Haiku 비전/텍스트 QA — critical 이슈 시 카피만 1회 재생성
     let copyToSave = generated;
@@ -704,9 +825,9 @@ export async function POST(request: Request) {
       console.log("[qa] critical 카피 이슈 — 1회 재생성 시도");
       const fixAppendix = buildQAFixPrompt(qaResult.issues);
       const retry = await generateCopyWithDeepSeek(
-        body,
+        enrichedBody,
         imageAnalysis,
-        body.imageUrls.length,
+        enrichedBody.imageUrls.length,
         fixAppendix,
       );
       copyToSave = retry.copy;
@@ -781,7 +902,7 @@ export async function POST(request: Request) {
         console.warn("[compare] Before/After 생략", error);
       }
     }
-    if (isCosmetics && body.conceptBrief) {
+    if (isCosmetics && enrichedBody.conceptBrief) {
       try {
         const extraText = savedCopy.sections
           .flatMap((section) => {
@@ -792,7 +913,7 @@ export async function POST(request: Request) {
           .join(" ");
         const overlayResult = await applyConceptOverlaysToProductImages({
           imageUrls: imageUrls.slice(0, productImageCount),
-          brief: body.conceptBrief,
+          brief: enrichedBody.conceptBrief,
           sections: savedCopy.sections,
           extraText,
           cosmeticsOnly: true,
@@ -819,7 +940,7 @@ export async function POST(request: Request) {
     let conceptIcons = undefined;
     let iconCost = 0;
     let illustrationCost = 0;
-    if (body.conceptBrief) {
+    if (enrichedBody.conceptBrief) {
       const checklistSection = savedCopy.sections.find((s) => s.type === "checklist");
       const usageSection = savedCopy.sections.find((s) => s.type === "usage_steps");
       const checklistItems =
@@ -832,7 +953,7 @@ export async function POST(request: Request) {
         : getCategoryTheme(body.category);
 
       const iconResult = await generateConceptIcons(
-        body.conceptBrief,
+        enrichedBody.conceptBrief,
         iconTheme,
         checklistItems,
         usageSteps,
@@ -854,7 +975,7 @@ export async function POST(request: Request) {
         }
         try {
           const { dataUrl, cost } = await generateIllustrationBanner(
-            body.conceptBrief,
+            enrichedBody.conceptBrief,
             iconTheme,
             section.heading,
             section.body,
@@ -871,6 +992,10 @@ export async function POST(request: Request) {
 
     const photoCostBreakdown = {
       ...body.photoCostBreakdown,
+      conceptBrief: (body.photoCostBreakdown?.conceptBrief ?? 0) + auxConceptBriefCost,
+      referenceAnalysis:
+        (body.photoCostBreakdown?.referenceAnalysis ?? 0) + referenceAnalysisCost,
+      reviewInsights: (body.photoCostBreakdown?.reviewInsights ?? 0) + reviewInsightsCost,
       icons: iconCost,
       illustrations: illustrationCost,
       claude: claudeCost,
@@ -883,7 +1008,10 @@ export async function POST(request: Request) {
       iconCost +
       illustrationCost +
       claudeCost +
-      effectsCost;
+      effectsCost +
+      referenceAnalysisCost +
+      reviewInsightsCost +
+      auxConceptBriefCost;
     console.log(
       `[cost] product="${body.productName}"` +
         (isTestMode() ? " (TEST_MODE)" : "") +
@@ -962,6 +1090,9 @@ export async function POST(request: Request) {
       photoCostBreakdown,
       testMode: isTestMode(),
       imageUrls,
+      referenceAnalysis: enrichedBody.referenceAnalysis ?? null,
+      reviewInsights: enrichedBody.reviewInsights ?? null,
+      planningDocText: enrichedBody.planningDocText ?? null,
     });
   } catch (error) {
     console.error("[generate]", error);
