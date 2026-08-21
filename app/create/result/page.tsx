@@ -215,15 +215,45 @@ function CreateResultContent() {
     if (next === "edit") setEditMode(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!data) return;
     setSaving(true);
     try {
+      // 세션 캐시(새로고침 없이 즉시 반영)는 항상 갱신 — DB 저장 성공 여부와 무관.
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
-      setEditMode(false);
-      setToast({ tone: "ok", message: "수정 내용이 저장되었습니다." });
-    } catch {
-      setToast({ tone: "error", message: "저장에 실패했습니다. 다시 시도해 주세요." });
+
+      // 실제 영구 저장: products.sections / products.image_urls에 반영.
+      // 이전에는 sessionStorage에만 남아서 탭을 닫거나 "작업 내역"에서 다시
+      // 열면 수정 전 AI 생성 결과로 되돌아갔음 — 이 호출이 그 문제를 고친다.
+      const productId = data.generated?.productId;
+      if (productId) {
+        const response = await fetch(`/api/products/${productId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sections: data.generated?.sections ?? [],
+            imageUrls: data.imageUrls,
+          }),
+        });
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error ?? "저장에 실패했습니다.");
+        }
+        setEditMode(false);
+        setToast({ tone: "ok", message: "수정 내용이 저장됐습니다." });
+      } else {
+        // productId가 없는 예외적인 경우 (정상 흐름에서는 발생하지 않아야 함)
+        setEditMode(false);
+        setToast({
+          tone: "info",
+          message: "임시로만 저장했습니다 (이 상품은 서버에 아직 없어 새로고침하면 사라질 수 있어요).",
+        });
+      }
+    } catch (err) {
+      setToast({
+        tone: "error",
+        message: err instanceof Error ? err.message : "저장에 실패했습니다. 다시 시도해 주세요.",
+      });
     } finally {
       setSaving(false);
     }
@@ -425,7 +455,7 @@ function CreateResultContent() {
               onTabChange={handleTabChange}
               editMode={editMode}
               onToggleEdit={() => setEditMode((v) => !v)}
-              onSave={handleSave}
+              onSave={() => void handleSave()}
               saving={saving}
               onUploadClick={() => fileInputRef.current?.click()}
               replaceImageIndex={replaceImageIndex}
