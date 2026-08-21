@@ -1,18 +1,30 @@
-import Anthropic from "@anthropic-ai/sdk";
 import Replicate from "replicate";
 import sharp from "sharp";
 import { describeColorTone } from "@/lib/color-extract";
 import type { CategoryTheme } from "@/lib/category-theme";
 import type { ConceptBrief } from "@/lib/concept-brief";
 import { formatConceptPromptBlock } from "@/lib/concept-brief";
+import { resolvePhotographyTemplate } from "@/lib/backdrop-prompt-templates";
 import {
   analyzeShadowDirection,
   applySafeCrop,
+  computeSafeCropBox,
   computeSafeCanvasPlacement,
+  detectProductRegion,
   detectTextRegionsFromUrl,
+  lightingLockPrompt,
+  DEFAULT_SHADOW,
   type ShadowAnalysis,
   type TextRegion,
 } from "@/lib/vision-utils";
+import {
+  buildProductShadowSvg,
+  featherCutout,
+  matchCutoutWhiteBalance,
+  measureTransparentRatio,
+} from "@/lib/photo-composite";
+import { isTestMode } from "@/lib/test-mode";
+import { logForceRegenerateStatus } from "@/lib/force-regenerate";
 
 const CANVAS_SIZE = 1200;
 const FILL_BASE_SIZE = 1024;
@@ -47,6 +59,10 @@ const REPLICATE_COST_USD = {
   fluxFillDev: 0.025,
   // black-forest-labs/flux-schnell — 공식 단가 ~$0.003/image (2026-08-14)
   fluxSchnell: 0.003,
+  // bria/generate-background — Background Replace. Replicate 페이지 단가 근사 $0.04/image
+  briaBackgroundReplace: 0.04,
+  // bria/genfill — 마스크 기반 배경 생성. Replicate 페이지 단가 근사 $0.04/image
+  briaGenfill: 0.04,
 } as const;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -65,9 +81,71 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   });
 }
 
+const CANDIDATE_VARIATIONS = [
+  "identical color temperature to the lighting lock, more negative space around empty center",
+  "identical color temperature to the lighting lock, slightly closer surface plane",
+  "identical color temperature to the lighting lock, softer falloff, same white balance",
+  "identical color temperature to the lighting lock, wider empty studio sweep",
+  "identical color temperature to the lighting lock, shallow depth of field on the surface only",
+  "identical color temperature to the lighting lock, subtle vignette, empty pedestal area",
+  "identical color temperature to the lighting lock, higher key but no golden cast",
+  "identical color temperature to the lighting lock, lower contrast pastel plane",
+  "identical color temperature to the lighting lock, almost white cyc wall",
+  "identical color temperature to the lighting lock, centered empty product slot",
+];
+
+/** 최종 승인 배경 후보 수. `.env.local`의 BACKDROP_CANDIDATES로 조절 (기본 7, 1–10). */
+export function getBackdropCandidateCount(): number {
+  const raw = Number(process.env.BACKDROP_CANDIDATES);
+  if (Number.isFinite(raw) && raw >= 1) {
+    return Math.min(10, Math.max(1, Math.round(raw)));
+  }
+  return 7;
+}
+
+const BRIA_REPLACE_CATEGORIES = new Set<string>(["화장품/뷰티", "전자제품", "생활용품", "반려동물"]);
+const BRIA_GENFILL_CATEGORIES = new Set<string>(["의류/패션", "식품/건강기능식품"]);
+
+export type BackdropProvider = "flux" | "bria-replace" | "bria-genfill";
+
+/** `.env.local` BACKDROP_PROVIDER=bria 일 때 카테고리별 Bria 경로 분기. */
+export function getBackdropProvider(category?: string): BackdropProvider {
+  if (process.env.BACKDROP_PROVIDER !== "bria") return "flux";
+  if (category && BRIA_GENFILL_CATEGORIES.has(category)) return "bria-genfill";
+  if (category && BRIA_REPLACE_CATEGORIES.has(category)) return "bria-replace";
+  return "flux";
+}
+
+/** Bria Background Replace 후보 수. `.env.local` BRIA_BACKDROP_CANDIDATES (기본 2, 1–3). */
+export function getBriaBackdropCandidateCount(): number {
+  const raw = Number(process.env.BRIA_BACKDROP_CANDIDATES);
+  if (Number.isFinite(raw) && raw >= 1) {
+    return Math.min(3, Math.max(1, Math.round(raw)));
+  }
+  return 2;
+}
+
+/** Bria는 상품을 유지한 채 배경만 바꾸므로 empty/no-product 문구를 뺀다. */
+function sanitizePromptForBria(prompt: string): string {
+  return prompt
+    .replace(/\bno product\b/gi, "")
+    .replace(/\bno packaging\b/gi, "")
+    .replace(/\bno bottle\b/gi, "")
+    .replace(/\bno text\b/gi, "")
+    .replace(/\bno logo\b/gi, "")
+    .replace(/\bempty product photography backdrop\b/gi, "")
+    .replace(/\bempty dimensional set\b/gi, "")
+    .replace(/\bempty backdrop\b/gi, "")
+    .replace(/\bempty center(?: for product placement)?\b/gi, "")
+    .replace(/(?:,\s*){2,}/g, ", ")
+    .replace(/\s{2,}/g, " ")
+    .replace(/^,\s*|\s*,$/g, "")
+    .trim();
+}
+
 const BACKDROP_PROMPTS: Record<string, string> = {
   "화장품/뷰티":
-    "minimalist skincare studio background, soft pastel marble surface, gentle natural window light, subtle water droplets, empty product photography backdrop, maintain natural product shadow direction and intensity from the original photo, realistic studio lighting, no text, no logo, no product",
+    "minimalist skincare studio background, empty dimensional set, MATCH the product lighting lock exactly, no golden hour, no amber gel, empty product photography backdrop, no text, no logo, no product",
   "식품/건강기능식품":
     "warm rustic wooden table background, soft natural light, fresh ingredients softly blurred in background, empty food photography backdrop, maintain natural product shadow direction and intensity from the original photo, realistic studio lighting, no text, no logo, no product",
   "전자제품":
@@ -113,6 +191,41 @@ async function describeReplicateError(error: unknown): Promise<string> {
   return String(error);
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function replicateRetryAfterMs(error: unknown): number | null {
+  const message = error instanceof Error ? error.message : String(error);
+  const match = message.match(/retry_after["']?\s*[:=]\s*(\d+)/i);
+  if (match) return Math.max(Number(match[1]), 3) * 1000;
+  if (/429|throttled|rate limit/i.test(message)) return 8000;
+  return null;
+}
+
+/** Replicate 429(throttle) 시 retry_after 만큼 대기 후 재시도 */
+async function runReplicateWithRetry<T>(
+  label: string,
+  run: () => Promise<T>,
+  maxAttempts = 4,
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      return await run();
+    } catch (error) {
+      lastError = error;
+      const waitMs = replicateRetryAfterMs(error);
+      if (waitMs == null || attempt >= maxAttempts - 1) break;
+      console.warn(
+        `[replicate] ${label} throttle — ${waitMs}ms 후 재시도 (${attempt + 1}/${maxAttempts - 1})`,
+      );
+      await sleep(waitMs);
+    }
+  }
+  throw lastError;
+}
+
 async function buildSolidCanvas(hexColor: string): Promise<Buffer> {
   return sharp({
     create: {
@@ -154,6 +267,12 @@ const CLARITY_UPSCALER_REF: ModelRef =
 const FLUX_FILL_DEV_REF: ModelRef =
   "black-forest-labs/flux-fill-dev:a053f84125613d83e65328a289e14eb6639e10725c243e8fb0c24128e5573f4c";
 const FLUX_SCHNELL_REF = "black-forest-labs/flux-schnell" as const;
+const BRIA_GENERATE_BACKGROUND_REF: ModelRef =
+  "bria/generate-background:ba437a62603f1205b253fd7bad0d0b5c326d7857242d11753c0cbcd2c5008602";
+const BRIA_GENFILL_REF: ModelRef =
+  "bria/genfill:797f0f06f83cbf44562f704989c06d1d00d637fb41b505828947524385740352";
+const GENFILL_ALPHA_KEEP_THRESHOLD = 16;
+const GENFILL_MASK_BLUR = 6;
 
 export type EnhanceImageOptions = {
   shadowHint?: ShadowAnalysis;
@@ -163,9 +282,13 @@ export type EnhanceImageOptions = {
   /** 첫 히어로에서 생성한 장식을 재사용할 때 */
   decorBuffer?: Buffer;
   theme?: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">;
+  /** 배경제거 실패 시 상품 영역 감지 재시도에 사용 */
+  productName?: string;
 };
 
-/** 컨셉 모티프 기반 장식 그래픽 — flux-schnell로 저비용 생성 */
+/** 컨셉 모티프 기반 장식 그래픽 — flux-schnell로 저비용 생성.
+ *  히어로 *배경* 위에 얹는 용도. 상품 사진 위 물방울/미스트 오버레이는
+ *  `lib/concept-effects.ts` 를 쓴다. */
 export async function generateDecorativeGraphic(
   conceptBrief: ConceptBrief,
   theme: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
@@ -175,10 +298,12 @@ export async function generateDecorativeGraphic(
   const prompt = [
     conceptBrief.decor_prompt,
     formatConceptPromptBlock(conceptBrief),
-    `soft ${describeColorTone(theme.accent)} accent tones on ${describeColorTone(theme.baseNeutral)} background`,
-    shadow.promptHint,
+    lightingLockPrompt(shadow),
     "decorative graphic elements only, no product, no packaging, no text, no logo",
     "soft edges, professional ecommerce detail page ornament, scattered around frame edges",
+    shadow.colorTemperature === "warm"
+      ? `soft ${describeColorTone(theme.accent)} accent tones`
+      : "neutral white highlights only, no golden ornaments",
   ].join(", ");
 
   const cost = REPLICATE_COST_USD.fluxSchnell;
@@ -212,15 +337,53 @@ export async function generateDecorativeGraphic(
   return { buffer, cost };
 }
 
+// 2026-08-18 수정: 예전에는 장식 이미지(물방울/미스트 등)를 캔버스 전체에
+// 48% 불투명도로 통짜로 덮어썼다. 장식 이미지와 배경 이미지가 서로 다른
+// 톤/구도의 별개 생성물이다 보니, 상품이 놓인 중앙까지 겹쳐지면서 경계가
+// 뚜렷한 "이중노출/유령" 사각형처럼 보이는 문제가 있었다 (실제 결과물
+// 육안 확인으로 발견, review/before-after-fix 참고).
+// 지금은 (1) 기본 불투명도를 크게 낮추고 (2) 중앙(상품 자리)은 완전히
+// 비우고 테두리로 갈수록만 보이는 방사형 비네트를 알파에 곱해서, 장식이
+// 상품/배경 위에 안 겹치고 프레임 바깥쪽 액센트로만 은은히 남게 한다.
 async function compositeDecorOnBackdrop(
   backdropBuffer: Buffer,
   decorBuffer: Buffer,
-  opacity = 0.48,
+  opacity = 0.14,
 ): Promise<Buffer> {
-  const decorWithAlpha = await sharp(decorBuffer)
+  const resized = await sharp(decorBuffer)
     .resize(CANVAS_SIZE, CANVAS_SIZE, { fit: "cover" })
     .ensureAlpha()
-    .linear([1, 1, 1, opacity], [0, 0, 0, 0])
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  // 중앙 55%는 완전 투명, 그 바깥부터 가장자리까지 서서히 불투명해지는
+  // 방사형 비네트. 상품과 겹치는 중앙부는 장식이 아예 안 보이게 만든다.
+  const vignetteSvg = `
+    <svg width="${CANVAS_SIZE}" height="${CANVAS_SIZE}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="v" cx="50%" cy="50%" r="65%">
+          <stop offset="0%" stop-color="white" stop-opacity="0" />
+          <stop offset="55%" stop-color="white" stop-opacity="0" />
+          <stop offset="100%" stop-color="white" stop-opacity="1" />
+        </radialGradient>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#v)" />
+    </svg>`;
+  const vignette = await sharp(Buffer.from(vignetteSvg))
+    .resize(CANVAS_SIZE, CANVAS_SIZE)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const pixels = resized.data;
+  for (let i = 0; i < pixels.length; i += 4) {
+    const vignetteFactor = vignette.data[i + 3] / 255;
+    pixels[i + 3] = Math.round(pixels[i + 3] * opacity * vignetteFactor);
+  }
+
+  const decorWithAlpha = await sharp(pixels, {
+    raw: { width: CANVAS_SIZE, height: CANVAS_SIZE, channels: 4 },
+  })
     .png()
     .toBuffer();
 
@@ -230,34 +393,125 @@ async function compositeDecorOnBackdrop(
     .toBuffer();
 }
 
-function buildShadowSvg(shadow: ShadowAnalysis): string {
-  const cx = CANVAS_SIZE * shadow.shadowCenterX;
-  const cy = CANVAS_SIZE * shadow.shadowCenterY;
-  const opacity = Math.min(0.28, Math.max(0.08, shadow.shadowIntensity));
-  return `
-    <svg width="${CANVAS_SIZE}" height="${CANVAS_SIZE}" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <radialGradient id="shadow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="rgba(0,0,0,${opacity})" />
-          <stop offset="100%" stop-color="rgba(0,0,0,0)" />
-        </radialGradient>
-      </defs>
-      <ellipse cx="${cx}" cy="${cy}" rx="${CANVAS_SIZE * 0.22}" ry="${CANVAS_SIZE * 0.06}" fill="url(#shadow)" />
-    </svg>`;
-}
-
 async function fetchSourceBuffer(url: string): Promise<Buffer> {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`이미지 fetch 실패: ${url}`);
-  return Buffer.from(await response.arrayBuffer());
+  return Buffer.from(await response.arrayBuffer()) as Buffer;
 }
 
-// 카테고리+상품 정보 기반으로 flux-fill-dev로 배경 후보 3장을 생성하고,
-// Claude Vision이 그중 가장 상품 사진과 어울릴 배경을 골라 반환한다.
-// 상품 1건당 한 번만 호출해서, 모든 사진에 같은 배경을 재사용한다.
-// theme(accent/baseNeutral/deepAccent)은 호출부(색상 추출 실패 시
-// 카테고리 기본 테마로 폴백)가 결정해서 넘긴다 — 이 함수는 그 값을
-// 프롬프트 톤 힌트로만 사용한다.
+function toDataUri(buffer: Buffer): string {
+  return `data:image/png;base64,${buffer.toString("base64")}`;
+}
+
+async function buildGenfillSolidCanvas(hexColor: string): Promise<Buffer> {
+  return sharp({
+    create: {
+      width: FILL_BASE_SIZE,
+      height: FILL_BASE_SIZE,
+      channels: 3,
+      background: hexColor,
+    },
+  })
+    .png()
+    .toBuffer();
+}
+
+async function placeCutoutOnGenfillCanvas(
+  cutout: Buffer,
+  canvasHex: string,
+): Promise<{
+  canvas: Buffer;
+  resizedCutout: Buffer;
+  left: number;
+  top: number;
+}> {
+  const meta = await sharp(cutout).metadata();
+  const rawW = meta.width ?? 1;
+  const rawH = meta.height ?? 1;
+  const placement = computeSafeCanvasPlacement(FILL_BASE_SIZE, rawW, rawH, []);
+  const targetW = Math.max(1, Math.round(rawW * placement.scale));
+  const targetH = Math.max(1, Math.round(rawH * placement.scale));
+  const resizedCutout = await sharp(cutout)
+    .resize(targetW, targetH, { fit: "inside", withoutEnlargement: false })
+    .png()
+    .toBuffer();
+  const base = await buildGenfillSolidCanvas(canvasHex);
+  const canvas = await sharp(base)
+    .composite([{ input: resizedCutout, left: placement.left, top: placement.top }])
+    .png()
+    .toBuffer();
+  return {
+    canvas,
+    resizedCutout,
+    left: placement.left,
+    top: placement.top,
+  };
+}
+
+/** GenFill: 검정=상품 유지, 흰색=배경 편집 영역 */
+async function buildGenfillKeepProductMask(
+  resizedCutout: Buffer,
+  left: number,
+  top: number,
+): Promise<Buffer> {
+  const { data, info } = await sharp(resizedCutout)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const mask = Buffer.alloc(FILL_BASE_SIZE * FILL_BASE_SIZE, 255);
+  for (let y = 0; y < info.height; y += 1) {
+    const destY = top + y;
+    if (destY < 0 || destY >= FILL_BASE_SIZE) continue;
+    for (let x = 0; x < info.width; x += 1) {
+      const destX = left + x;
+      if (destX < 0 || destX >= FILL_BASE_SIZE) continue;
+      const alpha = data[(y * info.width + x) * 4 + 3];
+      if (alpha > GENFILL_ALPHA_KEEP_THRESHOLD) {
+        mask[destY * FILL_BASE_SIZE + destX] = 0;
+      }
+    }
+  }
+  return sharp(mask, {
+    raw: { width: FILL_BASE_SIZE, height: FILL_BASE_SIZE, channels: 1 },
+  })
+    .blur(GENFILL_MASK_BLUR)
+    .png()
+    .toBuffer();
+}
+
+function buildBriaBackdropPrompt(
+  category: string,
+  theme: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
+  shadow: ShadowAnalysis,
+  conceptBrief?: ConceptBrief,
+): string {
+  const basePrompt = BACKDROP_PROMPTS[category] ?? BACKDROP_PROMPTS["기타"];
+  const photography = resolvePhotographyTemplate(conceptBrief, category);
+  const conceptBlock = conceptBrief ? `, ${formatConceptPromptBlock(conceptBrief, category)}` : "";
+  const lock = lightingLockPrompt(shadow);
+  const accentClause =
+    shadow.colorTemperature === "warm"
+      ? `subtle ${describeColorTone(theme.accent)} accent lighting`
+      : "no warm accent gel, no amber bounce, keep white balance locked to the product";
+  const fluxStylePrompt = `${basePrompt}${conceptBlock}, ${photography.prompt}, ${lock}, ${accentClause}, soft ${describeColorTone(theme.baseNeutral)} set color without shifting key light`;
+  return sanitizePromptForBria(
+    `${fluxStylePrompt}, keep the original product unchanged, replace only the surrounding background, realistic studio set`,
+  );
+}
+
+export type GenerateBackdropResult = {
+  buffer: Buffer | null;
+  candidateUrls: string[];
+  cost: number;
+  shadow: ShadowAnalysis;
+  claudeCost: number;
+  candidateCount: number;
+  autoPicked: boolean;
+};
+
+// 카테고리+상품 정보 기반으로 flux-fill-dev로 배경 후보를 생성한다.
+// TEST_MODE: flux-schnell 1장 자동.
+// 최종 승인: 후보 N장(BACKDROP_CANDIDATES)을 반환하고 pickBestBackdrop는 호출하지 않는다.
 export async function generateBackdrop(
   category: string,
   productName: string,
@@ -265,38 +519,92 @@ export async function generateBackdrop(
   theme: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
   sourceImageUrl?: string,
   conceptBrief?: ConceptBrief,
-): Promise<{ buffer: Buffer; cost: number; shadow: ShadowAnalysis }> {
+): Promise<GenerateBackdropResult> {
   const replicate = getReplicateClient();
   const basePrompt = BACKDROP_PROMPTS[category] ?? BACKDROP_PROMPTS["기타"];
+  let claudeCost = 0;
 
-  let shadow: ShadowAnalysis = {
-    promptHint: "soft studio lighting from upper left, natural product shadow falling gently to the lower right",
-    shadowCenterX: 0.5,
-    shadowCenterY: 0.83,
-    shadowIntensity: 0.18,
-  };
+  let shadow: ShadowAnalysis = { ...DEFAULT_SHADOW };
   if (sourceImageUrl) {
     try {
       const sourceBuffer = await fetchSourceBuffer(sourceImageUrl);
-      shadow = await analyzeShadowDirection(sourceBuffer);
+      const shadowResult = await analyzeShadowDirection(sourceBuffer);
+      shadow = shadowResult.shadow;
+      claudeCost += shadowResult.cost;
       console.log(`[shadow] 분석 결과: ${shadow.promptHint}`);
     } catch (error) {
       console.warn("[shadow] 원본 그림자 분석 실패, 기본 조명 사용", error);
     }
   }
 
-  const conceptBlock = conceptBrief ? `, ${formatConceptPromptBlock(conceptBrief)}` : "";
-  const prompt = `${basePrompt}${conceptBlock}, ${shadow.promptHint}, soft ${describeColorTone(theme.baseNeutral)} tone, subtle ${describeColorTone(theme.accent)} accent lighting`;
+  const photography = resolvePhotographyTemplate(conceptBrief, category);
+  const conceptBlock = conceptBrief ? `, ${formatConceptPromptBlock(conceptBrief, category)}` : "";
+  const lock = lightingLockPrompt(shadow);
+  const accentClause =
+    shadow.colorTemperature === "warm"
+      ? `subtle ${describeColorTone(theme.accent)} accent lighting`
+      : "no warm accent gel, no amber bounce, keep white balance locked to the product";
+  const prompt = `${basePrompt}${conceptBlock}, ${photography.prompt}, ${lock}, ${accentClause}, soft ${describeColorTone(theme.baseNeutral)} set color without shifting key light`;
+
+  console.log(`[shadow] 조명 잠금: ${lock}`);
+  console.log(`[prompt] generateBackdrop (TEST_MODE=${isTestMode()}): ${prompt}`);
+
+  if (isTestMode()) {
+    logForceRegenerateStatus();
+    const cost = REPLICATE_COST_USD.fluxSchnell;
+    console.log(`[replicate] CALL flux-schnell x1 (TEST_MODE backdrop)`);
+    console.log(`[cost] generateBackdrop (flux-schnell x1, TEST_MODE): $${cost.toFixed(4)}`);
+
+    const output = await withTimeout(
+      replicate.run(FLUX_SCHNELL_REF, {
+        input: {
+          prompt,
+          num_outputs: 1,
+          aspect_ratio: "1:1",
+          output_format: "png",
+          output_quality: 90,
+        },
+        wait: { mode: "poll", interval: 1000 },
+      }),
+      60000,
+      "flux-schnell 배경 생성 (TEST_MODE)",
+    );
+
+    const url = extractFluxImageUrl(output);
+    if (!url) {
+      throw new Error("TEST_MODE 배경 이미지 생성 결과 URL을 받지 못했습니다.");
+    }
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error("TEST_MODE 배경 이미지를 불러오지 못했습니다.");
+    }
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return {
+      buffer,
+      candidateUrls: [],
+      cost,
+      shadow,
+      claudeCost,
+      candidateCount: 1,
+      autoPicked: true,
+    };
+  }
 
   const [baseImage, fullMask] = await Promise.all([
     buildSolidCanvas(theme.baseNeutral),
     FULL_INPAINT_MASK,
   ]);
 
-  const CANDIDATE_COUNT = 3;
+  const CANDIDATE_COUNT = getBackdropCandidateCount();
   const cost = CANDIDATE_COUNT * REPLICATE_COST_USD.fluxFillDev;
+  logForceRegenerateStatus();
+  console.log(`[prompt] generateBackdrop base (flux-fill-dev x${CANDIDATE_COUNT}): ${prompt}`);
   console.log(
-    `[cost] generateBackdrop (flux-fill-dev x${CANDIDATE_COUNT}): $${cost.toFixed(4)}`,
+    `[replicate] CALL flux-fill-dev x${CANDIDATE_COUNT} (human-pick, no pickBestBackdrop)`,
+  );
+  console.log(
+    `[cost] generateBackdrop (flux-fill-dev x${CANDIDATE_COUNT}, human-pick, no pickBestBackdrop): $${cost.toFixed(4)}`,
   );
 
   // run()의 반환값(output만 추출된 값)만으로는 실패 원인을 알 수 없어서,
@@ -304,13 +612,15 @@ export async function generateBackdrop(
   const rawPredictions: unknown[] = [];
 
   const results = await Promise.allSettled(
-    Array.from({ length: CANDIDATE_COUNT }).map((_, i) =>
-      withTimeout(
+    Array.from({ length: CANDIDATE_COUNT }).map((_, i) => {
+      const candidatePrompt = `${prompt}, ${CANDIDATE_VARIATIONS[i % CANDIDATE_VARIATIONS.length]}`;
+      console.log(`[prompt] generateBackdrop candidate-${i}: ${candidatePrompt}`);
+      return withTimeout(
         replicate.run(
           FLUX_FILL_DEV_REF,
           {
             input: {
-              prompt,
+              prompt: candidatePrompt,
               image: baseImage,
               mask: fullMask,
               output_format: "png",
@@ -326,10 +636,10 @@ export async function generateBackdrop(
             rawPredictions[i] = prediction;
           },
         ),
-        120000,
+        180000,
         "flux-fill-dev 배경 생성",
-      ),
-    ),
+      );
+    }),
   );
 
   const failureReasons: string[] = [];
@@ -373,90 +683,401 @@ export async function generateBackdrop(
   ).filter((url): url is string => url !== null);
 
   if (candidateUrls.length === 0) {
-    throw new Error(
-      `배경 이미지 생성에 모두 실패했습니다. 원인: ${failureReasons.join(" | ")}`,
+    console.warn(
+      `[generateBackdrop] flux-fill-dev 전부 실패, flux-schnell 폴백. 원인: ${failureReasons.join(" | ")}`,
     );
+    try {
+      const fallbackUrl = await generateSchnellPng(prompt);
+      return {
+        buffer: null,
+        candidateUrls: [fallbackUrl],
+        cost: cost + REPLICATE_COST_USD.fluxSchnell,
+        shadow,
+        claudeCost,
+        candidateCount: 1,
+        autoPicked: false,
+      };
+    } catch (fallbackError) {
+      throw new Error(
+        `배경 이미지 생성에 모두 실패했습니다. 원인: ${failureReasons.join(" | ")} | schnell 폴백: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`,
+      );
+    }
   }
 
-  const bestIndex =
-    candidateUrls.length === 1
-      ? 0
-      : await pickBestBackdrop(candidateUrls, productName, brandName ?? null);
-
-  const chosenUrl = candidateUrls[bestIndex] ?? candidateUrls[0];
-  const chosenResponse = await fetch(chosenUrl);
-  if (!chosenResponse.ok) {
-    throw new Error("선택된 배경 이미지를 불러오지 못했습니다.");
-  }
-  const buffer = Buffer.from(await chosenResponse.arrayBuffer());
-  return { buffer, cost, shadow };
+  console.log(
+    `[generateBackdrop] "${productName}"${brandName ? ` (${brandName})` : ""} 후보 ${candidateUrls.length}장 — pickBestBackdrop 생략, 사람이 선택`,
+  );
+  return {
+    buffer: null,
+    candidateUrls,
+    cost,
+    shadow,
+    claudeCost,
+    candidateCount: candidateUrls.length,
+    autoPicked: false,
+  };
 }
 
-async function pickBestBackdrop(
-  urls: string[],
+/**
+ * Bria Background Replace — 원본 상품 사진을 넣고 배경만 교체.
+ * 반환 타입은 generateBackdrop()과 동일해서 enhanceProductImage() 호출부를 바꾸지 않는다.
+ * 스키마: image | image_url, bg_prompt | ref_image_url, seed, fast, refine_prompt, original_quality, force_rmbg
+ */
+export async function generateBackdropViaBria(
+  category: string,
   productName: string,
   brandName: string | null,
-): Promise<number> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    // 키가 없으면 그냥 첫 번째 후보 사용 (배경 생성 자체는 계속 동작해야 하므로)
-    return 0;
+  theme: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
+  sourceImageUrl?: string,
+  conceptBrief?: ConceptBrief,
+): Promise<GenerateBackdropResult> {
+  if (!sourceImageUrl) {
+    throw new Error("Bria Background Replace는 원본 상품 사진(sourceImageUrl)이 필요합니다.");
   }
 
+  const replicate = getReplicateClient();
+  let claudeCost = 0;
+
+  let shadow: ShadowAnalysis = { ...DEFAULT_SHADOW };
   try {
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-    const imageBlocks = await Promise.all(
-      urls.map(async (url) => {
-        const response = await fetch(url);
-        const buffer = Buffer.from(await response.arrayBuffer());
-        return {
-          type: "image" as const,
-          source: {
-            type: "base64" as const,
-            media_type: "image/png" as const,
-            data: buffer.toString("base64"),
-          },
-        };
-      }),
-    );
-
-    const content = imageBlocks.flatMap((block, index) => [
-      { type: "text" as const, text: `배경 후보 ${index}:` },
-      block,
-    ]);
-
-    const indexOptions = urls.map((_, i) => String(i)).join(", ");
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-5",
-      max_tokens: 10,
-      messages: [
-        {
-          role: "user",
-          content: [
-            ...content,
-            {
-              type: "text",
-              text: `"${productName}"${brandName ? ` (${brandName})` : ""} 상품 사진을 올려둘 배경으로, 위 ${urls.length}개(${indexOptions}) 중 가장 깔끔하고 상품이 돋보일 배경 하나를 고르세요. 숫자 하나만 답하세요.`,
-            },
-          ],
-        },
-      ],
-    });
-
-    const textBlock = message.content.find((b) => b.type === "text");
-    const indexPattern = new RegExp(`[0-${urls.length - 1}]`);
-    const match =
-      textBlock && textBlock.type === "text" ? textBlock.text.match(indexPattern) : null;
-    const parsed = match ? parseInt(match[0], 10) : 0;
-    return Math.min(Math.max(parsed, 0), urls.length - 1);
+    const sourceBuffer = await fetchSourceBuffer(sourceImageUrl);
+    const shadowResult = await analyzeShadowDirection(sourceBuffer);
+    shadow = shadowResult.shadow;
+    claudeCost += shadowResult.cost;
+    console.log(`[shadow] 분석 결과: ${shadow.promptHint}`);
   } catch (error) {
-    console.warn("[pickBestBackdrop] 실패, 첫 번째 후보 사용", error);
-    return 0;
+    console.warn("[shadow] 원본 그림자 분석 실패, 기본 조명 사용", error);
   }
+
+  const lock = lightingLockPrompt(shadow);
+  const bgPrompt = buildBriaBackdropPrompt(category, theme, shadow, conceptBrief);
+  const candidateCount = getBriaBackdropCandidateCount();
+  logForceRegenerateStatus();
+  console.log(`[shadow] 조명 잠금: ${lock}`);
+  console.log(`[prompt] generateBackdropViaBria (bria-replace): ${bgPrompt}`);
+  console.log(`[replicate] CALL bria/generate-background x${candidateCount} (sequential)`);
+
+  const candidateUrls: string[] = [];
+  const failureReasons: string[] = [];
+  for (let i = 0; i < candidateCount; i += 1) {
+    const candidatePrompt = sanitizePromptForBria(
+      `${bgPrompt}, ${CANDIDATE_VARIATIONS[i % CANDIDATE_VARIATIONS.length]}`,
+    );
+    console.log(`[prompt] generateBackdropViaBria candidate-${i}: ${candidatePrompt}`);
+    try {
+      const output = await runReplicateWithRetry(`bria/generate-background#${i}`, () =>
+        withTimeout(
+          replicate.run(BRIA_GENERATE_BACKGROUND_REF, {
+            input: {
+              image_url: sourceImageUrl,
+              bg_prompt: candidatePrompt,
+              seed: 1100 + i * 137,
+              fast: true,
+              refine_prompt: true,
+              original_quality: true,
+              force_rmbg: false,
+            },
+            wait: { mode: "poll", interval: 1000 },
+          }),
+          120000,
+          "bria/generate-background",
+        ),
+      );
+      const url = extractFluxImageUrl(output);
+      if (!url) {
+        failureReasons.push(`결과에 URL 없음 (candidate=${i})`);
+        continue;
+      }
+      candidateUrls.push(url);
+    } catch (error) {
+      const detail = await describeReplicateError(error);
+      console.error("[generateBackdropViaBria] 호출 실패:", detail);
+      failureReasons.push(detail);
+    }
+  }
+
+  const cost = candidateUrls.length * REPLICATE_COST_USD.briaBackgroundReplace;
+  console.log(
+    `[cost] generateBackdrop (bria/generate-background x${candidateUrls.length}): $${cost.toFixed(4)}`,
+  );
+
+  if (candidateUrls.length === 0) {
+    throw new Error(
+      `Bria 배경 생성에 모두 실패했습니다. 원인: ${failureReasons.join(" | ")}`,
+    );
+  }
+
+  console.log(
+    `[generateBackdropViaBria] "${productName}"${brandName ? ` (${brandName})` : ""} 후보 ${candidateUrls.length}장`,
+  );
+  return {
+    buffer: null,
+    candidateUrls,
+    cost,
+    shadow,
+    claudeCost,
+    candidateCount: candidateUrls.length,
+    autoPicked: candidateUrls.length === 1,
+  };
+}
+
+/**
+ * Bria GenFill — 컷아웃 알파 마스크로 상품을 고정하고 배경 영역만 inpaint.
+ * 반환 타입은 generateBackdrop()과 동일.
+ * 스키마: image, mask, prompt, mask_type, preserve_alpha, seed
+ */
+export async function generateBackdropViaBriaGenFill(
+  category: string,
+  productName: string,
+  brandName: string | null,
+  theme: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
+  sourceImageUrl?: string,
+  conceptBrief?: ConceptBrief,
+): Promise<GenerateBackdropResult> {
+  if (!sourceImageUrl) {
+    throw new Error("Bria GenFill은 원본 상품 사진(sourceImageUrl)이 필요합니다.");
+  }
+
+  const replicate = getReplicateClient();
+  let claudeCost = 0;
+
+  let shadow: ShadowAnalysis = { ...DEFAULT_SHADOW };
+  try {
+    const sourceBuffer = await fetchSourceBuffer(sourceImageUrl);
+    const shadowResult = await analyzeShadowDirection(sourceBuffer);
+    shadow = shadowResult.shadow;
+    claudeCost += shadowResult.cost;
+    console.log(`[shadow] 분석 결과: ${shadow.promptHint}`);
+  } catch (error) {
+    console.warn("[shadow] 원본 그림자 분석 실패, 기본 조명 사용", error);
+  }
+
+  const lock = lightingLockPrompt(shadow);
+  const bgPrompt = buildBriaBackdropPrompt(category, theme, shadow, conceptBrief);
+  const candidateCount = getBriaBackdropCandidateCount();
+  logForceRegenerateStatus();
+  console.log(`[shadow] 조명 잠금: ${lock}`);
+  console.log(`[prompt] generateBackdropViaBriaGenFill (bria-genfill): ${bgPrompt}`);
+
+  const bgRemoverRef = await getBackgroundRemoverRef(replicate);
+  const cutoutOutput = await runReplicateWithRetry("851-labs/background-remover", () =>
+    replicate.run(bgRemoverRef, {
+      input: { image: sourceImageUrl },
+      wait: { mode: "poll", interval: 1000 },
+    }),
+  );
+  const cutoutUrl = extractFluxImageUrl(cutoutOutput);
+  if (!cutoutUrl) {
+    throw new Error("Bria GenFill용 배경 제거 결과 URL을 받지 못했습니다.");
+  }
+  const cutoutResponse = await fetch(cutoutUrl);
+  if (!cutoutResponse.ok) {
+    throw new Error("Bria GenFill용 컷아웃 이미지를 불러오지 못했습니다.");
+  }
+  const cutoutBuffer = Buffer.from(await cutoutResponse.arrayBuffer()) as Buffer;
+
+  const placed = await placeCutoutOnGenfillCanvas(cutoutBuffer, theme.baseNeutral);
+  const keepMask = await buildGenfillKeepProductMask(
+    placed.resizedCutout,
+    placed.left,
+    placed.top,
+  );
+  const imageDataUri = toDataUri(placed.canvas);
+  const maskDataUri = toDataUri(keepMask);
+
+  console.log(
+    `[cost] generateBackdrop (851-labs/background-remover x1): $${REPLICATE_COST_USD.backgroundRemover.toFixed(4)}`,
+  );
+  console.log(`[replicate] CALL bria/genfill x${candidateCount} (sequential)`);
+
+  const candidateUrls: string[] = [];
+  const failureReasons: string[] = [];
+  for (let i = 0; i < candidateCount; i += 1) {
+    const candidatePrompt = sanitizePromptForBria(
+      `${bgPrompt}, ${CANDIDATE_VARIATIONS[i % CANDIDATE_VARIATIONS.length]}`,
+    );
+    console.log(`[prompt] generateBackdropViaBriaGenFill candidate-${i}: ${candidatePrompt}`);
+    try {
+      const output = await runReplicateWithRetry(`bria/genfill#${i}`, () =>
+        withTimeout(
+          replicate.run(BRIA_GENFILL_REF, {
+            input: {
+              image: imageDataUri,
+              mask: maskDataUri,
+              prompt: candidatePrompt,
+              mask_type: "manual",
+              preserve_alpha: true,
+              sync: true,
+              seed: 2100 + i * 137,
+            },
+            wait: { mode: "poll", interval: 1000 },
+          }),
+          120000,
+          "bria/genfill",
+        ),
+      );
+      const url = extractFluxImageUrl(output);
+      if (!url) {
+        failureReasons.push(`결과에 URL 없음 (candidate=${i})`);
+        continue;
+      }
+      candidateUrls.push(url);
+    } catch (error) {
+      const detail = await describeReplicateError(error);
+      console.error("[generateBackdropViaBriaGenFill] 호출 실패:", detail);
+      failureReasons.push(detail);
+    }
+  }
+
+  const genfillCost = candidateUrls.length * REPLICATE_COST_USD.briaGenfill;
+  const cost = REPLICATE_COST_USD.backgroundRemover + genfillCost;
+  console.log(
+    `[cost] generateBackdrop (bria/genfill x${candidateUrls.length}): $${genfillCost.toFixed(4)}`,
+  );
+
+  if (candidateUrls.length === 0) {
+    throw new Error(
+      `Bria GenFill 배경 생성에 모두 실패했습니다. 원인: ${failureReasons.join(" | ")}`,
+    );
+  }
+
+  console.log(
+    `[generateBackdropViaBriaGenFill] "${productName}"${brandName ? ` (${brandName})` : ""} 후보 ${candidateUrls.length}장`,
+  );
+  return {
+    buffer: null,
+    candidateUrls,
+    cost,
+    shadow,
+    claudeCost,
+    candidateCount: candidateUrls.length,
+    autoPicked: candidateUrls.length === 1,
+  };
+}
+
+type SectionBackdropKind = "ingredient" | "texture";
+
+const SECTION_BACKDROP_PROMPTS_BY_CATEGORY: Record<
+  string,
+  Record<SectionBackdropKind, string>
+> = {
+  "화장품/뷰티": {
+    ingredient:
+      "extreme close-up of empty clear glass with condensation water droplets and specular reflections, wet glass surface only, no bottle, no dropper, no product, no packaging, no text, no logo, no human skin, product photography empty backdrop",
+    texture:
+      "macro photograph of a clear watery serum formula slowly dripping and flowing across a glass plane, viscous ribbon smear, shallow depth of field, no bottle, no packaging, no hands, no text, no logo, empty formula-only frame",
+  },
+  "전자제품": {
+    ingredient:
+      "extreme macro of brushed aluminum and matte polymer texture, cool gray tech surface detail, subtle geometric light streaks, empty product photography backdrop, no device, no cable, no logo, no text",
+    texture:
+      "soft bokeh modern desk workspace ambient blur, minimal tech lifestyle background, cool neutral tones, shallow depth of field, empty center, no product, no screen, no logo, no text",
+  },
+  "식품/건강기능식품": {
+    ingredient:
+      "macro wooden table grain with fresh ingredient texture hints softly blurred, warm natural food photography surface, empty backdrop, no plate, no packaging, no logo, no text",
+    texture:
+      "soft steam wisps over ceramic surface, warm kitchen ambient blur, shallow depth of field, empty food photography backdrop, no dish, no product, no logo, no text",
+  },
+  "의류/패션": {
+    ingredient:
+      "extreme macro fabric weave and stitch detail, soft textile texture, neutral editorial studio surface, empty backdrop, no garment, no model, no logo, no text",
+    texture:
+      "soft neutral fashion studio floor and wall blur, editorial runway ambient, shallow depth of field, empty center, no model, no clothing, no logo, no text",
+  },
+  "생활용품": {
+    ingredient:
+      "macro natural material texture, linen or ceramic micro-detail, bright airy home surface, empty lifestyle photography backdrop, no product, no logo, no text",
+    texture:
+      "bright home interior soft bokeh, minimal styled shelf ambient blur, warm natural light, empty backdrop, no product, no logo, no text",
+  },
+  "반려동물": {
+    ingredient:
+      "soft cozy fabric texture macro, warm pastel home surface detail, empty pet product photography backdrop, no animal, no product, no logo, no text",
+    texture:
+      "warm cozy home interior bokeh, playful pastel ambient blur, shallow depth of field, empty backdrop, no pet, no product, no logo, no text",
+  },
+  "기타": {
+    ingredient:
+      "macro subtle surface grain and soft specular highlights, clean minimal studio plane, empty product photography backdrop, no product, no logo, no text",
+    texture:
+      "soft gradient studio ambient blur, neutral minimal backdrop variation, shallow depth of field, empty center, no product, no logo, no text",
+  },
+};
+
+function getSectionBackdropPrompts(category: string): Record<SectionBackdropKind, string> {
+  return SECTION_BACKDROP_PROMPTS_BY_CATEGORY[category] ?? SECTION_BACKDROP_PROMPTS_BY_CATEGORY["기타"];
+}
+
+async function generateSchnellPng(prompt: string): Promise<string> {
+  const replicate = getReplicateClient();
+  const output = await withTimeout(
+    replicate.run(FLUX_SCHNELL_REF, {
+      input: {
+        prompt,
+        num_outputs: 1,
+        aspect_ratio: "1:1",
+        output_format: "png",
+        output_quality: 90,
+      },
+      wait: { mode: "poll", interval: 1000 },
+    }),
+    90000,
+    "flux-schnell 섹션 배경",
+  );
+  const url = extractFluxImageUrl(output);
+  if (!url) {
+    throw new Error("섹션 배경 URL을 받지 못했습니다.");
+  }
+  return url;
+}
+
+/** 히어로에서 고른 스튜디오 배경과 다른 섹션(업로드 2·3번) 연출. flux-schnell ×2. */
+export async function generateSectionBackdropVariants(
+  shadow: ShadowAnalysis,
+  conceptBrief?: ConceptBrief,
+  category = "기타",
+): Promise<{ ingredientUrl: string | null; textureUrl: string | null; cost: number }> {
+  const lock = lightingLockPrompt(shadow);
+  const conceptBlock = conceptBrief ? formatConceptPromptBlock(conceptBrief, category) : "";
+  const sectionPrompts = getSectionBackdropPrompts(category);
+  const kinds = ["ingredient", "texture"] as const;
+  const results = await Promise.allSettled(
+    kinds.map(async (kind) => {
+      const prompt = [
+        sectionPrompts[kind],
+        conceptBlock,
+        lock,
+        "obey lighting lock color temperature exactly, no golden hour, no amber gel",
+      ]
+        .filter(Boolean)
+        .join(", ");
+      console.log(`[prompt] generateSectionBackdrop ${kind}: ${prompt}`);
+      console.log(`[replicate] CALL flux-schnell (section-backdrop ${kind})`);
+      const url = await generateSchnellPng(prompt);
+      console.log(`[section-backdrop] ${kind} 생성`);
+      return { kind, url };
+    }),
+  );
+
+  let ingredientUrl: string | null = null;
+  let textureUrl: string | null = null;
+  let cost = 0;
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      cost += REPLICATE_COST_USD.fluxSchnell;
+      if (result.value.kind === "ingredient") ingredientUrl = result.value.url;
+      else textureUrl = result.value.url;
+    } else {
+      console.warn("[section-backdrop] 생성 실패:", result.reason);
+    }
+  }
+  console.log(`[cost] generateSectionBackdropVariants: $${cost.toFixed(4)}`);
+  return { ingredientUrl, textureUrl, cost };
 }
 
 // 원본 상품 사진의 배경을 제거하고, 미리 생성/선택된 backdropBuffer 위에 합성한다.
-// backdropBuffer는 generateBackdrop()으로 상품당 한 번만 만들어 여러 사진에 재사용.
+// 히어로/성분/텍스처는 서로 다른 backdropBuffer를 쓴다.
 // 851-labs/background-remover는 공식(official) 모델이 아니라서, 버전을
 // 지정하지 않고 "owner/name"으로 predictions를 생성하면 항상 404가 난다
 // (owner/name 미지정 경로는 공식 모델에만 열려 있음. flux-schnell은 공식
@@ -479,6 +1100,24 @@ async function getBackgroundRemoverRef(replicate: Replicate): Promise<ModelRef> 
 // 보정한다. 실패해도(타임아웃 포함) 전체 파이프라인을 막지 않도록 배경
 // 제거 결과(cutout)로 조용히 폴백한다.
 async function sharpenCutout(cutoutUrl: string): Promise<{ url: string; cost: number }> {
+  const origRes = await fetch(cutoutUrl);
+  if (!origRes.ok) {
+    throw new Error("배경 제거 결과 이미지를 불러오지 못했습니다.");
+  }
+  const origBuf = Buffer.from(await origRes.arrayBuffer());
+  const origAlpha = await measureTransparentRatio(origBuf);
+
+  if (isTestMode()) {
+    console.log(
+      `[cost] sharpenCutout: TEST_MODE — clarity-upscaler 생략 (cutout alpha=${origAlpha.toFixed(3)})`,
+    );
+    return { url: cutoutUrl, cost: REPLICATE_COST_USD.backgroundRemover };
+  }
+
+  console.log(
+    `[cost] sharpenCutout: clarity-upscaler ON (TEST_MODE=false): $${REPLICATE_COST_USD.clarityUpscaler.toFixed(4)}`,
+  );
+
   try {
     const replicate = getReplicateClient();
     const output = await withTimeout(
@@ -503,6 +1142,20 @@ async function sharpenCutout(cutoutUrl: string): Promise<{ url: string; cost: nu
       return { url: cutoutUrl, cost: REPLICATE_COST_USD.backgroundRemover };
     }
 
+    const upRes = await fetch(upscaledUrl);
+    if (upRes.ok) {
+      const upBuf = Buffer.from(await upRes.arrayBuffer());
+      const upAlpha = await measureTransparentRatio(upBuf);
+      // clarity-upscaler는 종종 RGB-only JPEG/PNG를 반환해 알파가 사라지고,
+      // 합성 시 원본 사진 사각형이 그대로 얹히는 P0 버그가 난다.
+      if (origAlpha > 0.08 && upAlpha < 0.05) {
+        console.warn(
+          `[sharpenCutout] clarity-upscaler stripped alpha (${origAlpha.toFixed(3)} → ${upAlpha.toFixed(3)}), pre-upscale cutout 사용`,
+        );
+        return { url: cutoutUrl, cost: REPLICATE_COST_USD.backgroundRemover };
+      }
+    }
+
     return {
       url: upscaledUrl,
       cost: REPLICATE_COST_USD.backgroundRemover + REPLICATE_COST_USD.clarityUpscaler,
@@ -520,15 +1173,18 @@ export async function enhanceProductImage(
   sourceImageUrl: string,
   backdropBuffer: Buffer,
   options: EnhanceImageOptions = {},
-): Promise<{ buffer: Buffer; cost: number; decorBuffer?: Buffer; decorCost?: number }> {
-  const { shadowHint, conceptBrief, applyDecor, decorBuffer: reuseDecor, theme } = options;
+): Promise<{ buffer: Buffer; cost: number; decorBuffer?: Buffer; decorCost?: number; claudeCost: number }> {
+  const { shadowHint, conceptBrief, applyDecor, decorBuffer: reuseDecor, theme, productName } = options;
   const replicate = getReplicateClient();
   const modelRef = await getBackgroundRemoverRef(replicate);
+  let claudeCost = 0;
 
   // 크롭 안전: 원본에서 라벨/로고/텍스트 영역을 Haiku 비전으로 감지
   let textRegions: TextRegion[] = [];
   try {
-    textRegions = await detectTextRegionsFromUrl(sourceImageUrl);
+    const detected = await detectTextRegionsFromUrl(sourceImageUrl);
+    textRegions = detected.regions;
+    claudeCost += detected.cost;
     if (textRegions.length > 0) {
       console.log(
         `[safeCrop] ${textRegions.length}개 텍스트 영역 감지:`,
@@ -539,9 +1195,65 @@ export async function enhanceProductImage(
     console.warn("[safeCrop] 텍스트 영역 감지 실패, 기본 crop 사용", error);
   }
 
-  const output = await replicate.run(modelRef, {
-    input: { image: sourceImageUrl },
-  });
+  // ── 사전 단계: productName이 있으면 상품 영역을 먼저 감지해서 원본 크롭 ──
+  let bgRemoveInput: string = sourceImageUrl;
+  let preCropCost = 0;
+  if (productName) {
+    try {
+      const sourceRes = await fetch(sourceImageUrl);
+      if (sourceRes.ok) {
+        const sourceBuf = Buffer.from(await sourceRes.arrayBuffer());
+        const contentType = sourceRes.headers.get("content-type");
+        const mType: "image/jpeg" | "image/png" =
+          contentType?.includes("png") ? "image/png" : "image/jpeg";
+
+        const { box, cost: detectCost } = await detectProductRegion(sourceBuf, productName, mType);
+        claudeCost += detectCost;
+        preCropCost += detectCost;
+
+        if (box) {
+          const boxArea = (box.xMax - box.xMin) * (box.yMax - box.yMin);
+          if (boxArea >= 0.90) {
+            console.log(
+              `[preCrop] box 면적 ${(boxArea * 100).toFixed(0)}% ≥ 90% — 크롭 스킵, 원본 그대로 배경제거`,
+            );
+          } else {
+            const srcMeta = await sharp(sourceBuf).metadata();
+            const sw = srcMeta.width ?? 1;
+            const sh = srcMeta.height ?? 1;
+            const pad = 0.08;
+            const cropLeft = Math.max(0, Math.round((box.xMin - pad) * sw));
+            const cropTop = Math.max(0, Math.round((box.yMin - pad) * sh));
+            const cropRight = Math.min(sw, Math.round((box.xMax + pad) * sw));
+            const cropBottom = Math.min(sh, Math.round((box.yMax + pad) * sh));
+            const cropW = Math.max(1, cropRight - cropLeft);
+            const cropH = Math.max(1, cropBottom - cropTop);
+
+            console.log(
+              `[preCrop] '${productName}' box: [${box.xMin.toFixed(2)},${box.yMin.toFixed(2)}]→[${box.xMax.toFixed(2)},${box.yMax.toFixed(2)}] area=${(boxArea * 100).toFixed(0)}% → crop [${cropLeft},${cropTop} ${cropW}x${cropH}]`,
+            );
+
+            const croppedBuf = await sharp(sourceBuf)
+              .extract({ left: cropLeft, top: cropTop, width: cropW, height: cropH })
+              .png()
+              .toBuffer();
+
+            bgRemoveInput = `data:image/png;base64,${croppedBuf.toString("base64")}`;
+          }
+        } else {
+          console.log("[preCrop] 상품 영역 감지 실패 — 원본 그대로 배경제거");
+        }
+      }
+    } catch (error) {
+      console.warn("[preCrop] 상품 영역 감지 중 오류, 원본 그대로 배경제거", error);
+    }
+  }
+
+  const output = await runReplicateWithRetry("851-labs/background-remover", () =>
+    replicate.run(modelRef, {
+      input: { image: bgRemoveInput },
+    }),
+  );
 
   const cutoutUrl = Array.isArray(output) ? output[0] : output;
   if (!cutoutUrl || typeof cutoutUrl !== "string") {
@@ -555,12 +1267,50 @@ export async function enhanceProductImage(
   if (!cutoutResponse.ok) {
     throw new Error("보정된 이미지를 불러오지 못했습니다.");
   }
-  const cutoutBuffer = Buffer.from(await cutoutResponse.arrayBuffer());
+  const finalCutoutBuffer = Buffer.from(await cutoutResponse.arrayBuffer()) as Buffer;
+  const cutoutAlpha = await measureTransparentRatio(finalCutoutBuffer);
+  console.log(
+    `[cutout] transparentRatio=${cutoutAlpha.toFixed(3)} source=${sourceImageUrl.slice(-48)}`,
+  );
+
+  if (cutoutAlpha < 0.05) {
+    console.warn(
+      "[cutout] 배경 제거 결과에 투명 영역이 거의 없음 — fallback: 원본 이미지 사용 (배경 합성 스킵)",
+    );
+
+    const sourceRes = await fetch(sourceImageUrl);
+    if (!sourceRes.ok) throw new Error("원본 이미지를 불러오지 못했습니다 (fallback).");
+    const sourceBuf = Buffer.from(await sourceRes.arrayBuffer());
+    const srcMeta = await sharp(sourceBuf).metadata();
+    const sw = srcMeta.width ?? 1;
+    const sh = srcMeta.height ?? 1;
+
+    const cropBox = computeSafeCropBox(sw, sh, textRegions, 0.04);
+    const croppedSource = await sharp(sourceBuf)
+      .extract(cropBox)
+      .resize(CANVAS_SIZE, CANVAS_SIZE, { fit: "cover" })
+      .png()
+      .toBuffer();
+
+    const totalCost = cost + preCropCost;
+    return { buffer: croppedSource, cost: totalCost, claudeCost };
+  }
+
+  // DEBUG_CUTOUT_DIR 설정 시 cutoutBuffer를 디스크에 저장 (P0 디버깅)
+  const debugDir = process.env.DEBUG_CUTOUT_DIR;
+  if (debugDir) {
+    const fs = await import("fs");
+    const path = await import("path");
+    fs.mkdirSync(debugDir, { recursive: true });
+    const stamp = Date.now();
+    fs.writeFileSync(path.join(debugDir, `${stamp}-cutout.png`), finalCutoutBuffer);
+    console.log(`[cutout] debug saved → ${debugDir}/${stamp}-cutout.png`);
+  }
 
   // 라벨·로고가 잘리지 않도록 안전 여백 crop (배경 제거 후 동일 좌표계)
   const safeCutout = textRegions.length > 0
-    ? await applySafeCrop(cutoutBuffer, textRegions)
-    : cutoutBuffer;
+    ? await applySafeCrop(finalCutoutBuffer, textRegions)
+    : finalCutoutBuffer;
 
   const backdropResized = await sharp(backdropBuffer)
     .resize(CANVAS_SIZE, CANVAS_SIZE, { fit: "cover" })
@@ -571,20 +1321,18 @@ export async function enhanceProductImage(
   if (!shadow) {
     try {
       const sourceBuffer = await fetchSourceBuffer(sourceImageUrl);
-      shadow = await analyzeShadowDirection(sourceBuffer);
+      const shadowResult = await analyzeShadowDirection(sourceBuffer);
+      shadow = shadowResult.shadow;
+      claudeCost += shadowResult.cost;
     } catch {
-      shadow = {
-        promptHint: "soft studio lighting from upper left",
-        shadowCenterX: 0.5,
-        shadowCenterY: 0.83,
-        shadowIntensity: 0.18,
-      };
+      shadow = { ...DEFAULT_SHADOW };
     }
   }
 
   let decorCost = 0;
   let decorBuffer = reuseDecor;
-  if (applyDecor && conceptBrief && theme && !decorBuffer) {
+  const shouldApplyDecor = applyDecor && !isTestMode();
+  if (shouldApplyDecor && conceptBrief && theme && !decorBuffer) {
     try {
       const generated = await generateDecorativeGraphic(conceptBrief, theme, shadow);
       decorBuffer = generated.buffer;
@@ -592,15 +1340,18 @@ export async function enhanceProductImage(
     } catch (error) {
       console.warn("[decor] 장식 그래픽 생성 실패, 배경만 사용", error);
     }
+  } else if (applyDecor && isTestMode()) {
+    console.log("[decor] TEST_MODE — 장식 그래픽 생성 생략, 기본 배경 사용");
   }
 
-  const backdropWithDecor =
-    decorBuffer != null
-      ? await compositeDecorOnBackdrop(backdropResized, decorBuffer)
-      : backdropResized;
-
-  const shadowSvg = buildShadowSvg(shadow);
-  const shadowBuffer = await sharp(Buffer.from(shadowSvg)).png().toBuffer();
+  let backdropWithDecor: Buffer = backdropResized;
+  if (decorBuffer != null) {
+    try {
+      backdropWithDecor = await compositeDecorOnBackdrop(backdropResized, decorBuffer);
+    } catch (error) {
+      console.warn("[decor] 장식 합성 실패, 배경만 사용", error);
+    }
+  }
 
   const cutoutMetaRaw = await sharp(safeCutout).metadata();
   const rawW = cutoutMetaRaw.width ?? 1;
@@ -619,20 +1370,43 @@ export async function enhanceProductImage(
     .resize(targetW, targetH, { fit: "inside", withoutEnlargement: false })
     .toBuffer();
 
+  let cutoutForComposite: Buffer = cutoutResized;
+  try {
+    const feathered = await featherCutout(cutoutResized);
+    cutoutForComposite = await matchCutoutWhiteBalance(feathered, backdropWithDecor);
+    console.log(
+      `[composite] feather + WB match, lightFrom=${shadow.lightFrom} temp=${shadow.colorTemperature}`,
+    );
+  } catch (error) {
+    console.warn("[composite] feather/WB 실패, 컷아웃 그대로 합성", error);
+  }
+
+  const shadowSvg = buildProductShadowSvg(
+    CANVAS_SIZE,
+    {
+      left: placement.left,
+      top: placement.top,
+      width: targetW,
+      height: targetH,
+    },
+    shadow,
+  );
+  const shadowBuffer = await sharp(Buffer.from(shadowSvg)).png().toBuffer();
+
   const finalBuffer = await sharp(backdropWithDecor)
     .composite([
       { input: shadowBuffer, left: 0, top: 0 },
-      { input: cutoutResized, left: placement.left, top: placement.top },
+      { input: cutoutForComposite, left: placement.left, top: placement.top },
     ])
     .png()
     .toBuffer();
 
-  const totalCost = cost + decorCost;
-  if (decorCost > 0) {
+  const totalCost = cost + decorCost + preCropCost;
+  if (decorCost > 0 || preCropCost > 0) {
     console.log(
-      `[cost] enhanceProductImage total=$${totalCost.toFixed(5)} (enhance=$${cost.toFixed(5)} decor=$${decorCost.toFixed(4)})`,
+      `[cost] enhanceProductImage total=$${totalCost.toFixed(5)} (enhance=$${cost.toFixed(5)} decor=$${decorCost.toFixed(4)} preCrop=$${preCropCost.toFixed(4)})`,
     );
   }
 
-  return { buffer: finalBuffer, cost: totalCost, decorBuffer, decorCost: decorCost || undefined };
+  return { buffer: finalBuffer, cost: totalCost, decorBuffer, decorCost: decorCost || undefined, claudeCost };
 }

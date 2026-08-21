@@ -1,5 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { calculateClaudeCost, logClaudeCost } from "@/lib/claude-cost";
 import { HAIKU_VISION_MODEL } from "@/lib/vision-utils";
+import { isTestMode } from "@/lib/test-mode";
 import type { DetailSection } from "@/lib/types/generate";
 
 export type QAIssueCategory =
@@ -21,6 +23,7 @@ export type QAResult = {
   pass: boolean;
   issues: QAIssue[];
   summary: string;
+  cost: number;
 };
 
 async function fetchImageBase64(url: string): Promise<{
@@ -59,7 +62,7 @@ async function reviewImagesWithVision(
   anthropic: Anthropic,
   imageUrls: string[],
   productName: string,
-): Promise<QAIssue[]> {
+): Promise<{ issues: QAIssue[]; cost: number }> {
   const imageBlocks = await Promise.all(
     imageUrls.slice(0, 5).map(async (url, index) => {
       const { mediaType, data } = await fetchImageBase64(url);
@@ -103,16 +106,19 @@ async function reviewImagesWithVision(
   });
 
   const textBlock = message.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") return [];
+  const cost = calculateClaudeCost(HAIKU_VISION_MODEL, message.usage);
+  logClaudeCost("qaImageReview", HAIKU_VISION_MODEL, cost);
+
+  if (!textBlock || textBlock.type !== "text") return { issues: [], cost };
 
   try {
     const fenced = textBlock.text.match(/```(?:json)?\s*([\s\S]*?)```/);
     const parsed = JSON.parse((fenced?.[1] ?? textBlock.text).trim()) as {
       issues?: unknown;
     };
-    return parseQAIssues(parsed.issues);
+    return { issues: parseQAIssues(parsed.issues), cost };
   } catch {
-    return [];
+    return { issues: [], cost };
   }
 }
 
@@ -121,7 +127,7 @@ async function reviewCopyStructure(
   anthropic: Anthropic,
   sections: DetailSection[],
   category: string,
-): Promise<QAIssue[]> {
+): Promise<{ issues: QAIssue[]; cost: number }> {
   const sectionSummary = sections.map((s) => ({
     slot: (s as { slot?: string }).slot,
     type: s.type,
@@ -143,7 +149,12 @@ async function reviewCopyStructure(
   "pass": true|false
 }
 
-체크: 헤드라인/본문이 2·3줄 초과로 과장, 텍스트 겹침 위험(너무 긴 문장), AIDA 흐름 단절, 빈/undefined 텍스트.
+체크:
+1. 헤드라인/본문이 2·3줄 초과로 과장, 텍스트 겹침 위험(너무 긴 문장), AIDA 흐름 단절, 빈/undefined 텍스트.
+2. **진부함/제네릭 카피**: 이 상품명·카테고리를 다른 아무 상품으로 바꿔도 문장이 그대로 말이 되면 진부한 카피입니다.
+   "최고의 품질", "당신을 위한 선택", "고객들에게 사랑받는 이유", "특별한 순간" 같은 상품 무관 문구,
+   구체적 장면·수치·사용 맥락 없이 형용사만 나열된 문장을 critical 이슈로 잡으세요(category: "copy").
+   예: "뛰어난 성능을 경험해보세요" → 진부함(critical). "충전 10분에 2시간 재생" → 구체적(문제 없음).
 
 섹션:
 ${JSON.stringify(sectionSummary, null, 2)}`,
@@ -152,16 +163,19 @@ ${JSON.stringify(sectionSummary, null, 2)}`,
   });
 
   const textBlock = message.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") return [];
+  const copyCost = calculateClaudeCost(HAIKU_VISION_MODEL, message.usage);
+  logClaudeCost("qaCopyReview", HAIKU_VISION_MODEL, copyCost);
+
+  if (!textBlock || textBlock.type !== "text") return { issues: [], cost: copyCost };
 
   try {
     const fenced = textBlock.text.match(/```(?:json)?\s*([\s\S]*?)```/);
     const parsed = JSON.parse((fenced?.[1] ?? textBlock.text).trim()) as {
       issues?: unknown;
     };
-    return parseQAIssues(parsed.issues);
+    return { issues: parseQAIssues(parsed.issues), cost: copyCost };
   } catch {
-    return [];
+    return { issues: [], cost: copyCost };
   }
 }
 
@@ -171,24 +185,30 @@ export async function runDetailPageQA(params: {
   category: string;
   productName: string;
 }): Promise<QAResult> {
+  if (isTestMode()) {
+    console.log("[qa] QA 스킵됨 (TEST_MODE)");
+    return { pass: true, issues: [], summary: "QA 스킵됨 (TEST_MODE)", cost: 0 };
+  }
+
   if (!process.env.ANTHROPIC_API_KEY) {
-    return { pass: true, issues: [], summary: "ANTHROPIC_API_KEY 없음 — QA 생략" };
+    return { pass: true, issues: [], summary: "ANTHROPIC_API_KEY 없음 — QA 생략", cost: 0 };
   }
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const [imageIssues, copyIssues] = await Promise.all([
+  const [imageResult, copyResult] = await Promise.all([
     reviewImagesWithVision(anthropic, params.imageUrls, params.productName).catch((err) => {
       console.warn("[qa] 이미지 검수 실패", err);
-      return [] as QAIssue[];
+      return { issues: [] as QAIssue[], cost: 0 };
     }),
     reviewCopyStructure(anthropic, params.sections, params.category).catch((err) => {
       console.warn("[qa] 카피 검수 실패", err);
-      return [] as QAIssue[];
+      return { issues: [] as QAIssue[], cost: 0 };
     }),
   ]);
 
-  const issues = [...imageIssues, ...copyIssues];
+  const issues = [...imageResult.issues, ...copyResult.issues];
+  const cost = imageResult.cost + copyResult.cost;
   const critical = issues.filter((i) => i.severity === "critical");
   const pass = critical.length === 0;
 
@@ -203,7 +223,7 @@ export async function runDetailPageQA(params: {
     );
   }
 
-  return { pass, issues, summary };
+  return { pass, issues, summary, cost };
 }
 
 export function buildQAFixPrompt(issues: QAIssue[]): string {

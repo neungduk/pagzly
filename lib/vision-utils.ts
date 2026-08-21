@@ -1,5 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import sharp from "sharp";
+import { calculateClaudeCost, logClaudeCost } from "@/lib/claude-cost";
+import { isTestMode } from "@/lib/test-mode";
 
 /** Haiku 4.5 — 라벨 감지·QA 등 경량 비전 작업용 */
 export const HAIKU_VISION_MODEL = "claude-haiku-4-5-20251001";
@@ -13,6 +15,9 @@ export type TextRegion = {
   kind: "label" | "logo" | "text";
 };
 
+export type ColorTemperature = "cool" | "neutral" | "warm";
+export type LightFrom = "upper-left" | "upper-right" | "left" | "right" | "top";
+
 export type ShadowAnalysis = {
   /** flux-fill-dev 프롬프트에 넣을 영문 조명 설명 */
   promptHint: string;
@@ -22,14 +27,58 @@ export type ShadowAnalysis = {
   shadowCenterY: number;
   /** 0~1, 그림자 강도 */
   shadowIntensity: number;
+  colorTemperature: ColorTemperature;
+  lightFrom: LightFrom;
 };
 
-const DEFAULT_SHADOW: ShadowAnalysis = {
-  promptHint: "soft studio lighting from upper left, natural product shadow falling gently to the lower right",
+export const DEFAULT_SHADOW: ShadowAnalysis = {
+  promptHint:
+    "neutral white studio lighting from upper left, natural product shadow falling gently to the lower right",
   shadowCenterX: 0.5,
   shadowCenterY: 0.83,
   shadowIntensity: 0.18,
+  colorTemperature: "neutral",
+  lightFrom: "upper-left",
 };
+
+function inferColorTemperature(hint: string): ColorTemperature {
+  const t = hint.toLowerCase();
+  if (/golden|amber|tungsten|warm orange|sunset|candle/.test(t)) return "warm";
+  if (/cool|daylight|cyan|5500|6500|overcast|white-neutral/.test(t)) return "cool";
+  if (/warm/.test(t) && !/warmth of skin/.test(t)) return "warm";
+  return "neutral";
+}
+
+function inferLightFrom(hint: string): LightFrom {
+  const t = hint.toLowerCase();
+  if (/upper right|top[- ]right/.test(t)) return "upper-right";
+  if (/upper left|top[- ]left/.test(t)) return "upper-left";
+  if (/\bright\b/.test(t) && /light/.test(t)) return "right";
+  if (/\bleft\b/.test(t) && /light/.test(t)) return "left";
+  if (/overhead|from above|top light/.test(t)) return "top";
+  return "upper-left";
+}
+
+/** 배경 생성·합성에 넣는 조명 잠금 문장. 상품 톤을 배경이 덮어쓰지 않게. */
+export function lightingLockPrompt(shadow: ShadowAnalysis): string {
+  const temp =
+    shadow.colorTemperature === "cool"
+      ? "cool daylight 5500-6500K, white-neutral, no golden hour, no amber bounce, no tungsten"
+      : shadow.colorTemperature === "warm"
+        ? "warm studio 3200-4000K, gentle amber bounce allowed"
+        : "neutral white 5000K studio, no warm golden cast, no orange bounce";
+  const dir =
+    shadow.lightFrom === "upper-right"
+      ? "key light from upper right, shadow falling lower left"
+      : shadow.lightFrom === "left"
+        ? "key light from camera left, shadow to the right"
+        : shadow.lightFrom === "right"
+          ? "key light from camera right, shadow to the left"
+          : shadow.lightFrom === "top"
+            ? "overhead key light, shadow falling directly below"
+            : "key light from upper left, shadow falling lower right";
+  return `LIGHTING LOCK: ${temp}. ${dir}. ${shadow.promptHint}`;
+}
 
 function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
@@ -92,9 +141,14 @@ function normalizeTextRegion(raw: unknown): TextRegion | null {
 export async function detectTextRegions(
   imageBuffer: Buffer,
   mediaType: "image/jpeg" | "image/png" = "image/jpeg",
-): Promise<TextRegion[]> {
+): Promise<{ regions: TextRegion[]; cost: number }> {
   if (!process.env.ANTHROPIC_API_KEY) {
-    return [];
+    return { regions: [], cost: 0 };
+  }
+
+  if (isTestMode()) {
+    console.log("[safeCrop] TEST_MODE — 텍스트 영역 감지(Haiku) 스킵");
+    return { regions: [], cost: 0 };
   }
 
   try {
@@ -132,30 +186,134 @@ kind는 "label" | "logo" | "text" 중 하나. 텍스트/라벨/로고가 없으�
       ],
     });
 
+    const cost = calculateClaudeCost(HAIKU_VISION_MODEL, message.usage);
+    logClaudeCost("textDetect", HAIKU_VISION_MODEL, cost);
+
     const textBlock = message.content.find((b) => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") return [];
+    if (!textBlock || textBlock.type !== "text") return { regions: [], cost };
 
     const parsed = parseJsonArray<unknown>(textBlock.text);
-    if (!parsed) return [];
+    if (!parsed) return { regions: [], cost };
 
-    return parsed
+    const regions = parsed
       .map(normalizeTextRegion)
       .filter((r): r is TextRegion => r !== null && r.xMax - r.xMin > 0.01 && r.yMax - r.yMin > 0.01);
+    return { regions, cost };
   } catch (error) {
     console.warn("[detectTextRegions] 실패, 크롭 안전 처리 생략", error);
-    return [];
+    return { regions: [], cost: 0 };
   }
 }
 
-export async function detectTextRegionsFromUrl(imageUrl: string): Promise<TextRegion[]> {
+export async function detectTextRegionsFromUrl(
+  imageUrl: string,
+): Promise<{ regions: TextRegion[]; cost: number }> {
   const { buffer, mediaType } = await fetchImageBuffer(imageUrl);
   return detectTextRegions(buffer, mediaType);
 }
 
+export type ProductBoundingBox = {
+  xMin: number;
+  yMin: number;
+  xMax: number;
+  yMax: number;
+};
+
+/**
+ * Haiku Vision으로 원본 사진에서 실제 판매 상품의 bounding box를 감지.
+ * 배경제거 재시도 시 상품 영역만 크롭해서 넘기는 용도.
+ * TEST_MODE이거나 API키 없으면 null 반환.
+ */
+export async function detectProductRegion(
+  imageBuffer: Buffer,
+  productName: string,
+  mediaType: "image/jpeg" | "image/png" = "image/jpeg",
+): Promise<{ box: ProductBoundingBox | null; cost: number }> {
+  if (!process.env.ANTHROPIC_API_KEY) return { box: null, cost: 0 };
+  if (isTestMode()) {
+    console.log("[detectProductRegion] TEST_MODE — 스킵");
+    return { box: null, cost: 0 };
+  }
+
+  try {
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const message = await anthropic.messages.create({
+      model: HAIKU_VISION_MODEL,
+      max_tokens: 300,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: mediaType,
+                data: imageBuffer.toString("base64"),
+              },
+            },
+            {
+              type: "text",
+              text: `이 사진에서 실제 판매 상품인 '${productName}'이 정확히 어디 있는지 bounding box 하나만 0~1 정규화 좌표로 반환하세요.
+강아지·사람·다른 배경 물체는 제외하고, 상품 자체의 경계만 잡아주세요.
+
+JSON만 반환:
+{ "xMin": 0.1, "yMin": 0.2, "xMax": 0.8, "yMax": 0.9 }
+
+상품이 식별되지 않으면 null`,
+            },
+          ],
+        },
+      ],
+    });
+
+    const cost = calculateClaudeCost(HAIKU_VISION_MODEL, message.usage);
+    logClaudeCost("productRegionDetect", HAIKU_VISION_MODEL, cost);
+
+    const textBlock = message.content.find((b) => b.type === "text");
+    if (!textBlock || textBlock.type !== "text") return { box: null, cost };
+
+    const raw = textBlock.text.trim();
+    if (/null/i.test(raw) && !raw.includes("{")) return { box: null, cost };
+
+    const jsonMatch = raw.match(/\{[\s\S]*?\}/);
+    if (!jsonMatch) return { box: null, cost };
+
+    const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+    const xMin = Number(parsed.xMin ?? parsed.x_min);
+    const yMin = Number(parsed.yMin ?? parsed.y_min);
+    const xMax = Number(parsed.xMax ?? parsed.x_max);
+    const yMax = Number(parsed.yMax ?? parsed.y_max);
+
+    if ([xMin, yMin, xMax, yMax].some((n) => Number.isNaN(n))) return { box: null, cost };
+    if (xMax - xMin < 0.02 || yMax - yMin < 0.02) return { box: null, cost };
+
+    const box: ProductBoundingBox = {
+      xMin: clamp01(Math.min(xMin, xMax)),
+      yMin: clamp01(Math.min(yMin, yMax)),
+      xMax: clamp01(Math.max(xMin, xMax)),
+      yMax: clamp01(Math.max(yMin, yMax)),
+    };
+
+    console.log(
+      `[detectProductRegion] '${productName}' box: [${box.xMin.toFixed(2)},${box.yMin.toFixed(2)}]→[${box.xMax.toFixed(2)},${box.yMax.toFixed(2)}]`,
+    );
+    return { box, cost };
+  } catch (error) {
+    console.warn("[detectProductRegion] 실패, 상품 영역 감지 생략", error);
+    return { box: null, cost: 0 };
+  }
+}
+
 /** 원본 상품 사진의 그림자 방향·강도를 분석해 flux 프롬프트 힌트로 변환한다. */
-export async function analyzeShadowDirection(imageBuffer: Buffer): Promise<ShadowAnalysis> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return DEFAULT_SHADOW;
+export async function analyzeShadowDirection(
+  imageBuffer: Buffer,
+): Promise<{ shadow: ShadowAnalysis; cost: number }> {
+  if (!process.env.ANTHROPIC_API_KEY || isTestMode()) {
+    if (isTestMode()) {
+      console.log("[shadow] TEST_MODE — 그림자 분석(Haiku) 스킵, 기본 조명 사용");
+    }
+    return { shadow: DEFAULT_SHADOW, cost: 0 };
   }
 
   try {
@@ -177,37 +335,67 @@ export async function analyzeShadowDirection(imageBuffer: Buffer): Promise<Shado
             },
             {
               type: "text",
-              text: `상품 사진의 그림자·조명 방향을 분석하세요. JSON만 반환:
+              text: `상품 사진의 그림자·조명 방향과 색온도를 분석하세요. JSON만 반환:
 
 {
-  "promptHint": "영문 한 문장 — 예: soft studio lighting from upper left, gentle shadow to lower right",
+  "promptHint": "영문 한 문장 — 색온도와 방향을 구체적으로. 예: cool neutral daylight from upper left, crisp shadow to lower right",
   "shadowCenterX": 0.5,
   "shadowCenterY": 0.83,
-  "shadowIntensity": 0.18
+  "shadowIntensity": 0.18,
+  "colorTemperature": "cool" | "neutral" | "warm",
+  "lightFrom": "upper-left" | "upper-right" | "left" | "right" | "top"
 }
 
-shadowCenterX/Y는 그림자가 떨어지는 위치(0~1). shadowIntensity는 0.08~0.28.`,
+중립 흰 조명인데 골든아워로 쓰지 마세요. shadowCenterX/Y는 그림자가 떨어지는 위치(0~1). shadowIntensity는 0.08~0.28.`,
             },
           ],
         },
       ],
     });
 
+    const cost = calculateClaudeCost(HAIKU_VISION_MODEL, message.usage);
+    logClaudeCost("shadowAnalysis", HAIKU_VISION_MODEL, cost);
+
     const textBlock = message.content.find((b) => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") return DEFAULT_SHADOW;
+    if (!textBlock || textBlock.type !== "text") {
+      return { shadow: DEFAULT_SHADOW, cost };
+    }
 
     const fenced = textBlock.text.match(/```(?:json)?\s*([\s\S]*?)```/);
     const raw = (fenced?.[1] ?? textBlock.text).trim();
-    const parsed = JSON.parse(raw) as Partial<ShadowAnalysis>;
+    const parsed = JSON.parse(raw) as Partial<ShadowAnalysis> & {
+      colorTemperature?: string;
+      lightFrom?: string;
+    };
+    const promptHint = parsed.promptHint ?? DEFAULT_SHADOW.promptHint;
+    const colorTemperature: ColorTemperature =
+      parsed.colorTemperature === "cool" ||
+      parsed.colorTemperature === "neutral" ||
+      parsed.colorTemperature === "warm"
+        ? parsed.colorTemperature
+        : inferColorTemperature(promptHint);
+    const lightFrom: LightFrom =
+      parsed.lightFrom === "upper-left" ||
+      parsed.lightFrom === "upper-right" ||
+      parsed.lightFrom === "left" ||
+      parsed.lightFrom === "right" ||
+      parsed.lightFrom === "top"
+        ? parsed.lightFrom
+        : inferLightFrom(promptHint);
     return {
-      promptHint: parsed.promptHint ?? DEFAULT_SHADOW.promptHint,
-      shadowCenterX: clamp01(Number(parsed.shadowCenterX) || DEFAULT_SHADOW.shadowCenterX),
-      shadowCenterY: clamp01(Number(parsed.shadowCenterY) || DEFAULT_SHADOW.shadowCenterY),
-      shadowIntensity: clamp01(Number(parsed.shadowIntensity) || DEFAULT_SHADOW.shadowIntensity),
+      shadow: {
+        promptHint,
+        shadowCenterX: clamp01(Number(parsed.shadowCenterX) || DEFAULT_SHADOW.shadowCenterX),
+        shadowCenterY: clamp01(Number(parsed.shadowCenterY) || DEFAULT_SHADOW.shadowCenterY),
+        shadowIntensity: clamp01(Number(parsed.shadowIntensity) || DEFAULT_SHADOW.shadowIntensity),
+        colorTemperature,
+        lightFrom,
+      },
+      cost,
     };
   } catch (error) {
     console.warn("[analyzeShadowDirection] 실패, 기본 조명 사용", error);
-    return DEFAULT_SHADOW;
+    return { shadow: DEFAULT_SHADOW, cost: 0 };
   }
 }
 

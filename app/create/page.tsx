@@ -1,6 +1,6 @@
-import { redirect } from "next/navigation";
-import CreateProductForm from "@/components/CreateProductForm";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
+import CreateProductForm from "@/components/CreateProductForm";
 
 export default async function CreatePage() {
   const supabase = await createClient();
@@ -9,8 +9,12 @@ export default async function CreatePage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    return null;
   }
 
-  return <CreateProductForm userId={user.id} />;
+  return (
+    <Suspense fallback={<div className="p-10 text-sm text-ink/50">불러오는 중…</div>}>
+      <CreateProductForm userId={user.id} />
+    </Suspense>
+  );
 }

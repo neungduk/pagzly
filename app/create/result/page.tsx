@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import DetailSectionRenderer from "@/components/DetailSectionRenderer";
+import { freezeScrollRevealAnimations } from "@/components/DetailScrollReveal";
 import DetailActionBar, { type DetailToolTab } from "@/components/DetailActionBar";
-import PagzlyLogo from "@/components/PagzlyLogo";
 import ToastBanner from "@/components/ToastBanner";
-import { SESSION_KEY } from "@/components/CreateProductForm";
+import { DRAFT_SESSION_KEY, SESSION_KEY } from "@/components/CreateProductForm";
 import type { DetailSection, GenerateResponse } from "@/lib/types/generate";
 import { getCategoryTheme } from "@/lib/category-theme";
 import { validateImageFile } from "@/lib/image-upload";
@@ -27,11 +27,69 @@ type ProductResult = {
   competitorUrl: string | null;
   wholesaleUrl: string | null;
   createdAt: string;
+  testMode?: boolean;
   generated?: GenerateResponse;
 };
 
-export default function CreateResultPage() {
+type ProductRow = {
+  id: string;
+  category: string;
+  product_name: string;
+  brand_name: string | null;
+  price: number | string;
+  target_customer: string | null;
+  key_features: string | null;
+  ingredients: string | null;
+  certifications: string | null;
+  competitor_url: string | null;
+  wholesale_url: string | null;
+  image_urls: string[] | null;
+  headlines: string[] | null;
+  description: string | null;
+  features: string[] | null;
+  how_to_use: string | null;
+  caution: string | null;
+  mfds_reviewed: boolean | null;
+  replacements: GenerateResponse["replacements"];
+  sections: DetailSection[] | null;
+  created_at: string;
+};
+
+function mapProductRow(row: ProductRow): ProductResult {
+  const generated: GenerateResponse = {
+    sections: row.sections ?? [],
+    headlines: row.headlines ?? [],
+    description: row.description ?? "",
+    features: row.features ?? [],
+    howToUse: row.how_to_use ?? "",
+    caution: row.caution ?? "",
+    imageAnalysis: "",
+    productId: row.id,
+    mfdsReviewed: row.mfds_reviewed ?? false,
+    replacements: row.replacements ?? [],
+    imageUrls: row.image_urls ?? [],
+  };
+
+  return {
+    category: row.category,
+    imageUrls: row.image_urls ?? [],
+    productName: row.product_name,
+    brandName: row.brand_name,
+    price: Number(row.price),
+    targetCustomer: row.target_customer,
+    keyFeatures: row.key_features,
+    ingredients: row.ingredients,
+    certifications: row.certifications,
+    competitorUrl: row.competitor_url,
+    wholesaleUrl: row.wholesale_url,
+    createdAt: row.created_at,
+    generated,
+  };
+}
+
+function CreateResultContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const captureRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [data, setData] = useState<ProductResult | null>(null);
@@ -45,31 +103,101 @@ export default function CreateResultPage() {
   );
   const [aiText, setAiText] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const [downloadPlatform, setDownloadPlatform] = useState<"smartstore" | "coupang">(
+    "smartstore",
+  );
 
   useEffect(() => {
-    const raw = sessionStorage.getItem(SESSION_KEY);
-    if (!raw) {
-      router.replace("/create");
-      return;
-    }
+    let cancelled = false;
 
-    try {
-      const parsed = JSON.parse(raw) as ProductResult;
-      setData(parsed);
-      setAiText(parsed.wholesaleUrl ?? "");
+    async function load() {
+      const id = searchParams.get("id");
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      const draftRaw = sessionStorage.getItem(DRAFT_SESSION_KEY);
 
-      if (parsed.generated?.sections) {
-        console.log("[create/result] sections count:", parsed.generated.sections.length);
-        console.log(
-          "[create/result] section types:",
-          parsed.generated.sections.map((s) => s.type),
-        );
-        console.log("[create/result] sections:", parsed.generated.sections);
+      // 미승인 draft 세션이면 draft로 되돌림
+      if (!id && raw) {
+        try {
+          const parsed = JSON.parse(raw) as ProductResult & { draftApproved?: boolean };
+          if (parsed.draftApproved === false) {
+            router.replace("/create/draft");
+            return;
+          }
+        } catch {
+          /* fall through */
+        }
       }
-    } catch {
+      if (!id && draftRaw && !raw) {
+        router.replace("/create/draft");
+        return;
+      }
+
+      if (id) {
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw) as ProductResult;
+            if (parsed.generated?.productId === id) {
+              if (!cancelled) {
+                setData(parsed);
+                setAiText(parsed.wholesaleUrl ?? "");
+              }
+              return;
+            }
+          } catch {
+            sessionStorage.removeItem(SESSION_KEY);
+          }
+        }
+
+        const supabase = createClient();
+        const { data: row, error } = await supabase
+          .from("products")
+          .select(
+            "id, category, product_name, brand_name, price, target_customer, key_features, ingredients, certifications, competitor_url, wholesale_url, image_urls, headlines, description, features, how_to_use, caution, mfds_reviewed, replacements, sections, created_at",
+          )
+          .eq("id", id)
+          .single();
+
+        if (cancelled) return;
+
+        if (error || !row) {
+          console.warn("[create/result] DB load failed", error);
+          if (draftRaw) {
+            router.replace("/create/draft");
+          } else {
+            router.replace("/create");
+          }
+          return;
+        }
+
+        const mapped = mapProductRow(row as ProductRow);
+        setData(mapped);
+        setAiText(mapped.wholesaleUrl ?? "");
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(mapped));
+        return;
+      }
+
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw) as ProductResult;
+          if (!cancelled) {
+            setData(parsed);
+            setAiText(parsed.wholesaleUrl ?? "");
+          }
+          return;
+        } catch {
+          sessionStorage.removeItem(SESSION_KEY);
+        }
+      }
+
       router.replace("/create");
     }
-  }, [router]);
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router, searchParams]);
 
   function persist(next: ProductResult) {
     setData(next);
@@ -197,12 +325,18 @@ export default function CreateResultPage() {
 
     setDownloading(true);
     try {
+      freezeScrollRevealAnimations(captureRef.current);
+      await new Promise((r) => setTimeout(r, 80));
+      const targetWidth = downloadPlatform === "coupang" ? 780 : 860;
+      const elWidth = Math.max(1, captureRef.current.offsetWidth);
+      const pixelRatio = targetWidth / elWidth;
       const dataUrl = await toPng(captureRef.current, {
-        pixelRatio: 2,
+        pixelRatio,
         cacheBust: true,
       });
+      const platformLabel = downloadPlatform === "coupang" ? "쿠팡" : "스마트스토어";
       const link = document.createElement("a");
-      link.download = `${data.productName}-상세페이지.png`;
+      link.download = `${data.productName}-상세페이지-${platformLabel}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -221,6 +355,7 @@ export default function CreateResultPage() {
   }
 
   const { generated } = data;
+  const isTestMode = data.testMode ?? generated?.testMode ?? false;
   const categoryTheme = getCategoryTheme(data.category);
   const theme = generated?.theme
     ? { ...categoryTheme, ...generated.theme }
@@ -230,26 +365,17 @@ export default function CreateResultPage() {
     <div className="min-h-full bg-paper text-ink">
       <div className="absolute inset-0 -z-10 bg-gradient-to-b from-line/40 to-paper" />
 
-      <header className="border-b border-line bg-paper/80 backdrop-blur-md">
-        <nav className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-          <Link href="/">
-            <PagzlyLogo className="h-8 w-auto" />
-          </Link>
-          <Link
-            href="/create"
-            className="text-sm font-medium text-ink/60 hover:text-ink"
-          >
-            다시 입력
-          </Link>
-        </nav>
-      </header>
-
       <main className="mx-auto max-w-3xl space-y-6 px-6 py-10 pb-16">
         <div className="rounded-2xl border border-line bg-paper p-6 shadow-sm sm:p-8">
           <div className="flex flex-wrap items-center gap-3">
             <p className="font-mono text-xs uppercase tracking-[0.2em] text-registration-red">
               생성 완료
             </p>
+            {isTestMode && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-mustard/40 bg-mustard/15 px-3 py-1 text-xs font-semibold text-ink/70">
+                TEST MODE — 저비용 테스트 결과
+              </span>
+            )}
             {generated?.mfdsReviewed && (
               <span className="inline-flex items-center gap-1 rounded-full bg-slate-blue/10 px-3 py-1 text-xs font-semibold text-slate-blue">
                 ✅ 식약처 광고 기준 검수 완료
@@ -262,6 +388,8 @@ export default function CreateResultPage() {
           <p className="mt-2 text-sm text-ink/60">
             AI가 상품 특성에 맞춰 {generated?.sections.length ?? 0}개 섹션으로
             상세페이지를 구성했습니다.
+            {isTestMode &&
+              " 테스트 모드로 생성되어 clarity-upscaler·장식·QA 등 일부 단계가 생략되었습니다. 합성(누끼·배경) 품질 확인은 TEST_MODE=false 실행 결과로만 판단하세요."}
             {generated?.mfdsReviewed &&
               " 화장품/뷰티 카테고리 식약처 광고 기준이 적용되었습니다."}
           </p>
@@ -331,19 +459,49 @@ export default function CreateResultPage() {
           </div>
 
           {generated?.sections && generated.sections.length > 0 && (
-            <button
-              type="button"
-              onClick={handleDownload}
-              disabled={downloading}
-              className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-registration-red px-5 text-sm font-semibold text-paper transition-colors hover:bg-registration-red/85 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {downloading ? "다운로드 준비 중..." : "이미지로 다운로드"}
-            </button>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <div className="inline-flex rounded-lg border border-line bg-paper p-1">
+                <button
+                  type="button"
+                  onClick={() => setDownloadPlatform("smartstore")}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    downloadPlatform === "smartstore"
+                      ? "bg-ink text-paper"
+                      : "text-ink/60 hover:text-ink"
+                  }`}
+                >
+                  스마트스토어 860px
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDownloadPlatform("coupang")}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    downloadPlatform === "coupang"
+                      ? "bg-ink text-paper"
+                      : "text-ink/60 hover:text-ink"
+                  }`}
+                >
+                  쿠팡 780px
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={downloading}
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-registration-red px-5 text-sm font-semibold text-paper transition-colors hover:bg-registration-red/85 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {downloading ? "다운로드 준비 중..." : "이미지로 다운로드"}
+              </button>
+            </div>
           )}
         </div>
 
         {generated?.sections && generated.sections.length > 0 ? (
-          <div ref={captureRef} className="overflow-hidden rounded-2xl border border-line bg-paper">
+          <div
+            ref={captureRef}
+            data-testid="detail-preview"
+            className="overflow-hidden rounded-2xl border border-line bg-paper"
+          >
             <DetailSectionRenderer
               sections={generated.sections}
               imageUrls={data.imageUrls}
@@ -360,6 +518,10 @@ export default function CreateResultPage() {
                 },
               }}
             />
+            <p className="border-t border-line bg-line/10 px-6 py-3 text-center text-[11px] text-ink/45">
+              이 상세페이지는 AI가 자동 생성한 콘텐츠를 포함합니다. 게시 전 실제 상품 정보와 대조
+              확인해 주세요.
+            </p>
           </div>
         ) : (
           <div className="rounded-2xl border border-line bg-paper p-6 text-sm text-ink/60 shadow-sm">
@@ -373,6 +535,12 @@ export default function CreateResultPage() {
             className="inline-flex h-12 flex-1 items-center justify-center rounded-xl border border-line text-sm font-semibold text-ink/80 transition-colors hover:bg-line/20"
           >
             정보 수정
+          </Link>
+          <Link
+            href="/create/history"
+            className="inline-flex h-12 flex-1 items-center justify-center rounded-xl border border-line text-sm font-semibold text-ink/80 transition-colors hover:bg-line/20"
+          >
+            작업 내역
           </Link>
           <Link
             href="/"
@@ -399,5 +567,19 @@ function InfoItem({ label, value }: { label: string; value: string }) {
       <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-ink/45">{label}</p>
       <p className="mt-0.5 font-medium text-ink">{value}</p>
     </div>
+  );
+}
+
+export default function CreateResultPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-full items-center justify-center bg-paper text-ink/60">
+          불러오는 중...
+        </div>
+      }
+    >
+      <CreateResultContent />
+    </Suspense>
   );
 }

@@ -1,13 +1,12 @@
-"use client";
+﻿"use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState } from "react";
-import PagzlyLogo from "@/components/PagzlyLogo";
-import GeneratingOverlay, { type GeneratingStage } from "@/components/GeneratingOverlay";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import GeneratingOverlay, { type GeneratingStage, SNAP_HOLD_MS } from "@/components/GeneratingOverlay";
 import { createClient } from "@/lib/supabase";
-import { getCategoryTheme } from "@/lib/category-theme";
-import type { GeneratedCopy, GenerateResponse } from "@/lib/types/generate";
+import { countSlotSections, type SlotLength } from "@/lib/section-templates";
+import type { DraftGenerateResponse } from "@/lib/types/generate";
+import type { UploadedImage } from "@/lib/photo-pipeline-client";
 
 const CATEGORIES = [
   "의류/패션",
@@ -27,17 +26,58 @@ const TARGET_CUSTOMERS = [
 ] as const;
 
 const MAX_IMAGES = 5;
+const MAX_REVIEW_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png"];
+const REVIEW_TYPES = [
+  "text/plain",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+];
+const PLANNING_TYPES = [
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
 const STORAGE_BUCKET = "images";
 const SESSION_KEY = "pagzly-create-result";
+/** 기획 초안(draft) — payload + sections */
+export const DRAFT_SESSION_KEY = "pagzly-create-draft";
+
+export type DraftSessionPayload = {
+  payload: Record<string, unknown>;
+  draftToken: string;
+  sections: DraftGenerateResponse["sections"];
+  headlines: string[];
+  description: string;
+  features: string[];
+  howToUse: string;
+  caution: string;
+  imageAnalysis?: string;
+  theme?: DraftGenerateResponse["theme"];
+  mfdsReviewed?: boolean;
+  replacements?: DraftGenerateResponse["replacements"];
+  photoCostBreakdown?: DraftGenerateResponse["photoCostBreakdown"];
+  referenceAnalysis?: DraftGenerateResponse["referenceAnalysis"];
+  reviewInsights?: DraftGenerateResponse["reviewInsights"];
+  planningDocText?: DraftGenerateResponse["planningDocText"];
+  /** false면 원본 이미지로 카피만 뽑은 상태 — 승인 전 */
+  draftApproved: boolean;
+  formSnapshot: {
+    category: string;
+    compositionLength: SlotLength;
+    productName: string;
+    brandName: string;
+    price: string;
+    targetCustomer: string;
+    keyFeatures: string;
+    ingredients: string;
+    certifications: string;
+    competitorUrl: string;
+    wholesaleUrl: string;
+  };
+};
 
 type CreateProductFormProps = {
   userId: string;
-};
-
-type UploadedImage = {
-  url: string;
-  path: string;
 };
 
 type LoadingStage = "idle" | GeneratingStage;
@@ -51,11 +91,15 @@ function validateImage(file: File): string | null {
 
 export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [category, setCategory] = useState("");
+  const [compositionLength, setCompositionLength] = useState<SlotLength>("long");
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  /** draft 수정 복귀 시 — 이미 업로드된 URL (새 File 없이 재제출 가능) */
+  const [restoredUploads, setRestoredUploads] = useState<UploadedImage[] | null>(null);
   const [productName, setProductName] = useState("");
   const [brandName, setBrandName] = useState("");
   const [price, setPrice] = useState("");
@@ -65,10 +109,61 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const [certifications, setCertifications] = useState("");
   const [competitorUrl, setCompetitorUrl] = useState("");
   const [wholesaleUrl, setWholesaleUrl] = useState("");
+  const [referenceImage, setReferenceImage] = useState<File | null>(null);
+  const [referencePreview, setReferencePreview] = useState<string | null>(null);
+  const [reviewFile, setReviewFile] = useState<File | null>(null);
+  const [planningDoc, setPlanningDoc] = useState<File | null>(null);
+  const [customGif, setCustomGif] = useState<File | null>(null);
+  const [customGifPreview, setCustomGifPreview] = useState<string | null>(null);
+  const referenceInputRef = useRef<HTMLInputElement>(null);
+  const reviewInputRef = useRef<HTMLInputElement>(null);
+  const planningInputRef = useRef<HTMLInputElement>(null);
+  const customGifInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingStage, setLoadingStage] = useState<LoadingStage>("idle");
+  const [overlaySnapComplete, setOverlaySnapComplete] = useState(false);
   const loading = loadingStage !== "idle";
+
+  const sectionCountHint = useMemo(() => {
+    if (!category) return null;
+    return countSlotSections(category, compositionLength);
+  }, [category, compositionLength]);
+
+  useEffect(() => {
+    if (searchParams.get("restore") !== "1") return;
+    try {
+      const raw = sessionStorage.getItem(DRAFT_SESSION_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw) as DraftSessionPayload;
+      const snap = draft.formSnapshot;
+      if (!snap) return;
+      setCategory(snap.category ?? "");
+      setCompositionLength(snap.compositionLength === "short" ? "short" : "long");
+      setProductName(snap.productName ?? "");
+      setBrandName(snap.brandName ?? "");
+      setPrice(snap.price ?? "");
+      setTargetCustomer(snap.targetCustomer ?? "");
+      setKeyFeatures(snap.keyFeatures ?? "");
+      setIngredients(snap.ingredients ?? "");
+      setCertifications(snap.certifications ?? "");
+      setCompetitorUrl(snap.competitorUrl ?? "");
+      setWholesaleUrl(snap.wholesaleUrl ?? "");
+      const urls = (draft.payload.imageUrls as string[] | undefined) ?? [];
+      const paths = (draft.payload.imagePaths as string[] | undefined) ?? [];
+      if (urls.length > 0) {
+        setPreviews(urls);
+        setRestoredUploads(
+          urls.map((url, i) => ({
+            url,
+            path: paths[i] ?? `restored/${i}`,
+          })),
+        );
+      }
+    } catch {
+      // ignore corrupt draft
+    }
+  }, [searchParams]);
 
   const addImages = useCallback(
     (files: FileList | File[]) => {
@@ -80,6 +175,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         setError(`상품 사진은 최대 ${MAX_IMAGES}장까지 업로드할 수 있습니다.`);
         return;
       }
+
+      setRestoredUploads(null);
 
       const nextFiles: File[] = [];
       const nextPreviews: string[] = [];
@@ -153,141 +250,77 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     return uploaded;
   }
 
-  async function generateBackdrop(
-    productCategory: string,
-    name: string,
-    brand: string | null,
-    imageUrls: string[],
-    formPrice: string,
-    formKeyFeatures: string,
-    formIngredients: string,
-    formTargetCustomer: string,
-  ): Promise<{
-    backdropDataUrl: string;
-    cost: number;
-    conceptBriefCost: number;
-    backdropCost: number;
-    shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis;
-    conceptBrief?: import("@/lib/concept-brief").ConceptBrief;
-  } | null> {
-    try {
-      const response = await fetch("/api/generate-backdrop", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          category: productCategory,
-          productName: name,
-          brandName: brand,
-          imageUrls,
-          price: Number(formPrice) || undefined,
-          keyFeatures: formKeyFeatures.trim() || null,
-          ingredients: formIngredients.trim() || null,
-          targetCustomer: formTargetCustomer.trim() || null,
-        }),
-      });
+  async function uploadAuxFile(file: File, prefix: string): Promise<string> {
+    const supabase = createClient();
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
+    const path = `${userId}/aux/${prefix}-${Date.now()}-${crypto.randomUUID()}.${ext}`;
 
-      const result = (await response.json()) as {
-        backdropDataUrl?: string;
-        cost?: number;
-        conceptBriefCost?: number;
-        backdropCost?: number;
-        shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis;
-        conceptBrief?: import("@/lib/concept-brief").ConceptBrief;
-        error?: string;
-      };
+    const { error: uploadError } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(path, file, { contentType: file.type || undefined, upsert: false });
 
-      if (!response.ok || !result.backdropDataUrl) {
-        console.warn(
-          "[generate-backdrop] 배경 생성 실패, 원본 이미지 사용:",
-          result.error ?? "unknown",
-        );
-        return null;
-      }
-
-      return {
-        backdropDataUrl: result.backdropDataUrl,
-        cost: result.cost ?? 0,
-        conceptBriefCost: result.conceptBriefCost ?? 0,
-        backdropCost: result.backdropCost ?? result.cost ?? 0,
-        shadowAnalysis: result.shadowAnalysis,
-        conceptBrief: result.conceptBrief,
-      };
-    } catch (err) {
-      console.warn("[generate-backdrop] 배경 생성 실패, 원본 이미지 사용:", err);
-      return null;
+    if (uploadError) {
+      throw new Error(`파일 업로드 실패: ${uploadError.message}`);
     }
+
+    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+    return data.publicUrl;
   }
 
-  async function enhanceImages(
-    uploaded: UploadedImage[],
-    backdropDataUrl: string,
-    shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis,
-    conceptBrief?: import("@/lib/concept-brief").ConceptBrief,
-    productCategory?: string,
-  ): Promise<{ images: UploadedImage[]; cost: number; decorCost: number }> {
-    let totalCost = 0;
-    let decorCost = 0;
-    let decorDataUrl: string | undefined;
-    const categoryTheme = productCategory ? getCategoryTheme(productCategory) : null;
-    const themeColors = categoryTheme
-      ? {
-          accent: categoryTheme.accent,
-          baseNeutral: categoryTheme.baseNeutral,
-          deepAccent: categoryTheme.deepAccent,
-        }
-      : undefined;
-
-    const results: UploadedImage[] = [];
-    for (let index = 0; index < uploaded.length; index++) {
-      const item = uploaded[index];
-      const isHero = index === 0;
-      try {
-        const response = await fetch("/api/enhance-image", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            imageUrl: item.url,
-            storagePath: item.path,
-            backdropDataUrl,
-            shadowAnalysis,
-            conceptBrief,
-            applyDecor: isHero,
-            decorDataUrl: isHero ? undefined : decorDataUrl,
-            theme: themeColors,
-          }),
-        });
-
-        const result = (await response.json()) as {
-          enhancedUrl?: string;
-          enhancedPath?: string;
-          cost?: number;
-          decorCost?: number;
-          decorDataUrl?: string;
-          error?: string;
-        };
-
-        if (!response.ok || !result.enhancedUrl || !result.enhancedPath) {
-          console.warn(
-            "[enhance-image] 보정 실패, 원본 사용:",
-            result.error ?? item.path,
-          );
-          results.push(item);
-          continue;
-        }
-
-        totalCost += result.cost ?? 0;
-        decorCost += result.decorCost ?? 0;
-        if (result.decorDataUrl) {
-          decorDataUrl = result.decorDataUrl;
-        }
-        results.push({ url: result.enhancedUrl, path: result.enhancedPath });
-      } catch (err) {
-        console.warn("[enhance-image] 보정 실패, 원본 사용:", item.path, err);
-        results.push(item);
-      }
+  function handleReferenceImage(file: File | null) {
+    if (!file) return;
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setError("레퍼런스 이미지는 JPG, PNG만 업로드할 수 있습니다.");
+      return;
     }
+    if (referencePreview) URL.revokeObjectURL(referencePreview);
+    setError(null);
+    setReferenceImage(file);
+    setReferencePreview(URL.createObjectURL(file));
+  }
 
-    return { images: results, cost: totalCost, decorCost };
+  function handleReviewFile(file: File | null) {
+    if (!file) return;
+    const lower = file.name.toLowerCase();
+    const okExt = lower.endsWith(".txt") || lower.endsWith(".xlsx") || lower.endsWith(".xls");
+    if (!okExt && !REVIEW_TYPES.includes(file.type)) {
+      setError("리뷰 파일은 txt 또는 xlsx만 업로드할 수 있습니다.");
+      return;
+    }
+    if (file.size > MAX_REVIEW_BYTES) {
+      setError("리뷰 파일은 2MB 이하만 업로드할 수 있습니다.");
+      return;
+    }
+    setError(null);
+    setReviewFile(file);
+  }
+
+  function handleCustomGif(file: File | null) {
+    if (!file) return;
+    if (file.type !== "image/gif") {
+      setError("GIF 파일(.gif)만 업로드할 수 있습니다.");
+      return;
+    }
+    if (customGifPreview) URL.revokeObjectURL(customGifPreview);
+    setError(null);
+    setCustomGif(file);
+    setCustomGifPreview(URL.createObjectURL(file));
+  }
+
+  function handlePlanningDoc(file: File | null) {
+    if (!file) return;
+    const lower = file.name.toLowerCase();
+    if (lower.endsWith(".hwp") || lower.endsWith(".pptx") || lower.endsWith(".ppt")) {
+      setError("HWP·PPTX는 아직 지원하지 않습니다. PDF 또는 DOCX를 사용해 주세요.");
+      return;
+    }
+    const okExt = lower.endsWith(".pdf") || lower.endsWith(".docx");
+    if (!okExt && !PLANNING_TYPES.includes(file.type)) {
+      setError("기획안은 PDF 또는 DOCX만 업로드할 수 있습니다.");
+      return;
+    }
+    setError(null);
+    setPlanningDoc(file);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -298,7 +331,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       setError("카테고리를 선택해 주세요.");
       return;
     }
-    if (images.length === 0) {
+    if (images.length === 0 && !restoredUploads?.length) {
       setError("상품 사진을 1장 이상 업로드해 주세요.");
       return;
     }
@@ -312,56 +345,38 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     }
 
     setLoadingStage("uploading");
+    setOverlaySnapComplete(false);
 
     try {
-      const uploaded = await uploadImages(images);
+      const uploaded =
+        images.length > 0 ? await uploadImages(images) : (restoredUploads as UploadedImage[]);
 
-      let photoProcessingCost = 0;
-      let conceptBrief: import("@/lib/concept-brief").ConceptBrief | undefined;
-      let photoCostBreakdown: import("@/lib/types/generate").PhotoCostBreakdown = {};
+      let referenceImageUrl: string | null = null;
+      let reviewFileUrl: string | null = null;
+      let planningDocUrl: string | null = null;
+      let customGifUrl: string | null = null;
 
-      setLoadingStage("backdrop");
-      const backdropResult = await generateBackdrop(
-        category,
-        productName.trim(),
-        brandName.trim() || null,
-        uploaded.map((item) => item.url),
-        price,
-        keyFeatures,
-        ingredients,
-        targetCustomer,
-      );
-
-      let finalImages = uploaded;
-      if (backdropResult) {
-        photoProcessingCost += backdropResult.cost;
-        conceptBrief = backdropResult.conceptBrief;
-        photoCostBreakdown = {
-          conceptBrief: backdropResult.conceptBriefCost,
-          backdrop: backdropResult.backdropCost,
-        };
-        setLoadingStage("enhancing");
-        const enhanced = await enhanceImages(
-          uploaded,
-          backdropResult.backdropDataUrl,
-          backdropResult.shadowAnalysis,
-          conceptBrief,
-          category,
-        );
-        finalImages = enhanced.images;
-        photoProcessingCost += enhanced.cost;
-        photoCostBreakdown = {
-          ...photoCostBreakdown,
-          enhance: enhanced.cost - enhanced.decorCost,
-          decor: enhanced.decorCost,
-        };
+      if (referenceImage) {
+        referenceImageUrl = await uploadAuxFile(referenceImage, "reference");
+      }
+      if (reviewFile) {
+        reviewFileUrl = await uploadAuxFile(reviewFile, "review");
+      }
+      if (planningDoc) {
+        planningDocUrl = await uploadAuxFile(planningDoc, "planning");
+      }
+      if (customGif) {
+        customGifUrl = await uploadAuxFile(customGif, "custom-gif");
       }
 
-      const imageUrls = finalImages.map((item) => item.url);
-      const imagePaths = finalImages.map((item) => item.path);
+      // 승인 전: 원본 업로드만으로 카피 draft 생성 (배경/보정 비용 스킵)
+      const imageUrls = uploaded.map((item) => item.url);
+      const imagePaths = uploaded.map((item) => item.path);
 
       const payload = {
         category,
+        length: compositionLength,
+        mode: "draft" as const,
         imageUrls,
         imagePaths,
         productName: productName.trim(),
@@ -373,23 +388,22 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         certifications: certifications.trim() || null,
         competitorUrl: competitorUrl.trim() || null,
         wholesaleUrl: wholesaleUrl.trim() || null,
+        referenceImageUrl,
+        reviewFileUrl,
+        planningDocUrl,
+        customGifUrl,
+        referenceAnalysis: null,
         createdAt: new Date().toISOString(),
-        photoProcessingCost,
-        conceptBrief,
-        photoCostBreakdown,
+        photoProcessingCost: 0,
+        photoCostBreakdown: {},
+        testMode: false,
+        imageCacheKey: images
+          .map((file) => `${file.name}:${file.size}`)
+          .sort()
+          .join("|"),
       };
 
       setLoadingStage("generating");
-
-      console.log("[generate payload wholesale]", {
-        rawLength: wholesaleUrl.length,
-        trimmedLength: wholesaleUrl.trim().length,
-        sent:
-          payload.wholesaleUrl === null
-            ? "null (empty)"
-            : `string(${String(payload.wholesaleUrl).length})`,
-        preview: (payload.wholesaleUrl ?? "").slice(0, 120),
-      });
 
       const generateResponse = await fetch("/api/generate", {
         method: "POST",
@@ -403,15 +417,79 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         throw new Error(generateResult.error ?? "AI 생성에 실패했습니다.");
       }
 
+      setOverlaySnapComplete(true);
+      await new Promise((r) => setTimeout(r, SNAP_HOLD_MS));
+
+      const draftResult = generateResult as DraftGenerateResponse;
+      const draftSession: DraftSessionPayload = {
+        payload: {
+          ...payload,
+          imageUrls: draftResult.imageUrls ?? payload.imageUrls,
+          photoCostBreakdown: draftResult.photoCostBreakdown ?? payload.photoCostBreakdown,
+          referenceAnalysis: draftResult.referenceAnalysis ?? null,
+          reviewInsights: draftResult.reviewInsights ?? null,
+          planningDocText: draftResult.planningDocText ?? null,
+        },
+        draftToken: draftResult.draftToken,
+        sections: draftResult.sections,
+        headlines: draftResult.headlines ?? [],
+        description: draftResult.description ?? "",
+        features: draftResult.features ?? [],
+        howToUse: draftResult.howToUse ?? "",
+        caution: draftResult.caution ?? "",
+        imageAnalysis: draftResult.imageAnalysis,
+        theme: draftResult.theme,
+        mfdsReviewed: draftResult.mfdsReviewed,
+        replacements: draftResult.replacements,
+        photoCostBreakdown: draftResult.photoCostBreakdown,
+        referenceAnalysis: draftResult.referenceAnalysis,
+        reviewInsights: draftResult.reviewInsights,
+        planningDocText: draftResult.planningDocText,
+        draftApproved: false,
+        formSnapshot: {
+          category,
+          compositionLength,
+          productName: productName.trim(),
+          brandName: brandName.trim(),
+          price,
+          targetCustomer,
+          keyFeatures: keyFeatures.trim(),
+          ingredients: ingredients.trim(),
+          certifications: certifications.trim(),
+          competitorUrl: competitorUrl.trim(),
+          wholesaleUrl: wholesaleUrl.trim(),
+        },
+      };
+      sessionStorage.setItem(DRAFT_SESSION_KEY, JSON.stringify(draftSession));
+      // result 리다이렉트용 — 미승인 세션 표시
       sessionStorage.setItem(
         SESSION_KEY,
         JSON.stringify({
           ...payload,
-          generated: generateResult as GenerateResponse,
+          imageUrls,
+          generated: {
+            sections: draftResult.sections,
+            headlines: draftResult.headlines ?? [],
+            description: draftResult.description ?? "",
+            features: draftResult.features ?? [],
+            howToUse: draftResult.howToUse ?? "",
+            caution: draftResult.caution ?? "",
+            imageAnalysis: draftResult.imageAnalysis,
+            theme: draftResult.theme,
+            mfdsReviewed: draftResult.mfdsReviewed,
+            replacements: draftResult.replacements,
+            photoCostBreakdown: draftResult.photoCostBreakdown,
+            referenceAnalysis: draftResult.referenceAnalysis,
+            reviewInsights: draftResult.reviewInsights,
+            planningDocText: draftResult.planningDocText,
+            draftToken: draftResult.draftToken,
+          },
+          draftApproved: false,
         }),
       );
-      router.push("/create/result");
+      router.push("/create/draft");
     } catch (err) {
+      setOverlaySnapComplete(false);
       setError(err instanceof Error ? err.message : "제출 중 오류가 발생했습니다.");
       setLoadingStage("idle");
     }
@@ -420,13 +498,9 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const loadingLabel =
     loadingStage === "uploading"
       ? "사진 업로드 중..."
-      : loadingStage === "backdrop"
-        ? "배경 디자인 생성 중..."
-        : loadingStage === "enhancing"
-          ? "사진 보정 중..."
-          : loadingStage === "generating"
-            ? "AI 상세페이지 생성 중..."
-            : "AI 상세페이지 생성하기";
+      : loadingStage === "generating"
+        ? "기획 초안 생성 중..."
+        : "AI 상세페이지 생성하기";
 
   const inputClass =
     "mt-1.5 w-full rounded-lg border border-line px-4 py-2.5 text-sm text-ink outline-none transition-colors focus:border-registration-red focus:ring-2 focus:ring-registration-red/20";
@@ -436,20 +510,6 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   return (
     <div className="min-h-full bg-paper text-ink">
       <div className="absolute inset-0 -z-10 bg-gradient-to-b from-line/40 to-paper" />
-
-      <header className="border-b border-line bg-paper/80 backdrop-blur-md">
-        <nav className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-          <Link href="/">
-            <PagzlyLogo className="h-8 w-auto" />
-          </Link>
-          <Link
-            href="/"
-            className="text-sm font-medium text-ink/60 hover:text-ink"
-          >
-            홈
-          </Link>
-        </nav>
-      </header>
 
       <main className="mx-auto max-w-3xl px-6 py-10 pb-16">
         <div className="mb-8">
@@ -462,6 +522,38 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           <p className="mt-2 text-sm text-ink/60">
             AI가 상세페이지를 만들 수 있도록 상품 정보를 입력해 주세요.
           </p>
+
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <div className="inline-flex rounded-lg border border-line bg-paper p-1">
+              <button
+                type="button"
+                onClick={() => setCompositionLength("short")}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  compositionLength === "short"
+                    ? "bg-ink text-paper"
+                    : "text-ink/60 hover:text-ink"
+                }`}
+              >
+                짧은 구성
+              </button>
+              <button
+                type="button"
+                onClick={() => setCompositionLength("long")}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  compositionLength === "long"
+                    ? "bg-ink text-paper"
+                    : "text-ink/60 hover:text-ink"
+                }`}
+              >
+                긴 구성
+              </button>
+            </div>
+            <span className="text-sm text-ink/50">
+              {sectionCountHint != null
+                ? `약 ${sectionCountHint}개 섹션`
+                : "카테고리 선택 후 섹션 수 표시"}
+            </span>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -677,7 +769,200 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
             </div>
           </section>
 
-          {/* 5. 추가 옵션 */}
+          {/* 5. 참고 자료 (선택) */}
+          <section className={sectionClass}>
+            <h2 className="font-heading text-lg font-bold text-ink">참고 자료 (선택)</h2>
+            <p className="mt-1 text-sm text-ink/60">
+              레퍼런스 이미지·리뷰·기획안을 첨부하면 AI가 색감·후기 톤·기획 톤을 참고합니다.
+            </p>
+            <div className="mt-5 space-y-5">
+              <div>
+                <label htmlFor="referenceImage" className={labelClass}>
+                  레퍼런스 이미지 (선택)
+                </label>
+                <p className="mt-1 text-xs text-ink/40">색상·무드 참고용 JPG/PNG</p>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => referenceInputRef.current?.click()}
+                    className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink/80 hover:bg-line/30"
+                  >
+                    {referenceImage ? "다른 이미지 선택" : "이미지 선택"}
+                  </button>
+                  {referenceImage && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (referencePreview) URL.revokeObjectURL(referencePreview);
+                        setReferenceImage(null);
+                        setReferencePreview(null);
+                      }}
+                      className="text-sm text-ink/50 hover:text-registration-red"
+                    >
+                      제거
+                    </button>
+                  )}
+                  {referenceImage && (
+                    <span className="text-xs text-ink/50">{referenceImage.name}</span>
+                  )}
+                </div>
+                {referencePreview && (
+                  <div className="mt-3 h-24 w-24 overflow-hidden rounded-lg border border-line">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={referencePreview} alt="레퍼런스 미리보기" className="h-full w-full object-cover" />
+                  </div>
+                )}
+                <input
+                  id="referenceImage"
+                  ref={referenceInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleReferenceImage(e.target.files?.[0] ?? null);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="reviewFile" className={labelClass}>
+                  리뷰 파일 (선택)
+                </label>
+                <p className="mt-1 text-xs text-ink/40">엑셀(xlsx) 또는 txt · 최대 2MB</p>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => reviewInputRef.current?.click()}
+                    className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink/80 hover:bg-line/30"
+                  >
+                    {reviewFile ? "다른 파일 선택" : "파일 선택"}
+                  </button>
+                  {reviewFile && (
+                    <button
+                      type="button"
+                      onClick={() => setReviewFile(null)}
+                      className="text-sm text-ink/50 hover:text-registration-red"
+                    >
+                      제거
+                    </button>
+                  )}
+                  {reviewFile && (
+                    <span className="text-xs text-ink/50">
+                      {reviewFile.name} ({(reviewFile.size / 1024).toFixed(0)}KB)
+                    </span>
+                  )}
+                </div>
+                <input
+                  id="reviewFile"
+                  ref={reviewInputRef}
+                  type="file"
+                  accept=".txt,.xlsx,.xls,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleReviewFile(e.target.files?.[0] ?? null);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="planningDoc" className={labelClass}>
+                  기획안 (선택)
+                </label>
+                <p className="mt-1 text-xs text-ink/40">
+                  PDF 또는 DOCX만 지원 · HWP는 아직 지원하지 않습니다 · PPTX는 지원 예정
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => planningInputRef.current?.click()}
+                    className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink/80 hover:bg-line/30"
+                  >
+                    {planningDoc ? "다른 파일 선택" : "파일 선택"}
+                  </button>
+                  {planningDoc && (
+                    <button
+                      type="button"
+                      onClick={() => setPlanningDoc(null)}
+                      className="text-sm text-ink/50 hover:text-registration-red"
+                    >
+                      제거
+                    </button>
+                  )}
+                  {planningDoc && (
+                    <span className="text-xs text-ink/50">{planningDoc.name}</span>
+                  )}
+                </div>
+                <input
+                  id="planningDoc"
+                  ref={planningInputRef}
+                  type="file"
+                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="hidden"
+                  onChange={(e) => {
+                    handlePlanningDoc(e.target.files?.[0] ?? null);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="customGif" className={labelClass}>
+                  직접 만든 GIF (선택)
+                </label>
+                <p className="mt-1 text-xs text-ink/40">
+                  이미 가지고 계신 GIF를 그대로 상세페이지에 삽입합니다. AI로 새로
+                  만들지 않아 별도 비용이 들지 않으며, 상단 대표 이미지 바로 아래에
+                  들어갑니다.
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => customGifInputRef.current?.click()}
+                    className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink/80 hover:bg-line/30"
+                  >
+                    {customGif ? "다른 GIF 선택" : "GIF 선택"}
+                  </button>
+                  {customGif && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (customGifPreview) URL.revokeObjectURL(customGifPreview);
+                        setCustomGif(null);
+                        setCustomGifPreview(null);
+                      }}
+                      className="text-sm text-ink/50 hover:text-registration-red"
+                    >
+                      제거
+                    </button>
+                  )}
+                  {customGif && (
+                    <span className="text-xs text-ink/50">{customGif.name}</span>
+                  )}
+                </div>
+                {customGifPreview && (
+                  <div className="mt-3 h-24 w-24 overflow-hidden rounded-lg border border-line">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={customGifPreview} alt="GIF 미리보기" className="h-full w-full object-cover" />
+                  </div>
+                )}
+                <input
+                  id="customGif"
+                  ref={customGifInputRef}
+                  type="file"
+                  accept="image/gif"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleCustomGif(e.target.files?.[0] ?? null);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* 6. 추가 옵션 */}
           <section className={sectionClass}>
             <h2 className="font-heading text-lg font-bold text-ink">추가 옵션</h2>
             <div className="mt-5 space-y-5">
@@ -727,7 +1012,15 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         </form>
       </main>
 
-      {loadingStage !== "idle" && <GeneratingOverlay stage={loadingStage} />}
+      {loadingStage !== "idle" && (
+        <GeneratingOverlay
+          stage={loadingStage}
+          category={category}
+          productName={productName}
+          length={compositionLength}
+          snapComplete={overlaySnapComplete}
+        />
+      )}
     </div>
   );
 }

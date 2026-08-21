@@ -30,6 +30,13 @@ body {
   font-family: var(--font-sans);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  [data-scroll-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .pagzly-reveal {
     opacity: 0;
@@ -43,15 +50,12 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
-
   .pagzly-hero-photo {
     animation: pagzly-kenburns 18s ease-in-out infinite alternate;
   }
-
   .pagzly-pipeline-float {
     animation: pagzly-float 8s ease-in-out infinite;
   }
-
   @keyframes pagzly-kenburns {
     from {
       transform: scale(1);

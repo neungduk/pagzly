@@ -1,4 +1,7 @@
+"use client";
+
 import CropMarks from "@/components/CropMarks";
+import RevealOnScroll from "@/components/RevealOnScroll";
 import { getCategoryTheme } from "@/lib/category-theme";
 
 const SHOWCASE_CATEGORIES = [
@@ -26,9 +29,7 @@ function ColorSwatch({
         style={{ backgroundColor: color }}
         aria-hidden="true"
       />
-      <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-ink/45">
-        {label}
-      </span>
+      <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-ink/45">{label}</span>
     </div>
   );
 }
@@ -45,12 +46,15 @@ export default function CategoryColorEngine() {
             카테고리 컬러 엔진
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-ink/60">
-            상품 사진에서 추출한 색과 카테고리 테마를 조합해, 상품마다 다른
-            상세페이지 팔레트를 자동으로 만듭니다.
+            상품 사진에서 추출한 색과 카테고리 테마를 조합해, 상품마다 다른 상세페이지 팔레트를
+            자동으로 만듭니다.
           </p>
         </div>
 
-        <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <RevealOnScroll
+          stagger
+          className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+        >
           {SHOWCASE_CATEGORIES.map(({ key, label, description }) => {
             const palette = getCategoryTheme(key);
             return (
@@ -69,9 +73,7 @@ export default function CategoryColorEngine() {
                   >
                     {label}
                   </p>
-                  <p className="mt-0.5 text-[11px] leading-snug text-ink/55">
-                    {description}
-                  </p>
+                  <p className="mt-0.5 text-[11px] leading-snug text-ink/55">{description}</p>
                 </div>
                 <div className="flex flex-1 items-center justify-center gap-4 px-4 py-6">
                   <ColorSwatch color={palette.accent} label="Accent" />
@@ -81,7 +83,7 @@ export default function CategoryColorEngine() {
               </div>
             );
           })}
-        </div>
+        </RevealOnScroll>
       </div>
     </section>
   );

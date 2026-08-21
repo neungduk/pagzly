@@ -25,27 +25,60 @@ export type TemplateCategory =
 
 const BEAUTY: SlotDefinition[] = [
   { slot: "hero", type: "hero", required: true, note: "히어로 (제품 단독/사용 컷, 4:5)" },
+  {
+    slot: "brand_story",
+    type: "brand_story",
+    required: false,
+    note: "brandName이 입력되지 않았으면 이 슬롯 전체를 생략. 입력된 브랜드명 기반으로만 작성, 없는 브랜드 히스토리·수상내역 지어내지 말 것",
+  },
   { slot: "checklist", type: "checklist", required: true, note: "핵심 포인트 3~4개" },
+  {
+    slot: "quick_points",
+    type: "image_text",
+    required: true,
+    repeatable: true,
+    minCount: 2,
+    maxCount: 4,
+    note: "짧은 미니 포인트 2~4개, layout: 'compact'로 채울 것. 사진은 작은 텍스처/디테일 컷, 헤딩은 8자 내외, 본문은 1문장",
+  },
+  {
+    slot: "target_persona",
+    type: "target_persona",
+    required: false,
+    note: "targetCustomer·keyFeatures 입력 기반으로만 작성",
+  },
   {
     slot: "ingredient_highlight",
     type: "image_text",
     required: true,
-    note: "핵심 성분/기능 (1:1)",
+    note: "핵심 성분/기능 (1:1). 텍스처·원료가 보이는 컷을 배정",
   },
   {
     slot: "texture_feel",
     type: "image_text",
     required: false,
-    note: "질감/사용감 (1:1)",
+    note: "질감/사용감 (1:1). 매크로 텍스처 컷을 배정",
   },
-  { slot: "usage_steps", type: "usage_steps", required: true, note: "사용법 단계" },
+  {
+    slot: "illustration_banner",
+    type: "illustration_banner",
+    required: false,
+    note: "컨셉 장식 일러스트 배너 (16:9). heading+body가 이미지 위에 오버레이되므로 body도 함께 작성. illustrationUrl은 비워 둠",
+  },
+  { slot: "usage_steps", type: "usage_steps", required: true, note: "사용법 단계. STEP 01/02/03 구조로 3단계 권장" },
   {
     slot: "gallery",
     type: "gallery",
     required: true,
-    note: "라이프스타일 컷 (3:4)",
+    note: "두 컷 비교 구조 (3:4). 카피는 상품 고유. 레이아웃만 나란히",
     minCount: 2,
     maxCount: 2,
+  },
+  {
+    slot: "stat_infographic",
+    type: "stat_infographic",
+    required: false,
+    note: "입력 데이터에 실제 수치 근거가 있을 때만 채움. 근거 없으면 이 섹션 자체를 생략(판매자 확인 필요 금지, 수치 지어내기 금지). metrics 3~5개, 비율형은 style:\"bar\"+percent(0~100 막대), 절대 수치(시간·중량·개수 등)는 style:\"number\"로 percent 없이 큰 숫자 강조",
   },
   {
     slot: "spec_table",
@@ -54,17 +87,77 @@ const BEAUTY: SlotDefinition[] = [
     note: "용량/성분/사용기한",
   },
   {
+    slot: "faq",
+    type: "faq",
+    required: false,
+    minCount: 3,
+    maxCount: 5,
+    note: "답변은 입력된 상품 정보(keyFeatures·ingredients·certifications)에 근거한 것만. 근거 없는 질문은 답변에 '판매자에게 문의해주세요'로 표시, 효능·의학적 답변 단정 금지",
+  },
+  {
     slot: "caution",
     type: "caution",
     required: true,
     note: "주의사항 (식약처 표현 검수 대상 — 효능 단정 표현 금지)",
+  },
+  { slot: "packaging_design", type: "image_text", required: true, note: "패키지/용기 디자인 (1:1)" },
+  {
+    slot: "how_it_works",
+    type: "image_text",
+    required: true,
+    note: "작용 원리/사용 후 변화 설명 (1:1). 근거 없는 효능 단정 금지, 사용감 중심으로 서술",
+  },
+  {
+    slot: "size_options",
+    type: "image_text",
+    required: true,
+    note: "용량/사이즈 옵션 안내 (1:1). 옵션 정보가 입력에 없으면 일반적인 용량 표기로 작성",
+  },
+  {
+    slot: "customer_scenario",
+    type: "image_text",
+    required: true,
+    note: "실사용 상황/데일리 루틴 제안 (4:5)",
+  },
+  {
+    slot: "shipping_info",
+    type: "spec_table",
+    required: false,
+    note: "배송비/배송기간/교환·환불 안내. 구체적 수치가 입력에 없으면 '판매자 정책을 확인해주세요'로 값 채움 (기존 spec_table 규칙과 동일)",
+  },
+  {
+    slot: "ai_disclosure",
+    type: "ai_disclosure",
+    required: true,
+    note: "AI 생성 콘텐츠 고지. heading/body는 서버가 고정 문구로 채움 — DeepSeek는 슬롯만 포함하거나 생략해도 됨",
   },
   { slot: "cta_price", type: "cta_price", required: true, note: "가격/구매 정보" },
 ];
 
 const FASHION: SlotDefinition[] = [
   { slot: "hero", type: "hero", required: true, note: "히어로 (착장 컷, 4:5)" },
+  {
+    slot: "brand_story",
+    type: "brand_story",
+    required: false,
+    note: "brandName이 입력되지 않았으면 이 슬롯 전체를 생략. 입력된 브랜드명 기반으로만 작성, 없는 브랜드 히스토리·수상내역 지어내지 말 것",
+  },
   { slot: "checklist", type: "checklist", required: true, note: "핏/소재 핵심 포인트" },
+  {
+    slot: "quick_points",
+    type: "image_text",
+    required: true,
+    repeatable: true,
+    minCount: 2,
+    maxCount: 4,
+    note: "짧은 미니 포인트 2~4개, layout: 'compact'로 채울 것. 사진은 작은 텍스처/디테일 컷, 헤딩은 8자 내외, 본문은 1문장",
+  },
+  {
+    slot: "target_persona",
+    type: "target_persona",
+    required: false,
+    note: "targetCustomer·keyFeatures 입력 기반으로만 작성",
+  },
   {
     slot: "detail_zoom",
     type: "image_text",
@@ -86,6 +179,14 @@ const FASHION: SlotDefinition[] = [
     note: "사이즈표 + 모델 착용 사이즈. 실측 데이터가 없는 항목은 지어내지 말고 '판매자 확인 필요'로 표시",
   },
   {
+    slot: "faq",
+    type: "faq",
+    required: false,
+    minCount: 3,
+    maxCount: 5,
+    note: "답변은 입력된 상품 정보(keyFeatures·ingredients·certifications)에 근거한 것만. 근거 없는 질문은 답변에 '판매자에게 문의해주세요'로 표시, 효능·의학적 답변 단정 금지",
+  },
+  {
     slot: "color_variation",
     type: "color_variation",
     required: false,
@@ -98,17 +199,75 @@ const FASHION: SlotDefinition[] = [
     note: "코디 제안, 다른 아이템과 매치 (4:5)",
   },
   {
+    slot: "illustration_banner",
+    type: "illustration_banner",
+    required: false,
+    note: "컨셉 장식 일러스트 배너 (16:9). heading+body가 이미지 위에 오버레이되므로 body도 함께 작성. illustrationUrl은 비워 둠",
+  },
+  {
     slot: "care_info",
     type: "caution",
     required: true,
     note: "세탁/보관 방법",
+  },
+  {
+    slot: "fabric_composition",
+    type: "image_text",
+    required: true,
+    note: "원단 구성/마감 확대 (detail_zoom과 다른 각도, 1:1)",
+  },
+  {
+    slot: "fit_guide",
+    type: "image_text",
+    required: true,
+    note: "핏 가이드 — 타이트/루즈 등 착용감 설명 (4:5)",
+  },
+  { slot: "packaging_design", type: "image_text", required: true, note: "포장/배송 패키지 소개 (1:1)" },
+  {
+    slot: "seasonal_styling",
+    type: "image_text",
+    required: true,
+    note: "계절별 활용 제안 (4:5)",
+  },
+  {
+    slot: "shipping_info",
+    type: "spec_table",
+    required: false,
+    note: "배송비/배송기간/교환·환불 안내. 구체적 수치가 입력에 없으면 '판매자 정책을 확인해주세요'로 값 채움 (기존 spec_table 규칙과 동일)",
+  },
+  {
+    slot: "ai_disclosure",
+    type: "ai_disclosure",
+    required: true,
+    note: "AI 생성 콘텐츠 고지. heading/body는 서버가 고정 문구로 채움 — DeepSeek는 슬롯만 포함하거나 생략해도 됨",
   },
   { slot: "cta_price", type: "cta_price", required: true, note: "가격/구매 정보" },
 ];
 
 const FOOD: SlotDefinition[] = [
   { slot: "hero", type: "hero", required: true, note: "히어로 (완성/플레이팅 컷, 4:5)" },
+  {
+    slot: "brand_story",
+    type: "brand_story",
+    required: false,
+    note: "brandName이 입력되지 않았으면 이 슬롯 전체를 생략. 입력된 브랜드명 기반으로만 작성, 없는 브랜드 히스토리·수상내역 지어내지 말 것",
+  },
   { slot: "checklist", type: "checklist", required: true, note: "맛/원재료 핵심 포인트" },
+  {
+    slot: "quick_points",
+    type: "image_text",
+    required: true,
+    repeatable: true,
+    minCount: 2,
+    maxCount: 4,
+    note: "짧은 미니 포인트 2~4개, layout: 'compact'로 채울 것. 사진은 작은 텍스처/디테일 컷, 헤딩은 8자 내외, 본문은 1문장",
+  },
+  {
+    slot: "target_persona",
+    type: "target_persona",
+    required: false,
+    note: "targetCustomer·keyFeatures 입력 기반으로만 작성",
+  },
   {
     slot: "ingredient_highlight",
     type: "image_text",
@@ -120,6 +279,12 @@ const FOOD: SlotDefinition[] = [
     type: "image_text",
     required: false,
     note: "조직감/단면 확대 (1:1)",
+  },
+  {
+    slot: "illustration_banner",
+    type: "illustration_banner",
+    required: false,
+    note: "컨셉 장식 일러스트 배너 (16:9). heading+body가 이미지 위에 오버레이되므로 body도 함께 작성. illustrationUrl은 비워 둠",
   },
   {
     slot: "cooking_steps",
@@ -136,10 +301,24 @@ const FOOD: SlotDefinition[] = [
     maxCount: 2,
   },
   {
+    slot: "stat_infographic",
+    type: "stat_infographic",
+    required: false,
+    note: "입력 데이터에 실제 수치 근거가 있을 때만 채움. 근거 없으면 이 섹션 자체를 생략(판매자 확인 필요 금지, 수치 지어내기 금지). metrics 3~5개, 비율형은 style:\"bar\"+percent(0~100 막대), 절대 수치(시간·중량·개수 등)는 style:\"number\"로 percent 없이 큰 숫자 강조",
+  },
+  {
     slot: "nutrition_table",
     type: "spec_table",
     required: true,
     note: "영양성분표 + 알레르기 정보",
+  },
+  {
+    slot: "faq",
+    type: "faq",
+    required: false,
+    minCount: 3,
+    maxCount: 5,
+    note: "답변은 입력된 상품 정보(keyFeatures·ingredients·certifications)에 근거한 것만. 근거 없는 질문은 답변에 '판매자에게 문의해주세요'로 표시, 효능·의학적 답변 단정 금지",
   },
   {
     slot: "caution",
@@ -147,17 +326,64 @@ const FOOD: SlotDefinition[] = [
     required: true,
     note: "유통기한/보관방법/알레르기 경고. 효능을 암시하는 과장 표현 금지",
   },
+  {
+    slot: "sourcing_story",
+    type: "image_text",
+    required: true,
+    note: "원산지/제조 과정 소개 (1:1). 입력에 없는 사실은 지어내지 말 것",
+  },
+  {
+    slot: "serving_suggestion",
+    type: "image_text",
+    required: true,
+    note: "서빙/플레이팅 제안 (4:5)",
+  },
+  { slot: "packaging_design", type: "image_text", required: true, note: "포장 상세 (1:1)" },
+  { slot: "storage_tip", type: "image_text", required: true, note: "보관 팁 (1:1)" },
+  {
+    slot: "shipping_info",
+    type: "spec_table",
+    required: false,
+    note: "배송비/배송기간/교환·환불 안내. 구체적 수치가 입력에 없으면 '판매자 정책을 확인해주세요'로 값 채움 (기존 spec_table 규칙과 동일)",
+  },
+  {
+    slot: "ai_disclosure",
+    type: "ai_disclosure",
+    required: true,
+    note: "AI 생성 콘텐츠 고지. heading/body는 서버가 고정 문구로 채움 — DeepSeek는 슬롯만 포함하거나 생략해도 됨",
+  },
   { slot: "cta_price", type: "cta_price", required: true, note: "가격/구매 정보" },
 ];
 
 const ELECTRONICS: SlotDefinition[] = [
   { slot: "hero", type: "hero", required: true, note: "히어로 (제품 단독 컷, 4:5)" },
+  {
+    slot: "brand_story",
+    type: "brand_story",
+    required: false,
+    note: "brandName이 입력되지 않았으면 이 슬롯 전체를 생략. 입력된 브랜드명 기반으로만 작성, 없는 브랜드 히스토리·수상내역 지어내지 말 것",
+  },
   { slot: "checklist", type: "checklist", required: true, note: "핵심 스펙 3~4개" },
+  {
+    slot: "quick_points",
+    type: "image_text",
+    required: true,
+    repeatable: true,
+    minCount: 2,
+    maxCount: 4,
+    note: "짧은 미니 포인트 2~4개, layout: 'compact'로 채울 것. 사진은 작은 텍스처/디테일 컷, 헤딩은 8자 내외, 본문은 1문장",
+  },
+  {
+    slot: "target_persona",
+    type: "target_persona",
+    required: false,
+    note: "targetCustomer·keyFeatures 입력 기반으로만 작성",
+  },
   {
     slot: "feature_detail",
     type: "image_text",
     required: true,
-    note: "기능별 확대/작동 예시 (1:1). 기능이 여러 개면 이 슬롯을 연속으로 반복 가능",
+    note: "기능별 확대/작동 예시 (1:1). 기능이 여러 개면 이 슬롯을 연속으로 반복 가능. 헤드라인에 재생시간·출력 등 숫자 훅이 있으면 짧게 넣기",
     repeatable: true,
     minCount: 1,
     maxCount: 3,
@@ -166,7 +392,7 @@ const ELECTRONICS: SlotDefinition[] = [
     slot: "comparison_table",
     type: "comparison_table",
     required: false,
-    note: "경쟁 스펙 비교 또는 이전 모델 대비. 입력 데이터에 없는 수치는 지어내지 말 것",
+    note: "스펙 비교 또는 이전 모델 대비. 입력에 없는 수치는 지어내지 말 것. 2열 비교 구조만 채움",
   },
   {
     slot: "usage_scenario",
@@ -175,16 +401,36 @@ const ELECTRONICS: SlotDefinition[] = [
     note: "실사용 장면 (4:5)",
   },
   {
+    slot: "stat_infographic",
+    type: "stat_infographic",
+    required: false,
+    note: "입력 데이터에 실제 수치 근거가 있을 때만 채움. 근거 없으면 이 섹션 자체를 생략(판매자 확인 필요 금지, 수치 지어내기 금지). metrics 3~5개, 비율형은 style:\"bar\"+percent(0~100 막대), 절대 수치(시간·중량·개수 등)는 style:\"number\"로 percent 없이 큰 숫자 강조",
+  },
+  {
     slot: "spec_table",
     type: "spec_table",
     required: true,
     note: "전체 스펙 표 — 규격/전력/호환성. 입력 데이터에 없는 수치는 공란 처리",
   },
   {
+    slot: "faq",
+    type: "faq",
+    required: false,
+    minCount: 3,
+    maxCount: 5,
+    note: "답변은 입력된 상품 정보(keyFeatures·ingredients·certifications)에 근거한 것만. 근거 없는 질문은 답변에 '판매자에게 문의해주세요'로 표시, 효능·의학적 답변 단정 금지",
+  },
+  {
     slot: "package_contents",
     type: "image_text",
     required: true,
-    note: "구성품 안내 (1:1)",
+    note: "구성품 안내 (1:1). 가능하면 플랫레이에 가까운 컷",
+  },
+  {
+    slot: "illustration_banner",
+    type: "illustration_banner",
+    required: false,
+    note: "컨셉 장식 일러스트 배너 (16:9). heading+body가 이미지 위에 오버레이되므로 body도 함께 작성. illustrationUrl은 비워 둠",
   },
   {
     slot: "warranty_caution",
@@ -192,12 +438,58 @@ const ELECTRONICS: SlotDefinition[] = [
     required: true,
     note: "A/S, 주의사항",
   },
+  { slot: "design_detail", type: "image_text", required: true, note: "디자인/마감 디테일 (1:1)" },
+  {
+    slot: "connectivity",
+    type: "image_text",
+    required: true,
+    note: "연결성/호환성 안내 (1:1). 입력에 없는 스펙은 지어내지 말 것",
+  },
+  {
+    slot: "install_scenario",
+    type: "image_text",
+    required: true,
+    note: "실사용/설치 장면 (4:5)",
+  },
+  {
+    slot: "shipping_info",
+    type: "spec_table",
+    required: false,
+    note: "배송비/배송기간/교환·환불 안내. 구체적 수치가 입력에 없으면 '판매자 정책을 확인해주세요'로 값 채움 (기존 spec_table 규칙과 동일)",
+  },
+  {
+    slot: "ai_disclosure",
+    type: "ai_disclosure",
+    required: true,
+    note: "AI 생성 콘텐츠 고지. heading/body는 서버가 고정 문구로 채움 — DeepSeek는 슬롯만 포함하거나 생략해도 됨",
+  },
   { slot: "cta_price", type: "cta_price", required: true, note: "가격/구매 정보" },
 ];
 
 const HOME_FALLBACK: SlotDefinition[] = [
   { slot: "hero", type: "hero", required: true, note: "히어로 (4:5)" },
+  {
+    slot: "brand_story",
+    type: "brand_story",
+    required: false,
+    note: "brandName이 입력되지 않았으면 이 슬롯 전체를 생략. 입력된 브랜드명 기반으로만 작성, 없는 브랜드 히스토리·수상내역 지어내지 말 것",
+  },
   { slot: "checklist", type: "checklist", required: true, note: "핵심 포인트 3~4개" },
+  {
+    slot: "quick_points",
+    type: "image_text",
+    required: true,
+    repeatable: true,
+    minCount: 2,
+    maxCount: 4,
+    note: "짧은 미니 포인트 2~4개, layout: 'compact'로 채울 것. 사진은 작은 텍스처/디테일 컷, 헤딩은 8자 내외, 본문은 1문장",
+  },
+  {
+    slot: "target_persona",
+    type: "target_persona",
+    required: false,
+    note: "targetCustomer·keyFeatures 입력 기반으로만 작성",
+  },
   {
     slot: "material_feature",
     type: "image_text",
@@ -209,6 +501,12 @@ const HOME_FALLBACK: SlotDefinition[] = [
     type: "image_text",
     required: false,
     note: "실사용 장면 (4:5)",
+  },
+  {
+    slot: "illustration_banner",
+    type: "illustration_banner",
+    required: false,
+    note: "컨셉 장식 일러스트 배너 (16:9). heading+body가 이미지 위에 오버레이되므로 body도 함께 작성. illustrationUrl은 비워 둠",
   },
   {
     slot: "gallery",
@@ -225,10 +523,39 @@ const HOME_FALLBACK: SlotDefinition[] = [
     note: "사이즈/소재/구성",
   },
   {
+    slot: "faq",
+    type: "faq",
+    required: false,
+    minCount: 3,
+    maxCount: 5,
+    note: "답변은 입력된 상품 정보(keyFeatures·ingredients·certifications)에 근거한 것만. 근거 없는 질문은 답변에 '판매자에게 문의해주세요'로 표시, 효능·의학적 답변 단정 금지",
+  },
+  {
     slot: "caution",
     type: "caution",
     required: false,
     note: "사용 시 주의사항",
+  },
+  { slot: "material_detail", type: "image_text", required: true, note: "소재 클로즈업 (1:1)" },
+  {
+    slot: "usage_scenario_extra",
+    type: "image_text",
+    required: true,
+    note: "추가 실사용 장면 (4:5)",
+  },
+  { slot: "packaging_design", type: "image_text", required: true, note: "포장/구성 안내 (1:1)" },
+  { slot: "care_tip", type: "image_text", required: true, note: "관리/세척 방법 (1:1)" },
+  {
+    slot: "shipping_info",
+    type: "spec_table",
+    required: false,
+    note: "배송비/배송기간/교환·환불 안내. 구체적 수치가 입력에 없으면 '판매자 정책을 확인해주세요'로 값 채움 (기존 spec_table 규칙과 동일)",
+  },
+  {
+    slot: "ai_disclosure",
+    type: "ai_disclosure",
+    required: true,
+    note: "AI 생성 콘텐츠 고지. heading/body는 서버가 고정 문구로 채움 — DeepSeek는 슬롯만 포함하거나 생략해도 됨",
   },
   { slot: "cta_price", type: "cta_price", required: true, note: "가격/구매 정보" },
 ];
@@ -254,12 +581,37 @@ const CATEGORY_TO_TEMPLATE: Record<string, TemplateCategory> = {
   "기타": "생활/리빙",
 };
 
+export type SlotLength = "short" | "long";
+
 export function resolveTemplateCategory(category: string): TemplateCategory {
   return CATEGORY_TO_TEMPLATE[category] ?? "생활/리빙";
 }
 
-export function getSlotTemplate(category: string): SlotDefinition[] {
-  return CATEGORY_SLOT_TEMPLATES[resolveTemplateCategory(category)];
+/** 짧은 구성: required 슬롯만. repeatable은 minCount개 템플릿 행으로 펼침. */
+function applyShortTemplate(template: SlotDefinition[]): SlotDefinition[] {
+  const result: SlotDefinition[] = [];
+  for (const def of template) {
+    if (!def.required) continue;
+    const rowCount = def.repeatable && def.minCount ? def.minCount : 1;
+    for (let i = 0; i < rowCount; i++) {
+      result.push({ ...def, repeatable: false });
+    }
+  }
+  return result;
+}
+
+export function getSlotTemplate(
+  category: string,
+  length: SlotLength = "long",
+): SlotDefinition[] {
+  const template = CATEGORY_SLOT_TEMPLATES[resolveTemplateCategory(category)];
+  if (length === "long") return template;
+  return applyShortTemplate(template);
+}
+
+/** UI 힌트용 — 실제 생성될 슬롯(섹션) 개수 */
+export function countSlotSections(category: string, length: SlotLength = "long"): number {
+  return getSlotTemplate(category, length).length;
 }
 
 export function getSlotImageRatio(slot: SlotDefinition): string {

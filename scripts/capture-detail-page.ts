@@ -11,14 +11,20 @@
 // 필요하면 환경변수로: TEST_COMPETITOR_URL=https://...
 //   TEST_WHOLESALE_TEXT="원본 상품명/스펙/설명..." npx tsx scripts/capture-detail-page.ts ...
 //
+// ⚠️ 합성 품질 QA / 데모 / 스크린샷 리뷰는 TEST_MODE=false(실비용)로만 진행.
+//     TEST_MODE는 비용 절감용이며 clarity-upscaler·장식·QA 등이 생략된다.
+//     (과거 TEST_MODE에서 index>0 원본 스킵 버그로 '사각형 사진' 아티팩트 발생 —
+//      2026-08-18 수정 후에도 최종 합성 품질 확인은 실비용 실행 권장)
+//
 // ⚠️ 셀렉터(#productName 등)는 CreateProductForm.tsx의 실제 구조와
 // 맞아야 합니다. 폼 구조가 바뀌면 이 스크립트도 같이 고쳐야 해요.
 
 import { chromium } from "playwright";
 import path from "path";
 import fs from "fs";
+import { freezeDetailScrollReveal } from "./capture-utils";
 
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 const STORAGE_STATE_PATH = path.join(__dirname, "auth-state.json");
 const OUTPUT_DIR = path.join(__dirname, "..", "review");
 const TEST_ASSETS_ROOT = path.join(__dirname, "test-assets");
@@ -28,9 +34,12 @@ const TEST_ASSETS_ROOT = path.join(__dirname, "test-assets");
 const CATEGORY_MAP: Record<string, { label: string; price: string }> = {
   "화장품-뷰티": { label: "화장품/뷰티", price: "29900" },
   "의류-패션": { label: "의류/패션", price: "39900" },
+  "패션-소품": { label: "의류/패션", price: "89000" },
   "식품": { label: "식품/건강기능식품", price: "19900" },
   "전자제품": { label: "전자제품", price: "89000" },
+  "전자기기-액세서리": { label: "전자제품", price: "59000" },
   "생활용품": { label: "생활용품", price: "24900" },
+  "리빙-소품": { label: "생활용품", price: "34900" },
 };
 
 async function main() {
@@ -60,14 +69,30 @@ async function main() {
         .map((f) => path.join(testAssetsDir, f))
     : [];
 
-  if (testImages.length === 0) {
+  const loopImages = testImages
+    .filter((f) => /^loop-\d+/i.test(path.basename(f)))
+    .sort();
+  const uploadImages = (loopImages.length >= 2 ? loopImages : testImages).slice(0, 3);
+
+  if (uploadImages.length === 0) {
     throw new Error(
       `scripts/test-assets/${categoryKey}/ 폴더에 테스트용 상품 사진(jpg/png)을 1장 이상 넣어주세요.`,
     );
   }
 
   const browser = await chromium.launch();
-  const context = await browser.newContext({ storageState: STORAGE_STATE_PATH });
+  // 2026-08-18 수정: 결과 페이지 섹션이 GSAP ScrollTrigger로 스크롤해야
+  // 서서히 나타나는데(RevealOnScroll/DetailScrollReveal), 이 스크립트는
+  // fullPage 스크린샷을 찍기 전 2초만 기다려서 애니메이션이 안 끝난 채로
+  // (opacity 0 근처) 찍히는 경우가 있었다 (review/attempt-...-decor-fix-test2.png
+  // 에서 히어로 아래가 전부 빈 화면으로 나온 원인으로 추정). 실제 서비스는
+  // prefers-reduced-motion이 켜지면 애니메이션 없이 즉시 보이게 처리하는
+  // 로직이 이미 있어서(components 쪽 RevealOnScroll), Playwright 컨텍스트에
+  // 그 설정을 켜서 캡처만 애니메이션 없이 즉시 완성된 상태로 찍히게 한다.
+  const context = await browser.newContext({
+    storageState: STORAGE_STATE_PATH,
+    reducedMotion: "reduce",
+  });
   const page = await context.newPage();
 
   await page.goto(`${BASE_URL}/create`);
@@ -76,7 +101,7 @@ async function main() {
   await page.locator("select").first().selectOption({ label: category.label });
 
   // 사진 업로드
-  await page.setInputFiles('input[type="file"]', testImages.slice(0, 3));
+  await page.setInputFiles('input[type="file"]', uploadImages);
 
   // 상품 기본 정보
   await page.fill("#productName", customProductName ?? `테스트 상품 ${categoryKey} ${attemptNumber}`);
@@ -91,18 +116,61 @@ async function main() {
 
   // 제출
   await page.click('button[type="submit"]');
+
+  // TEST_MODE=false + BACKDROP_CANDIDATES>1 이면 사람 선택 UI가 뜬다.
+  const picker = page.locator('[data-testid="backdrop-picker"]');
+  try {
+    await picker.waitFor({ state: "visible", timeout: 480000 });
+    await page.locator('[data-testid="backdrop-candidate-0"]').click();
+    await page.locator('[data-testid="backdrop-confirm"]').click();
+    console.log("[capture] 배경 후보 0번 자동 확정");
+  } catch {
+    // TEST_MODE / 단일 후보 — picker 없음
+  }
+
   // 화질 보정(clarity-upscaler)/flux-fill-dev 배경 생성 단계가 추가되면서
   // 파이프라인 총 소요 시간이 늘어나(2~3분대) 기존 180s로는 종종 타임아웃이
   // 나서 여유를 뒀다.
   await page.waitForURL(`${BASE_URL}/create/result`, { timeout: 480000 });
   await page.waitForTimeout(2000);
+  await freezeDetailScrollReveal(page);
+  await page.waitForTimeout(300);
 
-  if (!fs.existsSync(OUTPUT_DIR)) {
-    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+  const iterationDir = process.env.ITERATION_DIR;
+  if (iterationDir) {
+    const abs = path.isAbsolute(iterationDir)
+      ? iterationDir
+      : path.join(__dirname, "..", iterationDir);
+    fs.mkdirSync(abs, { recursive: true });
+    const session = await page.evaluate(() => sessionStorage.getItem("pagzly-create-result"));
+    if (session) {
+      fs.writeFileSync(path.join(abs, "session.json"), session, "utf8");
+    }
+    const cyclePath = path.join(abs, "cycle-01.png");
+    await page.screenshot({ path: cyclePath, fullPage: true });
+    console.log(`세션 저장: ${path.join(abs, "session.json")}`);
+    console.log(`저장됨: ${cyclePath}`);
+  } else {
+    if (!fs.existsSync(OUTPUT_DIR)) {
+      fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+    }
+    const outPath = path.join(OUTPUT_DIR, `attempt-${categoryKey}-${attemptNumber}.png`);
+    await page.screenshot({ path: outPath, fullPage: true });
+    console.log(`저장됨: ${outPath}`);
+
+    const preview = page.locator('[data-testid="detail-preview"]');
+    const sections = preview.locator("[data-scroll-reveal]");
+    const sectionShots: Array<{ index: number; label: string }> = [
+      { index: 0, label: "hero" },
+      { index: 2, label: "ingredient" },
+      { index: 3, label: "texture" },
+    ];
+    for (const { index, label } of sectionShots) {
+      const sectionPath = path.join(OUTPUT_DIR, `${attemptNumber}-${label}.png`);
+      await sections.nth(index).screenshot({ path: sectionPath });
+      console.log(`섹션 저장: ${sectionPath}`);
+    }
   }
-  const outPath = path.join(OUTPUT_DIR, `attempt-${categoryKey}-${attemptNumber}.png`);
-  await page.screenshot({ path: outPath, fullPage: true });
-  console.log(`저장됨: ${outPath}`);
 
   await browser.close();
 }

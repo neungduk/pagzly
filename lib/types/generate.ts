@@ -4,13 +4,48 @@ import type { ConceptIconMap } from "@/lib/concept-icons";
 export type PhotoCostBreakdown = {
   conceptBrief?: number;
   backdrop?: number;
+  sectionBackdrops?: number;
   enhance?: number;
   decor?: number;
+  effects?: number;
   icons?: number;
+  illustrations?: number;
+  claude?: number;
+  referenceAnalysis?: number;
+  reviewInsights?: number;
 };
+
+export type ReferenceAnalysisInput = {
+  colorHex: string[];
+  moodKeywords: string[];
+};
+
+export type ReviewInsightsInput = {
+  commonPraises: string[];
+  commonComplaints: string[];
+};
+
+export type SlotLength = "short" | "long";
+
+export type GenerateMode = "draft" | "final";
 
 export type ProductInput = {
   category: string;
+  /** 짧은 구성: required 슬롯만. 기본 long */
+  length?: SlotLength;
+  /**
+   * draft: DeepSeek 카피까지. final(기본): 전체 조립.
+   * draftSections가 있으면 final에서 카피 재생성 없이 일러스트+조립만.
+   */
+  mode?: GenerateMode;
+  /** final 모드 — draft에서 받은 sections */
+  draftSections?: DetailSection[];
+  draftHeadlines?: string[];
+  draftDescription?: string;
+  draftFeatures?: string[];
+  draftHowToUse?: string;
+  draftCaution?: string;
+  draftToken?: string;
   imageUrls: string[];
   imagePaths: string[];
   productName: string;
@@ -24,9 +59,26 @@ export type ProductInput = {
   // URL이 아니라, 판매자가 1688/도매꾹 원본 상품 페이지에서 직접 복사해
   // 붙여넣은 텍스트(상품명/스펙/설명). 필드명은 하위 호환을 위해 유지.
   wholesaleUrl?: string | null;
+  /** 레퍼런스 무드/색상 참고 이미지 (Supabase Storage URL) */
+  referenceImageUrl?: string | null;
+  /** 고객 리뷰 엑셀/txt (Supabase Storage URL) */
+  reviewFileUrl?: string | null;
+  /** 기획안 PDF/DOCX (Supabase Storage URL) */
+  planningDocUrl?: string | null;
+  /** 서버 분석 결과 — generate-backdrop/generate에서 채움 */
+  referenceAnalysis?: ReferenceAnalysisInput | null;
+  reviewInsights?: ReviewInsightsInput | null;
+  planningDocText?: string | null;
   photoProcessingCost?: number;
   conceptBrief?: ConceptBrief;
   photoCostBreakdown?: PhotoCostBreakdown;
+  /** TEST_MODE: 원본 파일명+크기 지문으로 비전 분석 캐시 키를 고정 */
+  imageCacheKey?: string;
+  /**
+   * 판매자가 직접 보유한 GIF (Supabase Storage URL). AI로 새로 생성하지 않고
+   * 원본 그대로 hero 섹션 바로 뒤에 삽입한다 (토큰/비용 절감 목적).
+   */
+  customGifUrl?: string | null;
 };
 
 // slot: lib/section-templates.ts가 카테고리별로 고정한 슬롯 이름
@@ -39,6 +91,12 @@ export type HeroSection = {
   headline: string;
   subheadline?: string;
   imageIndex: number;
+  /**
+   * hero 코너 리본 뱃지 — AI가 새로 짓지 않는다. 서버가 조립 단계에서
+   * cta_price.badges의 "사실 기반 키워드" 중 하나를 그대로 재사용해 채운다
+   * (design-brief 제안 D). 근거 없는 "베스트/인기" 문구 금지 원칙 유지.
+   */
+  badge?: string;
 };
 
 export type ChecklistSection = {
@@ -46,6 +104,8 @@ export type ChecklistSection = {
   slot: string;
   heading: string;
   items: string[];
+  /** gallery/image_text 직후에 붙는 체크리스트 — 상단 여백·헤어라인 생략 */
+  compactFollow?: boolean;
 };
 
 export type ImageTextSection = {
@@ -55,6 +115,8 @@ export type ImageTextSection = {
   body: string;
   imageIndex: number;
   imagePosition: "left" | "right";
+  /** 기본 "full" = 기존 풀사이즈 이미지+텍스트. "compact" = 작은 썸네일+텍스트 한 줄 */
+  layout?: "full" | "compact";
 };
 
 export type SpecTableSection = {
@@ -110,6 +172,82 @@ export type ColorVariationSection = {
   options: { label: string; colorHex: string; imageIndex: number }[];
 };
 
+export type StatInfographicSection = {
+  type: "stat_infographic";
+  slot: string;
+  heading: string;
+  /**
+   * style: "bar" (기본값) — 비율/점유율처럼 0~100% 막대로 보여줄 수치.
+   * style: "number" — 재생시간·중량·인증 개수처럼 퍼센트가 아닌 절대 수치를
+   * 큰 숫자 카드로 강조. percent는 style이 "bar"일 때만 의미가 있다.
+   */
+  metrics: { label: string; value: string; percent?: number; style?: "bar" | "number" }[];
+};
+
+export type IllustrationBannerSection = {
+  type: "illustration_banner";
+  slot: string;
+  heading?: string;
+  /** 1~2문장 분위기/설득 카피 — 이미지 위 오버레이 */
+  body?: string;
+  /** 서버가 generateIllustrationBanner() 후 채움. DeepSeek은 비워 둠 */
+  illustrationUrl: string;
+};
+
+export type FaqSection = {
+  type: "faq";
+  slot: string;
+  heading: string;
+  items: { question: string; answer: string }[];
+};
+
+export type TargetPersonaSection = {
+  type: "target_persona";
+  slot: string;
+  heading: string;
+  personas: string[];
+};
+
+export type BrandStorySection = {
+  type: "brand_story";
+  slot: string;
+  heading: string;
+  body: string;
+};
+
+/** AI 생성 콘텐츠 고지 — 카피는 서버가 고정 문구로 주입 */
+export type AiDisclosureSection = {
+  type: "ai_disclosure";
+  slot: string;
+  heading: string;
+  body: string;
+};
+
+/**
+ * 판매자가 직접 업로드한 GIF를 그대로 삽입하는 섹션. AI가 만들지 않고
+ * 서버가 body.customGifUrl로 조립 단계에서 주입한다 (SECTION_TYPE_SHAPES 대상 아님).
+ */
+export type CustomGifSection = {
+  type: "custom_gif";
+  slot: string;
+  heading?: string;
+  gifUrl: string;
+};
+
+/**
+ * 판매자가 올린 실제 리뷰 파일에서 뽑은 "자주 언급된 장점" 요약 카드.
+ * AI가 지어낸 카피가 아니라 lib/review-insights.ts가 원문 리뷰에서 추출한
+ * 실데이터이며, 서버가 조립 단계에서 주입한다 (AI는 이 섹션을 생성하지 않음).
+ * praises는 원문 그대로의 인용문이 아니라 여러 리뷰에서 반복된 내용의 요약이므로,
+ * 렌더링 시 특정 인물이 말한 것처럼(가짜 이름·별점 등) 표시하지 않는다.
+ */
+export type ReviewHighlightSection = {
+  type: "review_highlight";
+  slot: string;
+  heading: string;
+  praises: string[];
+};
+
 export type DetailSection =
   | HeroSection
   | ChecklistSection
@@ -120,7 +258,15 @@ export type DetailSection =
   | CautionSection
   | CtaPriceSection
   | ComparisonTableSection
-  | ColorVariationSection;
+  | ColorVariationSection
+  | StatInfographicSection
+  | IllustrationBannerSection
+  | FaqSection
+  | TargetPersonaSection
+  | BrandStorySection
+  | AiDisclosureSection
+  | CustomGifSection
+  | ReviewHighlightSection;
 
 export type GeneratedCopy = {
   sections: DetailSection[];
@@ -158,4 +304,28 @@ export type GenerateResponse = GeneratedCopy & {
   qaSummary?: string;
   conceptIcons?: ConceptIconMap;
   photoCostBreakdown?: PhotoCostBreakdown;
+  generationCost?: number;
+  testMode?: boolean;
+  imageUrls?: string[];
+  referenceAnalysis?: ReferenceAnalysisInput | null;
+  reviewInsights?: ReviewInsightsInput | null;
+  planningDocText?: string | null;
+};
+
+/** /api/generate mode=draft 응답 */
+export type DraftGenerateResponse = GeneratedCopy & {
+  draftToken: string;
+  imageAnalysis: string;
+  mfdsReviewed?: boolean;
+  replacements?: ComplianceReplacement[];
+  theme?: ExtractedTheme | null;
+  urlAnalysisNotices?: string[];
+  qaSummary?: string;
+  photoCostBreakdown?: PhotoCostBreakdown;
+  draftGenerationCost?: number;
+  testMode?: boolean;
+  imageUrls?: string[];
+  referenceAnalysis?: ReferenceAnalysisInput | null;
+  reviewInsights?: ReviewInsightsInput | null;
+  planningDocText?: string | null;
 };

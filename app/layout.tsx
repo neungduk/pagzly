@@ -33,10 +33,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <link
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/fonts-archive/GmarketSans@6e540c26aa0aef8a3316eff984d614647cd7340f/GmarketSans.css"
+          crossOrigin="anonymous"
         />
         <link
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.css"
+          crossOrigin="anonymous"
         />
       </head>
       <body className="min-h-full flex flex-col">{children}</body>
