@@ -150,7 +150,12 @@ export type StatInfographicSection = {
   type: "stat_infographic";
   slot: string;
   heading: string;
-  metrics: { label: string; value: string; percent: number }[];
+  /**
+   * style: "bar" (기본값) — 비율/점유율처럼 0~100% 막대로 보여줄 수치.
+   * style: "number" — 재생시간·중량·인증 개수처럼 퍼센트가 아닌 절대 수치를
+   * 큰 숫자 카드로 강조. percent는 style이 "bar"일 때만 의미가 있다.
+   */
+  metrics: { label: string; value: string; percent?: number; style?: "bar" | "number" }[];
 };
 
 export type IllustrationBannerSection = {

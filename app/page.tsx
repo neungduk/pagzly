@@ -462,10 +462,10 @@ export default async function Home() {
           <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
             <PagzlyLogo className="h-7 w-auto" />
             <div className="flex gap-6 text-sm text-ink/50">
-              <a href="#" className="transition-colors hover:text-ink">
+              <a href="/terms" className="transition-colors hover:text-ink">
                 이용약관
               </a>
-              <a href="#" className="transition-colors hover:text-ink">
+              <a href="/privacy" className="transition-colors hover:text-ink">
                 개인정보처리방침
               </a>
               <a href="#" className="transition-colors hover:text-ink">

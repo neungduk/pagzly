@@ -486,8 +486,8 @@ function buildBriaBackdropPrompt(
   conceptBrief?: ConceptBrief,
 ): string {
   const basePrompt = BACKDROP_PROMPTS[category] ?? BACKDROP_PROMPTS["기타"];
-  const photography = resolvePhotographyTemplate(conceptBrief);
-  const conceptBlock = conceptBrief ? `, ${formatConceptPromptBlock(conceptBrief)}` : "";
+  const photography = resolvePhotographyTemplate(conceptBrief, category);
+  const conceptBlock = conceptBrief ? `, ${formatConceptPromptBlock(conceptBrief, category)}` : "";
   const lock = lightingLockPrompt(shadow);
   const accentClause =
     shadow.colorTemperature === "warm"
@@ -537,8 +537,8 @@ export async function generateBackdrop(
     }
   }
 
-  const photography = resolvePhotographyTemplate(conceptBrief);
-  const conceptBlock = conceptBrief ? `, ${formatConceptPromptBlock(conceptBrief)}` : "";
+  const photography = resolvePhotographyTemplate(conceptBrief, category);
+  const conceptBlock = conceptBrief ? `, ${formatConceptPromptBlock(conceptBrief, category)}` : "";
   const lock = lightingLockPrompt(shadow);
   const accentClause =
     shadow.colorTemperature === "warm"
@@ -1039,7 +1039,7 @@ export async function generateSectionBackdropVariants(
   category = "기타",
 ): Promise<{ ingredientUrl: string | null; textureUrl: string | null; cost: number }> {
   const lock = lightingLockPrompt(shadow);
-  const conceptBlock = conceptBrief ? formatConceptPromptBlock(conceptBrief) : "";
+  const conceptBlock = conceptBrief ? formatConceptPromptBlock(conceptBrief, category) : "";
   const sectionPrompts = getSectionBackdropPrompts(category);
   const kinds = ["ingredient", "texture"] as const;
   const results = await Promise.allSettled(

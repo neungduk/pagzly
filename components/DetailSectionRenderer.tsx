@@ -144,6 +144,21 @@ function ConceptBadgeIcon({
   );
 }
 
+// spec_table 값이 근거 없음을 나타내는 안내 문구인지 판단 — 완성된 페이지에는
+// 이런 문구가 그대로 노출되지 않도록 렌더링 단계에서 걸러낸다.
+const PLACEHOLDER_VALUE_PATTERNS = [
+  "판매자 확인 필요",
+  "판매자에게 문의",
+  "판매자 정책을 확인",
+  "확인 필요",
+];
+
+function isPlaceholderValue(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+  return PLACEHOLDER_VALUE_PATTERNS.some((pattern) => trimmed.includes(pattern));
+}
+
 function parseMetricPercent(value: string): number | null {
   const match = value.match(/(\d+(?:\.\d+)?)\s*%/);
   if (!match) return null;
@@ -453,7 +468,12 @@ function renderSection(
       );
     }
 
-    case "spec_table":
+    case "spec_table": {
+      // AI가 근거 없는 값에 채워 넣는 안내 문구는 표에 그대로 노출하면 미완성처럼
+      // 보이므로, 편집 모드가 아닐 때는 해당 행을 숨긴다 (편집 모드에서는 어떤 값이
+      // 비어있는지 판매자가 알아야 하므로 그대로 보여준다).
+      const visibleRows = edit?.enabled ? section.rows : section.rows.filter((row) => !isPlaceholderValue(row.value));
+      if (visibleRows.length === 0) return null;
       return (
         <section
           key={`spec_table-${index}`}
@@ -476,7 +496,9 @@ function renderSection(
           <div className="mx-auto mt-10 max-w-xl">
             <table className="w-full text-sm">
               <tbody>
-                {section.rows.map((row, rowIndex) => (
+                {visibleRows.map((row) => {
+                  const rowIndex = section.rows.indexOf(row);
+                  return (
                   <tr
                     key={`${row.label}-${rowIndex}`}
                     className="border-b last:border-b-0"
@@ -517,12 +539,14 @@ function renderSection(
                       })()}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </section>
       );
+    }
 
     case "comparison_table":
       return (
@@ -619,7 +643,17 @@ function renderSection(
       );
     }
 
-    case "stat_infographic":
+    case "stat_infographic": {
+      const indexedMetrics = section.metrics.map((metric, metricIndex) => ({ metric, metricIndex }));
+      const numberMetrics = indexedMetrics.filter(({ metric }) => metric.style === "number");
+      const barMetrics = indexedMetrics.filter(({ metric }) => metric.style !== "number");
+      const numberGridCols =
+        numberMetrics.length <= 1
+          ? "max-w-xs grid-cols-1"
+          : numberMetrics.length === 2
+            ? "max-w-md grid-cols-2"
+            : "max-w-2xl grid-cols-2 sm:grid-cols-3";
+
       return (
         <section
           key={`stat_infographic-${index}`}
@@ -634,24 +668,18 @@ function renderSection(
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
             className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
           />
-          <div className="mx-auto mt-10 max-w-xl space-y-7">
-            {section.metrics.map((metric, metricIndex) => {
-              const percent = Math.min(100, Math.max(0, metric.percent));
-              return (
-                <div key={`${metric.label}-${metricIndex}`}>
-                  <div className="flex items-baseline justify-between gap-4">
-                    <EditableText
-                      as="span"
-                      enabled={edit?.enabled}
-                      value={metric.label}
-                      onChange={(label) => {
-                        const metrics = section.metrics.map((item, i) =>
-                          i === metricIndex ? { ...item, label } : item,
-                        );
-                        edit?.onChange(index, { ...section, metrics });
-                      }}
-                      className="text-sm font-medium text-ink/65 sm:text-base"
-                    />
+          {numberMetrics.length > 0 && (
+            <div
+              className={`mx-auto mt-10 grid gap-px overflow-hidden rounded-2xl ${numberGridCols}`}
+              style={{ backgroundColor: hexToRgba(theme.accent, 0.18) }}
+            >
+              {numberMetrics.map(({ metric, metricIndex }) => (
+                <div
+                  key={`${metric.label}-${metricIndex}`}
+                  className="flex flex-col items-center gap-1.5 px-4 py-7 text-center"
+                  style={{ backgroundColor: theme.baseNeutral }}
+                >
+                  <div style={{ color: theme.deepAccent }}>
                     <EditableText
                       as="span"
                       enabled={edit?.enabled}
@@ -662,16 +690,66 @@ function renderSection(
                         );
                         edit?.onChange(index, { ...section, metrics });
                       }}
-                      className="font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl"
+                      className="font-heading text-3xl font-bold tracking-tight sm:text-4xl"
                     />
                   </div>
-                  <MetricBar percent={percent} theme={theme} large />
+                  <EditableText
+                    as="span"
+                    enabled={edit?.enabled}
+                    value={metric.label}
+                    onChange={(label) => {
+                      const metrics = section.metrics.map((item, i) =>
+                        i === metricIndex ? { ...item, label } : item,
+                      );
+                      edit?.onChange(index, { ...section, metrics });
+                    }}
+                    className="text-xs font-medium text-ink/60 sm:text-sm"
+                  />
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
+          {barMetrics.length > 0 && (
+            <div className="mx-auto mt-10 max-w-xl space-y-7">
+              {barMetrics.map(({ metric, metricIndex }) => {
+                const percent = Math.min(100, Math.max(0, metric.percent ?? 0));
+                return (
+                  <div key={`${metric.label}-${metricIndex}`}>
+                    <div className="flex items-baseline justify-between gap-4">
+                      <EditableText
+                        as="span"
+                        enabled={edit?.enabled}
+                        value={metric.label}
+                        onChange={(label) => {
+                          const metrics = section.metrics.map((item, i) =>
+                            i === metricIndex ? { ...item, label } : item,
+                          );
+                          edit?.onChange(index, { ...section, metrics });
+                        }}
+                        className="text-sm font-medium text-ink/65 sm:text-base"
+                      />
+                      <EditableText
+                        as="span"
+                        enabled={edit?.enabled}
+                        value={metric.value}
+                        onChange={(value) => {
+                          const metrics = section.metrics.map((item, i) =>
+                            i === metricIndex ? { ...item, value } : item,
+                          );
+                          edit?.onChange(index, { ...section, metrics });
+                        }}
+                        className="font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl"
+                      />
+                    </div>
+                    <MetricBar percent={percent} theme={theme} large />
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       );
+    }
 
     case "illustration_banner":
       return (

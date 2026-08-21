@@ -234,7 +234,7 @@ const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
   cta_price: `{ type: "cta_price", slot, price, targetCustomer?, badges[]? }`,
   comparison_table: `{ type: "comparison_table", slot, heading, columns: [string,string], rows: [{label, values: [string,string]}] }`,
   color_variation: `{ type: "color_variation", slot, heading, options: [{label, colorHex, imageIndex}] }`,
-  stat_infographic: `{ type: "stat_infographic", slot, heading, metrics: [{label, value, percent: 0-100}] } — 입력에 실제 수치 근거가 있을 때만 포함. 근거 없으면 섹션 생략`,
+  stat_infographic: `{ type: "stat_infographic", slot, heading, metrics: [{label, value, style: "bar"|"number", percent?: 0-100}] } — style:"bar"는 percent 필수(비율/점유율용), style:"number"는 percent 생략하고 절대 수치(시간·무게·개수 등)를 큰 숫자로 강조. 입력에 실제 수치 근거가 있을 때만 포함. 근거 없으면 섹션 생략`,
   illustration_banner: `{ type: "illustration_banner", slot, heading?, body?, illustrationUrl: "" } — body는 분위기 1~2문장, illustrationUrl은 서버가 채우므로 빈 문자열`,
   faq: `{ type: "faq", slot, heading, items: [{question, answer}] } — 3~5개. 근거 없으면 슬롯 생략. 근거 없는 개별 질문은 답변을 "판매자에게 문의해주세요"`,
   target_persona: `{ type: "target_persona", slot, heading, personas[] } — 3~5개, 각 20자 내외. targetCustomer·keyFeatures 기반으로만`,
@@ -489,7 +489,7 @@ ${isCosmetics ? `
 - quick_points: layout 반드시 "compact". heading 8자 내외, body 1문장. 사진은 텍스처/디테일 컷.
 - compact layout은 사진이 작아지므로 텍스트도 짧게 (heading·body 모두 위 길이 준수).
 - spec_table 값에 없는 % 수치를 만들지 말 것 (임상 막대용 가짜 데이터 금지).
-- stat_infographic: keyFeatures·ingredients·certifications 등 **입력에 명시된 수치**만 metrics에 사용. 근거 없으면 stat_infographic 슬롯 전체를 생략. "판매자 확인 필요"나 임의 percent 금지.
+- stat_infographic: keyFeatures·ingredients·certifications 등 **입력에 명시된 수치**만 metrics에 사용. 근거 없으면 stat_infographic 슬롯 전체를 생략. "판매자 확인 필요"나 임의 percent 금지. 비율/점유율 수치는 style:"bar"+percent로, 시간·용량·중량·개수 같은 절대 수치는 style:"number"로 percent 없이 큰 숫자 강조.
 - 시각 컨셉과 모순 금지: 쿨링/진정이면 따뜻·온기·골드 카피 금지. 수분이면 오일리·번들 표현 금지. 클렌징이면 보습 도포를 주효능처럼 쓰지 말 것.
 ` : ""}
 
@@ -522,6 +522,12 @@ imageIndex는 0 ~ ${imageCount - 1} 범위 안에서만 사용하세요.
 stat_infographic 섹션은 keyFeatures·ingredients·certifications 등 입력에 **실제 수치 근거**가
 있을 때만 포함하세요. 근거 없으면 해당 슬롯을 생략하고, 수치를 지어내거나
 "판매자 확인 필요"를 metrics value로 쓰지 마세요.
+metrics 각 항목의 style을 고르세요: 비율·점유율(예: "재구매율 68%")은 style:"bar"로
+percent(0~100)를 채우고, 퍼센트로 표현되지 않는 절대 수치(예: "24시간 재생",
+"42dB 노이즈캔슬링", "3중 특허", "120g")는 style:"number"로 percent 없이 값을
+그대로 큰 숫자로 강조하세요. 한 섹션 안에 두 style을 섞어도 됩니다 (3~5개 중
+적절히 배분). 둘 다 입력에 근거가 있을 때만 사용하고, 절대 수치를 퍼센트로
+억지로 바꾸지 마세요.
 illustration_banner의 illustrationUrl은 항상 빈 문자열("")로 두세요 (서버가 생성).
 illustration_banner의 body는 이 섹션 분위기를 설명하는 1~2문장 카피입니다 (image_text body와 비슷한 톤).
 quick_points 슬롯은 layout:"compact"로 2~4개 채우세요. heading 8자 내외, body 1문장, 사진은 작은 텍스처/디테일 컷.
@@ -642,10 +648,18 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
     if (section.type === "stat_infographic") {
       return {
         ...section,
-        metrics: section.metrics.map((metric) => ({
-          ...metric,
-          percent: Math.min(100, Math.max(0, Number(metric.percent) || 0)),
-        })),
+        metrics: section.metrics.map((metric) => {
+          const style = metric.style === "number" ? "number" : "bar";
+          if (style === "number") {
+            // 절대 수치 카드는 percent가 의미 없으므로 그대로 둔다 (막대로 렌더하지 않음).
+            return { ...metric, style };
+          }
+          return {
+            ...metric,
+            style,
+            percent: Math.min(100, Math.max(0, Number(metric.percent) || 0)),
+          };
+        }),
       };
     }
     if (section.type === "illustration_banner") {

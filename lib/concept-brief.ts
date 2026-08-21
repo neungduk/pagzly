@@ -183,9 +183,10 @@ backdrop_hint와 decor_prompt는 영문만, 상품·텍스트·로고 없이.`;
   }
 }
 
-/** 이미지/카피 프롬프트에 주입할 공통 컨셉 문장 */
-export function formatConceptPromptBlock(brief: ConceptBrief): string {
-  const photography = resolvePhotographyTemplate(brief);
+/** 이미지/카피 프롬프트에 주입할 공통 컨셉 문장. category를 넘기면 화장품 외
+ *  카테고리는 물/유리 모티프 없는 카테고리 전용 촬영 템플릿을 사용한다. */
+export function formatConceptPromptBlock(brief: ConceptBrief, category?: string): string {
+  const photography = resolvePhotographyTemplate(brief, category);
   return `Visual concept theme: "${brief.theme}". Mood: ${brief.mood}. Motif elements: ${brief.motif_keywords.join(", ")}. ${brief.backdrop_hint}. Photography: lighting=${photography.lighting}; composition=${photography.composition}; texture=${photography.texture}`;
 }
 
