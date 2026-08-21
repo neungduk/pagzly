@@ -1,5 +1,14 @@
 # Pagzly 자동 작업 로그
 
+## Draft·고지·다운로드·홈 HistorySidebar (2026-08-20)
+
+1. **AI 콘텐츠 고지** — `app/create/result/page.tsx` captureRef 안 `DetailSectionRenderer` 바로 아래 고정 문구(PNG 포함).
+2. **기획 초안(draft)** — 제출 시 업로드+원본으로 `/api/generate` draft만; `lib/photo-pipeline-client.ts`에 backdrop/enhance 추출; `/create/draft`에서 재생성·승인 후 보정→result. `draftApproved !== true`면 result→draft 리다이렉트. (원본 URL vision 분석 경로 확인 → `imageUrls: []` 폴백 불필요)
+3. **다운로드 폭** — 스마트스토어 860 / 쿠팡 780, `pixelRatio = targetWidth / offsetWidth`, 파일명에 플랫폼명.
+4. **HistorySidebar** — 홈 우측 탭(호버+모바일 탭), products 20건, 클릭 시 SESSION_KEY→`/create/result`.
+
+---
+
 ## GSAP·Playwright QA·합성 보완 (2026-08-18 오전)
 
 ### 1단계 재확인 (`review/final-approved/`)

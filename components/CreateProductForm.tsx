@@ -1,13 +1,12 @@
 ﻿"use client";
 
-import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import GeneratingOverlay, { type GeneratingStage, SNAP_HOLD_MS } from "@/components/GeneratingOverlay";
-import BackdropCandidatePicker from "@/components/BackdropCandidatePicker";
 import { createClient } from "@/lib/supabase";
-import { getCategoryTheme } from "@/lib/category-theme";
 import { countSlotSections, type SlotLength } from "@/lib/section-templates";
-import type { GeneratedCopy, GenerateResponse } from "@/lib/types/generate";
+import type { DraftGenerateResponse } from "@/lib/types/generate";
+import type { UploadedImage } from "@/lib/photo-pipeline-client";
 
 const CATEGORIES = [
   "의류/패션",
@@ -40,14 +39,45 @@ const PLANNING_TYPES = [
 ];
 const STORAGE_BUCKET = "images";
 const SESSION_KEY = "pagzly-create-result";
+/** 기획 초안(draft) — payload + sections */
+export const DRAFT_SESSION_KEY = "pagzly-create-draft";
+
+export type DraftSessionPayload = {
+  payload: Record<string, unknown>;
+  draftToken: string;
+  sections: DraftGenerateResponse["sections"];
+  headlines: string[];
+  description: string;
+  features: string[];
+  howToUse: string;
+  caution: string;
+  imageAnalysis?: string;
+  theme?: DraftGenerateResponse["theme"];
+  mfdsReviewed?: boolean;
+  replacements?: DraftGenerateResponse["replacements"];
+  photoCostBreakdown?: DraftGenerateResponse["photoCostBreakdown"];
+  referenceAnalysis?: DraftGenerateResponse["referenceAnalysis"];
+  reviewInsights?: DraftGenerateResponse["reviewInsights"];
+  planningDocText?: DraftGenerateResponse["planningDocText"];
+  /** false면 원본 이미지로 카피만 뽑은 상태 — 승인 전 */
+  draftApproved: boolean;
+  formSnapshot: {
+    category: string;
+    compositionLength: SlotLength;
+    productName: string;
+    brandName: string;
+    price: string;
+    targetCustomer: string;
+    keyFeatures: string;
+    ingredients: string;
+    certifications: string;
+    competitorUrl: string;
+    wholesaleUrl: string;
+  };
+};
 
 type CreateProductFormProps = {
   userId: string;
-};
-
-type UploadedImage = {
-  url: string;
-  path: string;
 };
 
 type LoadingStage = "idle" | GeneratingStage;
@@ -61,12 +91,15 @@ function validateImage(file: File): string | null {
 
 export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [category, setCategory] = useState("");
   const [compositionLength, setCompositionLength] = useState<SlotLength>("long");
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  /** draft 수정 복귀 시 — 이미 업로드된 URL (새 File 없이 재제출 가능) */
+  const [restoredUploads, setRestoredUploads] = useState<UploadedImage[] | null>(null);
   const [productName, setProductName] = useState("");
   const [brandName, setBrandName] = useState("");
   const [price, setPrice] = useState("");
@@ -87,14 +120,47 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [loadingStage, setLoadingStage] = useState<LoadingStage>("idle");
   const [overlaySnapComplete, setOverlaySnapComplete] = useState(false);
-  const [backdropCandidates, setBackdropCandidates] = useState<string[] | null>(null);
-  const backdropPickRef = useRef<((url: string) => void) | null>(null);
-  const loading = loadingStage !== "idle" || backdropCandidates !== null;
+  const loading = loadingStage !== "idle";
 
   const sectionCountHint = useMemo(() => {
     if (!category) return null;
     return countSlotSections(category, compositionLength);
   }, [category, compositionLength]);
+
+  useEffect(() => {
+    if (searchParams.get("restore") !== "1") return;
+    try {
+      const raw = sessionStorage.getItem(DRAFT_SESSION_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw) as DraftSessionPayload;
+      const snap = draft.formSnapshot;
+      if (!snap) return;
+      setCategory(snap.category ?? "");
+      setCompositionLength(snap.compositionLength === "short" ? "short" : "long");
+      setProductName(snap.productName ?? "");
+      setBrandName(snap.brandName ?? "");
+      setPrice(snap.price ?? "");
+      setTargetCustomer(snap.targetCustomer ?? "");
+      setKeyFeatures(snap.keyFeatures ?? "");
+      setIngredients(snap.ingredients ?? "");
+      setCertifications(snap.certifications ?? "");
+      setCompetitorUrl(snap.competitorUrl ?? "");
+      setWholesaleUrl(snap.wholesaleUrl ?? "");
+      const urls = (draft.payload.imageUrls as string[] | undefined) ?? [];
+      const paths = (draft.payload.imagePaths as string[] | undefined) ?? [];
+      if (urls.length > 0) {
+        setPreviews(urls);
+        setRestoredUploads(
+          urls.map((url, i) => ({
+            url,
+            path: paths[i] ?? `restored/${i}`,
+          })),
+        );
+      }
+    } catch {
+      // ignore corrupt draft
+    }
+  }, [searchParams]);
 
   const addImages = useCallback(
     (files: FileList | File[]) => {
@@ -106,6 +172,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         setError(`상품 사진은 최대 ${MAX_IMAGES}장까지 업로드할 수 있습니다.`);
         return;
       }
+
+      setRestoredUploads(null);
 
       const nextFiles: File[] = [];
       const nextPreviews: string[] = [];
@@ -240,244 +308,6 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     setPlanningDoc(file);
   }
 
-  function waitForBackdropPick(urls: string[]): Promise<string> {
-    return new Promise((resolve) => {
-      backdropPickRef.current = resolve;
-      setBackdropCandidates(urls);
-      setLoadingStage("idle");
-    });
-  }
-
-  async function generateBackdrop(
-    productCategory: string,
-    name: string,
-    brand: string | null,
-    imageUrls: string[],
-    formPrice: string,
-    formKeyFeatures: string,
-    formIngredients: string,
-    formTargetCustomer: string,
-    referenceImageUrl: string | null,
-  ): Promise<{
-    backdropDataUrl?: string;
-    candidateUrls?: string[];
-    autoPicked?: boolean;
-    cost: number;
-    conceptBriefCost: number;
-    backdropCost: number;
-    claudeCost?: number;
-    referenceAnalysisCost?: number;
-    referenceAnalysis?: import("@/lib/types/generate").ReferenceAnalysisInput;
-    testMode?: boolean;
-    shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis;
-    conceptBrief?: import("@/lib/concept-brief").ConceptBrief;
-  } | null> {
-    try {
-      const response = await fetch("/api/generate-backdrop", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          category: productCategory,
-          productName: name,
-          brandName: brand,
-          imageUrls,
-          price: Number(formPrice) || undefined,
-          keyFeatures: formKeyFeatures.trim() || null,
-          ingredients: formIngredients.trim() || null,
-          targetCustomer: formTargetCustomer.trim() || null,
-          referenceImageUrl,
-        }),
-      });
-
-      const result = (await response.json()) as {
-        backdropDataUrl?: string;
-        candidateUrls?: string[];
-        autoPicked?: boolean;
-        cost?: number;
-        conceptBriefCost?: number;
-        backdropCost?: number;
-        claudeCost?: number;
-        referenceAnalysisCost?: number;
-        referenceAnalysis?: import("@/lib/types/generate").ReferenceAnalysisInput;
-        testMode?: boolean;
-        shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis;
-        conceptBrief?: import("@/lib/concept-brief").ConceptBrief;
-        error?: string;
-      };
-
-      if (!response.ok) {
-        console.warn(
-          "[generate-backdrop] 배경 생성 실패, 원본 이미지 사용:",
-          result.error ?? "unknown",
-        );
-        return null;
-      }
-
-      const candidates = result.candidateUrls?.filter(Boolean) ?? [];
-      if (!result.backdropDataUrl && candidates.length === 0) {
-        console.warn("[generate-backdrop] 배경 후보가 없습니다.");
-        return null;
-      }
-
-      return {
-        backdropDataUrl: result.backdropDataUrl,
-        candidateUrls: candidates,
-        autoPicked: result.autoPicked ?? true,
-        cost: result.cost ?? 0,
-        conceptBriefCost: result.conceptBriefCost ?? 0,
-        backdropCost: result.backdropCost ?? result.cost ?? 0,
-        claudeCost: result.claudeCost ?? 0,
-        referenceAnalysisCost: result.referenceAnalysisCost ?? 0,
-        referenceAnalysis: result.referenceAnalysis,
-        testMode: result.testMode ?? false,
-        shadowAnalysis: result.shadowAnalysis,
-        conceptBrief: result.conceptBrief,
-      };
-    } catch (err) {
-      console.warn("[generate-backdrop] 배경 생성 실패, 원본 이미지 사용:", err);
-      return null;
-    }
-  }
-
-  async function enhanceImages(
-    uploaded: UploadedImage[],
-    heroBackdrop: string,
-    shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis,
-    conceptBrief?: import("@/lib/concept-brief").ConceptBrief,
-    productCategory?: string,
-    testMode?: boolean,
-    sectionBackdrops?: { ingredientUrl?: string | null; textureUrl?: string | null },
-  ): Promise<{ images: UploadedImage[]; cost: number; decorCost: number; claudeCost: number }> {
-    let totalCost = 0;
-    let decorCost = 0;
-    let claudeCost = 0;
-    let decorDataUrl: string | undefined;
-    const categoryTheme = productCategory ? getCategoryTheme(productCategory) : null;
-    const themeColors = categoryTheme
-      ? {
-          accent: categoryTheme.accent,
-          baseNeutral: categoryTheme.baseNeutral,
-          deepAccent: categoryTheme.deepAccent,
-        }
-      : undefined;
-    const isBeauty = productCategory === "화장품/뷰티";
-    const backdropByIndex = [
-      heroBackdrop,
-      sectionBackdrops?.ingredientUrl || heroBackdrop,
-      sectionBackdrops?.textureUrl || heroBackdrop,
-    ];
-
-    async function enhanceOne(
-      item: UploadedImage,
-      backdropDataUrl: string,
-      options: {
-        applyDecor: boolean;
-        keepOriginal?: boolean;
-        pathSuffix?: string;
-        reuseDecor?: boolean;
-      },
-    ): Promise<UploadedImage | null> {
-      const response = await fetch("/api/enhance-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          imageUrl: item.url,
-          storagePath: item.path,
-          backdropDataUrl,
-          shadowAnalysis,
-          conceptBrief,
-          applyDecor: options.applyDecor,
-          decorDataUrl: options.reuseDecor ? decorDataUrl : undefined,
-          theme: themeColors,
-          keepOriginal: options.keepOriginal,
-          pathSuffix: options.pathSuffix,
-        }),
-      });
-
-      const result = (await response.json()) as {
-        enhancedUrl?: string;
-        enhancedPath?: string;
-        cost?: number;
-        decorCost?: number;
-        claudeCost?: number;
-        decorDataUrl?: string;
-        error?: string;
-      };
-
-      if (!response.ok || !result.enhancedUrl || !result.enhancedPath) {
-        console.warn(
-          "[enhance-image] 보정 실패, 원본 사용:",
-          result.error ?? item.path,
-        );
-        return null;
-      }
-
-      totalCost += result.cost ?? 0;
-      decorCost += result.decorCost ?? 0;
-      claudeCost += result.claudeCost ?? 0;
-      if (result.decorDataUrl) {
-        decorDataUrl = result.decorDataUrl;
-      }
-      return { url: result.enhancedUrl, path: result.enhancedPath };
-    }
-
-    const extras: UploadedImage[] = [];
-    if (isBeauty) {
-      if (uploaded.length < 2 && sectionBackdrops?.ingredientUrl) {
-        try {
-          const extra = await enhanceOne(uploaded[0], sectionBackdrops.ingredientUrl, {
-            applyDecor: false,
-            keepOriginal: true,
-            pathSuffix: "ingredient",
-          });
-          if (extra) extras.push(extra);
-        } catch (err) {
-          console.warn("[enhance-image] 성분 배경 추가 합성 실패:", err);
-        }
-      }
-      if (uploaded.length + extras.length < 3 && sectionBackdrops?.textureUrl) {
-        try {
-          const extra = await enhanceOne(uploaded[0], sectionBackdrops.textureUrl, {
-            applyDecor: false,
-            keepOriginal: true,
-            pathSuffix: "texture",
-          });
-          if (extra) extras.push(extra);
-        } catch (err) {
-          console.warn("[enhance-image] 텍스처 배경 추가 합성 실패:", err);
-        }
-      }
-    }
-
-    const results: UploadedImage[] = [];
-    for (let index = 0; index < uploaded.length; index++) {
-      const item = uploaded[index];
-      const isHero = index === 0;
-
-      // TEST_MODE에서도 모든 업로드 사진에 배경 제거+합성을 적용한다.
-      // (index>0 스킵은 비용 절감용이었으나, 원본 사진 사각형이 섹션에 그대로
-      //  노출되어 QA/데모 품질을 망가뜨림 — P0 버그)
-
-      try {
-        const enhanced = await enhanceOne(
-          item,
-          backdropByIndex[index] ?? heroBackdrop,
-          {
-            applyDecor: isHero,
-            reuseDecor: !isHero,
-            pathSuffix: "enhanced",
-          },
-        );
-        results.push(enhanced ?? item);
-      } catch (err) {
-        console.warn("[enhance-image] 보정 실패, 원본 사용:", item.path, err);
-        results.push(item);
-      }
-    }
-
-    return { images: [...results, ...extras], cost: totalCost, decorCost, claudeCost };
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -486,7 +316,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       setError("카테고리를 선택해 주세요.");
       return;
     }
-    if (images.length === 0) {
+    if (images.length === 0 && !restoredUploads?.length) {
       setError("상품 사진을 1장 이상 업로드해 주세요.");
       return;
     }
@@ -503,12 +333,12 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     setOverlaySnapComplete(false);
 
     try {
-      const uploaded = await uploadImages(images);
+      const uploaded =
+        images.length > 0 ? await uploadImages(images) : (restoredUploads as UploadedImage[]);
 
       let referenceImageUrl: string | null = null;
       let reviewFileUrl: string | null = null;
       let planningDocUrl: string | null = null;
-      let referenceAnalysis: import("@/lib/types/generate").ReferenceAnalysisInput | undefined;
 
       if (referenceImage) {
         referenceImageUrl = await uploadAuxFile(referenceImage, "reference");
@@ -520,116 +350,14 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         planningDocUrl = await uploadAuxFile(planningDoc, "planning");
       }
 
-      let photoProcessingCost = 0;
-      let conceptBrief: import("@/lib/concept-brief").ConceptBrief | undefined;
-      let photoCostBreakdown: import("@/lib/types/generate").PhotoCostBreakdown = {};
-      let testMode = false;
-
-      setLoadingStage("backdrop");
-      const backdropResult = await generateBackdrop(
-        category,
-        productName.trim(),
-        brandName.trim() || null,
-        uploaded.map((item) => item.url),
-        price,
-        keyFeatures,
-        ingredients,
-        targetCustomer,
-        referenceImageUrl,
-      );
-
-      let finalImages = uploaded;
-      if (backdropResult) {
-        testMode = backdropResult.testMode ?? false;
-        photoProcessingCost += backdropResult.cost;
-        conceptBrief = backdropResult.conceptBrief;
-        photoCostBreakdown = {
-          conceptBrief: backdropResult.conceptBriefCost,
-          backdrop: backdropResult.backdropCost,
-          claude: backdropResult.claudeCost ?? 0,
-          referenceAnalysis: backdropResult.referenceAnalysisCost ?? 0,
-        };
-        referenceAnalysis = backdropResult.referenceAnalysis;
-
-        let chosenBackdrop = backdropResult.backdropDataUrl;
-        const candidates = backdropResult.candidateUrls ?? [];
-        if (!testMode && candidates.length > 1) {
-          chosenBackdrop = await waitForBackdropPick(candidates);
-          setLoadingStage("enhancing");
-        } else if (candidates.length >= 1) {
-          // fill-dev 단일 후보: Supabase에 올린 안정 URL 우선 (Replicate 임시 URL 만료 방지)
-          chosenBackdrop = candidates[0];
-        }
-
-        if (!chosenBackdrop) {
-          throw new Error("배경이 선택되지 않았습니다.");
-        }
-
-        let sectionBackdrops:
-          | { ingredientUrl?: string | null; textureUrl?: string | null }
-          | undefined;
-        // 업로드 2·3번(성분/기능·텍스처/사용 장면)마다 히어로와 다른 배경을 쓴다.
-        if (backdropResult.shadowAnalysis && uploaded.length >= 2) {
-          try {
-            const sectionRes = await fetch("/api/section-backdrops", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                shadowAnalysis: backdropResult.shadowAnalysis,
-                conceptBrief,
-                category,
-              }),
-            });
-            const sectionJson = (await sectionRes.json()) as {
-              ingredientUrl?: string | null;
-              textureUrl?: string | null;
-              cost?: number;
-              error?: string;
-            };
-            if (sectionRes.ok) {
-              sectionBackdrops = {
-                ingredientUrl: sectionJson.ingredientUrl,
-                textureUrl: sectionJson.textureUrl,
-              };
-              photoProcessingCost += sectionJson.cost ?? 0;
-              photoCostBreakdown = {
-                ...photoCostBreakdown,
-                sectionBackdrops: sectionJson.cost ?? 0,
-              };
-            } else {
-              console.warn("[section-backdrops] 생략:", sectionJson.error);
-            }
-          } catch (err) {
-            console.warn("[section-backdrops] 생략:", err);
-          }
-        }
-
-        setLoadingStage("enhancing");
-        const enhanced = await enhanceImages(
-          uploaded,
-          chosenBackdrop,
-          backdropResult.shadowAnalysis,
-          conceptBrief,
-          category,
-          testMode,
-          sectionBackdrops,
-        );
-        finalImages = enhanced.images;
-        photoProcessingCost += enhanced.cost;
-        photoCostBreakdown = {
-          ...photoCostBreakdown,
-          enhance: enhanced.cost - enhanced.decorCost,
-          decor: enhanced.decorCost,
-          claude: (photoCostBreakdown.claude ?? 0) + enhanced.claudeCost,
-        };
-      }
-
-      const imageUrls = finalImages.map((item) => item.url);
-      const imagePaths = finalImages.map((item) => item.path);
+      // 승인 전: 원본 업로드만으로 카피 draft 생성 (배경/보정 비용 스킵)
+      const imageUrls = uploaded.map((item) => item.url);
+      const imagePaths = uploaded.map((item) => item.path);
 
       const payload = {
         category,
         length: compositionLength,
+        mode: "draft" as const,
         imageUrls,
         imagePaths,
         productName: productName.trim(),
@@ -644,12 +372,11 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         referenceImageUrl,
         reviewFileUrl,
         planningDocUrl,
-        referenceAnalysis: referenceAnalysis ?? null,
+        referenceAnalysis: null,
         createdAt: new Date().toISOString(),
-        photoProcessingCost,
-        conceptBrief,
-        photoCostBreakdown,
-        testMode,
+        photoProcessingCost: 0,
+        photoCostBreakdown: {},
+        testMode: false,
         imageCacheKey: images
           .map((file) => `${file.name}:${file.size}`)
           .sort()
@@ -657,16 +384,6 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       };
 
       setLoadingStage("generating");
-
-      console.log("[generate payload wholesale]", {
-        rawLength: wholesaleUrl.length,
-        trimmedLength: wholesaleUrl.trim().length,
-        sent:
-          payload.wholesaleUrl === null
-            ? "null (empty)"
-            : `string(${String(payload.wholesaleUrl).length})`,
-        preview: (payload.wholesaleUrl ?? "").slice(0, 120),
-      });
 
       const generateResponse = await fetch("/api/generate", {
         method: "POST",
@@ -683,26 +400,75 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       setOverlaySnapComplete(true);
       await new Promise((r) => setTimeout(r, SNAP_HOLD_MS));
 
+      const draftResult = generateResult as DraftGenerateResponse;
+      const draftSession: DraftSessionPayload = {
+        payload: {
+          ...payload,
+          imageUrls: draftResult.imageUrls ?? payload.imageUrls,
+          photoCostBreakdown: draftResult.photoCostBreakdown ?? payload.photoCostBreakdown,
+          referenceAnalysis: draftResult.referenceAnalysis ?? null,
+          reviewInsights: draftResult.reviewInsights ?? null,
+          planningDocText: draftResult.planningDocText ?? null,
+        },
+        draftToken: draftResult.draftToken,
+        sections: draftResult.sections,
+        headlines: draftResult.headlines ?? [],
+        description: draftResult.description ?? "",
+        features: draftResult.features ?? [],
+        howToUse: draftResult.howToUse ?? "",
+        caution: draftResult.caution ?? "",
+        imageAnalysis: draftResult.imageAnalysis,
+        theme: draftResult.theme,
+        mfdsReviewed: draftResult.mfdsReviewed,
+        replacements: draftResult.replacements,
+        photoCostBreakdown: draftResult.photoCostBreakdown,
+        referenceAnalysis: draftResult.referenceAnalysis,
+        reviewInsights: draftResult.reviewInsights,
+        planningDocText: draftResult.planningDocText,
+        draftApproved: false,
+        formSnapshot: {
+          category,
+          compositionLength,
+          productName: productName.trim(),
+          brandName: brandName.trim(),
+          price,
+          targetCustomer,
+          keyFeatures: keyFeatures.trim(),
+          ingredients: ingredients.trim(),
+          certifications: certifications.trim(),
+          competitorUrl: competitorUrl.trim(),
+          wholesaleUrl: wholesaleUrl.trim(),
+        },
+      };
+      sessionStorage.setItem(DRAFT_SESSION_KEY, JSON.stringify(draftSession));
+      // result 리다이렉트용 — 미승인 세션 표시
       sessionStorage.setItem(
         SESSION_KEY,
         JSON.stringify({
           ...payload,
-          imageUrls: (generateResult as GenerateResponse).imageUrls ?? payload.imageUrls,
-          photoCostBreakdown:
-            (generateResult as GenerateResponse).photoCostBreakdown ?? payload.photoCostBreakdown,
-          referenceAnalysis:
-            (generateResult as GenerateResponse).referenceAnalysis ?? payload.referenceAnalysis,
-          reviewInsights: (generateResult as GenerateResponse).reviewInsights ?? null,
-          planningDocText: (generateResult as GenerateResponse).planningDocText ?? null,
-          testMode: generateResult.testMode ?? testMode,
-          generated: generateResult as GenerateResponse,
+          imageUrls,
+          generated: {
+            sections: draftResult.sections,
+            headlines: draftResult.headlines ?? [],
+            description: draftResult.description ?? "",
+            features: draftResult.features ?? [],
+            howToUse: draftResult.howToUse ?? "",
+            caution: draftResult.caution ?? "",
+            imageAnalysis: draftResult.imageAnalysis,
+            theme: draftResult.theme,
+            mfdsReviewed: draftResult.mfdsReviewed,
+            replacements: draftResult.replacements,
+            photoCostBreakdown: draftResult.photoCostBreakdown,
+            referenceAnalysis: draftResult.referenceAnalysis,
+            reviewInsights: draftResult.reviewInsights,
+            planningDocText: draftResult.planningDocText,
+            draftToken: draftResult.draftToken,
+          },
+          draftApproved: false,
         }),
       );
-      router.push(
-        `/create/result?id=${encodeURIComponent((generateResult as GenerateResponse).productId)}`,
-      );
+      router.push("/create/draft");
     } catch (err) {
-      setBackdropCandidates(null);
       setOverlaySnapComplete(false);
       setError(err instanceof Error ? err.message : "제출 중 오류가 발생했습니다.");
       setLoadingStage("idle");
@@ -712,13 +478,9 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const loadingLabel =
     loadingStage === "uploading"
       ? "사진 업로드 중..."
-      : loadingStage === "backdrop"
-        ? "배경 디자인 생성 중..."
-        : loadingStage === "enhancing"
-          ? "사진 보정 중..."
-          : loadingStage === "generating"
-            ? "AI 상세페이지 생성 중..."
-            : "AI 상세페이지 생성하기";
+      : loadingStage === "generating"
+        ? "기획 초안 생성 중..."
+        : "AI 상세페이지 생성하기";
 
   const inputClass =
     "mt-1.5 w-full rounded-lg border border-line px-4 py-2.5 text-sm text-ink outline-none transition-colors focus:border-registration-red focus:ring-2 focus:ring-registration-red/20";
@@ -1177,24 +939,13 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         </form>
       </main>
 
-      {loadingStage !== "idle" && !backdropCandidates && (
+      {loadingStage !== "idle" && (
         <GeneratingOverlay
           stage={loadingStage}
           category={category}
           productName={productName}
           length={compositionLength}
           snapComplete={overlaySnapComplete}
-        />
-      )}
-      {backdropCandidates && (
-        <BackdropCandidatePicker
-          urls={backdropCandidates}
-          onConfirm={(url) => {
-            const resolve = backdropPickRef.current;
-            backdropPickRef.current = null;
-            setBackdropCandidates(null);
-            resolve?.(url);
-          }}
         />
       )}
     </div>

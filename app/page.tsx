@@ -11,6 +11,7 @@ import ScrollProgressBar from "@/components/ScrollProgressBar";
 import ProcessSteps from "@/components/ProcessSteps";
 import SpotlightCard from "@/components/SpotlightCard";
 import HeroShowcaseVisual from "@/components/HeroShowcaseVisual";
+import HistorySidebar from "@/components/HistorySidebar";
 import { createClient } from "@/lib/supabase/server";
 
 const features = [
@@ -144,6 +145,7 @@ export default async function Home() {
 
   return (
     <div className="min-h-full bg-paper text-ink">
+      {user && <HistorySidebar userId={user.id} />}
       {/* Navigation */}
       <header className="sticky top-0 z-50 border-b border-line bg-paper/90 backdrop-blur-md">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">

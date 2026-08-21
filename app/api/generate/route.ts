@@ -6,7 +6,7 @@ import {
   reviewCosmeticsCopy,
 } from "@/lib/cosmetics-compliance";
 import { FOOD_AI_PROMPT, isFoodCategory, reviewFoodCopy } from "@/lib/food-compliance";
-import type { DetailSection, GeneratedCopy, ProductInput } from "@/lib/types/generate";
+import type { AiDisclosureSection, DetailSection, GeneratedCopy, ProductInput } from "@/lib/types/generate";
 import { createClient } from "@/lib/supabase/server";
 import { extractProductTheme } from "@/lib/color-extract";
 import { getSlotImageRatio, getSlotTemplate, type SlotDefinition } from "@/lib/section-templates";
@@ -47,6 +47,31 @@ const CLAUDE_MODEL = "claude-sonnet-5";
 const TEST_MODE_ANALYSIS_MAX_IMAGES = 2;
 const DEEPSEEK_MODEL = "deepseek-v4-flash";
 const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
+
+export const AI_DISCLOSURE_BODY =
+  "본 제품의 상세페이지 중 일부 이미지 및 연출 컷은 AI 생성 기술을 활용하여 제작되었으며 실제 제품 및 사용 환경과 일부 차이가 있을 수 있습니다.";
+
+export const AI_DISCLOSURE_HEADING = "AI 생성 콘텐츠 안내";
+
+function buildAiDisclosureSection(): AiDisclosureSection {
+  return {
+    type: "ai_disclosure",
+    slot: "ai_disclosure",
+    heading: AI_DISCLOSURE_HEADING,
+    body: AI_DISCLOSURE_BODY,
+  };
+}
+
+/** 템플릿 순서상 cta_price 앞에 고정 고지 섹션을 보장 */
+function ensureAiDisclosure(sections: DetailSection[]): DetailSection[] {
+  const disclosure = buildAiDisclosureSection();
+  const without = sections.filter((s) => s.slot !== "ai_disclosure" && s.type !== "ai_disclosure");
+  const ctaIdx = without.findIndex((s) => s.slot === "cta_price" || s.type === "cta_price");
+  if (ctaIdx >= 0) {
+    return [...without.slice(0, ctaIdx), disclosure, ...without.slice(ctaIdx)];
+  }
+  return [...without, disclosure];
+}
 
 // DeepSeek 토큰당 단가(USD / 1M tokens). 공식 pricing 문서 기준(2026-08-14 확인).
 const DEEPSEEK_COST_PER_MILLION = {
@@ -239,6 +264,7 @@ const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
   faq: `{ type: "faq", slot, heading, items: [{question, answer}] } — 3~5개. 근거 없으면 슬롯 생략. 근거 없는 개별 질문은 답변을 "판매자에게 문의해주세요"`,
   target_persona: `{ type: "target_persona", slot, heading, personas[] } — 3~5개, 각 20자 내외. targetCustomer·keyFeatures 기반으로만`,
   brand_story: `{ type: "brand_story", slot, heading, body } — brandName이 없으면 슬롯 전체 생략. 없는 히스토리·수상 지어내지 말 것`,
+  ai_disclosure: `{ type: "ai_disclosure", slot: "ai_disclosure", heading, body } — 서버가 고정 문구로 덮어쓰므로 생략하거나 빈 값으로 둬도 됨`,
 };
 
 // 카테고리별 고정 슬롯 순서를 프롬프트용 텍스트로 변환한다. AI는 레이아웃을
@@ -257,6 +283,7 @@ function getAidaPhase(def: SlotDefinition): string {
     case "spec_table":
     case "stat_infographic":
     case "faq":
+    case "ai_disclosure":
       return "신뢰 보조 (과장 없이 사실만, AIDA 흐름 유지)";
     case "brand_story":
       return "AIDA-I (Interest): 입력된 브랜드명만으로 신뢰 맥락을 짧게 — 지어낸 히스토리 금지";
@@ -425,7 +452,7 @@ async function generateCopyWithDeepSeek(
   const lengthGuide =
     length === "short"
       ? "\n\n## 구성 길이: 짧은 구성\n위 슬롯 목록은 **필수 슬롯만** 포함합니다. 목록에 없는 선택 슬롯은 절대 추가하지 마세요. repeatable 슬롯이 여러 행으로 나뉘어 있으면 각 행을 별도 섹션으로 채우세요."
-      : "";
+      : "\n\n## 구성 길이: 긴 구성\n위 슬롯 목록의 선택 슬롯도 입력 정보로 합리적으로 채울 수 있으면 최대한 포함하세요. 근거 없는 내용을 지어내지 말고, 입력된 브랜드명·타겟고객·특징·인증 정보를 활용해 채울 수 있는 선택 슬롯은 생략하지 마세요.";
 
   const competitorResult = productInfo.competitorUrl
     ? await extractUrlSummary(productInfo.competitorUrl)
@@ -684,6 +711,7 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
   // 항상 카테고리 고정 템플릿 순서를 따르도록 강제 재정렬한다. 레이아웃
   // 틀은 서버가 지키고, AI는 콘텐츠만 책임진다는 원칙을 코드로도 보장.
   parsed.sections = normalizeSectionsToTemplate(parsed.sections, template);
+  parsed.sections = ensureAiDisclosure(parsed.sections);
   parsed.sections = assignDistinctSectionImages(parsed.sections, imageCount);
   console.log(
     `[images] assigned indexes: ${parsed.sections
@@ -770,20 +798,21 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!process.env.DEEPSEEK_API_KEY) {
-      return NextResponse.json(
-        { error: "DEEPSEEK_API_KEY가 설정되지 않았습니다." },
-        { status: 500 },
-      );
-    }
-
     const body = (await request.json()) as ProductInput;
+    const mode = body.mode === "draft" ? "draft" : "final";
+    const useDraftSections =
+      mode === "final" &&
+      Array.isArray(body.draftSections) &&
+      body.draftSections.length > 0;
+
     const wholesale = body.wholesaleUrl ?? "";
     console.log("[generate incoming wholesaleUrl]", {
       type: typeof body.wholesaleUrl,
       isNull: body.wholesaleUrl == null,
       length: wholesale.length,
       preview: wholesale.slice(0, 120),
+      mode,
+      useDraftSections,
     });
 
     if (!body.productName || !body.category || !body.price) {
@@ -800,86 +829,174 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!useDraftSections && !process.env.DEEPSEEK_API_KEY) {
+      return NextResponse.json(
+        { error: "DEEPSEEK_API_KEY가 설정되지 않았습니다." },
+        { status: 500 },
+      );
+    }
+
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    const analysisImageLimit = isTestMode() ? TEST_MODE_ANALYSIS_MAX_IMAGES : 5;
-    const [imageAnalysisResult, theme] = await Promise.all([
-      analyzeImagesWithClaude(anthropic, body.imageUrls.slice(0, analysisImageLimit), body),
-      extractProductTheme(body.imageUrls).catch((err) => {
-        console.warn("[generate] 상품 색상 추출 실패, 카테고리 기본 테마로 폴백", err);
-        return null;
-      }),
-    ]);
-    const imageAnalysis = imageAnalysisResult.analysis;
-    let claudeCost = imageAnalysisResult.cost + (body.photoCostBreakdown?.claude ?? 0);
+    let savedCopy: GeneratedCopy;
+    let imageAnalysis = "";
+    let claudeCost = body.photoCostBreakdown?.claude ?? 0;
+    let theme: Awaited<ReturnType<typeof extractProductTheme>> | null = null;
+    let urlAnalysisNotices: string[] = [];
+    let qaSummary = "";
+    let mfdsReviewed = false;
+    let replacements: { original: string; replacement: string; count: number }[] = [];
+    let totalDeepSeekCost = 0;
+    let referenceAnalysisCost = 0;
+    let reviewInsightsCost = 0;
+    let auxConceptBriefCost = 0;
+    let enrichedBody: ProductInput = body;
 
-    const {
-      enriched: enrichedBody,
-      referenceAnalysisCost,
-      reviewInsightsCost,
-      conceptBriefCost: auxConceptBriefCost,
-    } = await loadAuxiliaryInputs(body);
-    claudeCost += referenceAnalysisCost + auxConceptBriefCost;
+    if (!useDraftSections) {
+      const analysisImageLimit = isTestMode() ? TEST_MODE_ANALYSIS_MAX_IMAGES : 5;
+      const [imageAnalysisResult, extractedTheme] = await Promise.all([
+        analyzeImagesWithClaude(anthropic, body.imageUrls.slice(0, analysisImageLimit), body),
+        extractProductTheme(body.imageUrls).catch((err) => {
+          console.warn("[generate] 상품 색상 추출 실패, 카테고리 기본 테마로 폴백", err);
+          return null;
+        }),
+      ]);
+      imageAnalysis = imageAnalysisResult.analysis;
+      theme = extractedTheme;
+      claudeCost += imageAnalysisResult.cost;
 
-    const {
-      copy: generated,
-      cost: deepSeekCost,
-      notices: urlAnalysisNotices,
-    } = await generateCopyWithDeepSeek(
-      enrichedBody,
-      imageAnalysis,
-      enrichedBody.imageUrls.length,
-    );
+      const aux = await loadAuxiliaryInputs(body);
+      enrichedBody = aux.enriched;
+      referenceAnalysisCost = aux.referenceAnalysisCost;
+      reviewInsightsCost = aux.reviewInsightsCost;
+      auxConceptBriefCost = aux.conceptBriefCost;
+      claudeCost += referenceAnalysisCost + auxConceptBriefCost;
 
-    // 생성 직후 Haiku 비전/텍스트 QA — critical 이슈 시 카피만 1회 재생성
-    let copyToSave = generated;
-    let qaResult = await runDetailPageQA({
-      imageUrls: body.imageUrls,
-      sections: generated.sections,
-      category: body.category,
-      productName: body.productName,
-    });
-    claudeCost += qaResult.cost;
-
-    const copyFixable = qaResult.issues.some(
-      (i) =>
-        i.severity === "critical" &&
-        (i.category === "copy" || i.category === "text_overlap"),
-    );
-
-    let totalDeepSeekCost = deepSeekCost;
-
-    if (!qaResult.pass && copyFixable) {
-      console.log("[qa] critical 카피 이슈 — 1회 재생성 시도");
-      const fixAppendix = buildQAFixPrompt(qaResult.issues);
-      const retry = await generateCopyWithDeepSeek(
+      const {
+        copy: generated,
+        cost: deepSeekCost,
+        notices,
+      } = await generateCopyWithDeepSeek(
         enrichedBody,
         imageAnalysis,
         enrichedBody.imageUrls.length,
-        fixAppendix,
       );
-      copyToSave = retry.copy;
-      totalDeepSeekCost += retry.cost;
-      qaResult = await runDetailPageQA({
+      urlAnalysisNotices = notices;
+
+      let copyToSave = generated;
+      let qaResult = await runDetailPageQA({
         imageUrls: body.imageUrls,
-        sections: retry.copy.sections,
+        sections: generated.sections,
         category: body.category,
         productName: body.productName,
       });
       claudeCost += qaResult.cost;
-      console.log(`[qa-retry] ${qaResult.summary}`);
+      qaSummary = qaResult.summary;
+
+      const copyFixable = qaResult.issues.some(
+        (i) =>
+          i.severity === "critical" &&
+          (i.category === "copy" || i.category === "text_overlap"),
+      );
+
+      totalDeepSeekCost = deepSeekCost;
+
+      if (!qaResult.pass && copyFixable) {
+        console.log("[qa] critical 카피 이슈 — 1회 재생성 시도");
+        const fixAppendix = buildQAFixPrompt(qaResult.issues);
+        const retry = await generateCopyWithDeepSeek(
+          enrichedBody,
+          imageAnalysis,
+          enrichedBody.imageUrls.length,
+          fixAppendix,
+        );
+        copyToSave = retry.copy;
+        totalDeepSeekCost += retry.cost;
+        qaResult = await runDetailPageQA({
+          imageUrls: body.imageUrls,
+          sections: retry.copy.sections,
+          category: body.category,
+          productName: body.productName,
+        });
+        claudeCost += qaResult.cost;
+        qaSummary = qaResult.summary;
+        console.log(`[qa-retry] ${qaResult.summary}`);
+      }
+
+      const isCosmeticsCopy = isCosmeticsCategory(body.category);
+      const isFoodCopy = isFoodCategory(body.category);
+      const finalCopy = isCosmeticsCopy
+        ? reviewCosmeticsCopy(copyToSave)
+        : isFoodCopy
+          ? reviewFoodCopy(copyToSave)
+          : null;
+      savedCopy = finalCopy ? finalCopy.copy : copyToSave;
+      mfdsReviewed = finalCopy?.mfdsReviewed ?? false;
+      replacements = finalCopy?.replacements ?? [];
+      savedCopy = {
+        ...savedCopy,
+        sections: ensureAiDisclosure(savedCopy.sections),
+      };
+
+      if (mode === "draft") {
+        const draftToken =
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `draft-${Date.now()}`;
+        const photoCostBreakdown = {
+          ...body.photoCostBreakdown,
+          conceptBrief: (body.photoCostBreakdown?.conceptBrief ?? 0) + auxConceptBriefCost,
+          referenceAnalysis:
+            (body.photoCostBreakdown?.referenceAnalysis ?? 0) + referenceAnalysisCost,
+          reviewInsights: (body.photoCostBreakdown?.reviewInsights ?? 0) + reviewInsightsCost,
+          claude: claudeCost,
+        };
+        console.log(
+          `[cost] draft product="${body.productName}" deepSeek=$${totalDeepSeekCost.toFixed(4)} claude=$${claudeCost.toFixed(4)} token=${draftToken}`,
+        );
+        return NextResponse.json({
+          ...savedCopy,
+          draftToken,
+          imageAnalysis,
+          mfdsReviewed,
+          replacements,
+          theme,
+          urlAnalysisNotices,
+          qaSummary,
+          photoCostBreakdown,
+          draftGenerationCost: totalDeepSeekCost + claudeCost,
+          testMode: isTestMode(),
+          imageUrls: body.imageUrls,
+          referenceAnalysis: enrichedBody.referenceAnalysis ?? null,
+          reviewInsights: enrichedBody.reviewInsights ?? null,
+          planningDocText: enrichedBody.planningDocText ?? null,
+        });
+      }
+    } else {
+      savedCopy = {
+        sections: ensureAiDisclosure(body.draftSections as DetailSection[]),
+        headlines: body.draftHeadlines ?? [],
+        description: body.draftDescription ?? "",
+        features: body.draftFeatures ?? [],
+        howToUse: body.draftHowToUse ?? "",
+        caution: body.draftCaution ?? "",
+      };
+      const aux = await loadAuxiliaryInputs(body);
+      enrichedBody = aux.enriched;
+      referenceAnalysisCost = aux.referenceAnalysisCost;
+      reviewInsightsCost = aux.reviewInsightsCost;
+      auxConceptBriefCost = aux.conceptBriefCost;
+      claudeCost += referenceAnalysisCost + auxConceptBriefCost;
+      theme = await extractProductTheme(body.imageUrls).catch((err) => {
+        console.warn("[generate] 상품 색상 추출 실패, 카테고리 기본 테마로 폴백", err);
+        return null;
+      });
+      console.log(
+        `[generate] final-from-draft token=${body.draftToken ?? "n/a"} sections=${savedCopy.sections.length}`,
+      );
     }
 
     const isCosmetics = isCosmeticsCategory(body.category);
-    const isFood = isFoodCategory(body.category);
-    const finalCopy = isCosmetics
-      ? reviewCosmeticsCopy(copyToSave)
-      : isFood
-        ? reviewFoodCopy(copyToSave)
-        : null;
-    const savedCopy = finalCopy ? finalCopy.copy : copyToSave;
-    const mfdsReviewed = finalCopy?.mfdsReviewed ?? false;
-    const replacements = finalCopy?.replacements ?? [];
 
     let imageUrls = [...body.imageUrls];
     let imagePaths = [...(body.imagePaths ?? [])];
@@ -1113,9 +1230,10 @@ export async function POST(request: Request) {
       productId: savedProduct.id as string,
       theme,
       urlAnalysisNotices,
-      qaSummary: qaResult.summary,
+      qaSummary,
       conceptIcons,
       photoCostBreakdown,
+      generationCost,
       testMode: isTestMode(),
       imageUrls,
       referenceAnalysis: enrichedBody.referenceAnalysis ?? null,

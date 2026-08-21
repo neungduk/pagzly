@@ -35,7 +35,7 @@ const BEAUTY: SlotDefinition[] = [
   {
     slot: "quick_points",
     type: "image_text",
-    required: false,
+    required: true,
     repeatable: true,
     minCount: 2,
     maxCount: 4,
@@ -100,11 +100,36 @@ const BEAUTY: SlotDefinition[] = [
     required: true,
     note: "주의사항 (식약처 표현 검수 대상 — 효능 단정 표현 금지)",
   },
+  { slot: "packaging_design", type: "image_text", required: true, note: "패키지/용기 디자인 (1:1)" },
+  {
+    slot: "how_it_works",
+    type: "image_text",
+    required: true,
+    note: "작용 원리/사용 후 변화 설명 (1:1). 근거 없는 효능 단정 금지, 사용감 중심으로 서술",
+  },
+  {
+    slot: "size_options",
+    type: "image_text",
+    required: true,
+    note: "용량/사이즈 옵션 안내 (1:1). 옵션 정보가 입력에 없으면 일반적인 용량 표기로 작성",
+  },
+  {
+    slot: "customer_scenario",
+    type: "image_text",
+    required: true,
+    note: "실사용 상황/데일리 루틴 제안 (4:5)",
+  },
   {
     slot: "shipping_info",
     type: "spec_table",
     required: false,
     note: "배송비/배송기간/교환·환불 안내. 구체적 수치가 입력에 없으면 '판매자 정책을 확인해주세요'로 값 채움 (기존 spec_table 규칙과 동일)",
+  },
+  {
+    slot: "ai_disclosure",
+    type: "ai_disclosure",
+    required: true,
+    note: "AI 생성 콘텐츠 고지. heading/body는 서버가 고정 문구로 채움 — DeepSeek는 슬롯만 포함하거나 생략해도 됨",
   },
   { slot: "cta_price", type: "cta_price", required: true, note: "가격/구매 정보" },
 ];
@@ -121,7 +146,7 @@ const FASHION: SlotDefinition[] = [
   {
     slot: "quick_points",
     type: "image_text",
-    required: false,
+    required: true,
     repeatable: true,
     minCount: 2,
     maxCount: 4,
@@ -186,10 +211,35 @@ const FASHION: SlotDefinition[] = [
     note: "세탁/보관 방법",
   },
   {
+    slot: "fabric_composition",
+    type: "image_text",
+    required: true,
+    note: "원단 구성/마감 확대 (detail_zoom과 다른 각도, 1:1)",
+  },
+  {
+    slot: "fit_guide",
+    type: "image_text",
+    required: true,
+    note: "핏 가이드 — 타이트/루즈 등 착용감 설명 (4:5)",
+  },
+  { slot: "packaging_design", type: "image_text", required: true, note: "포장/배송 패키지 소개 (1:1)" },
+  {
+    slot: "seasonal_styling",
+    type: "image_text",
+    required: true,
+    note: "계절별 활용 제안 (4:5)",
+  },
+  {
     slot: "shipping_info",
     type: "spec_table",
     required: false,
     note: "배송비/배송기간/교환·환불 안내. 구체적 수치가 입력에 없으면 '판매자 정책을 확인해주세요'로 값 채움 (기존 spec_table 규칙과 동일)",
+  },
+  {
+    slot: "ai_disclosure",
+    type: "ai_disclosure",
+    required: true,
+    note: "AI 생성 콘텐츠 고지. heading/body는 서버가 고정 문구로 채움 — DeepSeek는 슬롯만 포함하거나 생략해도 됨",
   },
   { slot: "cta_price", type: "cta_price", required: true, note: "가격/구매 정보" },
 ];
@@ -206,7 +256,7 @@ const FOOD: SlotDefinition[] = [
   {
     slot: "quick_points",
     type: "image_text",
-    required: false,
+    required: true,
     repeatable: true,
     minCount: 2,
     maxCount: 4,
@@ -277,10 +327,30 @@ const FOOD: SlotDefinition[] = [
     note: "유통기한/보관방법/알레르기 경고. 효능을 암시하는 과장 표현 금지",
   },
   {
+    slot: "sourcing_story",
+    type: "image_text",
+    required: true,
+    note: "원산지/제조 과정 소개 (1:1). 입력에 없는 사실은 지어내지 말 것",
+  },
+  {
+    slot: "serving_suggestion",
+    type: "image_text",
+    required: true,
+    note: "서빙/플레이팅 제안 (4:5)",
+  },
+  { slot: "packaging_design", type: "image_text", required: true, note: "포장 상세 (1:1)" },
+  { slot: "storage_tip", type: "image_text", required: true, note: "보관 팁 (1:1)" },
+  {
     slot: "shipping_info",
     type: "spec_table",
     required: false,
     note: "배송비/배송기간/교환·환불 안내. 구체적 수치가 입력에 없으면 '판매자 정책을 확인해주세요'로 값 채움 (기존 spec_table 규칙과 동일)",
+  },
+  {
+    slot: "ai_disclosure",
+    type: "ai_disclosure",
+    required: true,
+    note: "AI 생성 콘텐츠 고지. heading/body는 서버가 고정 문구로 채움 — DeepSeek는 슬롯만 포함하거나 생략해도 됨",
   },
   { slot: "cta_price", type: "cta_price", required: true, note: "가격/구매 정보" },
 ];
@@ -297,7 +367,7 @@ const ELECTRONICS: SlotDefinition[] = [
   {
     slot: "quick_points",
     type: "image_text",
-    required: false,
+    required: true,
     repeatable: true,
     minCount: 2,
     maxCount: 4,
@@ -316,7 +386,7 @@ const ELECTRONICS: SlotDefinition[] = [
     note: "기능별 확대/작동 예시 (1:1). 기능이 여러 개면 이 슬롯을 연속으로 반복 가능. 헤드라인에 재생시간·출력 등 숫자 훅이 있으면 짧게 넣기",
     repeatable: true,
     minCount: 1,
-    maxCount: 5,
+    maxCount: 3,
   },
   {
     slot: "comparison_table",
@@ -368,11 +438,30 @@ const ELECTRONICS: SlotDefinition[] = [
     required: true,
     note: "A/S, 주의사항",
   },
+  { slot: "design_detail", type: "image_text", required: true, note: "디자인/마감 디테일 (1:1)" },
+  {
+    slot: "connectivity",
+    type: "image_text",
+    required: true,
+    note: "연결성/호환성 안내 (1:1). 입력에 없는 스펙은 지어내지 말 것",
+  },
+  {
+    slot: "install_scenario",
+    type: "image_text",
+    required: true,
+    note: "실사용/설치 장면 (4:5)",
+  },
   {
     slot: "shipping_info",
     type: "spec_table",
     required: false,
     note: "배송비/배송기간/교환·환불 안내. 구체적 수치가 입력에 없으면 '판매자 정책을 확인해주세요'로 값 채움 (기존 spec_table 규칙과 동일)",
+  },
+  {
+    slot: "ai_disclosure",
+    type: "ai_disclosure",
+    required: true,
+    note: "AI 생성 콘텐츠 고지. heading/body는 서버가 고정 문구로 채움 — DeepSeek는 슬롯만 포함하거나 생략해도 됨",
   },
   { slot: "cta_price", type: "cta_price", required: true, note: "가격/구매 정보" },
 ];
@@ -389,7 +478,7 @@ const HOME_FALLBACK: SlotDefinition[] = [
   {
     slot: "quick_points",
     type: "image_text",
-    required: false,
+    required: true,
     repeatable: true,
     minCount: 2,
     maxCount: 4,
@@ -447,11 +536,26 @@ const HOME_FALLBACK: SlotDefinition[] = [
     required: false,
     note: "사용 시 주의사항",
   },
+  { slot: "material_detail", type: "image_text", required: true, note: "소재 클로즈업 (1:1)" },
+  {
+    slot: "usage_scenario_extra",
+    type: "image_text",
+    required: true,
+    note: "추가 실사용 장면 (4:5)",
+  },
+  { slot: "packaging_design", type: "image_text", required: true, note: "포장/구성 안내 (1:1)" },
+  { slot: "care_tip", type: "image_text", required: true, note: "관리/세척 방법 (1:1)" },
   {
     slot: "shipping_info",
     type: "spec_table",
     required: false,
     note: "배송비/배송기간/교환·환불 안내. 구체적 수치가 입력에 없으면 '판매자 정책을 확인해주세요'로 값 채움 (기존 spec_table 규칙과 동일)",
+  },
+  {
+    slot: "ai_disclosure",
+    type: "ai_disclosure",
+    required: true,
+    note: "AI 생성 콘텐츠 고지. heading/body는 서버가 고정 문구로 채움 — DeepSeek는 슬롯만 포함하거나 생략해도 됨",
   },
   { slot: "cta_price", type: "cta_price", required: true, note: "가격/구매 정보" },
 ];

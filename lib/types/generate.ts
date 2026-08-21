@@ -27,10 +27,25 @@ export type ReviewInsightsInput = {
 
 export type SlotLength = "short" | "long";
 
+export type GenerateMode = "draft" | "final";
+
 export type ProductInput = {
   category: string;
   /** 짧은 구성: required 슬롯만. 기본 long */
   length?: SlotLength;
+  /**
+   * draft: DeepSeek 카피까지. final(기본): 전체 조립.
+   * draftSections가 있으면 final에서 카피 재생성 없이 일러스트+조립만.
+   */
+  mode?: GenerateMode;
+  /** final 모드 — draft에서 받은 sections */
+  draftSections?: DetailSection[];
+  draftHeadlines?: string[];
+  draftDescription?: string;
+  draftFeatures?: string[];
+  draftHowToUse?: string;
+  draftCaution?: string;
+  draftToken?: string;
   imageUrls: string[];
   imagePaths: string[];
   productName: string;
@@ -189,6 +204,14 @@ export type BrandStorySection = {
   body: string;
 };
 
+/** AI 생성 콘텐츠 고지 — 카피는 서버가 고정 문구로 주입 */
+export type AiDisclosureSection = {
+  type: "ai_disclosure";
+  slot: string;
+  heading: string;
+  body: string;
+};
+
 export type DetailSection =
   | HeroSection
   | ChecklistSection
@@ -204,7 +227,8 @@ export type DetailSection =
   | IllustrationBannerSection
   | FaqSection
   | TargetPersonaSection
-  | BrandStorySection;
+  | BrandStorySection
+  | AiDisclosureSection;
 
 export type GeneratedCopy = {
   sections: DetailSection[];
@@ -242,6 +266,25 @@ export type GenerateResponse = GeneratedCopy & {
   qaSummary?: string;
   conceptIcons?: ConceptIconMap;
   photoCostBreakdown?: PhotoCostBreakdown;
+  generationCost?: number;
+  testMode?: boolean;
+  imageUrls?: string[];
+  referenceAnalysis?: ReferenceAnalysisInput | null;
+  reviewInsights?: ReviewInsightsInput | null;
+  planningDocText?: string | null;
+};
+
+/** /api/generate mode=draft 응답 */
+export type DraftGenerateResponse = GeneratedCopy & {
+  draftToken: string;
+  imageAnalysis: string;
+  mfdsReviewed?: boolean;
+  replacements?: ComplianceReplacement[];
+  theme?: ExtractedTheme | null;
+  urlAnalysisNotices?: string[];
+  qaSummary?: string;
+  photoCostBreakdown?: PhotoCostBreakdown;
+  draftGenerationCost?: number;
   testMode?: boolean;
   imageUrls?: string[];
   referenceAnalysis?: ReferenceAnalysisInput | null;
