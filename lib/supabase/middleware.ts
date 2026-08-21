@@ -16,6 +16,13 @@ function redirectWithCookies(
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
+  const path = request.nextUrl.pathname;
+
+  // /dev/* 는 로컬 시각 검증용 — 프로덕션에서는 404
+  if (process.env.NODE_ENV === "production" && path.startsWith("/dev")) {
+    return new NextResponse(null, { status: 404 });
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -40,7 +47,6 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const path = request.nextUrl.pathname;
 
   if (path.startsWith("/onboarding")) {
     if (!user) {

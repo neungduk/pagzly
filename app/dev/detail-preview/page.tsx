@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { notFound } from "next/navigation";
 import DetailSectionRenderer from "@/components/DetailSectionRenderer";
 import DetailActionBar, { type DetailToolTab } from "@/components/DetailActionBar";
 import ToastBanner from "@/components/ToastBanner";
@@ -21,6 +22,7 @@ const initialSections: DetailSection[] = [
     headline: "속건조, 오늘부터 덜 신경 쓰세요",
     subheadline: "히알루론 수분 크림",
     imageIndex: 0,
+    badge: "무향",
   },
   {
     type: "checklist",
@@ -72,9 +74,19 @@ const initialSections: DetailSection[] = [
     slot: "stat_infographic",
     heading: "수치로 보는 핵심 포인트",
     metrics: [
-      { label: "수분 개선", value: "87%", percent: 87 },
-      { label: "피부 장벽", value: "72%", percent: 72 },
-      { label: "만족도", value: "94%", percent: 94 },
+      { label: "수분 개선", value: "87%", percent: 87, style: "number" },
+      { label: "피부 장벽", value: "72%", percent: 72, style: "number" },
+      { label: "만족도", value: "94%", percent: 94, style: "number" },
+    ],
+  },
+  {
+    type: "review_highlight",
+    slot: "review_highlight",
+    heading: "실제 구매자들이 자주 남긴 이야기",
+    praises: [
+      "촉촉함이 하루 종일 지속된다",
+      "흡수가 빠르다",
+      "무향이라 자극이 없다",
     ],
   },
   {
@@ -113,6 +125,10 @@ export default function DetailPreviewPage() {
   const [toast, setToast] = useState<{ message: string; tone: "error" | "info" | "ok" } | null>(
     null,
   );
+
+  if (process.env.NODE_ENV !== "development") {
+    notFound();
+  }
 
   function handleTabChange(next: DetailToolTab) {
     setToolTab(next);

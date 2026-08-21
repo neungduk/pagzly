@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { notFound } from "next/navigation";
 import GeneratingOverlay, {
   type GeneratingStage,
 } from "@/components/GeneratingOverlay";
@@ -21,6 +22,7 @@ export default function GeneratingOverlayPreviewPage() {
   const [snapComplete, setSnapComplete] = useState(false);
 
   useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
     const params = new URLSearchParams(window.location.search);
     const snapAt = Number(params.get("snapAt") ?? "5");
     const stageTimer = setInterval(() => {
@@ -32,6 +34,10 @@ export default function GeneratingOverlayPreviewPage() {
       clearTimeout(snapTimer);
     };
   }, []);
+
+  if (process.env.NODE_ENV !== "development") {
+    notFound();
+  }
 
   return (
     <GeneratingOverlay
