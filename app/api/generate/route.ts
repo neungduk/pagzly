@@ -8,6 +8,7 @@ import {
 import { FOOD_AI_PROMPT, isFoodCategory, reviewFoodCopy } from "@/lib/food-compliance";
 import type {
   AiDisclosureSection,
+  CtaPriceSection,
   CustomGifSection,
   DetailSection,
   GeneratedCopy,
@@ -130,6 +131,20 @@ function insertReviewHighlightSection(
     buildReviewHighlightSection(praises),
     ...without.slice(insertAt),
   ];
+}
+
+/**
+ * hero 코너 리본 뱃지 — 새 AI 호출을 만들지 않고, DeepSeek이 이미 cta_price.badges에
+ * 채운 "사실 기반 키워드"(용량·무향·인증·소재 등) 중 첫 번째를 그대로 재사용한다.
+ * 새 생성 표면이 없으므로 진부함/과장 문구가 섞일 위험도 없다 (design-brief 제안 D).
+ */
+function applyHeroBadge(sections: DetailSection[]): DetailSection[] {
+  const ctaPrice = sections.find(
+    (s): s is CtaPriceSection => s.type === "cta_price",
+  );
+  const badge = ctaPrice?.badges?.[0];
+  if (!badge) return sections;
+  return sections.map((s) => (s.type === "hero" ? { ...s, badge } : s));
 }
 
 // DeepSeek 토큰당 단가(USD / 1M tokens). 공식 pricing 문서 기준(2026-08-14 확인).
@@ -1091,6 +1106,8 @@ export async function POST(request: Request) {
       savedCopy.sections = insertReviewHighlightSection(savedCopy.sections, reviewPraises);
       console.log(`[review-highlight] 실제 후기 하이라이트 삽입 (${reviewPraises.length}개, AI 미생성)`);
     }
+
+    savedCopy.sections = applyHeroBadge(savedCopy.sections);
 
     let imageUrls = [...body.imageUrls];
     let imagePaths = [...(body.imagePaths ?? [])];

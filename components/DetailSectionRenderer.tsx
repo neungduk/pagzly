@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   CheckCircle2,
   Cpu,
@@ -15,6 +16,7 @@ import DetailScrollReveal from "@/components/DetailScrollReveal";
 import SectionImage from "@/components/SectionImage";
 import {
   SLOT_IMAGE_RATIO,
+  HERO_TRANSITION_OVERLAP_CLASS,
   getCtaBandBackground,
   getCategoryRhythm,
   getDecorationColor,
@@ -207,6 +209,46 @@ function textSectionStyle(theme: CategoryTheme, pattern: SectionColorPattern) {
   };
 }
 
+/**
+ * 숫자·후기 카드에 쓰는 레이어드 depth — 회전된 accent 색면을 뒤에 살짝 어긋나게
+ * 깔아 입체감을 준다 (design-brief 제안 B). 진짜 그림자 대신 색면 트릭이라 성능
+ * 비용이 없고, 카드 내용/편집 로직은 그대로 children으로 전달한다.
+ */
+function LayeredPanel({
+  theme,
+  rotate = -2,
+  className = "",
+  children,
+}: {
+  theme: CategoryTheme;
+  rotate?: number;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="relative">
+      <div
+        aria-hidden="true"
+        className="absolute rounded-xl"
+        style={{
+          top: 6,
+          right: -5,
+          bottom: -8,
+          left: 9,
+          backgroundColor: hexToRgba(theme.accent, 0.16),
+          transform: `rotate(${rotate}deg)`,
+        }}
+      />
+      <div
+        className={`relative rounded-xl ${className}`}
+        style={{ backgroundColor: theme.baseNeutral }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function SectionAccentHairline({ theme }: { theme: CategoryTheme }) {
   return (
     <div
@@ -276,6 +318,14 @@ function renderSection(
               enabled={edit?.enabled}
               onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
             />
+            {section.badge ? (
+              <span
+                className="absolute left-0 top-5 z-20 rounded-r-full px-4 py-1.5 text-xs font-semibold tracking-wide text-paper shadow-sm sm:top-7"
+                style={{ backgroundColor: theme.accent }}
+              >
+                {section.badge}
+              </span>
+            ) : null}
             <div className={getCategoryRhythm(category).heroOverlayClass}>
               <p className={TYPO.heroCategory}>{category}</p>
               <EditableText
@@ -669,15 +719,13 @@ function renderSection(
             className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
           />
           {numberMetrics.length > 0 && (
-            <div
-              className={`mx-auto mt-10 grid gap-px overflow-hidden rounded-2xl ${numberGridCols}`}
-              style={{ backgroundColor: hexToRgba(theme.accent, 0.18) }}
-            >
+            <div className={`mx-auto mt-10 grid gap-x-5 gap-y-6 ${numberGridCols}`}>
               {numberMetrics.map(({ metric, metricIndex }) => (
-                <div
+                <LayeredPanel
                   key={`${metric.label}-${metricIndex}`}
+                  theme={theme}
+                  rotate={metricIndex % 2 === 0 ? -2 : 2}
                   className="flex flex-col items-center gap-1.5 px-4 py-7 text-center"
-                  style={{ backgroundColor: theme.baseNeutral }}
                 >
                   <div style={{ color: theme.deepAccent }}>
                     <EditableText
@@ -705,7 +753,7 @@ function renderSection(
                     }}
                     className="text-xs font-medium text-ink/60 sm:text-sm"
                   />
-                </div>
+                </LayeredPanel>
               ))}
             </div>
           )}
@@ -1012,15 +1060,13 @@ function renderSection(
           <p className="mx-auto mt-2 max-w-xl text-center text-xs text-ink/40">
             실제 구매자 리뷰에서 자주 나온 내용을 요약했습니다
           </p>
-          <div
-            className={`mx-auto mt-10 grid gap-px overflow-hidden rounded-2xl ${gridCols}`}
-            style={{ backgroundColor: hexToRgba(theme.accent, 0.18) }}
-          >
+          <div className={`mx-auto mt-10 grid gap-x-5 gap-y-6 ${gridCols}`}>
             {praises.map((praise, praiseIndex) => (
-              <div
+              <LayeredPanel
                 key={praiseIndex}
+                theme={theme}
+                rotate={praiseIndex % 2 === 0 ? -2 : 2}
                 className="flex flex-col gap-3 px-6 py-7"
-                style={{ backgroundColor: theme.baseNeutral }}
               >
                 <span
                   className="font-heading text-3xl leading-none"
@@ -1041,7 +1087,7 @@ function renderSection(
                   }}
                   className={`${TYPO.body} text-ink/80`}
                 />
-              </div>
+              </LayeredPanel>
             ))}
           </div>
         </section>
@@ -1333,13 +1379,28 @@ export default function DetailSectionRenderer({
           edit,
           followPattern,
         );
+        // hero 바로 다음 섹션 1곳에만: 미세한 대각선 클립(제안 A) + 강한 진입 모션(제안 C).
+        // 나머지 섹션은 전부 기존 직사각형·절제된 페이드를 그대로 유지한다.
+        const isHeroFollow = index > 0 && sections[index - 1]?.type === "hero";
+        const wrappedContent =
+          isHeroFollow && content ? (
+            <div
+              className={`relative z-10 ${HERO_TRANSITION_OVERLAP_CLASS}`}
+              style={{ clipPath: getCategoryRhythm(category).heroTransitionClip }}
+            >
+              {content}
+            </div>
+          ) : (
+            content
+          );
+        const variant = isHeroFollow ? "hero-follow" : section.type === "hero" ? "hero" : "section";
         return (
           <DetailScrollReveal
             key={`${section.type}-${section.slot}-${index}`}
             index={index}
-            variant={section.type === "hero" ? "hero" : "section"}
+            variant={variant}
           >
-            {content}
+            {wrappedContent}
           </DetailScrollReveal>
         );
       })}

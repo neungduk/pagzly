@@ -91,6 +91,12 @@ export type HeroSection = {
   headline: string;
   subheadline?: string;
   imageIndex: number;
+  /**
+   * hero 코너 리본 뱃지 — AI가 새로 짓지 않는다. 서버가 조립 단계에서
+   * cta_price.badges의 "사실 기반 키워드" 중 하나를 그대로 재사용해 채운다
+   * (design-brief 제안 D). 근거 없는 "베스트/인기" 문구 금지 원칙 유지.
+   */
+  badge?: string;
 };
 
 export type ChecklistSection = {

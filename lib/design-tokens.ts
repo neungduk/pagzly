@@ -100,6 +100,18 @@ export function getCtaBandBackground(theme: CategoryTheme): string {
   return hexToRgba(theme.deepAccent, 0.14);
 }
 
+// ---------------------------------------------------------------------------
+// 3.5. hero→본문 전환 각(角) — hero 바로 다음 섹션 1곳에만 적용 (design-brief 제안 A).
+//    나머지 섹션은 전부 SECTION_BLOCK_PAD의 직사각형을 그대로 유지한다. 전체
+//    섹션에 적용하면 산만해지므로, 렌더러는 이 값을 hero 바로 다음 섹션에만 써야 한다.
+// ---------------------------------------------------------------------------
+
+/** hero 바로 다음 섹션 상단에만 쓰는 미세한 대각선 클립. */
+export const HERO_TRANSITION_CLIP_PATH =
+  "polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - 28px))";
+/** 위 클립과 짝을 이루는 음수 마진 — hero 하단 사진 위로 살짝 겹쳐 올라간다. */
+export const HERO_TRANSITION_OVERLAP_CLASS = "-mt-4 sm:-mt-6";
+
 /** 카테고리별 리듬 — 슬롯/3색은 유지하고 여백·그리드·CTA 모서리만 조절 */
 export type CategoryRhythm = {
   heroMinClass: string;
@@ -114,6 +126,8 @@ export type CategoryRhythm = {
   pointTextPadClass: string;
   trustPadClass: string;
   ctaPadClass: string;
+  /** hero 바로 다음 섹션 1곳에만 적용하는 미세한 대각선 클립 (design-brief 제안 A) */
+  heroTransitionClip: string;
 };
 
 const DEFAULT_RHYTHM: CategoryRhythm = {
@@ -131,6 +145,7 @@ const DEFAULT_RHYTHM: CategoryRhythm = {
   pointTextPadClass: SECTION_BLOCK_PAD.pointText,
   trustPadClass: SECTION_BLOCK_PAD.trust,
   ctaPadClass: SECTION_BLOCK_PAD.cta,
+  heroTransitionClip: HERO_TRANSITION_CLIP_PATH,
 };
 
 export function getCategoryRhythm(category: string): CategoryRhythm {
