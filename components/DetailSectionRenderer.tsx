@@ -799,6 +799,39 @@ function renderSection(
         </section>
       );
 
+    case "custom_gif":
+      return (
+        <section
+          key={`custom_gif-${index}`}
+          className="relative aspect-video w-full overflow-hidden"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={section.gifUrl}
+            alt={section.heading ?? "판매자 제공 GIF"}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          {(section.heading || edit?.enabled) && (
+            <>
+              <div
+                className="absolute inset-0"
+                style={{ background: getHeroGradient(theme) }}
+                aria-hidden="true"
+              />
+              <div className={BANNER_OVERLAY_CLASS}>
+                <EditableText
+                  as="h2"
+                  enabled={edit?.enabled}
+                  value={section.heading ?? ""}
+                  onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+                  className={`${TYPO.bannerTitle} ${getCategoryRhythm(category).heroTitleExtra}`}
+                />
+              </div>
+            </>
+          )}
+        </section>
+      );
+
     case "usage_steps":
       return (
         <section
@@ -814,40 +847,44 @@ function renderSection(
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
             className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
           />
-          <ol
-            className={`mx-auto mt-12 max-w-xl ${
-              section.steps.length === 3
-                ? "grid grid-cols-3 gap-x-3 gap-y-6"
-                : "space-y-8"
-            }`}
-          >
+          <ol className="relative mx-auto mt-14 max-w-3xl flex flex-col gap-10 sm:flex-row sm:items-start sm:gap-4">
+            {/* 연결선: 모바일은 세로(뱃지 중심 x=24px), sm 이상은 가로(뱃지 중심 y=24px) */}
+            <div
+              aria-hidden="true"
+              className="absolute left-6 top-0 bottom-0 w-px sm:left-0 sm:right-0 sm:top-6 sm:bottom-auto sm:h-px sm:w-auto"
+              style={{ backgroundColor: hexToRgba(theme.accent, 0.25) }}
+            />
             {section.steps.map((step, stepIndex) => (
               <li
                 key={stepIndex}
-                className="flex flex-col items-center text-center"
+                className="relative flex items-start gap-4 sm:flex-1 sm:flex-col sm:items-center sm:gap-3 sm:text-center"
               >
-                <p
-                  className={`mb-3 ${TYPO.sectionLabel}`}
-                  style={{ color: theme.accent }}
-                >
-                  STEP {String(stepIndex + 1).padStart(2, "0")}
-                </p>
-                <ConceptBadgeIcon
-                  src={conceptIcons?.usageSteps?.[stepIndex]}
-                  theme={theme}
-                  fallbackIndex={stepIndex}
-                />
-                <EditableText
-                  as="span"
-                  enabled={edit?.enabled}
-                  value={step}
-                  onChange={(next) => {
-                    const steps = [...section.steps];
-                    steps[stepIndex] = next;
-                    edit?.onChange(index, { ...section, steps });
-                  }}
-                  className={TYPO.stepItem}
-                />
+                <div className="relative z-10 shrink-0">
+                  <ConceptBadgeIcon
+                    src={conceptIcons?.usageSteps?.[stepIndex]}
+                    theme={theme}
+                    fallbackIndex={stepIndex}
+                  />
+                </div>
+                <div className="min-w-0 flex-1 pt-1 sm:flex-none sm:pt-0">
+                  <p
+                    className={`mb-1.5 ${TYPO.sectionLabel}`}
+                    style={{ color: theme.accent }}
+                  >
+                    STEP {String(stepIndex + 1).padStart(2, "0")}
+                  </p>
+                  <EditableText
+                    as="span"
+                    enabled={edit?.enabled}
+                    value={step}
+                    onChange={(next) => {
+                      const steps = [...section.steps];
+                      steps[stepIndex] = next;
+                      edit?.onChange(index, { ...section, steps });
+                    }}
+                    className={TYPO.stepItem}
+                  />
+                </div>
               </li>
             ))}
           </ol>
@@ -948,6 +985,68 @@ function renderSection(
           </div>
         </section>
       );
+
+    case "review_highlight": {
+      const praises = section.praises.filter(Boolean);
+      if (praises.length === 0) return null;
+      const gridCols =
+        praises.length === 1
+          ? "max-w-md grid-cols-1"
+          : praises.length === 2
+            ? "max-w-2xl grid-cols-1 sm:grid-cols-2"
+            : "max-w-4xl grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
+      return (
+        <section
+          key={`review_highlight-${index}`}
+          className={getCategoryRhythm(category).generousPadClass}
+          style={textSectionStyle(theme, pattern)}
+        >
+          <SectionAccentHairline theme={theme} />
+          <EditableText
+            as="h3"
+            enabled={edit?.enabled}
+            value={section.heading}
+            onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+          />
+          <p className="mx-auto mt-2 max-w-xl text-center text-xs text-ink/40">
+            실제 구매자 리뷰에서 자주 나온 내용을 요약했습니다
+          </p>
+          <div
+            className={`mx-auto mt-10 grid gap-px overflow-hidden rounded-2xl ${gridCols}`}
+            style={{ backgroundColor: hexToRgba(theme.accent, 0.18) }}
+          >
+            {praises.map((praise, praiseIndex) => (
+              <div
+                key={praiseIndex}
+                className="flex flex-col gap-3 px-6 py-7"
+                style={{ backgroundColor: theme.baseNeutral }}
+              >
+                <span
+                  className="font-heading text-3xl leading-none"
+                  style={{ color: theme.accent }}
+                  aria-hidden="true"
+                >
+                  &ldquo;
+                </span>
+                <EditableText
+                  as="p"
+                  multiline
+                  enabled={edit?.enabled}
+                  value={praise}
+                  onChange={(next) => {
+                    const nextPraises = [...section.praises];
+                    nextPraises[praiseIndex] = next;
+                    edit?.onChange(index, { ...section, praises: nextPraises });
+                  }}
+                  className={`${TYPO.body} text-ink/80`}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      );
+    }
 
     case "ai_disclosure":
       return (

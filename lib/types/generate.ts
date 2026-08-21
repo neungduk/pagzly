@@ -74,6 +74,11 @@ export type ProductInput = {
   photoCostBreakdown?: PhotoCostBreakdown;
   /** TEST_MODE: 원본 파일명+크기 지문으로 비전 분석 캐시 키를 고정 */
   imageCacheKey?: string;
+  /**
+   * 판매자가 직접 보유한 GIF (Supabase Storage URL). AI로 새로 생성하지 않고
+   * 원본 그대로 hero 섹션 바로 뒤에 삽입한다 (토큰/비용 절감 목적).
+   */
+  customGifUrl?: string | null;
 };
 
 // slot: lib/section-templates.ts가 카테고리별로 고정한 슬롯 이름
@@ -212,6 +217,31 @@ export type AiDisclosureSection = {
   body: string;
 };
 
+/**
+ * 판매자가 직접 업로드한 GIF를 그대로 삽입하는 섹션. AI가 만들지 않고
+ * 서버가 body.customGifUrl로 조립 단계에서 주입한다 (SECTION_TYPE_SHAPES 대상 아님).
+ */
+export type CustomGifSection = {
+  type: "custom_gif";
+  slot: string;
+  heading?: string;
+  gifUrl: string;
+};
+
+/**
+ * 판매자가 올린 실제 리뷰 파일에서 뽑은 "자주 언급된 장점" 요약 카드.
+ * AI가 지어낸 카피가 아니라 lib/review-insights.ts가 원문 리뷰에서 추출한
+ * 실데이터이며, 서버가 조립 단계에서 주입한다 (AI는 이 섹션을 생성하지 않음).
+ * praises는 원문 그대로의 인용문이 아니라 여러 리뷰에서 반복된 내용의 요약이므로,
+ * 렌더링 시 특정 인물이 말한 것처럼(가짜 이름·별점 등) 표시하지 않는다.
+ */
+export type ReviewHighlightSection = {
+  type: "review_highlight";
+  slot: string;
+  heading: string;
+  praises: string[];
+};
+
 export type DetailSection =
   | HeroSection
   | ChecklistSection
@@ -228,7 +258,9 @@ export type DetailSection =
   | FaqSection
   | TargetPersonaSection
   | BrandStorySection
-  | AiDisclosureSection;
+  | AiDisclosureSection
+  | CustomGifSection
+  | ReviewHighlightSection;
 
 export type GeneratedCopy = {
   sections: DetailSection[];

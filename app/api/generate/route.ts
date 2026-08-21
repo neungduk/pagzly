@@ -6,7 +6,14 @@ import {
   reviewCosmeticsCopy,
 } from "@/lib/cosmetics-compliance";
 import { FOOD_AI_PROMPT, isFoodCategory, reviewFoodCopy } from "@/lib/food-compliance";
-import type { AiDisclosureSection, DetailSection, GeneratedCopy, ProductInput } from "@/lib/types/generate";
+import type {
+  AiDisclosureSection,
+  CustomGifSection,
+  DetailSection,
+  GeneratedCopy,
+  ProductInput,
+  ReviewHighlightSection,
+} from "@/lib/types/generate";
 import { createClient } from "@/lib/supabase/server";
 import { extractProductTheme } from "@/lib/color-extract";
 import { getSlotImageRatio, getSlotTemplate, type SlotDefinition } from "@/lib/section-templates";
@@ -71,6 +78,58 @@ function ensureAiDisclosure(sections: DetailSection[]): DetailSection[] {
     return [...without.slice(0, ctaIdx), disclosure, ...without.slice(ctaIdx)];
   }
   return [...without, disclosure];
+}
+
+function buildCustomGifSection(gifUrl: string): CustomGifSection {
+  return {
+    type: "custom_gif",
+    slot: "custom_gif",
+    gifUrl,
+  };
+}
+
+/**
+ * 판매자가 업로드한 GIF를 hero 섹션 바로 뒤에 삽입한다. AI가 생성/처리하지
+ * 않고 원본 URL을 그대로 쓰므로 Replicate/DeepSeek 비용이 들지 않는다.
+ */
+function insertCustomGifSection(sections: DetailSection[], gifUrl: string): DetailSection[] {
+  const without = sections.filter((s) => s.slot !== "custom_gif" && s.type !== "custom_gif");
+  const heroIdx = without.findIndex((s) => s.type === "hero");
+  const insertAt = heroIdx >= 0 ? heroIdx + 1 : 0;
+  return [...without.slice(0, insertAt), buildCustomGifSection(gifUrl), ...without.slice(insertAt)];
+}
+
+function buildReviewHighlightSection(praises: string[]): ReviewHighlightSection {
+  return {
+    type: "review_highlight",
+    slot: "review_highlight",
+    heading: "실제 구매자들이 자주 남긴 이야기",
+    praises,
+  };
+}
+
+/**
+ * 판매자가 올린 리뷰 파일에서 뽑은 실제 후기 요약을, ai_disclosure(있으면
+ * 그 앞) 또는 cta_price 바로 앞에 삽입한다. AI가 지어낸 카피가 아니라
+ * lib/review-insights.ts가 원문에서 추출한 실데이터이므로 신뢰도 섹션으로
+ * cta 직전에 배치 — "이만큼 많은 사람이 좋아했다 → 지금 구매" 흐름.
+ */
+function insertReviewHighlightSection(
+  sections: DetailSection[],
+  praises: string[],
+): DetailSection[] {
+  const without = sections.filter(
+    (s) => s.slot !== "review_highlight" && s.type !== "review_highlight",
+  );
+  const anchorIdx = without.findIndex(
+    (s) => s.type === "ai_disclosure" || s.slot === "cta_price" || s.type === "cta_price",
+  );
+  const insertAt = anchorIdx >= 0 ? anchorIdx : without.length;
+  return [
+    ...without.slice(0, insertAt),
+    buildReviewHighlightSection(praises),
+    ...without.slice(insertAt),
+  ];
 }
 
 // DeepSeek 토큰당 단가(USD / 1M tokens). 공식 pricing 문서 기준(2026-08-14 확인).
@@ -265,6 +324,8 @@ const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
   target_persona: `{ type: "target_persona", slot, heading, personas[] } — 3~5개, 각 20자 내외. targetCustomer·keyFeatures 기반으로만`,
   brand_story: `{ type: "brand_story", slot, heading, body } — brandName이 없으면 슬롯 전체 생략. 없는 히스토리·수상 지어내지 말 것`,
   ai_disclosure: `{ type: "ai_disclosure", slot: "ai_disclosure", heading, body } — 서버가 고정 문구로 덮어쓰므로 생략하거나 빈 값으로 둬도 됨`,
+  custom_gif: `{ type: "custom_gif", slot: "custom_gif", heading?, gifUrl } — AI는 이 섹션을 생성하지 않음. 판매자가 GIF를 업로드했을 때 서버가 조립 단계에서 자동 삽입`,
+  review_highlight: `{ type: "review_highlight", slot: "review_highlight", heading, praises: string[] } — AI는 이 섹션을 생성하지 않음. 판매자가 리뷰 파일을 업로드했을 때 실제 후기 요약(commonPraises)으로 서버가 조립 단계에서 자동 삽입`,
 };
 
 // 카테고리별 고정 슬롯 순서를 프롬프트용 텍스트로 변환한다. AI는 레이아웃을
@@ -505,6 +566,28 @@ async function generateCopyWithDeepSeek(
 - 금지: "최고", "완벽", "기적", "100% 효과" 등 근거 없는 최상급·과장.
 - cta_price badges: 구매 결정에 도움이 되는 **짧은 사실 키워드** 2~4개 (용량·무향·인증·소재 등, 있을 때만).
 - hero headline은 질문·숫자·한 줄 훅. subheadline은 상품명 또는 한 줄 보조 설명.
+
+## 좋은 카피 예시 (참고용 — 문장을 그대로 베끼지 말고, 구체성·리듬만 참고)
+아래는 "이 상품이 아니어도 아무 데나 붙일 수 있는 카피"(나쁜 예)와
+"이 상품이 아니면 쓸 수 없는 구체적 카피"(좋은 예)의 차이를 보여줍니다.
+나쁜 예처럼 추상적 형용사만 나열하지 말고, 좋은 예처럼 구체적 장면·수치·행동을 담으세요.
+
+- hero headline
+  - 나쁜 예: "최고의 품질, 당신을 위한 선택" (어느 상품에나 붙일 수 있음)
+  - 좋은 예: "샤워 후 3분, 당김 없이 촉촉하게" (이 상품의 실제 사용 장면·시간이 구체적)
+- checklist item
+  - 나쁜 예: "뛰어난 성능"
+  - 좋은 예: "충전 10분, 재생 2시간" (숫자로 검증 가능한 사실)
+- image_text body
+  - 나쁜 예: "고객들에게 사랑받는 이유가 있습니다. 지금 바로 만나보세요."
+  - 좋은 예: "이염 걱정 없이 흰 옷과 함께 세탁해도 됩니다. 매일 입는 옷이라 더 중요했어요."
+    (구체적 사용 불편 → 해결)
+- cta_price badge
+  - 나쁜 예: "특가", "인기 상품"
+  - 좋은 예: "무향", "1++등급 원료", "당일 발송" (입력 정보에 실제로 있는 사실만)
+
+한 상품에만 해당하는 구체적 사실·장면·수치가 없으면 억지로 지어내지 말고, 그 대신
+사용 맥락(언제·어디서·어떻게 쓰는지)을 구체적으로 묘사해서 추상적 형용사를 피하세요.
 ${isCosmetics ? `
 ## 화장품 카피 길이·컨셉 정합
 - hero headline: 한 줄, 공백 포함 22자 이내, 핵심 효능 1개만.
@@ -997,6 +1080,17 @@ export async function POST(request: Request) {
     }
 
     const isCosmetics = isCosmeticsCategory(body.category);
+
+    if (body.customGifUrl) {
+      savedCopy.sections = insertCustomGifSection(savedCopy.sections, body.customGifUrl);
+      console.log("[custom-gif] 판매자 GIF 삽입 (AI 처리 없음, 비용 $0)");
+    }
+
+    const reviewPraises = enrichedBody.reviewInsights?.commonPraises ?? [];
+    if (reviewPraises.length > 0) {
+      savedCopy.sections = insertReviewHighlightSection(savedCopy.sections, reviewPraises);
+      console.log(`[review-highlight] 실제 후기 하이라이트 삽입 (${reviewPraises.length}개, AI 미생성)`);
+    }
 
     let imageUrls = [...body.imageUrls];
     let imagePaths = [...(body.imagePaths ?? [])];

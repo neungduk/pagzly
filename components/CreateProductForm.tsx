@@ -113,9 +113,12 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const [referencePreview, setReferencePreview] = useState<string | null>(null);
   const [reviewFile, setReviewFile] = useState<File | null>(null);
   const [planningDoc, setPlanningDoc] = useState<File | null>(null);
+  const [customGif, setCustomGif] = useState<File | null>(null);
+  const [customGifPreview, setCustomGifPreview] = useState<string | null>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const reviewInputRef = useRef<HTMLInputElement>(null);
   const planningInputRef = useRef<HTMLInputElement>(null);
+  const customGifInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingStage, setLoadingStage] = useState<LoadingStage>("idle");
@@ -292,6 +295,18 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     setReviewFile(file);
   }
 
+  function handleCustomGif(file: File | null) {
+    if (!file) return;
+    if (file.type !== "image/gif") {
+      setError("GIF 파일(.gif)만 업로드할 수 있습니다.");
+      return;
+    }
+    if (customGifPreview) URL.revokeObjectURL(customGifPreview);
+    setError(null);
+    setCustomGif(file);
+    setCustomGifPreview(URL.createObjectURL(file));
+  }
+
   function handlePlanningDoc(file: File | null) {
     if (!file) return;
     const lower = file.name.toLowerCase();
@@ -339,6 +354,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       let referenceImageUrl: string | null = null;
       let reviewFileUrl: string | null = null;
       let planningDocUrl: string | null = null;
+      let customGifUrl: string | null = null;
 
       if (referenceImage) {
         referenceImageUrl = await uploadAuxFile(referenceImage, "reference");
@@ -348,6 +364,9 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       }
       if (planningDoc) {
         planningDocUrl = await uploadAuxFile(planningDoc, "planning");
+      }
+      if (customGif) {
+        customGifUrl = await uploadAuxFile(customGif, "custom-gif");
       }
 
       // 승인 전: 원본 업로드만으로 카피 draft 생성 (배경/보정 비용 스킵)
@@ -372,6 +391,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         referenceImageUrl,
         reviewFileUrl,
         planningDocUrl,
+        customGifUrl,
         referenceAnalysis: null,
         createdAt: new Date().toISOString(),
         photoProcessingCost: 0,
@@ -882,6 +902,59 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
                   className="hidden"
                   onChange={(e) => {
                     handlePlanningDoc(e.target.files?.[0] ?? null);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="customGif" className={labelClass}>
+                  직접 만든 GIF (선택)
+                </label>
+                <p className="mt-1 text-xs text-ink/40">
+                  이미 가지고 계신 GIF를 그대로 상세페이지에 삽입합니다. AI로 새로
+                  만들지 않아 별도 비용이 들지 않으며, 상단 대표 이미지 바로 아래에
+                  들어갑니다.
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => customGifInputRef.current?.click()}
+                    className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink/80 hover:bg-line/30"
+                  >
+                    {customGif ? "다른 GIF 선택" : "GIF 선택"}
+                  </button>
+                  {customGif && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (customGifPreview) URL.revokeObjectURL(customGifPreview);
+                        setCustomGif(null);
+                        setCustomGifPreview(null);
+                      }}
+                      className="text-sm text-ink/50 hover:text-registration-red"
+                    >
+                      제거
+                    </button>
+                  )}
+                  {customGif && (
+                    <span className="text-xs text-ink/50">{customGif.name}</span>
+                  )}
+                </div>
+                {customGifPreview && (
+                  <div className="mt-3 h-24 w-24 overflow-hidden rounded-lg border border-line">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={customGifPreview} alt="GIF 미리보기" className="h-full w-full object-cover" />
+                  </div>
+                )}
+                <input
+                  id="customGif"
+                  ref={customGifInputRef}
+                  type="file"
+                  accept="image/gif"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleCustomGif(e.target.files?.[0] ?? null);
                     e.target.value = "";
                   }}
                 />
