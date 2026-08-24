@@ -26,6 +26,8 @@ export type BackdropGenerateResult = {
   testMode?: boolean;
   shadowAnalysis?: ShadowAnalysis;
   conceptBrief?: ConceptBrief;
+  /** bria-replace / bria-genfill 배경에는 원본 상품이 이미 합성돼 있음 (이중노출 방지용) */
+  productAlreadyComposited?: boolean;
 };
 
 export async function generateBackdrop(params: {
@@ -85,6 +87,7 @@ export async function generateBackdrop(params: {
       testMode: result.testMode ?? false,
       shadowAnalysis: result.shadowAnalysis,
       conceptBrief: result.conceptBrief,
+      productAlreadyComposited: result.productAlreadyComposited ?? false,
     };
   } catch (err) {
     console.warn("[generate-backdrop] 배경 생성 실패, 원본 이미지 사용:", err);
@@ -100,6 +103,8 @@ export async function enhanceImages(params: {
   category?: string;
   productName?: string;
   sectionBackdrops?: { ingredientUrl?: string | null; textureUrl?: string | null };
+  /** heroBackdrop(및 폴백되는 section backdrop)에 상품이 이미 합성돼 있는지 (이중노출 방지용) */
+  backdropAlreadyComposited?: boolean;
 }): Promise<{ images: UploadedImage[]; cost: number; decorCost: number; claudeCost: number }> {
   const {
     uploaded,
@@ -109,6 +114,7 @@ export async function enhanceImages(params: {
     category: productCategory,
     productName,
     sectionBackdrops,
+    backdropAlreadyComposited,
   } = params;
 
   let totalCost = 0;
@@ -138,6 +144,7 @@ export async function enhanceImages(params: {
       keepOriginal?: boolean;
       pathSuffix?: string;
       reuseDecor?: boolean;
+      backdropAlreadyComposited?: boolean;
     },
   ): Promise<UploadedImage | null> {
     const response = await fetch("/api/enhance-image", {
@@ -155,6 +162,7 @@ export async function enhanceImages(params: {
         keepOriginal: options.keepOriginal,
         pathSuffix: options.pathSuffix,
         productName: productName || undefined,
+        backdropAlreadyComposited: options.backdropAlreadyComposited ?? false,
       }),
     });
 
@@ -214,11 +222,15 @@ export async function enhanceImages(params: {
   for (let index = 0; index < uploaded.length; index++) {
     const item = uploaded[index];
     const isHero = index === 0;
+    const resolvedBackdrop = backdropByIndex[index] ?? heroBackdrop;
     try {
-      const enhanced = await enhanceOne(item, backdropByIndex[index] ?? heroBackdrop, {
+      const enhanced = await enhanceOne(item, resolvedBackdrop, {
         applyDecor: isHero,
         reuseDecor: !isHero,
         pathSuffix: "enhanced",
+        // section backdrop(ingredient/texture)이 실제로 쓰인 경우가 아니라
+        // heroBackdrop으로 폴백된 경우에만 "이미 상품이 합성됨" 플래그를 넘긴다.
+        backdropAlreadyComposited: resolvedBackdrop === heroBackdrop ? backdropAlreadyComposited : false,
       });
       results.push(enhanced ?? item);
     } catch (err) {
@@ -347,6 +359,7 @@ export async function runPhotoEnhancementPipeline(params: {
     category: params.category,
     productName: params.productName,
     sectionBackdrops,
+    backdropAlreadyComposited: backdropResult.productAlreadyComposited ?? false,
   });
 
   photoProcessingCost += enhanced.cost;

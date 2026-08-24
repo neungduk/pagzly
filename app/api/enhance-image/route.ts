@@ -34,6 +34,7 @@ export async function POST(request: Request) {
       theme,
       keepOriginal,
       pathSuffix,
+      backdropAlreadyComposited,
     } = (await request.json()) as {
       imageUrl?: string;
       storagePath?: string;
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
       theme?: { accent: string; baseNeutral: string; deepAccent: string };
       keepOriginal?: boolean;
       pathSuffix?: string;
+      backdropAlreadyComposited?: boolean;
     };
 
     if (!imageUrl || !storagePath || !backdropDataUrl) {
@@ -95,6 +97,7 @@ export async function POST(request: Request) {
       applyDecor: applyDecor ?? false,
       decorBuffer,
       theme,
+      backdropAlreadyComposited: backdropAlreadyComposited ?? false,
     });
 
     const decorDataUrlOut =

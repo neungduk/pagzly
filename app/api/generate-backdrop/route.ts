@@ -153,6 +153,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       backdropDataUrl,
       candidateUrls: storedCandidateUrls,
+      // bria-replace / bria-genfill 배경에는 원본 상품이 이미 합성돼 있음 (이중노출 방지용 플래그)
+      productAlreadyComposited: provider !== "flux",
       autoPicked,
       cost: backdropCost + conceptBriefCost + referenceAnalysisCost,
       conceptBriefCost,

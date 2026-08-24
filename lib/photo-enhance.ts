@@ -284,6 +284,11 @@ export type EnhanceImageOptions = {
   theme?: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">;
   /** 배경제거 실패 시 상품 영역 감지 재시도에 사용 */
   productName?: string;
+  /**
+   * backdropBuffer에 상품이 이미 합성돼 있는 경우 (bria-replace / bria-genfill 배경).
+   * true면 원본 재컷아웃 + 재합성을 건너뛰고 배경을 그대로 사용한다 (이중노출 방지).
+   */
+  backdropAlreadyComposited?: boolean;
 };
 
 /** 컨셉 모티프 기반 장식 그래픽 — flux-schnell로 저비용 생성.
@@ -1174,7 +1179,54 @@ export async function enhanceProductImage(
   backdropBuffer: Buffer,
   options: EnhanceImageOptions = {},
 ): Promise<{ buffer: Buffer; cost: number; decorBuffer?: Buffer; decorCost?: number; claudeCost: number }> {
-  const { shadowHint, conceptBrief, applyDecor, decorBuffer: reuseDecor, theme, productName } = options;
+  const {
+    shadowHint,
+    conceptBrief,
+    applyDecor,
+    decorBuffer: reuseDecor,
+    theme,
+    productName,
+    backdropAlreadyComposited,
+  } = options;
+
+  // backdropBuffer에 이미 상품이 합성돼 있는 경우 (bria-replace / bria-genfill):
+  // 원본을 다시 컷아웃해서 겹쳐 합성하면 이중노출(반투명 유리판 아티팩트)이 생기므로
+  // 재컷아웃/재합성을 전부 건너뛰고 배경을 그대로 사용한다.
+  if (backdropAlreadyComposited) {
+    const backdropResized = await sharp(backdropBuffer)
+      .resize(CANVAS_SIZE, CANVAS_SIZE, { fit: "cover" })
+      .png()
+      .toBuffer();
+
+    let decorCost = 0;
+    let decorBuffer = reuseDecor;
+    const shouldApplyDecor = applyDecor && !isTestMode();
+    if (shouldApplyDecor && conceptBrief && theme && !decorBuffer) {
+      try {
+        const shadow = shadowHint ?? { ...DEFAULT_SHADOW };
+        const generated = await generateDecorativeGraphic(conceptBrief, theme, shadow);
+        decorBuffer = generated.buffer;
+        decorCost = generated.cost;
+      } catch (error) {
+        console.warn("[decor] 장식 그래픽 생성 실패, 배경만 사용", error);
+      }
+    } else if (applyDecor && isTestMode()) {
+      console.log("[decor] TEST_MODE — 장식 그래픽 생성 생략, 기본 배경 사용");
+    }
+
+    let finalBuffer: Buffer = backdropResized;
+    if (decorBuffer != null) {
+      try {
+        finalBuffer = await compositeDecorOnBackdrop(backdropResized, decorBuffer);
+      } catch (error) {
+        console.warn("[decor] 장식 합성 실패, 배경만 사용", error);
+      }
+    }
+
+    console.log("[enhanceProductImage] backdropAlreadyComposited=true — 재컷아웃/재합성 스킵 (이중노출 방지)");
+    return { buffer: finalBuffer, cost: 0, decorBuffer, decorCost: decorCost || undefined, claudeCost: 0 };
+  }
+
   const replicate = getReplicateClient();
   const modelRef = await getBackgroundRemoverRef(replicate);
   let claudeCost = 0;
