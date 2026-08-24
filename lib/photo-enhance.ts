@@ -19,15 +19,19 @@ import {
 } from "@/lib/vision-utils";
 import {
   buildProductShadowSvg,
+  buildSilhouetteShadowBuffer,
+  buildSoftContactShadowSvg,
   featherCutout,
   matchCutoutWhiteBalance,
   measureTransparentRatio,
+  unifyCompositeGrain,
 } from "@/lib/photo-composite";
 import { isTestMode } from "@/lib/test-mode";
 import { logForceRegenerateStatus } from "@/lib/force-regenerate";
 
 const CANVAS_SIZE = 1200;
-const FILL_BASE_SIZE = 1024;
+/** flux-fill / 마스크 생성 해상도 — CANVAS_SIZE와 맞춰 업스케일 없이 합성 (합성 티 완화). */
+const FILL_BASE_SIZE = 1200;
 
 let replicateClient: Replicate | null = null;
 
@@ -1155,7 +1159,8 @@ async function sharpenCutout(cutoutUrl: string): Promise<{ url: string; cost: nu
       // 합성 시 원본 사진 사각형이 그대로 얹히는 P0 버그가 난다.
       if (origAlpha > 0.08 && upAlpha < 0.05) {
         console.warn(
-          `[sharpenCutout] clarity-upscaler stripped alpha (${origAlpha.toFixed(3)} → ${upAlpha.toFixed(3)}), pre-upscale cutout 사용`,
+          "[sharpenCutout] FALLBACK: clarity-upscaler stripped alpha " +
+            `(${origAlpha.toFixed(3)} → ${upAlpha.toFixed(3)}), pre-upscale cutout 사용`,
         );
         return { url: cutoutUrl, cost: REPLICATE_COST_USD.backgroundRemover };
       }
@@ -1167,7 +1172,7 @@ async function sharpenCutout(cutoutUrl: string): Promise<{ url: string; cost: nu
     };
   } catch (error) {
     console.warn(
-      "[sharpenCutout] clarity-upscaler 실패, 보정 전 컷아웃으로 폴백:",
+      "[sharpenCutout] FALLBACK: clarity-upscaler 실패, 보정 전 컷아웃으로 폴백:",
       await describeReplicateError(error),
     );
     return { url: cutoutUrl, cost: REPLICATE_COST_USD.backgroundRemover };
@@ -1223,7 +1228,31 @@ export async function enhanceProductImage(
       }
     }
 
-    console.log("[enhanceProductImage] backdropAlreadyComposited=true — 재컷아웃/재합성 스킵 (이중노출 방지)");
+    // Bria 결과물에도 약한 접지 그림자 + 통일 그레인 (재컷아웃 없이)
+    try {
+      const shadow = shadowHint ?? { ...DEFAULT_SHADOW };
+      const contactSvg = buildSoftContactShadowSvg(CANVAS_SIZE, shadow);
+      const contactBuf = await sharp(Buffer.from(contactSvg)).png().toBuffer();
+      finalBuffer = await sharp(finalBuffer)
+        .composite([{ input: contactBuf, blend: "multiply" }])
+        .png()
+        .toBuffer();
+      console.log(
+        `[composite] Bria 경로: soft contact shadow 적용 (lightFrom=${shadow.lightFrom})`,
+      );
+    } catch (error) {
+      console.warn("[composite] Bria soft contact shadow 실패 — 스킵", error);
+    }
+
+    try {
+      finalBuffer = Buffer.from(await unifyCompositeGrain(finalBuffer, CANVAS_SIZE));
+    } catch (error) {
+      console.warn("[composite] unify grain 실패 — 스킵", error);
+    }
+
+    console.log(
+      "[enhanceProductImage] backdropAlreadyComposited=true — 재컷아웃 스킵, 그림자/그레인만 보정",
+    );
     return { buffer: finalBuffer, cost: 0, decorBuffer, decorCost: decorCost || undefined, claudeCost: 0 };
   }
 
@@ -1327,7 +1356,7 @@ export async function enhanceProductImage(
 
   if (cutoutAlpha < 0.05) {
     console.warn(
-      "[cutout] 배경 제거 결과에 투명 영역이 거의 없음 — fallback: 원본 이미지 사용 (배경 합성 스킵)",
+      `[cutout] FALLBACK: transparentRatio=${cutoutAlpha.toFixed(3)} < 0.05 — AI 배경 합성 스킵, 원본 세이프크롭만 반환`,
     );
 
     const sourceRes = await fetch(sourceImageUrl);
@@ -1424,34 +1453,57 @@ export async function enhanceProductImage(
 
   let cutoutForComposite: Buffer = cutoutResized;
   try {
-    const feathered = await featherCutout(cutoutResized);
+    const feathered = await featherCutout(cutoutResized, CANVAS_SIZE);
     cutoutForComposite = await matchCutoutWhiteBalance(feathered, backdropWithDecor);
     console.log(
-      `[composite] feather + WB match, lightFrom=${shadow.lightFrom} temp=${shadow.colorTemperature}`,
+      `[composite] feather + WB/luminance match, lightFrom=${shadow.lightFrom} temp=${shadow.colorTemperature}`,
     );
   } catch (error) {
     console.warn("[composite] feather/WB 실패, 컷아웃 그대로 합성", error);
   }
 
-  const shadowSvg = buildProductShadowSvg(
-    CANVAS_SIZE,
-    {
-      left: placement.left,
-      top: placement.top,
-      width: targetW,
-      height: targetH,
-    },
-    shadow,
-  );
-  const shadowBuffer = await sharp(Buffer.from(shadowSvg)).png().toBuffer();
+  let shadowBuffer: Buffer;
+  try {
+    shadowBuffer = await buildSilhouetteShadowBuffer(
+      cutoutResized,
+      CANVAS_SIZE,
+      {
+        left: placement.left,
+        top: placement.top,
+        width: targetW,
+        height: targetH,
+      },
+      shadow,
+    );
+    console.log("[composite] silhouette shadow 적용");
+  } catch (error) {
+    console.warn("[composite] silhouette shadow 실패 — 타원 그림자로 폴백", error);
+    const shadowSvg = buildProductShadowSvg(
+      CANVAS_SIZE,
+      {
+        left: placement.left,
+        top: placement.top,
+        width: targetW,
+        height: targetH,
+      },
+      shadow,
+    );
+    shadowBuffer = await sharp(Buffer.from(shadowSvg)).png().toBuffer();
+  }
 
-  const finalBuffer = await sharp(backdropWithDecor)
+  let finalBuffer = await sharp(backdropWithDecor)
     .composite([
       { input: shadowBuffer, left: 0, top: 0 },
       { input: cutoutForComposite, left: placement.left, top: placement.top },
     ])
     .png()
     .toBuffer();
+
+  try {
+    finalBuffer = Buffer.from(await unifyCompositeGrain(finalBuffer, CANVAS_SIZE));
+  } catch (error) {
+    console.warn("[composite] unify grain 실패 — 스킵", error);
+  }
 
   const totalCost = cost + decorCost + preCropCost;
   if (decorCost > 0 || preCropCost > 0) {

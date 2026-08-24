@@ -269,3 +269,26 @@ export const TYPOGRAPHY = {
   headlineMaxLines: 2,
   bodyMaxLines: 3,
 };
+
+// ---------------------------------------------------------------------------
+// 6. 정보 섹션(표·체크리스트) — LACTO급 인포 폴리싱용 토큰.
+//    렌더러는 색/알파를 하드코딩하지 말고 여기 값만 쓴다.
+// ---------------------------------------------------------------------------
+
+export const INFO_TABLE = {
+  /** 행 구분선 accent 알파 */
+  rowBorderAlpha: 0.2,
+  /** 교차 음영(짝수 행) accent 알파 */
+  stripeAlpha: 0.07,
+  /** 헤더 배경 accent 알파 */
+  headerBgAlpha: 0.1,
+  /** 우리 제품 열 강조 배경 */
+  oursHighlightAlpha: 0.12,
+} as const;
+
+export const INFO_BADGE = {
+  /** checklist / usage_steps 기본 */
+  defaultSize: "md" as const,
+  /** spec_table / comparison / 숫자 카드 옆 */
+  compactSize: "sm" as const,
+};

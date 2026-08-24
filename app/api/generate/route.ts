@@ -1199,10 +1199,20 @@ export async function POST(request: Request) {
     if (enrichedBody.conceptBrief) {
       const checklistSection = savedCopy.sections.find((s) => s.type === "checklist");
       const usageSection = savedCopy.sections.find((s) => s.type === "usage_steps");
+      const specTableSection = savedCopy.sections.find((s) => s.type === "spec_table");
+      const statSection = savedCopy.sections.find((s) => s.type === "stat_infographic");
       const checklistItems =
         checklistSection?.type === "checklist" ? checklistSection.items : [];
       const usageSteps =
         usageSection?.type === "usage_steps" ? usageSection.steps : [];
+      const specTableLabels =
+        specTableSection?.type === "spec_table"
+          ? specTableSection.rows.map((row) => row.label)
+          : [];
+      const statLabels =
+        statSection?.type === "stat_infographic"
+          ? statSection.metrics.map((metric) => metric.label)
+          : [];
 
       const iconTheme = theme
         ? { accent: theme.accent, deepAccent: theme.deepAccent }
@@ -1213,6 +1223,8 @@ export async function POST(request: Request) {
         iconTheme,
         checklistItems,
         usageSteps,
+        specTableLabels,
+        statLabels,
       );
       conceptIcons = iconResult.icons;
       iconCost = iconResult.cost;

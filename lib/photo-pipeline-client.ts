@@ -30,6 +30,37 @@ export type BackdropGenerateResult = {
   productAlreadyComposited?: boolean;
 };
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** 일시 실패 대비 1~2회 재시도. 전부 실패하면 null + 명시 로그. */
+async function withBackoffRetry<T>(
+  label: string,
+  run: () => Promise<T | null>,
+  maxAttempts = 2,
+): Promise<T | null> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const result = await run();
+      if (result != null) return result;
+      console.warn(`[${label}] attempt ${attempt}/${maxAttempts} returned null`);
+    } catch (err) {
+      lastError = err;
+      console.warn(`[${label}] attempt ${attempt}/${maxAttempts} failed:`, err);
+    }
+    if (attempt < maxAttempts) {
+      await sleep(400 * attempt);
+    }
+  }
+  console.error(
+    `[${label}] FALLBACK: all ${maxAttempts} attempts failed` +
+      (lastError != null ? ` — last error: ${String(lastError)}` : ""),
+  );
+  return null;
+}
+
 export async function generateBackdrop(params: {
   category: string;
   productName: string;
@@ -41,7 +72,7 @@ export async function generateBackdrop(params: {
   targetCustomer?: string | null;
   referenceImageUrl?: string | null;
 }): Promise<BackdropGenerateResult | null> {
-  try {
+  return withBackoffRetry("generate-backdrop", async () => {
     const response = await fetch("/api/generate-backdrop", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -62,8 +93,8 @@ export async function generateBackdrop(params: {
 
     if (!response.ok) {
       console.warn(
-        "[generate-backdrop] 배경 생성 실패, 원본 이미지 사용:",
-        result.error ?? "unknown",
+        "[generate-backdrop] API error:",
+        result.error ?? response.status,
       );
       return null;
     }
@@ -89,10 +120,7 @@ export async function generateBackdrop(params: {
       conceptBrief: result.conceptBrief,
       productAlreadyComposited: result.productAlreadyComposited ?? false,
     };
-  } catch (err) {
-    console.warn("[generate-backdrop] 배경 생성 실패, 원본 이미지 사용:", err);
-    return null;
-  }
+  });
 }
 
 export async function enhanceImages(params: {
@@ -136,7 +164,7 @@ export async function enhanceImages(params: {
     sectionBackdrops?.textureUrl || heroBackdrop,
   ];
 
-  async function enhanceOne(
+  async function enhanceOneOnce(
     item: UploadedImage,
     backdropDataUrl: string,
     options: {
@@ -177,7 +205,7 @@ export async function enhanceImages(params: {
     };
 
     if (!response.ok || !result.enhancedUrl || !result.enhancedPath) {
-      console.warn("[enhance-image] 보정 실패, 원본 사용:", result.error ?? item.path);
+      console.warn("[enhance-image] API 실패:", result.error ?? item.path);
       return null;
     }
 
@@ -188,6 +216,22 @@ export async function enhanceImages(params: {
       decorDataUrl = result.decorDataUrl;
     }
     return { url: result.enhancedUrl, path: result.enhancedPath };
+  }
+
+  async function enhanceOne(
+    item: UploadedImage,
+    backdropDataUrl: string,
+    options: {
+      applyDecor: boolean;
+      keepOriginal?: boolean;
+      pathSuffix?: string;
+      reuseDecor?: boolean;
+      backdropAlreadyComposited?: boolean;
+    },
+  ): Promise<UploadedImage | null> {
+    return withBackoffRetry(`enhance-image:${item.path}`, () =>
+      enhanceOneOnce(item, backdropDataUrl, options),
+    );
   }
 
   const extras: UploadedImage[] = [];
@@ -232,9 +276,14 @@ export async function enhanceImages(params: {
         // heroBackdrop으로 폴백된 경우에만 "이미 상품이 합성됨" 플래그를 넘긴다.
         backdropAlreadyComposited: resolvedBackdrop === heroBackdrop ? backdropAlreadyComposited : false,
       });
+      if (!enhanced) {
+        console.error(
+          `[enhance-image] FALLBACK: slot ${index} 원본 유지 — ${item.path}`,
+        );
+      }
       results.push(enhanced ?? item);
     } catch (err) {
-      console.warn("[enhance-image] 보정 실패, 원본 사용:", item.path, err);
+      console.error("[enhance-image] FALLBACK: 보정 예외, 원본 사용:", item.path, err);
       results.push(item);
     }
   }
@@ -284,6 +333,9 @@ export async function runPhotoEnhancementPipeline(params: {
   });
 
   if (!backdropResult) {
+    console.error(
+      "[photo-pipeline] FALLBACK: generateBackdrop 실패 — 상품 전체 이미지를 원본 그대로 반환 ($0)",
+    );
     return {
       images: uploaded,
       photoProcessingCost: 0,
@@ -315,7 +367,9 @@ export async function runPhotoEnhancementPipeline(params: {
   }
 
   let sectionBackdrops: { ingredientUrl?: string | null; textureUrl?: string | null } | undefined;
-  if (backdropResult.shadowAnalysis && uploaded.length >= 2) {
+  // 사진 1장이어도 섹션별 배경을 생성해 히어로와 동일 배경 반복을 피한다.
+  // TEST_MODE에서는 section-backdrops API가 디스크 캐시를 쓰므로 비용 캡이 유지된다.
+  if (backdropResult.shadowAnalysis && uploaded.length >= 1) {
     try {
       const sectionRes = await fetch("/api/section-backdrops", {
         method: "POST",

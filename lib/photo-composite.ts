@@ -1,9 +1,11 @@
 /**
- * 컷아웃 합성 후처리: 페더, 색온도 매칭, 광원 방향 그림자, Before/After 질감.
+ * 컷아웃 합성 후처리: 페더, 색온도·명암 매칭, 실루엣 그림자, 통일 그레인.
  */
 
 import sharp from "sharp";
 import type { ShadowAnalysis } from "@/lib/vision-utils";
+
+const DEFAULT_CANVAS_SIZE = 1200;
 
 /** PNG 알파 채널에서 투명(α<16) 픽셀 비율 — cutout 품질 검증용 */
 export async function measureTransparentRatio(buffer: Buffer): Promise<number> {
@@ -17,7 +19,14 @@ export async function measureTransparentRatio(buffer: Buffer): Promise<number> {
   return transparent / total;
 }
 
-export async function featherCutout(input: Buffer): Promise<Buffer> {
+/**
+ * 알파 1px erode + 블러. 블러 반경은 컷아웃 크기 대비 캔버스 비율로 정규화
+ * (고정 2.4면 큰 제품은 페더가 약하고 작은 제품은 과해짐).
+ */
+export async function featherCutout(
+  input: Buffer,
+  canvasSize = DEFAULT_CANVAS_SIZE,
+): Promise<Buffer> {
   const { data, info } = await sharp(input)
     .ensureAlpha()
     .raw()
@@ -57,10 +66,14 @@ export async function featherCutout(input: Buffer): Promise<Buffer> {
     }
   }
 
+  // 제품이 캔버스의 ~50% 스팬일 때 blur≈2.4 가 되도록 정규화
+  const span = Math.max(width, height);
+  const blurSigma = Math.max(1.2, Math.min(4.8, 2.4 * (span / (canvasSize * 0.5))));
+
   const joined = await sharp(out, { raw: { width, height, channels } })
     .png()
     .toBuffer();
-  const blurredAlpha = await sharp(joined).extractChannel(3).blur(2.4).toBuffer();
+  const blurredAlpha = await sharp(joined).extractChannel(3).blur(blurSigma).toBuffer();
   const rgb = await sharp(joined).removeAlpha().toBuffer();
   return sharp(rgb).joinChannel(blurredAlpha).png().toBuffer();
 }
@@ -96,7 +109,14 @@ function sampleCornerAverage(
   return { r: r / n, g: g / n, b: b / n };
 }
 
-/** 배경 코너 평균에 맞춰 컷아웃 RGB를 약하게 당긴다. 알파는 유지. */
+function luminance(c: { r: number; g: number; b: number }): number {
+  return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+}
+
+/**
+ * 배경 코너 평균에 맞춰 컷아웃 RGB·명암을 약하게 당긴다. 알파는 유지.
+ * mix는 제품 고유 색(화장품 색조 등)이 과하게 왜곡되지 않도록 상한을 둔다.
+ */
 export async function matchCutoutWhiteBalance(
   cutout: Buffer,
   backdrop: Buffer,
@@ -124,16 +144,30 @@ export async function matchCutoutWhiteBalance(
   }
   if (sn < 20) return cutout;
   const src = { r: sr / sn, g: sg / sn, b: sb / sn };
-  const mix = 0.16;
-  const scaleR = 1 - mix + mix * (target.r / Math.max(src.r, 8));
-  const scaleG = 1 - mix + mix * (target.g / Math.max(src.g, 8));
-  const scaleB = 1 - mix + mix * (target.b / Math.max(src.b, 8));
+  const colorMix = 0.22;
+  const lumMix = 0.14;
+  const scaleR = 1 - colorMix + colorMix * (target.r / Math.max(src.r, 8));
+  const scaleG = 1 - colorMix + colorMix * (target.g / Math.max(src.g, 8));
+  const scaleB = 1 - colorMix + colorMix * (target.b / Math.max(src.b, 8));
+  const lumScale =
+    1 - lumMix + lumMix * (luminance(target) / Math.max(luminance(src), 8));
+  // 채널 스케일 상한 — 색조가 과도하게 틀어지지 않게
+  const clampScale = (s: number) => Math.max(0.82, Math.min(1.18, s));
 
   for (let i = 0; i < data.length; i += 4) {
     if (data[i + 3] === 0) continue;
-    data[i] = Math.max(0, Math.min(255, Math.round(data[i] * scaleR)));
-    data[i + 1] = Math.max(0, Math.min(255, Math.round(data[i + 1] * scaleG)));
-    data[i + 2] = Math.max(0, Math.min(255, Math.round(data[i + 2] * scaleB)));
+    data[i] = Math.max(
+      0,
+      Math.min(255, Math.round(data[i] * clampScale(scaleR) * clampScale(lumScale))),
+    );
+    data[i + 1] = Math.max(
+      0,
+      Math.min(255, Math.round(data[i + 1] * clampScale(scaleG) * clampScale(lumScale))),
+    );
+    data[i + 2] = Math.max(
+      0,
+      Math.min(255, Math.round(data[i + 2] * clampScale(scaleB) * clampScale(lumScale))),
+    );
   }
 
   return sharp(data, {
@@ -143,6 +177,97 @@ export async function matchCutoutWhiteBalance(
     .toBuffer();
 }
 
+/** 광원 반대 방향으로 그림자 오프셋 (px, 제품 크기 비율). */
+function shadowOffsets(
+  placement: { width: number; height: number },
+  shadow: ShadowAnalysis,
+): { ox: number; oy: number } {
+  const w = placement.width;
+  const h = placement.height;
+  switch (shadow.lightFrom) {
+    case "upper-right":
+    case "right":
+      return { ox: -w * 0.06, oy: h * 0.04 };
+    case "top":
+      return { ox: 0, oy: h * 0.055 };
+    case "left":
+      return { ox: w * 0.06, oy: h * 0.04 };
+    case "upper-left":
+    default:
+      return { ox: w * 0.055, oy: h * 0.045 };
+  }
+}
+
+/**
+ * 컷아웃 알파 마스크를 투영·블러한 실루엣 그림자.
+ * 타원 블롭보다 제품 윤곽을 반영해 합성 티를 줄인다.
+ */
+export async function buildSilhouetteShadowBuffer(
+  cutoutResized: Buffer,
+  canvasSize: number,
+  placement: { left: number; top: number; width: number; height: number },
+  shadow: ShadowAnalysis,
+): Promise<Buffer> {
+  const meta = await sharp(cutoutResized).metadata();
+  const w = meta.width ?? placement.width;
+  const h = meta.height ?? placement.height;
+  const alpha = await sharp(cutoutResized).ensureAlpha().extractChannel(3).toBuffer();
+  const blackRgb = await sharp({
+    create: {
+      width: w,
+      height: h,
+      channels: 3,
+      background: { r: 0, g: 0, b: 0 },
+    },
+  })
+    .png()
+    .toBuffer();
+
+  const opacity = Math.min(0.38, Math.max(0.14, shadow.shadowIntensity + 0.08));
+  // 알파에 opacity 적용
+  const { data: alphaRaw, info: aInfo } = await sharp(alpha)
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const faded = Buffer.alloc(alphaRaw.length);
+  for (let i = 0; i < alphaRaw.length; i += 1) {
+    faded[i] = Math.round(alphaRaw[i] * opacity);
+  }
+  const silhouette = await sharp(blackRgb)
+    .joinChannel(
+      await sharp(faded, {
+        raw: { width: aInfo.width, height: aInfo.height, channels: 1 },
+      })
+        .png()
+        .toBuffer(),
+    )
+    .png()
+    .toBuffer();
+
+  const blurSigma = Math.max(6, Math.min(28, Math.min(w, h) * 0.055));
+  const blurred = await sharp(silhouette).blur(blurSigma).png().toBuffer();
+
+  const { ox, oy } = shadowOffsets(placement, shadow);
+  const left = Math.round(placement.left + ox);
+  const top = Math.round(placement.top + oy + h * 0.02);
+
+  const empty = await sharp({
+    create: {
+      width: canvasSize,
+      height: canvasSize,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .png()
+    .toBuffer();
+
+  return sharp(empty)
+    .composite([{ input: blurred, left, top }])
+    .png()
+    .toBuffer();
+}
+
+/** 폴백용 타원 그림자 SVG (실루엣 생성 실패 시). */
 export function buildProductShadowSvg(
   canvasSize: number,
   placement: { left: number; top: number; width: number; height: number },
@@ -150,17 +275,51 @@ export function buildProductShadowSvg(
 ): string {
   const cx = placement.left + placement.width * 0.5;
   const baseY = placement.top + placement.height * 0.92;
-  const offsetX =
-    shadow.lightFrom === "upper-right" || shadow.lightFrom === "right"
-      ? -placement.width * 0.08
-      : shadow.lightFrom === "top"
-        ? 0
-        : placement.width * 0.08;
-  const offsetY = shadow.lightFrom === "top" ? placement.height * 0.04 : placement.height * 0.05;
+  const { ox, oy } = shadowOffsets(placement, shadow);
   const opacity = Math.min(0.32, Math.max(0.12, shadow.shadowIntensity + 0.06));
   const rx = placement.width * 0.34;
   const ry = Math.max(18, placement.height * 0.055);
-  return `<svg width="${canvasSize}" height="${canvasSize}" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="shadow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#000000" stop-opacity="${opacity.toFixed(2)}"/><stop offset="100%" stop-color="#000000" stop-opacity="0"/></radialGradient></defs><ellipse cx="${cx + offsetX}" cy="${baseY + offsetY}" rx="${rx}" ry="${ry}" fill="url(#shadow)"/></svg>`;
+  return `<svg width="${canvasSize}" height="${canvasSize}" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="shadow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#000000" stop-opacity="${opacity.toFixed(2)}"/><stop offset="100%" stop-color="#000000" stop-opacity="0"/></radialGradient></defs><ellipse cx="${cx + ox}" cy="${baseY + oy}" rx="${rx}" ry="${ry}" fill="url(#shadow)"/></svg>`;
+}
+
+/**
+ * Bria 등 이미 합성된 결과물에 얹는 약한 접지 그림자 (재컷아웃 없이).
+ * 하단 중앙 타원 — 실루엣 대신 저강도 블롭으로 "떠 있는" 느낌을 줄인다.
+ */
+export function buildSoftContactShadowSvg(
+  canvasSize: number,
+  shadow: ShadowAnalysis,
+): string {
+  const opacity = Math.min(0.22, Math.max(0.08, shadow.shadowIntensity * 0.7));
+  const cx = canvasSize * 0.5;
+  const cy = canvasSize * 0.78;
+  const rx = canvasSize * 0.22;
+  const ry = canvasSize * 0.04;
+  return `<svg width="${canvasSize}" height="${canvasSize}" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="contact" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#000000" stop-opacity="${opacity.toFixed(2)}"/><stop offset="100%" stop-color="#000000" stop-opacity="0"/></radialGradient></defs><ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="url(#contact)"/></svg>`;
+}
+
+/**
+ * 최종 합성 전체에 아주 미세한 그레인 — 제품·배경 선명도 차이를 시각적으로 완화.
+ * 완전한 해상도 해결책은 아니지만 저비용으로 즉시 적용 가능.
+ */
+export async function unifyCompositeGrain(
+  image: Buffer,
+  canvasSize = DEFAULT_CANVAS_SIZE,
+): Promise<Buffer> {
+  const noiseSvg = Buffer.from(
+    `<svg width="${canvasSize}" height="${canvasSize}" xmlns="http://www.w3.org/2000/svg">
+      <filter id="n">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"/>
+        <feColorMatrix type="matrix" values="0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0.045 0"/>
+      </filter>
+      <rect width="100%" height="100%" filter="url(#n)"/>
+    </svg>`,
+  );
+  const noise = await sharp(noiseSvg).png().toBuffer();
+  return sharp(image)
+    .composite([{ input: noise, blend: "overlay" }])
+    .png()
+    .toBuffer();
 }
 
 /** 같은 구도의 사용 전(건조·매트) / 사용 후(촉촉 광택). 대비를 강하게 유지. */

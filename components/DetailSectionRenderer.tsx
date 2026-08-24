@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
 import {
+  Check,
   CheckCircle2,
   Cpu,
   Leaf,
   PawPrint,
   Shirt,
   Sparkles,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
@@ -17,6 +19,8 @@ import SectionImage from "@/components/SectionImage";
 import {
   SLOT_IMAGE_RATIO,
   HERO_TRANSITION_OVERLAP_CLASS,
+  INFO_BADGE,
+  INFO_TABLE,
   getCtaBandBackground,
   getCategoryRhythm,
   getDecorationColor,
@@ -103,22 +107,27 @@ function ThemeIcon({ theme }: { theme: CategoryTheme }) {
   );
 }
 
+const CONCEPT_BADGE_SIZE_CLASS = { sm: "h-9 w-9", md: "h-12 w-12" } as const;
+
 function ConceptBadgeIcon({
   src,
   theme,
   fallbackIndex,
+  size = "md",
 }: {
   src?: string;
   theme: CategoryTheme;
   fallbackIndex?: number;
+  size?: "sm" | "md";
 }) {
+  const sizeClass = CONCEPT_BADGE_SIZE_CLASS[size];
   if (src) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
         alt=""
-        className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-white/80"
+        className={`${sizeClass} shrink-0 rounded-full object-cover ring-2 ring-white/80`}
         style={{ boxShadow: `0 0 0 1px ${theme.accent}33` }}
         aria-hidden="true"
       />
@@ -127,7 +136,7 @@ function ConceptBadgeIcon({
   if (fallbackIndex != null) {
     return (
       <span
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-paper"
+        className={`flex ${sizeClass} shrink-0 items-center justify-center rounded-full text-sm font-semibold text-paper`}
         style={{ backgroundColor: theme.accent }}
         aria-hidden="true"
       >
@@ -137,7 +146,7 @@ function ConceptBadgeIcon({
   }
   return (
     <span
-      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
+      className={`flex ${sizeClass} shrink-0 items-center justify-center rounded-full`}
       style={{ backgroundColor: hexToRgba(theme.accent, 0.12) }}
       aria-hidden="true"
     >
@@ -159,6 +168,63 @@ function isPlaceholderValue(value: string): boolean {
   const trimmed = value.trim();
   if (!trimmed) return true;
   return PLACEHOLDER_VALUE_PATTERNS.some((pattern) => trimmed.includes(pattern));
+}
+
+/** comparison_table 셀이 O/X·지원/미지원 류면 체크/엑스 마크로 표시 */
+function classifyBoolishCell(value: string): "yes" | "no" | null {
+  const t = value.trim().toLowerCase();
+  if (!t) return null;
+  if (
+    /^(o|ㅇ|예|있음|지원|가능|포함|✓|✔|yes|true|y)$/i.test(t) ||
+    t === "○" ||
+    t === "●"
+  ) {
+    return "yes";
+  }
+  if (
+    /^(x|ㄴ|아니오|없음|미지원|불가|미포함|✗|✘|no|false|n)$/i.test(t) ||
+    t === "×" ||
+    t === "✕"
+  ) {
+    return "no";
+  }
+  return null;
+}
+
+function ComparisonValueCell({
+  value,
+  emphasized,
+  theme,
+}: {
+  value: string;
+  emphasized?: boolean;
+  theme: CategoryTheme;
+}) {
+  const kind = classifyBoolishCell(value);
+  if (kind === "yes") {
+    return (
+      <span
+        className="inline-flex h-7 w-7 items-center justify-center rounded-full"
+        style={{ backgroundColor: hexToRgba(theme.accent, emphasized ? 0.2 : 0.12) }}
+        aria-label={value}
+      >
+        <Check size={16} strokeWidth={2.5} style={{ color: theme.deepAccent }} aria-hidden />
+      </span>
+    );
+  }
+  if (kind === "no") {
+    return (
+      <span
+        className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink/5"
+        aria-label={value}
+      >
+        <X size={15} strokeWidth={2.25} className="text-ink/35" aria-hidden />
+      </span>
+    );
+  }
+  return (
+    <span className={emphasized ? "font-semibold text-ink" : "text-ink"}>{value}</span>
+  );
 }
 
 function parseMetricPercent(value: string): number | null {
@@ -394,6 +460,7 @@ function renderSection(
                 <ConceptBadgeIcon
                   src={conceptIcons?.checklist?.[itemIndex]}
                   theme={theme}
+                  size={INFO_BADGE.defaultSize}
                 />
                 <EditableText
                   as="span"
@@ -541,33 +608,44 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} font-heading text-2xl font-bold tracking-[-0.02em] text-ink sm:text-3xl`}
+            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
           />
-          <div className="mx-auto mt-10 max-w-xl">
+          <div className="mx-auto mt-10 max-w-xl overflow-hidden rounded-lg">
             <table className="w-full text-sm">
               <tbody>
-                {visibleRows.map((row) => {
+                {visibleRows.map((row, visibleIndex) => {
                   const rowIndex = section.rows.indexOf(row);
+                  const striped = visibleIndex % 2 === 1;
                   return (
                   <tr
                     key={`${row.label}-${rowIndex}`}
                     className="border-b last:border-b-0"
                     style={{
-                      borderColor: hexToRgba(theme.accent, 0.22),
+                      borderColor: hexToRgba(theme.accent, INFO_TABLE.rowBorderAlpha),
+                      backgroundColor: striped
+                        ? hexToRgba(theme.accent, INFO_TABLE.stripeAlpha)
+                        : undefined,
                     }}
                   >
                     <td className={`w-[38%] py-3.5 pr-4 ${TYPO.sectionLabel} text-ink/45`}>
-                      <EditableText
-                        as="span"
-                        enabled={edit?.enabled}
-                        value={row.label}
-                        onChange={(label) => {
-                          const rows = section.rows.map((item, i) =>
-                            i === rowIndex ? { ...item, label } : item,
-                          );
-                          edit?.onChange(index, { ...section, rows });
-                        }}
-                      />
+                      <div className="flex items-center gap-2.5">
+                        <ConceptBadgeIcon
+                          src={conceptIcons?.specTable?.[rowIndex]}
+                          theme={theme}
+                          size={INFO_BADGE.compactSize}
+                        />
+                        <EditableText
+                          as="span"
+                          enabled={edit?.enabled}
+                          value={row.label}
+                          onChange={(label) => {
+                            const rows = section.rows.map((item, i) =>
+                              i === rowIndex ? { ...item, label } : item,
+                            );
+                            edit?.onChange(index, { ...section, rows });
+                          }}
+                        />
+                      </div>
                     </td>
                     <td className="py-3.5 font-medium tracking-tight text-ink">
                       <EditableText
@@ -614,17 +692,20 @@ function renderSection(
           <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}>
             {section.heading}
           </h3>
-          <div className="mx-auto mt-10 max-w-xl overflow-x-auto">
+          <div className="mx-auto mt-10 max-w-xl overflow-x-auto overflow-hidden rounded-lg">
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ backgroundColor: hexToRgba(theme.accent, 0.08) }}>
+                <tr style={{ backgroundColor: hexToRgba(theme.accent, INFO_TABLE.headerBgAlpha) }}>
                   <th className="px-4 py-3 text-left font-medium text-ink/55" />
                   <th className="px-4 py-3 text-left font-medium text-ink/55">
                     {section.columns[0]}
                   </th>
                   <th
                     className="px-4 py-3 text-left font-semibold"
-                    style={{ color: theme.deepAccent }}
+                    style={{
+                      color: theme.deepAccent,
+                      backgroundColor: hexToRgba(theme.accent, INFO_TABLE.oursHighlightAlpha),
+                    }}
                   >
                     {section.columns[1]}
                   </th>
@@ -634,16 +715,31 @@ function renderSection(
                 {section.rows.map((row, rowIndex) => (
                   <tr
                     key={`${row.label}-${rowIndex}`}
+                    className="border-b last:border-b-0"
                     style={{
+                      borderColor: hexToRgba(theme.accent, INFO_TABLE.rowBorderAlpha),
                       backgroundColor:
                         rowIndex % 2 === 0
                           ? theme.baseNeutral
-                          : hexToRgba(theme.accent, 0.08),
+                          : hexToRgba(theme.accent, INFO_TABLE.stripeAlpha),
                     }}
                   >
                     <td className="px-4 py-3.5 font-medium text-ink/55">{row.label}</td>
-                    <td className="px-4 py-3.5 text-ink">{row.values[0]}</td>
-                    <td className="px-4 py-3.5 font-semibold text-ink">{row.values[1]}</td>
+                    <td className="px-4 py-3.5">
+                      <ComparisonValueCell value={row.values[0]} theme={theme} />
+                    </td>
+                    <td
+                      className="px-4 py-3.5"
+                      style={{
+                        backgroundColor: hexToRgba(theme.accent, INFO_TABLE.oursHighlightAlpha),
+                      }}
+                    >
+                      <ComparisonValueCell
+                        value={row.values[1]}
+                        emphasized
+                        theme={theme}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -727,6 +823,11 @@ function renderSection(
                   rotate={metricIndex % 2 === 0 ? -2 : 2}
                   className="flex flex-col items-center gap-1.5 px-4 py-7 text-center"
                 >
+                  <ConceptBadgeIcon
+                    src={conceptIcons?.statInfographic?.[metricIndex]}
+                    theme={theme}
+                    size={INFO_BADGE.compactSize}
+                  />
                   <div style={{ color: theme.deepAccent }}>
                     <EditableText
                       as="span"
@@ -764,18 +865,25 @@ function renderSection(
                 return (
                   <div key={`${metric.label}-${metricIndex}`}>
                     <div className="flex items-baseline justify-between gap-4">
-                      <EditableText
-                        as="span"
-                        enabled={edit?.enabled}
-                        value={metric.label}
-                        onChange={(label) => {
-                          const metrics = section.metrics.map((item, i) =>
-                            i === metricIndex ? { ...item, label } : item,
-                          );
-                          edit?.onChange(index, { ...section, metrics });
-                        }}
-                        className="text-sm font-medium text-ink/65 sm:text-base"
-                      />
+                      <div className="flex items-center gap-2.5">
+                        <ConceptBadgeIcon
+                          src={conceptIcons?.statInfographic?.[metricIndex]}
+                          theme={theme}
+                          size={INFO_BADGE.compactSize}
+                        />
+                        <EditableText
+                          as="span"
+                          enabled={edit?.enabled}
+                          value={metric.label}
+                          onChange={(label) => {
+                            const metrics = section.metrics.map((item, i) =>
+                              i === metricIndex ? { ...item, label } : item,
+                            );
+                            edit?.onChange(index, { ...section, metrics });
+                          }}
+                          className="text-sm font-medium text-ink/65 sm:text-base"
+                        />
+                      </div>
                       <EditableText
                         as="span"
                         enabled={edit?.enabled}
@@ -912,6 +1020,7 @@ function renderSection(
                     src={conceptIcons?.usageSteps?.[stepIndex]}
                     theme={theme}
                     fallbackIndex={stepIndex}
+                    size={INFO_BADGE.defaultSize}
                   />
                 </div>
                 <div className="min-w-0 flex-1 pt-1 sm:flex-none sm:pt-0">

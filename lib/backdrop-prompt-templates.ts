@@ -18,6 +18,7 @@ export type CosmeticsPhotographyTemplateId =
   | "cleansing"
   | "radiant"
   | "premium_dark"
+  | "minimal"
   | "studio";
 
 export type PhotographyTemplateId =
@@ -110,6 +111,23 @@ export const PHOTOGRAPHY_TEMPLATES: Record<CosmeticsPhotographyTemplateId, Photo
     prompt:
       "single dramatic key light matching the lighting lock direction, deep charcoal-to-black gradient background, controlled specular rim highlight, editorial high-contrast mood, shallow depth of field, generous negative space, fine suspended powder or mist particles drifting through the light beam, dark glossy reflective surface, premium cosmetic advertising backdrop, no flat even lighting, no product, no text, no logo",
   },
+  /**
+   * 미니멀 — 구체적 사물(꽃잎·물방울·잎사귀) 없이 그라데이션·보케·비네트만.
+   * 배경이 단순할수록 제품 합성 티(그림자·색온도 불일치)가 덜 도드라진다.
+   * 키워드 미매칭 시 화장품 기본 후보로 사용한다.
+   */
+  minimal: {
+    id: "minimal",
+    labelKo: "미니멀 그라데이션",
+    lighting:
+      "soft even diffused light matching the lighting lock, gentle falloff, no dramatic props lighting",
+    composition:
+      "shallow depth of field, generous empty negative space, soft vignette toward edges, empty center-lower third for product",
+    texture:
+      "smooth soft-focus gradient only, faint circular bokeh far out of focus, no petals, no leaves, no droplets, no props",
+    prompt:
+      "soft even diffused light matching the lighting lock white balance, shallow depth of field, smooth soft-focus gradient backdrop from pale blush-ivory to warm cream, faint out-of-focus bokeh circles near edges only, gentle vignette, empty center for product, no flower petals, no leaves, no water droplets, no glass, no props, no product, no text, no logo",
+  },
   studio: {
     id: "studio",
     labelKo: "기본 스튜디오",
@@ -131,49 +149,50 @@ export const PHOTOGRAPHY_TEMPLATES: Record<CosmeticsPhotographyTemplateId, Photo
 export const CATEGORY_PHOTOGRAPHY_TEMPLATES: Record<string, PhotographyTemplate> = {
   "의류/패션": {
     id: "fashion-studio",
-    labelKo: "패션 에디토리얼",
+    labelKo: "패션 미니멀",
     lighting: "soft natural window light, diffused daylight, gentle directional shadow",
     composition:
-      "shallow depth of field, editorial negative space, garment or accessory centered on a clean plane",
-    texture: "fine fabric weave grain, soft linen or cotton texture, no liquid, no glass, no droplets",
+      "shallow depth of field, editorial negative space, soft vignette, empty center for garment",
+    texture:
+      "smooth soft-focus neutral gradient, faint fabric-tone haze only, no props, no hangers, no liquid",
     prompt:
-      "soft natural window light, diffused daylight, shallow depth of field, editorial studio surface, fine fabric weave texture, neutral tones, realistic product photography backdrop, no liquid, no glass, no water droplets, no condensation, no product, no text, no logo",
+      "soft natural window light, diffused daylight, shallow depth of field, smooth soft-focus neutral beige-to-ivory gradient backdrop, faint out-of-focus bokeh, gentle vignette, empty center, no clothing props, no hangers, no liquid, no glass, no water droplets, no product, no text, no logo",
   },
   "전자제품": {
     id: "electronics-studio",
     labelKo: "테크 미니멀",
     lighting: "cool diffused studio light, crisp rim highlight, subtle gradient falloff",
-    composition: "shallow depth of field, minimal geometric surface, empty center for device placement",
-    texture: "brushed metal and matte polymer micro-texture, subtle tech gradient, no liquid, no glass, no droplets",
+    composition: "shallow depth of field, empty center for device, soft vignette",
+    texture: "smooth cool gray-to-slate soft-focus gradient, faint bokeh, no geometric props",
     prompt:
-      "cool diffused studio light, crisp rim highlight, shallow depth of field, minimal geometric surface, brushed metal micro-texture, subtle tech gradient, realistic product photography backdrop, no liquid, no glass, no water droplets, no condensation, no product, no text, no logo",
+      "cool diffused studio light, crisp rim highlight, shallow depth of field, smooth cool gray soft-focus gradient backdrop, faint bokeh, gentle vignette, empty center, no cables, no gadgets as props, no liquid, no glass, no product, no text, no logo",
   },
   "식품/건강기능식품": {
     id: "food-studio",
-    labelKo: "내추럴 푸드",
+    labelKo: "내추럴 미니멀",
     lighting: "warm natural daylight, soft diffused window light, gentle shadow",
-    composition: "shallow depth of field, rustic table plane, empty center for plating",
-    texture: "wood grain or linen table texture, soft warm tones, no glass condensation, no droplets on glass",
+    composition: "shallow depth of field, empty center for packaging, soft vignette",
+    texture: "smooth warm cream-to-sand soft-focus gradient, faint bokeh, no food props",
     prompt:
-      "warm natural daylight, soft diffused window light, shallow depth of field, rustic wood or ceramic table surface, warm tones, realistic food photography backdrop, no glass condensation, no water droplets on glass, no product, no text, no logo",
+      "warm natural daylight, soft diffused window light, shallow depth of field, smooth warm cream soft-focus gradient backdrop, faint bokeh, gentle vignette, empty center, no ingredients as props, no plates, no glass condensation, no water droplets, no product, no text, no logo",
   },
   "생활용품": {
     id: "home-studio",
-    labelKo: "라이프스타일 인테리어",
+    labelKo: "라이프스타일 미니멀",
     lighting: "bright airy natural light, soft diffused daylight, gentle shadow",
-    composition: "shallow depth of field, minimal styled interior surface, empty center",
-    texture: "matte ceramic or natural wood micro-texture, soft neutral tones, no liquid, no glass droplets",
+    composition: "shallow depth of field, empty center, soft vignette",
+    texture: "smooth soft-focus warm-neutral gradient, faint bokeh, no interior props",
     prompt:
-      "bright airy natural light, soft diffused daylight, shallow depth of field, minimal styled interior surface, matte ceramic or wood texture, realistic lifestyle product photography backdrop, no liquid, no glass, no water droplets, no condensation, no product, no text, no logo",
+      "bright airy natural light, soft diffused daylight, shallow depth of field, smooth warm-neutral soft-focus gradient backdrop, faint bokeh, gentle vignette, empty center, no furniture props, no liquid, no glass, no water droplets, no product, no text, no logo",
   },
   "반려동물": {
     id: "pet-studio",
-    labelKo: "포근한 홈 라이프스타일",
+    labelKo: "포근한 미니멀",
     lighting: "warm soft daylight, cozy diffused fill, gentle shadow",
-    composition: "shallow depth of field, minimal cozy home surface, empty center",
-    texture: "soft cozy fabric or wood micro-texture, warm pastel tones, no liquid, no glass droplets",
+    composition: "shallow depth of field, empty center, soft vignette",
+    texture: "smooth soft-focus warm pastel gradient, faint bokeh, no toys or props",
     prompt:
-      "warm soft daylight, cozy diffused fill, shallow depth of field, minimal cozy home surface, soft fabric or wood texture, warm pastel tones, realistic lifestyle product photography backdrop, no liquid, no glass, no water droplets, no condensation, no product, no text, no logo",
+      "warm soft daylight, cozy diffused fill, shallow depth of field, smooth warm pastel soft-focus gradient backdrop, faint bokeh, gentle vignette, empty center, no pet toys as props, no liquid, no glass, no water droplets, no product, no text, no logo",
   },
 };
 
@@ -235,18 +254,17 @@ const COSMETICS_CATEGORY = "화장품/뷰티";
 
 /**
  * category를 넘기면 그 카테고리 전용 템플릿을 바로 확정한다 (물/유리 모티프 배제).
- * category가 없거나 화장품/뷰티면 기존처럼 브리프 키워드로 수분/쿨링/영양/클렌징
- * 중 하나를 매칭한다 — 화장품은 실제로 물방울·유리 결로 연출이 잘 맞기 때문에
- * 이 경로는 그대로 둔다.
+ * category가 없거나 화장품/뷰티면 브리프 키워드로 수분/쿨링/영양 등을 매칭하고,
+ * 키워드가 없으면 미니멀(그라데이션·보케만)을 기본값으로 쓴다.
  */
 export function resolvePhotographyTemplate(
   brief?: BriefLike | null,
   category?: string,
 ): PhotographyTemplate {
   if (category && category !== COSMETICS_CATEGORY) {
-    return CATEGORY_PHOTOGRAPHY_TEMPLATES[category] ?? PHOTOGRAPHY_TEMPLATES.studio;
+    return CATEGORY_PHOTOGRAPHY_TEMPLATES[category] ?? PHOTOGRAPHY_TEMPLATES.minimal;
   }
-  if (!brief) return PHOTOGRAPHY_TEMPLATES.studio;
+  if (!brief) return PHOTOGRAPHY_TEMPLATES.minimal;
   const haystack = [brief.theme, brief.mood, ...(brief.motif_keywords ?? []), brief.backdrop_hint]
     .join(" ")
     .toLowerCase();
@@ -255,5 +273,5 @@ export function resolvePhotographyTemplate(
       return PHOTOGRAPHY_TEMPLATES[row.id];
     }
   }
-  return PHOTOGRAPHY_TEMPLATES.studio;
+  return PHOTOGRAPHY_TEMPLATES.minimal;
 }
