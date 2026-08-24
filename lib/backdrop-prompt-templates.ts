@@ -16,6 +16,8 @@ export type CosmeticsPhotographyTemplateId =
   | "cooling"
   | "nourishing"
   | "cleansing"
+  | "radiant"
+  | "premium_dark"
   | "studio";
 
 export type PhotographyTemplateId =
@@ -40,13 +42,13 @@ export const PHOTOGRAPHY_TEMPLATES: Record<CosmeticsPhotographyTemplateId, Photo
     id: "moisture",
     labelKo: "수분/보습",
     lighting:
-      "soft side lighting matching the product lighting lock, no golden hour, gentle specular highlights on wet surfaces",
+      "soft side lighting matching the product lighting lock, no golden hour, gentle glowing specular highlights on wet surfaces",
     composition:
       "shallow depth of field, empty center for product placement, close-up of surface plane",
     texture:
-      "condensation droplets on glass, dewy marble micro-reflections, wet sheen without pooling",
+      "condensation droplets on glass over a soft blush-pink and warm ivory surface, dewy glowing micro-reflections, wet sheen without pooling",
     prompt:
-      "soft side lighting matching the lighting lock white balance, no golden hour, no amber gel, shallow depth of field, close-up empty studio surface, condensation droplets on glass, dewy surface sheen, realistic product photography backdrop, no product, no text, no logo",
+      "soft side lighting matching the lighting lock white balance, no golden hour, no amber gel, shallow depth of field, close-up soft blush-pink and warm ivory studio surface, condensation droplets on glass, dewy glowing surface sheen, vivid radiant K-beauty product photography backdrop, no flat gray, realistic product photography backdrop, no product, no text, no logo",
   },
   cooling: {
     id: "cooling",
@@ -76,13 +78,37 @@ export const PHOTOGRAPHY_TEMPLATES: Record<CosmeticsPhotographyTemplateId, Photo
     id: "cleansing",
     labelKo: "클렌징",
     lighting:
-      "bright diffused light, high-key, even fill, crisp but soft-edged highlights",
+      "bright diffused light, high-key, even fill, crisp but soft-edged glowing highlights",
     composition:
-      "shallow depth of field, clean close-up of a wet-ready plane, generous white space",
+      "shallow depth of field, clean close-up of a wet-ready plane, generous negative space",
     texture:
-      "soft foam bubble clusters at frame edge, soapy film highlights, water sheen on ceramic",
+      "soft foam bubble clusters at frame edge, pastel mint or blush soapy film highlights, glowing water sheen on bright ceramic",
     prompt:
-      "bright diffused high-key light, shallow depth of field, clean ceramic plane, soft foam bubbles at edges, soapy film highlights, no product, no text, no logo",
+      "bright diffused high-key light, shallow depth of field, bright pastel mint or blush ceramic plane, soft foam bubbles at edges, glowing soapy film highlights, vivid radiant K-beauty photography backdrop, no flat gray, no product, no text, no logo",
+  },
+  radiant: {
+    id: "radiant",
+    labelKo: "화사한 글로우",
+    lighting:
+      "soft bright diffused light matching the lighting lock, gentle glowing backlight halo, luminous even fill, no harsh shadow",
+    composition:
+      "shallow depth of field, airy negative space, soft bokeh light circles scattered around, empty center-lower third for product placement",
+    texture:
+      "soft blurred bokeh light circles, pale blush-pink to warm ivory gradient, delicate flower petal or silk fabric hint at frame edge, luminous glow haze, no dark tones, no gray flat surface",
+    prompt:
+      "soft bright diffused light matching the lighting lock white balance, gentle glowing backlight halo, luminous even fill, shallow depth of field, airy negative space, soft bokeh light circles, pale blush-pink to warm ivory gradient background, delicate flower petal or silk fabric hint, luminous radiant K-beauty advertising backdrop, no dark tones, no flat gray, no water droplets, no product, no text, no logo",
+  },
+  premium_dark: {
+    id: "premium_dark",
+    labelKo: "프리미엄 다크 무드",
+    lighting:
+      "single dramatic key light matching the lighting lock direction, deep charcoal-to-black gradient falloff, controlled specular rim highlight, no flat even fill, editorial contrast",
+    composition:
+      "shallow depth of field, generous negative space above and below, vertical product photography framing, empty center-lower third for product placement",
+    texture:
+      "fine suspended powder or mist particles caught in the key light, soft smoke-like drift, dark glossy reflective surface with subtle product reflection, no clutter",
+    prompt:
+      "single dramatic key light matching the lighting lock direction, deep charcoal-to-black gradient background, controlled specular rim highlight, editorial high-contrast mood, shallow depth of field, generous negative space, fine suspended powder or mist particles drifting through the light beam, dark glossy reflective surface, premium cosmetic advertising backdrop, no flat even lighting, no product, no text, no logo",
   },
   studio: {
     id: "studio",
@@ -167,6 +193,41 @@ const KEYWORD_TO_ID: Array<{ id: CosmeticsPhotographyTemplateId; keywords: strin
   {
     id: "cleansing",
     keywords: ["클렌징", "거품", "버블", "세안", "foam", "bubble", "cleanser"],
+  },
+  {
+    id: "radiant",
+    keywords: [
+      "화사",
+      "글로우",
+      "빛나는",
+      "환한",
+      "생기",
+      "글로시",
+      "radiant",
+      "glow",
+      "luminous",
+    ],
+  },
+  {
+    id: "premium_dark",
+    // 주의: "프리미엄"/"고급"은 한국 화장품 카피에서 흔한 일반 수식어라
+    // (예: "프리미엄 스킨케어 브랜드") 다크 무드 의도가 없어도 자주 등장함.
+    // 실제로 어둡고 무드있는 톤을 의도한 경우에만 매칭되도록 구체적인
+    // 단어만 남긴다.
+    keywords: [
+      "다크 무드",
+      "다크무드",
+      "블랙 보틀",
+      "블랙보틀",
+      "럭셔리 다크",
+      "무드 있는 다크",
+      "다크",
+      "블랙",
+      "럭셔리",
+      "noir",
+      "moody",
+      "dark mood",
+    ],
   },
 ];
 

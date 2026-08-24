@@ -968,9 +968,9 @@ const SECTION_BACKDROP_PROMPTS_BY_CATEGORY: Record<
 > = {
   "화장품/뷰티": {
     ingredient:
-      "extreme close-up of empty clear glass with condensation water droplets and specular reflections, wet glass surface only, no bottle, no dropper, no product, no packaging, no text, no logo, no human skin, product photography empty backdrop",
+      "extreme close-up of a glowing pastel-toned studio surface, soft blush-pink or warm ivory gradient, delicate light bokeh and gentle specular highlights, luminous radiant K-beauty mood, no bottle, no dropper, no product, no packaging, no text, no logo, no human skin, no flat gray, product photography empty backdrop",
     texture:
-      "macro photograph of a clear watery serum formula slowly dripping and flowing across a glass plane, viscous ribbon smear, shallow depth of field, no bottle, no packaging, no hands, no text, no logo, empty formula-only frame",
+      "macro photograph of a glowing pastel-toned formula droplet or gentle swirl on a soft blush or warm ivory surface, luminous highlight, shallow depth of field, vivid radiant color, no bottle, no packaging, no hands, no text, no logo, no flat gray, empty formula-only frame",
   },
   "전자제품": {
     ingredient:

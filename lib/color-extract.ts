@@ -174,6 +174,28 @@ function hueName(h: number): string {
   return "red";
 }
 
+// baseNeutral은 sampleImage()에서 채도(s) < 0.18인 픽셀만 모아 평균낸 값이라
+// 원본 사진 배경이 흰색/회색 스튜디오면 거의 항상 순수 무채색에 가깝게
+// 나온다. describeColorTone()의 기준(s < 0.12 → "neutral ivory/gray"류)보다
+// 살짝 위인 채도 하한을 둬서, 상품 고유 색감을 지나치게 덮어쓰지 않으면서도
+// spec_table/review_highlight 같은 패턴 A 섹션이 "무채색 회색"으로 읽히지
+// 않고 은은한 웜톤(피치/아이보리)으로 보이게 한다. 밝기(lightness)는 원본을
+// 그대로 유지해 원본 사진의 명도감은 보존한다.
+const MIN_BASE_NEUTRAL_SATURATION = 0.14;
+
+function ensureWarmNeutral(hex: string, hue: number): string {
+  const normalized = hex.replace("#", "");
+  const bigint = parseInt(normalized, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  const { s, l } = rgbToHsl(r, g, b);
+  if (s >= MIN_BASE_NEUTRAL_SATURATION) return hex;
+  const targetL = Math.min(0.97, Math.max(0.5, l));
+  const [wr, wg, wb] = hslToRgb(hue, MIN_BASE_NEUTRAL_SATURATION, targetL);
+  return rgbToHex(wr, wg, wb);
+}
+
 // hex 색상을 이미지 생성 프롬프트에 넣기 좋은 영어 톤 표현으로 변환한다.
 // (예: "#B45309" → "rich amber", "#FAF7F2" → "soft neutral ivory")
 // 정확한 색상명이 아니라 생성형 이미지 모델이 이해할 대략적인 톤 힌트가
@@ -231,7 +253,7 @@ export async function extractProductTheme(imageUrls: string[]): Promise<Extracte
   const [tr, tg, tb] = hslToRgb(bestHue, 0.55, 0.26);
   const accent = rgbToHex(ar, ag, ab);
 
-  const baseNeutral =
+  const rawBaseNeutral =
     neutralTotal.count > 0
       ? rgbToHex(
           Math.round(neutralTotal.r / neutralTotal.count),
@@ -239,6 +261,7 @@ export async function extractProductTheme(imageUrls: string[]): Promise<Extracte
           Math.round(neutralTotal.b / neutralTotal.count),
         )
       : rgbToHex(sr, sg, sb); // 배경/그림자에서 무채색 픽셀을 못 찾으면 accentSoft로 폴백.
+  const baseNeutral = ensureWarmNeutral(rawBaseNeutral, bestHue);
 
   return {
     accent,
