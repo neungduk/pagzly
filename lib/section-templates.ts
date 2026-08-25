@@ -78,7 +78,13 @@ const BEAUTY: SlotDefinition[] = [
     slot: "stat_infographic",
     type: "stat_infographic",
     required: false,
-    note: "입력 데이터에 실제 수치 근거가 있을 때만 채움. 근거 없으면 이 섹션 자체를 생략(판매자 확인 필요 금지, 수치 지어내기 금지). metrics 3~5개, 비율형은 style:\"bar\"+percent(0~100 막대), 절대 수치(시간·중량·개수 등)는 style:\"number\"로 percent 없이 큰 숫자 강조",
+    note: "입력 데이터에 실제 수치 근거가 있을 때만 채움. 근거 없으면 이 섹션 자체를 생략(판매자 확인 필요 금지, 수치 지어내기 금지). metrics 3~5개, 비율형은 style:\"bar\"+percent(0~100 막대) 또는 style:\"ring\"(원형 게이지), 절대 수치(시간·중량·개수 등)는 style:\"number\"로 percent 없이 큰 숫자 강조. basis는 measured/self_assessed",
+  },
+  {
+    slot: "comparison_chart",
+    type: "comparison_chart",
+    required: false,
+    note: "입력에 실측 근거가 있으면 basis:\"measured\", 없으면 basis:\"self_assessed\"로 채우되 baselineLabel은 \"일반 제품\"만 사용(특정 브랜드명 금지). 근거·추정 둘 다 불가하면 슬롯 생략.",
   },
   {
     slot: "spec_table",
@@ -304,7 +310,13 @@ const FOOD: SlotDefinition[] = [
     slot: "stat_infographic",
     type: "stat_infographic",
     required: false,
-    note: "입력 데이터에 실제 수치 근거가 있을 때만 채움. 근거 없으면 이 섹션 자체를 생략(판매자 확인 필요 금지, 수치 지어내기 금지). metrics 3~5개, 비율형은 style:\"bar\"+percent(0~100 막대), 절대 수치(시간·중량·개수 등)는 style:\"number\"로 percent 없이 큰 숫자 강조",
+    note: "입력 데이터에 실제 수치 근거가 있을 때만 채움. 근거 없으면 이 섹션 자체를 생략(판매자 확인 필요 금지, 수치 지어내기 금지). metrics 3~5개, 비율형은 style:\"bar\"+percent(0~100 막대) 또는 style:\"ring\"(원형 게이지), 절대 수치(시간·중량·개수 등)는 style:\"number\"로 percent 없이 큰 숫자 강조. basis는 measured/self_assessed",
+  },
+  {
+    slot: "comparison_chart",
+    type: "comparison_chart",
+    required: false,
+    note: "입력에 실측 근거가 있으면 basis:\"measured\", 없으면 basis:\"self_assessed\"로 채우되 baselineLabel은 \"일반 제품\"만 사용(특정 브랜드명 금지). 근거·추정 둘 다 불가하면 슬롯 생략.",
   },
   {
     slot: "nutrition_table",
@@ -404,7 +416,13 @@ const ELECTRONICS: SlotDefinition[] = [
     slot: "stat_infographic",
     type: "stat_infographic",
     required: false,
-    note: "입력 데이터에 실제 수치 근거가 있을 때만 채움. 근거 없으면 이 섹션 자체를 생략(판매자 확인 필요 금지, 수치 지어내기 금지). metrics 3~5개, 비율형은 style:\"bar\"+percent(0~100 막대), 절대 수치(시간·중량·개수 등)는 style:\"number\"로 percent 없이 큰 숫자 강조",
+    note: "입력 데이터에 실제 수치 근거가 있을 때만 채움. 근거 없으면 이 섹션 자체를 생략(판매자 확인 필요 금지, 수치 지어내기 금지). metrics 3~5개, 비율형은 style:\"bar\"+percent(0~100 막대) 또는 style:\"ring\"(원형 게이지), 절대 수치(시간·중량·개수 등)는 style:\"number\"로 percent 없이 큰 숫자 강조. basis는 measured/self_assessed",
+  },
+  {
+    slot: "comparison_chart",
+    type: "comparison_chart",
+    required: false,
+    note: "입력에 실측 근거가 있으면 basis:\"measured\", 없으면 basis:\"self_assessed\"로 채우되 baselineLabel은 \"일반 제품\"만 사용(특정 브랜드명 금지). 근거·추정 둘 다 불가하면 슬롯 생략.",
   },
   {
     slot: "spec_table",

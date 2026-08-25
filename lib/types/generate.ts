@@ -106,6 +106,13 @@ export type ChecklistSection = {
   items: string[];
   /** gallery/image_text 직후에 붙는 체크리스트 — 상단 여백·헤어라인 생략 */
   compactFollow?: boolean;
+  /**
+   * 페이지 전체에서 옅은 A/B 배경 패턴만 반복되는 단조로움을 깨는 강조 색면
+   * 블록(패턴 C, deepAccent 솔리드 + 텍스트 반전). AI가 정하지 않고 서버가
+   * app/api/generate/route.ts 정규화 단계에서 페이지당 정확히 1개 섹션에만
+   * true를 주입한다(19차 Part B 신규).
+   */
+  boldBlock?: boolean;
 };
 
 export type ImageTextSection = {
@@ -164,6 +171,31 @@ export type ComparisonTableSection = {
   rows: { label: string; values: [string, string] }[];
 };
 
+/**
+ * 수치 기반 "우리 제품 vs 비교 대상" 바 차트. comparison_table(불린/텍스트 2열
+ * 표)과 달리 실제 막대 길이로 비교하는 용도. 컴플라이언스상 baselineLabel은
+ * 반드시 COMPARISON_CHART_BASELINE_LABELS 화이트리스트 값만 허용 — 서버가
+ * app/api/generate/route.ts 정규화 단계에서 강제 치환한다 (19차 신규).
+ */
+export type ComparisonChartSection = {
+  type: "comparison_chart";
+  slot: string;
+  heading: string;
+  /** 기본 "우리 제품" 또는 브랜드명. 실제 자사 제품 지칭이라 자유롭게 허용. */
+  ourLabel: string;
+  /** 서버가 화이트리스트로 강제 — "일반 제품" | "업계 평균" | "타 제품" 중 하나만 최종 허용. */
+  baselineLabel: string;
+  /** 값 단위 표시. 기본 "%". */
+  unit?: string;
+  /** 2~4개 권장. */
+  metrics: { label: string; ourValue: number; baselineValue: number }[];
+  /** 이 차트 전체 수치의 출처. */
+  basis: "measured" | "self_assessed";
+  /** measured면 출처 한 줄(예: "자체 성분 테스트, 2026.08"), self_assessed면
+   * 서버가 고정 디스클레이머로 강제 주입하므로 비워 응답해도 됨. */
+  basisNote?: string;
+};
+
 // 컬러/옵션별 스와치 + 착용컷. 패션의 color_variation 슬롯 전용.
 export type ColorVariationSection = {
   type: "color_variation";
@@ -180,8 +212,19 @@ export type StatInfographicSection = {
    * style: "bar" (기본값) — 비율/점유율처럼 0~100% 막대로 보여줄 수치.
    * style: "number" — 재생시간·중량·인증 개수처럼 퍼센트가 아닌 절대 수치를
    * 큰 숫자 카드로 강조. percent는 style이 "bar"일 때만 의미가 있다.
+   * style: "ring" — bar와 동일하게 percent(0~100) 기반이지만 원형 게이지로
+   * 강조 표시. 한 섹션에 3개 style을 섞어도 됨(19차 신규).
+   * basis — 이 수치의 출처. "measured"(판매자 입력 실측) | "self_assessed"
+   * (AI 자체 평가치, 실측 아님). style이 "bar"|"ring"일 때만 의미 있음.
+   * 하나라도 self_assessed면 렌더러가 섹션 하단에 디스클레이머 캡션을 표시한다.
    */
-  metrics: { label: string; value: string; percent?: number; style?: "bar" | "number" }[];
+  metrics: {
+    label: string;
+    value: string;
+    percent?: number;
+    style?: "bar" | "number" | "ring";
+    basis?: "measured" | "self_assessed";
+  }[];
 };
 
 export type IllustrationBannerSection = {
@@ -258,6 +301,7 @@ export type DetailSection =
   | CautionSection
   | CtaPriceSection
   | ComparisonTableSection
+  | ComparisonChartSection
   | ColorVariationSection
   | StatInfographicSection
   | IllustrationBannerSection

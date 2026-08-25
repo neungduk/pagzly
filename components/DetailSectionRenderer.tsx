@@ -17,6 +17,7 @@ import EditableText from "@/components/EditableText";
 import DetailScrollReveal from "@/components/DetailScrollReveal";
 import SectionImage from "@/components/SectionImage";
 import {
+  BRAND,
   SLOT_IMAGE_RATIO,
   HERO_TRANSITION_OVERLAP_CLASS,
   INFO_BADGE,
@@ -28,6 +29,8 @@ import {
   getSectionBackground,
   getSectionPattern,
   hexToRgba,
+  extendTheme,
+  getSectionTheme,
   type SectionColorPattern,
 } from "@/lib/design-tokens";
 
@@ -95,13 +98,13 @@ function resolveImageRatioClass(section: { type: string; slot?: string }) {
   );
 }
 
-function ThemeIcon({ theme }: { theme: CategoryTheme }) {
+function ThemeIcon({ theme, inverted }: { theme: CategoryTheme; inverted?: boolean }) {
   const Icon = THEME_ICONS[theme.icon] ?? CheckCircle2;
   return (
     <Icon
       className="shrink-0"
       size={22}
-      style={{ color: theme.accent }}
+      style={{ color: inverted ? BRAND.paper : theme.accent }}
       aria-hidden="true"
     />
   );
@@ -114,11 +117,13 @@ function ConceptBadgeIcon({
   theme,
   fallbackIndex,
   size = "md",
+  inverted,
 }: {
   src?: string;
   theme: CategoryTheme;
   fallbackIndex?: number;
   size?: "sm" | "md";
+  inverted?: boolean;
 }) {
   const sizeClass = CONCEPT_BADGE_SIZE_CLASS[size];
   if (src) {
@@ -147,10 +152,14 @@ function ConceptBadgeIcon({
   return (
     <span
       className={`flex ${sizeClass} shrink-0 items-center justify-center rounded-full`}
-      style={{ backgroundColor: hexToRgba(theme.accent, 0.12) }}
+      style={{
+        backgroundColor: inverted
+          ? hexToRgba(BRAND.paper, 0.18)
+          : hexToRgba(theme.accent, 0.12),
+      }}
       aria-hidden="true"
     >
-      <ThemeIcon theme={theme} />
+      <ThemeIcon theme={theme} inverted={inverted} />
     </span>
   );
 }
@@ -257,6 +266,114 @@ function MetricBar({
           backgroundColor: theme.accent,
         }}
       />
+    </div>
+  );
+}
+
+/** 원형 게이지 — stat_infographic style:"ring" 전용. 기존 accent/deepAccent만 사용. */
+function RadialGauge({
+  percent,
+  theme,
+  size = 96,
+  strokeWidth = 9,
+}: {
+  percent: number;
+  theme: CategoryTheme;
+  size?: number;
+  strokeWidth?: number;
+}) {
+  const clamped = Math.min(100, Math.max(0, percent));
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - clamped / 100);
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      className="-rotate-90"
+      aria-hidden="true"
+    >
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke={hexToRgba(theme.accent, 0.16)}
+        strokeWidth={strokeWidth}
+      />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke={theme.deepAccent}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+      />
+    </svg>
+  );
+}
+
+/** comparison_chart 한 지표(metric)의 "우리 vs 비교대상" 2단 바. */
+function ComparisonMetricRow({
+  label,
+  ourLabel,
+  baselineLabel,
+  ourValue,
+  baselineValue,
+  unit,
+  theme,
+}: {
+  label: string;
+  ourLabel: string;
+  baselineLabel: string;
+  ourValue: number;
+  baselineValue: number;
+  unit: string;
+  theme: CategoryTheme;
+}) {
+  const max = Math.max(ourValue, baselineValue, 1);
+  const ourPercent = Math.min(100, (ourValue / max) * 100);
+  const basePercent = Math.min(100, (baselineValue / max) * 100);
+  return (
+    <div>
+      <p className="mb-2 text-sm font-medium text-ink/70">{label}</p>
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-3">
+          <span
+            className="w-20 shrink-0 truncate text-xs font-semibold"
+            style={{ color: theme.deepAccent }}
+          >
+            {ourLabel}
+          </span>
+          <div
+            className="h-2.5 flex-1 overflow-hidden rounded-full"
+            style={{ backgroundColor: hexToRgba(theme.accent, 0.12) }}
+          >
+            <div
+              className="h-full rounded-full"
+              style={{ width: `${ourPercent}%`, backgroundColor: theme.accent }}
+            />
+          </div>
+          <span className="w-14 shrink-0 text-right text-xs font-semibold text-ink">
+            {ourValue}
+            {unit}
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="w-20 shrink-0 truncate text-xs text-ink/45">{baselineLabel}</span>
+          <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-ink/8">
+            <div className="h-full rounded-full bg-ink/25" style={{ width: `${basePercent}%` }} />
+          </div>
+          <span className="w-14 shrink-0 text-right text-xs text-ink/45">
+            {baselineValue}
+            {unit}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -422,7 +539,12 @@ function renderSection(
 
     case "checklist": {
       const compactFollow = section.compactFollow === true;
-      const checklistPattern = compactFollow && followPattern ? followPattern : pattern;
+      const boldBlock = section.boldBlock === true && !compactFollow;
+      const checklistPattern: SectionColorPattern = boldBlock
+        ? "C"
+        : compactFollow && followPattern
+          ? followPattern
+          : pattern;
       return (
         <section
           key={`checklist-${index}`}
@@ -434,13 +556,24 @@ function renderSection(
           style={textSectionStyle(theme, checklistPattern)}
         >
           <div className={TEXT_COL_CLASS}>
-            {!compactFollow ? <SectionAccentHairline theme={theme} /> : null}
+            {!compactFollow ? (
+              <div
+                className="mx-auto mb-6 h-px w-12"
+                style={{
+                  backgroundColor: boldBlock
+                    ? hexToRgba(BRAND.paper, 0.5)
+                    : hexToRgba(theme.accent, 0.45),
+                }}
+                aria-hidden="true"
+              />
+            ) : null}
             <EditableText
               as="h3"
               enabled={edit?.enabled}
               value={section.heading}
               onChange={(heading) => edit?.onChange(index, { ...section, heading })}
               className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
+              style={boldBlock ? { color: BRAND.paper } : undefined}
             />
           </div>
           <ul
@@ -461,6 +594,7 @@ function renderSection(
                   src={conceptIcons?.checklist?.[itemIndex]}
                   theme={theme}
                   size={INFO_BADGE.defaultSize}
+                  inverted={boldBlock}
                 />
                 <EditableText
                   as="span"
@@ -472,6 +606,7 @@ function renderSection(
                     edit?.onChange(index, { ...section, items });
                   }}
                   className={TYPO.checklistItem}
+                  style={boldBlock ? { color: BRAND.paper } : undefined}
                 />
               </li>
             ))}
@@ -748,6 +883,42 @@ function renderSection(
         </section>
       );
 
+    case "comparison_chart":
+      return (
+        <section
+          key={`comparison_chart-${index}`}
+          className={getCategoryRhythm(category).generousPadClass}
+          style={textSectionStyle(theme, pattern)}
+        >
+          <p
+            className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`}
+            style={{ color: theme.deepAccent }}
+          >
+            COMPARE
+          </p>
+          <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}>
+            {section.heading}
+          </h3>
+          <div className="mx-auto mt-10 max-w-md space-y-8">
+            {section.metrics.map((metric, metricIndex) => (
+              <ComparisonMetricRow
+                key={`${metric.label}-${metricIndex}`}
+                label={metric.label}
+                ourLabel={section.ourLabel}
+                baselineLabel={section.baselineLabel}
+                ourValue={metric.ourValue}
+                baselineValue={metric.baselineValue}
+                unit={section.unit ?? "%"}
+                theme={theme}
+              />
+            ))}
+          </div>
+          <p className="mx-auto mt-6 max-w-md text-center text-xs text-ink/40">
+            {section.basisNote}
+          </p>
+        </section>
+      );
+
     case "color_variation": {
       const ratioClass = resolveImageRatioClass(section);
       return (
@@ -792,11 +963,21 @@ function renderSection(
     case "stat_infographic": {
       const indexedMetrics = section.metrics.map((metric, metricIndex) => ({ metric, metricIndex }));
       const numberMetrics = indexedMetrics.filter(({ metric }) => metric.style === "number");
-      const barMetrics = indexedMetrics.filter(({ metric }) => metric.style !== "number");
+      const ringMetrics = indexedMetrics.filter(({ metric }) => metric.style === "ring");
+      const barMetrics = indexedMetrics.filter(
+        ({ metric }) => metric.style !== "number" && metric.style !== "ring",
+      );
+      const hasSelfAssessed = section.metrics.some((m) => m.basis === "self_assessed");
       const numberGridCols =
         numberMetrics.length <= 1
           ? "max-w-xs grid-cols-1"
           : numberMetrics.length === 2
+            ? "max-w-md grid-cols-2"
+            : "max-w-2xl grid-cols-2 sm:grid-cols-3";
+      const ringGridCols =
+        ringMetrics.length <= 1
+          ? "max-w-xs grid-cols-1"
+          : ringMetrics.length === 2
             ? "max-w-md grid-cols-2"
             : "max-w-2xl grid-cols-2 sm:grid-cols-3";
 
@@ -858,6 +1039,34 @@ function renderSection(
               ))}
             </div>
           )}
+          {ringMetrics.length > 0 && (
+            <div className={`mx-auto mt-10 grid gap-x-5 gap-y-8 ${ringGridCols}`}>
+              {ringMetrics.map(({ metric, metricIndex }) => {
+                const percent = Math.min(100, Math.max(0, metric.percent ?? 0));
+                return (
+                  <div
+                    key={`${metric.label}-${metricIndex}`}
+                    className="flex flex-col items-center gap-2 text-center"
+                  >
+                    <div className="relative flex items-center justify-center">
+                      <RadialGauge percent={percent} theme={theme} />
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span
+                          className="font-heading text-xl font-bold tracking-tight sm:text-2xl"
+                          style={{ color: theme.deepAccent }}
+                        >
+                          {metric.value}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-xs font-medium text-ink/60 sm:text-sm">
+                      {metric.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
           {barMetrics.length > 0 && (
             <div className="mx-auto mt-10 max-w-xl space-y-7">
               {barMetrics.map(({ metric, metricIndex }) => {
@@ -902,6 +1111,11 @@ function renderSection(
                 );
               })}
             </div>
+          )}
+          {hasSelfAssessed && (
+            <p className="mx-auto mt-6 max-w-xl text-center text-xs text-ink/40">
+              자체 평가 기준 (개인차가 있을 수 있어요)
+            </p>
           )}
         </section>
       );
@@ -1455,7 +1669,8 @@ export default function DetailSectionRenderer({
   conceptIcons,
   edit,
 }: DetailSectionRendererProps) {
-  const theme = themeOverride ?? getCategoryTheme(category);
+  const baseTheme = themeOverride ?? getCategoryTheme(category);
+  const extendedTheme = extendTheme(baseTheme);
   let imageTextCount = 0;
 
   return (
@@ -1481,7 +1696,7 @@ export default function DetailSectionRenderer({
           imageUrls,
           index,
           category,
-          theme,
+          getSectionTheme(extendedTheme, section.type, bodyIndex),
           pattern,
           conceptIcons,
           pointIndex,

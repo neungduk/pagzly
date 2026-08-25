@@ -3,7 +3,7 @@
  * CreateProductForm(초안)에서는 쓰지 않고, draft 승인 시에만 호출한다.
  */
 
-import { getCategoryTheme } from "@/lib/category-theme";
+import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import type { ConceptBrief } from "@/lib/concept-brief";
 import type { PhotoCostBreakdown, ReferenceAnalysisInput } from "@/lib/types/generate";
 import type { ShadowAnalysis } from "@/lib/vision-utils";
@@ -28,6 +28,8 @@ export type BackdropGenerateResult = {
   conceptBrief?: ConceptBrief;
   /** bria-replace / bria-genfill 배경에는 원본 상품이 이미 합성돼 있음 (이중노출 방지용) */
   productAlreadyComposited?: boolean;
+  /** generate-backdrop에서 추출한 상품 테마 — section-backdrops 톤 주입용 */
+  theme?: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">;
 };
 
 function sleep(ms: number) {
@@ -378,6 +380,7 @@ export async function runPhotoEnhancementPipeline(params: {
           shadowAnalysis: backdropResult.shadowAnalysis,
           conceptBrief: backdropResult.conceptBrief,
           category: params.category,
+          theme: backdropResult.theme,
         }),
       });
       const sectionJson = (await sectionRes.json()) as {

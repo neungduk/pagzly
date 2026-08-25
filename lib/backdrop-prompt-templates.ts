@@ -47,9 +47,9 @@ export const PHOTOGRAPHY_TEMPLATES: Record<CosmeticsPhotographyTemplateId, Photo
     composition:
       "shallow depth of field, empty center for product placement, close-up of surface plane",
     texture:
-      "condensation droplets on glass over a soft blush-pink and warm ivory surface, dewy glowing micro-reflections, wet sheen without pooling",
+      "condensation droplets on glass over a soft {{TONE}} surface, dewy glowing micro-reflections, wet sheen without pooling",
     prompt:
-      "soft side lighting matching the lighting lock white balance, no golden hour, no amber gel, shallow depth of field, close-up soft blush-pink and warm ivory studio surface, condensation droplets on glass, dewy glowing surface sheen, vivid radiant K-beauty product photography backdrop, no flat gray, realistic product photography backdrop, no product, no text, no logo",
+      "soft side lighting matching the lighting lock white balance, no golden hour, no amber gel, shallow depth of field, close-up soft {{TONE}} studio surface, condensation droplets on glass, dewy glowing surface sheen, vivid radiant K-beauty product photography backdrop, no flat gray, realistic product photography backdrop, no product, no text, no logo",
   },
   cooling: {
     id: "cooling",
@@ -83,9 +83,9 @@ export const PHOTOGRAPHY_TEMPLATES: Record<CosmeticsPhotographyTemplateId, Photo
     composition:
       "shallow depth of field, clean close-up of a wet-ready plane, generous negative space",
     texture:
-      "soft foam bubble clusters at frame edge, pastel mint or blush soapy film highlights, glowing water sheen on bright ceramic",
+      "soft foam bubble clusters at frame edge, pastel {{TONE}} soapy film highlights, glowing water sheen on bright ceramic",
     prompt:
-      "bright diffused high-key light, shallow depth of field, bright pastel mint or blush ceramic plane, soft foam bubbles at edges, glowing soapy film highlights, vivid radiant K-beauty photography backdrop, no flat gray, no product, no text, no logo",
+      "bright diffused high-key light, shallow depth of field, bright pastel {{TONE}} ceramic plane, soft foam bubbles at edges, glowing soapy film highlights, vivid radiant K-beauty photography backdrop, no flat gray, no product, no text, no logo",
   },
   radiant: {
     id: "radiant",
@@ -95,9 +95,9 @@ export const PHOTOGRAPHY_TEMPLATES: Record<CosmeticsPhotographyTemplateId, Photo
     composition:
       "shallow depth of field, airy negative space, soft bokeh light circles scattered around, empty center-lower third for product placement",
     texture:
-      "soft blurred bokeh light circles, pale blush-pink to warm ivory gradient, delicate flower petal or silk fabric hint at frame edge, luminous glow haze, no dark tones, no gray flat surface",
+      "soft blurred bokeh light circles, {{TONE}} gradient, delicate flower petal or silk fabric hint at frame edge, luminous glow haze, no dark tones, no gray flat surface",
     prompt:
-      "soft bright diffused light matching the lighting lock white balance, gentle glowing backlight halo, luminous even fill, shallow depth of field, airy negative space, soft bokeh light circles, pale blush-pink to warm ivory gradient background, delicate flower petal or silk fabric hint, luminous radiant K-beauty advertising backdrop, no dark tones, no flat gray, no water droplets, no product, no text, no logo",
+      "soft bright diffused light matching the lighting lock white balance, gentle glowing backlight halo, luminous even fill, shallow depth of field, airy negative space, soft bokeh light circles, {{TONE}} gradient background, delicate flower petal or silk fabric hint, luminous radiant K-beauty advertising backdrop, no dark tones, no flat gray, no water droplets, no product, no text, no logo",
   },
   premium_dark: {
     id: "premium_dark",
@@ -126,7 +126,7 @@ export const PHOTOGRAPHY_TEMPLATES: Record<CosmeticsPhotographyTemplateId, Photo
     texture:
       "smooth soft-focus gradient only, faint circular bokeh far out of focus, no petals, no leaves, no droplets, no props",
     prompt:
-      "soft even diffused light matching the lighting lock white balance, shallow depth of field, smooth soft-focus gradient backdrop from pale blush-ivory to warm cream, faint out-of-focus bokeh circles near edges only, gentle vignette, empty center for product, no flower petals, no leaves, no water droplets, no glass, no props, no product, no text, no logo",
+      "soft even diffused light matching the lighting lock white balance, shallow depth of field, smooth soft-focus gradient backdrop in {{TONE}} tones, faint out-of-focus bokeh circles near edges only, gentle vignette, empty center for product, no flower petals, no leaves, no water droplets, no glass, no props, no product, no text, no logo",
   },
   studio: {
     id: "studio",
@@ -274,4 +274,13 @@ export function resolvePhotographyTemplate(
     }
   }
   return PHOTOGRAPHY_TEMPLATES.minimal;
+}
+
+/** photography.prompt/texture 안의 {{TONE}} 자리에 상품별 색조 설명을 채워 넣는다. */
+export function applyToneToTemplate(
+  template: PhotographyTemplate,
+  toneDescription: string,
+): PhotographyTemplate {
+  const fill = (s: string) => s.replace(/\{\{TONE\}\}/g, toneDescription);
+  return { ...template, prompt: fill(template.prompt), texture: fill(template.texture) };
 }

@@ -274,20 +274,26 @@ export default function CreateDraftPage() {
 
       persistDraft({ ...draft, draftApproved: true });
 
-      sessionStorage.setItem(
-        SESSION_KEY,
-        JSON.stringify({
-          ...draft.payload,
-          imageUrls: json.imageUrls ?? enhancedImages.map((i) => i.url),
-          photoCostBreakdown: json.photoCostBreakdown ?? photoCostBreakdown,
-          referenceAnalysis: json.referenceAnalysis ?? draft.referenceAnalysis,
-          reviewInsights: json.reviewInsights ?? draft.reviewInsights ?? null,
-          planningDocText: json.planningDocText ?? draft.planningDocText ?? null,
-          testMode: json.testMode ?? photo?.testMode,
-          generated: json,
-          draftApproved: true,
-        }),
-      );
+      try {
+        sessionStorage.setItem(
+          SESSION_KEY,
+          JSON.stringify({
+            ...draft.payload,
+            imageUrls: json.imageUrls ?? enhancedImages.map((i) => i.url),
+            photoCostBreakdown: json.photoCostBreakdown ?? photoCostBreakdown,
+            referenceAnalysis: json.referenceAnalysis ?? draft.referenceAnalysis,
+            reviewInsights: json.reviewInsights ?? draft.reviewInsights ?? null,
+            planningDocText: json.planningDocText ?? draft.planningDocText ?? null,
+            testMode: json.testMode ?? photo?.testMode,
+            generated: json,
+            draftApproved: true,
+          }),
+        );
+      } catch (storageError) {
+        // 세션 캐시 저장 실패해도 서버 생성은 이미 끝났음 — 결과 페이지의 DB 폴백으로 복구됨.
+        console.warn("[create/draft] sessionStorage 저장 실패 — DB 폴백으로 진행", storageError);
+      }
+
       router.push(`/create/result?id=${encodeURIComponent(json.productId)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "최종 생성 중 오류가 발생했습니다.");

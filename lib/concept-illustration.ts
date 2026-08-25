@@ -1,5 +1,6 @@
 /**
- * 컨셉 브리프 기반 장식 일러스트 배너 — illustration_banner 섹션용 flux-schnell 생성.
+ * 컨셉 브리프 기반 장식 일러스트 배너 — illustration_banner 섹션용.
+ * 모델은 ICON_MODEL env (concept-icons와 동일, 기본 flux-schnell).
  */
 
 import Replicate from "replicate";
@@ -7,9 +8,12 @@ import { describeColorTone } from "@/lib/color-extract";
 import type { CategoryTheme } from "@/lib/category-theme";
 import type { ConceptBrief } from "@/lib/concept-brief";
 import { isTestMode } from "@/lib/test-mode";
-
-const FLUX_SCHNELL_REF = "black-forest-labs/flux-schnell" as const;
-const ILLUSTRATION_COST_USD = 0.003;
+import {
+  buildIconModelInput,
+  getIconModel,
+  ICON_COST_USD_BY_MODEL,
+  ICON_MODEL_REF,
+} from "@/lib/concept-icons";
 
 let replicateClient: Replicate | null = null;
 
@@ -43,8 +47,14 @@ export async function generateIllustrationBanner(
     return { dataUrl: "", cost: 0 };
   }
 
+  const model = getIconModel();
+  const modelRef = ICON_MODEL_REF[model];
+  const cost = ICON_COST_USD_BY_MODEL[model];
+
   if (isTestMode()) {
-    console.log("[concept-illustration] TEST_MODE — flux-schnell 일러스트 1장만 생성");
+    console.log(`[concept-illustration] TEST_MODE — ${model} 일러스트 1장만 생성`);
+  } else {
+    console.log(`[concept-illustration] ICON_MODEL=${model}`);
   }
 
   const replicate = getReplicateClient();
@@ -67,14 +77,8 @@ export async function generateIllustrationBanner(
   let lastError: unknown;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      output = await replicate.run(FLUX_SCHNELL_REF, {
-        input: {
-          prompt,
-          num_outputs: 1,
-          aspect_ratio: "16:9",
-          output_format: "png",
-          output_quality: 85,
-        },
+      output = await replicate.run(modelRef, {
+        input: buildIconModelInput(model, prompt, "16:9"),
         wait: { mode: "poll", interval: 1000 },
       });
       lastError = undefined;
@@ -87,7 +91,7 @@ export async function generateIllustrationBanner(
         throw error;
       }
       console.warn(
-        `[concept-illustration] flux-schnell ${status} — ${attempt}/3 재시도`,
+        `[concept-illustration] ${model} ${status} — ${attempt}/3 재시도`,
       );
       await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
     }
@@ -96,9 +100,11 @@ export async function generateIllustrationBanner(
     throw lastError;
   }
 
+  console.log(`[concept-illustration] model=${model} output:`, output);
+
   const url = extractImageUrl(output);
   if (!url) {
-    throw new Error("일러스트 배너 생성 실패");
+    throw new Error(`일러스트 배너 생성 실패 (${model})`);
   }
 
   const response = await fetch(url);
@@ -108,6 +114,6 @@ export async function generateIllustrationBanner(
   const buffer = Buffer.from(await response.arrayBuffer());
   const dataUrl = `data:image/png;base64,${buffer.toString("base64")}`;
 
-  console.log(`[cost] generateIllustrationBanner (flux-schnell): $${ILLUSTRATION_COST_USD.toFixed(4)}`);
-  return { dataUrl, cost: ILLUSTRATION_COST_USD };
+  console.log(`[cost] generateIllustrationBanner (${model}): $${cost.toFixed(4)}`);
+  return { dataUrl, cost };
 }

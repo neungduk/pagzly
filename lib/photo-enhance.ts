@@ -4,7 +4,7 @@ import { describeColorTone } from "@/lib/color-extract";
 import type { CategoryTheme } from "@/lib/category-theme";
 import type { ConceptBrief } from "@/lib/concept-brief";
 import { formatConceptPromptBlock } from "@/lib/concept-brief";
-import { resolvePhotographyTemplate } from "@/lib/backdrop-prompt-templates";
+import { resolvePhotographyTemplate, applyToneToTemplate } from "@/lib/backdrop-prompt-templates";
 import {
   analyzeShadowDirection,
   applySafeCrop,
@@ -67,6 +67,10 @@ const REPLICATE_COST_USD = {
   briaBackgroundReplace: 0.04,
   // bria/genfill — 마스크 기반 배경 생성. Replicate 페이지 단가 근사 $0.04/image
   briaGenfill: 0.04,
+  // google/nano-banana — Replicate 페이지 공식 단가 $0.039/image (2026-08-25 확인)
+  nanoBanana: 0.039,
+  // black-forest-labs/flux-kontext-pro — Replicate 페이지 공식 단가 $0.04/image (2026-08-25 확인)
+  fluxKontextPro: 0.04,
 } as const;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -110,11 +114,23 @@ export function getBackdropCandidateCount(): number {
 const BRIA_REPLACE_CATEGORIES = new Set<string>(["화장품/뷰티", "전자제품", "생활용품", "반려동물"]);
 const BRIA_GENFILL_CATEGORIES = new Set<string>(["의류/패션", "식품/건강기능식품"]);
 
-export type BackdropProvider = "flux" | "bria-replace" | "bria-genfill";
+export type BackdropProvider =
+  | "flux"
+  | "bria-replace"
+  | "bria-genfill"
+  | "nano-banana"
+  | "flux-kontext-pro";
 
-/** `.env.local` BACKDROP_PROVIDER=bria 일 때 카테고리별 Bria 경로 분기. */
+/**
+ * `.env.local` BACKDROP_PROVIDER:
+ * - 미설정 / 그 외 → flux (빈 배경 생성 후 앱 합성)
+ * - bria → 카테고리별 bria-replace / bria-genfill
+ * - nano-banana | flux-kontext-pro → 원본 사진 통째로 배경만 교체 (A/B용 직접 토글)
+ */
 export function getBackdropProvider(category?: string): BackdropProvider {
-  if (process.env.BACKDROP_PROVIDER !== "bria") return "flux";
+  const raw = process.env.BACKDROP_PROVIDER;
+  if (raw === "nano-banana" || raw === "flux-kontext-pro") return raw;
+  if (raw !== "bria") return "flux";
   if (category && BRIA_GENFILL_CATEGORIES.has(category)) return "bria-genfill";
   if (category && BRIA_REPLACE_CATEGORIES.has(category)) return "bria-replace";
   return "flux";
@@ -271,6 +287,8 @@ const CLARITY_UPSCALER_REF: ModelRef =
 const FLUX_FILL_DEV_REF: ModelRef =
   "black-forest-labs/flux-fill-dev:a053f84125613d83e65328a289e14eb6639e10725c243e8fb0c24128e5573f4c";
 const FLUX_SCHNELL_REF = "black-forest-labs/flux-schnell" as const;
+const NANO_BANANA_REF = "google/nano-banana" as const;
+const FLUX_KONTEXT_PRO_REF = "black-forest-labs/flux-kontext-pro" as const;
 const BRIA_GENERATE_BACKGROUND_REF: ModelRef =
   "bria/generate-background:ba437a62603f1205b253fd7bad0d0b5c326d7857242d11753c0cbcd2c5008602";
 const BRIA_GENFILL_REF: ModelRef =
@@ -495,7 +513,10 @@ function buildBriaBackdropPrompt(
   conceptBrief?: ConceptBrief,
 ): string {
   const basePrompt = BACKDROP_PROMPTS[category] ?? BACKDROP_PROMPTS["기타"];
-  const photography = resolvePhotographyTemplate(conceptBrief, category);
+  const photography = applyToneToTemplate(
+    resolvePhotographyTemplate(conceptBrief, category),
+    describeColorTone(theme.baseNeutral),
+  );
   const conceptBlock = conceptBrief ? `, ${formatConceptPromptBlock(conceptBrief, category)}` : "";
   const lock = lightingLockPrompt(shadow);
   const accentClause =
@@ -546,7 +567,10 @@ export async function generateBackdrop(
     }
   }
 
-  const photography = resolvePhotographyTemplate(conceptBrief, category);
+  const photography = applyToneToTemplate(
+    resolvePhotographyTemplate(conceptBrief, category),
+    describeColorTone(theme.baseNeutral),
+  );
   const conceptBlock = conceptBrief ? `, ${formatConceptPromptBlock(conceptBrief, category)}` : "";
   const lock = lightingLockPrompt(shadow);
   const accentClause =
@@ -831,6 +855,189 @@ export async function generateBackdropViaBria(
 }
 
 /**
+ * google/nano-banana — 원본 상품 사진을 넣고 배경만 교체 (Bria replace와 동일 철학).
+ * 반환 타입은 generateBackdrop()과 동일.
+ */
+export async function generateBackdropViaNanoBanana(
+  category: string,
+  productName: string,
+  brandName: string | null,
+  theme: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
+  sourceImageUrl?: string,
+  conceptBrief?: ConceptBrief,
+): Promise<GenerateBackdropResult> {
+  if (!sourceImageUrl) {
+    throw new Error("nano-banana 배경 생성은 원본 상품 사진(sourceImageUrl)이 필요합니다.");
+  }
+
+  const replicate = getReplicateClient();
+  let claudeCost = 0;
+
+  let shadow: ShadowAnalysis = { ...DEFAULT_SHADOW };
+  try {
+    const sourceBuffer = await fetchSourceBuffer(sourceImageUrl);
+    const shadowResult = await analyzeShadowDirection(sourceBuffer);
+    shadow = shadowResult.shadow;
+    claudeCost += shadowResult.cost;
+  } catch (error) {
+    console.warn("[shadow] 원본 그림자 분석 실패, 기본 조명 사용", error);
+  }
+
+  const bgPrompt = buildBriaBackdropPrompt(category, theme, shadow, conceptBrief);
+  const candidateCount = getBriaBackdropCandidateCount();
+  console.log(`[prompt] generateBackdropViaNanoBanana: ${bgPrompt}`);
+  console.log(`[replicate] CALL google/nano-banana x${candidateCount} (sequential)`);
+
+  const candidateUrls: string[] = [];
+  const failureReasons: string[] = [];
+  for (let i = 0; i < candidateCount; i += 1) {
+    const candidatePrompt = `${bgPrompt}, ${CANDIDATE_VARIATIONS[i % CANDIDATE_VARIATIONS.length]}`;
+    try {
+      const output = await runReplicateWithRetry(`nano-banana#${i}`, () =>
+        withTimeout(
+          replicate.run(NANO_BANANA_REF, {
+            input: {
+              prompt: candidatePrompt,
+              image_input: [sourceImageUrl],
+              aspect_ratio: "match_input_image",
+              output_format: "png",
+            },
+            wait: { mode: "poll", interval: 1000 },
+          }),
+          120000,
+          "google/nano-banana",
+        ),
+      );
+      // 진단용 — output 형태(배열/문자열)를 첫 호출에서 반드시 확인
+      console.log(`[generateBackdropViaNanoBanana] output:`, output);
+      const url = extractFluxImageUrl(output);
+      if (!url) {
+        failureReasons.push(`결과에 URL 없음 (candidate=${i})`);
+        continue;
+      }
+      candidateUrls.push(url);
+    } catch (error) {
+      const detail = await describeReplicateError(error);
+      console.error("[generateBackdropViaNanoBanana] 호출 실패:", detail);
+      failureReasons.push(detail);
+    }
+  }
+
+  const cost = candidateUrls.length * REPLICATE_COST_USD.nanoBanana;
+  console.log(`[cost] generateBackdrop (nano-banana x${candidateUrls.length}): $${cost.toFixed(4)}`);
+
+  if (candidateUrls.length === 0) {
+    throw new Error(`nano-banana 배경 생성에 모두 실패했습니다. 원인: ${failureReasons.join(" | ")}`);
+  }
+
+  console.log(
+    `[generateBackdropViaNanoBanana] "${productName}"${brandName ? ` (${brandName})` : ""} 후보 ${candidateUrls.length}장`,
+  );
+  return {
+    buffer: null,
+    candidateUrls,
+    cost,
+    shadow,
+    claudeCost,
+    candidateCount: candidateUrls.length,
+    autoPicked: candidateUrls.length === 1,
+  };
+}
+
+/**
+ * black-forest-labs/flux-kontext-pro — 원본 상품 사진을 넣고 배경만 교체.
+ * 반환 타입은 generateBackdrop()과 동일.
+ */
+export async function generateBackdropViaFluxKontext(
+  category: string,
+  productName: string,
+  brandName: string | null,
+  theme: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
+  sourceImageUrl?: string,
+  conceptBrief?: ConceptBrief,
+): Promise<GenerateBackdropResult> {
+  if (!sourceImageUrl) {
+    throw new Error("flux-kontext-pro 배경 생성은 원본 상품 사진(sourceImageUrl)이 필요합니다.");
+  }
+
+  const replicate = getReplicateClient();
+  let claudeCost = 0;
+
+  let shadow: ShadowAnalysis = { ...DEFAULT_SHADOW };
+  try {
+    const sourceBuffer = await fetchSourceBuffer(sourceImageUrl);
+    const shadowResult = await analyzeShadowDirection(sourceBuffer);
+    shadow = shadowResult.shadow;
+    claudeCost += shadowResult.cost;
+  } catch (error) {
+    console.warn("[shadow] 원본 그림자 분석 실패, 기본 조명 사용", error);
+  }
+
+  const bgPrompt = buildBriaBackdropPrompt(category, theme, shadow, conceptBrief);
+  const candidateCount = getBriaBackdropCandidateCount();
+  console.log(`[prompt] generateBackdropViaFluxKontext: ${bgPrompt}`);
+  console.log(`[replicate] CALL flux-kontext-pro x${candidateCount} (sequential)`);
+
+  const candidateUrls: string[] = [];
+  const failureReasons: string[] = [];
+  for (let i = 0; i < candidateCount; i += 1) {
+    const candidatePrompt = `${bgPrompt}, ${CANDIDATE_VARIATIONS[i % CANDIDATE_VARIATIONS.length]}`;
+    try {
+      const output = await runReplicateWithRetry(`flux-kontext-pro#${i}`, () =>
+        withTimeout(
+          replicate.run(FLUX_KONTEXT_PRO_REF, {
+            input: {
+              prompt: candidatePrompt,
+              input_image: sourceImageUrl,
+              aspect_ratio: "match_input_image",
+              output_format: "png",
+            },
+            wait: { mode: "poll", interval: 1000 },
+          }),
+          120000,
+          "flux-kontext-pro",
+        ),
+      );
+      console.log(`[generateBackdropViaFluxKontext] output:`, output);
+      const url = extractFluxImageUrl(output);
+      if (!url) {
+        failureReasons.push(`결과에 URL 없음 (candidate=${i})`);
+        continue;
+      }
+      candidateUrls.push(url);
+    } catch (error) {
+      const detail = await describeReplicateError(error);
+      console.error("[generateBackdropViaFluxKontext] 호출 실패:", detail);
+      failureReasons.push(detail);
+    }
+  }
+
+  const cost = candidateUrls.length * REPLICATE_COST_USD.fluxKontextPro;
+  console.log(
+    `[cost] generateBackdrop (flux-kontext-pro x${candidateUrls.length}): $${cost.toFixed(4)}`,
+  );
+
+  if (candidateUrls.length === 0) {
+    throw new Error(
+      `flux-kontext-pro 배경 생성에 모두 실패했습니다. 원인: ${failureReasons.join(" | ")}`,
+    );
+  }
+
+  console.log(
+    `[generateBackdropViaFluxKontext] "${productName}"${brandName ? ` (${brandName})` : ""} 후보 ${candidateUrls.length}장`,
+  );
+  return {
+    buffer: null,
+    candidateUrls,
+    cost,
+    shadow,
+    claudeCost,
+    candidateCount: candidateUrls.length,
+    autoPicked: candidateUrls.length === 1,
+  };
+}
+
+/**
  * Bria GenFill — 컷아웃 알파 마스크로 상품을 고정하고 배경 영역만 inpaint.
  * 반환 타입은 generateBackdrop()과 동일.
  * 스키마: image, mask, prompt, mask_type, preserve_alpha, seed
@@ -972,9 +1179,9 @@ const SECTION_BACKDROP_PROMPTS_BY_CATEGORY: Record<
 > = {
   "화장품/뷰티": {
     ingredient:
-      "extreme close-up of a glowing pastel-toned studio surface, soft blush-pink or warm ivory gradient, delicate light bokeh and gentle specular highlights, luminous radiant K-beauty mood, no bottle, no dropper, no product, no packaging, no text, no logo, no human skin, no flat gray, product photography empty backdrop",
+      "extreme close-up of a glowing pastel-toned studio surface, soft {{TONE}} gradient, delicate light bokeh and gentle specular highlights, luminous radiant K-beauty mood, no bottle, no dropper, no product, no packaging, no text, no logo, no human skin, no flat gray, product photography empty backdrop",
     texture:
-      "macro photograph of a glowing pastel-toned formula droplet or gentle swirl on a soft blush or warm ivory surface, luminous highlight, shallow depth of field, vivid radiant color, no bottle, no packaging, no hands, no text, no logo, no flat gray, empty formula-only frame",
+      "macro photograph of a glowing pastel-toned formula droplet or gentle swirl on a soft {{TONE}} surface, luminous highlight, shallow depth of field, vivid radiant color, no bottle, no packaging, no hands, no text, no logo, no flat gray, empty formula-only frame",
   },
   "전자제품": {
     ingredient:
@@ -1046,15 +1253,17 @@ export async function generateSectionBackdropVariants(
   shadow: ShadowAnalysis,
   conceptBrief?: ConceptBrief,
   category = "기타",
+  theme?: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
 ): Promise<{ ingredientUrl: string | null; textureUrl: string | null; cost: number }> {
   const lock = lightingLockPrompt(shadow);
   const conceptBlock = conceptBrief ? formatConceptPromptBlock(conceptBrief, category) : "";
   const sectionPrompts = getSectionBackdropPrompts(category);
+  const toneDescription = theme ? describeColorTone(theme.baseNeutral) : "soft pastel";
   const kinds = ["ingredient", "texture"] as const;
   const results = await Promise.allSettled(
     kinds.map(async (kind) => {
       const prompt = [
-        sectionPrompts[kind],
+        sectionPrompts[kind].replace(/\{\{TONE\}\}/g, toneDescription),
         conceptBlock,
         lock,
         "obey lighting lock color temperature exactly, no golden hour, no amber gel",

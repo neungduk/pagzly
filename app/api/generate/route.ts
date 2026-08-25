@@ -21,7 +21,7 @@ import { getSlotImageRatio, getSlotTemplate, type SlotDefinition } from "@/lib/s
 import { extractUrlSummary, type UrlSummaryResult } from "@/lib/url-crawler";
 import { buildQAFixPrompt, runDetailPageQA } from "@/lib/detail-page-qa";
 import { formatConceptCopyBlock, generateConceptBrief } from "@/lib/concept-brief";
-import { generateConceptIcons } from "@/lib/concept-icons";
+import { generateConceptIcons, type ConceptIconMap } from "@/lib/concept-icons";
 import { generateIllustrationBanner } from "@/lib/concept-illustration";
 import { fetchFileBuffer } from "@/lib/fetch-file-buffer";
 import {
@@ -38,6 +38,7 @@ import {
 } from "@/lib/planning-doc";
 import { getCategoryTheme } from "@/lib/category-theme";
 import { calculateClaudeCost, logClaudeCost } from "@/lib/claude-cost";
+import { sanitizeComparisonChartSection } from "@/lib/comparison-chart-guard";
 import { isTestMode } from "@/lib/test-mode";
 import { isForceRegenerate } from "@/lib/force-regenerate";
 import { assignDistinctSectionImages } from "@/lib/assign-section-images";
@@ -55,6 +56,30 @@ const CLAUDE_MODEL = "claude-sonnet-5";
 const TEST_MODE_ANALYSIS_MAX_IMAGES = 2;
 const DEEPSEEK_MODEL = "deepseek-v4-flash";
 const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
+const ICON_STORAGE_BUCKET = "images";
+
+/** base64 data URL → Supabase Storage 공개 URL (sessionStorage 용량 초과 방지) */
+async function uploadDataUrlAndGetPublicUrl(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  dataUrl: string,
+  pathSuffix: string,
+): Promise<string> {
+  if (!dataUrl || !dataUrl.startsWith("data:")) return dataUrl;
+  const base64 = dataUrl.split(",")[1];
+  if (!base64) return "";
+  const buffer = Buffer.from(base64, "base64");
+  const path = `${userId}/icons/${Date.now()}-${pathSuffix}.png`;
+  const { error } = await supabase.storage
+    .from(ICON_STORAGE_BUCKET)
+    .upload(path, buffer, { contentType: "image/png", upsert: true });
+  if (error) {
+    console.warn(`[generate] 아이콘 업로드 실패 (${pathSuffix})`, error);
+    return "";
+  }
+  const { data } = supabase.storage.from(ICON_STORAGE_BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
 
 export const AI_DISCLOSURE_BODY =
   "본 제품의 상세페이지 중 일부 이미지 및 연출 컷은 AI 생성 기술을 활용하여 제작되었으며 실제 제품 및 사용 환경과 일부 차이가 있을 수 있습니다.";
@@ -145,6 +170,22 @@ function applyHeroBadge(sections: DetailSection[]): DetailSection[] {
   const badge = ctaPrice?.badges?.[0];
   if (!badge) return sections;
   return sections.map((s) => (s.type === "hero" ? { ...s, badge } : s));
+}
+
+/** 페이지당 첫 번째 비압축 checklist에만 강조 색면 블록(패턴 C)을 배정. */
+function applyBoldBlock(sections: DetailSection[]): DetailSection[] {
+  let assigned = false;
+  return sections.map((section) => {
+    if (section.type !== "checklist") return section;
+    if (!section.compactFollow && !assigned) {
+      assigned = true;
+      return { ...section, boldBlock: true };
+    }
+    if (section.boldBlock) {
+      return { ...section, boldBlock: false };
+    }
+    return section;
+  });
 }
 
 // DeepSeek 토큰당 단가(USD / 1M tokens). 공식 pricing 문서 기준(2026-08-14 확인).
@@ -332,8 +373,9 @@ const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
   caution: `{ type: "caution", slot, heading, body }`,
   cta_price: `{ type: "cta_price", slot, price, targetCustomer?, badges[]? }`,
   comparison_table: `{ type: "comparison_table", slot, heading, columns: [string,string], rows: [{label, values: [string,string]}] }`,
+  comparison_chart: `{ type: "comparison_chart", slot, heading, ourLabel, baselineLabel, unit?: "%", metrics: [{label, ourValue: 0-100, baselineValue: 0-100}], basis: "measured"|"self_assessed", basisNote? } — 수치로 "우리 제품 vs 비교대상"을 막대로 비교. baselineLabel은 반드시 "일반 제품"|"업계 평균"|"타 제품" 중 하나만(특정 브랜드명·경쟁사명 절대 금지, 서버가 최종 강제함). metrics 2~4개. 입력에 실측 근거가 있으면 basis:"measured"+basisNote에 출처 한 줄, 없으면 basis:"self_assessed"(수치는 30~85 범위 권장, 0/100 같은 극단값 금지, ourValue가 baselineValue보다 과도하게 크지 않게 — 예: 2배 이내)`,
   color_variation: `{ type: "color_variation", slot, heading, options: [{label, colorHex, imageIndex}] }`,
-  stat_infographic: `{ type: "stat_infographic", slot, heading, metrics: [{label, value, style: "bar"|"number", percent?: 0-100}] } — style:"bar"는 percent 필수(비율/점유율용), style:"number"는 percent 생략하고 절대 수치(시간·무게·개수 등)를 큰 숫자로 강조. 입력에 실제 수치 근거가 있을 때만 포함. 근거 없으면 섹션 생략`,
+  stat_infographic: `{ type: "stat_infographic", slot, heading, metrics: [{label, value, style: "bar"|"number"|"ring", percent?: 0-100, basis?: "measured"|"self_assessed"}] } — style:"bar"/"ring"은 percent 필수(원형 게이지로 강조하고 싶으면 "ring", 막대면 "bar"), style:"number"는 percent 생략. 입력에 실제 수치 근거가 있으면 basis:"measured", 근거 없이 AI가 합리적으로 추정한 값이면 basis:"self_assessed"(값은 보수적으로, 0/100 같은 극단값 금지). 완전히 근거·추정 불가면 섹션 생략`,
   illustration_banner: `{ type: "illustration_banner", slot, heading?, body?, illustrationUrl: "" } — body는 분위기 1~2문장, illustrationUrl은 서버가 채우므로 빈 문자열`,
   faq: `{ type: "faq", slot, heading, items: [{question, answer}] } — 3~5개. 근거 없으면 슬롯 생략. 근거 없는 개별 질문은 답변을 "판매자에게 문의해주세요"`,
   target_persona: `{ type: "target_persona", slot, heading, personas[] } — 3~5개, 각 20자 내외. targetCustomer·keyFeatures 기반으로만`,
@@ -358,6 +400,7 @@ function getAidaPhase(def: SlotDefinition): string {
     case "caution":
     case "spec_table":
     case "stat_infographic":
+    case "comparison_chart":
     case "faq":
     case "ai_disclosure":
       return "신뢰 보조 (과장 없이 사실만, AIDA 흐름 유지)";
@@ -614,7 +657,7 @@ ${isCosmetics ? `
 - quick_points: layout 반드시 "compact". heading 8자 내외, body 1문장. 사진은 텍스처/디테일 컷.
 - compact layout은 사진이 작아지므로 텍스트도 짧게 (heading·body 모두 위 길이 준수).
 - spec_table 값에 없는 % 수치를 만들지 말 것 (임상 막대용 가짜 데이터 금지).
-- stat_infographic: keyFeatures·ingredients·certifications 등 **입력에 명시된 수치**만 metrics에 사용. 근거 없으면 stat_infographic 슬롯 전체를 생략. "판매자 확인 필요"나 임의 percent 금지. 비율/점유율 수치는 style:"bar"+percent로, 시간·용량·중량·개수 같은 절대 수치는 style:"number"로 percent 없이 큰 숫자 강조.
+- stat_infographic: keyFeatures·ingredients·certifications 등 **입력에 명시된 수치**만 metrics에 사용. 근거 없으면 stat_infographic 슬롯 전체를 생략. "판매자 확인 필요"나 임의 percent 금지. 비율/점유율 수치는 style:"bar"|"ring"+percent로(원형 강조는 ring), 시간·용량·중량·개수 같은 절대 수치는 style:"number"로 percent 없이 큰 숫자 강조. basis는 measured/self_assessed.
 - 시각 컨셉과 모순 금지: 쿨링/진정이면 따뜻·온기·골드 카피 금지. 수분이면 오일리·번들 표현 금지. 클렌징이면 보습 도포를 주효능처럼 쓰지 말 것.
 ` : ""}
 
@@ -653,6 +696,20 @@ percent(0~100)를 채우고, 퍼센트로 표현되지 않는 절대 수치(예:
 그대로 큰 숫자로 강조하세요. 한 섹션 안에 두 style을 섞어도 됩니다 (3~5개 중
 적절히 배분). 둘 다 입력에 근거가 있을 때만 사용하고, 절대 수치를 퍼센트로
 억지로 바꾸지 마세요.
+metrics 항목에 basis를 명시하세요: keyFeatures·ingredients·certifications 등 입력에 실제
+근거가 있으면 "measured", 근거 없이 합리적으로 추정한 값이면 "self_assessed"입니다.
+self_assessed 값은 보수적으로(0%/100% 같은 극단값 금지) 작성하세요.
+stat_infographic의 style:"ring"은 style:"bar"와 동일하게 percent(0~100)가 필요하며, 원형
+게이지로 강조하고 싶은 1~3개 지표에만 쓰세요(한 섹션에 bar/ring/number를 섞어도 됩니다).
+
+comparison_chart 슬롯이 있다면: baselineLabel은 반드시 "일반 제품", "업계 평균", "타 제품"
+중 하나만 쓰세요 — 특정 브랜드명이나 실제 경쟁사 이름은 절대 쓰지 마세요(서버가 최종적으로
+강제 치환하지만, 애초에 다른 값을 시도하지 마세요). ourLabel은 브랜드명 또는 "우리 제품"으로
+쓰세요. metrics는 2~4개, ourValue/baselineValue는 0~100 사이 숫자입니다. 입력에 실측 근거가
+있으면 basis:"measured"로 하고 basisNote에 출처를 한 줄로 적으세요(예: "자체 성분 테스트,
+2026.08"). 근거가 없으면 basis:"self_assessed"로 하고, 이때 ourValue는 baselineValue보다
+합리적인 범위 내에서만 높게(대략 1.2~1.8배 수준, 극단적으로 부풀리지 말 것) 설정하세요.
+입력에 근거도 없고 합리적으로 추정할 수도 없으면 comparison_chart 슬롯 전체를 생략하세요.
 illustration_banner의 illustrationUrl은 항상 빈 문자열("")로 두세요 (서버가 생성).
 illustration_banner의 body는 이 섹션 분위기를 설명하는 1~2문장 카피입니다 (image_text body와 비슷한 톤).
 quick_points 슬롯은 layout:"compact"로 2~4개 채우세요. heading 8자 내외, body 1문장, 사진은 작은 텍스처/디테일 컷.
@@ -774,7 +831,8 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
       return {
         ...section,
         metrics: section.metrics.map((metric) => {
-          const style = metric.style === "number" ? "number" : "bar";
+          const style: "number" | "bar" | "ring" =
+            metric.style === "number" ? "number" : metric.style === "ring" ? "ring" : "bar";
           if (style === "number") {
             // 절대 수치 카드는 percent가 의미 없으므로 그대로 둔다 (막대로 렌더하지 않음).
             return { ...metric, style };
@@ -786,6 +844,9 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
           };
         }),
       };
+    }
+    if (section.type === "comparison_chart") {
+      return sanitizeComparisonChartSection(section);
     }
     if (section.type === "illustration_banner") {
       return { ...section, illustrationUrl: "" };
@@ -1108,6 +1169,12 @@ export async function POST(request: Request) {
     }
 
     savedCopy.sections = applyHeroBadge(savedCopy.sections);
+    savedCopy.sections = applyBoldBlock(savedCopy.sections);
+    savedCopy.sections = savedCopy.sections.map((section) =>
+      section.type === "comparison_chart"
+        ? sanitizeComparisonChartSection(section)
+        : section,
+    );
 
     let imageUrls = [...body.imageUrls];
     let imagePaths = [...(body.imagePaths ?? [])];
@@ -1229,6 +1296,18 @@ export async function POST(request: Request) {
       conceptIcons = iconResult.icons;
       iconCost = iconResult.cost;
 
+      if (conceptIcons) {
+        for (const key of Object.keys(conceptIcons) as (keyof ConceptIconMap)[]) {
+          const urls = conceptIcons[key];
+          if (!urls) continue;
+          conceptIcons[key] = await Promise.all(
+            urls.map((url, idx) =>
+              uploadDataUrlAndGetPublicUrl(supabase, user.id, url, `${String(key)}-${idx}`),
+            ),
+          );
+        }
+      }
+
       const bannerIndexes = savedCopy.sections
         .map((section, index) => (section.type === "illustration_banner" ? index : -1))
         .filter((index) => index >= 0);
@@ -1249,8 +1328,16 @@ export async function POST(request: Request) {
             section.body,
           );
           if (dataUrl) {
-            savedCopy.sections[sectionIndex] = { ...section, illustrationUrl: dataUrl };
-            illustrationCost += cost;
+            const illustrationUrl = await uploadDataUrlAndGetPublicUrl(
+              supabase,
+              user.id,
+              dataUrl,
+              `illustration-${sectionIndex}`,
+            );
+            if (illustrationUrl) {
+              savedCopy.sections[sectionIndex] = { ...section, illustrationUrl };
+              illustrationCost += cost;
+            }
           }
         } catch (error) {
           console.warn("[concept-illustration] illustration_banner 생성 실패", error);

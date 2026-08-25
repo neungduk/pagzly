@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateSectionBackdropVariants } from "@/lib/photo-enhance";
 import type { ConceptBrief } from "@/lib/concept-brief";
+import type { CategoryTheme } from "@/lib/category-theme";
 import {
   readSectionBackdropCache,
   writeSectionBackdropCache,
@@ -23,10 +24,11 @@ export async function POST(request: Request) {
 
     const userId = user.id;
 
-    const { shadowAnalysis, conceptBrief, category } = (await request.json()) as {
+    const { shadowAnalysis, conceptBrief, category, theme } = (await request.json()) as {
       shadowAnalysis?: ShadowAnalysis;
       conceptBrief?: ConceptBrief;
       category?: string;
+      theme?: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">;
     };
 
     if (!shadowAnalysis) {
@@ -61,6 +63,7 @@ export async function POST(request: Request) {
       shadowAnalysis,
       conceptBrief,
       category ?? "기타",
+      theme,
     );
 
     if (isTestMode() && ingredientUrl && textureUrl) {
