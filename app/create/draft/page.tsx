@@ -221,6 +221,17 @@ export default function CreateDraftPage() {
         throw new Error("원본 이미지가 없습니다. 처음부터 다시 생성해 주세요.");
       }
 
+      // 30차: 최종 생성 시작 직전 orphan 보호 윈도우 연장 (cleanup 대비)
+      try {
+        await fetch("/api/protect-product-images", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imagePaths: paths.filter(Boolean) }),
+        });
+      } catch (protectErr) {
+        console.warn("[create/draft] protect-product-images 실패 — 생성은 계속", protectErr);
+      }
+
       const snap = draft.formSnapshot;
       const photo = await runPhotoEnhancementPipeline({
         uploaded,
@@ -379,7 +390,17 @@ export default function CreateDraftPage() {
         </div>
 
         {error && (
-          <p className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
+          <div className="mb-6 space-y-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+            <p>{error}</p>
+            {/만료|다시 업로드/.test(error) && (
+              <Link
+                href="/create"
+                className="inline-flex font-medium text-registration-red underline-offset-2 hover:underline"
+              >
+                사진 다시 업로드하러 가기
+              </Link>
+            )}
+          </div>
         )}
 
         <ul className="space-y-4">

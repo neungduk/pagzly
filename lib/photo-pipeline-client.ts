@@ -13,6 +13,16 @@ export type UploadedImage = {
   path: string;
 };
 
+export const SOURCE_IMAGE_EXPIRED = "SOURCE_IMAGE_EXPIRED";
+
+export class SourceImageExpiredError extends Error {
+  readonly code = SOURCE_IMAGE_EXPIRED;
+  constructor(message = "사진 세션이 만료되었습니다. 사진을 다시 업로드해 주세요.") {
+    super(message);
+    this.name = "SourceImageExpiredError";
+  }
+}
+
 export type BackdropGenerateResult = {
   backdropDataUrl?: string;
   candidateUrls?: string[];
@@ -49,6 +59,7 @@ async function withBackoffRetry<T>(
       if (result != null) return result;
       console.warn(`[${label}] attempt ${attempt}/${maxAttempts} returned null`);
     } catch (err) {
+      if (err instanceof SourceImageExpiredError) throw err;
       lastError = err;
       console.warn(`[${label}] attempt ${attempt}/${maxAttempts} failed:`, err);
     }
@@ -91,9 +102,17 @@ export async function generateBackdrop(params: {
       }),
     });
 
-    const result = (await response.json()) as BackdropGenerateResult & { error?: string };
+    const result = (await response.json()) as BackdropGenerateResult & {
+      error?: string;
+      code?: string;
+    };
 
     if (!response.ok) {
+      if (result.code === SOURCE_IMAGE_EXPIRED || response.status === 410) {
+        throw new SourceImageExpiredError(
+          result.error ?? "사진 세션이 만료되었습니다. 사진을 다시 업로드해 주세요.",
+        );
+      }
       console.warn(
         "[generate-backdrop] API error:",
         result.error ?? response.status,
@@ -351,15 +370,11 @@ export async function runPhotoEnhancementPipeline(params: {
   });
 
   if (!backdropResult) {
-    console.error(
-      "[photo-pipeline] FALLBACK: generateBackdrop 실패 — 상품 전체 이미지를 원본 그대로 반환 ($0)",
+    // 예전: 원본 그대로 "성공"처럼 반환 → 무보정 결과가 조용히 노출됨.
+    // 지금은 사용자에게 실패를 알리고 재시도/재업로드를 유도한다.
+    throw new Error(
+      "배경 생성에 실패했습니다. 잠시 후 다시 시도하거나, 사진을 다시 업로드해 주세요.",
     );
-    return {
-      images: uploaded,
-      photoProcessingCost: 0,
-      photoCostBreakdown: {},
-      testMode: false,
-    };
   }
 
   let photoProcessingCost = backdropResult.cost;

@@ -17,14 +17,17 @@ Deno.serve(async () => {
     const threeDaysAgo = new Date();
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
     const cutoff = threeDaysAgo.toISOString();
+    const nowIso = new Date().toISOString();
 
     // product_id가 null인(= 완성된 상품으로 이어지지 않은) 이미지만
     // 정리 대상으로 삼는다. 상품 저장이 완료된 이미지는 영구 보존한다.
+    // 30차: protected_until이 아직 미래면 생성 세션 중이므로 제외.
     const { data: expiredImages, error: fetchError } = await supabase
       .from("product_images")
-      .select("id, storage_path")
+      .select("id, storage_path, protected_until")
       .is("product_id", null)
-      .lt("image_uploaded_at", cutoff);
+      .lt("image_uploaded_at", cutoff)
+      .or(`protected_until.is.null,protected_until.lt."${nowIso}"`);
 
     if (fetchError) {
       throw fetchError;

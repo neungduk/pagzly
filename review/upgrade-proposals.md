@@ -13,6 +13,8 @@
 | R29-A | `FALLBACK_BY_CATEGORY`에 패션·식품·전자·생활·펫 폴백 추가 | `lib/concept-brief.ts` | 화장품만 상세 폴백이던 비대칭 해소 (§11.4) |
 | R29-B | `buildSectionLengthGuide`에 전자·생활·펫 규율 블록 추가 + 패션 `size_table` 한 줄 | `lib/section-templates.ts` | 27차와 같은 “전 카테고리 길이 규율” 잔여 구멍 |
 | R29-DOC | §3 템플릿 동기화, §10 전 카테고리, §11 횡단 리서치 | `review/reference-patterns.md` | 리서치 본문 |
+| R30-A | `SOURCE_IMAGE_EXPIRED` + 무보정 조용한 폴백 제거 | generate-backdrop / photo-pipeline / draft | 30차 2번 |
+| R30-B | `protected_until` 조기 보호 (업로드·승인·enhance + cleanup) | migration / CreateProductForm / protect API / cleanup edge | 30차 1번 승인 구현 |
 
 `npx tsc --noEmit` 통과 후 보고.
 
@@ -37,7 +39,24 @@
 | P1-2 | 패션 사진 역할 힌트(착장/디테일/코디)를 `assignDistinctSectionImages` prefer에 연결 | 경쟁툴 컷 분류 vs 우리 편중 이슈 | 배정 회귀 |
 | P1-3 | `review_highlight`를 “입력된 리뷰 요약이 있을 때만” 전 카테고리 선택 슬롯화 | CRO trust cascade | 가짜 후기 위험 — **입력 있을 때만** 전제 필수 |
 | P1-4 | 모바일 sticky CTA (결과 미리보기) | 2026 PDP CRO | 마켓플레이스 HTML export와 별개 UX |
+| P1-5 | ~~원본 사진 보호 시점 앞당기기~~ → **R30-B로 구현됨** (`protected_until`) | 30차 | — |
+| P1-6 | 히어로 `generateBackdrop` 실패와 개별 enhance/이펙트를 **분리**해 나머지 컷 보정은 살림 | 30차 “한 곳 실패=전체 폴백” | 파이프라인 구조 |
 
+---
+
+## 설계안 (구현 완료) — P1-5 / R30-B 원본 사진 조기 보호 · 30차
+
+**채택:** 권장안 A — `product_images.protected_until`
+
+| 단계 | 구현 |
+|------|------|
+| 마이그레이션 | `supabase/migrations/20260826163000_product_images_protected_until.sql` |
+| 업로드 | `CreateProductForm` insert 시 `now()+24h` |
+| 승인 직전 | `POST /api/protect-product-images` (draft finalize) |
+| enhance | insert/update 시 보호 연장 |
+| cleanup | `protected_until IS NULL OR < now()` 만 삭제 |
+
+**프로덕션 배포 필수:** 코드만으로는 컬럼이 생기지 않음. 프로덕션 Supabase(`sblnth…`)에 마이그레이션 적용 + `cleanup-expired-images` 엣지 함수 재배포.
 ---
 
 ## P2 — 연구·실험 (프로바이더/정책)

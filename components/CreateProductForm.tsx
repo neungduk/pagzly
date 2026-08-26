@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import GeneratingOverlay, { type GeneratingStage, SNAP_HOLD_MS } from "@/components/GeneratingOverlay";
 import { createClient } from "@/lib/supabase";
+import { productImageProtectedUntil } from "@/lib/product-image-protection";
 import { countSlotSections, type SlotLength } from "@/lib/section-templates";
 import type { DraftGenerateResponse } from "@/lib/types/generate";
 import type { UploadedImage } from "@/lib/photo-pipeline-client";
@@ -231,14 +232,14 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
 
       const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
 
-      // product_images: 완성되기 전 업로드된 이미지를 추적하는 임시 테이블.
-      // 상품 저장이 완료되면 /api/generate 에서 product_id를 연결해
-      // 3일 자동 삭제 대상에서 제외한다.
+      // product_images: 완성 전 임시 추적. product_id 연결 전에도
+      // protected_until(24h) 동안 cleanup 대상에서 제외 (30차).
       const { error: dbError } = await supabase.from("product_images").insert({
         user_id: userId,
         storage_path: path,
         image_url: data.publicUrl,
         image_uploaded_at: uploadedAt,
+        protected_until: productImageProtectedUntil(),
       });
 
       if (dbError) {

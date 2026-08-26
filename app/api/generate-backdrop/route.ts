@@ -16,6 +16,34 @@ import { analyzeReferenceImage } from "@/lib/reference-analysis";
 import { isTestMode } from "@/lib/test-mode";
 import { logForceRegenerateStatus } from "@/lib/force-regenerate";
 
+const SOURCE_IMAGE_EXPIRED = "SOURCE_IMAGE_EXPIRED";
+
+/** 히어로 원본이 스토리지에서 사라졌는지 사전 확인 (Replicate 400 전에 차단). */
+async function probeSourceImage(url: string): Promise<"ok" | "missing" | "unreachable"> {
+  try {
+    const head = await fetch(url, { method: "HEAD", redirect: "follow" });
+    if (head.ok) return "ok";
+    if (head.status === 404 || head.status === 400) return "missing";
+
+    // 일부 CDN/스토리지는 HEAD를 거부 → 1바이트 Range GET으로 재확인
+    const ranged = await fetch(url, {
+      method: "GET",
+      headers: { Range: "bytes=0-0" },
+      redirect: "follow",
+    });
+    if (ranged.ok || ranged.status === 206) return "ok";
+    if (ranged.status === 404 || ranged.status === 400) return "missing";
+    // 본문이 JSON not_found 인 경우 (Supabase public object)
+    if (ranged.status >= 400) {
+      const text = await ranged.text().catch(() => "");
+      if (/not_found|NoSuchKey|Object not found/i.test(text)) return "missing";
+    }
+    return "unreachable";
+  } catch {
+    return "unreachable";
+  }
+}
+
 export async function POST(request: Request) {
   try {
     logForceRegenerateStatus();
@@ -62,6 +90,22 @@ export async function POST(request: Request) {
         { error: "category, productName이 필요합니다." },
         { status: 400 },
       );
+    }
+
+    const sourceUrl = imageUrls?.[0];
+    if (sourceUrl) {
+      const probe = await probeSourceImage(sourceUrl);
+      if (probe === "missing") {
+        console.error("[generate-backdrop] SOURCE_IMAGE_EXPIRED:", sourceUrl);
+        return NextResponse.json(
+          {
+            error:
+              "사진 세션이 만료되었습니다. 사진을 다시 업로드해 주세요.",
+            code: SOURCE_IMAGE_EXPIRED,
+          },
+          { status: 410 },
+        );
+      }
     }
 
     // 배경 생성 프롬프트에 상품 고유 색감을 반영하기 위해, 업로드된 원본

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { enhanceProductImage } from "@/lib/photo-enhance";
 import type { ConceptBrief } from "@/lib/concept-brief";
+import { productImageProtectedUntil } from "@/lib/product-image-protection";
 
 const STORAGE_BUCKET = "images";
 
@@ -129,6 +130,7 @@ export async function POST(request: Request) {
         storage_path: enhancedPath,
         image_url: publicUrlData.publicUrl,
         image_uploaded_at: new Date().toISOString(),
+        protected_until: productImageProtectedUntil(),
       });
       if (insertError) {
         console.error("[enhance-image] extra product_images insert error", insertError);
@@ -139,6 +141,7 @@ export async function POST(request: Request) {
         .update({
           storage_path: enhancedPath,
           image_url: publicUrlData.publicUrl,
+          protected_until: productImageProtectedUntil(),
         })
         .eq("user_id", user.id)
         .eq("storage_path", storagePath);
