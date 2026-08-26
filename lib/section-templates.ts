@@ -60,12 +60,23 @@ const BEAUTY: SlotDefinition[] = [
     note: "질감/사용감 (1:1). 매크로 텍스처 컷을 배정",
   },
   {
+    slot: "highlight_box",
+    type: "highlight_box",
+    required: true,
+    note: "핵심 효과/성분 3가지를 카드 3장으로 요약(각 title 6자 내외 + body 1~2문장). checklist(핵심 포인트 나열)와 달리 이 3가지는 서로 구분되는 효과/성분 축이어야 함(예: 진정/보습/장벽 강화). 가장 강조하고 싶은 내용을 2번째(가운데) 카드에 배치 — 가운데 카드는 서버가 자동으로 진하게 강조 처리함",
+  },
+  {
     slot: "illustration_banner",
     type: "illustration_banner",
     required: false,
     note: "컨셉 장식 일러스트 배너 (16:9). heading+body가 이미지 위에 오버레이되므로 body도 함께 작성. illustrationUrl은 비워 둠",
   },
-  { slot: "usage_steps", type: "usage_steps", required: true, note: "사용법 단계. STEP 01/02/03 구조로 3단계 권장" },
+  {
+    slot: "step_card",
+    type: "step_card",
+    required: true,
+    note: "사용법 단계(3단계 권장). 각 단계에 실제 상품 사진(imageIndex)을 배정하고 title(6자 내외)+body(1문장)로 구성. STEP 태그는 렌더러가 자동으로 붙이므로 title에 'STEP 01' 등을 직접 쓰지 말 것",
+  },
   {
     slot: "gallery",
     type: "gallery",

@@ -120,6 +120,26 @@ function sanitizeSection(
         heading: clean(section.heading),
         steps: section.steps.map(clean),
       };
+    case "step_card":
+      return {
+        ...section,
+        heading: clean(section.heading),
+        steps: section.steps.map((step) => ({
+          ...step,
+          title: clean(step.title),
+          body: clean(step.body),
+        })),
+      };
+    case "highlight_box":
+      return {
+        ...section,
+        heading: clean(section.heading),
+        cards: section.cards.map((card) => ({
+          ...card,
+          title: clean(card.title),
+          body: clean(card.body),
+        })),
+      };
     case "gallery":
       return { ...section, heading: clean(section.heading) };
     case "caution":

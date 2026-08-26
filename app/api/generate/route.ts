@@ -374,6 +374,8 @@ const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
   cta_price: `{ type: "cta_price", slot, price, targetCustomer?, badges[]? }`,
   comparison_table: `{ type: "comparison_table", slot, heading, columns: [string,string], rows: [{label, values: [string,string]}] }`,
   comparison_chart: `{ type: "comparison_chart", slot, heading, ourLabel, baselineLabel, unit?: "%", metrics: [{label, ourValue: 0-100, baselineValue: 0-100}], basis: "measured"|"self_assessed", basisNote? } — 수치로 "우리 제품 vs 비교대상"을 막대로 비교. baselineLabel은 반드시 "일반 제품"|"업계 평균"|"타 제품" 중 하나만(특정 브랜드명·경쟁사명 절대 금지, 서버가 최종 강제함). metrics 2~4개. 입력에 실측 근거가 있으면 basis:"measured"+basisNote에 출처 한 줄, 없으면 basis:"self_assessed"(수치는 30~85 범위 권장, 0/100 같은 극단값 금지, ourValue가 baselineValue보다 과도하게 크지 않게 — 예: 2배 이내)`,
+  highlight_box: `{ type: "highlight_box", slot, heading, cards: [{title, body}] } — 정확히 3개(2~4개 허용) 카드로 핵심 효과/성분을 요약. 각 title은 6자 내외, body는 1~2문장. checklist와 겹치지 않게 서로 다른 효과/성분 축으로 구성. 가장 강조하고 싶은 내용을 가운데(2번째) 카드에 배치 — 서버가 가운데 카드를 자동으로 진하게 강조 처리함`,
+  step_card: `{ type: "step_card", slot, heading, steps: [{title, body, imageIndex}] } — 사용법 3단계 권장. 각 단계에 실제 상품 사진 imageIndex를 배정(가능하면 서로 다른 사진), title은 6자 내외, body는 1문장. STEP 태그는 서버가 자동으로 붙이므로 title에 "STEP 01" 등을 직접 쓰지 말 것`,
   color_variation: `{ type: "color_variation", slot, heading, options: [{label, colorHex, imageIndex}] }`,
   stat_infographic: `{ type: "stat_infographic", slot, heading, metrics: [{label, value, style: "bar"|"number"|"ring", percent?: 0-100, basis?: "measured"|"self_assessed"}] } — style:"bar"/"ring"은 percent 필수(원형 게이지로 강조하고 싶으면 "ring", 막대면 "bar"), style:"number"는 percent 생략. 입력에 실제 수치 근거가 있으면 basis:"measured", 근거 없이 AI가 합리적으로 추정한 값이면 basis:"self_assessed"(값은 보수적으로, 0/100 같은 극단값 금지). 완전히 근거·추정 불가면 섹션 생략`,
   illustration_banner: `{ type: "illustration_banner", slot, heading?, body?, illustrationUrl: "" } — body는 분위기 1~2문장, illustrationUrl은 서버가 채우므로 빈 문자열`,
@@ -393,9 +395,12 @@ function getAidaPhase(def: SlotDefinition): string {
       return "AIDA-A (Attention): 시선을 끄는 훅 — 질문·숫자·강렬한 한 줄 헤드라인";
     case "checklist":
       return "AIDA-I (Interest): 타겟의 문제·니즈·불편을 구체적으로 환기";
+    case "highlight_box":
+      return "AIDA-I (Interest): 핵심 효과/성분 3가지를 한눈에 비교·요약";
     case "cta_price":
       return "AIDA-A (Action): 지금 구매/시도를 유도하는 명확한 행동 문구";
     case "usage_steps":
+    case "step_card":
       return "AIDA-D (Desire): 사용하면 얻는 구체적 이득·기대 결과";
     case "caution":
     case "spec_table":
@@ -652,7 +657,8 @@ ${isCosmetics ? `
 - hero subheadline: 헤드라인을 보충하는 1문장. 상품명만 반복하지 말 것.
 - ingredient_highlight body: 2~3문장.
 - texture_feel body: 2문장.
-- usage_steps: 각 단계 1문장, 앞에 STEP 01/02/03.
+- step_card: 각 단계 title 6자 내외 + body 1문장. STEP 태그는 서버가 자동으로 붙이므로 title에 STEP 01 등을 쓰지 말 것.
+- highlight_box: 카드 3장, title 6자 내외 + body 1~2문장. checklist와 다른 효과/성분 축으로 구성하고, 가장 강조하고 싶은 내용을 2번째 카드에.
 - checklist items: 각 14자 내외.
 - quick_points: layout 반드시 "compact". heading 8자 내외, body 1문장. 사진은 텍스처/디테일 컷.
 - compact layout은 사진이 작아지므로 텍스트도 짧게 (heading·body 모두 위 길이 준수).
@@ -847,6 +853,18 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
     }
     if (section.type === "comparison_chart") {
       return sanitizeComparisonChartSection(section);
+    }
+    if (section.type === "step_card") {
+      return {
+        ...section,
+        steps: section.steps.map((step) => ({
+          ...step,
+          imageIndex: clampIndex(step.imageIndex),
+        })),
+      };
+    }
+    if (section.type === "highlight_box") {
+      return { ...section, cards: section.cards.slice(0, 4) };
     }
     if (section.type === "illustration_banner") {
       return { ...section, illustrationUrl: "" };

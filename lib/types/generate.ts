@@ -196,6 +196,35 @@ export type ComparisonChartSection = {
   basisNote?: string;
 };
 
+/**
+ * 페이지메이커 리서치(19차 Part C) 기반 "3열 하이라이트 박스" — 가운데 카드를
+ * 진하게 강조한 카드 그리드. checklist(아이콘+한 줄)보다 정보량이 많은 핵심
+ * 효과/성분 요약용. 가운데 카드 강조는 AI가 정하지 않고 렌더러가 자동으로
+ * deepAccent 솔리드 배경 + 텍스트 반전으로 처리한다(boldBlock과 동일한 원칙 —
+ * 서버/렌더러가 결정, AI는 관여하지 않음).
+ */
+export type HighlightBoxSection = {
+  type: "highlight_box";
+  slot: string;
+  heading: string;
+  /** 2~4개 허용, 3개 권장. 가운데(중앙) 카드가 렌더러에 의해 자동 강조됨. */
+  cards: { title: string; body: string }[];
+};
+
+/**
+ * 페이지메이커 리서치(19차 Part C) 기반 "사진+태그 스텝 카드" — usage_steps
+ * (아이콘+한 줄, 사진 없음)를 대체하는 포토 기반 포맷. 각 단계에 실제 상품
+ * 사진(imageIndex)을 배정하고 사진 위에 STEP 태그를 오버레이한다. tag 문자열은
+ * AI가 만들지 않고 렌더러가 "STEP 0N"으로 자동 생성한다.
+ */
+export type StepCardSection = {
+  type: "step_card";
+  slot: string;
+  heading: string;
+  /** 3단계 권장. */
+  steps: { title: string; body: string; imageIndex: number }[];
+};
+
 // 컬러/옵션별 스와치 + 착용컷. 패션의 color_variation 슬롯 전용.
 export type ColorVariationSection = {
   type: "color_variation";
@@ -302,6 +331,8 @@ export type DetailSection =
   | CtaPriceSection
   | ComparisonTableSection
   | ComparisonChartSection
+  | HighlightBoxSection
+  | StepCardSection
   | ColorVariationSection
   | StatInfographicSection
   | IllustrationBannerSection

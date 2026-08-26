@@ -123,17 +123,22 @@ export type BackdropProvider =
 
 /**
  * `.env.local` BACKDROP_PROVIDER:
- * - 미설정 / 그 외 → flux (빈 배경 생성 후 앱 합성)
- * - bria → 카테고리별 bria-replace / bria-genfill
- * - nano-banana | flux-kontext-pro → 원본 사진 통째로 배경만 교체 (A/B용 직접 토글)
+ * - 미설정 / 그 외 → flux-kontext-pro (22차부터 기본값, 원본 사진 통째로 배경만 교체)
+ * - flux → 이전 기본값(빈 배경 생성 후 앱 합성)으로 롤백
+ * - bria → 카테고리별 bria-replace / bria-genfill (미지원 카테고리는 flux-kontext-pro)
+ * - nano-banana → A/B용 직접 토글
  */
 export function getBackdropProvider(category?: string): BackdropProvider {
   const raw = process.env.BACKDROP_PROVIDER;
-  if (raw === "nano-banana" || raw === "flux-kontext-pro") return raw;
-  if (raw !== "bria") return "flux";
-  if (category && BRIA_GENFILL_CATEGORIES.has(category)) return "bria-genfill";
-  if (category && BRIA_REPLACE_CATEGORIES.has(category)) return "bria-replace";
-  return "flux";
+  // 22차: 프로덕션 기본값을 flux → flux-kontext-pro로 전환(18차 A/B 검증 후 사용자 선택).
+  // BACKDROP_PROVIDER=flux를 .env.local에 명시하면 언제든 이전 방식으로 즉시 롤백 가능.
+  if (raw === "nano-banana" || raw === "flux-kontext-pro" || raw === "flux") return raw;
+  if (raw === "bria") {
+    if (category && BRIA_GENFILL_CATEGORIES.has(category)) return "bria-genfill";
+    if (category && BRIA_REPLACE_CATEGORIES.has(category)) return "bria-replace";
+    return "flux-kontext-pro";
+  }
+  return "flux-kontext-pro";
 }
 
 /** Bria Background Replace 후보 수. `.env.local` BRIA_BACKDROP_CANDIDATES (기본 2, 1–3). */

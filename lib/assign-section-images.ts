@@ -65,6 +65,18 @@ export function assignDistinctSectionImages(
       };
     }
 
+    if (section.type === "step_card") {
+      let stepCursor = 0;
+      return {
+        ...section,
+        steps: section.steps.map((step) => {
+          const imageIndex = (heroIndex + 1 + stepCursor) % imageCount;
+          stepCursor += 1;
+          return { ...step, imageIndex };
+        }),
+      };
+    }
+
     return section;
   });
 }

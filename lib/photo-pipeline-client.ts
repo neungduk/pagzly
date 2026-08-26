@@ -135,6 +135,13 @@ export async function enhanceImages(params: {
   sectionBackdrops?: { ingredientUrl?: string | null; textureUrl?: string | null };
   /** heroBackdrop(및 폴백되는 section backdrop)에 상품이 이미 합성돼 있는지 (이중노출 방지용) */
   backdropAlreadyComposited?: boolean;
+  /**
+   * 상품 사진에서 추출한 실제 테마 (backdropResult.theme, 21차 신규). 있으면
+   * 카테고리 고정 팔레트 대신 이 값을 장식 그래픽(generateDecorativeGraphic)에
+   * 쓴다 — 22차: 배경은 이미 이 값을 쓰고 있었는데 장식만 카테고리 기본값에
+   * 남아 있던 불일치를 해소.
+   */
+  theme?: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent"> | null;
 }): Promise<{ images: UploadedImage[]; cost: number; decorCost: number; claudeCost: number }> {
   const {
     uploaded,
@@ -145,20 +152,29 @@ export async function enhanceImages(params: {
     productName,
     sectionBackdrops,
     backdropAlreadyComposited,
+    theme: productTheme,
   } = params;
 
   let totalCost = 0;
   let decorCost = 0;
   let claudeCost = 0;
   let decorDataUrl: string | undefined;
+  // 22차: 상품별 추출 테마(productTheme)를 우선 사용, 없으면(추출 실패 등) 기존처럼
+  // 카테고리 고정 팔레트로 폴백 — hero/섹션 배경이 이미 쓰고 있는 값과 동일한 우선순위.
   const categoryTheme = productCategory ? getCategoryTheme(productCategory) : null;
-  const themeColors = categoryTheme
+  const themeColors = productTheme
     ? {
-        accent: categoryTheme.accent,
-        baseNeutral: categoryTheme.baseNeutral,
-        deepAccent: categoryTheme.deepAccent,
+        accent: productTheme.accent,
+        baseNeutral: productTheme.baseNeutral,
+        deepAccent: productTheme.deepAccent,
       }
-    : undefined;
+    : categoryTheme
+      ? {
+          accent: categoryTheme.accent,
+          baseNeutral: categoryTheme.baseNeutral,
+          deepAccent: categoryTheme.deepAccent,
+        }
+      : undefined;
   const isBeauty = productCategory === "화장품/뷰티";
   const backdropByIndex = [
     heroBackdrop,
@@ -417,6 +433,7 @@ export async function runPhotoEnhancementPipeline(params: {
     productName: params.productName,
     sectionBackdrops,
     backdropAlreadyComposited: backdropResult.productAlreadyComposited ?? false,
+    theme: backdropResult.theme,
   });
 
   photoProcessingCost += enhanced.cost;

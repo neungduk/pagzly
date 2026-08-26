@@ -22,6 +22,7 @@ import {
   HERO_TRANSITION_OVERLAP_CLASS,
   INFO_BADGE,
   INFO_TABLE,
+  SECTION_BG_PATTERN_C_ALPHA,
   getCtaBandBackground,
   getCategoryRhythm,
   getDecorationColor,
@@ -919,6 +920,90 @@ function renderSection(
         </section>
       );
 
+    case "highlight_box": {
+      const cards = section.cards.slice(0, 4);
+      if (cards.length === 0) return null;
+      const centerIdx = Math.floor((cards.length - 1) / 2);
+      const gridCols =
+        cards.length <= 2
+          ? "max-w-xl grid-cols-1 sm:grid-cols-2"
+          : cards.length === 3
+            ? "max-w-4xl grid-cols-1 sm:grid-cols-3"
+            : "max-w-5xl grid-cols-2 sm:grid-cols-4";
+      return (
+        <section
+          key={`highlight_box-${index}`}
+          className={getCategoryRhythm(category).generousPadClass}
+          style={textSectionStyle(theme, pattern)}
+        >
+          <SectionAccentHairline theme={theme} />
+          <EditableText
+            as="h3"
+            enabled={edit?.enabled}
+            value={section.heading}
+            onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+          />
+          <div className={`mx-auto mt-12 grid gap-4 ${gridCols}`}>
+            {cards.map((card, cardIndex) => {
+              const emphasized = cardIndex === centerIdx;
+              return (
+                <div
+                  key={cardIndex}
+                  className={`flex flex-col gap-2 rounded-2xl px-6 py-8 text-center ${
+                    emphasized ? "sm:-translate-y-2 sm:shadow-lg" : ""
+                  }`}
+                  style={{
+                    backgroundColor: emphasized
+                      ? hexToRgba(theme.deepAccent, SECTION_BG_PATTERN_C_ALPHA)
+                      : hexToRgba(theme.accent, 0.08),
+                    border: emphasized ? "none" : `1px solid ${hexToRgba(theme.accent, 0.18)}`,
+                  }}
+                >
+                  <span
+                    className="mx-auto font-mono text-[10px] font-semibold uppercase tracking-[0.28em]"
+                    style={{ color: emphasized ? hexToRgba(BRAND.paper, 0.7) : theme.deepAccent }}
+                    aria-hidden="true"
+                  >
+                    {String(cardIndex + 1).padStart(2, "0")}
+                  </span>
+                  <EditableText
+                    as="p"
+                    enabled={edit?.enabled}
+                    value={card.title}
+                    onChange={(title) => {
+                      const nextCards = [...section.cards];
+                      nextCards[cardIndex] = { ...nextCards[cardIndex], title };
+                      edit?.onChange(index, { ...section, cards: nextCards });
+                    }}
+                    className="font-heading text-lg font-bold tracking-[-0.02em]"
+                    style={emphasized ? { color: BRAND.paper } : undefined}
+                  />
+                  <EditableText
+                    as="p"
+                    multiline
+                    enabled={edit?.enabled}
+                    value={card.body}
+                    onChange={(body) => {
+                      const nextCards = [...section.cards];
+                      nextCards[cardIndex] = { ...nextCards[cardIndex], body };
+                      edit?.onChange(index, { ...section, cards: nextCards });
+                    }}
+                    className="text-sm leading-relaxed"
+                    style={
+                      emphasized
+                        ? { color: hexToRgba(BRAND.paper, 0.9) }
+                        : { color: hexToRgba(BRAND.ink, 0.68) }
+                    }
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      );
+    }
+
     case "color_variation": {
       const ratioClass = resolveImageRatioClass(section);
       return (
@@ -1261,6 +1346,77 @@ function renderSection(
           </ol>
         </section>
       );
+
+    case "step_card": {
+      const steps = section.steps;
+      if (steps.length === 0) return null;
+      const ratioClass = resolveImageRatioClass(section);
+      return (
+        <section
+          key={`step_card-${index}`}
+          className={getCategoryRhythm(category).generousPadClass}
+          style={textSectionStyle(theme, pattern)}
+        >
+          <SectionAccentHairline theme={theme} />
+          <EditableText
+            as="h3"
+            enabled={edit?.enabled}
+            value={section.heading}
+            onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+          />
+          <div className="mx-auto mt-12 grid max-w-4xl grid-cols-1 gap-8 sm:grid-cols-3">
+            {steps.map((step, stepIndex) => {
+              const src = resolveImage(imageUrls, step.imageIndex);
+              return (
+                <div key={stepIndex} className="flex flex-col">
+                  <div className={`relative overflow-hidden rounded-xl ${ratioClass}`}>
+                    <SectionImage
+                      src={src}
+                      alt={step.title}
+                      className="h-full w-full object-cover"
+                    />
+                    <span
+                      className="absolute left-3 top-3 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-paper"
+                      style={{ backgroundColor: theme.accent }}
+                    >
+                      STEP {String(stepIndex + 1).padStart(2, "0")}
+                    </span>
+                    <ImageReplaceHit
+                      enabled={edit?.enabled}
+                      onReplace={() => edit?.onReplaceImage?.(step.imageIndex)}
+                    />
+                  </div>
+                  <EditableText
+                    as="p"
+                    enabled={edit?.enabled}
+                    value={step.title}
+                    onChange={(title) => {
+                      const nextSteps = [...section.steps];
+                      nextSteps[stepIndex] = { ...nextSteps[stepIndex], title };
+                      edit?.onChange(index, { ...section, steps: nextSteps });
+                    }}
+                    className="mt-3 font-heading text-base font-bold tracking-[-0.02em] text-ink"
+                  />
+                  <EditableText
+                    as="p"
+                    multiline
+                    enabled={edit?.enabled}
+                    value={step.body}
+                    onChange={(body) => {
+                      const nextSteps = [...section.steps];
+                      nextSteps[stepIndex] = { ...nextSteps[stepIndex], body };
+                      edit?.onChange(index, { ...section, steps: nextSteps });
+                    }}
+                    className="mt-1 text-[11px] leading-relaxed text-ink/80 sm:text-sm"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      );
+    }
 
     case "gallery": {
       const ratioClass = resolveImageRatioClass(section);
