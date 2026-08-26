@@ -9,10 +9,34 @@ import { freezeScrollRevealAnimations } from "@/components/DetailScrollReveal";
 import DetailActionBar, { type DetailToolTab } from "@/components/DetailActionBar";
 import ToastBanner from "@/components/ToastBanner";
 import { DRAFT_SESSION_KEY, SESSION_KEY } from "@/components/CreateProductForm";
-import type { DetailSection, GenerateResponse } from "@/lib/types/generate";
+import type { CustomGifSection, DetailSection, GenerateResponse } from "@/lib/types/generate";
 import { getCategoryTheme } from "@/lib/category-theme";
+import { buildDetailPageHtml } from "@/lib/export-detail-html";
 import { validateImageFile } from "@/lib/image-upload";
 import { createClient } from "@/lib/supabase";
+
+const MAX_GIF_BYTES = 8 * 1024 * 1024;
+
+function insertOrReplaceCustomGif(sections: DetailSection[], gifUrl: string): DetailSection[] {
+  const without = sections.filter((s) => s.slot !== "custom_gif" && s.type !== "custom_gif");
+  const heroIdx = without.findIndex((s) => s.type === "hero");
+  const insertAt = heroIdx >= 0 ? heroIdx + 1 : 0;
+  const gifSection: CustomGifSection = {
+    type: "custom_gif",
+    slot: "custom_gif",
+    gifUrl,
+  };
+  return [...without.slice(0, insertAt), gifSection, ...without.slice(insertAt)];
+}
+
+function remapHiddenAfterReorder(hidden: number[], from: number, to: number): number[] {
+  return hidden.map((i) => {
+    if (i === from) return to;
+    if (from < to && i > from && i <= to) return i - 1;
+    if (from > to && i >= to && i < from) return i + 1;
+    return i;
+  });
+}
 
 type ProductResult = {
   category: string;
@@ -92,8 +116,10 @@ function CreateResultContent() {
   const searchParams = useSearchParams();
   const captureRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const gifInputRef = useRef<HTMLInputElement>(null);
   const [data, setData] = useState<ProductResult | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [downloadingHtml, setDownloadingHtml] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toolTab, setToolTab] = useState<DetailToolTab>("edit");
@@ -106,6 +132,10 @@ function CreateResultContent() {
   const [downloadPlatform, setDownloadPlatform] = useState<"smartstore" | "coupang">(
     "smartstore",
   );
+  const [hiddenIndexes, setHiddenIndexes] = useState<number[]>([]);
+  const [patchIndex, setPatchIndex] = useState(0);
+  const [patchInstruction, setPatchInstruction] = useState("");
+  const [patchLoading, setPatchLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -208,6 +238,103 @@ function CreateResultContent() {
     if (!data?.generated) return;
     const sections = data.generated.sections.map((item, i) => (i === index ? section : item));
     persist({ ...data, generated: { ...data.generated, sections } });
+  }
+
+  function handleReorder(from: number, to: number) {
+    if (!data?.generated || from === to) return;
+    const sections = [...data.generated.sections];
+    const [moved] = sections.splice(from, 1);
+    if (!moved) return;
+    sections.splice(to, 0, moved);
+    setHiddenIndexes((prev) => remapHiddenAfterReorder(prev, from, to));
+    setPatchIndex((prev) => {
+      if (prev === from) return to;
+      if (from < to && prev > from && prev <= to) return prev - 1;
+      if (from > to && prev >= to && prev < from) return prev + 1;
+      return prev;
+    });
+    persist({ ...data, generated: { ...data.generated, sections } });
+  }
+
+  function handleToggleHidden(index: number) {
+    setHiddenIndexes((prev) =>
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index],
+    );
+  }
+
+  async function handlePatchSection() {
+    if (!data?.generated) return;
+    const instruction = patchInstruction.trim();
+    if (!instruction) return;
+    const section = data.generated.sections[patchIndex];
+    if (!section) return;
+    setPatchLoading(true);
+    try {
+      const response = await fetch("/api/patch-section", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          section,
+          instruction,
+          category: data.category,
+          productName: data.productName,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error ?? "섹션 수정에 실패했습니다.");
+      }
+      const patched = result.section as DetailSection;
+      const sections = data.generated.sections.map((item, i) =>
+        i === patchIndex ? patched : item,
+      );
+      persist({ ...data, generated: { ...data.generated, sections } });
+      setPatchInstruction("");
+      setToast({ tone: "ok", message: "섹션이 AI로 수정됐습니다. 저장을 눌러 유지하세요." });
+    } catch (err) {
+      setToast({
+        tone: "error",
+        message: err instanceof Error ? err.message : "섹션 수정에 실패했습니다.",
+      });
+    } finally {
+      setPatchLoading(false);
+    }
+  }
+
+  async function handleGifSelected(file: File | undefined) {
+    if (!file || !data?.generated) return;
+    if (file.type !== "image/gif") {
+      setToast({ tone: "error", message: "GIF 파일(.gif)만 업로드할 수 있습니다." });
+      return;
+    }
+    if (file.size > MAX_GIF_BYTES) {
+      setToast({ tone: "error", message: "GIF는 8MB 이하여야 합니다." });
+      return;
+    }
+
+    let gifUrl = URL.createObjectURL(file);
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        const path = `${user.id}/${Date.now()}-${crypto.randomUUID()}.gif`;
+        const { error: uploadError } = await supabase.storage
+          .from("images")
+          .upload(path, file, { contentType: "image/gif", upsert: false });
+        if (!uploadError) {
+          const { data: publicData } = supabase.storage.from("images").getPublicUrl(path);
+          gifUrl = publicData.publicUrl;
+        }
+      }
+    } catch (err) {
+      console.warn("[gif-upload] storage skip", err);
+    }
+
+    const sections = insertOrReplaceCustomGif(data.generated.sections, gifUrl);
+    persist({ ...data, generated: { ...data.generated, sections } });
+    setToast({ tone: "ok", message: "GIF 섹션을 hero 바로 아래에 넣었습니다. 저장을 눌러 유지하세요." });
   }
 
   function handleTabChange(next: DetailToolTab) {
@@ -376,6 +503,38 @@ function CreateResultContent() {
     }
   }
 
+  function handleDownloadHtml() {
+    if (!data?.generated) return;
+    setDownloadingHtml(true);
+    try {
+      const categoryTheme = getCategoryTheme(data.category);
+      const exportTheme = data.generated.theme
+        ? { ...categoryTheme, ...data.generated.theme }
+        : categoryTheme;
+      const html = buildDetailPageHtml({
+        productName: data.productName,
+        category: data.category,
+        sections: data.generated.sections,
+        imageUrls: data.imageUrls,
+        theme: exportTheme,
+        hiddenIndexes,
+      });
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.download = `${data.productName}-상세페이지.html`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+      setToast({ tone: "ok", message: "HTML을 내려받았습니다 (웹·자사몰용, PNG와 별개)." });
+    } catch (err) {
+      console.error("[download-html]", err);
+      setToast({ tone: "error", message: "HTML 내보내기에 실패했습니다." });
+    } finally {
+      setDownloadingHtml(false);
+    }
+  }
+
   if (!data) {
     return (
       <div className="flex min-h-full items-center justify-center bg-paper text-ink/60">
@@ -390,6 +549,11 @@ function CreateResultContent() {
   const theme = generated?.theme
     ? { ...categoryTheme, ...generated.theme }
     : categoryTheme;
+  const hiddenSet = new Set(hiddenIndexes);
+  const visibleOriginalIndexes =
+    generated?.sections.map((_, i) => i).filter((i) => !hiddenSet.has(i)) ?? [];
+  const visibleSections =
+    generated?.sections.filter((_, i) => !hiddenSet.has(i)) ?? [];
 
   return (
     <div className="min-h-full bg-paper text-ink">
@@ -465,6 +629,17 @@ function CreateResultContent() {
               onAiTextChange={setAiText}
               onAiSubmit={() => void handleAiGenerate()}
               aiLoading={aiLoading}
+              sections={generated?.sections ?? []}
+              hiddenIndexes={hiddenIndexes}
+              onReorder={handleReorder}
+              onToggleHidden={handleToggleHidden}
+              patchIndex={patchIndex}
+              onPatchIndexChange={setPatchIndex}
+              patchInstruction={patchInstruction}
+              onPatchInstructionChange={setPatchInstruction}
+              onPatchSubmit={() => void handlePatchSection()}
+              patchLoading={patchLoading}
+              onGifUploadClick={() => gifInputRef.current?.click()}
             />
             <input
               ref={fileInputRef}
@@ -474,6 +649,17 @@ function CreateResultContent() {
               data-testid="file-input"
               onChange={(e) => {
                 void handleFileSelected(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+            <input
+              ref={gifInputRef}
+              type="file"
+              accept="image/gif"
+              className="hidden"
+              data-testid="gif-file-input"
+              onChange={(e) => {
+                void handleGifSelected(e.target.files?.[0]);
                 e.target.value = "";
               }}
             />
@@ -522,25 +708,38 @@ function CreateResultContent() {
               >
                 {downloading ? "다운로드 준비 중..." : "이미지로 다운로드"}
               </button>
+              <button
+                type="button"
+                onClick={handleDownloadHtml}
+                disabled={downloadingHtml}
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-line px-5 text-sm font-semibold text-ink transition-colors hover:bg-line/30 disabled:cursor-not-allowed disabled:opacity-60"
+                data-testid="download-html"
+              >
+                {downloadingHtml ? "HTML 준비 중..." : "HTML 내보내기"}
+              </button>
             </div>
           )}
         </div>
 
-        {generated?.sections && generated.sections.length > 0 ? (
+        {visibleSections.length > 0 ? (
           <div
             ref={captureRef}
             data-testid="detail-preview"
             className="overflow-hidden rounded-2xl border border-line bg-paper"
           >
             <DetailSectionRenderer
-              sections={generated.sections}
+              sections={visibleSections}
               imageUrls={data.imageUrls}
               category={data.category}
               theme={theme}
-              conceptIcons={generated.conceptIcons}
+              conceptIcons={generated?.conceptIcons}
               edit={{
                 enabled: editMode,
-                onChange: handleSectionChange,
+                onChange: (displayIndex, section) => {
+                  const originalIndex = visibleOriginalIndexes[displayIndex];
+                  if (originalIndex === undefined) return;
+                  handleSectionChange(originalIndex, section);
+                },
                 onReplaceImage: (imageIndex) => {
                   setReplaceImageIndex(imageIndex);
                   setToolTab("upload");

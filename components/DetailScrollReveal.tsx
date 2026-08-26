@@ -76,11 +76,29 @@ export default function DetailScrollReveal({
   );
 }
 
-/** html-to-image 캡처 전 호출 — 모든 스크롤 애니메이션을 완료 상태로 고정 */
+/** html-to-image 캡처 전 호출 — 스크롤·차트 fill·펄스 모션을 완료 상태로 고정 */
 export function freezeScrollRevealAnimations(root: HTMLElement | null): void {
   if (!root) return;
   root.querySelectorAll("[data-scroll-reveal]").forEach((node) => {
     gsap.set(node, { opacity: 1, y: 0, clearProps: "transform" });
+  });
+  root.querySelectorAll<HTMLElement>("[data-fill-bar]").forEach((node) => {
+    const pct = node.dataset.fillPercent ?? "100";
+    node.style.transition = "none";
+    node.style.width = `${pct}%`;
+  });
+  root.querySelectorAll<SVGCircleElement>("[data-radial-gauge] circle:last-child").forEach((node) => {
+    const svg = node.ownerSVGElement;
+    const pct = Number(svg?.dataset.fillPercent ?? "100");
+    const strokeWidth = Number(node.getAttribute("stroke-width") ?? 9);
+    const size = Number(svg?.getAttribute("width") ?? 96);
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    node.style.transition = "none";
+    node.style.strokeDashoffset = String(circumference * (1 - Math.min(100, Math.max(0, pct)) / 100));
+  });
+  root.querySelectorAll<HTMLElement>(".pagzly-pulse-card").forEach((node) => {
+    node.style.animation = "none";
   });
   ScrollTrigger.refresh();
 }

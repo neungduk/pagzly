@@ -1,6 +1,9 @@
 "use client";
 
-export type DetailToolTab = "edit" | "upload" | "ai";
+import SectionStructureEditor from "@/components/SectionStructureEditor";
+import type { DetailSection } from "@/lib/types/generate";
+
+export type DetailToolTab = "edit" | "upload" | "ai" | "structure";
 
 type DetailActionBarProps = {
   tab: DetailToolTab;
@@ -17,12 +20,24 @@ type DetailActionBarProps = {
   onAiTextChange: (value: string) => void;
   onAiSubmit: () => void;
   aiLoading?: boolean;
+  sections?: DetailSection[];
+  hiddenIndexes?: number[];
+  onReorder?: (from: number, to: number) => void;
+  onToggleHidden?: (index: number) => void;
+  patchIndex?: number;
+  onPatchIndexChange?: (index: number) => void;
+  patchInstruction?: string;
+  onPatchInstructionChange?: (value: string) => void;
+  onPatchSubmit?: () => void;
+  patchLoading?: boolean;
+  onGifUploadClick?: () => void;
 };
 
 const TABS: { id: DetailToolTab; label: string }[] = [
   { id: "edit", label: "직접 편집" },
   { id: "upload", label: "원클릭 업로드" },
   { id: "ai", label: "AI 자동 생성" },
+  { id: "structure", label: "구성·패치" },
 ];
 
 export default function DetailActionBar({
@@ -40,6 +55,17 @@ export default function DetailActionBar({
   onAiTextChange,
   onAiSubmit,
   aiLoading,
+  sections = [],
+  hiddenIndexes = [],
+  onReorder,
+  onToggleHidden,
+  patchIndex = 0,
+  onPatchIndexChange,
+  patchInstruction = "",
+  onPatchInstructionChange,
+  onPatchSubmit,
+  patchLoading,
+  onGifUploadClick,
 }: DetailActionBarProps) {
   const btn =
     "inline-flex h-10 items-center justify-center rounded-lg px-3 text-sm font-semibold transition-transform transition-colors duration-200 active:scale-[0.98]";
@@ -49,7 +75,7 @@ export default function DetailActionBar({
       <div
         role="tablist"
         aria-label="상세페이지 수정"
-        className="grid grid-cols-3 border-b border-line bg-line/20"
+        className="grid grid-cols-2 border-b border-line bg-line/20 sm:grid-cols-4"
       >
         {TABS.map((item) => {
           const active = tab === item.id;
@@ -157,6 +183,33 @@ export default function DetailActionBar({
           >
             {aiLoading ? "생성 중..." : "생성 요청"}
           </button>
+        </div>
+      )}
+
+      {tab === "structure" && onReorder && onToggleHidden && onPatchIndexChange && onPatchInstructionChange && onPatchSubmit && (
+        <div className="space-y-3 p-4">
+          <SectionStructureEditor
+            sections={sections}
+            hiddenIndexes={hiddenIndexes}
+            onReorder={onReorder}
+            onToggleHidden={onToggleHidden}
+            patchIndex={patchIndex}
+            onPatchIndexChange={onPatchIndexChange}
+            patchInstruction={patchInstruction}
+            onPatchInstructionChange={onPatchInstructionChange}
+            onPatchSubmit={onPatchSubmit}
+            patchLoading={patchLoading}
+          />
+          {onGifUploadClick && (
+            <button
+              type="button"
+              onClick={onGifUploadClick}
+              className={`${btn} w-full border border-line text-ink hover:bg-line/30`}
+              data-testid="gif-upload"
+            >
+              GIF 추가 / 교체
+            </button>
+          )}
         </div>
       )}
     </div>

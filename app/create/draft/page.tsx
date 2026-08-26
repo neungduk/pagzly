@@ -19,6 +19,7 @@ import {
   runPhotoEnhancementPipeline,
   type UploadedImage,
 } from "@/lib/photo-pipeline-client";
+import { getSectionAidaPhase } from "@/lib/section-aida";
 import type { DetailSection, GenerateResponse } from "@/lib/types/generate";
 
 
@@ -392,12 +393,15 @@ export default function CreateDraftPage() {
                 className="relative rounded-2xl border border-line bg-paper p-5 shadow-sm sm:p-6"
               >
                 <CropMarks color="text-line/80" />
-                <div className="flex items-baseline gap-3">
+                <div className="flex flex-wrap items-baseline gap-3">
                   <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-registration-red">
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/40">
                     {label}
+                  </span>
+                  <span className="rounded-md bg-line/40 px-2 py-0.5 font-mono text-[10px] text-ink/55">
+                    {getSectionAidaPhase(section.type)}
                   </span>
                 </div>
                 <h2 className="mt-3 font-heading text-lg font-bold tracking-[-0.02em] text-ink">

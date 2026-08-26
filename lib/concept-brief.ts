@@ -57,9 +57,11 @@ const FALLBACK_BY_CATEGORY: Record<string, ConceptBrief> = {
     theme: "수분/물방울",
     motif_keywords: ["물방울", "청량감", "촉촉함", "은은한 빛"],
     mood: "시원하고 맑은",
-    backdrop_hint: "soft side lighting, diffused window light, shallow depth of field, condensation droplets on glass, dewy marble sheen, empty hydration studio, no product",
+    backdrop_hint:
+      "soft side lighting, diffused window light, shallow depth of field, fine water droplets scattered directly on a soft surface, dewy marble sheen, empty hydration studio, no glass container, no drinking glass, no vessel, no cup, no product",
     copy_tone: "촉촉하고 산뜻한 수분 케어 톤. 과장 없이 피부 결에 대한 공감.",
-    decor_prompt: "soft side lighting, condensation droplets on glass, dewy surface sheen, no text, no product",
+    decor_prompt:
+      "soft side lighting, fine water droplets scattered directly on a surface, dewy surface sheen, no glass container, no drinking glass, no vessel, no cup, no text, no product",
     icon_style: "minimal water droplet and sparkle badge icon, soft circular frame",
   },
 };
@@ -126,7 +128,7 @@ ${input.referenceAnalysis ? `
   "theme": "한국어 테마명 (예: 수분/물방울, 따뜻한 원재료, 테크 미니멀)",
   "motif_keywords": ["한국어 또는 영문 모티프 3~5개"],
   "mood": "한국어 무드 한 줄 (예: 시원하고 맑은)",
-  "backdrop_hint": "영문 — 촬영 용어로 조명/구도/질감을 구체적으로 (soft side lighting, shallow depth of field, condensation on glass 등). 추상어 moist/luxurious만 쓰지 말 것. product 없음",
+  "backdrop_hint": "영문 — 촬영 용어로 조명/구도/질감을 구체적으로 (soft side lighting, shallow depth of field, water droplets on a surface 등). 추상어 moist/luxurious만 쓰지 말 것. 유리컵·유리병 등 액체가 담긴 용기(glass, cup, vessel, drinking glass, jar)는 절대 묘사하지 말 것. product 없음",
   "copy_tone": "한국어 — 카피라이터 톤 가이드",
   "decor_prompt": "영문 — 물방울/미스트 등도 촬영 용어로 (no text, no product)",
   "icon_style": "영문 — 원형 배지 아이콘 스타일 (flat, minimal, single motif)"
@@ -134,11 +136,13 @@ ${input.referenceAnalysis ? `
 
 카테고리에 맞는 전문 상세페이지 수준의 통일된 컨셉을 제안하세요.
 화장품/뷰티면 theme은 아래 중 하나에 가깝게 고르세요 (여러 개를 섞지 말 것).
-- 수분/보습 — 물방울, 촉촉, 맑은. 조명: soft side lighting, diffused light. 질감: 유리 결로, 표면 반사광
+- 수분/보습 — 물방울, 촉촉, 맑은. 조명: soft side lighting, diffused light. 질감: 표면 위 물방울 결로, 표면 반사광 (유리컵·유리병 등 용기는 절대 등장시키지 말 것)
 - 진정/쿨링 — 민트, 시원, 미스트 (따뜻·골드·온기 표현 금지). 조명: cool diffused high-key
 - 영양/농축 — 오일, 골드, 크리미. 조명: soft side lighting + warm bounce
 - 클렌징 — 거품, 버블, 세안. 조명: bright diffused high-key
-backdrop_hint와 decor_prompt는 영문만, 상품·텍스트·로고 없이.`;
+backdrop_hint와 decor_prompt는 영문만, 상품·텍스트·로고 없이.
+어떤 테마든 backdrop_hint/decor_prompt에 유리컵·유리병·잔·비커 등 액체를 담는
+용기(glass, cup, jar, vessel, beaker, drinking glass)를 등장시키지 마세요.`;
 
   try {
     const response = await fetch(DEEPSEEK_URL, {

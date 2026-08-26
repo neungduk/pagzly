@@ -56,6 +56,9 @@ body {
   .pagzly-pipeline-float {
     animation: pagzly-float 8s ease-in-out infinite;
   }
+  .pagzly-pulse-card {
+    animation: pagzly-pulse-card 2.4s ease-in-out infinite;
+  }
   @keyframes pagzly-kenburns {
     from {
       transform: scale(1);
@@ -74,11 +77,24 @@ body {
       transform: rotate(1deg) translateY(-8px);
     }
   }
+
+  @keyframes pagzly-pulse-card {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-4px);
+    }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .pagzly-reveal {
     opacity: 1;
     transform: none;
+  }
+  .pagzly-pulse-card {
+    animation: none;
   }
 }

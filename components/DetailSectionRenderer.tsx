@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import {
   Check,
   CheckCircle2,
@@ -254,6 +254,32 @@ function MetricBar({
   theme: CategoryTheme;
   large?: boolean;
 }) {
+  const fillRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = fillRef.current;
+    if (!el) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      el.style.width = `${percent}%`;
+      return;
+    }
+    el.style.width = "0%";
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        requestAnimationFrame(() => {
+          el.style.transition = "width 0.9s cubic-bezier(0.22, 1, 0.36, 1)";
+          el.style.width = `${percent}%`;
+        });
+        io.disconnect();
+      },
+      { threshold: 0.35 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [percent]);
+
   return (
     <div
       className={`${large ? "mt-3 h-3" : "mt-1.5 h-1.5"} w-full overflow-hidden rounded-full`}
@@ -262,6 +288,9 @@ function MetricBar({
     >
       <div
         className="h-full rounded-full"
+        ref={fillRef}
+        data-fill-bar
+        data-fill-percent={percent}
         style={{
           width: `${percent}%`,
           backgroundColor: theme.accent,
@@ -287,6 +316,32 @@ function RadialGauge({
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - clamped / 100);
+  const circleRef = useRef<SVGCircleElement>(null);
+
+  useEffect(() => {
+    const el = circleRef.current;
+    if (!el) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      el.style.strokeDashoffset = String(offset);
+      return;
+    }
+    el.style.strokeDashoffset = String(circumference);
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        requestAnimationFrame(() => {
+          el.style.transition = "stroke-dashoffset 1s cubic-bezier(0.22, 1, 0.36, 1)";
+          el.style.strokeDashoffset = String(offset);
+        });
+        io.disconnect();
+      },
+      { threshold: 0.35 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [circumference, offset]);
+
   return (
     <svg
       width={size}
@@ -294,6 +349,8 @@ function RadialGauge({
       viewBox={`0 0 ${size} ${size}`}
       className="-rotate-90"
       aria-hidden="true"
+      data-radial-gauge
+      data-fill-percent={clamped}
     >
       <circle
         cx={size / 2}
@@ -304,6 +361,7 @@ function RadialGauge({
         strokeWidth={strokeWidth}
       />
       <circle
+        ref={circleRef}
         cx={size / 2}
         cy={size / 2}
         r={radius}
@@ -354,10 +412,7 @@ function ComparisonMetricRow({
             className="h-2.5 flex-1 overflow-hidden rounded-full"
             style={{ backgroundColor: hexToRgba(theme.accent, 0.12) }}
           >
-            <div
-              className="h-full rounded-full"
-              style={{ width: `${ourPercent}%`, backgroundColor: theme.accent }}
-            />
+            <MetricBarFill percent={ourPercent} color={theme.accent} />
           </div>
           <span className="w-14 shrink-0 text-right text-xs font-semibold text-ink">
             {ourValue}
@@ -367,7 +422,7 @@ function ComparisonMetricRow({
         <div className="flex items-center gap-3">
           <span className="w-20 shrink-0 truncate text-xs text-ink/45">{baselineLabel}</span>
           <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-ink/8">
-            <div className="h-full rounded-full bg-ink/25" style={{ width: `${basePercent}%` }} />
+            <MetricBarFill percent={basePercent} color="rgba(27,27,24,0.25)" />
           </div>
           <span className="w-14 shrink-0 text-right text-xs text-ink/45">
             {baselineValue}
@@ -376,6 +431,43 @@ function ComparisonMetricRow({
         </div>
       </div>
     </div>
+  );
+}
+
+/** 공통 fill 애니메이션 — MetricBar / comparison 공용. PNG 캡처 전 freeze가 최종 width로 고정. */
+function MetricBarFill({ percent, color }: { percent: number; color: string }) {
+  const fillRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = fillRef.current;
+    if (!el) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      el.style.width = `${percent}%`;
+      return;
+    }
+    el.style.width = "0%";
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        requestAnimationFrame(() => {
+          el.style.transition = "width 0.9s cubic-bezier(0.22, 1, 0.36, 1)";
+          el.style.width = `${percent}%`;
+        });
+        io.disconnect();
+      },
+      { threshold: 0.35 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [percent]);
+  return (
+    <div
+      ref={fillRef}
+      data-fill-bar
+      data-fill-percent={percent}
+      className="h-full rounded-full"
+      style={{ width: `${percent}%`, backgroundColor: color }}
+    />
   );
 }
 
@@ -950,8 +1042,9 @@ function renderSection(
               return (
                 <div
                   key={cardIndex}
+                  data-preview-pulse={emphasized ? "true" : undefined}
                   className={`flex flex-col gap-2 rounded-2xl px-6 py-8 text-center ${
-                    emphasized ? "sm:-translate-y-2 sm:shadow-lg" : ""
+                    emphasized ? "pagzly-pulse-card sm:-translate-y-2 sm:shadow-lg" : ""
                   }`}
                   style={{
                     backgroundColor: emphasized

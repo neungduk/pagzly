@@ -150,14 +150,16 @@ export function getBriaBackdropCandidateCount(): number {
   return 2;
 }
 
-/** Bria는 상품을 유지한 채 배경만 바꾸므로 empty/no-product 문구를 뺀다. */
+/**
+ * Bria/nano-banana/flux-kontext-pro는 상품을 유지한 채 배경만 바꾸므로
+ * empty/no-product 문구를 뺀다. "no text"/"no logo"는 가짜 UI·텍스트 환각을
+ * 막는 유일한 방어선이라 절대 제거하지 않는다 (23차).
+ */
 function sanitizePromptForBria(prompt: string): string {
   return prompt
     .replace(/\bno product\b/gi, "")
     .replace(/\bno packaging\b/gi, "")
     .replace(/\bno bottle\b/gi, "")
-    .replace(/\bno text\b/gi, "")
-    .replace(/\bno logo\b/gi, "")
     .replace(/\bempty product photography backdrop\b/gi, "")
     .replace(/\bempty dimensional set\b/gi, "")
     .replace(/\bempty backdrop\b/gi, "")
@@ -530,7 +532,7 @@ function buildBriaBackdropPrompt(
       : "no warm accent gel, no amber bounce, keep white balance locked to the product";
   const fluxStylePrompt = `${basePrompt}${conceptBlock}, ${photography.prompt}, ${lock}, ${accentClause}, soft ${describeColorTone(theme.baseNeutral)} set color without shifting key light`;
   return sanitizePromptForBria(
-    `${fluxStylePrompt}, keep the original product unchanged, replace only the surrounding background, realistic studio set`,
+    `${fluxStylePrompt}, keep the original product unchanged, replace only the surrounding background, realistic studio set, no fake website UI, no navigation bar, no browser chrome, no on-screen text of any kind, no watermark, no logo`,
   );
 }
 

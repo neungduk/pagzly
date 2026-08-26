@@ -47,9 +47,9 @@ export const PHOTOGRAPHY_TEMPLATES: Record<CosmeticsPhotographyTemplateId, Photo
     composition:
       "shallow depth of field, empty center for product placement, close-up of surface plane",
     texture:
-      "condensation droplets on glass over a soft {{TONE}} surface, dewy glowing micro-reflections, wet sheen without pooling",
+      "fine condensation-like water droplets scattered directly on a soft {{TONE}} surface, dewy glowing micro-reflections, wet sheen without pooling, no glass container",
     prompt:
-      "soft side lighting matching the lighting lock white balance, no golden hour, no amber gel, shallow depth of field, close-up soft {{TONE}} studio surface, condensation droplets on glass, dewy glowing surface sheen, vivid radiant K-beauty product photography backdrop, no flat gray, realistic product photography backdrop, no product, no text, no logo",
+      "soft side lighting matching the lighting lock white balance, no golden hour, no amber gel, shallow depth of field, close-up soft {{TONE}} studio surface, fine water droplets scattered on the surface itself, dewy glowing surface sheen, vivid radiant K-beauty product photography backdrop, no flat gray, realistic product photography backdrop, no glass container, no drinking glass, no vessel, no cup, no product, no text, no logo",
   },
   cooling: {
     id: "cooling",
