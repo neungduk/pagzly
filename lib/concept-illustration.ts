@@ -1,6 +1,9 @@
 /**
  * 컨셉 브리프 기반 장식 일러스트 배너 — illustration_banner 섹션용.
  * 모델은 ICON_MODEL env (concept-icons와 동일, 기본 flux-schnell).
+ *
+ * 주의: heading/body(한글 카피)를 이미지 프롬프트에 넣으면 Flux가 깨진
+ * 한글·가짜 웹 UI(네비/검색창)를 픽셀로 그려 넣는다. 카피는 렌더러 오버레이만 사용.
  */
 
 import Replicate from "replicate";
@@ -35,12 +38,46 @@ function extractImageUrl(output: unknown): string | null {
   return typeof url === "string" && url.length > 0 ? url : null;
 }
 
+/** 프롬프트에 한글/라틴 문장이 섞이면 모델이 글자를 그리려 하므로 ASCII 키워드만 남긴다. */
+function asciiMotifOnly(raw: string): string {
+  return raw
+    .replace(/[^\x20-\x7E]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+}
+
+const NO_TEXT_LOCK = [
+  "absolutely no text",
+  "no letters",
+  "no numbers",
+  "no words",
+  "no glyphs",
+  "no korean characters",
+  "no hangul",
+  "no asian characters",
+  "no latin alphabet",
+  "no typography",
+  "no watermark",
+  "no logo",
+  "no brand name",
+  "no website UI",
+  "no navigation bar",
+  "no menu",
+  "no search bar",
+  "no button",
+  "no browser chrome",
+  "no fake interface",
+  "no app screenshot",
+  "empty visual field for overlay copy",
+].join(", ");
+
 /** 컨셉에 맞는 텍스트 없는 장식 일러스트 배너 (16:9) */
 export async function generateIllustrationBanner(
   brief: ConceptBrief,
   theme: Pick<CategoryTheme, "accent" | "deepAccent">,
-  heading?: string,
-  body?: string,
+  _heading?: string,
+  _body?: string,
 ): Promise<{ dataUrl: string; cost: number }> {
   if (!process.env.REPLICATE_API_TOKEN) {
     console.warn("[concept-illustration] REPLICATE_API_TOKEN 없음 — 일러스트 생성 생략");
@@ -58,20 +95,26 @@ export async function generateIllustrationBanner(
   }
 
   const replicate = getReplicateClient();
-  const motif = brief.motif_keywords.slice(0, 3).join(", ");
+  const motif = asciiMotifOnly(brief.motif_keywords.slice(0, 3).join(", "));
+  const themeAscii = asciiMotifOnly(brief.theme);
+  const styleAscii = asciiMotifOnly(brief.icon_style);
+  // heading/body는 의도적으로 프롬프트에 넣지 않음 — 깨진 한글·가짜 UI 환각 유발.
+
   const prompt = [
-    "decorative editorial banner illustration, wide landscape composition",
-    brief.icon_style,
-    `visual theme: ${brief.theme}`,
-    motif ? `motif elements: ${motif}` : "",
-    heading ? `mood inspired by: ${heading.slice(0, 60)}` : "",
-    body ? `atmosphere: ${body.slice(0, 120)}` : "",
+    "abstract decorative background art only, wide 16:9 landscape",
+    "soft gradient waves, fluid organic shapes, single centered motif symbol",
+    styleAscii || "flat minimal editorial illustration",
+    themeAscii ? `mood: ${themeAscii}` : "",
+    motif ? `motif: ${motif}` : "",
     `${describeColorTone(theme.accent)} and ${describeColorTone(theme.deepAccent)} color palette`,
-    "soft abstract shapes, ecommerce detail page section background art",
-    "no text, no letters, no numbers, no words, no watermark",
+    "clean empty center area, atmospheric backdrop for product detail page",
+    "no product photo, no packaging, no human, no face",
+    NO_TEXT_LOCK,
   ]
     .filter(Boolean)
     .join(", ");
+
+  console.log(`[concept-illustration] prompt: ${prompt.slice(0, 280)}…`);
 
   let output: unknown;
   let lastError: unknown;

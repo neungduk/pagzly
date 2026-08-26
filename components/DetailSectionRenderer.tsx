@@ -1325,9 +1325,16 @@ function renderSection(
               aria-hidden="true"
             />
           )}
+          {/* 상·하단을 더 짙게 — 모델이 가끔 넣는 가짜 UI/깨진 글자를 가린다 */}
           <div
             className="absolute inset-0"
-            style={{ background: getHeroGradient(theme) }}
+            style={{
+              background: [
+                getHeroGradient(theme),
+                `linear-gradient(180deg, ${hexToRgba(theme.deepAccent, 0.55)} 0%, transparent 28%, transparent 55%, ${hexToRgba(theme.deepAccent, 0.75)} 100%)`,
+              ].join(", "),
+            }}
+            aria-hidden="true"
           />
           <div className={BANNER_OVERLAY_CLASS}>
             {(section.heading || edit?.enabled) && (
