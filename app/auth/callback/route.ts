@@ -12,6 +12,10 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
+      // 비밀번호 재설정 흐름은 온보딩 여부와 무관하게 항상 재설정 페이지로 보낸다.
+      if (next === "/reset-password") {
+        return NextResponse.redirect(`${origin}${next}`);
+      }
       const userId = data.user?.id;
       if (userId && !(await hasCompletedOnboarding(supabase, userId))) {
         return NextResponse.redirect(`${origin}/onboarding`);

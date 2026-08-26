@@ -1,16 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import PagzlyLogo from "@/components/PagzlyLogo";
 import KakaoLoginButton from "@/components/KakaoLoginButton";
 import GoogleLoginButton from "@/components/GoogleLoginButton";
 import { createClient } from "@/lib/supabase";
 import { hasCompletedOnboarding } from "@/lib/onboarding";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const resetSuccess = searchParams.get("reset") === "success";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -120,6 +122,21 @@ export default function LoginPage() {
                 />
               </div>
 
+              <div className="text-right">
+                <Link
+                  href="/forgot-password"
+                  className="text-xs font-medium text-ink/50 hover:text-registration-red"
+                >
+                  비밀번호를 잊으셨나요?
+                </Link>
+              </div>
+
+              {resetSuccess && !error && (
+                <p className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
+                  비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요.
+                </p>
+              )}
+
               {error && (
                 <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
                   {error}
@@ -148,5 +165,13 @@ export default function LoginPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }
