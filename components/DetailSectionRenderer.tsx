@@ -87,8 +87,18 @@ const TYPO = {
   stepItem: "mt-2.5 max-w-[7.5rem] text-[11px] font-normal leading-relaxed text-ink/80 sm:max-w-sm sm:text-sm",
 } as const;
 
-function resolveImage(imageUrls: string[], index: number) {
-  return imageUrls[index] ?? imageUrls[0] ?? "";
+function resolveImage(imageUrls: string[], index: number | undefined) {
+  if (imageUrls.length === 0) return "";
+  if (
+    typeof index === "number" &&
+    Number.isInteger(index) &&
+    index >= 0 &&
+    index < imageUrls.length
+  ) {
+    return imageUrls[index];
+  }
+  // 잘못된 index를 image[0]으로 몰아넣으면 전 섹션이 같은 사진처럼 보임
+  return "";
 }
 
 function resolveImageRatioClass(section: { type: string; slot?: string }) {

@@ -50,12 +50,14 @@ function countPlacements(sections: DetailSection[]): number {
  * 전역 least-used 배정.
  * - 같은 컷이 quick_points + ingredient + step + gallery에 몰리는 문제 방지
  * - 업로드 장수를 최대한 고르게 사용 (MIN_AI_USED_IMAGES 이상 unique 유지)
+ * - image_text / gallery / step는 가능하면 재사용 0회(장수가 충분할 때)
  */
 export function assignDistinctSectionImages(
   sections: DetailSection[],
   imageCount: number,
 ): DetailSection[] {
-  if (imageCount <= 1) return sections;
+  if (imageCount <= 0) return sections;
+  if (imageCount === 1) return sections;
 
   const pinStudioHero = sections.some((section) => section.slot === "ingredient_highlight");
   const hero = sections.find((section) => section.type === "hero");
@@ -66,15 +68,32 @@ export function assignDistinctSectionImages(
       : 0;
 
   const placementCount = Math.max(1, countPlacements(sections));
+  // 장수가 충분하면 재사용 최소화(대부분 1회). 부족할 때만 ceil로 허용.
   const maxUses = Math.max(1, Math.ceil(placementCount / imageCount));
+  const softCap = imageCount >= placementCount ? 1 : maxUses;
   const freq = Array.from({ length: imageCount }, () => 0);
   let lastPicked = -1;
+  const imageTextUsed = new Set<number>();
 
-  function pick(opts?: { prefer?: number; avoid?: number[]; excludeHero?: boolean }): number {
+  function pick(opts?: {
+    prefer?: number;
+    avoid?: number[];
+    excludeHero?: boolean;
+    /** image_text 슬롯: 이미 쓴 컷은 강력 회피 */
+    uniqueAmongImageText?: boolean;
+  }): number {
     const avoid = new Set(opts?.avoid ?? []);
     if (opts?.prefer !== undefined) {
       const p = clampIndex(opts.prefer, imageCount);
-      if (freq[p] < maxUses && !avoid.has(p) && p !== lastPicked) {
+      const blockedByImageText =
+        opts.uniqueAmongImageText === true && imageTextUsed.has(p) && imageTextUsed.size < imageCount;
+      if (
+        freq[p] < softCap &&
+        !avoid.has(p) &&
+        p !== lastPicked &&
+        !(opts?.excludeHero && p === heroIndex && imageCount > 3) &&
+        !blockedByImageText
+      ) {
         freq[p] += 1;
         lastPicked = p;
         return p;
@@ -86,17 +105,30 @@ export function assignDistinctSectionImages(
     for (let i = 0; i < imageCount; i += 1) {
       if (opts?.excludeHero && i === heroIndex && imageCount > 3) continue;
       if (avoid.has(i)) continue;
-      // 직전 섹션과 같은 컷 금지(가능하면)
-      const adjacencyPenalty = i === lastPicked ? 100 : 0;
-      const unusedBonus = freq[i] === 0 ? -10 : 0;
-      const overCap = freq[i] >= maxUses ? 1000 : 0;
-      const score = freq[i] * 10 + adjacencyPenalty + unusedBonus + overCap;
+      const adjacencyPenalty = i === lastPicked ? 500 : 0;
+      const unusedBonus = freq[i] === 0 ? -50 : 0;
+      const overSoft = freq[i] >= softCap ? 2000 : 0;
+      const overHard = freq[i] >= maxUses ? 8000 : 0;
+      const imageTextPenalty =
+        opts?.uniqueAmongImageText && imageTextUsed.has(i) ? 3000 : 0;
+      const score =
+        freq[i] * 20 + adjacencyPenalty + unusedBonus + overSoft + overHard + imageTextPenalty;
       if (score < bestScore) {
         bestScore = score;
         best = i;
       }
     }
-    if (best < 0) best = 0;
+    if (best < 0) {
+      // 전부 avoid면 softCap 무시하고 최소 빈도 선택
+      best = 0;
+      let minF = freq[0] ?? 0;
+      for (let i = 1; i < imageCount; i += 1) {
+        if (freq[i] < minF) {
+          minF = freq[i];
+          best = i;
+        }
+      }
+    }
     freq[best] += 1;
     lastPicked = best;
     return best;
@@ -113,7 +145,7 @@ export function assignDistinctSectionImages(
       placements.push({ kind: "image_text", sectionIndex, prefer });
     } else if (section.type === "gallery") {
       const wanted = Math.min(
-        Math.max(section.imageIndexes?.length ?? 2, imageCount >= 7 ? 4 : 2),
+        Math.max(section.imageIndexes?.length ?? 2, imageCount >= 7 ? 4 : imageCount >= 4 ? 3 : 2),
         imageCount,
         6,
       );
@@ -142,7 +174,12 @@ export function assignDistinctSectionImages(
       continue;
     }
     if (placement.kind === "image_text") {
-      const idx = pick({ prefer: placement.prefer });
+      const idx = pick({
+        prefer: placement.prefer,
+        excludeHero: imageCount >= 3,
+        uniqueAmongImageText: true,
+      });
+      imageTextUsed.add(idx);
       assigned.set(`it:${placement.sectionIndex}`, idx);
       continue;
     }
@@ -157,12 +194,12 @@ export function assignDistinctSectionImages(
       continue;
     }
     if (placement.kind === "step") {
-      const idx = pick();
+      const idx = pick({ excludeHero: imageCount >= 4 });
       assigned.set(`step:${placement.sectionIndex}:${placement.stepIndex}`, idx);
       continue;
     }
     if (placement.kind === "color_option") {
-      const idx = pick();
+      const idx = pick({ excludeHero: imageCount >= 3 });
       assigned.set(`opt:${placement.sectionIndex}:${placement.optionIndex}`, idx);
     }
   }
@@ -204,7 +241,7 @@ export function assignDistinctSectionImages(
     return section;
   });
 
-  // unique 장수가 MIN 미만이면(극단적으로 슬롯이 적을 때) 미사용 컷을 image_text에 추가 주입
+  // unique 장수가 MIN 미만이면 미사용 컷을 image_text에 주입
   const used = collectUsedIndexes(mapped);
   const targetUnique = Math.min(Math.max(MIN_AI_USED_IMAGES, 1), imageCount);
   if (used.length < targetUnique) {
@@ -240,4 +277,19 @@ export function countImageIndexFrequency(sections: DetailSection[]): Record<numb
     else if (section.type === "color_variation") section.options.forEach((o) => add(o.imageIndex));
   }
   return freq;
+}
+
+/** 연속 image_text가 같은 컷을 쓰는지 (QA용) */
+export function countAdjacentDuplicateImageTexts(sections: DetailSection[]): number {
+  let dupes = 0;
+  let prev: number | null = null;
+  for (const section of sections) {
+    if (section.type !== "image_text") {
+      prev = null;
+      continue;
+    }
+    if (prev !== null && prev === section.imageIndex) dupes += 1;
+    prev = section.imageIndex;
+  }
+  return dupes;
 }

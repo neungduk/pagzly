@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { calculateClaudeCost, logClaudeCost } from "@/lib/claude-cost";
 import { HAIKU_VISION_MODEL } from "@/lib/vision-utils";
 import { isTestMode } from "@/lib/test-mode";
+import { countAdjacentDuplicateImageTexts } from "@/lib/assign-section-images";
 import type { DetailSection } from "@/lib/types/generate";
 
 export type QAIssueCategory =
@@ -10,7 +11,8 @@ export type QAIssueCategory =
   | "text_overlap"
   | "shadow"
   | "copy"
-  | "material_hallucination";
+  | "material_hallucination"
+  | "image_repeat";
 
 export type QAIssue = {
   severity: "critical" | "warning";
@@ -304,6 +306,18 @@ export async function runDetailPageQA(params: {
     brandName: params.brandName,
   });
 
+  const adjacentDupes = countAdjacentDuplicateImageTexts(params.sections);
+  const adjacentIssues: QAIssue[] =
+    adjacentDupes > 0
+      ? [
+          {
+            severity: "critical",
+            category: "image_repeat",
+            message: `연속 image_text 섹션이 같은 사진을 ${adjacentDupes}회 반복합니다. 서로 다른 imageIndex로 나누세요.`,
+          },
+        ]
+      : [];
+
   const [imageResult, copyResult] = await Promise.all([
     reviewImagesWithVision(anthropic, params.imageUrls, params.productName).catch((err) => {
       console.warn("[qa] 이미지 검수 실패", err);
@@ -315,7 +329,12 @@ export async function runDetailPageQA(params: {
     }),
   ]);
 
-  const issues = [...materialIssues, ...imageResult.issues, ...copyResult.issues];
+  const issues = [
+    ...materialIssues,
+    ...adjacentIssues,
+    ...imageResult.issues,
+    ...copyResult.issues,
+  ];
   const cost = imageResult.cost + copyResult.cost;
   const critical = issues.filter((i) => i.severity === "critical");
   const pass = critical.length === 0;
@@ -341,7 +360,8 @@ export function buildQAFixPrompt(issues: QAIssue[]): string {
       (i) =>
         i.category === "copy" ||
         i.category === "text_overlap" ||
-        i.category === "material_hallucination",
+        i.category === "material_hallucination" ||
+        i.category === "image_repeat",
     )
     .map((i) => `- [${i.slot ?? "general"}] ${i.message}`);
   if (lines.length === 0) return "";

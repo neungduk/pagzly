@@ -1188,6 +1188,15 @@ export async function POST(request: Request) {
         howToUse: body.draftHowToUse ?? "",
         caution: body.draftCaution ?? "",
       };
+      // draft 시점 배정이 enhance 이후 장수/순서와 어긋나면 같은 컷이 반복됨 → final에서 재배정
+      savedCopy.sections = assignDistinctSectionImages(
+        savedCopy.sections,
+        body.imageUrls.length,
+      );
+      const draftFreq = countImageIndexFrequency(savedCopy.sections);
+      console.log(
+        `[images] final-from-draft reassigned distinct=${Object.keys(draftFreq).length}/${body.imageUrls.length} freq=${JSON.stringify(draftFreq)}`,
+      );
       const aux = await loadAuxiliaryInputs(body);
       enrichedBody = aux.enriched;
       referenceAnalysisCost = aux.referenceAnalysisCost;
