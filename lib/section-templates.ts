@@ -616,6 +616,36 @@ export function resolveTemplateCategory(category: string): TemplateCategory {
   return CATEGORY_TO_TEMPLATE[category] ?? "생활/리빙";
 }
 
+/**
+ * 카테고리별 카피 길이·리듬 규율 프롬프트 블록.
+ * 기존에는 화장품/뷰티에만 이 규율이 있었고 다른 카테고리는 정성적 가이드만
+ * 있어서 카피가 길어지는 경향이 있었다 (27차, 2026-08-26).
+ * 공통 슬롯 규율 + 카테고리 전용 슬롯 규율을 합쳐서 반환한다.
+ */
+export function buildSectionLengthGuide(category: string): string {
+  const common = `- hero headline: 한 줄, 공백 포함 22자 이내, 핵심 강점 1개만.
+- hero subheadline: 헤드라인을 보충하는 1문장. 상품명만 반복하지 말 것.
+- checklist items: 각 14자 내외.
+- image_text body (ingredient_highlight, texture_feel, detail_zoom, feature_detail 등): 2~3문장, 짧은 문장 + 설명 문장을 교차.
+- step_card: 각 단계 title 6자 내외 + body 1문장. STEP 태그는 서버가 자동으로 붙이므로 title에 STEP 01 등을 쓰지 말 것.
+- highlight_box: 카드 3장, title 6자 내외 + body 1~2문장. checklist와 다른 축으로 구성하고, 가장 강조하고 싶은 내용을 2번째 카드에.
+- quick_points: layout 반드시 "compact". heading 8자 내외, body 1문장. compact layout은 사진이 작아지므로 텍스트도 짧게.`;
+
+  if (category === "화장품/뷰티") {
+    return `\n\n## 화장품 카피 길이·컨셉 정합\n${common}\n- ingredient_highlight body: 2~3문장.\n- texture_feel body: 2문장.\n- spec_table 값에 없는 % 수치를 만들지 말 것 (임상 막대용 가짜 데이터 금지).\n- 시각 컨셉과 모순 금지: 쿨링/진정이면 따뜻·온기·골드 카피 금지. 수분이면 오일리·번들 표현 금지. 클렌징이면 보습 도포를 주효능처럼 쓰지 말 것.`;
+  }
+
+  if (category === "의류/패션") {
+    return `\n\n## 패션/의류 카피 길이·컨셉 정합\n${common}\n- color_variation 옵션 label: 색상명 + 짧은 수식 (예: "차콜 그레이"), 4~8자.\n- coordination body: 코디 장면 묘사 1~2문장 (예: "데님과 매치하면 캐주얼하게, 슬랙스와 매치하면 포멀하게").\n- fabric_composition(spec_table): 소재/혼용율은 입력에 있는 값만 쓰고, 없으면 "판매자 확인 필요".\n- fit_guide body: 핏 설명 2문장 이내 (예: "루즈핏이라 한 치수 크게 나옵니다. 편안한 착용감을 원하시면 정사이즈를 추천해요.").`;
+  }
+
+  if (category === "식품/건강기능식품") {
+    return `\n\n## 식품 카피 길이·컨셉 정합\n${common}\n- cooking_steps: 각 단계 title 6자 내외 + body 1문장.\n- sourcing_story body: 원산지/생산 배경 2~3문장, 과장 없이 사실 위주.\n- serving_suggestion body: 섭취/제공 장면 1~2문장.\n- storage_tip body: 보관 방법 1문장.`;
+  }
+
+  return `\n\n## 카피 길이·리듬 정합\n${common}`;
+}
+
 /** 짧은 구성: required 슬롯만. repeatable은 minCount개 템플릿 행으로 펼침. */
 function applyShortTemplate(template: SlotDefinition[]): SlotDefinition[] {
   const result: SlotDefinition[] = [];

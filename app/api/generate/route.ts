@@ -17,7 +17,12 @@ import type {
 } from "@/lib/types/generate";
 import { createClient } from "@/lib/supabase/server";
 import { extractProductTheme } from "@/lib/color-extract";
-import { getSlotImageRatio, getSlotTemplate, type SlotDefinition } from "@/lib/section-templates";
+import {
+  buildSectionLengthGuide,
+  getSlotImageRatio,
+  getSlotTemplate,
+  type SlotDefinition,
+} from "@/lib/section-templates";
 import { extractUrlSummary, type UrlSummaryResult } from "@/lib/url-crawler";
 import { buildQAFixPrompt, runDetailPageQA } from "@/lib/detail-page-qa";
 import { formatConceptCopyBlock, generateConceptBrief } from "@/lib/concept-brief";
@@ -651,20 +656,10 @@ async function generateCopyWithDeepSeek(
 
 한 상품에만 해당하는 구체적 사실·장면·수치가 없으면 억지로 지어내지 말고, 그 대신
 사용 맥락(언제·어디서·어떻게 쓰는지)을 구체적으로 묘사해서 추상적 형용사를 피하세요.
+${buildSectionLengthGuide(productInfo.category)}
 ${isCosmetics ? `
-## 화장품 카피 길이·컨셉 정합
-- hero headline: 한 줄, 공백 포함 22자 이내, 핵심 효능 1개만.
-- hero subheadline: 헤드라인을 보충하는 1문장. 상품명만 반복하지 말 것.
-- ingredient_highlight body: 2~3문장.
-- texture_feel body: 2문장.
-- step_card: 각 단계 title 6자 내외 + body 1문장. STEP 태그는 서버가 자동으로 붙이므로 title에 STEP 01 등을 쓰지 말 것.
-- highlight_box: 카드 3장, title 6자 내외 + body 1~2문장. checklist와 다른 효과/성분 축으로 구성하고, 가장 강조하고 싶은 내용을 2번째 카드에.
-- checklist items: 각 14자 내외.
-- quick_points: layout 반드시 "compact". heading 8자 내외, body 1문장. 사진은 텍스처/디테일 컷.
-- compact layout은 사진이 작아지므로 텍스트도 짧게 (heading·body 모두 위 길이 준수).
-- spec_table 값에 없는 % 수치를 만들지 말 것 (임상 막대용 가짜 데이터 금지).
+## 화장품 stat_infographic 수치 규율
 - stat_infographic: keyFeatures·ingredients·certifications 등 **입력에 명시된 수치**만 metrics에 사용. 근거 없으면 stat_infographic 슬롯 전체를 생략. "판매자 확인 필요"나 임의 percent 금지. 비율/점유율 수치는 style:"bar"|"ring"+percent로(원형 강조는 ring), 시간·용량·중량·개수 같은 절대 수치는 style:"number"로 percent 없이 큰 숫자 강조. basis는 measured/self_assessed.
-- 시각 컨셉과 모순 금지: 쿨링/진정이면 따뜻·온기·골드 카피 금지. 수분이면 오일리·번들 표현 금지. 클렌징이면 보습 도포를 주효능처럼 쓰지 말 것.
 ` : ""}
 
 ## 상품 정보
