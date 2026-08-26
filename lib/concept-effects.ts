@@ -224,9 +224,18 @@ export function pickOverlayAssignments(
       imageIndex = hero;
       label = "hero";
     }
-    if (used.has(imageIndex) && imageIndex !== hero) {
-      imageIndex = hero;
-      label = "hero";
+    if (used.has(imageIndex)) {
+      // 히어로로 몰아넣지 말고, 아직 안 쓴 컷(또는 히어로 제외 다음 인덱스)을 고른다.
+      let next = fallbackPoint;
+      for (let i = 0; i < imageCount; i += 1) {
+        const candidate = (fallbackPoint + 1 + i) % imageCount;
+        if (!used.has(candidate)) {
+          next = candidate;
+          break;
+        }
+      }
+      imageIndex = next;
+      label = `spread-${next}`;
     }
     used.add(imageIndex);
     return { specIndex, imageIndex, label };

@@ -41,7 +41,7 @@ import { calculateClaudeCost, logClaudeCost } from "@/lib/claude-cost";
 import { sanitizeComparisonChartSection } from "@/lib/comparison-chart-guard";
 import { isTestMode } from "@/lib/test-mode";
 import { isForceRegenerate } from "@/lib/force-regenerate";
-import { assignDistinctSectionImages } from "@/lib/assign-section-images";
+import { assignDistinctSectionImages, countImageIndexFrequency } from "@/lib/assign-section-images";
 import { applyConceptOverlaysToProductImages } from "@/lib/concept-effects";
 import { makeComparisonPair } from "@/lib/photo-composite";
 import { uploadPngBuffer } from "@/lib/upload-png";
@@ -893,20 +893,11 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
   parsed.sections = normalizeSectionsToTemplate(parsed.sections, template);
   parsed.sections = ensureAiDisclosure(parsed.sections);
   parsed.sections = assignDistinctSectionImages(parsed.sections, imageCount);
-  const usedDistinct = new Set<number>();
-  for (const section of parsed.sections) {
-    if (section.type === "hero" || section.type === "image_text") {
-      usedDistinct.add(section.imageIndex);
-    } else if (section.type === "gallery") {
-      section.imageIndexes.forEach((i) => usedDistinct.add(i));
-    } else if (section.type === "step_card") {
-      section.steps.forEach((s) => usedDistinct.add(s.imageIndex));
-    } else if (section.type === "color_variation") {
-      section.options.forEach((o) => usedDistinct.add(o.imageIndex));
-    }
-  }
+  const freq = countImageIndexFrequency(parsed.sections);
+  const usedDistinct = Object.keys(freq).length;
+  const maxFreq = Math.max(0, ...Object.values(freq));
   console.log(
-    `[images] assigned distinct=${usedDistinct.size}/${imageCount} (target≥${Math.min(7, imageCount)})`,
+    `[images] assigned distinct=${usedDistinct}/${imageCount} maxFreq=${maxFreq} freq=${JSON.stringify(freq)}`,
   );
   console.log(
     `[images] assigned indexes: ${parsed.sections
