@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import DetailSectionRenderer from "@/components/DetailSectionRenderer";
-import { freezeScrollRevealAnimations } from "@/components/DetailScrollReveal";
+import { freezeScrollRevealAnimations, unfreezeScrollRevealAnimations } from "@/components/DetailScrollReveal";
 import DetailActionBar, { type DetailToolTab } from "@/components/DetailActionBar";
 import ToastBanner from "@/components/ToastBanner";
 import { DRAFT_SESSION_KEY, SESSION_KEY } from "@/components/CreateProductForm";
@@ -499,6 +499,7 @@ function CreateResultContent() {
     } catch (err) {
       console.error("[download]", err);
     } finally {
+      unfreezeScrollRevealAnimations(captureRef.current);
       setDownloading(false);
     }
   }
@@ -725,7 +726,8 @@ function CreateResultContent() {
           <div
             ref={captureRef}
             data-testid="detail-preview"
-            className="overflow-hidden rounded-2xl border border-line bg-paper"
+            data-pagzly-preview
+            className="relative overflow-hidden rounded-2xl border border-ink/20 bg-paper shadow-[0_24px_60px_-28px_rgba(27,27,24,0.45)]"
           >
             <DetailSectionRenderer
               sections={visibleSections}

@@ -3,6 +3,7 @@
 :root {
   --background: #faf8f3;
   --foreground: #1b1b18;
+  --pagzly-ink: #1b1b18;
 }
 
 @theme inline {
@@ -50,21 +51,194 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
-  .pagzly-hero-photo {
-    animation: pagzly-kenburns 18s ease-in-out infinite alternate;
+
+  /* ── 미리보기 전용: ink(#1B1B18) 기반 역동 모션 ── */
+  [data-pagzly-preview] {
+    isolation: isolate;
   }
+
+  [data-pagzly-preview]::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: -8% -4%;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 55% 40% at 8% 12%, rgba(27, 27, 24, 0.14), transparent 62%),
+      radial-gradient(ellipse 50% 36% at 94% 78%, rgba(27, 27, 24, 0.1), transparent 60%);
+    animation: pagzly-ink-breathe 7s ease-in-out infinite alternate;
+  }
+
+  .pagzly-hero-photo {
+    animation: pagzly-kenburns 12s ease-in-out infinite alternate;
+  }
+
   .pagzly-pipeline-float {
     animation: pagzly-float 8s ease-in-out infinite;
   }
+
   .pagzly-pulse-card {
-    animation: pagzly-pulse-card 2.4s ease-in-out infinite;
+    animation: pagzly-pulse-card 2s ease-in-out infinite;
+    box-shadow: 0 10px 28px -12px rgba(27, 27, 24, 0.45);
   }
+
+  /* 히어로: 검은 스캔 띠 + 비네트 */
+  .pagzly-ink-scan {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 15;
+    overflow: hidden;
+  }
+
+  .pagzly-ink-scan::before {
+    content: "";
+    position: absolute;
+    left: -10%;
+    width: 120%;
+    height: 28%;
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(27, 27, 24, 0.22) 45%,
+      transparent 100%
+    );
+    animation: pagzly-ink-scan 3.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  .pagzly-ink-scan::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at center, transparent 42%, rgba(27, 27, 24, 0.35) 100%),
+      linear-gradient(90deg, rgba(27, 27, 24, 0.18), transparent 18%, transparent 82%, rgba(27, 27, 24, 0.18));
+    animation: pagzly-ink-vignette 5.5s ease-in-out infinite alternate;
+  }
+
+  /* 섹션 진입 시 왼쪽 ink 레일 */
+  .pagzly-ink-rail {
+    pointer-events: none;
+    position: absolute;
+    left: 0;
+    top: 12%;
+    bottom: 12%;
+    width: 3px;
+    border-radius: 999px;
+    background: var(--pagzly-ink);
+    transform-origin: top center;
+    transform: scaleY(0);
+    opacity: 0.85;
+    z-index: 5;
+  }
+
+  [data-scroll-reveal].is-ink-in .pagzly-ink-rail {
+    animation: pagzly-ink-rail 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  /* 섹션 진입 블랙 와이프 베일 */
+  .pagzly-ink-wipe {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    background: var(--pagzly-ink);
+    transform-origin: left center;
+    transform: scaleX(1);
+    opacity: 0;
+  }
+
+  [data-scroll-reveal].is-ink-in .pagzly-ink-wipe {
+    animation: pagzly-ink-wipe 0.7s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  }
+
+  /* 헤드라인 아래 ink 언더라인 드로우 */
+  .pagzly-ink-headline {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+  }
+
+  .pagzly-ink-headline::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -0.2em;
+    height: 3px;
+    width: 100%;
+    background: linear-gradient(90deg, var(--pagzly-ink), rgba(27, 27, 24, 0.15));
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+
+  [data-scroll-reveal].is-ink-in .pagzly-ink-headline::after {
+    animation: pagzly-ink-underline 0.9s 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  /* CTA: ink 링 펄스 */
+  .pagzly-ink-cta {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .pagzly-ink-cta::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: min(88%, 420px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border: 1px solid rgba(27, 27, 24, 0.35);
+    transform: translate(-50%, -50%) scale(0.72);
+    animation: pagzly-ink-ring 2.8s ease-out infinite;
+  }
+
+  .pagzly-ink-cta::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      circle at 50% 40%,
+      rgba(27, 27, 24, 0.08),
+      transparent 55%
+    );
+    animation: pagzly-ink-breathe 4s ease-in-out infinite alternate;
+  }
+
+  /* 차트 fill: ink 섀도우 트레일 */
+  [data-fill-bar] {
+    box-shadow: 2px 0 12px rgba(27, 27, 24, 0.28);
+  }
+
+  .pagzly-ink-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .pagzly-ink-shimmer::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      rgba(27, 27, 24, 0.12) 50%,
+      transparent 60%
+    );
+    transform: translateX(-120%);
+    animation: pagzly-ink-shimmer 3.2s ease-in-out infinite;
+  }
+
   @keyframes pagzly-kenburns {
     from {
-      transform: scale(1);
+      transform: scale(1) translate3d(0, 0, 0);
     }
     to {
-      transform: scale(1.045);
+      transform: scale(1.08) translate3d(-1.5%, -1%, 0);
     }
   }
 
@@ -82,9 +256,108 @@ body {
     0%,
     100% {
       transform: translateY(0);
+      box-shadow: 0 10px 28px -12px rgba(27, 27, 24, 0.4);
     }
     50% {
-      transform: translateY(-4px);
+      transform: translateY(-6px);
+      box-shadow: 0 18px 36px -14px rgba(27, 27, 24, 0.55);
+    }
+  }
+
+  @keyframes pagzly-ink-breathe {
+    from {
+      opacity: 0.55;
+      transform: scale(1);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1.04);
+    }
+  }
+
+  @keyframes pagzly-ink-scan {
+    0% {
+      top: -30%;
+      opacity: 0;
+    }
+    12% {
+      opacity: 1;
+    }
+    88% {
+      opacity: 0.85;
+    }
+    100% {
+      top: 105%;
+      opacity: 0;
+    }
+  }
+
+  @keyframes pagzly-ink-vignette {
+    from {
+      opacity: 0.65;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes pagzly-ink-rail {
+    from {
+      transform: scaleY(0);
+      opacity: 0;
+    }
+    to {
+      transform: scaleY(1);
+      opacity: 0.9;
+    }
+  }
+
+  @keyframes pagzly-ink-wipe {
+    0% {
+      opacity: 0.55;
+      transform: scaleX(1);
+    }
+    55% {
+      opacity: 0.35;
+      transform: scaleX(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scaleX(0);
+    }
+  }
+
+  @keyframes pagzly-ink-underline {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes pagzly-ink-ring {
+    0% {
+      transform: translate(-50%, -50%) scale(0.7);
+      opacity: 0.55;
+    }
+    70% {
+      opacity: 0.12;
+    }
+    100% {
+      transform: translate(-50%, -50%) scale(1.35);
+      opacity: 0;
+    }
+  }
+
+  @keyframes pagzly-ink-shimmer {
+    0%,
+    35% {
+      transform: translateX(-120%);
+    }
+    65%,
+    100% {
+      transform: translateX(120%);
     }
   }
 }
@@ -94,7 +367,43 @@ body {
     opacity: 1;
     transform: none;
   }
-  .pagzly-pulse-card {
-    animation: none;
+  .pagzly-pulse-card,
+  .pagzly-ink-scan::before,
+  .pagzly-ink-scan::after,
+  .pagzly-ink-cta::before,
+  .pagzly-ink-cta::after,
+  .pagzly-ink-shimmer::after,
+  [data-pagzly-preview]::before {
+    animation: none !important;
   }
+  .pagzly-ink-rail,
+  .pagzly-ink-wipe {
+    opacity: 0 !important;
+  }
+  .pagzly-ink-headline::after {
+    transform: scaleX(1);
+  }
+}
+
+/* PNG 캡처 직전 freeze — 연속 모션 정지 + 최종 프레임 고정 */
+[data-pagzly-preview].is-pagzly-frozen::before,
+[data-pagzly-preview].is-pagzly-frozen .pagzly-hero-photo,
+[data-pagzly-preview].is-pagzly-frozen .pagzly-pulse-card,
+[data-pagzly-preview].is-pagzly-frozen .pagzly-ink-scan::before,
+[data-pagzly-preview].is-pagzly-frozen .pagzly-ink-scan::after,
+[data-pagzly-preview].is-pagzly-frozen .pagzly-ink-cta::before,
+[data-pagzly-preview].is-pagzly-frozen .pagzly-ink-cta::after,
+[data-pagzly-preview].is-pagzly-frozen .pagzly-ink-shimmer::after {
+  animation: none !important;
+}
+[data-pagzly-preview].is-pagzly-frozen .pagzly-ink-wipe {
+  opacity: 0 !important;
+  transform: scaleX(0) !important;
+}
+[data-pagzly-preview].is-pagzly-frozen .pagzly-ink-rail {
+  transform: scaleY(1) !important;
+  opacity: 0.9 !important;
+}
+[data-pagzly-preview].is-pagzly-frozen .pagzly-ink-headline::after {
+  transform: scaleX(1) !important;
 }

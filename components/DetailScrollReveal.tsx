@@ -11,14 +11,13 @@ type DetailScrollRevealProps = {
   index: number;
   className?: string;
   /**
-   * 히어로는 이미 ken-burns가 있어 y-offset을 줄인다.
-   * "hero-follow"는 hero 바로 다음 섹션 1곳에만 쓰는 강한 scale+fade
-   * (design-brief 제안 C) — 나머지 섹션은 전부 절제된 "section" 모션 유지.
+   * 히어로는 ken-burns·ink-scan이 있어 y를 줄인다.
+   * hero-follow / section 은 ink 와이프·레일로 더 강하게.
    */
   variant?: "hero" | "section" | "hero-follow";
 };
 
-/** 상세페이지 섹션 진입 애니메이션 — 절제된 fade + slide-up + 미세 stagger */
+/** 상세페이지 섹션 진입 — ink 블랙 와이프 + 강한 slide/scale (미리보기 전용 감성) */
 export default function DetailScrollReveal({
   children,
   index,
@@ -33,33 +32,38 @@ export default function DetailScrollReveal({
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) {
-      gsap.set(el, { opacity: 1, y: 0, clearProps: "transform" });
+      gsap.set(el, { opacity: 1, y: 0, scale: 1, clearProps: "transform" });
+      el.classList.add("is-ink-in");
       return;
     }
 
-    const yFrom = variant === "hero" ? 12 : variant === "hero-follow" ? 26 : 20;
-    const startRatio = variant === "hero" ? 0.92 : 0.9;
+    const yFrom = variant === "hero" ? 18 : variant === "hero-follow" ? 42 : 36;
+    const scaleFrom = variant === "hero" ? 1 : variant === "hero-follow" ? 0.9 : 0.94;
+    const startRatio = variant === "hero" ? 0.94 : 0.88;
     const rect = el.getBoundingClientRect();
     const triggerLine = window.innerHeight * startRatio;
-    // 이미 트리거선 위에 있으면 숨기지 않음 (히어로·풀페이지 캡처 시 opacity 0 방지)
+
     if (rect.top <= triggerLine) {
       gsap.set(el, { opacity: 1, y: 0, scale: 1 });
+      el.classList.add("is-ink-in");
       return;
     }
 
-    const tween = gsap.from(el, {
-      opacity: 0,
-      y: yFrom,
-      // hero-follow 1곳에만 scale 진입을 더해 볼륨을 준다 (나머지는 scale 1 고정)
-      scale: variant === "hero-follow" ? 0.94 : 1,
-      duration: variant === "hero" ? 0.75 : variant === "hero-follow" ? 0.9 : 0.82,
-      delay: Math.min(index * 0.05, 0.25),
-      ease: "power2.out",
+    gsap.set(el, { opacity: 0, y: yFrom, scale: scaleFrom });
+
+    const tween = gsap.to(el, {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      duration: variant === "hero" ? 0.85 : variant === "hero-follow" ? 1.05 : 0.95,
+      delay: Math.min(index * 0.04, 0.2),
+      ease: "power3.out",
       immediateRender: false,
       scrollTrigger: {
         trigger: el,
-        start: variant === "hero" ? "top 92%" : "top 90%",
+        start: variant === "hero" ? "top 94%" : "top 88%",
         once: true,
+        onEnter: () => el.classList.add("is-ink-in"),
       },
     });
 
@@ -69,18 +73,28 @@ export default function DetailScrollReveal({
     };
   }, [index, variant]);
 
+  const showInkFx = variant !== "hero";
+
   return (
-    <div ref={ref} data-scroll-reveal className={className}>
+    <div ref={ref} data-scroll-reveal className={`relative ${className}`}>
+      {showInkFx ? (
+        <>
+          <span className="pagzly-ink-rail" aria-hidden="true" />
+          <span className="pagzly-ink-wipe" aria-hidden="true" />
+        </>
+      ) : null}
       {children}
     </div>
   );
 }
 
-/** html-to-image 캡처 전 호출 — 스크롤·차트 fill·펄스 모션을 완료 상태로 고정 */
+/** html-to-image 캡처 전 — 스크롤·차트·ink 펄스/스캔을 완료 상태로 고정 */
 export function freezeScrollRevealAnimations(root: HTMLElement | null): void {
   if (!root) return;
   root.querySelectorAll("[data-scroll-reveal]").forEach((node) => {
-    gsap.set(node, { opacity: 1, y: 0, clearProps: "transform" });
+    const el = node as HTMLElement;
+    el.classList.add("is-ink-in");
+    gsap.set(el, { opacity: 1, y: 0, scale: 1, clearProps: "transform" });
   });
   root.querySelectorAll<HTMLElement>("[data-fill-bar]").forEach((node) => {
     const pct = node.dataset.fillPercent ?? "100";
@@ -97,8 +111,51 @@ export function freezeScrollRevealAnimations(root: HTMLElement | null): void {
     node.style.transition = "none";
     node.style.strokeDashoffset = String(circumference * (1 - Math.min(100, Math.max(0, pct)) / 100));
   });
-  root.querySelectorAll<HTMLElement>(".pagzly-pulse-card").forEach((node) => {
-    node.style.animation = "none";
+
+  const killAnim = (selector: string, final?: (el: HTMLElement) => void) => {
+    root.querySelectorAll<HTMLElement>(selector).forEach((node) => {
+      node.style.animation = "none";
+      final?.(node);
+    });
+  };
+
+  killAnim(".pagzly-pulse-card");
+  killAnim(".pagzly-hero-photo", (el) => {
+    el.style.transform = "scale(1.04)";
   });
+  killAnim(".pagzly-ink-scan", (el) => {
+    el.style.opacity = "0.85";
+  });
+  killAnim(".pagzly-ink-wipe", (el) => {
+    el.style.opacity = "0";
+    el.style.transform = "scaleX(0)";
+  });
+  killAnim(".pagzly-ink-rail", (el) => {
+    el.style.transform = "scaleY(1)";
+    el.style.opacity = "0.9";
+  });
+  killAnim(".pagzly-ink-cta");
+  killAnim(".pagzly-ink-shimmer");
+  root.classList.add("is-pagzly-frozen");
+  root.querySelectorAll("[data-pagzly-preview]").forEach((node) => {
+    (node as HTMLElement).classList.add("is-pagzly-frozen");
+  });
+
   ScrollTrigger.refresh();
+}
+
+/** PNG 캡처 후 미리보기 ink/펄스 모션 재개 */
+export function unfreezeScrollRevealAnimations(root: HTMLElement | null): void {
+  if (!root) return;
+  root.classList.remove("is-pagzly-frozen");
+  root.querySelectorAll("[data-pagzly-preview]").forEach((node) => {
+    (node as HTMLElement).classList.remove("is-pagzly-frozen");
+  });
+  root.querySelectorAll<HTMLElement>(
+    ".pagzly-pulse-card, .pagzly-hero-photo, .pagzly-ink-scan, .pagzly-ink-wipe, .pagzly-ink-rail, .pagzly-ink-cta, .pagzly-ink-shimmer",
+  ).forEach((node) => {
+    node.style.animation = "";
+    node.style.opacity = "";
+    node.style.transform = "";
+  });
 }

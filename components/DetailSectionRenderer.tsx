@@ -80,7 +80,7 @@ const TYPO = {
     "font-heading text-base font-bold leading-snug tracking-[-0.02em] text-ink sm:text-lg",
   compactBody: "mt-1 text-sm leading-relaxed text-ink/72",
   sectionTitle:
-    "font-heading text-[1.75rem] font-bold leading-[1.2] tracking-[-0.02em] text-ink sm:text-4xl",
+    "pagzly-ink-headline font-heading text-[1.75rem] font-bold leading-[1.2] tracking-[-0.02em] text-ink sm:text-4xl",
   sectionLabel: "font-mono text-[10px] font-semibold uppercase tracking-[0.32em]",
   body: "text-[0.9375rem] font-normal leading-[1.85] text-ink/68 sm:text-base",
   checklistItem: "mt-2.5 text-[11px] font-medium leading-snug text-ink/85 sm:text-sm",
@@ -269,12 +269,12 @@ function MetricBar({
       ([entry]) => {
         if (!entry?.isIntersecting) return;
         requestAnimationFrame(() => {
-          el.style.transition = "width 0.9s cubic-bezier(0.22, 1, 0.36, 1)";
+          el.style.transition = "width 1.1s cubic-bezier(0.16, 1, 0.3, 1)";
           el.style.width = `${percent}%`;
         });
         io.disconnect();
       },
-      { threshold: 0.35 },
+      { threshold: 0.25 },
     );
     io.observe(el);
     return () => io.disconnect();
@@ -450,12 +450,12 @@ function MetricBarFill({ percent, color }: { percent: number; color: string }) {
       ([entry]) => {
         if (!entry?.isIntersecting) return;
         requestAnimationFrame(() => {
-          el.style.transition = "width 0.9s cubic-bezier(0.22, 1, 0.36, 1)";
+          el.style.transition = "width 1.1s cubic-bezier(0.16, 1, 0.3, 1)";
           el.style.width = `${percent}%`;
         });
         io.disconnect();
       },
-      { threshold: 0.35 },
+      { threshold: 0.25 },
     );
     io.observe(el);
     return () => io.disconnect();
@@ -590,6 +590,7 @@ function renderSection(
               className="absolute inset-0"
               style={{ background: getHeroGradient(theme) }}
             />
+            <div className="pagzly-ink-scan" aria-hidden="true" />
             <ImageReplaceHit
               enabled={edit?.enabled}
               onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
@@ -611,7 +612,7 @@ function renderSection(
                 onChange={(headline) =>
                   edit?.onChange(index, { ...section, headline })
                 }
-                className={`${HEADLINE_CLAMP} ${TYPO.heroTitle} ${getCategoryRhythm(category).heroTitleExtra}`}
+                className={`pagzly-ink-headline ${HEADLINE_CLAMP} ${TYPO.heroTitle} ${getCategoryRhythm(category).heroTitleExtra}`}
               />
               {(section.subheadline || edit?.enabled) ? (
                 <EditableText
@@ -1044,13 +1045,18 @@ function renderSection(
                   key={cardIndex}
                   data-preview-pulse={emphasized ? "true" : undefined}
                   className={`flex flex-col gap-2 rounded-2xl px-6 py-8 text-center ${
-                    emphasized ? "pagzly-pulse-card sm:-translate-y-2 sm:shadow-lg" : ""
+                    emphasized
+                      ? "pagzly-pulse-card pagzly-ink-shimmer sm:-translate-y-2"
+                      : ""
                   }`}
                   style={{
                     backgroundColor: emphasized
                       ? hexToRgba(theme.deepAccent, SECTION_BG_PATTERN_C_ALPHA)
                       : hexToRgba(theme.accent, 0.08),
                     border: emphasized ? "none" : `1px solid ${hexToRgba(theme.accent, 0.18)}`,
+                    boxShadow: emphasized
+                      ? "0 16px 40px -16px rgba(27,27,24,0.5)"
+                      : undefined,
                   }}
                 >
                   <span
@@ -1843,15 +1849,15 @@ function renderSection(
       return (
         <section
           key={`cta_price-${index}`}
-          className={getCategoryRhythm(category).ctaPadClass}
+          className={`pagzly-ink-cta pagzly-ink-shimmer ${getCategoryRhythm(category).ctaPadClass}`}
           style={{ backgroundColor: getCtaBandBackground(theme) }}
         >
-          <div className={`${TEXT_COL_CLASS} space-y-5`}>
+          <div className={`${TEXT_COL_CLASS} relative z-10 space-y-5`}>
             <p className={TYPO.sectionLabel} style={{ color: theme.deepAccent }}>
               PRICE
             </p>
             <p
-              className="font-heading text-[2.75rem] font-bold sm:text-5xl"
+              className="pagzly-ink-headline font-heading text-[2.75rem] font-bold sm:text-5xl"
               style={{ color: theme.accent, letterSpacing: "-0.04em" }}
             >
               ₩{section.price.toLocaleString()}
@@ -1891,8 +1897,8 @@ function renderSection(
             )}
             <div className="pt-4">
               <span
-                className={getCategoryRhythm(category).ctaButtonClass}
-                style={{ backgroundColor: theme.deepAccent }}
+                className={`${getCategoryRhythm(category).ctaButtonClass} relative z-10 shadow-[0_12px_28px_-10px_rgba(27,27,24,0.55)]`}
+                style={{ backgroundColor: "#1B1B18", color: "#FAF8F3" }}
                 role="presentation"
               >
                 지금 구매하기
