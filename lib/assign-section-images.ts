@@ -1,12 +1,36 @@
 import type { DetailSection } from "@/lib/types/generate";
 
+/** 업로드·생성 공통 한도 */
+export const MAX_PRODUCT_IMAGES = 10;
+/** AI가 상세페이지에 실제로 쓰도록 강제하는 최소 서로 다른 사진 수 */
+export const MIN_AI_USED_IMAGES = 7;
+
 function clampIndex(index: number, imageCount: number): number {
   return Number.isInteger(index) && index >= 0 && index < imageCount ? index : 0;
 }
 
+function collectUsedIndexes(sections: DetailSection[]): number[] {
+  const used: number[] = [];
+  const add = (i: number) => {
+    if (!used.includes(i)) used.push(i);
+  };
+  for (const section of sections) {
+    if (section.type === "hero" || section.type === "image_text") {
+      add(section.imageIndex);
+    } else if (section.type === "gallery") {
+      section.imageIndexes.forEach(add);
+    } else if (section.type === "color_variation") {
+      section.options.forEach((o) => add(o.imageIndex));
+    } else if (section.type === "step_card") {
+      section.steps.forEach((s) => add(s.imageIndex));
+    }
+  }
+  return used;
+}
+
 /**
  * 화장품처럼 성분/질감 전용 컷이 있으면 히어로는 첫 장(스튜디오 합성)을 고정한다.
- * 그 외 카테고리는 히어로 인덱스를 유지하고, image_text/갤러리는 연속 재사용을 피한다.
+ * 업로드가 7장 이상이면 서로 다른 사진을 최소 7장까지 섹션에 펼친다.
  */
 export function assignDistinctSectionImages(
   sections: DetailSection[],
@@ -23,8 +47,9 @@ export function assignDistinctSectionImages(
       : 0;
 
   let imageTextCursor = 0;
+  const targetUnique = Math.min(Math.max(MIN_AI_USED_IMAGES, 1), imageCount);
 
-  return sections.map((section) => {
+  let mapped: DetailSection[] = sections.map((section) => {
     if (section.type === "hero") {
       return { ...section, imageIndex: heroIndex };
     }
@@ -43,13 +68,14 @@ export function assignDistinctSectionImages(
     }
 
     if (section.type === "gallery") {
+      const wanted = Math.min(
+        Math.max(section.imageIndexes?.length ?? 2, imageCount >= 7 ? 4 : 2),
+        imageCount,
+        6,
+      );
       return {
         ...section,
-        imageIndexes: fillDistinctIndexes(
-          section.imageIndexes,
-          imageCount,
-          Math.max(2, section.imageIndexes.length),
-        ),
+        imageIndexes: fillDistinctIndexes(section.imageIndexes ?? [], imageCount, wanted),
       };
     }
 
@@ -79,6 +105,57 @@ export function assignDistinctSectionImages(
 
     return section;
   });
+
+  // 최소 사용 장수 미달 시: image_text / step_card / gallery에 미사용 인덱스를 밀어 넣음
+  let used = collectUsedIndexes(mapped);
+  if (used.length < targetUnique) {
+    const unused = Array.from({ length: imageCount }, (_, i) => i).filter((i) => !used.includes(i));
+    mapped = mapped.map((section) => {
+      if (unused.length === 0 || used.length >= targetUnique) return section;
+
+      if (section.type === "image_text") {
+        const next = unused.shift();
+        if (next === undefined) return section;
+        used.push(next);
+        return { ...section, imageIndex: next };
+      }
+
+      if (section.type === "step_card") {
+        return {
+          ...section,
+          steps: section.steps.map((step) => {
+            if (unused.length === 0 || used.length >= targetUnique) return step;
+            if (used.includes(step.imageIndex) && used.length >= targetUnique / 2) {
+              const next = unused.shift();
+              if (next === undefined) return step;
+              used.push(next);
+              return { ...step, imageIndex: next };
+            }
+            return step;
+          }),
+        };
+      }
+
+      if (section.type === "gallery" && section.imageIndexes.length < Math.min(6, imageCount)) {
+        const nextIndexes = [...section.imageIndexes];
+        while (
+          nextIndexes.length < Math.min(6, imageCount) &&
+          unused.length > 0 &&
+          used.length < targetUnique
+        ) {
+          const next = unused.shift();
+          if (next === undefined) break;
+          nextIndexes.push(next);
+          used.push(next);
+        }
+        return { ...section, imageIndexes: nextIndexes };
+      }
+
+      return section;
+    });
+  }
+
+  return mapped;
 }
 
 function fillDistinctIndexes(
@@ -97,4 +174,9 @@ function fillDistinctIndexes(
     if (!unique.includes(index)) unique.push(index);
   }
   return unique;
+}
+
+/** 프롬프트/로그용: 실제로 몇 장이 쓰였는지 */
+export function countDistinctSectionImages(sections: DetailSection[]): number {
+  return collectUsedIndexes(sections).length;
 }

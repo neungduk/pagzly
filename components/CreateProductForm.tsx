@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase";
 import { countSlotSections, type SlotLength } from "@/lib/section-templates";
 import type { DraftGenerateResponse } from "@/lib/types/generate";
 import type { UploadedImage } from "@/lib/photo-pipeline-client";
+import { MAX_PRODUCT_IMAGES, MIN_AI_USED_IMAGES } from "@/lib/assign-section-images";
 
 const CATEGORIES = [
   "의류/패션",
@@ -25,7 +26,8 @@ const TARGET_CUSTOMERS = [
   "전 연령대",
 ] as const;
 
-const MAX_IMAGES = 5;
+const MAX_IMAGES = MAX_PRODUCT_IMAGES;
+const MIN_IMAGES = MIN_AI_USED_IMAGES;
 const MAX_REVIEW_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png"];
 const REVIEW_TYPES = [
@@ -332,7 +334,14 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       return;
     }
     if (images.length === 0 && !restoredUploads?.length) {
-      setError("상품 사진을 1장 이상 업로드해 주세요.");
+      setError(`상품 사진을 ${MIN_IMAGES}장 이상 업로드해 주세요. (최대 ${MAX_IMAGES}장)`);
+      return;
+    }
+    const imageTotal = images.length > 0 ? images.length : (restoredUploads?.length ?? 0);
+    if (imageTotal < MIN_IMAGES) {
+      setError(
+        `상세페이지 생성에는 사진이 최소 ${MIN_IMAGES}장 필요합니다. (현재 ${imageTotal}장 · 최대 ${MAX_IMAGES}장)`,
+      );
       return;
     }
     if (!productName.trim()) {
@@ -580,7 +589,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           <section className={sectionClass}>
             <h2 className="font-heading text-lg font-bold text-ink">상품 사진</h2>
             <p className="mt-1 text-sm text-ink/60">
-              JPG, PNG · 최대 {MAX_IMAGES}장
+              JPG, PNG · 최소 {MIN_IMAGES}장 · 최대 {MAX_IMAGES}장 · AI가 서로 다른 사진 최소{" "}
+              {MIN_IMAGES}장을 상세페이지에 사용합니다
             </p>
 
             <div

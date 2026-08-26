@@ -122,7 +122,7 @@ export default function ComparisonTable() {
         </div>
       </div>
       <p className="mx-auto mt-8 max-w-4xl px-1 text-xs leading-relaxed text-ink/40">
-        * Pagzly의 소요 시간·비용은 사진 5장 기준 실제 파이프라인(배경 제거·화질
+        * Pagzly의 소요 시간·비용은 사진 7~10장 기준 실제 파이프라인(배경 제거·화질
         보정·배경 생성 + AI 카피 생성) 실행 원가를 집계한 값입니다. 디자인
         외주·템플릿 툴 수치는 국내 셀러들이 일반적으로 겪는 시세 범위입니다.
       </p>

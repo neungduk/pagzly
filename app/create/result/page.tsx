@@ -7,6 +7,7 @@ import { toPng } from "html-to-image";
 import DetailSectionRenderer from "@/components/DetailSectionRenderer";
 import { freezeScrollRevealAnimations, unfreezeScrollRevealAnimations } from "@/components/DetailScrollReveal";
 import DetailActionBar, { type DetailToolTab } from "@/components/DetailActionBar";
+import InstagramFeedPanel from "@/components/InstagramFeedPanel";
 import ToastBanner from "@/components/ToastBanner";
 import { DRAFT_SESSION_KEY, SESSION_KEY } from "@/components/CreateProductForm";
 import type { CustomGifSection, DetailSection, GenerateResponse } from "@/lib/types/generate";
@@ -719,6 +720,17 @@ function CreateResultContent() {
                 {downloadingHtml ? "HTML 준비 중..." : "HTML 내보내기"}
               </button>
             </div>
+          )}
+
+          {generated?.sections && generated.sections.length > 0 && (
+            <InstagramFeedPanel
+              productName={data.productName}
+              brandName={data.brandName}
+              sections={
+                visibleSections.length > 0 ? visibleSections : generated.sections
+              }
+              imageUrls={data.imageUrls}
+            />
           )}
         </div>
 

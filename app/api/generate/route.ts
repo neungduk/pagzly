@@ -690,6 +690,9 @@ imageIndex는 0 ~ ${imageCount - 1} 범위 안에서만 사용하세요.
   material_feature, usage_scenario, package_contents 등): 사진이 2장 이상이면
   **서로 다른 imageIndex**를 쓰세요. 히어로와 같은 사진을 모든 POINT에 반복하지 마세요.
 - gallery / model_multicut: 서로 다른 인덱스를 넣고, 히어로 컷을 그중 한 장만 포함해도 됩니다.
+- **사진 활용 목표**: 업로드가 ${Math.min(7, imageCount)}장 이상이면, 상세페이지 전체에서
+  **서로 다른 imageIndex를 최소 ${Math.min(7, imageCount)}개** 쓰세요. 가능하면 0~${imageCount - 1}
+  전체를 골고루 배정하고, 같은 컷을 image_text·step_card에 중복하지 마세요.
 사진이 1장뿐일 때만 같은 인덱스를 재사용하세요.
 표(spec_table 등) 항목은 상품 정보에 없는 수치를 지어내지 말고, 근거가 없으면
 "판매자 확인 필요" 또는 공란으로 표시하세요.
@@ -890,6 +893,21 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
   parsed.sections = normalizeSectionsToTemplate(parsed.sections, template);
   parsed.sections = ensureAiDisclosure(parsed.sections);
   parsed.sections = assignDistinctSectionImages(parsed.sections, imageCount);
+  const usedDistinct = new Set<number>();
+  for (const section of parsed.sections) {
+    if (section.type === "hero" || section.type === "image_text") {
+      usedDistinct.add(section.imageIndex);
+    } else if (section.type === "gallery") {
+      section.imageIndexes.forEach((i) => usedDistinct.add(i));
+    } else if (section.type === "step_card") {
+      section.steps.forEach((s) => usedDistinct.add(s.imageIndex));
+    } else if (section.type === "color_variation") {
+      section.options.forEach((o) => usedDistinct.add(o.imageIndex));
+    }
+  }
+  console.log(
+    `[images] assigned distinct=${usedDistinct.size}/${imageCount} (target≥${Math.min(7, imageCount)})`,
+  );
   console.log(
     `[images] assigned indexes: ${parsed.sections
       .map((section) => {
@@ -1030,7 +1048,9 @@ export async function POST(request: Request) {
     let enrichedBody: ProductInput = body;
 
     if (!useDraftSections) {
-      const analysisImageLimit = isTestMode() ? TEST_MODE_ANALYSIS_MAX_IMAGES : 5;
+      const analysisImageLimit = isTestMode()
+        ? TEST_MODE_ANALYSIS_MAX_IMAGES
+        : Math.min(10, body.imageUrls.length);
       const [imageAnalysisResult, extractedTheme] = await Promise.all([
         analyzeImagesWithClaude(anthropic, body.imageUrls.slice(0, analysisImageLimit), body),
         extractProductTheme(body.imageUrls).catch((err) => {
