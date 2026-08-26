@@ -150,13 +150,9 @@ export async function POST(request: Request) {
         console.error("[enhance-image] product_images update error", updateError);
       }
 
-      const { error: removeError } = await supabase.storage
-        .from(STORAGE_BUCKET)
-        .remove([storagePath]);
-
-      if (removeError) {
-        console.error("[enhance-image] original remove error", removeError);
-      }
+      // 30차 후속: 원본 storage 파일은 삭제하지 않는다.
+      // 예전에 remove(storagePath) 하면 draft 세션이 옛 URL을 들고 재승인할 때
+      // flux가 404 → 전체 무보정 폴백이 났다. 원본은 orphan cleanup/protected_until로 정리.
     }
 
     return NextResponse.json({

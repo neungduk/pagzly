@@ -309,6 +309,8 @@ export async function enhanceImages(params: {
         applyDecor: isHero,
         reuseDecor: !isHero,
         pathSuffix: "enhanced",
+        // 원본 행·파일을 유지해 draft 재승인 시 옛 URL이 살아 있게 한다 (30차 후속).
+        keepOriginal: true,
         // section backdrop(ingredient/texture)이 실제로 쓰인 경우가 아니라
         // heroBackdrop으로 폴백된 경우에만 "이미 상품이 합성됨" 플래그를 넘긴다.
         backdropAlreadyComposited: resolvedBackdrop === heroBackdrop ? backdropAlreadyComposited : false,
@@ -353,7 +355,7 @@ export async function runPhotoEnhancementPipeline(params: {
   conceptBrief?: ConceptBrief;
   referenceAnalysis?: ReferenceAnalysisInput;
   testMode: boolean;
-} | null> {
+}> {
   const { uploaded, onStage, pickBackdrop } = params;
   onStage?.("backdrop");
 

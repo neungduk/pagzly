@@ -15,6 +15,7 @@
 | R29-DOC | §3 템플릿 동기화, §10 전 카테고리, §11 횡단 리서치 | `review/reference-patterns.md` | 리서치 본문 |
 | R30-A | `SOURCE_IMAGE_EXPIRED` + 무보정 조용한 폴백 제거 | generate-backdrop / photo-pipeline / draft | 30차 2번 |
 | R30-B | `protected_until` 조기 보호 (업로드·승인·enhance + cleanup) | migration / CreateProductForm / protect API / cleanup edge | 30차 1번 승인 구현 |
+| R30-C | enhance 후 원본 삭제 중단 + draft URL을 보정본으로 즉시 동기화 | enhance-image / photo-pipeline / draft | 재승인 404 근본 원인 |
 
 `npx tsc --noEmit` 통과 후 보고.
 

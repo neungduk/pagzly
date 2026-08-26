@@ -247,12 +247,31 @@ export default function CreateDraftPage() {
         onStage: (stage) => setLoadingStage(stage),
       });
 
-      const enhancedImages = photo?.images ?? uploaded;
-      const photoProcessingCost = photo?.photoProcessingCost ?? 0;
+      const enhancedImages = photo.images;
+      const photoProcessingCost = photo.photoProcessingCost ?? 0;
       const photoCostBreakdown = {
         ...(draft.photoCostBreakdown ?? {}),
-        ...(photo?.photoCostBreakdown ?? {}),
+        ...(photo.photoCostBreakdown ?? {}),
       };
+
+      // enhance 직후 draft URL을 보정본으로 갱신 — 이후 /api/generate 실패해도
+      // 재승인 시 삭제된(또는 옛) 원본 URL을 다시 쓰지 않는다.
+      const draftAfterEnhance: DraftSessionPayload = {
+        ...draft,
+        payload: {
+          ...draft.payload,
+          imageUrls: enhancedImages.map((i) => i.url),
+          imagePaths: enhancedImages.map((i) => i.path),
+          photoProcessingCost:
+            ((draft.payload.photoProcessingCost as number) ?? 0) + photoProcessingCost,
+          photoCostBreakdown,
+          conceptBrief: photo.conceptBrief ?? draft.payload.conceptBrief,
+          referenceAnalysis: photo.referenceAnalysis ?? draft.payload.referenceAnalysis,
+        },
+        photoCostBreakdown,
+        referenceAnalysis: photo.referenceAnalysis ?? draft.referenceAnalysis,
+      };
+      persistDraft(draftAfterEnhance);
 
       setLoadingStage("generating");
 
@@ -260,15 +279,14 @@ export default function CreateDraftPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...draft.payload,
+          ...draftAfterEnhance.payload,
           mode: "final",
           imageUrls: enhancedImages.map((i) => i.url),
           imagePaths: enhancedImages.map((i) => i.path),
-          photoProcessingCost:
-            ((draft.payload.photoProcessingCost as number) ?? 0) + photoProcessingCost,
+          photoProcessingCost: draftAfterEnhance.payload.photoProcessingCost,
           photoCostBreakdown,
-          conceptBrief: photo?.conceptBrief ?? draft.payload.conceptBrief,
-          referenceAnalysis: photo?.referenceAnalysis ?? draft.payload.referenceAnalysis,
+          conceptBrief: photo.conceptBrief ?? draft.payload.conceptBrief,
+          referenceAnalysis: photo.referenceAnalysis ?? draft.payload.referenceAnalysis,
           draftSections: draft.sections,
           draftHeadlines: draft.headlines,
           draftDescription: draft.description,
@@ -284,19 +302,19 @@ export default function CreateDraftPage() {
       setOverlaySnap(true);
       await new Promise((r) => setTimeout(r, SNAP_HOLD_MS));
 
-      persistDraft({ ...draft, draftApproved: true });
+      persistDraft({ ...draftAfterEnhance, draftApproved: true });
 
       try {
         sessionStorage.setItem(
           SESSION_KEY,
           JSON.stringify({
-            ...draft.payload,
+            ...draftAfterEnhance.payload,
             imageUrls: json.imageUrls ?? enhancedImages.map((i) => i.url),
             photoCostBreakdown: json.photoCostBreakdown ?? photoCostBreakdown,
-            referenceAnalysis: json.referenceAnalysis ?? draft.referenceAnalysis,
+            referenceAnalysis: json.referenceAnalysis ?? draftAfterEnhance.referenceAnalysis,
             reviewInsights: json.reviewInsights ?? draft.reviewInsights ?? null,
             planningDocText: json.planningDocText ?? draft.planningDocText ?? null,
-            testMode: json.testMode ?? photo?.testMode,
+            testMode: json.testMode ?? photo.testMode,
             generated: json,
             draftApproved: true,
           }),
