@@ -168,7 +168,7 @@ export default function LandingHero({ startHref }: LandingHeroProps) {
 
         <h1
           data-hero-title
-          className="mt-5 max-w-3xl font-heading text-[clamp(1.85rem,5vw,3.5rem)] font-bold leading-[1.08] tracking-[-0.035em] text-paper"
+          className="mt-10 max-w-3xl font-heading text-[clamp(1.85rem,5vw,3.5rem)] font-bold leading-[1.08] tracking-[-0.035em] text-paper sm:mt-12"
         >
           사진 한 장으로,
           <br />
