@@ -13,6 +13,7 @@ import SpotlightCard from "@/components/SpotlightCard";
 import LandingHero from "@/components/LandingHero";
 import LandingMarquee from "@/components/LandingMarquee";
 import LandingProductStage from "@/components/LandingProductStage";
+import LandingScrollFX from "@/components/LandingScrollFX";
 import HistorySidebar from "@/components/HistorySidebar";
 import { createClient } from "@/lib/supabase/server";
 
@@ -187,14 +188,17 @@ export default async function Home() {
       </header>
 
       <main>
+        <LandingScrollFX />
         <LandingHero startHref={startHref} />
         <LandingMarquee />
         <LandingProductStage />
 
-        <CategoryColorEngine />
+        <div data-landing-punch>
+          <CategoryColorEngine />
+        </div>
 
         {/* Comparison */}
-        <section id="comparison" className="border-b border-line bg-white py-24">
+        <section id="comparison" className="border-b border-line bg-white py-24" data-landing-punch>
           <RevealOnScroll intensity="strong" className="mx-auto max-w-6xl px-6">
             <div className="text-center">
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-registration-red">
@@ -216,7 +220,10 @@ export default async function Home() {
         <ShowcaseSection />
 
         {/* Color band — ink 중심 */}
-        <section className="relative overflow-hidden border-b border-line bg-ink">
+        <section
+          className="relative overflow-hidden border-b border-line bg-ink"
+          data-landing-ink-band
+        >
           <div className="pagzly-landing-orb pagzly-landing-orb-a opacity-40" aria-hidden="true" />
           <div className="pagzly-landing-orb pagzly-landing-orb-b" aria-hidden="true" />
           <div className="pagzly-landing-grid opacity-60" aria-hidden="true" />
@@ -237,7 +244,7 @@ export default async function Home() {
         </section>
 
         {/* Process */}
-        <section className="border-b border-line bg-[#F0F4F3] py-24">
+        <section className="border-b border-line bg-[#F0F4F3] py-24" data-landing-punch>
           <div className="mx-auto max-w-6xl px-6">
             <RevealOnScroll intensity="strong">
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-registration-red">
@@ -252,7 +259,7 @@ export default async function Home() {
         </section>
 
         {/* Features */}
-        <section id="features" className="border-b border-line bg-paper py-24">
+        <section id="features" className="border-b border-line bg-paper py-24" data-landing-punch>
           <div className="mx-auto max-w-6xl px-6">
             <div className="grid items-start gap-12 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-16">
               <RevealOnScroll intensity="strong" className="lg:sticky lg:top-28">
@@ -316,7 +323,7 @@ export default async function Home() {
         </section>
 
         {/* Pricing */}
-        <section id="pricing" className="border-b border-line bg-paper py-24">
+        <section id="pricing" className="border-b border-line bg-paper py-24" data-landing-punch>
           <div className="mx-auto max-w-6xl px-6">
             <RevealOnScroll intensity="strong" className="text-center">
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink/40">Pricing</p>
@@ -402,24 +409,32 @@ export default async function Home() {
         </section>
 
         {/* CTA */}
-        <section className="relative overflow-hidden bg-ink py-24">
-          <div className="pagzly-landing-scan" aria-hidden="true" />
+        <section className="relative overflow-hidden bg-ink py-28" data-landing-ink-band>
+          <div className="pagzly-landing-scan pagzly-landing-scan-fast" aria-hidden="true" />
           <div className="pagzly-landing-grid" aria-hidden="true" />
+          <div className="pagzly-landing-orb pagzly-landing-orb-a" aria-hidden="true" />
+          <div className="pagzly-landing-orb pagzly-landing-orb-b" aria-hidden="true" />
           <RevealOnScroll intensity="strong" className="relative mx-auto max-w-6xl px-6 text-center">
-            <p className="font-heading text-[clamp(2.5rem,10vw,6rem)] font-bold leading-none tracking-[-0.05em] text-paper/15">
+            <p className="font-heading text-[clamp(3rem,14vw,8rem)] font-bold leading-none tracking-[-0.06em] text-paper/20">
               Pagzly
             </p>
-            <h2 className="mt-4 font-heading text-2xl font-semibold tracking-normal text-paper sm:text-3xl">
+            <h2 className="mt-2 font-heading text-3xl font-bold tracking-[-0.03em] text-paper sm:text-5xl">
               지금 바로 시작해 보세요
             </h2>
-            <p className="mx-auto mt-4 max-w-xl text-lg text-paper/60">
+            <p className="mx-auto mt-5 max-w-xl text-lg text-paper/65">
               상품 사진 하나만 있으면 2~3분 안에 팔리는 상세페이지가 완성됩니다.
             </p>
             <Link
               href={startHref}
-              className="pagzly-landing-cta mt-8 inline-flex h-12 items-center justify-center bg-paper px-8 text-base font-semibold text-ink transition-transform duration-200 hover:bg-paper/90 active:scale-[0.98]"
+              className="pagzly-landing-cta pagzly-landing-cta-xl group relative mt-10 inline-flex min-h-[3.25rem] items-center justify-center overflow-hidden bg-paper px-10 py-3.5 text-base font-bold text-ink transition-transform duration-200 hover:scale-[1.04] active:scale-[0.98]"
             >
-              무료로 시작하기
+              <span
+                className="pointer-events-none absolute inset-0 translate-y-full bg-registration-red transition-transform duration-300 group-hover:translate-y-0"
+                aria-hidden="true"
+              />
+              <span className="relative z-10 transition-colors duration-300 group-hover:text-paper">
+                무료로 시작하기 →
+              </span>
             </Link>
           </RevealOnScroll>
         </section>

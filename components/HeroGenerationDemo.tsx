@@ -6,8 +6,8 @@ import { slotDisplayLabel } from "@/components/GeneratingOverlay";
 
 const DEMO_CATEGORY = "화장품/뷰티";
 const DEMO_SLOTS = 6;
-const STEP_MS = 700;
-const HOLD_MS = 1200;
+const STEP_MS = 420;
+const HOLD_MS = 900;
 
 /**
  * 히어로용 생성 시뮬레이션 — 실제 카테고리 슬롯 라벨만 순차 완료 (무한 루프).
@@ -79,21 +79,23 @@ export default function HeroGenerationDemo({
           return (
             <li
               key={item.slot}
-              className={`flex items-center justify-between rounded-lg border px-3 py-2 transition-colors ${
+              className={`flex items-center justify-between border-2 px-3 py-2 transition-all ${
                 done
-                  ? "border-registration-red/25 bg-registration-red/5"
+                  ? "border-ink bg-ink text-paper"
                   : active
-                    ? "border-registration-red/40 bg-paper"
+                    ? "border-ink bg-paper shadow-[3px_3px_0_0_#1B1B18]"
                     : "border-line bg-paper/80"
               }`}
             >
-              <span className="text-xs font-semibold text-ink">{item.label}</span>
+              <span className={`text-xs font-semibold ${done ? "text-paper" : "text-ink"}`}>
+                {item.label}
+              </span>
               <span
                 className={`font-mono text-[10px] ${
                   done
-                    ? "text-registration-red"
+                    ? "text-paper/80"
                     : active
-                      ? "text-registration-red/80"
+                      ? "text-ink animate-pulse"
                       : "text-ink/30"
                 }`}
               >

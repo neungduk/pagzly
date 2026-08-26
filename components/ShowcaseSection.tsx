@@ -110,7 +110,7 @@ export default function ShowcaseSection() {
           </p>
         </div>
 
-        <RevealOnScroll stagger className="mt-16 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-5">
+        <RevealOnScroll stagger intensity="strong" className="mt-16 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-5">
           {samples.map((item, index) => {
             const palette = getCategoryTheme(item.categoryKey);
             return (
@@ -118,14 +118,14 @@ export default function ShowcaseSection() {
                 key={item.name}
                 type="button"
                 onClick={() => setSelected(index)}
-                className="group relative aspect-[3/4] overflow-hidden border-2 bg-ink p-0 text-left transition-transform hover:-translate-y-1"
+                className="group relative aspect-[3/4] overflow-hidden border-2 bg-ink p-0 text-left shadow-[0_0_0_0_#1B1B18] transition-all duration-300 hover:-translate-y-2 hover:shadow-[8px_8px_0_0_#FAF8F3]"
                 style={{ borderColor: palette.accent }}
               >
                 <Image
                   src={item.thumb}
                   alt={`${item.name} 상세페이지 예시`}
                   fill
-                  className="object-cover object-top transition-transform duration-500 ease-out group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+                  className="object-cover object-top transition-transform duration-700 ease-out group-hover:scale-110 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                 />
                 <span

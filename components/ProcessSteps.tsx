@@ -65,8 +65,8 @@ export default function ProcessSteps({ steps }: ProcessStepsProps) {
           ref={pathRef}
           d="M 0 6 C 16 6, 16 6, 33 6 S 50 6, 50 6 S 67 6, 67 6 S 84 6, 100 6"
           fill="none"
-          stroke="#c1272d"
-          strokeWidth="1.5"
+          stroke="#1B1B18"
+          strokeWidth="2"
           strokeLinecap="round"
           vectorEffect="non-scaling-stroke"
         />
@@ -76,10 +76,10 @@ export default function ProcessSteps({ steps }: ProcessStepsProps) {
         {steps.map((item) => (
           <SpotlightCard
             key={item.step}
-            className="relative border border-line bg-white p-8 transition-transform duration-300 hover:-translate-y-1"
+            className="relative border-2 border-ink/15 bg-white p-8 shadow-[6px_6px_0_0_#1B1B18] transition-transform duration-300 hover:-translate-y-2 hover:shadow-[10px_10px_0_0_#1B1B18]"
           >
             <CropMarks />
-            <span className="font-mono text-sm font-semibold text-registration-red">
+            <span className="font-mono text-sm font-semibold text-ink">
               STEP {item.step}
             </span>
             <h3 className="mt-4 font-heading text-xl font-bold text-ink">{item.title}</h3>
