@@ -1186,9 +1186,9 @@ const SECTION_BACKDROP_PROMPTS_BY_CATEGORY: Record<
 > = {
   "화장품/뷰티": {
     ingredient:
-      "extreme close-up of a glowing pastel-toned studio surface, soft {{TONE}} gradient, delicate light bokeh and gentle specular highlights, luminous radiant K-beauty mood, no bottle, no dropper, no product, no packaging, no text, no logo, no human skin, no flat gray, product photography empty backdrop",
+      "extreme close-up of a glowing pastel-toned studio surface, soft {{TONE}} gradient, delicate light bokeh and gentle specular highlights, luminous radiant K-beauty mood, no bottle, no dropper, no product, no packaging, no text, no logo, no human skin, no flat gray, no glass container, no drinking glass, no vessel, no cup, no beaker, no jar, no card, no rectangle, no frame, no UI panel, no watermark box, product photography empty backdrop",
     texture:
-      "macro photograph of a glowing pastel-toned formula droplet or gentle swirl on a soft {{TONE}} surface, luminous highlight, shallow depth of field, vivid radiant color, no bottle, no packaging, no hands, no text, no logo, no flat gray, empty formula-only frame",
+      "macro photograph of a glowing pastel-toned formula droplet or gentle swirl on a soft {{TONE}} surface, luminous highlight, shallow depth of field, vivid radiant color, no bottle, no packaging, no hands, no text, no logo, no flat gray, no glass container, no drinking glass, no vessel, no cup, no beaker, no jar, no card, no rectangle, no frame, no UI panel, no watermark box, empty formula-only frame",
   },
   "전자제품": {
     ingredient:
@@ -1274,6 +1274,7 @@ export async function generateSectionBackdropVariants(
         conceptBlock,
         lock,
         "obey lighting lock color temperature exactly, no golden hour, no amber gel",
+        "no glass container, no drinking glass, no vessel, no cup, no beaker, no jar, no card, no rectangle, no frame, no UI panel, no watermark box, keep background empty and out of focus",
       ]
         .filter(Boolean)
         .join(", ");

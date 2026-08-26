@@ -636,11 +636,23 @@ export function buildSectionLengthGuide(category: string): string {
   }
 
   if (category === "의류/패션") {
-    return `\n\n## 패션/의류 카피 길이·컨셉 정합\n${common}\n- color_variation 옵션 label: 색상명 + 짧은 수식 (예: "차콜 그레이"), 4~8자.\n- coordination body: 코디 장면 묘사 1~2문장 (예: "데님과 매치하면 캐주얼하게, 슬랙스와 매치하면 포멀하게").\n- fabric_composition(spec_table): 소재/혼용율은 입력에 있는 값만 쓰고, 없으면 "판매자 확인 필요".\n- fit_guide body: 핏 설명 2문장 이내 (예: "루즈핏이라 한 치수 크게 나옵니다. 편안한 착용감을 원하시면 정사이즈를 추천해요.").`;
+    return `\n\n## 패션/의류 카피 길이·컨셉 정합\n${common}\n- color_variation 옵션 label: 색상명 + 짧은 수식 (예: "차콜 그레이"), 4~8자.\n- coordination body: 코디 장면 묘사 1~2문장 (예: "데님과 매치하면 캐주얼하게, 슬랙스와 매치하면 포멀하게").\n- fabric_composition(spec_table): 소재/혼용율은 입력에 있는 값만 쓰고, 없으면 "판매자 확인 필요".\n- size_table: 호칭(S/M/L)만으로 cm을 지어내지 말 것. 실측이 입력에 없으면 "판매자 확인 필요".\n- fit_guide body: 핏 설명 2문장 이내 (예: "루즈핏이라 한 치수 크게 나옵니다. 편안한 착용감을 원하시면 정사이즈를 추천해요.").`;
   }
 
   if (category === "식품/건강기능식품") {
     return `\n\n## 식품 카피 길이·컨셉 정합\n${common}\n- cooking_steps: 각 단계 title 6자 내외 + body 1문장.\n- sourcing_story body: 원산지/생산 배경 2~3문장, 과장 없이 사실 위주.\n- serving_suggestion body: 섭취/제공 장면 1~2문장.\n- storage_tip body: 보관 방법 1문장.`;
+  }
+
+  if (category === "전자제품") {
+    return `\n\n## 전자/가전 카피 길이·컨셉 정합\n${common}\n- feature_detail body: 기능 1개당 2문장 이내. 헤드라인 숫자 훅은 입력에 있는 수치만.\n- package_contents body: 구성품 1~2문장, 없는 구성품 지어내지 말 것.\n- connectivity / install_scenario body: 호환·설치 정보는 입력 스펙만, 각 2문장 이내.\n- comparison_table: 없는 스펙·벤치마크 날조 금지.`;
+  }
+
+  if (category === "생활용품") {
+    return `\n\n## 생활용품 카피 길이·컨셉 정합\n${common}\n- material_feature / material_detail body: 각 2문장 이내, 내구성 수치는 입력에 있을 때만.\n- usage_scenario / usage_scenario_extra body: 사용 장면 1~2문장, 한 섹션에 주장 하나.\n- care_tip body: 관리·세척 1문장.`;
+  }
+
+  if (category === "반려동물") {
+    return `\n\n## 반려동물 카피 길이·컨셉 정합 (생활/리빙 슬롯 폴백)\n${common}\n- 보호자 관점(안전·성분·사용법) 중심. 질병 치료·예방·수명 연장 단정 금지.\n- material_feature body: 입력된 성분·원산지만 2~3문장.\n- usage_scenario / usage_scenario_extra body: 급여·사용 장면 1~2문장. 체중별 급여량은 입력 수치가 있을 때만.\n- care_tip body: 보관·취급 1문장.\n- spec_table: 없는 영양·함량 %를 만들지 말 것.`;
   }
 
   return `\n\n## 카피 길이·리듬 정합\n${common}`;

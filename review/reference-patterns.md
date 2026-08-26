@@ -5,7 +5,7 @@ Claude Code / QA 루프가 상세페이지 품질을 판단할 때 참고하는 
 상세페이지처럼 보이려면 어떤 시각 언어를 써야 하는가"에 대한 방향성 레퍼런스입니다.
 
 생성 일: 2026-08-14  
-업데이트: 2026-08-15 — 외부 상세페이지 4곳 스크린샷 분석 반영  
+업데이트: 2026-08-26 — 29차 전 카테고리 §10 확장 + 횡단 CRO 리서치  
 파이프라인 버전: concept-brief v1 (컨셉 브리프 → 배경/장식/아이콘/카피 공통 주입)  
 디자인 시스템 소스: `lib/design-tokens.ts` (`review/DESIGN_SYSTEM.md`는 저장소에 없음)
 
@@ -103,44 +103,64 @@ DeepSeek `generateConceptBrief()`가 상품 정보를 보고 아래와 유사한
 
 ## 3. 섹션 순서 템플릿 (카테고리별)
 
-`lib/section-templates.ts`와 동기화. AI는 슬롯 **순서/종류를 바꾸지 않고**
-콘텐츠만 채웁니다.
+`lib/section-templates.ts`의 `CATEGORY_SLOT_TEMPLATES`와 동기화 (2026-08-26 재대조).
+AI는 슬롯 **순서/종류를 바꾸지 않고** 콘텐츠만 채웁니다. 아래는 가독용 요약이며
+선택 슬롯·반복 슬롯 세부 note는 소스 코드를 따른다.
 
 ### 화장품/뷰티
 
 ```
-hero → checklist → ingredient_highlight → texture_feel(선택)
-  → usage_steps → gallery → spec_table → caution → cta_price
+hero → brand_story? → checklist → quick_points(×2~4) → target_persona?
+  → ingredient_highlight → texture_feel? → highlight_box → illustration_banner?
+  → step_card → gallery → stat_infographic? → comparison_chart? → spec_table
+  → faq? → caution → packaging_design → how_it_works → size_options
+  → customer_scenario → shipping_info? → ai_disclosure → cta_price
 ```
 
-### 의류/패션
+### 의류/패션 → 템플릿 `패션/의류`
 
 ```
-hero → checklist → detail_zoom → model_multicut → size_table(선택)
-  → color_variation(선택) → care_guide → cta_price
+hero → brand_story? → checklist → quick_points → target_persona?
+  → detail_zoom → model_multicut → size_table → faq?
+  → color_variation? → coordination? → illustration_banner?
+  → care_info → fabric_composition → fit_guide → packaging_design
+  → seasonal_styling → shipping_info? → ai_disclosure → cta_price
 ```
 
-### 식품
+### 식품/건강기능식품 → 템플릿 `식품`
 
 ```
-hero → checklist → origin_story → nutrition_highlight → usage_steps
-  → gallery → spec_table → caution → cta_price
+hero → brand_story? → checklist → quick_points → target_persona?
+  → ingredient_highlight → texture_closeup? → illustration_banner?
+  → cooking_steps? → packaging(gallery) → stat_infographic? → comparison_chart?
+  → nutrition_table → faq? → caution → sourcing_story → serving_suggestion
+  → packaging_design → storage_tip → shipping_info? → ai_disclosure → cta_price
 ```
 
-### 전자제품
+### 전자제품 → 템플릿 `전자/가전`
 
 ```
-hero → checklist → feature_highlight → spec_table → comparison_table(선택)
-  → gallery → caution → cta_price
+hero → brand_story? → checklist → quick_points → target_persona?
+  → feature_detail(×1~3) → comparison_table? → usage_scenario?
+  → stat_infographic? → comparison_chart? → spec_table → faq?
+  → package_contents → illustration_banner? → warranty_caution
+  → design_detail → connectivity → install_scenario
+  → shipping_info? → ai_disclosure → cta_price
 ```
 
-### 생활용품
+### 생활용품 / 반려동물 / 기타 → 템플릿 `생활/리빙` (HOME_FALLBACK)
 
 ```
-hero → checklist → usage_scene → detail_zoom → usage_steps
-  → spec_table → cta_price
+hero → brand_story? → checklist → quick_points → target_persona?
+  → material_feature → usage_scenario? → illustration_banner?
+  → gallery → spec_table → faq? → caution?
+  → material_detail → usage_scenario_extra → packaging_design → care_tip
+  → shipping_info? → ai_disclosure → cta_price
 ```
 
+> **반려동물:** 폼 카테고리 `"반려동물"`은 `CATEGORY_TO_TEMPLATE`에서
+> `생활/리빙`으로 폴백된다. 전용 템플릿 신설 여부는
+> `review/upgrade-proposals.md` P1 제안 — **이번 라운드에서 슬롯 신설 금지**.
 ---
 
 ## 4. 컨셉이 적용되는 섹션별 패턴
@@ -214,12 +234,13 @@ hero → checklist → usage_scene → detail_zoom → usage_steps
 | `lib/concept-brief.ts` | 컨셉 브리프 생성 |
 | `lib/concept-icons.ts` | checklist/usage_steps 아이콘 |
 | `lib/photo-enhance.ts` | 배경·장식·합성 |
-| `lib/design-tokens.ts` | 3색 규칙 |
-| `lib/section-templates.ts` | 슬롯 순서 |
+| `lib/design-tokens.ts` | 3색 규칙·히어로-only 장식 |
+| `lib/section-templates.ts` | 슬롯 순서·`buildSectionLengthGuide` |
+| `lib/backdrop-prompt-templates.ts` | 카테고리별 촬영 템플릿 |
 | `review/CHECKLIST.md` | pass/fail 체크리스트 |
+| `review/backdrop-prompt-templates.md` | 배경 프롬프트 문서 미러 |
 | `review/photo-sources.md` | 테스트용 스톡 사진 출처 |
-| `lib/design-tokens.ts` | 토큰·3색·히어로-only 장식의 실제 소스 |
-
+| `review/upgrade-proposals.md` | 29차 코드 변경 제안 목록 (구현 대기) |
 ---
 
 ## 8. 외부 레퍼런스 상세페이지 (2026-08-15)
@@ -338,22 +359,180 @@ hero → checklist → usage_scene → detail_zoom → usage_steps
 ## 10. 카테고리 구조 패턴 (카피·모델컷 비복제)
 
 브랜드명·세일즈 문구·특정 모델 사진은 베끼지 않는다. **배치 구조만** 참고한다.
+후기·채팅형 리뷰·인증 배지·QC 그리드는 레퍼런스에 있어도 **신설/모방 금지**.
 
-### 뷰티/스킨케어
+### 10.1 뷰티/스킨케어 (보강 · 2026-08-26)
 
-| 구조 | 우리 슬롯·렌더러 | 하지 말 것 |
-|------|-------------------|------------|
-| 두 컷 나란히 비교 | `gallery` 2열 + BEFORE/AFTER **레이블만** (구조). 임상 전후 연출·효능 단정 금지 | 특정 브랜드 B/A 카피 복제 |
-| 성분·질감 매크로 | `ingredient_highlight` / `texture_feel`에 서로 다른 원본 배정. 성분 슬롯은 짧은 액센트 밴드 | 히어로 장식을 본문에 복제 |
-| 수치 막대 | `spec_table` 값에 `%`가 **이미 있을 때만** 가로 바. 없는 수치는 만들지 않음 | 가짜 임상 데이터 |
-| 단계 사용법 | `usage_steps`에 STEP 01/02/03 라벨 | 새 슬롯 신설 |
-| 성분 하이라이트 밴드 | ingredient 텍스트 블록 위 짧은 accent 바 (3색 안) | 네이비 솔리드 풀폭 밴드 |
-
-### 전자기기
+**레퍼런스 근거:** §8 Shooter / 코슈마드 / 로이엘 + 1분상세·쿠팡 뷰티 구성 가이드(2026).
 
 | 구조 | 우리 슬롯·렌더러 | 하지 말 것 |
 |------|-------------------|------------|
-| 스펙 비교표 | `comparison_table` (COMPARE 라벨) + 필수 `spec_table` | 없는 스펙 날조 |
-| 구성품 플랫레이 | `package_contents` 1:1 컷 | 브랜드 언박싱 박스 로고 |
-| 숫자 강조 헤드라인 | 히어로 `tabular-nums` + feature 카피의 짧은 숫자 훅 | 타사 슬로건 복제 |
-| 사용 시나리오 | `usage_scenario` 라이프스타일 컷 | 후기 모자이크 |
+| 두 컷 나란히 비교 | `gallery` 2열 + BEFORE/AFTER **레이블만**. 임상 전후·효능 단정 금지 | 특정 브랜드 B/A 카피 복제 |
+| 성분·질감 매크로 | `ingredient_highlight` / `texture_feel`에 서로 다른 원본 | 히어로 장식을 본문에 복제 |
+| 수치 막대 | 입력에 `%`가 **있을 때만** `stat_infographic`/`spec_table` | 가짜 임상 데이터 |
+| 단계 사용법 | `step_card` (STEP 라벨은 렌더러) | 새 슬롯 신설 |
+| 효과 3축 요약 | `highlight_box` 카드 3장, 강조는 2번째 | checklist와 동일 문구 반복 |
+| 성분 하이라이트 밴드 | ingredient 위 짧은 accent 바 (3색 안) | 네이비 솔리드 풀폭 밴드 |
+| 데일리 루틴 | `customer_scenario` 1장면 1주장 | 후기 모자이크 |
+
+### 10.2 전자기기 (보강 · 2026-08-26)
+
+**레퍼런스 근거:** §8 Shooter(뷰티지만 메커니즘·스펙 리듬 참고) + Amazon A+/DTC 스펙 모듈 관행 + 우리 ELECTRONICS 템플릿.
+
+| 구조 | 우리 슬롯·렌더러 | 하지 말 것 |
+|------|-------------------|------------|
+| 스펙 비교표 | `comparison_table` + 필수 `spec_table` | 없는 스펙 날조 |
+| 숫자 훅 기능 컷 | `feature_detail` 반복(최대 3), 입력 숫자만 | 타사 슬로건 복제 |
+| 구성품 플랫레이 | `package_contents` 1:1 | 브랜드 언박싱 로고 |
+| 실사용/설치 | `usage_scenario` / `install_scenario` | 후기 모자이크 |
+| 호환·연결 | `connectivity` — 입력 스펙만 | 미지원 규격 암시 |
+| A/S·주의 | `warranty_caution` | 보증 기간 날조 |
+
+### 10.3 의류/패션 (신규 · 2026-08-26)
+
+**레퍼런스 근거 (구조만, 카피 비복제):**
+| # | 출처 | URL / 근거 |
+|---|------|------------|
+| 1 | 1분상세 — 패션 상세 가이드 2026 | https://1minutesangse.com/guides/fashion-detail-page |
+| 2 | LaonGEN — 착용·디테일·사이즈·코디 순서 | https://laongen.com/blog/ko/detail-page-images/ |
+| 3 | GENCY 블로그 — 전면/후면/디테일/코디 배치 | https://blog.gency.ai/clothing-detail-page-design |
+| 4 | 무신사 실측 사이즈 표기 관행 정리 | https://jdgwm.tistory.com/361 |
+| 5 | §8 Polo Ralph Lauren (미니멀·다각도 갤러리) | pixelvibe 캡처 경로 §8 |
+
+**시장 관측 구조 (흉내낼 배치):**
+메인(착장) → 전/측/후 착용 멀티컷 → 디테일(원단·봉제) → **cm 실측 사이즈표** → 소재·세탁 → 색상 옵션 → 코디 제안 → CTA.  
+핵심 설득축은 “예쁜 화보”가 아니라 **반품 불안 제거(사이즈·소재·색)**.
+
+| 구조 | 우리 슬롯·렌더러 | 하지 말 것 |
+|------|-------------------|------------|
+| 착장 히어로 | `hero` 4:5 착장/대표컷 | 타 브랜드 룩북 문구 |
+| 다각도 착용 | `model_multicut` gallery (서로 다른 컷) | 같은 컷 반복 패딩 |
+| 원단·봉제 매크로 | `detail_zoom` + `fabric_composition` | 히어로 장식 재사용 |
+| cm 실측 사이즈 | `size_table` — **입력 실측만**, 없으면 "판매자 확인 필요" | S/M/L만으로 가짜 cm 생성 |
+| 색상 옵션 | `color_variation` (선택) | 없는 컬러웨이 날조 |
+| 코디 제안 | `coordination` / `seasonal_styling` 각 1장면 | 인플루언서 후기 그리드 |
+| 핏 설명 | `fit_guide` 2문장 이내 | 체형별 후기 카드 |
+| 세탁·관리 | `care_info` | 취급표시 없는 세탁법 단정 |
+
+### 10.4 식품/건강기능식품 (신규 · 2026-08-26)
+
+**레퍼런스 근거:**
+| # | 출처 | URL / 근거 |
+|---|------|------------|
+| 1 | 마켓컬리 PDP — 원산지·알레르기·고시정보 블록 | https://www.kurly.com/goods/5063110 외 |
+| 2 | 1분상세 — 식품 표시·표현 주의 2026 | https://1minutesangse.com/guides/food-detail-page |
+| 3 | 쿠팡 상세 가이드 — 필수 표기·모바일 구성 | https://blog.gencystudio.com/coupang-detailpage-guide |
+| 4 | 컬리 스크래퍼 필드 목록(원산지·보관·영양) | https://thunderbit.com/ko/template/market-kurly-scraper |
+
+**시장 관측 구조:** 플레이팅 히어로 → 원재료/원산지 Why → 맛·식감 클로즈업 → 조리·섭취 → 영양/알레르기 표 → 보관·주의 → 서빙 제안 → CTA.  
+설득은 **사실 표시(원산지·보관·알레르기)** 가 먼저이고, 스토리는 그 다음.
+
+| 구조 | 우리 슬롯·렌더러 | 하지 말 것 |
+|------|-------------------|------------|
+| 완성/플레이팅 히어로 | `hero` | 타사 레시피 카피 |
+| 원재료·원산지 Why | `ingredient_highlight` + `sourcing_story` | 없는 산지·함량 날조 |
+| 식감 매크로 | `texture_closeup` | 임상·효능 수치 |
+| 조리/섭취 | `cooking_steps` (가공식품만) | 치료·예방 표현 (`food-compliance`) |
+| 영양·알레르기 표 | `nutrition_table` — 입력값만 | 가짜 kcal/% |
+| 보관·주의 | `caution` + `storage_tip` | 유통기한 임의 생성 |
+| 서빙 장면 | `serving_suggestion` 1~2문장 | 후기·인증 배지 그리드 |
+
+### 10.5 생활용품 (신규 · 2026-08-26)
+
+**레퍼런스 근거:**
+| # | 출처 | URL / 근거 |
+|---|------|------------|
+| 1 | 1분상세 — 상세 구성 후킹→설득→신뢰 | https://1minutesangse.com/guides/detail-page-howto |
+| 2 | 쿠팡 상세 성공 전략 — 생활용품 키워드·모바일 | https://oscsnm.com/coupang-detail-page-strategy/ |
+| 3 | 쿠팡 상세 가이드 2026 — 사용법·구성품 | https://blog.gencystudio.com/coupang-detailpage-guide |
+| 4 | §8 공통 리듬 (풀폭 컷 × 짧은 카피 교차) | 본 문서 §8.3 |
+
+**시장 관측 구조:** 제품 히어로 → 핵심 혜택 3~4 → 소재/내구성 → **사용 시나리오 컷** → 다각도 갤러리 → 스펙·사이즈 → 관리/세척 → CTA.
+
+| 구조 | 우리 슬롯·렌더러 | 하지 말 것 |
+|------|-------------------|------------|
+| 혜택 훅 | `checklist` + `quick_points` compact | 한 섹션에 주장 여러 개 |
+| 소재·내구성 | `material_feature` + `material_detail` | 미검증 내구 수치 |
+| 사용 장면 | `usage_scenario` + `usage_scenario_extra` | 후기 UGC 모자이크 |
+| 다각도 | `gallery` | 히어로 컷 전면 재사용 |
+| 스펙 | `spec_table` 입력값만 | 치수 날조 |
+| 관리 | `care_tip` 1문장 | 네이비 솔리드 USP 밴드 |
+
+### 10.6 반려동물 (신규 · 판단 포함 · 2026-08-26)
+
+**레퍼런스 근거:**
+| # | 출처 | URL / 근거 |
+|---|------|------------|
+| 1 | moai category-pet — 이중 페르소나·급여 모듈 | https://github.com/modu-ai/moai-cowork/blob/main/plugins/moai-seller/skills/commerce-detail-page-planner/references/category-pet.md |
+| 2 | 1분상세 — 식품형 표시·과장 금지 (펫푸드 인접) | https://1minutesangse.com/guides/food-detail-page |
+| 3 | 쿠팡 상세 가이드 — 성분·주의 표기 | https://blog.gencystudio.com/coupang-detailpage-guide |
+
+**시장 관측 구조:** 제품 히어로 → 보호자 페인(안전·성분) → 성분/원료 강조 → 기호·사용 장면 → (입력 있을 때) 체중별 급여 표 → 보관·주의 → CTA.  
+카피는 **보호자 90% / 동물 반응 10%**. 치료·예방·수명 연장 단정 금지.
+
+**전용 템플릿 필요 여부 (제안만, 미구현):**
+
+| 판단 | 근거 |
+|------|------|
+| **당장 필수 아님** | HOME_FALLBACK의 material / usage_scenario / spec_table / care_tip / caution으로 성분·사용·보관 리듬을 거의 커버 |
+| **중기 후보** | 체중별 급여표·종/연령 추천·기호성 클로즈업은 FOOD의 `nutrition_table`/`cooking_steps`와 더 가깝다. 펫 매출 비중이 커지면 `반려동물` → 전용 TemplateCategory 분기를 **별도 브리프**로 |
+| **지금 하지 말 것** | 수의사 추천 배지·반응 후기 그리드·인증 슬롯 신설 |
+
+| 구조 | 우리 슬롯·렌더러 (현행 폴백) | 하지 말 것 |
+|------|------------------------------|------------|
+| 성분·안전 | `material_feature` + 입력 `ingredients` | "100% 안전", 질병 치료 |
+| 사용/급여 장면 | `usage_scenario(_extra)` | 가짜 급여량 표 |
+| 스펙 | `spec_table` 입력만 | 단백질 % 날조 |
+| 보관·주의 | `care_tip` / `caution` | 수의사 미검증 추천 배지 |
+
+---
+
+## 11. 카테고리 횡단 리서치 (2026-08-26)
+
+### 11.1 CRO / UX — One Big Point per Section은 여전히 유효
+
+| 출처 | 요지 | 우리 문서 반영 |
+|------|------|----------------|
+| ezcommerce / Baymard PDP 2026 | above-the-fold는 핵심만; 모바일 sticky CTA; 스크롤 존마다 한 가지 불안 해소 | §8.3 유지·강화 |
+| D2C Times PDP systems | 스크롤 존 = buyer objection 순서; mid-page trust cascade | AIDA 슬롯 리듬과 정합 |
+| RevvUp Shopify PDP | 섹션당 사실 1개, AI/스캔 가독성 | `buildSectionLengthGuide` 글자수 규율과 정합 |
+
+**업데이트 결론:** §8.3 "한 스크롤 깊이에 주장 하나"는 2026 자료에서도 유효. 변경보다 **전 카테고리 균등 적용**(27차 길이 규율 일반화)이 우선.
+
+### 11.2 크라우드펀딩(와디즈형) / Shopify DTC / Amazon A+
+
+- **정보 밀도:** 스펙·비교·주의가 하단 정보형 블록으로 몰림 → 우리 `spec_table` / `comparison_*` / `caution` / `faq` 배치와 맞음. 레이아웃은 풀폭 단색 + 짧은 표, 카드 숲 지양.
+- **미니멀 프리미엄:** §8.6 유지. 여백은 토큰 48/80 스케일.
+- **A+ Content:** 모듈형 “한 모듈=한 혜택” → quick_points / feature_detail과 동일 철학.
+
+### 11.3 경쟁 AI 상세 툴 (베끼지 않고 실패 모드만)
+
+| 툴 | 관찰 | Pagzly가 의식할 실패 모드 |
+|----|------|---------------------------|
+| GENCY | 패션 특화, 컷 자동 분류·배치 | 패션에서 사진 역할(착장/디테일/코디) 혼동 → 이미지 배정 다양성 |
+| draph.art | 빠른 레이아웃+카피, 대화형 수정 | 범용 템플릿 카피 장황 → 길이 규율·섹션 AI 패치로 대응 |
+| 1분상세 | 초안+자유 배치 | 법정 표시·사실 검수 누락 위험 → 우리 compliance/QA 유지 |
+
+Pagzly 강점 후보: 컨셉 브리프 일관성, 식약처/식품 컴플라이언스, 업로드 실사 합성, 슬롯 고정(환각 섹션 억제).  
+약점 후보: 패션 컷 역할 분류, 펫 전용 모듈, 경쟁 대비 “즉시 템플릿 교체” UX.
+
+### 11.4 시스템 약점 재점검 (코드 대조 요약)
+
+| 질문 | 판정 | 다음 액션 |
+|------|------|-----------|
+| 템플릿 5종이 시장 구조와 맞는가? | 대체로 맞음. §3 문서가 코드보다 낡았음 → **이번 라운드 §3 동기화** | 슬롯 순서 변경은 제안만 (`upgrade-proposals`) |
+| 3색 규칙이 카테고리별 충분한가? | 충분. 카테고리 고정색이 아니라 상품 추출색이 핵심 (`CHECKLIST`) | 카테고리별 4~5색 확장 **비권장** |
+| “화장품만 있던” 패턴 잔존? | 27차로 카피 길이 일반화됨. `concept-brief` FALLBACK은 화장품만 상세 → **소규모 보완** | 펫/생활/전자 길이 가이드 보강 |
+| 반려동물 폴백 | 구조적으로 당장 OK, 카피 톤만 펫 인식 필요 | 전용 템플릿은 P1 제안 |
+
+코드 변경 제안의 전체 목록·우선순위는 **`review/upgrade-proposals.md`**.
+
+---
+
+## 12. 절대 규칙 재확인 (리서치 확대해도 불변)
+
+1. 브랜드 카피·슬로건 비복제 — 배치만.
+2. 후기·인증·QC 그리드 신설 금지.
+3. 없는 수치·스펙·임상 데이터 금지.
+4. `section-templates` 슬롯 순서/종류는 승인 전 변경 금지.
+5. 3색 + 히어로-only 장식 위반 연출 금지.

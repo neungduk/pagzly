@@ -61,7 +61,7 @@ export const CONCEPT_EFFECT_MAP: ConceptEffectSpec[] = [
     ],
     overlayPrompt: `photorealistic floating water droplets and dewy condensation only, isolated on a pure black background, crisp specular highlights, high contrast, ${NO_TEXT_PROMPT}`,
     blend: "screen",
-    opacity: 0.48,
+    opacity: 0.22,
   },
   {
     id: "cooling",
@@ -83,7 +83,7 @@ export const CONCEPT_EFFECT_MAP: ConceptEffectSpec[] = [
     ],
     overlayPrompt: `cool mint mist and tiny ice-like particles only, isolated on a pure black background, soft cyan-teal highlights, ${NO_TEXT_PROMPT}`,
     blend: "screen",
-    opacity: 0.4,
+    opacity: 0.2,
   },
   {
     id: "nourishing",
@@ -102,7 +102,7 @@ export const CONCEPT_EFFECT_MAP: ConceptEffectSpec[] = [
     ],
     overlayPrompt: `creamy golden oil droplets and warm glow only, isolated on a pure black background, soft bokeh, ${NO_TEXT_PROMPT}`,
     blend: "screen",
-    opacity: 0.38,
+    opacity: 0.18,
   },
   {
     id: "cleansing",
@@ -121,7 +121,7 @@ export const CONCEPT_EFFECT_MAP: ConceptEffectSpec[] = [
     ],
     overlayPrompt: `soft white foam bubbles and airy lather clusters only, isolated on a pure black background, translucent soap bubbles with highlights, ${NO_TEXT_PROMPT}`,
     blend: "screen",
-    opacity: 0.45,
+    opacity: 0.22,
   },
   {
     id: "tech-glow",
@@ -129,7 +129,7 @@ export const CONCEPT_EFFECT_MAP: ConceptEffectSpec[] = [
     keywords: ["파동", "테크", "사운드", "orbit", "echo", "wave", "tech", "glow", "ring"],
     overlayPrompt: `thin luminous rings and soft tech light particles only, isolated on a pure black background, subtle cyan-white glow, ${NO_TEXT_PROMPT}`,
     blend: "screen",
-    opacity: 0.38,
+    opacity: 0.18,
   },
   {
     id: "warm-light",
@@ -137,7 +137,7 @@ export const CONCEPT_EFFECT_MAP: ConceptEffectSpec[] = [
     keywords: ["온기", "캔들", "따뜻", "자연광", "warm", "amber", "candle", "bokeh"],
     overlayPrompt: `warm amber bokeh and soft candlelight haze only, isolated on a pure black background, gentle highlights, ${NO_TEXT_PROMPT}`,
     blend: "soft-light",
-    opacity: 0.45,
+    opacity: 0.2,
   },
 ];
 
@@ -341,15 +341,33 @@ export async function overlayConceptEffectOnProduct(
     .raw()
     .toBuffer({ resolveWithObject: true });
 
+  // 2026-08-26 (28차): compositeDecorOnBackdrop과 동일 방어 —
+  // flux-schnell의 불완전한 순흑 배경이 luma 하드컷에서 유령 사각형으로
+  // 남던 문제를 (1) 중앙 안전지대 vignette (2) 15~45 luma 램프로 완화.
+  const vignetteSvg = `
+    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="v" cx="50%" cy="50%" r="65%">
+          <stop offset="0%" stop-color="white" stop-opacity="0" />
+          <stop offset="55%" stop-color="white" stop-opacity="0" />
+          <stop offset="100%" stop-color="white" stop-opacity="1" />
+        </radialGradient>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#v)" />
+    </svg>`;
+  const vignette = await sharp(Buffer.from(vignetteSvg))
+    .resize(width, height)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
   const pixels = resized.data;
   for (let i = 0; i < pixels.length; i += 4) {
     const pixelLuma =
       0.2126 * pixels[i] + 0.7152 * pixels[i + 1] + 0.0722 * pixels[i + 2];
-    if (pixelLuma < 28) {
-      pixels[i + 3] = 0;
-    } else {
-      pixels[i + 3] = Math.round(pixels[i + 3] * opacity);
-    }
+    const lumaFactor = Math.min(1, Math.max(0, (pixelLuma - 15) / 30));
+    const vignetteFactor = vignette.data[i + 3] / 255;
+    pixels[i + 3] = Math.round(pixels[i + 3] * opacity * lumaFactor * vignetteFactor);
   }
 
   const effect = await sharp(pixels, {

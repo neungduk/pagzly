@@ -64,6 +64,62 @@ const FALLBACK_BY_CATEGORY: Record<string, ConceptBrief> = {
       "soft side lighting, fine water droplets scattered directly on a surface, dewy surface sheen, no glass container, no drinking glass, no vessel, no cup, no text, no product",
     icon_style: "minimal water droplet and sparkle badge icon, soft circular frame",
   },
+  "의류/패션": {
+    theme: "에디토리얼 / 내추럴 라이프",
+    motif_keywords: ["린넨 질감", "자연광", "미니멀 실루엣", "원단 드레이프"],
+    mood: "편안하고 세련된",
+    backdrop_hint:
+      "warm editorial daylight, soft neutral fabric texture backdrop, shallow depth of field, empty fitting studio, no mannequin, no product",
+    copy_tone: "핏·소재·코디를 짧고 구체적으로. 과장 없이 착용 장면 중심.",
+    decor_prompt:
+      "soft fabric folds and subtle light rays, no text, no product, no logo",
+    icon_style: "minimal flat textile or fit badge icon, soft circular frame",
+  },
+  "식품/건강기능식품": {
+    theme: "신선 원재료 / 홈메이드",
+    motif_keywords: ["곡물", "허브", "따뜻한 빛", "원재료"],
+    mood: "정직하고 건강한",
+    backdrop_hint:
+      "warm kitchen daylight, rustic wooden table blur, fresh ingredients out of focus, empty plating surface, no product packaging text",
+    copy_tone: "원산지·재료·보관은 사실 위주. 효능·치료·예방 단정 금지.",
+    decor_prompt:
+      "scattered herb leaves and warm steam wisps, no text, no product, no logo",
+    icon_style: "simple ingredient circle badge icon, soft circular frame",
+  },
+  "전자제품": {
+    theme: "테크 미니멀",
+    motif_keywords: ["기하학", "쿨 그레이", "정밀함", "반사광"],
+    mood: "깔끔하고 신뢰감 있는",
+    backdrop_hint:
+      "cool gray gradient studio, subtle geometric shapes, soft specular highlights, empty tech desk, no product, no screens with text",
+    copy_tone: "스펙·숫자는 입력값만. 짧고 검증 가능한 기능 훅.",
+    decor_prompt:
+      "thin light lines and soft reflection arcs, no text, no product, no logo",
+    icon_style: "geometric tech badge icon, soft circular frame",
+  },
+  "생활용품": {
+    theme: "홈 라이프 / 아늑함",
+    motif_keywords: ["자연광", "따뜻한 인테리어", "일상", "실용"],
+    mood: "밝고 실용적인",
+    backdrop_hint:
+      "bright airy home interior, soft window light, empty shelf surface, no product, no brand labels",
+    copy_tone: "사용 장면과 소재를 구체적으로. 내구성 수치는 입력에 있을 때만.",
+    decor_prompt:
+      "soft window light and minimal home accents, no text, no product",
+    icon_style: "home utility circle badge icon, soft circular frame",
+  },
+  "반려동물": {
+    theme: "클린 케어 / 안심 홈",
+    motif_keywords: ["부드러운 털감", "따뜻한 실내광", "청결", "안심"],
+    mood: "따뜻하고 신뢰감 있는",
+    backdrop_hint:
+      "soft warm indoor light, clean pet-care surface, gentle bokeh, empty bowl area, no product, no animal faces generated as text overlays",
+    copy_tone:
+      "보호자 관점(안전·성분·사용법) 중심. 질병 치료·예방·수명 연장 단정 금지.",
+    decor_prompt:
+      "soft fur-like texture hints and warm light motes, no text, no product, no logo",
+    icon_style: "minimal paw or care badge icon, soft circular frame",
+  },
 };
 
 function fallbackBrief(category: string): ConceptBrief {
