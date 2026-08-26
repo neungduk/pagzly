@@ -48,6 +48,11 @@ export type ProductInput = {
   draftToken?: string;
   imageUrls: string[];
   imagePaths: string[];
+  /**
+   * 업로드 사진 역할 태그 (imageUrls와 동일 길이).
+   * hero=대표/착장, detail=디테일, lifestyle=코디/사용, package=패키지, other=기타
+   */
+  imageRoles?: import("@/lib/image-roles").ProductImageRole[];
   productName: string;
   brandName?: string | null;
   price: number;

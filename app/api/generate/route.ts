@@ -901,7 +901,10 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
   // 틀은 서버가 지키고, AI는 콘텐츠만 책임진다는 원칙을 코드로도 보장.
   parsed.sections = normalizeSectionsToTemplate(parsed.sections, template);
   parsed.sections = ensureAiDisclosure(parsed.sections);
-  parsed.sections = assignDistinctSectionImages(parsed.sections, imageCount);
+  parsed.sections = assignDistinctSectionImages(parsed.sections, imageCount, {
+    category: productInfo.category,
+    imageRoles: productInfo.imageRoles,
+  });
   const freq = countImageIndexFrequency(parsed.sections);
   const usedDistinct = Object.keys(freq).length;
   const maxFreq = Math.max(0, ...Object.values(freq));
@@ -1192,6 +1195,10 @@ export async function POST(request: Request) {
       savedCopy.sections = assignDistinctSectionImages(
         savedCopy.sections,
         body.imageUrls.length,
+        {
+          category: body.category,
+          imageRoles: body.imageRoles,
+        },
       );
       const draftFreq = countImageIndexFrequency(savedCopy.sections);
       console.log(

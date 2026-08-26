@@ -3,7 +3,7 @@
 import SectionStructureEditor from "@/components/SectionStructureEditor";
 import type { DetailSection } from "@/lib/types/generate";
 
-export type DetailToolTab = "edit" | "upload" | "ai" | "structure";
+export type DetailToolTab = "edit" | "upload" | "ai" | "structure" | "patch";
 
 type DetailActionBarProps = {
   tab: DetailToolTab;
@@ -35,9 +35,10 @@ type DetailActionBarProps = {
 
 const TABS: { id: DetailToolTab; label: string }[] = [
   { id: "edit", label: "직접 편집" },
+  { id: "patch", label: "섹션 AI" },
   { id: "upload", label: "원클릭 업로드" },
   { id: "ai", label: "AI 자동 생성" },
-  { id: "structure", label: "구성·패치" },
+  { id: "structure", label: "구성" },
 ];
 
 export default function DetailActionBar({
@@ -75,7 +76,7 @@ export default function DetailActionBar({
       <div
         role="tablist"
         aria-label="상세페이지 수정"
-        className="grid grid-cols-2 border-b border-line bg-line/20 sm:grid-cols-4"
+        className="grid grid-cols-3 border-b border-line bg-line/20 sm:grid-cols-5"
       >
         {TABS.map((item) => {
           const active = tab === item.id;
@@ -186,7 +187,54 @@ export default function DetailActionBar({
         </div>
       )}
 
-      {tab === "structure" && onReorder && onToggleHidden && onPatchIndexChange && onPatchInstructionChange && onPatchSubmit && (
+      {tab === "patch" && onPatchIndexChange && onPatchInstructionChange && onPatchSubmit && (
+        <div className="space-y-3 p-4" data-testid="panel-patch">
+          <p className="text-xs leading-relaxed text-ink/55">
+            한 섹션만 골라 지시하면 카피·문구를 AI가 같은 구조로 수정합니다. 저장을 눌러 유지하세요.
+          </p>
+          <label className="block text-xs font-medium text-ink/70">
+            수정할 섹션
+            <select
+              data-testid="patch-section-index"
+              className="mt-1 h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm"
+              value={patchIndex}
+              onChange={(e) => onPatchIndexChange(Number(e.target.value))}
+            >
+              {sections.map((section, index) => {
+                const label =
+                  section.type === "hero"
+                    ? section.headline
+                    : "heading" in section && section.heading
+                      ? section.heading
+                      : section.slot;
+                return (
+                  <option key={`${section.slot}-${index}`} value={index}>
+                    {index + 1}. {label}
+                  </option>
+                );
+              })}
+            </select>
+          </label>
+          <textarea
+            data-testid="patch-instruction"
+            className="min-h-[88px] w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm"
+            placeholder='예: "더 짧게", "혜택 강조", "톤을 캐주얼하게"'
+            value={patchInstruction}
+            onChange={(e) => onPatchInstructionChange(e.target.value)}
+          />
+          <button
+            type="button"
+            data-testid="patch-submit"
+            disabled={patchLoading || !patchInstruction.trim()}
+            onClick={onPatchSubmit}
+            className={`${btn} w-full bg-registration-red text-paper hover:bg-registration-red/85 disabled:opacity-40`}
+          >
+            {patchLoading ? "수정 중..." : "이 섹션만 AI 수정"}
+          </button>
+        </div>
+      )}
+
+      {tab === "structure" && onReorder && onToggleHidden && (
         <div className="space-y-3 p-4">
           <SectionStructureEditor
             sections={sections}
@@ -194,11 +242,12 @@ export default function DetailActionBar({
             onReorder={onReorder}
             onToggleHidden={onToggleHidden}
             patchIndex={patchIndex}
-            onPatchIndexChange={onPatchIndexChange}
+            onPatchIndexChange={onPatchIndexChange ?? (() => {})}
             patchInstruction={patchInstruction}
-            onPatchInstructionChange={onPatchInstructionChange}
-            onPatchSubmit={onPatchSubmit}
+            onPatchInstructionChange={onPatchInstructionChange ?? (() => {})}
+            onPatchSubmit={onPatchSubmit ?? (() => {})}
             patchLoading={patchLoading}
+            hidePatch
           />
           {onGifUploadClick && (
             <button

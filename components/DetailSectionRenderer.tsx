@@ -39,6 +39,8 @@ export type SectionEditApi = {
   enabled: boolean;
   onChange: (index: number, section: DetailSection) => void;
   onReplaceImage?: (imageIndex: number) => void;
+  /** 미리보기에서 섹션 AI 수정 탭으로 바로 진입 */
+  onRequestAiPatch?: (sectionIndex: number) => void;
 };
 
 type DetailSectionRendererProps = {
@@ -2033,7 +2035,19 @@ export default function DetailSectionRenderer({
             index={index}
             variant={variant}
           >
-            {wrappedContent}
+            <div className="relative">
+              {wrappedContent}
+              {edit?.enabled && edit.onRequestAiPatch ? (
+                <button
+                  type="button"
+                  data-testid={`section-ai-patch-${index}`}
+                  onClick={() => edit.onRequestAiPatch?.(index)}
+                  className="absolute right-3 top-3 z-40 rounded-full border border-line bg-paper/95 px-3 py-1.5 text-[11px] font-semibold text-ink shadow-sm backdrop-blur-sm transition-transform hover:scale-[1.03] active:scale-[0.98]"
+                >
+                  AI로 고치기
+                </button>
+              ) : null}
+            </div>
           </DetailScrollReveal>
         );
       })}

@@ -355,6 +355,9 @@ export async function runPhotoEnhancementPipeline(params: {
   conceptBrief?: ConceptBrief;
   referenceAnalysis?: ReferenceAnalysisInput;
   testMode: boolean;
+  /** 히어로 배경 실패로 enhance를 건너뛴 경우 */
+  backdropFailed?: boolean;
+  warning?: string;
 }> {
   const { uploaded, onStage, pickBackdrop } = params;
   onStage?.("backdrop");
@@ -372,11 +375,20 @@ export async function runPhotoEnhancementPipeline(params: {
   });
 
   if (!backdropResult) {
-    // 예전: 원본 그대로 "성공"처럼 반환 → 무보정 결과가 조용히 노출됨.
-    // 지금은 사용자에게 실패를 알리고 재시도/재업로드를 유도한다.
-    throw new Error(
-      "배경 생성에 실패했습니다. 잠시 후 다시 시도하거나, 사진을 다시 업로드해 주세요.",
+    // 히어로 배경 실패 ≠ 전체 파이프라인 포기.
+    // 원본으로 상세 조립은 계속하고, UI에서 재시도 유도.
+    console.error(
+      "[pipeline] hero backdrop FAILED — isolating: skip enhance, continue with originals",
     );
+    return {
+      images: uploaded,
+      photoProcessingCost: 0,
+      photoCostBreakdown: {},
+      testMode: false,
+      backdropFailed: true,
+      warning:
+        "배경 생성에 실패해 원본 사진으로 상세를 구성했습니다. 사진 보정만 다시 시도할 수 있습니다.",
+    };
   }
 
   let photoProcessingCost = backdropResult.cost;
@@ -398,7 +410,20 @@ export async function runPhotoEnhancementPipeline(params: {
   }
 
   if (!chosenBackdrop) {
-    throw new Error("배경이 선택되지 않았습니다.");
+    console.error(
+      "[pipeline] no chosen backdrop — isolating: skip enhance, continue with originals",
+    );
+    return {
+      images: uploaded,
+      photoProcessingCost: photoProcessingCost,
+      photoCostBreakdown,
+      conceptBrief: backdropResult.conceptBrief,
+      referenceAnalysis: backdropResult.referenceAnalysis,
+      testMode,
+      backdropFailed: true,
+      warning:
+        "배경이 선택되지 않아 원본 사진으로 상세를 구성했습니다.",
+    };
   }
 
   let sectionBackdrops: { ingredientUrl?: string | null; textureUrl?: string | null } | undefined;

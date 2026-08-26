@@ -1,4 +1,10 @@
 import type { DetailSection } from "@/lib/types/generate";
+import {
+  firstIndexWithRole,
+  indexesWithRole,
+  normalizeImageRoles,
+  type ProductImageRole,
+} from "@/lib/image-roles";
 
 /** 업로드·생성 공통 한도 */
 export const MAX_PRODUCT_IMAGES = 10;
@@ -15,6 +21,12 @@ type Placement =
   | { kind: "gallery_cell"; sectionIndex: number; cell: number }
   | { kind: "step"; sectionIndex: number; stepIndex: number }
   | { kind: "color_option"; sectionIndex: number; optionIndex: number };
+
+export type AssignSectionImagesOptions = {
+  category?: string;
+  /** 업로드 순서와 동일한 길이의 역할 태그 */
+  imageRoles?: ProductImageRole[] | unknown;
+};
 
 function collectUsedIndexes(sections: DetailSection[]): number[] {
   const used: number[] = [];
@@ -46,29 +58,78 @@ function countPlacements(sections: DetailSection[]): number {
   return n;
 }
 
+function preferForSlot(
+  slot: string,
+  category: string | undefined,
+  roles: ProductImageRole[],
+  imageCount: number,
+): number | undefined {
+  const rolePrefer = (role: ProductImageRole, fallback?: number) => {
+    const idx = firstIndexWithRole(roles, role);
+    if (idx !== undefined) return idx;
+    return fallback !== undefined && fallback < imageCount ? fallback : undefined;
+  };
+
+  if (slot === "ingredient_highlight") {
+    return rolePrefer("detail", imageCount > 1 ? 1 : undefined);
+  }
+  if (slot === "texture_feel") {
+    const details = indexesWithRole(roles, "detail");
+    if (details.length > 1) return details[1];
+    return rolePrefer("detail", imageCount > 2 ? 2 : undefined);
+  }
+
+  if (slot === "detail_zoom" || slot === "fabric_composition" || slot === "quick_points") {
+    return rolePrefer("detail", imageCount > 1 ? 1 : undefined);
+  }
+  if (slot === "coordination" || slot === "seasonal_styling" || slot === "fit_guide") {
+    return rolePrefer("lifestyle", imageCount > 2 ? 2 : undefined);
+  }
+  if (slot === "packaging_design") {
+    return rolePrefer("package", imageCount > 3 ? 3 : undefined);
+  }
+
+  if (slot === "ingredient_story" || slot === "macro_detail") {
+    return rolePrefer("detail", imageCount > 1 ? 1 : undefined);
+  }
+  if (slot === "usage_scene" || slot === "lifestyle_shot") {
+    return rolePrefer("lifestyle", imageCount > 2 ? 2 : undefined);
+  }
+
+  void category;
+  return undefined;
+}
+
 /**
  * 전역 least-used 배정.
  * - 같은 컷이 quick_points + ingredient + step + gallery에 몰리는 문제 방지
  * - 업로드 장수를 최대한 고르게 사용 (MIN_AI_USED_IMAGES 이상 unique 유지)
  * - image_text / gallery / step는 가능하면 재사용 0회(장수가 충분할 때)
+ * - 역할 태그(imageRoles)가 있으면 슬롯 prefer에 반영 (패션: 착장→hero, 디테일→zoom, 코디→coordination)
  */
 export function assignDistinctSectionImages(
   sections: DetailSection[],
   imageCount: number,
+  options?: AssignSectionImagesOptions,
 ): DetailSection[] {
   if (imageCount <= 0) return sections;
   if (imageCount === 1) return sections;
 
+  const category = options?.category;
+  const roles = normalizeImageRoles(options?.imageRoles, imageCount);
+
   const pinStudioHero = sections.some((section) => section.slot === "ingredient_highlight");
   const hero = sections.find((section) => section.type === "hero");
+  const roleHero = firstIndexWithRole(roles, "hero");
   const heroIndex = pinStudioHero
     ? 0
-    : hero && hero.type === "hero"
-      ? clampIndex(hero.imageIndex, imageCount)
-      : 0;
+    : roleHero !== undefined
+      ? roleHero
+      : hero && hero.type === "hero"
+        ? clampIndex(hero.imageIndex, imageCount)
+        : 0;
 
   const placementCount = Math.max(1, countPlacements(sections));
-  // 장수가 충분하면 재사용 최소화(대부분 1회). 부족할 때만 ceil로 허용.
   const maxUses = Math.max(1, Math.ceil(placementCount / imageCount));
   const softCap = imageCount >= placementCount ? 1 : maxUses;
   const freq = Array.from({ length: imageCount }, () => 0);
@@ -79,7 +140,6 @@ export function assignDistinctSectionImages(
     prefer?: number;
     avoid?: number[];
     excludeHero?: boolean;
-    /** image_text 슬롯: 이미 쓴 컷은 강력 회피 */
     uniqueAmongImageText?: boolean;
   }): number {
     const avoid = new Set(opts?.avoid ?? []);
@@ -119,7 +179,6 @@ export function assignDistinctSectionImages(
       }
     }
     if (best < 0) {
-      // 전부 avoid면 softCap 무시하고 최소 빈도 선택
       best = 0;
       let minF = freq[0] ?? 0;
       for (let i = 1; i < imageCount; i += 1) {
@@ -139,9 +198,7 @@ export function assignDistinctSectionImages(
     if (section.type === "hero") {
       placements.push({ kind: "hero" });
     } else if (section.type === "image_text") {
-      let prefer: number | undefined;
-      if (section.slot === "ingredient_highlight" && imageCount > 1) prefer = 1;
-      if (section.slot === "texture_feel" && imageCount > 2) prefer = 2;
+      const prefer = preferForSlot(section.slot, category, roles, imageCount);
       placements.push({ kind: "image_text", sectionIndex, prefer });
     } else if (section.type === "gallery") {
       const wanted = Math.min(
@@ -185,7 +242,12 @@ export function assignDistinctSectionImages(
     }
     if (placement.kind === "gallery_cell") {
       const bucket = galleryBuckets.get(placement.sectionIndex) ?? [];
+      const lifestyle = indexesWithRole(roles, "lifestyle");
+      const details = indexesWithRole(roles, "detail");
+      const pool = [...lifestyle, ...details];
+      const prefer = pool.find((i) => !bucket.includes(i) && i !== heroIndex);
       const idx = pick({
+        prefer,
         avoid: bucket,
         excludeHero: imageCount >= 4,
       });
@@ -241,17 +303,25 @@ export function assignDistinctSectionImages(
     return section;
   });
 
-  // unique 장수가 MIN 미만이면 미사용 컷을 image_text에 주입
+  // unique 장수가 MIN 미만이면, *중복 사용 중인* image_text만 미사용 컷으로 교체.
+  // 역할 prefer로 이미 unique하게 꽂힌 컷을 덮어쓰지 않는다.
+  // 목표 unique는 실제 placement 수를 넘지 않음 (슬롯 4개인데 7장 강제 금지).
   const used = collectUsedIndexes(mapped);
-  const targetUnique = Math.min(Math.max(MIN_AI_USED_IMAGES, 1), imageCount);
+  const placementN = countPlacements(mapped);
+  const targetUnique = Math.min(MIN_AI_USED_IMAGES, imageCount, Math.max(1, placementN));
   if (used.length < targetUnique) {
     const unused = Array.from({ length: imageCount }, (_, i) => i).filter((i) => !used.includes(i));
+    const freqMap = countImageIndexFrequency(mapped);
+    let uniqueCount = used.length;
     return mapped.map((section) => {
-      if (unused.length === 0 || used.length >= targetUnique) return section;
+      if (unused.length === 0 || uniqueCount >= targetUnique) return section;
       if (section.type !== "image_text") return section;
+      if ((freqMap[section.imageIndex] ?? 0) <= 1) return section;
       const next = unused.shift();
       if (next === undefined) return section;
-      used.push(next);
+      freqMap[section.imageIndex] = (freqMap[section.imageIndex] ?? 1) - 1;
+      freqMap[next] = (freqMap[next] ?? 0) + 1;
+      uniqueCount += 1;
       return { ...section, imageIndex: next };
     });
   }

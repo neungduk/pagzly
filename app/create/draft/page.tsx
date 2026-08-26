@@ -248,6 +248,9 @@ export default function CreateDraftPage() {
       });
 
       const enhancedImages = photo.images;
+      if (photo.backdropFailed || photo.warning) {
+        setError(photo.warning ?? "배경 생성에 실패해 원본 사진으로 계속합니다.");
+      }
       const photoProcessingCost = photo.photoProcessingCost ?? 0;
       const photoCostBreakdown = {
         ...(draft.photoCostBreakdown ?? {}),

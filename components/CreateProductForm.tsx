@@ -9,6 +9,11 @@ import { countSlotSections, type SlotLength } from "@/lib/section-templates";
 import type { DraftGenerateResponse } from "@/lib/types/generate";
 import type { UploadedImage } from "@/lib/photo-pipeline-client";
 import { MAX_PRODUCT_IMAGES, MIN_AI_USED_IMAGES } from "@/lib/assign-section-images";
+import {
+  defaultRoleForIndex,
+  getUploadRoleGuide,
+  type ProductImageRole,
+} from "@/lib/image-roles";
 
 const CATEGORIES = [
   "의류/패션",
@@ -101,6 +106,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const [compositionLength, setCompositionLength] = useState<SlotLength>("long");
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [imageRoles, setImageRoles] = useState<ProductImageRole[]>([]);
   /** draft 수정 복귀 시 — 이미 업로드된 URL (새 File 없이 재제출 가능) */
   const [restoredUploads, setRestoredUploads] = useState<UploadedImage[] | null>(null);
   const [productName, setProductName] = useState("");
@@ -133,6 +139,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     return countSlotSections(category, compositionLength);
   }, [category, compositionLength]);
 
+  const uploadRoleGuide = useMemo(() => getUploadRoleGuide(category || "기타"), [category]);
+
   useEffect(() => {
     if (searchParams.get("restore") !== "1") return;
     try {
@@ -161,6 +169,10 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
             url,
             path: paths[i] ?? `restored/${i}`,
           })),
+        );
+        const savedRoles = (draft.payload.imageRoles as ProductImageRole[] | undefined) ?? [];
+        setImageRoles(
+          urls.map((_, i) => savedRoles[i] ?? defaultRoleForIndex(i)),
         );
       }
     } catch {
@@ -197,6 +209,11 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       setError(null);
       setImages((prev) => [...prev, ...nextFiles]);
       setPreviews((prev) => [...prev, ...nextPreviews]);
+      setImageRoles((prev) => {
+        const start = prev.length;
+        const added = nextFiles.map((_, i) => defaultRoleForIndex(start + i));
+        return [...prev, ...added];
+      });
     },
     [images.length],
   );
@@ -205,6 +222,15 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     URL.revokeObjectURL(previews[index]);
     setImages((prev) => prev.filter((_, i) => i !== index));
     setPreviews((prev) => prev.filter((_, i) => i !== index));
+    setImageRoles((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function setRoleAt(index: number, role: ProductImageRole) {
+    setImageRoles((prev) => {
+      const next = [...prev];
+      next[index] = role;
+      return next;
+    });
   }
 
   function handleDrop(e: React.DragEvent) {
@@ -389,6 +415,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         mode: "draft" as const,
         imageUrls,
         imagePaths,
+        imageRoles: imageRoles.slice(0, imageUrls.length),
         productName: productName.trim(),
         brandName: brandName.trim() || null,
         price: Number(price),
@@ -595,6 +622,24 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
             </p>
 
             <div
+              className="mt-3 rounded-xl border border-line bg-line/15 px-4 py-3"
+              data-testid="upload-role-guide"
+            >
+              <p className="text-xs font-semibold text-ink">{uploadRoleGuide.title}</p>
+              <p className="mt-1 text-xs leading-relaxed text-ink/65">{uploadRoleGuide.summary}</p>
+              <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
+                {uploadRoleGuide.roles
+                  .filter((r) => r.role !== "other")
+                  .map((r) => (
+                    <li key={r.role} className="text-[11px] text-ink/70">
+                      <span className="font-semibold text-ink">{r.label}</span>
+                      <span className="text-ink/45"> — {r.hint}</span>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+
+            <div
               onDragOver={(e) => {
                 e.preventDefault();
                 setDragOver(true);
@@ -635,22 +680,43 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
             {previews.length > 0 && (
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
                 {previews.map((src, index) => (
-                  <div key={src} className="group relative aspect-square overflow-hidden rounded-lg border border-line">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={src} alt={`상품 사진 ${index + 1}`} className="h-full w-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeImage(index);
-                      }}
-                      className="absolute right-1.5 top-1.5 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                      aria-label="사진 삭제"
-                    >
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                  <div key={src} className="space-y-1.5">
+                    <div className="group relative aspect-square overflow-hidden rounded-lg border border-line">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={src} alt={`상품 사진 ${index + 1}`} className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeImage(index);
+                        }}
+                        className="absolute right-1.5 top-1.5 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                        aria-label="사진 삭제"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                      <span className="absolute bottom-1.5 left-1.5 rounded bg-ink/75 px-1.5 py-0.5 font-mono text-[10px] text-paper">
+                        {index + 1}
+                      </span>
+                    </div>
+                    <label className="block">
+                      <span className="sr-only">사진 {index + 1} 역할</span>
+                      <select
+                        data-testid={`image-role-${index}`}
+                        value={imageRoles[index] ?? defaultRoleForIndex(index)}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => setRoleAt(index, e.target.value as ProductImageRole)}
+                        className="h-8 w-full rounded-md border border-line bg-paper px-1.5 text-[11px] text-ink"
+                      >
+                        {uploadRoleGuide.roles.map((r) => (
+                          <option key={r.role} value={r.role}>
+                            {r.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                   </div>
                 ))}
               </div>

@@ -14,6 +14,8 @@ type SectionStructureEditorProps = {
   onPatchInstructionChange: (value: string) => void;
   onPatchSubmit: () => void;
   patchLoading?: boolean;
+  /** true면 순서/숨김만 (섹션 AI는 별도 탭) */
+  hidePatch?: boolean;
 };
 
 export default function SectionStructureEditor({
@@ -27,6 +29,7 @@ export default function SectionStructureEditor({
   onPatchInstructionChange,
   onPatchSubmit,
   patchLoading,
+  hidePatch = false,
 }: SectionStructureEditorProps) {
   const hidden = new Set(hiddenIndexes);
   const btn =
@@ -36,7 +39,10 @@ export default function SectionStructureEditor({
     <div className="space-y-4" data-testid="panel-structure">
       <p className="text-xs leading-relaxed text-ink/55">
         섹션 순서를 바꾸거나 숨길 수 있습니다. 숨긴 섹션은 미리보기·PNG·HTML에서
-        빠집니다. 아래 AI 패치로 한 섹션만 지시문 수정할 수 있습니다.
+        빠집니다.
+        {!hidePatch
+          ? " 아래 AI 패치로 한 섹션만 지시문 수정할 수 있습니다."
+          : " 카피 AI 수정은 «섹션 AI» 탭을 이용하세요."}
       </p>
 
       <ul className="max-h-64 space-y-1.5 overflow-y-auto">
@@ -92,8 +98,9 @@ export default function SectionStructureEditor({
         })}
       </ul>
 
-      <div className="space-y-2 rounded-xl border border-line bg-line/10 p-3">
-        <p className="text-xs font-semibold text-ink">섹션 AI 패치</p>
+      {!hidePatch && (
+        <div className="space-y-2 rounded-xl border border-line bg-line/10 p-3">
+          <p className="text-xs font-semibold text-ink">섹션 AI 패치</p>
         <select
           className="h-9 w-full rounded-lg border border-line bg-paper px-2 text-xs"
           value={patchIndex}
@@ -120,6 +127,7 @@ export default function SectionStructureEditor({
           {patchLoading ? "수정 중..." : "이 섹션만 AI 수정"}
         </button>
       </div>
+      )}
     </div>
   );
 }

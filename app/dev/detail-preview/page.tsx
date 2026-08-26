@@ -122,6 +122,8 @@ export default function DetailPreviewPage() {
   const [toolTab, setToolTab] = useState<DetailToolTab>("edit");
   const [replaceImageIndex, setReplaceImageIndex] = useState(0);
   const [aiText, setAiText] = useState("");
+  const [patchIndex, setPatchIndex] = useState(0);
+  const [patchInstruction, setPatchInstruction] = useState("");
   const [toast, setToast] = useState<{ message: string; tone: "error" | "info" | "ok" } | null>(
     null,
   );
@@ -132,7 +134,7 @@ export default function DetailPreviewPage() {
 
   function handleTabChange(next: DetailToolTab) {
     setToolTab(next);
-    if (next === "edit") setEditMode(true);
+    if (next === "edit" || next === "patch") setEditMode(true);
   }
 
   function handleAiGenerate() {
@@ -176,6 +178,16 @@ export default function DetailPreviewPage() {
           aiText={aiText}
           onAiTextChange={setAiText}
           onAiSubmit={handleAiGenerate}
+          patchIndex={patchIndex}
+          onPatchIndexChange={setPatchIndex}
+          patchInstruction={patchInstruction}
+          onPatchInstructionChange={setPatchInstruction}
+          onPatchSubmit={() =>
+            setToast({
+              tone: "info",
+              message: "프리뷰에서는 섹션 AI API를 호출하지 않습니다. 결과 페이지에서 사용하세요.",
+            })
+          }
         />
         <input
           ref={fileInputRef}
@@ -216,6 +228,11 @@ export default function DetailPreviewPage() {
               setReplaceImageIndex(imageIndex);
               setToolTab("upload");
               fileInputRef.current?.click();
+            },
+            onRequestAiPatch: (index) => {
+              setPatchIndex(index);
+              setEditMode(true);
+              setToolTab("patch");
             },
           }}
         />

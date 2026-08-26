@@ -340,7 +340,7 @@ function CreateResultContent() {
 
   function handleTabChange(next: DetailToolTab) {
     setToolTab(next);
-    if (next === "edit") setEditMode(true);
+    if (next === "edit" || next === "patch") setEditMode(true);
   }
 
   async function handleSave() {
@@ -759,6 +759,13 @@ function CreateResultContent() {
                   setReplaceImageIndex(imageIndex);
                   setToolTab("upload");
                   fileInputRef.current?.click();
+                },
+                onRequestAiPatch: (displayIndex) => {
+                  const originalIndex = visibleOriginalIndexes[displayIndex];
+                  if (originalIndex === undefined) return;
+                  setPatchIndex(originalIndex);
+                  setEditMode(true);
+                  setToolTab("patch");
                 },
               }}
             />
