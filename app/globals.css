@@ -407,3 +407,215 @@ body {
 [data-pagzly-preview].is-pagzly-frozen .pagzly-ink-headline::after {
   transform: scaleX(1) !important;
 }
+
+/* ═══ 랜딩(홈) 전용 — Pagzly ink 브랜드 모션 ═══ */
+@media (prefers-reduced-motion: no-preference) {
+  .pagzly-landing-kenburns {
+    animation: pagzly-landing-kenburns 18s ease-in-out infinite alternate;
+  }
+
+  .pagzly-landing-scan {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  .pagzly-landing-scan::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 22%;
+    background: linear-gradient(
+      180deg,
+      transparent,
+      rgba(250, 248, 243, 0.12),
+      transparent
+    );
+    animation: pagzly-landing-scan 4.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  .pagzly-landing-grid {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(250, 248, 243, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(250, 248, 243, 0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse at center, black 20%, transparent 75%);
+    animation: pagzly-landing-grid-drift 20s linear infinite;
+  }
+
+  .pagzly-landing-orb {
+    pointer-events: none;
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(48px);
+    background: rgba(250, 248, 243, 0.12);
+    animation: pagzly-landing-orb 8s ease-in-out infinite alternate;
+  }
+
+  .pagzly-landing-orb-a {
+    width: min(48vw, 420px);
+    height: min(48vw, 420px);
+    top: 8%;
+    right: -8%;
+  }
+
+  .pagzly-landing-orb-b {
+    width: min(36vw, 280px);
+    height: min(36vw, 280px);
+    bottom: 12%;
+    left: -6%;
+    animation-delay: -3s;
+    background: rgba(193, 39, 45, 0.18);
+  }
+
+  .pagzly-landing-orb-stage {
+    width: min(55vw, 480px);
+    height: min(55vw, 480px);
+    top: 10%;
+    right: -10%;
+    background: rgba(27, 27, 24, 0.08);
+    filter: blur(60px);
+  }
+
+  .pagzly-landing-ink-underline::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0.05em;
+    height: 0.12em;
+    width: 100%;
+    background: #faf8f3;
+    transform: scaleX(0);
+    transform-origin: left center;
+    animation: pagzly-ink-underline 1.1s 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  .pagzly-landing-cta {
+    box-shadow: 0 0 0 0 rgba(250, 248, 243, 0.35);
+    animation: pagzly-landing-cta-pulse 2.6s ease-out infinite;
+  }
+
+  .pagzly-landing-scroll-line {
+    transform-origin: top center;
+    animation: pagzly-landing-scroll 1.6s ease-in-out infinite;
+  }
+
+  .pagzly-landing-marquee {
+    animation: pagzly-landing-marquee 28s linear infinite;
+  }
+
+  .pagzly-landing-frame-scan {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(27, 27, 24, 0.14) 50%,
+      transparent 100%
+    );
+    height: 30%;
+    animation: pagzly-landing-scan 5s ease-in-out infinite;
+  }
+
+  @keyframes pagzly-landing-kenburns {
+    from {
+      transform: scale(1) translate3d(0, 0, 0);
+    }
+    to {
+      transform: scale(1.1) translate3d(-2%, -1.5%, 0);
+    }
+  }
+
+  @keyframes pagzly-landing-scan {
+    0% {
+      top: -25%;
+      opacity: 0;
+    }
+    15% {
+      opacity: 1;
+    }
+    85% {
+      opacity: 0.7;
+    }
+    100% {
+      top: 110%;
+      opacity: 0;
+    }
+  }
+
+  @keyframes pagzly-landing-grid-drift {
+    from {
+      background-position: 0 0;
+    }
+    to {
+      background-position: 48px 48px;
+    }
+  }
+
+  @keyframes pagzly-landing-orb {
+    from {
+      transform: translate3d(0, 0, 0) scale(1);
+      opacity: 0.55;
+    }
+    to {
+      transform: translate3d(-4%, 6%, 0) scale(1.12);
+      opacity: 1;
+    }
+  }
+
+  @keyframes pagzly-landing-cta-pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(250, 248, 243, 0.4);
+    }
+    70% {
+      box-shadow: 0 0 0 18px rgba(250, 248, 243, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(250, 248, 243, 0);
+    }
+  }
+
+  @keyframes pagzly-landing-scroll {
+    0%,
+    100% {
+      transform: scaleY(1);
+      opacity: 0.35;
+    }
+    50% {
+      transform: scaleY(0.45);
+      opacity: 1;
+    }
+  }
+
+  @keyframes pagzly-landing-marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-33.333%);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pagzly-landing-kenburns,
+  .pagzly-landing-scan::before,
+  .pagzly-landing-grid,
+  .pagzly-landing-orb,
+  .pagzly-landing-cta,
+  .pagzly-landing-scroll-line,
+  .pagzly-landing-marquee,
+  .pagzly-landing-frame-scan,
+  .pagzly-landing-ink-underline::after {
+    animation: none !important;
+  }
+  .pagzly-landing-ink-underline::after {
+    transform: scaleX(1);
+  }
+}

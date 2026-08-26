@@ -39,7 +39,7 @@ export default function ScrollProgressBar() {
     >
       <div
         ref={barRef}
-        className="h-full w-0 bg-registration-red transition-[width] duration-75 ease-out motion-reduce:hidden"
+        className="h-full w-0 bg-ink transition-[width] duration-75 ease-out motion-reduce:hidden"
       />
     </div>
   );

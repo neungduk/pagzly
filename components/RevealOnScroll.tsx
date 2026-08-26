@@ -12,6 +12,8 @@ type RevealOnScrollProps = {
   delayMs?: number;
   /** true면 직계 children을 개별 순차 등장 (stagger 0.08s) */
   stagger?: boolean;
+  /** strong: 랜딩용 더 큰 이동·스케일 */
+  intensity?: "default" | "strong";
 };
 
 /** 랜딩 전용 GSAP ScrollTrigger 등장. prefers-reduced-motion 시 즉시 표시. */
@@ -20,6 +22,7 @@ export default function RevealOnScroll({
   className = "",
   delayMs = 0,
   stagger = false,
+  intensity = "default",
 }: RevealOnScrollProps) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -35,21 +38,25 @@ export default function RevealOnScroll({
     if (targets.length === 0) return;
 
     if (reduced) {
-      gsap.set(targets, { opacity: 1, y: 0 });
+      gsap.set(targets, { opacity: 1, y: 0, scale: 1 });
       return;
     }
 
-    gsap.set(targets, { opacity: 0, y: 28 });
+    const yFrom = intensity === "strong" ? 48 : 28;
+    const scaleFrom = intensity === "strong" ? 0.96 : 1;
+
+    gsap.set(targets, { opacity: 0, y: yFrom, scale: scaleFrom });
     const tween = gsap.to(targets, {
       opacity: 1,
       y: 0,
-      duration: 0.9,
+      scale: 1,
+      duration: intensity === "strong" ? 1.05 : 0.9,
       delay: delayMs / 1000,
-      ease: "power2.out",
-      stagger: stagger ? 0.08 : 0,
+      ease: "power3.out",
+      stagger: stagger ? (intensity === "strong" ? 0.12 : 0.08) : 0,
       scrollTrigger: {
         trigger: el,
-        start: "top 88%",
+        start: intensity === "strong" ? "top 90%" : "top 88%",
         once: true,
       },
     });
@@ -58,7 +65,7 @@ export default function RevealOnScroll({
       tween.scrollTrigger?.kill();
       tween.kill();
     };
-  }, [delayMs, stagger]);
+  }, [delayMs, stagger, intensity]);
 
   return (
     <div ref={ref} className={className}>

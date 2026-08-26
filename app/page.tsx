@@ -10,7 +10,9 @@ import RevealOnScroll from "@/components/RevealOnScroll";
 import ScrollProgressBar from "@/components/ScrollProgressBar";
 import ProcessSteps from "@/components/ProcessSteps";
 import SpotlightCard from "@/components/SpotlightCard";
-import HeroShowcaseVisual from "@/components/HeroShowcaseVisual";
+import LandingHero from "@/components/LandingHero";
+import LandingMarquee from "@/components/LandingMarquee";
+import LandingProductStage from "@/components/LandingProductStage";
 import HistorySidebar from "@/components/HistorySidebar";
 import { createClient } from "@/lib/supabase/server";
 
@@ -144,10 +146,10 @@ export default async function Home() {
   const startHref = user ? "/create" : "/signup";
 
   return (
-    <div className="min-h-full bg-paper text-ink">
+    <div className="min-h-full bg-paper text-ink" data-pagzly-landing>
       {user && <HistorySidebar userId={user.id} />}
       {/* Navigation */}
-      <header className="sticky top-0 z-50 border-b border-line bg-paper/90 backdrop-blur-md">
+      <header className="sticky top-0 z-50 border-b border-ink/10 bg-paper/85 backdrop-blur-md">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center">
             <PagzlyLogo className="h-8 w-auto" />
@@ -185,53 +187,15 @@ export default async function Home() {
       </header>
 
       <main>
-        {/* Hero */}
-        <section className="relative border-b border-line bg-paper">
-          <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-16 sm:py-24 lg:grid-cols-2 lg:gap-16">
-            <div>
-              <div className="mb-6 inline-flex items-center gap-2 border border-line px-4 py-1.5 font-mono text-xs uppercase tracking-wider text-ink/50">
-                <span className="h-1.5 w-1.5 rounded-full bg-registration-red" />
-                AI 상세페이지 자동 생성
-              </div>
-              <h1 className="font-heading text-5xl font-bold leading-[1.05] tracking-tighter text-ink sm:text-6xl lg:text-7xl">
-                상세페이지가 늦어질수록,
-                <br />
-                <span className="text-registration-red">놓치는 주문</span>이
-                늘어납니다
-              </h1>
-              <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink/60">
-                Pagzly는 상품 사진 한 장으로 색감·카피·레이아웃을 자동
-                완성합니다. 디자이너를 구하고, 시안을 주고받고, 수정을
-                기다리는 동안 오늘의 매출은 다시 오지 않습니다.
-              </p>
-              <div className="mt-10 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-                <Link
-                  href={startHref}
-                  className="inline-flex h-12 w-full items-center justify-center bg-ink px-8 text-base font-semibold text-paper transition-transform transition-colors duration-200 hover:bg-ink/85 active:scale-[0.98] sm:w-auto"
-                >
-                  무료로 시작하기
-                </Link>
-                <a
-                  href="#features"
-                  className="inline-flex h-12 w-full items-center justify-center border border-ink px-8 text-base font-semibold text-ink transition-transform transition-colors duration-200 hover:bg-ink hover:text-paper active:scale-[0.98] sm:w-auto"
-                >
-                  기능 살펴보기
-                </a>
-              </div>
-              <p className="mt-4 font-mono text-xs text-ink/40">
-                신용카드 없이 시작 · 언제든 해지 가능
-              </p>
-            </div>
-
-            <HeroShowcaseVisual />
-          </div>
-        </section>
+        <LandingHero startHref={startHref} />
+        <LandingMarquee />
+        <LandingProductStage />
 
         <CategoryColorEngine />
 
         {/* Comparison */}
         <section id="comparison" className="border-b border-line bg-white py-24">
-          <RevealOnScroll className="mx-auto max-w-6xl px-6">
+          <RevealOnScroll intensity="strong" className="mx-auto max-w-6xl px-6">
             <div className="text-center">
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-registration-red">
                 Comparison
@@ -251,15 +215,13 @@ export default async function Home() {
 
         <ShowcaseSection />
 
-        {/* Color band */}
-        <section className="relative overflow-hidden border-b border-line">
-          <div
-            className="absolute inset-0 bg-gradient-to-br from-mustard via-registration-red to-slate-blue"
-            aria-hidden="true"
-          />
-          <div className="absolute inset-0 bg-ink/10" aria-hidden="true" />
-          <RevealOnScroll className="relative mx-auto max-w-6xl px-6 py-20 sm:py-28">
-            <p className="font-mono text-xs uppercase tracking-[0.25em] text-paper/60">
+        {/* Color band — ink 중심 */}
+        <section className="relative overflow-hidden border-b border-line bg-ink">
+          <div className="pagzly-landing-orb pagzly-landing-orb-a opacity-40" aria-hidden="true" />
+          <div className="pagzly-landing-orb pagzly-landing-orb-b" aria-hidden="true" />
+          <div className="pagzly-landing-grid opacity-60" aria-hidden="true" />
+          <RevealOnScroll intensity="strong" className="relative mx-auto max-w-6xl px-6 py-20 sm:py-28">
+            <p className="font-mono text-xs uppercase tracking-[0.25em] text-paper/50">
               Pagzly Pipeline
             </p>
             <h2 className="mt-3 max-w-3xl font-heading text-2xl font-semibold leading-snug tracking-normal text-paper sm:text-3xl lg:text-4xl">
@@ -267,7 +229,7 @@ export default async function Home() {
               <br />
               팔리는 상세페이지가 완성됩니다
             </h2>
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-paper/75 sm:text-lg">
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-paper/70 sm:text-lg">
               색 추출, 카피 작성, 레이아웃 구성까지 2~3분. 디자이너 시안을 기다리는 동안
               놓치는 주문을 줄이세요.
             </p>
@@ -277,7 +239,7 @@ export default async function Home() {
         {/* Process */}
         <section className="border-b border-line bg-[#F0F4F3] py-24">
           <div className="mx-auto max-w-6xl px-6">
-            <RevealOnScroll>
+            <RevealOnScroll intensity="strong">
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-registration-red">
                 Process
               </p>
@@ -293,7 +255,7 @@ export default async function Home() {
         <section id="features" className="border-b border-line bg-paper py-24">
           <div className="mx-auto max-w-6xl px-6">
             <div className="grid items-start gap-12 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-16">
-              <RevealOnScroll className="lg:sticky lg:top-28">
+              <RevealOnScroll intensity="strong" className="lg:sticky lg:top-28">
                 <p className="font-mono text-xs uppercase tracking-[0.2em] text-mustard">Features</p>
                 <h2 className="mt-2 font-heading text-xl font-semibold tracking-normal text-ink sm:text-2xl lg:text-3xl">
                   왜 Pagzly인가요?
@@ -302,16 +264,16 @@ export default async function Home() {
                   상세페이지 제작에 드는 시간과 비용을 획기적으로 줄여 드립니다.
                 </p>
                 <div
-                  className="mt-8 hidden h-28 max-w-xs border border-line bg-gradient-to-br from-mustard/25 via-registration-red/15 to-slate-blue/25 lg:block"
+                  className="mt-8 hidden h-28 max-w-xs border border-ink/15 bg-gradient-to-br from-ink/10 via-registration-red/15 to-mustard/20 lg:block"
                   aria-hidden="true"
                 />
               </RevealOnScroll>
-              <RevealOnScroll stagger className="flex flex-col gap-6">
+              <RevealOnScroll stagger intensity="strong" className="flex flex-col gap-6">
                 {features.map((feature) => (
                   <SpotlightCard
                     key={feature.title}
                     href={startHref}
-                    className="relative block border border-line bg-white p-6 transition-transform duration-300 hover:-translate-y-1 hover:border-ink/30 sm:p-8"
+                    className="relative block border border-line bg-white p-6 transition-transform duration-300 hover:-translate-y-1 hover:border-ink/40 hover:shadow-[8px_8px_0_0_#1B1B18] sm:p-8"
                   >
                     <CropMarks />
                     <div className="relative flex gap-5 sm:items-start">
@@ -338,7 +300,7 @@ export default async function Home() {
 
         {/* FAQ */}
         <section id="faq" className="border-b border-line bg-white py-24">
-          <RevealOnScroll className="mx-auto max-w-6xl px-6">
+          <RevealOnScroll intensity="strong" className="mx-auto max-w-6xl px-6">
             <div className="text-center">
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink/40">
                 FAQ
@@ -356,7 +318,7 @@ export default async function Home() {
         {/* Pricing */}
         <section id="pricing" className="border-b border-line bg-paper py-24">
           <div className="mx-auto max-w-6xl px-6">
-            <RevealOnScroll className="text-center">
+            <RevealOnScroll intensity="strong" className="text-center">
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink/40">Pricing</p>
               <h2 className="mt-2 font-heading text-xl font-semibold tracking-normal text-ink sm:text-2xl">
                 합리적인 요금제
@@ -365,22 +327,22 @@ export default async function Home() {
                 규모에 맞는 플랜을 선택하세요. 언제든 업그레이드할 수 있습니다.
               </p>
             </RevealOnScroll>
-            <RevealOnScroll stagger className="mt-16 grid gap-8 lg:grid-cols-3">
+            <RevealOnScroll stagger intensity="strong" className="mt-16 grid gap-8 lg:grid-cols-3">
               {plans.map((plan) => (
                 <SpotlightCard
                   key={plan.name}
                   className={`relative flex flex-col bg-white p-8 transition-transform duration-300 hover:-translate-y-1 ${
                     plan.highlighted
-                      ? "border-2 border-registration-red"
-                      : "border border-line"
+                      ? "border-2 border-ink shadow-[8px_8px_0_0_#1B1B18]"
+                      : "border border-line hover:shadow-[6px_6px_0_0_#1B1B18]"
                   }`}
                 >
                   <CropMarks
-                    color={plan.highlighted ? "text-registration-red/50" : "text-line"}
+                    color={plan.highlighted ? "text-ink/40" : "text-line"}
                   />
                   {plan.highlighted && (
                     <div className="absolute -top-3.5 left-1/2 z-[1] -translate-x-1/2">
-                      <span className="bg-registration-red px-4 py-1 font-mono text-xs font-semibold text-paper">
+                      <span className="bg-ink px-4 py-1 font-mono text-xs font-semibold text-paper">
                         추천
                       </span>
                     </div>
@@ -407,7 +369,7 @@ export default async function Home() {
                     {plan.features.map((item) => (
                       <li key={item} className="flex items-start gap-3 text-sm text-ink/70">
                         <svg
-                          className="mt-0.5 h-5 w-5 shrink-0 text-registration-red"
+                          className="mt-0.5 h-5 w-5 shrink-0 text-ink"
                           fill="none"
                           viewBox="0 0 24 24"
                           strokeWidth={2}
@@ -440,9 +402,14 @@ export default async function Home() {
         </section>
 
         {/* CTA */}
-        <section className="bg-ink py-20">
-          <RevealOnScroll className="mx-auto max-w-6xl px-6 text-center">
-            <h2 className="font-heading text-2xl font-semibold tracking-normal text-paper sm:text-3xl">
+        <section className="relative overflow-hidden bg-ink py-24">
+          <div className="pagzly-landing-scan" aria-hidden="true" />
+          <div className="pagzly-landing-grid" aria-hidden="true" />
+          <RevealOnScroll intensity="strong" className="relative mx-auto max-w-6xl px-6 text-center">
+            <p className="font-heading text-[clamp(2.5rem,10vw,6rem)] font-bold leading-none tracking-[-0.05em] text-paper/15">
+              Pagzly
+            </p>
+            <h2 className="mt-4 font-heading text-2xl font-semibold tracking-normal text-paper sm:text-3xl">
               지금 바로 시작해 보세요
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-lg text-paper/60">
@@ -450,7 +417,7 @@ export default async function Home() {
             </p>
             <Link
               href={startHref}
-              className="mt-8 inline-flex h-12 items-center justify-center bg-registration-red px-8 text-base font-semibold text-paper transition-transform transition-colors duration-200 hover:bg-registration-red/85 active:scale-[0.98]"
+              className="pagzly-landing-cta mt-8 inline-flex h-12 items-center justify-center bg-paper px-8 text-base font-semibold text-ink transition-transform duration-200 hover:bg-paper/90 active:scale-[0.98]"
             >
               무료로 시작하기
             </Link>
