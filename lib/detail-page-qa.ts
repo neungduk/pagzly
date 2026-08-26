@@ -9,7 +9,8 @@ export type QAIssueCategory =
   | "color_clash"
   | "text_overlap"
   | "shadow"
-  | "copy";
+  | "copy"
+  | "material_hallucination";
 
 export type QAIssue = {
   severity: "critical" | "warning";
@@ -53,6 +54,101 @@ function parseQAIssues(raw: unknown): QAIssue[] {
       ...(typeof o.imageIndex === "number" ? { imageIndex: o.imageIndex } : {}),
       ...(typeof o.slot === "string" ? { slot: o.slot } : {}),
     });
+  }
+  return issues;
+}
+
+/** 입력에 없는 구체적 소재·재질 단어가 카피에 등장하면 플래그 */
+const MATERIAL_TERMS = [
+  "유리",
+  "글래스",
+  "스테인리스",
+  "스틸",
+  "알루미늄",
+  "실리콘",
+  "플라스틱",
+  "PET",
+  "아크릴",
+  "세라믹",
+  "가죽",
+  "린넨",
+  "코튼",
+  "나일론",
+  "폴리에스터",
+  "티타늄",
+  "구리",
+  "황동",
+  "원목",
+  "우드",
+  "금속",
+  "스웨이드",
+  "캐시미어",
+  "면 원단",
+  "울 원단",
+] as const;
+
+const MATERIAL_SENSITIVE_SLOTS = new Set([
+  "packaging_design",
+  "ingredient_highlight",
+  "fabric_composition",
+  "material_detail",
+  "design_detail",
+  "texture_feel",
+  "texture_closeup",
+  "material_feature",
+  "connectivity",
+  "size_options",
+  "how_it_works",
+  "sourcing_story",
+  "storage_tip",
+  "care_tip",
+]);
+
+function sectionText(section: DetailSection): string {
+  const parts: string[] = [];
+  if ("heading" in section && section.heading) parts.push(section.heading);
+  if ("body" in section && section.body) parts.push(section.body);
+  if ("headline" in section && section.headline) parts.push(section.headline);
+  if ("subheadline" in section && section.subheadline) parts.push(section.subheadline);
+  if ("items" in section && Array.isArray(section.items)) {
+    parts.push(...section.items.map(String));
+  }
+  return parts.join(" ");
+}
+
+export function detectMaterialHallucinations(params: {
+  sections: DetailSection[];
+  keyFeatures?: string | null;
+  ingredients?: string | null;
+  certifications?: string | null;
+  brandName?: string | null;
+}): QAIssue[] {
+  const corpus = [
+    params.keyFeatures,
+    params.ingredients,
+    params.certifications,
+    params.brandName,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  const issues: QAIssue[] = [];
+  for (const section of params.sections) {
+    const slot = (section as { slot?: string }).slot ?? "";
+    if (!MATERIAL_SENSITIVE_SLOTS.has(slot)) continue;
+    const text = sectionText(section);
+    for (const term of MATERIAL_TERMS) {
+      if (!text.includes(term)) continue;
+      if (corpus.includes(term.toLowerCase())) continue;
+      issues.push({
+        severity: "critical",
+        category: "material_hallucination",
+        message: `입력 정보에 없는 소재/재질 "${term}"이(가) ${slot} 슬롯에 등장했습니다. 입력에 근거가 없으면 재질 단정을 제거하고 외관·디자인만 묘사하세요.`,
+        slot,
+      });
+      break;
+    }
   }
   return issues;
 }
@@ -184,6 +280,10 @@ export async function runDetailPageQA(params: {
   sections: DetailSection[];
   category: string;
   productName: string;
+  keyFeatures?: string | null;
+  ingredients?: string | null;
+  certifications?: string | null;
+  brandName?: string | null;
 }): Promise<QAResult> {
   if (isTestMode()) {
     console.log("[qa] QA 스킵됨 (TEST_MODE)");
@@ -196,6 +296,14 @@ export async function runDetailPageQA(params: {
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+  const materialIssues = detectMaterialHallucinations({
+    sections: params.sections,
+    keyFeatures: params.keyFeatures,
+    ingredients: params.ingredients,
+    certifications: params.certifications,
+    brandName: params.brandName,
+  });
+
   const [imageResult, copyResult] = await Promise.all([
     reviewImagesWithVision(anthropic, params.imageUrls, params.productName).catch((err) => {
       console.warn("[qa] 이미지 검수 실패", err);
@@ -207,7 +315,7 @@ export async function runDetailPageQA(params: {
     }),
   ]);
 
-  const issues = [...imageResult.issues, ...copyResult.issues];
+  const issues = [...materialIssues, ...imageResult.issues, ...copyResult.issues];
   const cost = imageResult.cost + copyResult.cost;
   const critical = issues.filter((i) => i.severity === "critical");
   const pass = critical.length === 0;
@@ -229,7 +337,12 @@ export async function runDetailPageQA(params: {
 export function buildQAFixPrompt(issues: QAIssue[]): string {
   if (issues.length === 0) return "";
   const lines = issues
-    .filter((i) => i.category === "copy" || i.category === "text_overlap")
+    .filter(
+      (i) =>
+        i.category === "copy" ||
+        i.category === "text_overlap" ||
+        i.category === "material_hallucination",
+    )
     .map((i) => `- [${i.slot ?? "general"}] ${i.message}`);
   if (lines.length === 0) return "";
   return `\n\n## QA 1차 검수 수정 요청 (반드시 반영)\n${lines.join("\n")}`;

@@ -77,9 +77,16 @@ export async function POST(request: Request) {
     const stamp = Date.now();
     async function store(url: string | null, kind: string): Promise<string | null> {
       if (!url) return null;
-      const response = await fetch(url);
-      if (!response.ok) return url;
-      const fileBuffer = Buffer.from(await response.arrayBuffer());
+      let fileBuffer: Buffer;
+      if (url.startsWith("data:")) {
+        const base64 = url.split(",")[1];
+        if (!base64) return null;
+        fileBuffer = Buffer.from(base64, "base64");
+      } else {
+        const response = await fetch(url);
+        if (!response.ok) return url;
+        fileBuffer = Buffer.from(await response.arrayBuffer());
+      }
       const storagePath = `${userId}/section-backdrops/${stamp}-${kind}.png`;
       const { error: uploadError } = await supabase.storage
         .from("images")
@@ -89,7 +96,7 @@ export async function POST(request: Request) {
         });
       if (uploadError) {
         console.warn("[section-backdrops] 업로드 실패, 원본 URL 유지:", uploadError.message);
-        return url;
+        return url.startsWith("data:") ? null : url;
       }
       const { data } = supabase.storage.from("images").getPublicUrl(storagePath);
       return data.publicUrl;

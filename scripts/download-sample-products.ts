@@ -18,7 +18,7 @@ const ITEMS = [
   },
   {
     file: "food.jpg",
-    query: "packaged food product beverage bottle still life",
+    query: "protein powder shake vanilla sachet packaging product photography no logo",
   },
   {
     file: "electronics.jpg",
@@ -51,7 +51,14 @@ async function main() {
 
   fs.mkdirSync(OUT, { recursive: true });
 
-  for (const item of ITEMS) {
+  const only = process.argv.find((a) => a.startsWith("--only="))?.slice("--only=".length);
+  const targets = only ? ITEMS.filter((item) => item.file.startsWith(only)) : ITEMS;
+  if (targets.length === 0) {
+    console.error(`No items match --only=${only}`);
+    process.exit(1);
+  }
+
+  for (const item of targets) {
     const url = new URL("https://api.pexels.com/v1/search");
     url.searchParams.set("query", item.query);
     url.searchParams.set("per_page", "10");

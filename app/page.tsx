@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import LogoutButton from "@/components/LogoutButton";
 import PagzlyLogo from "@/components/PagzlyLogo";
@@ -15,13 +16,20 @@ import LandingMarquee from "@/components/LandingMarquee";
 import LandingProductStage from "@/components/LandingProductStage";
 import LandingScrollFX from "@/components/LandingScrollFX";
 import HistorySidebar from "@/components/HistorySidebar";
+import SupportChatWidget from "@/components/SupportChatWidget";
+import {
+  LANDING_FEATURES,
+  LANDING_PIPELINE_DESCRIPTION,
+  LANDING_PLANS,
+  LANDING_PROCESS_STEPS,
+} from "@/lib/landing-content";
 import { createClient } from "@/lib/supabase/server";
 
-const features = [
-  {
-    title: "AI 자동 생성",
-    description:
-      "상품 사진만 업로드하면 AI가 카피, 레이아웃, 디자인까지 자동으로 완성합니다.",
+const featureVisuals: Record<
+  string,
+  { iconBg: string; icon: ReactNode }
+> = {
+  "AI 자동 생성": {
     iconBg: "bg-mustard/15 text-mustard border-mustard/30",
     icon: (
       <svg
@@ -39,10 +47,7 @@ const features = [
       </svg>
     ),
   },
-  {
-    title: "완성 즉시 다운로드",
-    description:
-      "완성된 상세페이지를 고해상도 이미지로 바로 다운로드해, 스마트스토어·쿠팡 등 어디든 즉시 등록할 수 있습니다.",
+  "완성 즉시 다운로드": {
     iconBg: "bg-slate-blue/10 text-slate-blue border-slate-blue/25",
     icon: (
       <svg
@@ -60,10 +65,7 @@ const features = [
       </svg>
     ),
   },
-  {
-    title: "직접 편집 가능",
-    description:
-      "AI가 만든 결과물을 그대로 쓰거나, 텍스트·이미지·섹션을 자유롭게 수정할 수 있습니다.",
+  "직접 편집 가능": {
     iconBg: "bg-registration-red/10 text-registration-red border-registration-red/25",
     icon: (
       <svg
@@ -81,62 +83,12 @@ const features = [
       </svg>
     ),
   },
-];
+};
 
-const processSteps = [
-  {
-    step: "01",
-    title: "업로드",
-    description: "상품 사진을 최소 7장·최대 10장까지 올려주세요. 스마트폰으로 찍은 사진이면 충분합니다.",
-  },
-  {
-    step: "02",
-    title: "색·카피 자동 분석",
-    description:
-      "AI가 사진에서 색상을 추출하고, 카테고리에 맞는 카피와 레이아웃을 자동으로 구성합니다.",
-  },
-  {
-    step: "03",
-    title: "완성",
-    description: "2~3분 안에 상세페이지가 완성됩니다. 바로 다운로드하거나 정보를 수정해 다시 생성하세요.",
-  },
-];
-
-const plans = [
-  {
-    name: "무료",
-    price: "0",
-    period: "월",
-    description: "Pagzly를 처음 시작하는 분께",
-    features: ["월 3회 생성", "기본 템플릿", "워터마크 포함"],
-    highlighted: false,
-    cta: "무료로 시작",
-  },
-  {
-    name: "스타터",
-    price: "19,900",
-    period: "월",
-    description: "소규모 셀러를 위한 플랜",
-    features: ["월 30회 생성", "프리미엄 템플릿", "고해상도 이미지 즉시 다운로드", "워터마크 제거"],
-    highlighted: true,
-    cta: "스타터 시작하기",
-  },
-  {
-    name: "그로스",
-    price: "49,000",
-    period: "월",
-    description: "성장하는 비즈니스를 위한 플랜",
-    features: [
-      "무제한 생성",
-      "모든 템플릿",
-      "고해상도 이미지 즉시 다운로드",
-      "우선 AI 처리",
-      "팀 협업 (3명)",
-    ],
-    highlighted: false,
-    cta: "그로스 시작하기",
-  },
-];
+const features = LANDING_FEATURES.map((feature) => ({
+  ...feature,
+  ...featureVisuals[feature.title],
+}));
 
 export default async function Home() {
   const supabase = await createClient();
@@ -236,9 +188,8 @@ export default async function Home() {
               <br />
               팔리는 상세페이지가 완성됩니다
             </h2>
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-paper/70 sm:text-lg">
-              색 추출, 카피 작성, 레이아웃 구성까지 2~3분. 디자이너 시안을 기다리는 동안
-              놓치는 주문을 줄이세요.
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-paper/75 sm:text-lg">
+              {LANDING_PIPELINE_DESCRIPTION}
             </p>
           </RevealOnScroll>
         </section>
@@ -254,7 +205,7 @@ export default async function Home() {
                 3단계면 충분합니다
               </h2>
             </RevealOnScroll>
-            <ProcessSteps steps={processSteps} />
+            <ProcessSteps steps={LANDING_PROCESS_STEPS} />
           </div>
         </section>
 
@@ -335,7 +286,7 @@ export default async function Home() {
               </p>
             </RevealOnScroll>
             <RevealOnScroll stagger intensity="strong" className="mt-16 grid gap-8 lg:grid-cols-3">
-              {plans.map((plan) => (
+              {LANDING_PLANS.map((plan) => (
                 <SpotlightCard
                   key={plan.name}
                   className={`relative flex flex-col bg-white p-8 transition-transform duration-300 hover:-translate-y-1 ${
@@ -452,9 +403,7 @@ export default async function Home() {
               <a href="/privacy" className="transition-colors hover:text-ink">
                 개인정보처리방침
               </a>
-              <a href="#" className="transition-colors hover:text-ink">
-                문의하기
-              </a>
+              <SupportChatWidget />
             </div>
           </div>
           <p className="mt-8 text-center font-mono text-xs text-ink/30 sm:text-left">

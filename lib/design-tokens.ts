@@ -244,7 +244,7 @@ export function getCtaBandBackground(theme: CategoryTheme): string {
 
 /** hero 바로 다음 섹션 상단에만 쓰는 미세한 대각선 클립. */
 export const HERO_TRANSITION_CLIP_PATH =
-  "polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - 28px))";
+  "polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - 44px))";
 /** 위 클립과 짝을 이루는 음수 마진 — hero 하단 사진 위로 살짝 겹쳐 올라간다. */
 export const HERO_TRANSITION_OVERLAP_CLASS = "-mt-4 sm:-mt-6";
 

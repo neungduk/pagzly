@@ -456,6 +456,7 @@ function CreateResultContent() {
           certifications: data.certifications,
           competitorUrl: data.competitorUrl,
           wholesaleUrl: trimmed,
+          productId: data.generated?.productId ?? null,
         }),
       });
       const result = await response.json();

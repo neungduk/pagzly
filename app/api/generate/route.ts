@@ -28,6 +28,7 @@ import { buildQAFixPrompt, runDetailPageQA } from "@/lib/detail-page-qa";
 import { formatConceptCopyBlock, generateConceptBrief } from "@/lib/concept-brief";
 import { generateConceptIcons, type ConceptIconMap } from "@/lib/concept-icons";
 import { generateIllustrationBanner } from "@/lib/concept-illustration";
+import { buildIllustrationBannerFallback } from "@/lib/illustration-banner-fallback";
 import { fetchFileBuffer } from "@/lib/fetch-file-buffer";
 import {
   analyzeReferenceImage,
@@ -540,7 +541,7 @@ async function loadAuxiliaryInputs(body: ProductInput): Promise<{
     }
   }
 
-  if (enriched.referenceAnalysis && !enriched.conceptBrief) {
+  if (!enriched.conceptBrief) {
     try {
       const { brief, cost } = await generateConceptBrief({
         category: body.category,
@@ -550,12 +551,15 @@ async function loadAuxiliaryInputs(body: ProductInput): Promise<{
         keyFeatures: body.keyFeatures ?? null,
         ingredients: body.ingredients ?? null,
         targetCustomer: body.targetCustomer ?? null,
-        referenceAnalysis: enriched.referenceAnalysis,
+        referenceAnalysis: enriched.referenceAnalysis ?? undefined,
       });
       enriched.conceptBrief = brief;
       conceptBriefCost = cost;
+      console.log(
+        `[generate] conceptBrief 생성 완료 theme="${brief.theme}" reference=${Boolean(enriched.referenceAnalysis)}`,
+      );
     } catch (err) {
-      console.warn("[generate] conceptBrief(레퍼런스) 생성 실패", err);
+      console.warn("[generate] conceptBrief 생성 실패", err);
     }
   }
 
@@ -691,6 +695,16 @@ imageIndex는 0 ~ ${imageCount - 1} 범위 안에서만 사용하세요.
 사진이 1장뿐일 때만 같은 인덱스를 재사용하세요.
 표(spec_table 등) 항목은 상품 정보에 없는 수치를 지어내지 말고, 근거가 없으면
 "판매자 확인 필요" 또는 공란으로 표시하세요.
+
+## 소재·스펙·성분 사실 제약 (필수)
+packaging_design, ingredient_highlight, fabric_composition, material_detail, design_detail,
+texture_feel, texture_closeup, material_feature, connectivity, size_options, how_it_works 등
+소재/스펙/성분/재질을 언급하는 슬롯에서는 **입력 정보(keyFeatures·ingredients·certifications·브랜드명)에
+실제로 적힌 내용만** 반영하세요. 입력에 없는 유리/플라스틱/스틸/스테인리스/알루미늄/실리콘/린넨/세라믹 등
+구체적 재질·소재·스펙을 새로 지어내지 마세요.
+packaging_design은 입력에 용기·포장 **재질** 정보가 없으면 색상·형태·라벨·외관 디자인만 묘사하고
+재질을 단정하지 마세요 (예: 입력에 '유리'가 없으면 "투명 유리" 같은 표현 금지).
+
 stat_infographic 섹션은 keyFeatures·ingredients·certifications 등 입력에 **실제 수치 근거**가
 있을 때만 포함하세요. 근거 없으면 해당 슬롯을 생략하고, 수치를 지어내거나
 "판매자 확인 필요"를 metrics value로 쓰지 마세요.
@@ -1072,6 +1086,10 @@ export async function POST(request: Request) {
         sections: generated.sections,
         category: body.category,
         productName: body.productName,
+        keyFeatures: body.keyFeatures,
+        ingredients: body.ingredients,
+        certifications: body.certifications,
+        brandName: body.brandName,
       });
       claudeCost += qaResult.cost;
       qaSummary = qaResult.summary;
@@ -1079,7 +1097,9 @@ export async function POST(request: Request) {
       const copyFixable = qaResult.issues.some(
         (i) =>
           i.severity === "critical" &&
-          (i.category === "copy" || i.category === "text_overlap"),
+          (i.category === "copy" ||
+            i.category === "text_overlap" ||
+            i.category === "material_hallucination"),
       );
 
       totalDeepSeekCost = deepSeekCost;
@@ -1100,6 +1120,10 @@ export async function POST(request: Request) {
           sections: retry.copy.sections,
           category: body.category,
           productName: body.productName,
+          keyFeatures: body.keyFeatures,
+          ingredients: body.ingredients,
+          certifications: body.certifications,
+          brandName: body.brandName,
         });
         claudeCost += qaResult.cost;
         qaSummary = qaResult.summary;
@@ -1283,11 +1307,19 @@ export async function POST(request: Request) {
       }
     }
 
-    // 컨셉 기반 원형 배지 아이콘 (checklist / usage_steps)
+    // 컨셉 기반 원형 배지 아이콘 (checklist / usage_steps) + illustration_banner
     let conceptIcons = undefined;
     let iconCost = 0;
     let illustrationCost = 0;
-    if (enrichedBody.conceptBrief) {
+    const iconTheme = theme
+      ? { accent: theme.accent, deepAccent: theme.deepAccent, baseNeutral: theme.baseNeutral }
+      : getCategoryTheme(body.category);
+
+    if (!enrichedBody.conceptBrief) {
+      console.warn(
+        `[concept-illustration] conceptBrief 없음 — illustration_banner/아이콘 생략 product="${body.productName}"`,
+      );
+    } else {
       const checklistSection = savedCopy.sections.find((s) => s.type === "checklist");
       const usageSection = savedCopy.sections.find((s) => s.type === "usage_steps");
       const specTableSection = savedCopy.sections.find((s) => s.type === "spec_table");
@@ -1304,10 +1336,6 @@ export async function POST(request: Request) {
         statSection?.type === "stat_infographic"
           ? statSection.metrics.map((metric) => metric.label)
           : [];
-
-      const iconTheme = theme
-        ? { accent: theme.accent, deepAccent: theme.deepAccent }
-        : getCategoryTheme(body.category);
 
       const iconResult = await generateConceptIcons(
         enrichedBody.conceptBrief,
@@ -1332,9 +1360,18 @@ export async function POST(request: Request) {
         }
       }
 
+      const heroSection = savedCopy.sections.find((s) => s.type === "hero");
+      const heroImageIndex = heroSection?.type === "hero" ? heroSection.imageIndex : 0;
+      const fallbackProductUrl = imageUrls[heroImageIndex] ?? imageUrls[0] ?? null;
+
       const bannerIndexes = savedCopy.sections
         .map((section, index) => (section.type === "illustration_banner" ? index : -1))
         .filter((index) => index >= 0);
+
+      let illustrationAttempted = 0;
+      let illustrationFluxOk = 0;
+      let illustrationFallbackOk = 0;
+      let illustrationFailed = 0;
 
       for (let i = 0; i < bannerIndexes.length; i++) {
         const sectionIndex = bannerIndexes[i];
@@ -1344,6 +1381,8 @@ export async function POST(request: Request) {
           console.log("[concept-illustration] TEST_MODE — 추가 illustration_banner 생략");
           break;
         }
+        illustrationAttempted += 1;
+        let illustrationUrl = "";
         try {
           const { dataUrl, cost } = await generateIllustrationBanner(
             enrichedBody.conceptBrief,
@@ -1352,21 +1391,66 @@ export async function POST(request: Request) {
             section.body,
           );
           if (dataUrl) {
-            const illustrationUrl = await uploadDataUrlAndGetPublicUrl(
+            const uploadedUrl = await uploadDataUrlAndGetPublicUrl(
               supabase,
               user.id,
               dataUrl,
               `illustration-${sectionIndex}`,
             );
-            if (illustrationUrl) {
-              savedCopy.sections[sectionIndex] = { ...section, illustrationUrl };
+            if (uploadedUrl) {
+              illustrationUrl = uploadedUrl;
               illustrationCost += cost;
+              illustrationFluxOk += 1;
             }
+          } else {
+            console.warn(
+              `[concept-illustration] flux-schnell 빈 URL slot=${section.slot ?? "illustration_banner"} heading="${section.heading ?? ""}"`,
+            );
           }
         } catch (error) {
-          console.warn("[concept-illustration] illustration_banner 생성 실패", error);
+          illustrationFailed += 1;
+          const message = error instanceof Error ? error.message : String(error);
+          const status = (error as { response?: { status?: number } }).response?.status;
+          console.warn(
+            `[concept-illustration] illustration_banner flux 실패 slot=${section.slot ?? "illustration_banner"} status=${status ?? "n/a"}: ${message}`,
+          );
+        }
+
+        if (!illustrationUrl) {
+          try {
+            const fallbackDataUrl = await buildIllustrationBannerFallback({
+              productImageUrl: fallbackProductUrl,
+              theme: iconTheme,
+              brief: enrichedBody.conceptBrief,
+            });
+            const uploadedFallback = await uploadDataUrlAndGetPublicUrl(
+              supabase,
+              user.id,
+              fallbackDataUrl,
+              `illustration-fallback-${sectionIndex}`,
+            );
+            illustrationUrl = uploadedFallback ?? fallbackDataUrl;
+            illustrationFallbackOk += 1;
+            console.log(
+              `[concept-illustration] 폴백 배경 적용 slot=${section.slot ?? "illustration_banner"} (${illustrationUrl.length} chars)`,
+            );
+          } catch (fallbackError) {
+            illustrationFailed += 1;
+            console.warn(
+              `[concept-illustration] 폴백 배경도 실패 slot=${section.slot ?? "illustration_banner"}`,
+              fallbackError,
+            );
+          }
+        }
+
+        if (illustrationUrl) {
+          savedCopy.sections[sectionIndex] = { ...section, illustrationUrl };
         }
       }
+
+      console.log(
+        `[concept-illustration] summary product="${body.productName}" attempted=${illustrationAttempted} fluxOk=${illustrationFluxOk} fallbackOk=${illustrationFallbackOk} failed=${illustrationFailed}`,
+      );
     }
 
     const photoCostBreakdown = {
@@ -1407,37 +1491,70 @@ export async function POST(request: Request) {
         `total=$${generationCost.toFixed(4)}`,
     );
 
-    const { data: savedProduct, error: insertError } = await supabase
-      .from("products")
-      .insert({
-        user_id: user.id,
-        category: body.category,
-        product_name: body.productName,
-        brand_name: body.brandName ?? null,
-        price: body.price,
-        target_customer: body.targetCustomer ?? null,
-        key_features: body.keyFeatures ?? null,
-        ingredients: body.ingredients ?? null,
-        certifications: body.certifications ?? null,
-        competitor_url: body.competitorUrl ?? null,
-        wholesale_url: body.wholesaleUrl ?? null,
-        image_urls: imageUrls,
-        headlines: savedCopy.headlines,
-        description: savedCopy.description,
-        features: savedCopy.features,
-        how_to_use: savedCopy.howToUse,
-        caution: savedCopy.caution,
-        image_analysis: imageAnalysis,
-        mfds_reviewed: mfdsReviewed,
-        replacements,
-        sections: savedCopy.sections,
-        generation_cost: generationCost,
-      })
-      .select("id")
-      .single();
+    const { data: savedProduct, error: insertError } = body.productId
+      ? await supabase
+          .from("products")
+          .update({
+            category: body.category,
+            product_name: body.productName,
+            brand_name: body.brandName ?? null,
+            price: body.price,
+            target_customer: body.targetCustomer ?? null,
+            key_features: body.keyFeatures ?? null,
+            ingredients: body.ingredients ?? null,
+            certifications: body.certifications ?? null,
+            competitor_url: body.competitorUrl ?? null,
+            wholesale_url: body.wholesaleUrl ?? null,
+            image_urls: imageUrls,
+            headlines: savedCopy.headlines,
+            description: savedCopy.description,
+            features: savedCopy.features,
+            how_to_use: savedCopy.howToUse,
+            caution: savedCopy.caution,
+            image_analysis: imageAnalysis,
+            mfds_reviewed: mfdsReviewed,
+            replacements,
+            sections: savedCopy.sections,
+            generation_cost: generationCost,
+          })
+          .eq("id", body.productId)
+          .eq("user_id", user.id)
+          .select("id")
+          .single()
+      : await supabase
+          .from("products")
+          .insert({
+            user_id: user.id,
+            category: body.category,
+            product_name: body.productName,
+            brand_name: body.brandName ?? null,
+            price: body.price,
+            target_customer: body.targetCustomer ?? null,
+            key_features: body.keyFeatures ?? null,
+            ingredients: body.ingredients ?? null,
+            certifications: body.certifications ?? null,
+            competitor_url: body.competitorUrl ?? null,
+            wholesale_url: body.wholesaleUrl ?? null,
+            image_urls: imageUrls,
+            headlines: savedCopy.headlines,
+            description: savedCopy.description,
+            features: savedCopy.features,
+            how_to_use: savedCopy.howToUse,
+            caution: savedCopy.caution,
+            image_analysis: imageAnalysis,
+            mfds_reviewed: mfdsReviewed,
+            replacements,
+            sections: savedCopy.sections,
+            generation_cost: generationCost,
+          })
+          .select("id")
+          .single();
 
     if (insertError || !savedProduct) {
-      console.error("[generate] product insert error", insertError);
+      console.error(
+        `[generate] product ${body.productId ? "update" : "insert"} error`,
+        insertError,
+      );
       return NextResponse.json(
         { error: `상품 저장 실패: ${insertError?.message ?? "알 수 없는 오류"}` },
         { status: 500 },

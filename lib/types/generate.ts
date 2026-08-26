@@ -79,6 +79,8 @@ export type ProductInput = {
    * 원본 그대로 hero 섹션 바로 뒤에 삽입한다 (토큰/비용 절감 목적).
    */
   customGifUrl?: string | null;
+  /** AI 재생성 등 — 기존 products 행 id가 있으면 insert 대신 update */
+  productId?: string | null;
 };
 
 // slot: lib/section-templates.ts가 카테고리별로 고정한 슬롯 이름

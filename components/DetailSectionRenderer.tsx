@@ -237,6 +237,14 @@ function ComparisonValueCell({
   );
 }
 
+function checklistGridClass(itemCount: number, category: string): string {
+  if (itemCount === 3) return "grid-cols-3";
+  if (itemCount === 5) return "grid-cols-2 sm:grid-cols-5";
+  if (itemCount === 2) return "grid-cols-2 max-w-md mx-auto";
+  if (itemCount === 4) return getCategoryRhythm(category).checklistGridFour;
+  return "grid-cols-2 sm:grid-cols-3";
+}
+
 function parseMetricPercent(value: string): number | null {
   const match = value.match(/(\d+(?:\.\d+)?)\s*%/);
   if (!match) return null;
@@ -674,9 +682,7 @@ function renderSection(
             className={`${compactFollow ? "mt-8" : "mt-12"} grid ${
               compactFollow ? "gap-x-3 gap-y-6" : getCategoryRhythm(category).checklistGapClass
             } ${
-              section.items.length === 3
-                ? "grid-cols-3"
-                : getCategoryRhythm(category).checklistGridFour
+              checklistGridClass(section.items.length, category)
             }`}
           >
             {section.items.map((item, itemIndex) => (
@@ -1305,7 +1311,8 @@ function renderSection(
       );
     }
 
-    case "illustration_banner":
+    case "illustration_banner": {
+      const bgSrc = resolveImage(imageUrls, 0) || heroFallback;
       return (
         <section
           key={`illustration_banner-${index}`}
@@ -1318,10 +1325,39 @@ function renderSection(
               alt={section.heading ?? "컨셉 일러스트"}
               className="absolute inset-0 h-full w-full object-cover"
             />
+          ) : bgSrc ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={bgSrc}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 h-full w-full scale-110 object-cover opacity-55 blur-2xl"
+              />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -left-16 top-8 h-52 w-52 rounded-full blur-3xl"
+                style={{ backgroundColor: hexToRgba(theme.accent, 0.28) }}
+              />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -bottom-10 -right-10 h-64 w-64 rounded-full blur-3xl"
+                style={{ backgroundColor: hexToRgba(theme.deepAccent, 0.22) }}
+              />
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 opacity-30"
+                style={{
+                  backgroundImage: `repeating-linear-gradient(135deg, ${hexToRgba(theme.accent, 0.08)} 0px, ${hexToRgba(theme.accent, 0.08)} 1px, transparent 1px, transparent 14px)`,
+                }}
+              />
+            </>
           ) : (
             <div
               className="absolute inset-0"
-              style={{ backgroundColor: hexToRgba(theme.accent, 0.12) }}
+              style={{
+                background: `linear-gradient(135deg, ${hexToRgba(theme.deepAccent, 0.35)} 0%, ${hexToRgba(theme.accent, 0.2)} 55%, ${hexToRgba(theme.baseNeutral, 0.15)} 100%)`,
+              }}
               aria-hidden="true"
             />
           )}
@@ -1359,6 +1395,7 @@ function renderSection(
           </div>
         </section>
       );
+    }
 
     case "custom_gif":
       return (
