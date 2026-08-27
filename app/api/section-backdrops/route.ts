@@ -24,12 +24,15 @@ export async function POST(request: Request) {
 
     const userId = user.id;
 
-    const { shadowAnalysis, conceptBrief, category, theme } = (await request.json()) as {
+    const body = (await request.json()) as {
       shadowAnalysis?: ShadowAnalysis;
       conceptBrief?: ConceptBrief;
       category?: string;
       theme?: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">;
+      draftToken?: string | null;
     };
+
+    const { shadowAnalysis, conceptBrief, category, theme, draftToken } = body;
 
     if (!shadowAnalysis) {
       return NextResponse.json({ error: "shadowAnalysis가 필요합니다." }, { status: 400 });
@@ -48,9 +51,13 @@ export async function POST(request: Request) {
       }
     }
 
-    if (!process.env.REPLICATE_API_TOKEN) {
+    if (
+      !process.env.REPLICATE_API_TOKEN &&
+      !process.env.FLUX_API_KEY &&
+      !process.env.BFL_API_KEY
+    ) {
       return NextResponse.json(
-        { error: "REPLICATE_API_TOKEN이 설정되지 않았습니다." },
+        { error: "REPLICATE_API_TOKEN 또는 FLUX_API_KEY가 설정되지 않았습니다." },
         { status: 500 },
       );
     }
@@ -64,6 +71,7 @@ export async function POST(request: Request) {
       conceptBrief,
       category ?? "기타",
       theme,
+      { userId, draftToken },
     );
 
     if (isTestMode() && ingredientUrl && textureUrl) {

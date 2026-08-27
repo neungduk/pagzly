@@ -1,0 +1,41 @@
+{
+  "note": "32cha: section-backdrop flux-schnell fixed; DETAIL_PAGE_GRAPHIC default → flux (not gemini)",
+  "routerOffTotalCost": 0.006,
+  "routerOnTotalCost": 0.009000000000000001,
+  "cases": [
+    {
+      "id": "beauty",
+      "off": {
+        "caseId": "beauty",
+        "cost": 0,
+        "ingredient": false,
+        "texture": false,
+        "routerEnabled": false
+      },
+      "on": {
+        "caseId": "beauty",
+        "cost": 0.003,
+        "ingredient": true,
+        "texture": false,
+        "routerEnabled": true
+      }
+    },
+    {
+      "id": "electronics",
+      "off": {
+        "caseId": "electronics",
+        "cost": 0.006,
+        "ingredient": true,
+        "texture": true,
+        "routerEnabled": false
+      },
+      "on": {
+        "caseId": "electronics",
+        "cost": 0.006,
+        "ingredient": true,
+        "texture": true,
+        "routerEnabled": true
+      }
+    }
+  ]
+}

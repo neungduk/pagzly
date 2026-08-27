@@ -9,19 +9,21 @@ import GeneratingOverlay, {
   slotDisplayLabel,
   SNAP_HOLD_MS,
   type GeneratingStage,
+  type OverlayProgressState,
 } from "@/components/GeneratingOverlay";
 import {
   DRAFT_SESSION_KEY,
+  RETRY_PHOTO_ONLY_KEY,
   SESSION_KEY,
   type DraftSessionPayload,
 } from "@/components/CreateProductForm";
 import {
   runPhotoEnhancementPipeline,
+  type PhotoPipelineProgressEvent,
   type UploadedImage,
 } from "@/lib/photo-pipeline-client";
 import { getSectionAidaPhase } from "@/lib/section-aida";
-import type { DetailSection, GenerateResponse } from "@/lib/types/generate";
-
+import type { DetailSection, GenerateResponse, PhotoCostBreakdown } from "@/lib/types/generate";
 
 function sectionPreviewText(section: DetailSection): string {
   switch (section.type) {
@@ -78,13 +80,42 @@ function sectionHeading(section: DetailSection): string {
   return slotDisplayLabel(section.slot, section.slot);
 }
 
+type PhotoPendingState = {
+  draftAfterEnhance: DraftSessionPayload;
+  enhancedImages: UploadedImage[];
+  photoProcessingCost: number;
+  photoCostBreakdown: PhotoCostBreakdown;
+  warning: string;
+  testMode: boolean;
+};
+
+function mapProgressToStage(event: PhotoPipelineProgressEvent): GeneratingStage {
+  if (event.stage === "generating") return "generating";
+  if (event.stage === "enhancing") return "enhancing";
+  return "backdrop";
+}
+
+function mapProgressToOverlay(event: PhotoPipelineProgressEvent): OverlayProgressState {
+  return {
+    detail: event.detail,
+    current: event.current,
+    total: event.total,
+    elapsedMs: event.elapsedMs,
+    costUsdSoFar: event.costUsdSoFar,
+    retrying: event.retrying,
+  };
+}
+
 export default function CreateDraftPage() {
   const router = useRouter();
   const [draft, setDraft] = useState<DraftSessionPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadingStage, setLoadingStage] = useState<"idle" | GeneratingStage>("idle");
   const [overlaySnap, setOverlaySnap] = useState(false);
+  const [overlayProgress, setOverlayProgress] = useState<OverlayProgressState | undefined>();
   const [backdropCandidates, setBackdropCandidates] = useState<string[] | null>(null);
+  const [photoPending, setPhotoPending] = useState<PhotoPendingState | null>(null);
+  const [retryPhotoOnly, setRetryPhotoOnly] = useState(false);
   const backdropPickRef = useRef<((url: string) => void) | null>(null);
 
   useEffect(() => {
@@ -99,6 +130,7 @@ export default function CreateDraftPage() {
         parsed.draftApproved = false;
       }
       setDraft(parsed);
+      setRetryPhotoOnly(sessionStorage.getItem(RETRY_PHOTO_ONLY_KEY) === "1");
     } catch {
       router.replace("/create");
     }
@@ -131,8 +163,10 @@ export default function CreateDraftPage() {
   async function handleRegenerate() {
     if (!draft) return;
     setError(null);
+    setPhotoPending(null);
     setLoadingStage("generating");
     setOverlaySnap(false);
+    setOverlayProgress(undefined);
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -201,137 +235,255 @@ export default function CreateDraftPage() {
     } finally {
       setLoadingStage("idle");
       setOverlaySnap(false);
+      setOverlayProgress(undefined);
     }
+  }
+
+  async function runPhotoPhase(currentDraft: DraftSessionPayload) {
+    const urls = (currentDraft.payload.imageUrls as string[]) ?? [];
+    const paths = (currentDraft.payload.imagePaths as string[]) ?? [];
+    const uploaded: UploadedImage[] = urls.map((url, i) => ({
+      url,
+      path: paths[i] ?? `draft/${i}`,
+    }));
+
+    if (uploaded.length === 0) {
+      throw new Error("원본 이미지가 없습니다. 처음부터 다시 생성해 주세요.");
+    }
+
+    try {
+      await fetch("/api/protect-product-images", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imagePaths: paths.filter(Boolean) }),
+      });
+    } catch (protectErr) {
+      console.warn("[create/draft] protect-product-images 실패 — 생성은 계속", protectErr);
+    }
+
+    const snap = currentDraft.formSnapshot;
+    setLoadingStage("backdrop");
+    setOverlayProgress(undefined);
+
+    const photo = await runPhotoEnhancementPipeline({
+      uploaded,
+      category: snap.category,
+      productName: snap.productName,
+      brandName: snap.brandName || null,
+      price: Number(snap.price) || Number(currentDraft.payload.price) || 0,
+      keyFeatures: snap.keyFeatures || null,
+      ingredients: snap.ingredients || null,
+      targetCustomer: snap.targetCustomer || null,
+      referenceImageUrl: (currentDraft.payload.referenceImageUrl as string | null) ?? null,
+      draftToken: currentDraft.draftToken,
+      pickBackdrop: waitForBackdropPick,
+      onStage: (event) => {
+        setLoadingStage(mapProgressToStage(event));
+        setOverlayProgress(mapProgressToOverlay(event));
+      },
+    });
+
+    const enhancedImages = photo.images;
+    const photoProcessingCost = photo.photoProcessingCost ?? 0;
+    const photoCostBreakdown = {
+      ...(currentDraft.photoCostBreakdown ?? {}),
+      ...(photo.photoCostBreakdown ?? {}),
+    };
+
+    const draftAfterEnhance: DraftSessionPayload = {
+      ...currentDraft,
+      payload: {
+        ...currentDraft.payload,
+        imageUrls: enhancedImages.map((i) => i.url),
+        imagePaths: enhancedImages.map((i) => i.path),
+        photoProcessingCost:
+          ((currentDraft.payload.photoProcessingCost as number) ?? 0) + photoProcessingCost,
+        photoCostBreakdown,
+        conceptBrief: photo.conceptBrief ?? currentDraft.payload.conceptBrief,
+        referenceAnalysis: photo.referenceAnalysis ?? currentDraft.payload.referenceAnalysis,
+        backdropFailed: photo.backdropFailed ?? false,
+      },
+      photoCostBreakdown,
+      referenceAnalysis: photo.referenceAnalysis ?? currentDraft.referenceAnalysis,
+    };
+    persistDraft(draftAfterEnhance);
+
+    return {
+      draftAfterEnhance,
+      enhancedImages,
+      photoProcessingCost,
+      photoCostBreakdown,
+      testMode: photo.testMode,
+      backdropFailed: photo.backdropFailed,
+      warning: photo.warning,
+      conceptBrief: photo.conceptBrief,
+      referenceAnalysis: photo.referenceAnalysis,
+    };
+  }
+
+  async function runFinalPhase(params: {
+    draftAfterEnhance: DraftSessionPayload;
+    enhancedImages: UploadedImage[];
+    photoCostBreakdown: PhotoCostBreakdown;
+    testMode: boolean;
+    conceptBrief?: DraftSessionPayload["payload"]["conceptBrief"];
+    referenceAnalysis?: DraftSessionPayload["referenceAnalysis"];
+  }) {
+    const {
+      draftAfterEnhance,
+      enhancedImages,
+      photoCostBreakdown,
+      testMode,
+      conceptBrief,
+      referenceAnalysis,
+    } = params;
+
+    setLoadingStage("generating");
+    setOverlayProgress({ detail: "상세페이지 조립 중" });
+
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...draftAfterEnhance.payload,
+        mode: "final",
+        imageUrls: enhancedImages.map((i) => i.url),
+        imagePaths: enhancedImages.map((i) => i.path),
+        photoProcessingCost: draftAfterEnhance.payload.photoProcessingCost,
+        photoCostBreakdown,
+        conceptBrief: conceptBrief ?? draftAfterEnhance.payload.conceptBrief,
+        referenceAnalysis: referenceAnalysis ?? draftAfterEnhance.payload.referenceAnalysis,
+        draftSections: draftAfterEnhance.sections,
+        draftHeadlines: draftAfterEnhance.headlines,
+        draftDescription: draftAfterEnhance.description,
+        draftFeatures: draftAfterEnhance.features,
+        draftHowToUse: draftAfterEnhance.howToUse,
+        draftCaution: draftAfterEnhance.caution,
+        draftToken: draftAfterEnhance.draftToken,
+      }),
+    });
+    const json = (await res.json()) as GenerateResponse & { error?: string };
+    if (!res.ok) throw new Error(json.error ?? "최종 생성에 실패했습니다.");
+
+    setOverlaySnap(true);
+    await new Promise((r) => setTimeout(r, SNAP_HOLD_MS));
+
+    persistDraft({ ...draftAfterEnhance, draftApproved: true });
+    sessionStorage.removeItem(RETRY_PHOTO_ONLY_KEY);
+    setRetryPhotoOnly(false);
+
+    try {
+      sessionStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({
+          ...draftAfterEnhance.payload,
+          imageUrls: json.imageUrls ?? enhancedImages.map((i) => i.url),
+          photoCostBreakdown: json.photoCostBreakdown ?? photoCostBreakdown,
+          photoProcessingCost: draftAfterEnhance.payload.photoProcessingCost,
+          generationCost: json.generationCost,
+          referenceAnalysis: json.referenceAnalysis ?? draftAfterEnhance.referenceAnalysis,
+          reviewInsights: json.reviewInsights ?? draftAfterEnhance.reviewInsights ?? null,
+          planningDocText: json.planningDocText ?? draftAfterEnhance.planningDocText ?? null,
+          testMode: json.testMode ?? testMode,
+          backdropFailed: draftAfterEnhance.payload.backdropFailed ?? false,
+          generated: json,
+          draftApproved: true,
+        }),
+      );
+    } catch (storageError) {
+      console.warn("[create/draft] sessionStorage 저장 실패 — DB 폴백으로 진행", storageError);
+    }
+
+    router.push(`/create/result?id=${encodeURIComponent(json.productId)}`);
   }
 
   async function handleApproveAndFinalize() {
     if (!draft) return;
     setError(null);
+    setPhotoPending(null);
     setOverlaySnap(false);
+    setOverlayProgress(undefined);
 
     try {
-      const urls = (draft.payload.imageUrls as string[]) ?? [];
-      const paths = (draft.payload.imagePaths as string[]) ?? [];
-      const uploaded: UploadedImage[] = urls.map((url, i) => ({
-        url,
-        path: paths[i] ?? `draft/${i}`,
-      }));
+      const photoResult = await runPhotoPhase(draft);
 
-      if (uploaded.length === 0) {
-        throw new Error("원본 이미지가 없습니다. 처음부터 다시 생성해 주세요.");
-      }
-
-      // 30차: 최종 생성 시작 직전 orphan 보호 윈도우 연장 (cleanup 대비)
-      try {
-        await fetch("/api/protect-product-images", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imagePaths: paths.filter(Boolean) }),
+      if (photoResult.backdropFailed || photoResult.warning) {
+        setPhotoPending({
+          draftAfterEnhance: photoResult.draftAfterEnhance,
+          enhancedImages: photoResult.enhancedImages,
+          photoProcessingCost: photoResult.photoProcessingCost,
+          photoCostBreakdown: photoResult.photoCostBreakdown,
+          warning: photoResult.warning ?? "배경 생성에 실패해 원본 사진으로 계속합니다.",
+          testMode: photoResult.testMode,
         });
-      } catch (protectErr) {
-        console.warn("[create/draft] protect-product-images 실패 — 생성은 계속", protectErr);
+        setLoadingStage("idle");
+        setOverlayProgress(undefined);
+        return;
       }
 
-      const snap = draft.formSnapshot;
-      const photo = await runPhotoEnhancementPipeline({
-        uploaded,
-        category: snap.category,
-        productName: snap.productName,
-        brandName: snap.brandName || null,
-        price: Number(snap.price) || Number(draft.payload.price) || 0,
-        keyFeatures: snap.keyFeatures || null,
-        ingredients: snap.ingredients || null,
-        targetCustomer: snap.targetCustomer || null,
-        referenceImageUrl: (draft.payload.referenceImageUrl as string | null) ?? null,
-        pickBackdrop: waitForBackdropPick,
-        onStage: (stage) => setLoadingStage(stage),
+      await runFinalPhase({
+        draftAfterEnhance: photoResult.draftAfterEnhance,
+        enhancedImages: photoResult.enhancedImages,
+        photoCostBreakdown: photoResult.photoCostBreakdown,
+        testMode: photoResult.testMode,
+        conceptBrief: photoResult.conceptBrief,
+        referenceAnalysis: photoResult.referenceAnalysis,
       });
-
-      const enhancedImages = photo.images;
-      if (photo.backdropFailed || photo.warning) {
-        setError(photo.warning ?? "배경 생성에 실패해 원본 사진으로 계속합니다.");
-      }
-      const photoProcessingCost = photo.photoProcessingCost ?? 0;
-      const photoCostBreakdown = {
-        ...(draft.photoCostBreakdown ?? {}),
-        ...(photo.photoCostBreakdown ?? {}),
-      };
-
-      // enhance 직후 draft URL을 보정본으로 갱신 — 이후 /api/generate 실패해도
-      // 재승인 시 삭제된(또는 옛) 원본 URL을 다시 쓰지 않는다.
-      const draftAfterEnhance: DraftSessionPayload = {
-        ...draft,
-        payload: {
-          ...draft.payload,
-          imageUrls: enhancedImages.map((i) => i.url),
-          imagePaths: enhancedImages.map((i) => i.path),
-          photoProcessingCost:
-            ((draft.payload.photoProcessingCost as number) ?? 0) + photoProcessingCost,
-          photoCostBreakdown,
-          conceptBrief: photo.conceptBrief ?? draft.payload.conceptBrief,
-          referenceAnalysis: photo.referenceAnalysis ?? draft.payload.referenceAnalysis,
-        },
-        photoCostBreakdown,
-        referenceAnalysis: photo.referenceAnalysis ?? draft.referenceAnalysis,
-      };
-      persistDraft(draftAfterEnhance);
-
-      setLoadingStage("generating");
-
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...draftAfterEnhance.payload,
-          mode: "final",
-          imageUrls: enhancedImages.map((i) => i.url),
-          imagePaths: enhancedImages.map((i) => i.path),
-          photoProcessingCost: draftAfterEnhance.payload.photoProcessingCost,
-          photoCostBreakdown,
-          conceptBrief: photo.conceptBrief ?? draft.payload.conceptBrief,
-          referenceAnalysis: photo.referenceAnalysis ?? draft.payload.referenceAnalysis,
-          draftSections: draft.sections,
-          draftHeadlines: draft.headlines,
-          draftDescription: draft.description,
-          draftFeatures: draft.features,
-          draftHowToUse: draft.howToUse,
-          draftCaution: draft.caution,
-          draftToken: draft.draftToken,
-        }),
-      });
-      const json = (await res.json()) as GenerateResponse & { error?: string };
-      if (!res.ok) throw new Error(json.error ?? "최종 생성에 실패했습니다.");
-
-      setOverlaySnap(true);
-      await new Promise((r) => setTimeout(r, SNAP_HOLD_MS));
-
-      persistDraft({ ...draftAfterEnhance, draftApproved: true });
-
-      try {
-        sessionStorage.setItem(
-          SESSION_KEY,
-          JSON.stringify({
-            ...draftAfterEnhance.payload,
-            imageUrls: json.imageUrls ?? enhancedImages.map((i) => i.url),
-            photoCostBreakdown: json.photoCostBreakdown ?? photoCostBreakdown,
-            referenceAnalysis: json.referenceAnalysis ?? draftAfterEnhance.referenceAnalysis,
-            reviewInsights: json.reviewInsights ?? draft.reviewInsights ?? null,
-            planningDocText: json.planningDocText ?? draft.planningDocText ?? null,
-            testMode: json.testMode ?? photo.testMode,
-            generated: json,
-            draftApproved: true,
-          }),
-        );
-      } catch (storageError) {
-        // 세션 캐시 저장 실패해도 서버 생성은 이미 끝났음 — 결과 페이지의 DB 폴백으로 복구됨.
-        console.warn("[create/draft] sessionStorage 저장 실패 — DB 폴백으로 진행", storageError);
-      }
-
-      router.push(`/create/result?id=${encodeURIComponent(json.productId)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "최종 생성 중 오류가 발생했습니다.");
       setLoadingStage("idle");
       setOverlaySnap(false);
+      setOverlayProgress(undefined);
+    }
+  }
+
+  async function handleRetryPhotoOnly() {
+    if (!draft) return;
+    setPhotoPending(null);
+    setError(null);
+    setOverlaySnap(false);
+    try {
+      const photoResult = await runPhotoPhase(draft);
+      if (photoResult.backdropFailed || photoResult.warning) {
+        setPhotoPending({
+          draftAfterEnhance: photoResult.draftAfterEnhance,
+          enhancedImages: photoResult.enhancedImages,
+          photoProcessingCost: photoResult.photoProcessingCost,
+          photoCostBreakdown: photoResult.photoCostBreakdown,
+          warning: photoResult.warning ?? "배경 생성에 실패했습니다.",
+          testMode: photoResult.testMode,
+        });
+        setLoadingStage("idle");
+        return;
+      }
+      await runFinalPhase({
+        draftAfterEnhance: photoResult.draftAfterEnhance,
+        enhancedImages: photoResult.enhancedImages,
+        photoCostBreakdown: photoResult.photoCostBreakdown,
+        testMode: photoResult.testMode,
+        conceptBrief: photoResult.conceptBrief,
+        referenceAnalysis: photoResult.referenceAnalysis,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "사진 보정 재시도 중 오류가 발생했습니다.");
+      setLoadingStage("idle");
+    }
+  }
+
+  async function handleContinueWithOriginals() {
+    if (!photoPending) return;
+    setError(null);
+    try {
+      await runFinalPhase({
+        draftAfterEnhance: photoPending.draftAfterEnhance,
+        enhancedImages: photoPending.enhancedImages,
+        photoCostBreakdown: photoPending.photoCostBreakdown,
+        testMode: photoPending.testMode,
+      });
+      setPhotoPending(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "최종 생성 중 오류가 발생했습니다.");
+      setLoadingStage("idle");
     }
   }
 
@@ -361,6 +513,11 @@ export default function CreateDraftPage() {
             카피 구성을 확인한 뒤 승인하면 이미지 보정·최종 조립이 진행됩니다. (승인 전 배경 생성
             비용 없음)
           </p>
+          {retryPhotoOnly && (
+            <p className="mt-3 rounded-lg border border-mustard/40 bg-mustard/10 px-4 py-2 text-sm text-ink/75">
+              배경·보정만 다시 시도합니다. 승인하면 사진 파이프라인부터 재실행됩니다.
+            </p>
+          )}
         </div>
 
         <div className="relative mb-8 rounded-2xl border border-line bg-paper p-5 shadow-sm sm:p-6">
@@ -410,16 +567,53 @@ export default function CreateDraftPage() {
             )}
         </div>
 
-        {error && (
+        {photoPending && (
+          <div className="mb-6 space-y-3 rounded-xl border border-mustard/40 bg-mustard/10 px-4 py-4 text-sm text-ink/80">
+            <p className="font-medium text-ink">배경·보정 일부 실패</p>
+            <p>{photoPending.warning}</p>
+            <p className="text-xs text-ink/55">
+              원본 사진으로도 상세페이지를 만들 수 있습니다. 배경만 다시 시도하거나 이대로 진행하세요.
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void handleRetryPhotoOnly()}
+                className="inline-flex h-10 items-center justify-center rounded-lg bg-registration-red px-4 text-sm font-semibold text-paper hover:bg-registration-red/90 disabled:opacity-50"
+              >
+                배경·보정 다시 시도
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void handleContinueWithOriginals()}
+                className="inline-flex h-10 items-center justify-center rounded-lg border border-line bg-paper px-4 text-sm font-medium text-ink hover:bg-line/30 disabled:opacity-50"
+              >
+                이대로 최종 생성
+              </button>
+            </div>
+          </div>
+        )}
+
+        {error && !photoPending && (
           <div className="mb-6 space-y-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
             <p>{error}</p>
-            {/만료|다시 업로드/.test(error) && (
+            {/만료|다시 업로드/.test(error) ? (
               <Link
                 href="/create"
                 className="inline-flex font-medium text-registration-red underline-offset-2 hover:underline"
               >
                 사진 다시 업로드하러 가기
               </Link>
+            ) : (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void handleApproveAndFinalize()}
+                className="inline-flex font-medium text-registration-red underline-offset-2 hover:underline disabled:opacity-50"
+              >
+                생성 다시 시도
+              </button>
             )}
           </div>
         )}
@@ -465,11 +659,11 @@ export default function CreateDraftPage() {
           <p className="font-mono text-xs text-ink/50">총 섹션 {sectionCount}개</p>
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || photoPending != null}
             onClick={() => void handleApproveAndFinalize()}
             className="inline-flex h-11 items-center justify-center rounded-xl bg-registration-red px-5 text-sm font-semibold text-paper transition-colors hover:bg-registration-red/90 disabled:opacity-50"
           >
-            승인하고 최종 생성
+            {retryPhotoOnly ? "사진 보정 후 최종 생성" : "승인하고 최종 생성"}
           </button>
         </div>
       </div>
@@ -481,6 +675,7 @@ export default function CreateDraftPage() {
           productName={productName || "상품"}
           length={draft.formSnapshot.compositionLength}
           snapComplete={overlaySnap}
+          progress={overlayProgress}
         />
       )}
       {backdropCandidates && (
@@ -490,6 +685,7 @@ export default function CreateDraftPage() {
             const resolve = backdropPickRef.current;
             backdropPickRef.current = null;
             setBackdropCandidates(null);
+            setLoadingStage("backdrop");
             resolve?.(url);
           }}
         />

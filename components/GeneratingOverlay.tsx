@@ -57,9 +57,16 @@ export function slotDisplayLabel(slot: string, note: string): string {
   return cut && cut.length > 0 ? cut.slice(0, 16) : slot;
 }
 
-/** 연출용 예상 총 소요(ms). 실제 API 시간과 무관 — snapComplete로 조기 종료 */
-const ESTIMATED_TOTAL_MS = 48_000;
 const SNAP_HOLD_MS = 350;
+
+export type OverlayProgressState = {
+  detail?: string;
+  current?: number;
+  total?: number;
+  elapsedMs?: number;
+  costUsdSoFar?: number;
+  retrying?: boolean;
+};
 
 type CardStatus = "pending" | "active" | "done";
 
@@ -67,10 +74,9 @@ type GeneratingOverlayProps = {
   stage: GeneratingStage;
   category: string;
   productName: string;
-  /** 짧은 구성일 때 슬롯 카드 수 감소 */
   length?: "short" | "long";
-  /** API가 먼저 끝나면 true → 남은 카드 즉시 완료 */
   snapComplete?: boolean;
+  progress?: OverlayProgressState;
 };
 
 function CheckIcon() {
@@ -108,47 +114,66 @@ function ShimmerBar({ active }: { active: boolean }) {
   );
 }
 
+function formatElapsed(ms: number): string {
+  const sec = Math.floor(ms / 1000);
+  if (sec < 60) return `${sec}초`;
+  const min = Math.floor(sec / 60);
+  return `${min}분 ${sec % 60}초`;
+}
+
+function slotProgressFromStage(
+  stage: GeneratingStage,
+  slotCount: number,
+  progress?: OverlayProgressState,
+): number {
+  if (slotCount <= 0) return 0;
+  if (stage === "generating" || progress?.detail?.includes("완료")) {
+    return slotCount;
+  }
+  if (stage === "enhancing" && progress?.current != null && progress.total != null && progress.total > 0) {
+    const ratio = progress.current / progress.total;
+    return Math.min(slotCount, Math.floor(slotCount * (0.2 + ratio * 0.65)));
+  }
+  if (stage === "enhancing") {
+    return Math.max(1, Math.floor(slotCount * 0.25));
+  }
+  if (stage === "backdrop") {
+    return progress?.detail?.includes("선택") ? Math.floor(slotCount * 0.12) : Math.floor(slotCount * 0.06);
+  }
+  return 0;
+}
+
 export default function GeneratingOverlay({
   stage,
   category,
   productName,
   length = "long",
   snapComplete = false,
+  progress,
 }: GeneratingOverlayProps) {
   const slots = useMemo(() => getSlotTemplate(category, length), [category, length]);
+  const targetCompleted = useMemo(
+    () => (snapComplete ? slots.length : slotProgressFromStage(stage, slots.length, progress)),
+    [snapComplete, stage, slots.length, progress],
+  );
   const [completedCount, setCompletedCount] = useState(0);
   const listRef = useRef<HTMLUListElement>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const perSlotMs = Math.max(900, Math.floor(ESTIMATED_TOTAL_MS / Math.max(slots.length, 1)));
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    if (snapComplete) return;
-    if (slots.length === 0) return;
-
-    intervalRef.current = setInterval(() => {
-      setCompletedCount((prev) => {
-        if (prev >= slots.length) {
-          if (intervalRef.current) clearInterval(intervalRef.current);
-          return prev;
-        }
-        return prev + 1;
-      });
-    }, perSlotMs);
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [slots.length, perSlotMs, snapComplete]);
+    setCompletedCount((prev) => (targetCompleted < prev && !snapComplete ? prev : targetCompleted));
+  }, [targetCompleted, snapComplete]);
 
   useEffect(() => {
-    if (!snapComplete) return;
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    if (snapComplete) {
+      setCompletedCount(slots.length);
     }
-    setCompletedCount(slots.length);
   }, [snapComplete, slots.length]);
+
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const list = listRef.current;
@@ -166,8 +191,17 @@ export default function GeneratingOverlay({
     );
   }, [slots]);
 
+  const elapsedMs = progress?.elapsedMs ?? tick * 1000;
+  const headline = progress?.detail ?? STAGE_MESSAGES[stage];
+  const subline =
+    progress?.retrying
+      ? "일시 오류 — 재시도 중…"
+      : stage === "enhancing" && progress?.current != null && progress.total != null
+        ? `${progress.current}/${progress.total}`
+        : null;
+
   function statusFor(index: number): CardStatus {
-    if (index < completedCount) return "done";
+    if (snapComplete || index < completedCount) return "done";
     if (index === completedCount && completedCount < slots.length) return "active";
     return "pending";
   }
@@ -199,7 +233,14 @@ export default function GeneratingOverlay({
             {category || "카테고리"}
           </span>
         </div>
-        <p className="mt-2 text-sm text-ink/55">{STAGE_MESSAGES[stage]}…</p>
+        <p className="mt-2 text-sm font-medium text-ink">{headline}…</p>
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink/50">
+          {subline && <span>{subline}</span>}
+          <span>{formatElapsed(elapsedMs)} 경과</span>
+          {progress?.costUsdSoFar != null && progress.costUsdSoFar > 0 && (
+            <span className="font-mono">${progress.costUsdSoFar.toFixed(4)}</span>
+          )}
+        </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
@@ -263,11 +304,10 @@ export default function GeneratingOverlay({
       </div>
 
       <p className="border-t border-line px-5 py-3 text-center text-xs text-ink/45">
-        잠시만 기다려 주세요. 섹션이 순서대로 채워집니다.
+        실제 작업 진행에 맞춰 섹션이 채워집니다.
       </p>
     </div>
   );
 }
 
-/** CreateProductForm에서 API 완료 후 스냅 연출을 잠깐 보여 줄 때 */
 export { SNAP_HOLD_MS };

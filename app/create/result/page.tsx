@@ -5,12 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import DetailSectionRenderer from "@/components/DetailSectionRenderer";
+import GenerationCostStrip from "@/components/GenerationCostStrip";
 import { freezeScrollRevealAnimations, unfreezeScrollRevealAnimations } from "@/components/DetailScrollReveal";
 import DetailActionBar, { type DetailToolTab } from "@/components/DetailActionBar";
 import InstagramFeedPanel from "@/components/InstagramFeedPanel";
 import ToastBanner from "@/components/ToastBanner";
-import { DRAFT_SESSION_KEY, SESSION_KEY } from "@/components/CreateProductForm";
-import type { CustomGifSection, DetailSection, GenerateResponse } from "@/lib/types/generate";
+import { DRAFT_SESSION_KEY, RETRY_PHOTO_ONLY_KEY, SESSION_KEY } from "@/components/CreateProductForm";
+import type { CustomGifSection, DetailSection, GenerateResponse, PhotoCostBreakdown } from "@/lib/types/generate";
 import { getCategoryTheme } from "@/lib/category-theme";
 import { buildDetailPageHtml } from "@/lib/export-detail-html";
 import { validateImageFile } from "@/lib/image-upload";
@@ -53,6 +54,10 @@ type ProductResult = {
   wholesaleUrl: string | null;
   createdAt: string;
   testMode?: boolean;
+  backdropFailed?: boolean;
+  photoProcessingCost?: number;
+  photoCostBreakdown?: PhotoCostBreakdown;
+  generationCost?: number;
   generated?: GenerateResponse;
 };
 
@@ -78,6 +83,7 @@ type ProductRow = {
   replacements: GenerateResponse["replacements"];
   sections: DetailSection[] | null;
   created_at: string;
+  generation_cost?: number | null;
 };
 
 function mapProductRow(row: ProductRow): ProductResult {
@@ -108,6 +114,7 @@ function mapProductRow(row: ProductRow): ProductResult {
     competitorUrl: row.competitor_url,
     wholesaleUrl: row.wholesale_url,
     createdAt: row.created_at,
+    generationCost: row.generation_cost != null ? Number(row.generation_cost) : undefined,
     generated,
   };
 }
@@ -183,7 +190,7 @@ function CreateResultContent() {
         const { data: row, error } = await supabase
           .from("products")
           .select(
-            "id, category, product_name, brand_name, price, target_customer, key_features, ingredients, certifications, competitor_url, wholesale_url, image_urls, headlines, description, features, how_to_use, caution, mfds_reviewed, replacements, sections, created_at",
+            "id, category, product_name, brand_name, price, target_customer, key_features, ingredients, certifications, competitor_url, wholesale_url, image_urls, headlines, description, features, how_to_use, caution, mfds_reviewed, replacements, sections, created_at, generation_cost",
           )
           .eq("id", id)
           .single();
@@ -548,6 +555,16 @@ function CreateResultContent() {
 
   const { generated } = data;
   const isTestMode = data.testMode ?? generated?.testMode ?? false;
+  const backdropFailed = data.backdropFailed ?? false;
+  const photoCostBreakdown =
+    data.photoCostBreakdown ?? generated?.photoCostBreakdown ?? undefined;
+  const generationCost =
+    data.generationCost ?? generated?.generationCost ?? undefined;
+
+  function handleRetryPhotoFromResult() {
+    sessionStorage.setItem(RETRY_PHOTO_ONLY_KEY, "1");
+    router.push("/create/draft");
+  }
   const categoryTheme = getCategoryTheme(data.category);
   const theme = generated?.theme
     ? { ...categoryTheme, ...generated.theme }
@@ -573,6 +590,11 @@ function CreateResultContent() {
                 TEST MODE — 저비용 테스트 결과
               </span>
             )}
+            {backdropFailed && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-orange-300/50 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-900/80">
+                일부 이미지 원본 사용
+              </span>
+            )}
             {generated?.mfdsReviewed && (
               <span className="inline-flex items-center gap-1 rounded-full bg-slate-blue/10 px-3 py-1 text-xs font-semibold text-slate-blue">
                 ✅ 식약처 광고 기준 검수 완료
@@ -590,6 +612,25 @@ function CreateResultContent() {
             {generated?.mfdsReviewed &&
               " 화장품/뷰티 카테고리 식약처 광고 기준이 적용되었습니다."}
           </p>
+
+          <GenerationCostStrip
+            photoCostBreakdown={photoCostBreakdown}
+            photoProcessingCost={data.photoProcessingCost}
+            generationCost={generationCost}
+          />
+
+          {backdropFailed && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-orange-200/60 bg-orange-50/80 px-4 py-3 text-sm text-ink/75">
+              <p>배경 생성 또는 보정이 일부 실패해 원본 사진이 사용되었습니다.</p>
+              <button
+                type="button"
+                onClick={handleRetryPhotoFromResult}
+                className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-registration-red px-4 text-xs font-semibold text-paper hover:bg-registration-red/90"
+              >
+                배경·보정만 다시 시도
+              </button>
+            </div>
+          )}
 
           {generated?.urlAnalysisNotices && generated.urlAnalysisNotices.length > 0 && (
             <div className="mt-4 rounded-lg border border-line bg-line/20 px-4 py-3 text-xs text-ink/70">

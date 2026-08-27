@@ -49,6 +49,8 @@ const STORAGE_BUCKET = "images";
 const SESSION_KEY = "pagzly-create-result";
 /** 기획 초안(draft) — payload + sections */
 export const DRAFT_SESSION_KEY = "pagzly-create-draft";
+/** result → draft 사진만 재시도 */
+export const RETRY_PHOTO_ONLY_KEY = "pagzly-retry-photo-only";
 
 export type DraftSessionPayload = {
   payload: Record<string, unknown>;

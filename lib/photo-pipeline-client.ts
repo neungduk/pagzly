@@ -161,6 +161,7 @@ export async function enhanceImages(params: {
    * 남아 있던 불일치를 해소.
    */
   theme?: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent"> | null;
+  onProgress?: (event: PhotoPipelineProgressEvent) => void;
 }): Promise<{ images: UploadedImage[]; cost: number; decorCost: number; claudeCost: number }> {
   const {
     uploaded,
@@ -172,6 +173,7 @@ export async function enhanceImages(params: {
     sectionBackdrops,
     backdropAlreadyComposited,
     theme: productTheme,
+    onProgress,
   } = params;
 
   let totalCost = 0;
@@ -271,9 +273,23 @@ export async function enhanceImages(params: {
     );
   }
 
+  const totalEnhanceSteps = uploaded.length + (isBeauty ? 2 : 0);
+  let enhanceStep = 0;
+
+  function reportEnhance(label: string, current: number, total: number) {
+    onProgress?.({
+      stage: "enhancing",
+      detail: label,
+      current,
+      total,
+    });
+  }
+
   const extras: UploadedImage[] = [];
   if (isBeauty) {
     if (uploaded.length < 2 && sectionBackdrops?.ingredientUrl) {
+      enhanceStep += 1;
+      reportEnhance("성분 배경 합성", enhanceStep, totalEnhanceSteps);
       try {
         const extra = await enhanceOne(uploaded[0], sectionBackdrops.ingredientUrl, {
           applyDecor: false,
@@ -286,6 +302,8 @@ export async function enhanceImages(params: {
       }
     }
     if (uploaded.length + extras.length < 3 && sectionBackdrops?.textureUrl) {
+      enhanceStep += 1;
+      reportEnhance("텍스처 배경 합성", enhanceStep, totalEnhanceSteps);
       try {
         const extra = await enhanceOne(uploaded[0], sectionBackdrops.textureUrl, {
           applyDecor: false,
@@ -301,6 +319,8 @@ export async function enhanceImages(params: {
 
   const results: UploadedImage[] = [];
   for (let index = 0; index < uploaded.length; index++) {
+    enhanceStep += 1;
+    reportEnhance(`사진 보정 ${index + 1}/${uploaded.length}`, enhanceStep, totalEnhanceSteps);
     const item = uploaded[index];
     const isHero = index === 0;
     const resolvedBackdrop = backdropByIndex[index] ?? heroBackdrop;
@@ -330,7 +350,23 @@ export async function enhanceImages(params: {
   return { images: [...results, ...extras], cost: totalCost, decorCost, claudeCost };
 }
 
-export type PhotoPipelineProgress = "backdrop" | "enhancing";
+export type PhotoPipelineStage = "backdrop" | "sections" | "enhancing";
+
+export type PhotoPipelineProgressEvent = {
+  stage: PhotoPipelineStage | "generating";
+  detail?: string;
+  current?: number;
+  total?: number;
+  elapsedMs?: number;
+  costUsdSoFar?: number;
+  retrying?: boolean;
+  warning?: string;
+};
+
+/** @deprecated — use PhotoPipelineProgressEvent */
+export type PhotoPipelineProgress = PhotoPipelineStage;
+
+export type PhotoPipelineProgressCallback = (event: PhotoPipelineProgressEvent) => void;
 
 /**
  * 배경 후보 선택 → (선택) 섹션 배경 → enhanceImages 일괄 실행.
@@ -346,8 +382,9 @@ export async function runPhotoEnhancementPipeline(params: {
   ingredients?: string | null;
   targetCustomer?: string | null;
   referenceImageUrl?: string | null;
+  draftToken?: string | null;
   pickBackdrop: (urls: string[]) => Promise<string>;
-  onStage?: (stage: PhotoPipelineProgress) => void;
+  onStage?: PhotoPipelineProgressCallback;
 }): Promise<{
   images: UploadedImage[];
   photoProcessingCost: number;
@@ -360,7 +397,16 @@ export async function runPhotoEnhancementPipeline(params: {
   warning?: string;
 }> {
   const { uploaded, onStage, pickBackdrop } = params;
-  onStage?.("backdrop");
+  const pipelineStartedAt = Date.now();
+
+  const emit = (event: Omit<PhotoPipelineProgressEvent, "elapsedMs">) => {
+    onStage?.({
+      ...event,
+      elapsedMs: Date.now() - pipelineStartedAt,
+    });
+  };
+
+  emit({ stage: "backdrop", detail: "히어로 배경 생성 중" });
 
   const backdropResult = await generateBackdrop({
     category: params.category,
@@ -403,6 +449,15 @@ export async function runPhotoEnhancementPipeline(params: {
   const candidates = backdropResult.candidateUrls ?? [];
   const testMode = backdropResult.testMode ?? false;
 
+  emit({
+    stage: "backdrop",
+    detail:
+      candidates.length > 1
+        ? `배경 후보 ${candidates.length}장 — 선택 대기`
+        : `배경 후보 ${Math.max(candidates.length, 1)}장 준비`,
+    costUsdSoFar: photoProcessingCost,
+  });
+
   if (!testMode && candidates.length > 1) {
     chosenBackdrop = await pickBackdrop(candidates);
   } else if (candidates.length >= 1) {
@@ -430,6 +485,7 @@ export async function runPhotoEnhancementPipeline(params: {
   // 사진 1장이어도 섹션별 배경을 생성해 히어로와 동일 배경 반복을 피한다.
   // TEST_MODE에서는 section-backdrops API가 디스크 캐시를 쓰므로 비용 캡이 유지된다.
   if (backdropResult.shadowAnalysis && uploaded.length >= 1) {
+    emit({ stage: "sections", detail: "섹션 배경 생성 중", costUsdSoFar: photoProcessingCost });
     try {
       const sectionRes = await fetch("/api/section-backdrops", {
         method: "POST",
@@ -439,6 +495,7 @@ export async function runPhotoEnhancementPipeline(params: {
           conceptBrief: backdropResult.conceptBrief,
           category: params.category,
           theme: backdropResult.theme,
+          draftToken: params.draftToken ?? null,
         }),
       });
       const sectionJson = (await sectionRes.json()) as {
@@ -457,15 +514,39 @@ export async function runPhotoEnhancementPipeline(params: {
           ...photoCostBreakdown,
           sectionBackdrops: sectionJson.cost ?? 0,
         };
+        emit({
+          stage: "sections",
+          detail: "섹션 배경 완료",
+          costUsdSoFar: photoProcessingCost,
+        });
       } else {
         console.warn("[section-backdrops] 생략:", sectionJson.error);
+        emit({
+          stage: "sections",
+          detail: "섹션 배경 생략",
+          warning: sectionJson.error,
+          costUsdSoFar: photoProcessingCost,
+        });
       }
     } catch (err) {
       console.warn("[section-backdrops] 생략:", err);
+      emit({
+        stage: "sections",
+        detail: "섹션 배경 생략",
+        warning: err instanceof Error ? err.message : String(err),
+        costUsdSoFar: photoProcessingCost,
+      });
     }
   }
 
-  onStage?.("enhancing");
+  emit({
+    stage: "enhancing",
+    detail: "사진 보정 시작",
+    current: 0,
+    total: uploaded.length,
+    costUsdSoFar: photoProcessingCost,
+  });
+
   const enhanced = await enhanceImages({
     uploaded,
     heroBackdrop: chosenBackdrop,
@@ -476,6 +557,7 @@ export async function runPhotoEnhancementPipeline(params: {
     sectionBackdrops,
     backdropAlreadyComposited: backdropResult.productAlreadyComposited ?? false,
     theme: backdropResult.theme,
+    onProgress: (event) => emit({ ...event, costUsdSoFar: photoProcessingCost }),
   });
 
   photoProcessingCost += enhanced.cost;

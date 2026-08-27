@@ -1,0 +1,16 @@
+{
+  "routerOffTotalCost": 0.012,
+  "routerOnTotalCost": 0,
+  "cases": [
+    {
+      "id": "beauty",
+      "offCost": 0.006,
+      "onCost": 0
+    },
+    {
+      "id": "electronics",
+      "offCost": 0.006,
+      "onCost": 0
+    }
+  ]
+}

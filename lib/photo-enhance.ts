@@ -1255,12 +1255,19 @@ async function generateSchnellPng(prompt: string): Promise<string> {
   return url;
 }
 
+/** ImageRouter 연결용 — section-backdrops route에서 전달 */
+export type SectionBackdropRouterContext = {
+  userId: string;
+  draftToken?: string | null;
+};
+
 /** 히어로에서 고른 스튜디오 배경과 다른 섹션(업로드 2·3번) 연출. flux-schnell ×2. */
 export async function generateSectionBackdropVariants(
   shadow: ShadowAnalysis,
   conceptBrief?: ConceptBrief,
   category = "기타",
   theme?: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
+  routerContext?: SectionBackdropRouterContext,
 ): Promise<{ ingredientUrl: string | null; textureUrl: string | null; cost: number }> {
   const lock = lightingLockPrompt(shadow);
   const conceptBlock = conceptBrief ? formatConceptPromptBlock(conceptBrief, category) : "";
@@ -1279,10 +1286,17 @@ export async function generateSectionBackdropVariants(
         .filter(Boolean)
         .join(", ");
       console.log(`[prompt] generateSectionBackdrop ${kind}: ${prompt}`);
+
+      // 32차: section-backdrop는 flux-schnell 고정.
+      // ImageRouter(DETAIL_PAGE_GRAPHIC)는 기본 Flux.2 Pro / (구) Gemini로
+      // 비용이 27~38배 뛸 수 있어 호출하지 않는다.
+      // routerContext는 API 호환용으로 유지(향후 opt-in 플래그용).
+      void routerContext;
+
       console.log(`[replicate] CALL flux-schnell (section-backdrop ${kind})`);
       const url = await generateSchnellPng(prompt);
       console.log(`[section-backdrop] ${kind} 생성`);
-      return { kind, url };
+      return { kind, url, cost: REPLICATE_COST_USD.fluxSchnell };
     }),
   );
 
@@ -1291,7 +1305,7 @@ export async function generateSectionBackdropVariants(
   let cost = 0;
   for (const result of results) {
     if (result.status === "fulfilled") {
-      cost += REPLICATE_COST_USD.fluxSchnell;
+      cost += result.value.cost;
       if (result.value.kind === "ingredient") ingredientUrl = result.value.url;
       else textureUrl = result.value.url;
     } else {
