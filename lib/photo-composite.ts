@@ -20,6 +20,95 @@ export async function measureTransparentRatio(buffer: Buffer): Promise<number> {
 }
 
 /**
+ * 네 모서리(각 ~12% 정사각)의 평균 알파.
+ * rembg가 원본 프레임/어두운 플레이트를 남기면 모서리가 불투명해진다.
+ * maxMeanAlpha가 높으면 "검은 박스" 합성으로 이어지므로 컷아웃을 폐기한다.
+ */
+export async function measureCornerMeanAlpha(
+  buffer: Buffer,
+  cornerFrac = 0.12,
+): Promise<{ maxMeanAlpha: number; means: number[] }> {
+  const { data, info } = await sharp(buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const w = info.width;
+  const h = info.height;
+  if (w === 0 || h === 0) return { maxMeanAlpha: 0, means: [0, 0, 0, 0] };
+  const cw = Math.max(4, Math.floor(w * cornerFrac));
+  const ch = Math.max(4, Math.floor(h * cornerFrac));
+  const regions = [
+    { left: 0, top: 0 },
+    { left: w - cw, top: 0 },
+    { left: 0, top: h - ch },
+    { left: w - cw, top: h - ch },
+  ];
+  const means: number[] = [];
+  for (const r of regions) {
+    let sum = 0;
+    let n = 0;
+    for (let y = r.top; y < r.top + ch; y += 1) {
+      for (let x = r.left; x < r.left + cw; x += 1) {
+        sum += data[(y * w + x) * 4 + 3];
+        n += 1;
+      }
+    }
+    means.push(n > 0 ? sum / n : 0);
+  }
+  return { maxMeanAlpha: Math.max(...means), means };
+}
+
+/**
+ * rembg가 원본 프레임을 남기는 경우 감지.
+ * - softAlphaRatio: 불투명 픽셀 중 중간 알파(16~220) 비율
+ * - opaqueAreaRatio: α≥16 픽셀 비율 — 원본 사각 플레이트를 통째로 남기면 큼
+ * - bboxFill: 불투명 bbox가 이미지에서 차지하는 비율
+ */
+export async function measureCutoutPlateRisk(
+  buffer: Buffer,
+): Promise<{
+  softAlphaRatio: number;
+  opaqueAreaRatio: number;
+  bboxFill: number;
+  risky: boolean;
+}> {
+  const { data, info } = await sharp(buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const w = info.width;
+  const h = info.height;
+  const total = w * h;
+  if (total === 0) {
+    return { softAlphaRatio: 0, opaqueAreaRatio: 0, bboxFill: 0, risky: false };
+  }
+
+  let opaque = 0;
+  let soft = 0;
+  let minX = w;
+  let minY = h;
+  let maxX = 0;
+  let maxY = 0;
+  for (let y = 0; y < h; y += 1) {
+    for (let x = 0; x < w; x += 1) {
+      const a = data[(y * w + x) * 4 + 3]!;
+      if (a < 16) continue;
+      opaque += 1;
+      if (a < 220) soft += 1;
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+  }
+  const opaqueAreaRatio = opaque / total;
+  const softAlphaRatio = opaque > 0 ? soft / opaque : 0;
+  const bboxFill =
+    opaque > 0 ? ((maxX - minX + 1) * (maxY - minY + 1)) / total : 0;
+
+  // 반투명 플레이트 OR 원본 프레임을 거의 통째로 남긴 경우(불투명 사각)
+  const risky =
+    (softAlphaRatio >= 0.18 && opaqueAreaRatio >= 0.25) ||
+    opaqueAreaRatio >= 0.52 ||
+    (bboxFill >= 0.62 && opaqueAreaRatio >= 0.4);
+  return { softAlphaRatio, opaqueAreaRatio, bboxFill, risky };
+}
+
+/**
  * 알파 1px erode + 블러. 블러 반경은 컷아웃 크기 대비 캔버스 비율로 정규화
  * (고정 2.4면 큰 제품은 페더가 약하고 작은 제품은 과해짐).
  */

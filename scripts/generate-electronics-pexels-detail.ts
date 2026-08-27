@@ -1,8 +1,8 @@
 /**
- * Pexels에서 화장품 사진 8장 크롤 → /create 전체 플로우로 상세페이지 1건 생성 + 캡처.
+ * Pexels에서 전자제품 사진 10장 크롤 → /create 전체 플로우로 가상 제품 상세페이지 생성 + 캡처.
  *
  * 실행 (dev 서버 필요):
- *   npx tsx scripts/generate-one-pexels-detail.ts
+ *   npx tsx scripts/generate-electronics-pexels-detail.ts
  *
  * 환경: .env.local 의 PEXELS_API_KEY, scripts/auth-state.json, BASE_URL(기본 :3000)
  */
@@ -10,14 +10,15 @@
 import { chromium, type Page } from "playwright";
 import fs from "fs";
 import path from "path";
+import sharp from "sharp";
 import { freezeDetailScrollReveal } from "./capture-utils";
 
 const ROOT = path.join(__dirname, "..");
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 const STORAGE_STATE_PATH = path.join(__dirname, "auth-state.json");
-const OUT_DIR = path.join(ROOT, "review", "pexels-one-detail");
-const ASSET_DIR = path.join(__dirname, "test-assets", "_pexels-one-run");
-const NEED = 8;
+const OUT_DIR = path.join(ROOT, "review", "pexels-electronics-detail");
+const ASSET_DIR = path.join(__dirname, "test-assets", "_pexels-electronics-run");
+const NEED = 10;
 
 type PexelsPhoto = {
   id: number;
@@ -39,20 +40,25 @@ function loadEnvLocal(): Record<string, string> {
 
 async function crawlPexels(apiKey: string): Promise<string[]> {
   fs.mkdirSync(ASSET_DIR, { recursive: true });
+  // 각도·장면이 다른 전자 제품샷을 골고루 모은다
   const queries = [
-    "skincare serum bottle product",
-    "moisturizer cream jar beauty",
-    "cosmetic dropper bottle",
-    "hyaluronic acid serum product photo",
+    "wireless earbuds isolated white background product",
+    "bluetooth earbuds charging case studio white backdrop",
+    "noise cancelling headphones product photography white background",
+    "true wireless earbuds flat lay no hand",
+    "earbuds product shot plain background",
+    "premium headphones product photo studio lighting",
+    "wireless earphones case product photography isolated",
   ];
   const seen = new Set<number>();
+  const meta: Array<{ id: number; photographer: string; query: string; file: string }> = [];
   const files: string[] = [];
 
   for (const query of queries) {
     if (files.length >= NEED) break;
     const url = new URL("https://api.pexels.com/v1/search");
     url.searchParams.set("query", query);
-    url.searchParams.set("per_page", "6");
+    url.searchParams.set("per_page", "8");
     url.searchParams.set("orientation", "portrait");
     const res = await fetch(url.toString(), { headers: { Authorization: apiKey } });
     if (!res.ok) throw new Error(`Pexels search failed: ${res.status}`);
@@ -64,23 +70,28 @@ async function crawlPexels(apiKey: string): Promise<string[]> {
       const imgRes = await fetch(photo.src.large2x || photo.src.large);
       if (!imgRes.ok) continue;
       const buf = Buffer.from(await imgRes.arrayBuffer());
+      // Claude Vision은 media_type과 실제 바이트가 다르면 400 — 항상 진짜 JPEG로 정규화
+      const jpegBuf = await sharp(buf).jpeg({ quality: 92 }).toBuffer();
       const file = path.join(ASSET_DIR, `pexels-${photo.id}.jpeg`);
-      fs.writeFileSync(file, buf);
+      fs.writeFileSync(file, jpegBuf);
       files.push(file);
+      meta.push({
+        id: photo.id,
+        photographer: photo.photographer,
+        query,
+        file: path.basename(file),
+      });
       console.log(`[pexels] #${photo.id} by ${photo.photographer} → ${path.basename(file)}`);
     }
   }
 
-  if (files.length < 7) {
-    throw new Error(`Pexels 사진이 ${files.length}장뿐입니다. 최소 7장 필요.`);
+  if (files.length < NEED) {
+    throw new Error(`Pexels 사진이 ${files.length}장뿐입니다. ${NEED}장 필요.`);
   }
+  fs.mkdirSync(OUT_DIR, { recursive: true });
   fs.writeFileSync(
     path.join(OUT_DIR, "pexels-sources.json"),
-    JSON.stringify(
-      files.map((f) => path.basename(f)),
-      null,
-      2,
-    ),
+    JSON.stringify(meta, null, 2),
     "utf8",
   );
   return files.slice(0, NEED);
@@ -115,7 +126,7 @@ async function main() {
   const apiKey = process.env.PEXELS_API_KEY;
   if (!apiKey) throw new Error("PEXELS_API_KEY가 .env.local에 필요합니다.");
 
-  console.log("[1/4] Pexels 크롤 (8장)…");
+  console.log("[1/4] Pexels 전자제품 크롤 (10장)…");
   const images = await crawlPexels(apiKey);
   console.log(`[1/4] 준비된 이미지 ${images.length}장`);
 
@@ -143,29 +154,34 @@ async function main() {
     }
   });
 
-  console.log("[2/4] /create 폼 작성…");
+  // 가상 제품: NORA AUDIO — AURA ONE Pro 오픈형 ANC 이어버드
+  console.log("[2/4] /create 폼 작성 (전자제품 · AURA ONE Pro)…");
   await page.goto(`${BASE_URL}/create`, { waitUntil: "networkidle" });
-  await page.locator("select").first().selectOption({ label: "화장품/뷰티" });
+  await page.locator("select").first().selectOption({ label: "전자제품" });
   await page.setInputFiles('input[type="file"][accept*="image/jpeg"]', images);
-  await page.fill("#productName", "히알루론 딥 모이스처 세럼");
-  await fillIfExists(page, "#brandName", "페이즐리랩");
-  await page.fill("#price", "32900");
-  await fillIfExists(page, "#targetCustomer", "20~30대 여성");
+  await page.fill("#productName", "AURA ONE Pro 오픈형 ANC 이어버드");
+  await fillIfExists(page, "#brandName", "NORA AUDIO");
+  await page.fill("#price", "189000");
+  await fillIfExists(page, "#targetCustomer", "출퇴근·운동 중에도 주변음을 듣는 20~40대");
   await fillIfExists(
     page,
     "#keyFeatures",
-    "히알루론산 3중 레이어 보습, 산뜻한 워터리 제형, 무향·저자극, 속건조 케어, 재구매율 자체평가 78%",
+    "하이브리드 ANC 42dB, 오픈형 이어훅 설계로 장시간 착용 편안함, LDAC·AAC 듀얼 코덱, 배터리 이어버드 9시간·케이스 포함 36시간, IPX5 생활방수, 터치+앱 커스터마이즈, 멀티포인트 2기기 동시 연결",
   );
   await fillIfExists(
     page,
     "#ingredients",
-    "히알루론산, 판테놀, 병풀추출물, 글리세린, 나이아신아마이드",
+    "드라이버 12mm 다이내믹, 블루투스 5.3, 충전 USB-C, 무게 이어버드 편당 5.8g, 컬러 미드나잇 블랙 / 클라우드 화이트",
   );
-  await fillIfExists(page, "#certifications", "비건 포뮬러, 동물실험 없음, 더마 테스트 완료");
+  await fillIfExists(
+    page,
+    "#certifications",
+    "KC 인증, 블루투스 SIG 인증, RoHS, 1년 무상 A/S, 30일 청음 만족 보장",
+  );
   await fillIfExists(
     page,
     "#wholesaleUrl",
-    "원본 상품명: Hyaluronic Deep Moisture Serum 30ml / 스펙: 워터리 세럼, 무향, 민감성 피부 사용 가능 / 사용법: 세안 후 2~3방울을 얼굴에 펴 바름 / 포인트: 속건조 케어, 메이크업 전 베이스",
+    "원본 상품명: NORA AUDIO AURA ONE Pro Open-Ear ANC Earbuds / 스펙: 하이브리드 ANC 42dB, 12mm 드라이버, BT 5.3, LDAC·AAC, IPX5, 배터리 9h+케이스 27h / 구성: 이어버드·충전 케이스·이어팁 S/M/L·USB-C 케이블·퀵가이드 / 포인트: 오픈형으로 주변음 유지+ANC 전환, 운동·통근·화상회의 올인원",
   );
 
   await page.click('button[type="submit"]');

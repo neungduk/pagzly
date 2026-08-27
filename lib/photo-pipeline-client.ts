@@ -318,22 +318,41 @@ export async function enhanceImages(params: {
   }
 
   const results: UploadedImage[] = [];
+  // 비히어로는 빈 section backdrop만 사용. 합성된 hero를 슬롯 3/6/9에 재쓰면
+  // rembg가 스킵되며 손·어두운 플레이트가 복제된다 (전자제품 Pexels 라이프스타일샷에서 특히).
+  const sectionPool = [
+    sectionBackdrops?.ingredientUrl,
+    sectionBackdrops?.textureUrl,
+  ].filter((u): u is string => Boolean(u) && u !== heroBackdrop);
+  const backdropSlotLabels = ["hero", "ingredient", "texture"] as const;
   for (let index = 0; index < uploaded.length; index++) {
     enhanceStep += 1;
     reportEnhance(`사진 보정 ${index + 1}/${uploaded.length}`, enhanceStep, totalEnhanceSteps);
     const item = uploaded[index];
     const isHero = index === 0;
-    const resolvedBackdrop = backdropByIndex[index] ?? heroBackdrop;
+    let resolvedBackdrop: string;
+    let backdropLabel: string;
+    if (isHero) {
+      resolvedBackdrop = heroBackdrop;
+      backdropLabel = "hero";
+    } else if (sectionPool.length > 0) {
+      const slotIndex = (index - 1) % sectionPool.length;
+      resolvedBackdrop = sectionPool[slotIndex]!;
+      backdropLabel = slotIndex === 0 ? "ingredient" : "texture";
+    } else {
+      // section 배경이 없으면 예전 라운드로빈 유지하되, 합성 hero 재사용 플래그는 끈다
+      const slotIndex = index % backdropByIndex.length;
+      resolvedBackdrop = backdropByIndex[slotIndex] ?? heroBackdrop;
+      backdropLabel = `${backdropSlotLabels[slotIndex] ?? "hero"}-empty-fallback`;
+    }
+    console.log(`[enhance] idx=${index} backdrop=${backdropLabel}`);
     try {
       const enhanced = await enhanceOne(item, resolvedBackdrop, {
         applyDecor: isHero,
         reuseDecor: !isHero,
         pathSuffix: "enhanced",
-        // 원본 행·파일을 유지해 draft 재승인 시 옛 URL이 살아 있게 한다 (30차 후속).
-        keepOriginal: true,
-        // section backdrop(ingredient/texture)이 실제로 쓰인 경우가 아니라
-        // heroBackdrop으로 폴백된 경우에만 "이미 상품이 합성됨" 플래그를 넘긴다.
-        backdropAlreadyComposited: resolvedBackdrop === heroBackdrop ? backdropAlreadyComposited : false,
+        // 합성본(hero) 스킵은 히어로 슬롯(index===0)에만. 그 외는 항상 rembg 합성.
+        backdropAlreadyComposited: isHero ? backdropAlreadyComposited : false,
       });
       if (!enhanced) {
         console.error(

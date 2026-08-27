@@ -11,6 +11,7 @@ import {
   computeSafeCropBox,
   computeSafeCanvasPlacement,
   detectProductRegion,
+  detectCutoutHasHandOrPerson,
   detectTextRegionsFromUrl,
   lightingLockPrompt,
   DEFAULT_SHADOW,
@@ -23,6 +24,8 @@ import {
   buildSoftContactShadowSvg,
   featherCutout,
   matchCutoutWhiteBalance,
+  measureCornerMeanAlpha,
+  measureCutoutPlateRisk,
   measureTransparentRatio,
   unifyCompositeGrain,
 } from "@/lib/photo-composite";
@@ -127,9 +130,22 @@ export type BackdropProvider =
  * - flux → 이전 기본값(빈 배경 생성 후 앱 합성)으로 롤백
  * - bria → 카테고리별 bria-replace / bria-genfill (미지원 카테고리는 flux-kontext-pro)
  * - nano-banana → A/B용 직접 토글
+ *
+ * 전자제품 예외: Pexels 라이프스타일/핸드헬드 소스가 많아 Kontext·Bria가
+ * 손·원본 어두운 플레이트를 RGB에 구워넣는다. 빈 flux + rembg가 안정적.
+ * (명시적으로 BACKDROP_PROVIDER=flux 인 경우와 동일 경로)
  */
 export function getBackdropProvider(category?: string): BackdropProvider {
   const raw = process.env.BACKDROP_PROVIDER;
+  if (category === "전자제품") {
+    if (raw === "nano-banana") return "nano-banana";
+    if (raw === "flux") return "flux";
+    // kontext / bria / 미설정 → 전자제품은 빈 배경 경로 강제
+    console.log(
+      `[backdrop] 전자제품 → provider=flux (env=${raw ?? "unset"} 무시: 손·플레이트 방지)`,
+    );
+    return "flux";
+  }
   // 22차: 프로덕션 기본값을 flux → flux-kontext-pro로 전환(18차 A/B 검증 후 사용자 선택).
   // BACKDROP_PROVIDER=flux를 .env.local에 명시하면 언제든 이전 방식으로 즉시 롤백 가능.
   if (raw === "nano-banana" || raw === "flux-kontext-pro" || raw === "flux") return raw;
@@ -428,6 +444,11 @@ async function compositeDecorOnBackdrop(
 }
 
 async function fetchSourceBuffer(url: string): Promise<Buffer> {
+  if (url.startsWith("data:")) {
+    const b64 = url.split(",")[1];
+    if (!b64) throw new Error(`잘못된 data URI: ${url.slice(0, 48)}`);
+    return Buffer.from(b64, "base64");
+  }
   const response = await fetch(url);
   if (!response.ok) throw new Error(`이미지 fetch 실패: ${url}`);
   return Buffer.from(await response.arrayBuffer()) as Buffer;
@@ -532,7 +553,7 @@ function buildBriaBackdropPrompt(
       : "no warm accent gel, no amber bounce, keep white balance locked to the product";
   const fluxStylePrompt = `${basePrompt}${conceptBlock}, ${photography.prompt}, ${lock}, ${accentClause}, soft ${describeColorTone(theme.baseNeutral)} set color without shifting key light`;
   return sanitizePromptForBria(
-    `${fluxStylePrompt}, keep the original product unchanged, replace only the surrounding background, realistic studio set, no fake website UI, no navigation bar, no browser chrome, no on-screen text of any kind, no watermark, no logo`,
+    `${fluxStylePrompt}, keep the original product unchanged, replace only the surrounding background including any table plate frame or rectangular photo border, remove hands arms wrists fingers people and skin, product only, realistic studio set, no fake website UI, no navigation bar, no browser chrome, no on-screen text of any kind, no watermark, no logo, no dark rectangular matte, no ghost box`,
   );
 }
 
@@ -759,6 +780,70 @@ export async function generateBackdrop(
 }
 
 /**
+ * 배경제거/Kontext/Bria 입력 전에 상품 bbox만 남기도록 크롭.
+ * 라이프스타일 샷의 손·팔·원본 프레임이 합성으로 넘어가는 것을 줄인다.
+ */
+async function preCropSourceToProduct(
+  sourceImageUrl: string,
+  productName: string,
+): Promise<{ url: string; cost: number; claudeCost: number; cropped: boolean }> {
+  try {
+    const sourceRes = await fetch(sourceImageUrl);
+    if (!sourceRes.ok) {
+      return { url: sourceImageUrl, cost: 0, claudeCost: 0, cropped: false };
+    }
+    const sourceBuf = Buffer.from(await sourceRes.arrayBuffer());
+    const contentType = sourceRes.headers.get("content-type");
+    const mType: "image/jpeg" | "image/png" =
+      contentType?.includes("png") ? "image/png" : "image/jpeg";
+
+    const { box, cost: detectCost } = await detectProductRegion(sourceBuf, productName, mType);
+    if (!box) {
+      console.log("[preCrop] 상품 영역 감지 실패 — 원본 그대로");
+      return { url: sourceImageUrl, cost: detectCost, claudeCost: detectCost, cropped: false };
+    }
+
+    const boxArea = (box.xMax - box.xMin) * (box.yMax - box.yMin);
+    if (boxArea >= 0.9) {
+      console.log(
+        `[preCrop] box 면적 ${(boxArea * 100).toFixed(0)}% ≥ 90% — 크롭 스킵`,
+      );
+      return { url: sourceImageUrl, cost: detectCost, claudeCost: detectCost, cropped: false };
+    }
+
+    const srcMeta = await sharp(sourceBuf).metadata();
+    const sw = srcMeta.width ?? 1;
+    const sh = srcMeta.height ?? 1;
+    const pad = 0.06;
+    const cropLeft = Math.max(0, Math.round((box.xMin - pad) * sw));
+    const cropTop = Math.max(0, Math.round((box.yMin - pad) * sh));
+    const cropRight = Math.min(sw, Math.round((box.xMax + pad) * sw));
+    const cropBottom = Math.min(sh, Math.round((box.yMax + pad) * sh));
+    const cropW = Math.max(1, cropRight - cropLeft);
+    const cropH = Math.max(1, cropBottom - cropTop);
+
+    console.log(
+      `[preCrop] '${productName}' box: [${box.xMin.toFixed(2)},${box.yMin.toFixed(2)}]→[${box.xMax.toFixed(2)},${box.yMax.toFixed(2)}] area=${(boxArea * 100).toFixed(0)}% → crop [${cropLeft},${cropTop} ${cropW}x${cropH}]`,
+    );
+
+    const croppedBuf = await sharp(sourceBuf)
+      .extract({ left: cropLeft, top: cropTop, width: cropW, height: cropH })
+      .png()
+      .toBuffer();
+
+    return {
+      url: `data:image/png;base64,${croppedBuf.toString("base64")}`,
+      cost: detectCost,
+      claudeCost: detectCost,
+      cropped: true,
+    };
+  } catch (error) {
+    console.warn("[preCrop] 상품 영역 감지 중 오류, 원본 그대로", error);
+    return { url: sourceImageUrl, cost: 0, claudeCost: 0, cropped: false };
+  }
+}
+
+/**
  * Bria Background Replace — 원본 상품 사진을 넣고 배경만 교체.
  * 반환 타입은 generateBackdrop()과 동일해서 enhanceProductImage() 호출부를 바꾸지 않는다.
  * 스키마: image | image_url, bg_prompt | ref_image_url, seed, fast, refine_prompt, original_quality, force_rmbg
@@ -778,9 +863,18 @@ export async function generateBackdropViaBria(
   const replicate = getReplicateClient();
   let claudeCost = 0;
 
+  let inputImageUrl = sourceImageUrl;
+  try {
+    const cropped = await preCropSourceToProduct(sourceImageUrl, productName);
+    inputImageUrl = cropped.url;
+    claudeCost += cropped.claudeCost;
+  } catch (error) {
+    console.warn("[generateBackdropViaBria] preCrop 실패 — 원본 사용", error);
+  }
+
   let shadow: ShadowAnalysis = { ...DEFAULT_SHADOW };
   try {
-    const sourceBuffer = await fetchSourceBuffer(sourceImageUrl);
+    const sourceBuffer = await fetchSourceBuffer(inputImageUrl);
     const shadowResult = await analyzeShadowDirection(sourceBuffer);
     shadow = shadowResult.shadow;
     claudeCost += shadowResult.cost;
@@ -809,13 +903,13 @@ export async function generateBackdropViaBria(
         withTimeout(
           replicate.run(BRIA_GENERATE_BACKGROUND_REF, {
             input: {
-              image_url: sourceImageUrl,
+              image_url: inputImageUrl,
               bg_prompt: candidatePrompt,
               seed: 1100 + i * 137,
               fast: true,
               refine_prompt: true,
               original_quality: true,
-              force_rmbg: false,
+              force_rmbg: true,
             },
             wait: { mode: "poll", interval: 1000 },
           }),
@@ -880,9 +974,18 @@ export async function generateBackdropViaNanoBanana(
   const replicate = getReplicateClient();
   let claudeCost = 0;
 
+  let inputImageUrl = sourceImageUrl;
+  try {
+    const cropped = await preCropSourceToProduct(sourceImageUrl, productName);
+    inputImageUrl = cropped.url;
+    claudeCost += cropped.claudeCost;
+  } catch (error) {
+    console.warn("[generateBackdropViaNanoBanana] preCrop 실패 — 원본 사용", error);
+  }
+
   let shadow: ShadowAnalysis = { ...DEFAULT_SHADOW };
   try {
-    const sourceBuffer = await fetchSourceBuffer(sourceImageUrl);
+    const sourceBuffer = await fetchSourceBuffer(inputImageUrl);
     const shadowResult = await analyzeShadowDirection(sourceBuffer);
     shadow = shadowResult.shadow;
     claudeCost += shadowResult.cost;
@@ -905,7 +1008,7 @@ export async function generateBackdropViaNanoBanana(
           replicate.run(NANO_BANANA_REF, {
             input: {
               prompt: candidatePrompt,
-              image_input: [sourceImageUrl],
+              image_input: [inputImageUrl],
               aspect_ratio: "match_input_image",
               output_format: "png",
             },
@@ -970,9 +1073,18 @@ export async function generateBackdropViaFluxKontext(
   const replicate = getReplicateClient();
   let claudeCost = 0;
 
+  let inputImageUrl = sourceImageUrl;
+  try {
+    const cropped = await preCropSourceToProduct(sourceImageUrl, productName);
+    inputImageUrl = cropped.url;
+    claudeCost += cropped.claudeCost;
+  } catch (error) {
+    console.warn("[generateBackdropViaFluxKontext] preCrop 실패 — 원본 사용", error);
+  }
+
   let shadow: ShadowAnalysis = { ...DEFAULT_SHADOW };
   try {
-    const sourceBuffer = await fetchSourceBuffer(sourceImageUrl);
+    const sourceBuffer = await fetchSourceBuffer(inputImageUrl);
     const shadowResult = await analyzeShadowDirection(sourceBuffer);
     shadow = shadowResult.shadow;
     claudeCost += shadowResult.cost;
@@ -995,7 +1107,7 @@ export async function generateBackdropViaFluxKontext(
           replicate.run(FLUX_KONTEXT_PRO_REF, {
             input: {
               prompt: candidatePrompt,
-              input_image: sourceImageUrl,
+              input_image: inputImageUrl,
               aspect_ratio: "match_input_image",
               output_format: "png",
             },
@@ -1192,9 +1304,9 @@ const SECTION_BACKDROP_PROMPTS_BY_CATEGORY: Record<
   },
   "전자제품": {
     ingredient:
-      "extreme macro of brushed aluminum and matte polymer texture, cool gray tech surface detail, subtle geometric light streaks, empty product photography backdrop, no device, no cable, no logo, no text",
+      "extreme macro of brushed aluminum and matte polymer texture, cool gray tech surface detail, subtle geometric light streaks, empty product photography backdrop, no device, no cable, no logo, no text, no hands, no arms, no person, no card, no rectangle, no frame",
     texture:
-      "soft bokeh modern desk workspace ambient blur, minimal tech lifestyle background, cool neutral tones, shallow depth of field, empty center, no product, no screen, no logo, no text",
+      "soft bokeh modern desk workspace ambient blur, minimal tech lifestyle background, cool neutral tones, shallow depth of field, empty center, no product, no screen, no logo, no text, no hands, no arms, no person, no card, no rectangle, no frame",
   },
   "식품/건강기능식품": {
     ingredient:
@@ -1511,83 +1623,110 @@ export async function enhanceProductImage(
   let bgRemoveInput: string = sourceImageUrl;
   let preCropCost = 0;
   if (productName) {
-    try {
-      const sourceRes = await fetch(sourceImageUrl);
-      if (sourceRes.ok) {
-        const sourceBuf = Buffer.from(await sourceRes.arrayBuffer());
-        const contentType = sourceRes.headers.get("content-type");
-        const mType: "image/jpeg" | "image/png" =
-          contentType?.includes("png") ? "image/png" : "image/jpeg";
+    const cropped = await preCropSourceToProduct(sourceImageUrl, productName);
+    bgRemoveInput = cropped.url;
+    preCropCost += cropped.cost;
+    claudeCost += cropped.claudeCost;
+  }
 
-        const { box, cost: detectCost } = await detectProductRegion(sourceBuf, productName, mType);
-        claudeCost += detectCost;
-        preCropCost += detectCost;
+  async function runBackgroundRemove(input: string): Promise<{ buffer: Buffer; cost: number }> {
+    const output = await runReplicateWithRetry("851-labs/background-remover", () =>
+      replicate.run(modelRef, {
+        input: { image: input },
+      }),
+    );
+    const cutoutUrl = Array.isArray(output) ? output[0] : output;
+    if (!cutoutUrl || typeof cutoutUrl !== "string") {
+      throw new Error("배경 제거 결과를 받지 못했습니다.");
+    }
+    const { url: sharpenedUrl, cost: sharpenCost } = await sharpenCutout(cutoutUrl);
+    const cutoutResponse = await fetch(sharpenedUrl);
+    if (!cutoutResponse.ok) {
+      throw new Error("보정된 이미지를 불러오지 못했습니다.");
+    }
+    const buffer = Buffer.from(await cutoutResponse.arrayBuffer()) as Buffer;
+    return { buffer, cost: sharpenCost };
+  }
 
-        if (box) {
-          const boxArea = (box.xMax - box.xMin) * (box.yMax - box.yMin);
-          if (boxArea >= 0.90) {
-            console.log(
-              `[preCrop] box 면적 ${(boxArea * 100).toFixed(0)}% ≥ 90% — 크롭 스킵, 원본 그대로 배경제거`,
-            );
-          } else {
-            const srcMeta = await sharp(sourceBuf).metadata();
-            const sw = srcMeta.width ?? 1;
-            const sh = srcMeta.height ?? 1;
-            const pad = 0.08;
-            const cropLeft = Math.max(0, Math.round((box.xMin - pad) * sw));
-            const cropTop = Math.max(0, Math.round((box.yMin - pad) * sh));
-            const cropRight = Math.min(sw, Math.round((box.xMax + pad) * sw));
-            const cropBottom = Math.min(sh, Math.round((box.yMax + pad) * sh));
-            const cropW = Math.max(1, cropRight - cropLeft);
-            const cropH = Math.max(1, cropBottom - cropTop);
+  let removeCost = 0;
+  let finalCutoutBuffer: Buffer;
+  {
+    const first = await runBackgroundRemove(bgRemoveInput);
+    removeCost += first.cost;
+    finalCutoutBuffer = first.buffer;
+  }
 
-            console.log(
-              `[preCrop] '${productName}' box: [${box.xMin.toFixed(2)},${box.yMin.toFixed(2)}]→[${box.xMax.toFixed(2)},${box.yMax.toFixed(2)}] area=${(boxArea * 100).toFixed(0)}% → crop [${cropLeft},${cropTop} ${cropW}x${cropH}]`,
-            );
+  let cutoutAlpha = await measureTransparentRatio(finalCutoutBuffer);
+  let cornerAlpha = await measureCornerMeanAlpha(finalCutoutBuffer);
+  let plateRisk = await measureCutoutPlateRisk(finalCutoutBuffer);
+  console.log(
+    `[cutout] transparentRatio=${cutoutAlpha.toFixed(3)} cornerMaxAlpha=${cornerAlpha.maxMeanAlpha.toFixed(1)} softAlpha=${plateRisk.softAlphaRatio.toFixed(3)} opaqueArea=${plateRisk.opaqueAreaRatio.toFixed(3)} bboxFill=${plateRisk.bboxFill.toFixed(3)} source=${sourceImageUrl.slice(-48)}`,
+  );
 
-            const croppedBuf = await sharp(sourceBuf)
-              .extract({ left: cropLeft, top: cropTop, width: cropW, height: cropH })
-              .png()
-              .toBuffer();
+  const CUTOUT_CORNER_ALPHA_FAIL = 48;
+  const looksBadPlate =
+    cutoutAlpha < 0.05 ||
+    cornerAlpha.maxMeanAlpha >= CUTOUT_CORNER_ALPHA_FAIL ||
+    plateRisk.risky;
 
-            bgRemoveInput = `data:image/png;base64,${croppedBuf.toString("base64")}`;
+  // 손/플레이트 의심 시: 더 타이트한 preCrop 후 rembg 1회 재시도
+  if (productName) {
+    let needsRetry = looksBadPlate;
+    if (!needsRetry) {
+      const handCheck = await detectCutoutHasHandOrPerson(finalCutoutBuffer);
+      claudeCost += handCheck.cost;
+      needsRetry = handCheck.contaminated;
+    }
+    if (needsRetry) {
+      console.warn("[cutout] 손/플레이트 의심 — 타이트 preCrop 후 rembg 재시도");
+      const retryCrop = await preCropSourceToProduct(sourceImageUrl, productName);
+      preCropCost += retryCrop.cost;
+      claudeCost += retryCrop.claudeCost;
+      if (retryCrop.cropped || retryCrop.url !== bgRemoveInput) {
+        try {
+          const second = await runBackgroundRemove(retryCrop.url);
+          removeCost += second.cost;
+          const a2 = await measureTransparentRatio(second.buffer);
+          const c2 = await measureCornerMeanAlpha(second.buffer);
+          const p2 = await measureCutoutPlateRisk(second.buffer);
+          const better =
+            a2 >= 0.05 &&
+            c2.maxMeanAlpha < CUTOUT_CORNER_ALPHA_FAIL &&
+            !p2.risky &&
+            p2.opaqueAreaRatio <= plateRisk.opaqueAreaRatio;
+          console.log(
+            `[cutout-retry] transparent=${a2.toFixed(3)} corner=${c2.maxMeanAlpha.toFixed(1)} opaque=${p2.opaqueAreaRatio.toFixed(3)} better=${better}`,
+          );
+          if (better) {
+            finalCutoutBuffer = second.buffer;
+            cutoutAlpha = a2;
+            cornerAlpha = c2;
+            plateRisk = p2;
           }
-        } else {
-          console.log("[preCrop] 상품 영역 감지 실패 — 원본 그대로 배경제거");
+          const hand2 = await detectCutoutHasHandOrPerson(finalCutoutBuffer);
+          claudeCost += hand2.cost;
+          if (hand2.contaminated) {
+            console.warn("[cutout-retry] 손 잔여 여전 — AI 합성 스킵(원본 세이프크롭)");
+            plateRisk = { ...plateRisk, risky: true };
+          }
+        } catch (retryErr) {
+          console.warn("[cutout-retry] 재시도 실패", retryErr);
         }
       }
-    } catch (error) {
-      console.warn("[preCrop] 상품 영역 감지 중 오류, 원본 그대로 배경제거", error);
     }
   }
 
-  const output = await runReplicateWithRetry("851-labs/background-remover", () =>
-    replicate.run(modelRef, {
-      input: { image: bgRemoveInput },
-    }),
-  );
-
-  const cutoutUrl = Array.isArray(output) ? output[0] : output;
-  if (!cutoutUrl || typeof cutoutUrl !== "string") {
-    throw new Error("배경 제거 결과를 받지 못했습니다.");
-  }
-
-  const { url: sharpenedUrl, cost } = await sharpenCutout(cutoutUrl);
+  const cost = removeCost;
   console.log(`[cost] enhanceProductImage: $${cost.toFixed(5)}`);
 
-  const cutoutResponse = await fetch(sharpenedUrl);
-  if (!cutoutResponse.ok) {
-    throw new Error("보정된 이미지를 불러오지 못했습니다.");
-  }
-  const finalCutoutBuffer = Buffer.from(await cutoutResponse.arrayBuffer()) as Buffer;
-  const cutoutAlpha = await measureTransparentRatio(finalCutoutBuffer);
-  console.log(
-    `[cutout] transparentRatio=${cutoutAlpha.toFixed(3)} source=${sourceImageUrl.slice(-48)}`,
-  );
-
-  if (cutoutAlpha < 0.05) {
+  // 투명 거의 없음 = rembg 실패. 모서리/플레이트 = 원본 프레임 잔존.
+  if (
+    cutoutAlpha < 0.05 ||
+    cornerAlpha.maxMeanAlpha >= CUTOUT_CORNER_ALPHA_FAIL ||
+    plateRisk.risky
+  ) {
     console.warn(
-      `[cutout] FALLBACK: transparentRatio=${cutoutAlpha.toFixed(3)} < 0.05 — AI 배경 합성 스킵, 원본 세이프크롭만 반환`,
+      `[cutout] FALLBACK: transparentRatio=${cutoutAlpha.toFixed(3)} cornerMaxAlpha=${cornerAlpha.maxMeanAlpha.toFixed(1)} plateRisk=${plateRisk.risky} bboxFill=${plateRisk.bboxFill.toFixed(3)} — AI 배경 합성 스킵, 원본 세이프크롭만 반환`,
     );
 
     const sourceRes = await fetch(sourceImageUrl);

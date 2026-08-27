@@ -254,8 +254,10 @@ export async function detectProductRegion(
             },
             {
               type: "text",
-              text: `이 사진에서 실제 판매 상품인 '${productName}'이 정확히 어디 있는지 bounding box 하나만 0~1 정규화 좌표로 반환하세요.
-강아지·사람·다른 배경 물체는 제외하고, 상품 자체의 경계만 잡아주세요.
+              text: `이 사진에서 메인으로 보이는 판매 상품(제품 본체·케이스·패키지 박스)의 bounding box를 하나만 0~1 정규화 좌표로 반환하세요.
+참고 상품명: '${productName}' (사진 속 브랜드/표기가 달라도 메인 상품을 잡으세요)
+반드시 제외: 사람, 손, 팔, 손목, 손가락, 강아지, 배경 가구·노트북·소품.
+사람이 상품을 들고 있어도 손·팔은 박스에 넣지 말고 상품만 타이트하게 잡으세요.
 
 JSON만 반환:
 { "xMin": 0.1, "yMin": 0.2, "xMax": 0.8, "yMax": 0.9 }
@@ -302,6 +304,59 @@ JSON만 반환:
   } catch (error) {
     console.warn("[detectProductRegion] 실패, 상품 영역 감지 생략", error);
     return { box: null, cost: 0 };
+  }
+}
+
+/**
+ * rembg 컷아웃(투명 배경)에 손·팔·사람 잔여가 있는지 빠르게 판별.
+ * true면 재크롭 후 배경제거를 한 번 더 시도한다.
+ */
+export async function detectCutoutHasHandOrPerson(
+  cutoutBuffer: Buffer,
+): Promise<{ contaminated: boolean; cost: number }> {
+  if (!process.env.ANTHROPIC_API_KEY || isTestMode()) {
+    return { contaminated: false, cost: 0 };
+  }
+  try {
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const message = await anthropic.messages.create({
+      model: HAIKU_VISION_MODEL,
+      max_tokens: 80,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: "image/png",
+                data: cutoutBuffer.toString("base64"),
+              },
+            },
+            {
+              type: "text",
+              text: `이 투명 배경 컷아웃에 사람 손·손가락·팔·손목·얼굴·피부가 조금이라도 보이나요?
+상품(이어버드·케이스·박스·기기)만 있으면 no.
+JSON만: { "handOrPerson": true } 또는 { "handOrPerson": false }`,
+            },
+          ],
+        },
+      ],
+    });
+    const cost = calculateClaudeCost(HAIKU_VISION_MODEL, message.usage);
+    logClaudeCost("cutoutHandDetect", HAIKU_VISION_MODEL, cost);
+    const textBlock = message.content.find((b) => b.type === "text");
+    if (!textBlock || textBlock.type !== "text") return { contaminated: false, cost };
+    const m = textBlock.text.match(/\{[\s\S]*?\}/);
+    if (!m) return { contaminated: false, cost };
+    const parsed = JSON.parse(m[0]) as { handOrPerson?: boolean };
+    const contaminated = Boolean(parsed.handOrPerson);
+    console.log(`[cutoutHandDetect] contaminated=${contaminated}`);
+    return { contaminated, cost };
+  } catch (error) {
+    console.warn("[cutoutHandDetect] 실패 — 오염 없음으로 간주", error);
+    return { contaminated: false, cost: 0 };
   }
 }
 

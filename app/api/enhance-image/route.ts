@@ -35,6 +35,7 @@ export async function POST(request: Request) {
       theme,
       keepOriginal,
       pathSuffix,
+      productName,
       backdropAlreadyComposited,
     } = (await request.json()) as {
       imageUrl?: string;
@@ -47,6 +48,8 @@ export async function POST(request: Request) {
       theme?: { accent: string; baseNeutral: string; deepAccent: string };
       keepOriginal?: boolean;
       pathSuffix?: string;
+      /** rembg 전 상품 영역 preCrop용 — 손·팔·배경 플레이트 제거에 필요 */
+      productName?: string;
       backdropAlreadyComposited?: boolean;
     };
 
@@ -98,6 +101,7 @@ export async function POST(request: Request) {
       applyDecor: applyDecor ?? false,
       decorBuffer,
       theme,
+      productName: productName?.trim() || undefined,
       backdropAlreadyComposited: backdropAlreadyComposited ?? false,
     });
 
