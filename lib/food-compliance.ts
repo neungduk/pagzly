@@ -2,6 +2,11 @@ import type { DetailSection, GeneratedCopy } from "@/lib/types/generate";
 
 export const FOOD_CATEGORY = "식품/건강기능식품";
 
+export const FOOD_SLOT_FACT_PROMPT = `## 식품 슬롯별 사실 제약 (필수)
+- nutrition_table, sourcing_story, storage_tip, spec_table: **원산지·알레르기 유발물질·보관방법**은 입력·식품표시 고시에 있는 내용만 사용.
+- 입력·고시에 없는 영양성분 %, 칼로리, 함량, 효능 수치를 지어내지 말 것.
+- 없으면 해당 행/문장에 "판매자 확인 필요"로 표시.`;
+
 export const FOOD_AI_PROMPT = `식품 표시·광고 문구 작성 시 식품 등의 표시·광고에 관한 법률(식품표시광고법) 기준을
 준수해야 합니다. 질병 예방·치료 효능을 암시하거나 의약품으로 오인할 수 있는 표현,
 객관적 근거 없는 최상급/과장 표현은 절대 사용하지 마세요.

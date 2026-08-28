@@ -1,8 +1,12 @@
 import type { DetailSection } from "@/lib/types/generate";
+import { extractBenefitKeywords } from "@/lib/marketplace-pdp-patterns";
 import { parseCertificationTokens } from "@/lib/enrich-product-sections";
 
-/** 히어로 직후 신뢰 스트립 — CTA 배지·인증·스펙 행에서 추출 (Page Maker/Kurly 스타일) */
-export function extractTrustChips(sections: DetailSection[]): string[] {
+/** 히어로 직후 혜택·신뢰 스트립 — CTA 배지·배송·인증·스펙 행에서 추출 */
+export function extractTrustChips(
+  sections: DetailSection[],
+  options?: { keyFeatures?: string | null },
+): string[] {
   const chips: string[] = [];
   const seen = new Set<string>();
 
@@ -37,6 +41,21 @@ export function extractTrustChips(sections: DetailSection[]): string[] {
 
   const hero = sections.find((s) => s.type === "hero");
   if (hero?.type === "hero" && hero.badge) add(hero.badge);
+
+  const shippingRows: string[] = [];
+  for (const section of sections) {
+    if (section.type !== "spec_table" || section.slot !== "shipping_info") continue;
+    for (const row of section.rows) {
+      shippingRows.push(`${row.label} ${row.value}`);
+    }
+  }
+
+  for (const benefit of extractBenefitKeywords([
+    options?.keyFeatures,
+    ...shippingRows,
+  ])) {
+    add(benefit);
+  }
 
   return chips.slice(0, 6);
 }

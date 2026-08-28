@@ -1,16 +1,10 @@
 # 상세페이지 업그레이드 로컬 검증
 
-시각: 2026-08-28T06:40:07.702Z
+시각: 2026-08-28T07:20:06.598Z
 
 **외부 AI API 호출: 없음 ($0)**
 
-- [ ] `tsc --noEmit` 실패
-
-```
-Command failed: npx tsc --noEmit
-npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
-
-```
+- [x] `tsc --noEmit` 통과
 
 - 데이터: 내장 픽스처
 - 카테고리: 화장품/뷰티
@@ -26,8 +20,8 @@ npm warn Unknown env config "devdir". This will stop working in the next major v
 
 - [x] 섹션 수: 19
 - [x] INFO(spec_table) 행 합계: 10
-- [x] 신뢰 스트립 칩: 3개 (무향, 당일발송, KC 인증)
-- [x] HTML export: `review\upgrade-sim\output.html` (24,710 bytes)
+- [x] 신뢰 스트립 칩: 5개 (무향, 당일발송, KC 인증, 구매 금액·지역에 따라 달라질 수 있습니다, 배송비 구매 금액)
+- [x] HTML export: `review\upgrade-sim\output.html` (26,872 bytes)
 - [x] JSON-LD 포함: yes
 - [x] SEO 텍스트 블록: yes
 
@@ -59,7 +53,7 @@ npm warn Unknown env config "devdir". This will stop working in the next major v
 - **100%** (62/62)
 - [x] JSON-LD (w6)
 - [x] SEO 텍스트 블록 (w5)
-- [x] TRUST 스트립 (w5)
+- [x] 혜택·신뢰 스트립 (w5)
 - [x] 리뷰 하이라이트 export (w4)
 - [x] Sticky CTA (w4)
 - [x] 말풍선 callout (w4)

@@ -26,6 +26,7 @@ const COMPETITORS = [
   { id: "creazy", name: "크리에이지", url: "https://creazy.ai/" },
   { id: "gency", name: "GENCY", url: "https://gency.ai/" },
   { id: "alzal", name: "알잘AI", url: "https://alzal.kr/" },
+  { id: "draph", name: "드랩아트", url: "https://draph.art/" },
 ] as const;
 
 const FEATURE_MATRIX: FeatureRow[] = [
@@ -53,6 +54,7 @@ const KEYWORD_SIGNALS: Record<string, string[]> = {
   creazy: ["채팅", "Figma", "GIF", "상세페이지", "편집"],
   gency: ["패션", "의류", "코디", "디테일", "상세페이지"],
   alzal: ["상세페이지", "AI", "쇼핑몰", "마켓"],
+  draph: ["상세페이지", "AI", "트렌드", "모바일", "숏폼"],
 };
 
 function statusEmoji(v?: string): string {
@@ -114,6 +116,11 @@ async function main() {
     "HTML export 동기화: comparison_table, color_variation, illustration_banner, gallery 3:4",
     "후커블식 분할 ZIP 다운로드 (`lib/split-detail-download.ts`)",
     "패션 사진 역할 → 슬롯 prefer 강화 (`assign-section-images.ts`)",
+    "마켓플레이스 6블록 CRO 가이드 (`lib/marketplace-pdp-patterns.ts`)",
+    "혜택·신뢰 스트립 확장 — 배송·keyFeatures → CTA 배지",
+    "섹션 배경 4단계 리듬 (A/B/D/E) + export 동기화",
+    "식품 원산지·알레르기·보관 슬롯 규율 강화",
+    "step_card 이미지 중복 배정 완화",
   ];
 
   const md = `# 경쟁사 갭 분석 (2026-08-28)
@@ -145,7 +152,7 @@ ${implemented.map((i) => `- ${i}`).join("\n")}
 ## 다음 우선순위
 
 1. 채팅형 섹션 편집 UX (patch 탭 고도화)
-2. 패션 \`assignDistinctSectionImages\` + 역할 prefer 연결
+2. \`npx tsx scripts/marketplace-pdp-scan.ts\` 정기 실행 — 마켓 PDP 모듈 커버리지
 3. HTML export 인터랙티브 스와치 (마켓 script 정책 검증 후)
 `;
 

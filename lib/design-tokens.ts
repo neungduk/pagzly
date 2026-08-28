@@ -51,12 +51,36 @@ export function hexToRgba(hex: string, alpha: number): string {
 export const SECTION_BG_PATTERN_B_ALPHA = 0.15; // 10~15% 범위 상단 — A/B 구획이 스크롤에서 읽히도록
 export const SECTION_BG_PATTERN_C_ALPHA = 0.92; // 거의 솔리드 — 페이지메이커의 강조 색면 블록 참고
 
-export type SectionColorPattern = "A" | "B" | "C";
+export type SectionColorPattern = "A" | "B" | "C" | "D" | "E";
 
-// 1번째 섹션(hero 제외, 본문 섹션 기준)을 패턴 A로 두고 홀/짝 교차. 패턴 C는 이 함수가 만들지
-// 않고, checklist 렌더러가 section.boldBlock을 보고 명시적으로 덮어쓴다.
-export function getSectionPattern(bodyIndexZeroBased: number): SectionColorPattern {
-  return bodyIndexZeroBased % 2 === 0 ? "A" : "B";
+const SECTION_PATTERN_CYCLE: SectionColorPattern[] = ["A", "B", "D", "E"];
+
+/** 섹션 타입별 패턴 시작점 — 같은 순번이라도 타입에 따라 다른 면이 나오게 한다. */
+const SECTION_PATTERN_OFFSET: Partial<Record<string, number>> = {
+  checklist: 0,
+  brand_story: 1,
+  image_text: 0,
+  highlight_box: 2,
+  gallery: 1,
+  step_card: 3,
+  stat_infographic: 2,
+  spec_table: 1,
+  faq: 3,
+  target_persona: 2,
+  comparison_chart: 1,
+  comparison_table: 2,
+  usage_steps: 3,
+  caution: 1,
+  review_highlight: 2,
+};
+
+// 본문 섹션은 A→B→D→E 4단계 순환. 패턴 C는 checklist 렌더러가 boldBlock일 때만 쓴다.
+export function getSectionPattern(
+  bodyIndexZeroBased: number,
+  sectionType?: string,
+): SectionColorPattern {
+  const offset = sectionType ? (SECTION_PATTERN_OFFSET[sectionType] ?? 0) : 0;
+  return SECTION_PATTERN_CYCLE[(bodyIndexZeroBased + offset) % SECTION_PATTERN_CYCLE.length]!;
 }
 
 /** 섹션 배경 — baseNeutral은 고정, accent 계열만 은은한 그라데이션으로 리듬을 만든다. */
@@ -65,9 +89,30 @@ export function getSectionBackground(theme: CategoryTheme, pattern: SectionColor
     return `linear-gradient(145deg, ${hexToRgba(theme.deepAccent, 0.93)} 0%, ${hexToRgba(theme.accent, 0.82)} 100%)`;
   }
   if (pattern === "A") {
-    return `linear-gradient(168deg, ${theme.baseNeutral} 0%, ${hexToRgba(theme.accentSoft, 0.38)} 100%)`;
+    return `linear-gradient(168deg, ${theme.baseNeutral} 0%, ${hexToRgba(theme.accentSoft, 0.42)} 100%)`;
   }
-  return `linear-gradient(168deg, ${hexToRgba(theme.accent, 0.07)} 0%, ${hexToRgba(theme.accentSoft, 0.48)} 52%, ${theme.baseNeutral} 100%)`;
+  if (pattern === "B") {
+    return `linear-gradient(168deg, ${hexToRgba(theme.accent, 0.1)} 0%, ${hexToRgba(theme.accentSoft, 0.55)} 52%, ${theme.baseNeutral} 100%)`;
+  }
+  if (pattern === "D") {
+    return `linear-gradient(175deg, ${hexToRgba(theme.accentSoft, 0.78)} 0%, ${hexToRgba(theme.accent, 0.14)} 45%, ${theme.baseNeutral} 100%)`;
+  }
+  return `linear-gradient(180deg, ${theme.baseNeutral} 0%, ${hexToRgba(theme.accent, 0.08)} 42%, ${hexToRgba(theme.deepAccent, 0.07)} 100%)`;
+}
+
+/** 패턴별 상·하단 액센트 라인 — 스크롤 시 섹션 경계가 읽히도록. */
+export function getSectionInsetShadow(
+  theme: CategoryTheme,
+  pattern: SectionColorPattern,
+): string | undefined {
+  if (pattern === "C") return undefined;
+  if (pattern === "B" || pattern === "D") {
+    return `inset 0 3px 0 ${hexToRgba(theme.accent, 0.26)}`;
+  }
+  if (pattern === "E") {
+    return `inset 0 -3px 0 ${hexToRgba(theme.deepAccent, 0.1)}`;
+  }
+  return `inset 0 2px 0 ${hexToRgba(theme.accent, 0.14)}`;
 }
 
 /** 텍스트 전용 카드 패널 — 단순 배경 위에 올리는 포인트 박스 */
@@ -164,9 +209,9 @@ export type ThemeVariantKey = "base" | "warm" | "cool" | "bold";
 // UI 색과 과하게 충돌하지 않도록 함. 사용자가 "보조색 3개 이상 (더
 // 화려하게)"를 선택해 정확히 3개로 구성.
 const THEME_VARIANT_HUE_OFFSET: Record<Exclude<ThemeVariantKey, "base">, number> = {
-  warm: 22,
-  cool: -26,
-  bold: 48,
+  warm: 28,
+  cool: -34,
+  bold: 52,
 };
 
 export type ExtendedTheme = Record<ThemeVariantKey, CategoryTheme>;
@@ -201,7 +246,7 @@ export function extendTheme(base: CategoryTheme): ExtendedTheme {
 // 전체에서 신뢰감 있게 일관된 색이어야 하는 지점)는 보조색 순환에서 제외하고
 // 항상 base 팔레트를 쓴다.
 const THEME_VARIANT_LOCKED_SECTION_TYPES = new Set(["hero", "cta_price"]);
-const THEME_VARIANT_CYCLE: ThemeVariantKey[] = ["base", "warm", "cool", "warm"];
+const THEME_VARIANT_CYCLE: ThemeVariantKey[] = ["base", "warm", "cool", "bold", "warm", "cool"];
 
 /**
  * bodyIndex(0-based, hero 제외 본문 섹션 순번 — getSectionPattern()이 쓰는
@@ -218,6 +263,26 @@ export function getSectionTheme(
   if (THEME_VARIANT_LOCKED_SECTION_TYPES.has(sectionType)) return extended.base;
   const key = THEME_VARIANT_CYCLE[bodyIndexZeroBased % THEME_VARIANT_CYCLE.length];
   return extended[key];
+}
+
+export type ResolvedSectionSurface = {
+  theme: CategoryTheme;
+  pattern: SectionColorPattern;
+  background: string;
+  insetShadow?: string;
+};
+
+/** 렌더러·HTML export 공통 — 섹션별 테마·패턴·배경을 한 번에 결정한다. */
+export function resolveSectionSurface(
+  extended: ExtendedTheme,
+  sectionType: string,
+  bodyIndexZeroBased: number,
+): ResolvedSectionSurface {
+  const pattern = getSectionPattern(bodyIndexZeroBased, sectionType);
+  const theme = getSectionTheme(extended, sectionType, bodyIndexZeroBased);
+  const background = getSectionBackground(theme, pattern);
+  const insetShadow = getSectionInsetShadow(theme, pattern);
+  return { theme, pattern, background, insetShadow };
 }
 
 // ---------------------------------------------------------------------------

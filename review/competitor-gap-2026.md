@@ -26,6 +26,12 @@
 - 키워드 히트: 상세페이지, AI
 - excerpt: 알잘ai - 전문 업체가 만든 고퀄리티 상세페이지 제작 AI. 이제 상세페이지 업체에 제작 그만하세요. 상페 전문 업체의 노하우로 ai가 상세페이지 기획부터 이미지 생성, 디자인을 — 알잘ai - 전문 업체가 만든 고퀄리티 상세페이지 제작 AI 알잘AI 홈 로그인 이제 상세페이지는 전문가에게 맡기세요. 기획부터 · 촬영까지 단 ' 5 분' 만에 0원으로 시작해보기 AI가 당신의 제품을 분석하고, 전문가 수준의 상세페이지를 완성합니다 놀라지 마세요. 정말 5분만에 기획안 완성 1 상품 정보 입력 기…
 
+### 드랩아트
+- URL: https://draph.art/
+- title: 상세페이지 AI & 썸네일 AI 제작, 쇼핑몰 AI 솔루션 | 드랩아트
+- 키워드 히트: 상세페이지, AI
+- excerpt: 매출을 부르는 상세페이지 AI, 클릭을 유도하는 썸네일 AI, 쇼핑몰 AI 이미지까지. 촬영 없이 클릭 한 번으로 자동 생성하세요. — 상세페이지 AI & 썸네일 AI 제작, 쇼핑몰 AI 솔루션 | 드랩아트 [이벤트] SNS 리뷰 작성 시 네이버페이 포인트 100% 증정! [이벤트] 회원 가입시 상세페이지 1회 생성 무료! AI 믹스 AI 인물 AI 상세페이지 쇼츠메이커 회원 기능 기능 소개 스톡 블로그 요금제 ko 기능 소개 시작하기 주식회사 드랩 | 대표자: 이주완 | 사업자등록번호: 541-…
+
 
 ## 기능 매트릭스
 
@@ -65,6 +71,11 @@
 - HTML export 동기화: comparison_table, color_variation, illustration_banner, gallery 3:4
 - 후커블식 분할 ZIP 다운로드 (`lib/split-detail-download.ts`)
 - 패션 사진 역할 → 슬롯 prefer 강화 (`assign-section-images.ts`)
+- 마켓플레이스 6블록 CRO 가이드 (`lib/marketplace-pdp-patterns.ts`)
+- 혜택·신뢰 스트립 확장 — 배송·keyFeatures → CTA 배지
+- 섹션 배경 4단계 리듬 (A/B/D/E) + export 동기화
+- 식품 원산지·알레르기·보관 슬롯 규율 강화
+- step_card 이미지 중복 배정 완화
 
 ## 명시적 비목표
 
@@ -75,5 +86,5 @@
 ## 다음 우선순위
 
 1. 채팅형 섹션 편집 UX (patch 탭 고도화)
-2. 패션 `assignDistinctSectionImages` + 역할 prefer 연결
+2. `npx tsx scripts/marketplace-pdp-scan.ts` 정기 실행 — 마켓 PDP 모듈 커버리지
 3. HTML export 인터랙티브 스와치 (마켓 script 정책 검증 후)

@@ -1,4 +1,5 @@
 import type { DetailSection } from "@/lib/types/generate";
+import { extractBenefitKeywords } from "@/lib/marketplace-pdp-patterns";
 import { resolveTemplateCategory } from "@/lib/section-templates";
 
 /** 인증 문자열을 배지/표 행에 쓸 토큰으로 분리 */
@@ -173,15 +174,17 @@ export function enrichSectionsWithProductMetadata(
     category?: string;
     ingredients?: string | null;
     price?: number;
+    keyFeatures?: string | null;
   },
 ): DetailSection[] {
   const certParts = parseCertificationTokens(meta.certifications);
+  const benefitParts = extractBenefitKeywords([meta.keyFeatures]);
 
   return sections.map((section) => {
     if (section.type === "cta_price") {
       const existing = section.badges ?? [];
       const merged = [...existing];
-      for (const c of certParts) {
+      for (const c of [...benefitParts, ...certParts]) {
         if (merged.length >= 4) break;
         const dup = merged.some(
           (b) =>

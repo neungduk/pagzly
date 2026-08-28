@@ -187,24 +187,29 @@ export function assignDistinctSectionImages(
   const freq = Array.from({ length: imageCount }, () => 0);
   let lastPicked = -1;
   const imageTextUsed = new Set<number>();
+  const stepUsed = new Set<number>();
 
   function pick(opts?: {
     prefer?: number;
     avoid?: number[];
     excludeHero?: boolean;
     uniqueAmongImageText?: boolean;
+    uniqueAmongSteps?: boolean;
   }): number {
     const avoid = new Set(opts?.avoid ?? []);
     if (opts?.prefer !== undefined) {
       const p = clampIndex(opts.prefer, imageCount);
       const blockedByImageText =
         opts.uniqueAmongImageText === true && imageTextUsed.has(p) && imageTextUsed.size < imageCount;
+      const blockedByStep =
+        opts.uniqueAmongSteps === true && stepUsed.has(p) && stepUsed.size < imageCount;
       if (
         freq[p] < softCap &&
         !avoid.has(p) &&
         p !== lastPicked &&
         !(opts?.excludeHero && p === heroIndex && imageCount > 3) &&
-        !blockedByImageText
+        !blockedByImageText &&
+        !blockedByStep
       ) {
         freq[p] += 1;
         lastPicked = p;
@@ -223,8 +228,9 @@ export function assignDistinctSectionImages(
       const overHard = freq[i] >= maxUses ? 8000 : 0;
       const imageTextPenalty =
         opts?.uniqueAmongImageText && imageTextUsed.has(i) ? 3000 : 0;
+      const stepPenalty = opts?.uniqueAmongSteps && stepUsed.has(i) ? 2500 : 0;
       const score =
-        freq[i] * 20 + adjacencyPenalty + unusedBonus + overSoft + overHard + imageTextPenalty;
+        freq[i] * 20 + adjacencyPenalty + unusedBonus + overSoft + overHard + imageTextPenalty + stepPenalty;
       if (score < bestScore) {
         bestScore = score;
         best = i;
@@ -308,7 +314,11 @@ export function assignDistinctSectionImages(
       continue;
     }
     if (placement.kind === "step") {
-      const idx = pick({ excludeHero: imageCount >= 4 });
+      const idx = pick({
+        excludeHero: imageCount >= 4,
+        uniqueAmongSteps: imageCount >= 3,
+      });
+      stepUsed.add(idx);
       assigned.set(`step:${placement.sectionIndex}:${placement.stepIndex}`, idx);
       continue;
     }

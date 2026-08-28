@@ -1,4 +1,5 @@
 import type { DetailSection } from "@/lib/types/generate";
+import { buildMarketplacePatternGuide } from "@/lib/marketplace-pdp-patterns";
 import { resolveTemplateCategory } from "@/lib/section-templates";
 
 /**
@@ -51,7 +52,7 @@ export function buildDesignerPatternGuide(category: string): string {
 - **카드 남발 금지**: checklist·highlight_box만 카드형. image_text 본문은 패널 테두리 없이 여백으로 구분.
 - **신뢰 흐름**: 핵심 포인트 → 사용 장면 → 수치(근거 있을 때만) → 고시표 → 주의 → CTA.
 - **길이**: 필수 슬롯 위주 8~12개 스크롤 구간. 비슷한 image_text 4개 연속 시 각기 다른 각도·장면.
-- 템플릿 카테고리: ${template}${fashion}${food}`;
+- 템플릿 카테고리: ${template}${fashion}${food}${buildMarketplacePatternGuide(category)}`;
 }
 
 /** 생성 후 image_text에 디자이너 레이아웃 힌트 주입 (슬롯 순서 변경 없음) */

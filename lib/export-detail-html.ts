@@ -9,7 +9,13 @@ import {
   shouldUseSplitLayout,
 } from "@/lib/detail-visual-rhythm";
 import { extractTrustChips } from "@/lib/extract-trust-chips";
-import { getSectionBackground, getTextPanelSurface, hexToRgba } from "@/lib/design-tokens";
+import {
+  extendTheme,
+  getTextPanelSurface,
+  hexToRgba,
+  resolveSectionSurface,
+  type ExtendedTheme,
+} from "@/lib/design-tokens";
 import { buildProductJsonLd, serializeJsonLdScripts } from "@/lib/product-json-ld";
 import {
   DETAIL_EXPORT_FONT_CSS,
@@ -27,10 +33,6 @@ function textPanelWrap(theme: CategoryTheme, inner: string): string {
   </div>`;
 }
 
-function sectionSurface(theme: CategoryTheme, pattern: "A" | "B" | "C"): string {
-  return getSectionBackground(theme, pattern);
-}
-
 function esc(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -43,7 +45,7 @@ function trustStripHtml(chips: string[], theme: CategoryTheme): string {
   if (chips.length === 0) return "";
   const accent = theme.accent;
   return `<div style="padding:16px 20px;border-top:1px solid ${accent}38;border-bottom:1px solid ${accent}38;background:${theme.baseNeutral}a6;text-align:center">
-    <p style="font-size:11px;letter-spacing:.2em;color:${theme.deepAccent};margin:0 0 12px">TRUST</p>
+    <p style="font-size:11px;letter-spacing:.2em;color:${theme.deepAccent};margin:0 0 12px">혜택 · 신뢰</p>
     <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px">
       ${chips.map((c) => `<span style="font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;background:${accent}1f;color:${theme.deepAccent}">${esc(c)}</span>`).join("")}
     </div></div>`;
@@ -52,20 +54,30 @@ function trustStripHtml(chips: string[], theme: CategoryTheme): string {
 function sectionHtml(
   section: DetailSection,
   imageUrls: string[],
-  theme: CategoryTheme,
+  baseTheme: CategoryTheme,
   productName: string,
   pointIndex?: number,
   bodyIndex?: number,
+  extended?: ExtendedTheme,
 ): string {
+  const pad = "padding:48px 20px;";
+  const bi = bodyIndex ?? 0;
+  const skipSurface = new Set(["hero", "cta_price", "illustration_banner", "ai_disclosure"]);
+  const surface =
+    extended && !skipSurface.has(section.type)
+      ? resolveSectionSurface(extended, section.type, bi)
+      : null;
+  const theme = surface?.theme ?? baseTheme;
+  const sectionBg = surface?.background ?? baseTheme.baseNeutral;
+  const sectionInset = surface?.insetShadow ? `box-shadow:${surface.insetShadow};` : "";
   const accent = theme.accent;
   const deep = theme.deepAccent;
-  const pad = "padding:48px 20px;";
 
   switch (section.type) {
     case "hero": {
       const src = imageUrls[section.imageIndex] ?? imageUrls[0] ?? "";
       const alt = buildSectionImageAlt(productName, section.headline, "hero");
-      return `<section class="hero" style="${pad}position:relative;min-height:70vh;background:${theme.baseNeutral}">
+      return `<section class="hero" style="${pad}position:relative;min-height:70vh;background:${baseTheme.baseNeutral}">
         ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;height:70vh;object-fit:cover"/>` : ""}
         ${section.badge ? `<span style="position:absolute;left:0;top:20px;background:${deep};color:#FAF8F3;padding:8px 16px;font-size:12px;font-weight:700">${esc(section.badge)}</span>` : ""}
         <div style="position:absolute;inset:0;background:linear-gradient(0deg,${deep}cc,transparent);display:flex;align-items:flex-end;padding:40px 20px">
@@ -77,7 +89,7 @@ function sectionHtml(
       const fg = section.boldBlock ? "#FAF8F3" : "#1B1B18";
       const kicker = getSectionKicker(section);
       const indexLabel = bodyIndex != null ? formatSectionIndex(bodyIndex) : "";
-      return `<section style="${pad}background:${section.boldBlock ? deep : theme.baseNeutral};color:${fg}">
+      return `<section style="${pad}${sectionInset}background:${section.boldBlock ? deep : sectionBg};color:${fg}">
         <div style="text-align:center;max-width:640px;margin:0 auto 32px">
           ${indexLabel ? `<span style="font-family:monospace;font-size:12px;font-weight:700;letter-spacing:.28em;color:${section.boldBlock ? "#FAF8F3" : accent};margin-right:12px">${indexLabel}</span>` : ""}
           ${kicker ? `<span style="font-size:11px;letter-spacing:.36em;opacity:.75">${kicker}</span>` : ""}
@@ -95,9 +107,9 @@ function sectionHtml(
     case "highlight_box": {
       const cards = section.cards.slice(0, 4);
       const center = Math.floor((cards.length - 1) / 2);
-      const bg = section.boldBlock ? deep : theme.baseNeutral;
+      const bg = section.boldBlock ? deep : sectionBg;
       const fg = section.boldBlock ? "#FAF8F3" : "#1B1B18";
-      return `<section style="${pad}background:${bg};color:${fg}">
+      return `<section style="${pad}${sectionInset}background:${bg};color:${fg}">
         <p style="text-align:center;font-size:11px;letter-spacing:.2em;opacity:.75">KEY POINTS</p>
         <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
         <div style="display:grid;grid-template-columns:repeat(${Math.min(3, cards.length)},1fr);gap:12px;margin-top:32px">
@@ -114,7 +126,7 @@ function sectionHtml(
         </div></section>`;
     }
     case "step_card":
-      return `<section style="${pad}background:${theme.baseNeutral}">
+      return `<section style="${pad}${sectionInset}background:${sectionBg}">
         <p style="text-align:center;font-size:11px;letter-spacing:.2em;color:${deep}">HOW TO USE</p>
         <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:32px">
@@ -130,7 +142,7 @@ function sectionHtml(
             .join("")}
         </div></section>`;
     case "stat_infographic":
-      return `<section style="${pad}background:${theme.baseNeutral}">
+      return `<section style="${pad}${sectionInset}background:${sectionBg}">
         <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
         <div style="max-width:480px;margin:32px auto 0;display:flex;flex-direction:column;gap:20px">
           ${section.metrics
@@ -148,7 +160,7 @@ function sectionHtml(
             .join("")}
         </div></section>`;
     case "comparison_chart":
-      return `<section style="${pad}background:${theme.baseNeutral}">
+      return `<section style="${pad}${sectionInset}background:${sectionBg}">
         <p style="text-align:center;color:${deep};font-size:11px;letter-spacing:.2em">COMPARE</p>
         <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
         <div style="max-width:420px;margin:32px auto 0;display:flex;flex-direction:column;gap:24px">
@@ -176,7 +188,7 @@ function sectionHtml(
       const alt = buildSectionImageAlt(productName, section.heading, section.slot);
       const isCallout = section.layout === "callout" || section.slot === "feature_callout";
       if (isCallout && section.callout) {
-        return `<section class="pagzly-callout" style="${pad}background:${theme.baseNeutral}">
+        return `<section class="pagzly-callout" style="${pad}${sectionInset}background:${sectionBg}">
           <div style="position:relative;margin-bottom:20px">
             ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px"/>` : ""}
             <p style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:${deep};color:#FAF8F3;padding:10px 18px;border-radius:16px;font-size:14px;font-weight:600;text-align:center;max-width:85%">${esc(section.callout)}</p>
@@ -187,7 +199,7 @@ function sectionHtml(
       }
       if (shouldUseEditorialBleed(section)) {
         const kicker = getSectionKicker(section);
-        return `<section class="pagzly-editorial" style="padding:0;background:${theme.baseNeutral}">
+        return `<section class="pagzly-editorial" style="padding:0;background:${sectionBg}">
           ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:4/5;object-fit:cover;display:block"/>` : ""}
           <div style="padding:40px 24px 48px;text-align:center;max-width:640px;margin:0 auto">
             ${kicker ? `<p style="font-size:11px;letter-spacing:.36em;color:${deep};margin:0 0 12px">${kicker}</p>` : ""}
@@ -201,7 +213,7 @@ function sectionHtml(
         const pointLabel =
           pointIndex != null ? `POINT ${String(pointIndex + 1).padStart(2, "0")}` : "";
         const kicker = getSectionKicker(section) ?? "FEATURE";
-        return `<section style="${pad}background:${sectionSurface(theme, "A")}">
+        return `<section style="${pad}${sectionInset}background:${sectionBg}">
           <div style="display:flex;flex-wrap:wrap;gap:32px;max-width:960px;margin:0 auto;align-items:center">
             <div style="flex:1 1 280px;order:${imageLeft ? 1 : 2};position:relative">
               ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:16px;box-shadow:0 20px 56px ${hexToRgba(theme.deepAccent, 0.14)}"/>` : ""}
@@ -215,7 +227,7 @@ function sectionHtml(
           </div>
         </section>`;
       }
-      return `<section style="${pad}background:${sectionSurface(theme, "A")}">
+      return `<section style="${pad}${sectionInset}background:${sectionBg}">
         ${src ? `<div style="padding:0 12px"><img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:16px;box-shadow:0 16px 48px ${hexToRgba(theme.deepAccent, 0.12)}"/></div>` : ""}
         ${textPanelWrap(
           theme,
@@ -233,19 +245,19 @@ function sectionHtml(
         )
         .join("");
       const tableHtml = `<table style="width:100%;border-collapse:collapse;font-size:14px"><tbody>${rowsHtml}</tbody></table>`;
-      return `<section style="${pad}background:${theme.baseNeutral}" class="${isShipping ? "pagzly-shipping" : ""}">
+      return `<section style="${pad}${sectionInset}background:${sectionBg}" class="${isShipping ? "pagzly-shipping" : ""}">
         <p style="text-align:center;font-size:11px;letter-spacing:.2em;color:${deep}">INFO</p>
         <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
         ${
           isShipping
-            ? `<div class="pagzly-shipping-table" style="max-width:560px;margin:24px auto 0;border:2px solid ${accent}59;border-radius:12px;overflow:hidden;background:${theme.baseNeutral}80">${tableHtml}</div>`
+            ? `<div class="pagzly-shipping-table" style="max-width:560px;margin:24px auto 0;border:2px solid ${accent}59;border-radius:12px;overflow:hidden;background:${sectionBg}80">${tableHtml}</div>`
             : `<div style="max-width:560px;margin:24px auto 0">${tableHtml}</div>`
         }
       </section>`;
     }
     case "gallery": {
       const cols = section.imageIndexes.length <= 2 ? 1 : section.imageIndexes.length <= 4 ? 2 : 3;
-      return `<section class="pagzly-gallery" style="${pad}background:${theme.baseNeutral}">
+      return `<section class="pagzly-gallery" style="${pad}${sectionInset}background:${sectionBg}">
         <h2 style="text-align:center;font-size:1.5rem;margin-bottom:24px">${esc(section.heading)}</h2>
         <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:2px;background:${accent}2e">
           ${section.imageIndexes
@@ -261,7 +273,7 @@ function sectionHtml(
       </section>`;
     }
     case "brand_story":
-      return `<section class="pagzly-brand-story" style="${pad}background:${sectionSurface(theme, "B")}">
+      return `<section class="pagzly-brand-story" style="${pad}${sectionInset}background:${sectionBg}">
         ${textPanelWrap(
           theme,
           `<p style="font-size:11px;letter-spacing:.2em;color:${theme.deepAccent};margin:0 0 12px">STORY</p>
@@ -270,20 +282,20 @@ function sectionHtml(
         )}
       </section>`;
     case "target_persona":
-      return `<section class="pagzly-persona" style="${pad}background:${theme.baseNeutral}">
+      return `<section class="pagzly-persona" style="${pad}${sectionInset}background:${sectionBg}">
         <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
         <ul style="max-width:480px;margin:24px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px">
-          ${section.personas.map((p) => `<li style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;background:${theme.baseNeutral};box-shadow:inset 0 0 0 1px ${accent}33;font-size:14px;font-weight:500;color:${deep}">✓ ${esc(p)}</li>`).join("")}
+          ${section.personas.map((p) => `<li style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;background:${sectionBg};box-shadow:inset 0 0 0 1px ${accent}33;font-size:14px;font-weight:500;color:${deep}">✓ ${esc(p)}</li>`).join("")}
         </ul>
       </section>`;
     case "usage_steps":
-      return `<section style="${pad}background:${theme.baseNeutral}">
+      return `<section style="${pad}${sectionInset}background:${sectionBg}">
         <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
         <ol style="max-width:640px;margin:32px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:16px">
           ${section.steps.map((s, i) => `<li><span style="color:${accent};font-size:11px;font-weight:700">STEP ${String(i + 1).padStart(2, "0")}</span><div style="font-size:15px;margin-top:4px">${esc(s)}</div></li>`).join("")}
         </ol></section>`;
     case "custom_gif":
-      return `<section style="${pad}background:${theme.baseNeutral};text-align:center">
+      return `<section style="${pad}${sectionInset}background:${sectionBg};text-align:center">
         ${section.heading ? `<h2>${esc(section.heading)}</h2>` : ""}
         <img src="${esc(section.gifUrl)}" alt="${esc(buildSectionImageAlt(productName, section.heading ?? "GIF", section.slot))}" style="max-width:100%;border-radius:12px"/>
       </section>`;
@@ -296,13 +308,13 @@ function sectionHtml(
         <p style="margin-top:20px;font-size:13px;opacity:.7">배송·교환·환불은 판매자 정책을 확인해 주세요.</p>
       </section>`;
     case "faq":
-      return `<section style="${pad}background:${theme.baseNeutral}">
+      return `<section style="${pad}${sectionInset}background:${sectionBg}">
         <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
         <div style="max-width:640px;margin:24px auto 0;display:flex;flex-direction:column;gap:16px">
           ${section.items
             .map(
               (item) =>
-                `<div class="pagzly-faq-card" style="border:1px solid ${accent}38;border-radius:12px;padding:16px 20px;background:${theme.baseNeutral}73">
+                `<div class="pagzly-faq-card" style="border:1px solid ${accent}38;border-radius:12px;padding:16px 20px;background:${sectionBg}73">
             <p style="font-size:11px;letter-spacing:.15em;color:${accent};margin:0 0 6px">Q.</p>
             <p style="font-weight:700;font-size:15px;margin:0">${esc(item.question)}</p>
             <p style="font-size:11px;letter-spacing:.15em;color:${deep};margin:16px 0 6px">A.</p>
@@ -312,7 +324,7 @@ function sectionHtml(
             .join("")}
         </div></section>`;
     case "caution":
-      return `<section style="${pad}background:${sectionSurface(theme, "A")}">
+      return `<section style="${pad}${sectionInset}background:${sectionBg}">
         ${textPanelWrap(
           theme,
           `<p style="font-size:11px;letter-spacing:.2em;color:${deep};margin:0 0 12px">NOTICE</p>
@@ -321,7 +333,7 @@ function sectionHtml(
         )}
       </section>`;
     case "comparison_table":
-      return `<section style="${pad}background:${theme.baseNeutral}">
+      return `<section style="${pad}${sectionInset}background:${sectionBg}">
         <p style="text-align:center;font-size:11px;letter-spacing:.2em;color:${deep}">COMPARE</p>
         <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
         <table style="width:100%;max-width:560px;margin:24px auto 0;border-collapse:collapse;font-size:14px">
@@ -345,7 +357,7 @@ function sectionHtml(
         </table>
       </section>`;
     case "color_variation":
-      return `<section class="pagzly-color-variation" style="${pad}background:${theme.baseNeutral}">
+      return `<section class="pagzly-color-variation" style="${pad}${sectionInset}background:${sectionBg}">
         <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;max-width:640px;margin:32px auto 0">
           ${section.options
@@ -376,7 +388,7 @@ function sectionHtml(
     case "review_highlight": {
       const praises = section.praises.filter(Boolean);
       if (praises.length === 0) return "";
-      return `<section class="pagzly-review-highlight" style="${pad}background:${sectionSurface(theme, "A")}">
+      return `<section class="pagzly-review-highlight" style="${pad}${sectionInset}background:${sectionBg}">
         <h2 style="text-align:center;font-size:1.5rem;margin:0">${esc(section.heading)}</h2>
         <p style="text-align:center;font-size:12px;opacity:.45;margin:8px 0 0">실제 구매자 리뷰에서 자주 나온 내용을 요약했습니다</p>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;max-width:680px;margin:32px auto 0">
@@ -401,7 +413,7 @@ function sectionHtml(
       const heading =
         "heading" in fallback && typeof fallback.heading === "string" ? fallback.heading : "";
       const body = "body" in fallback && typeof fallback.body === "string" ? fallback.body : "";
-      return `<section style="${pad}background:${theme.baseNeutral}">
+      return `<section style="${pad}${sectionInset}background:${sectionBg}">
         ${heading ? `<h2 style="text-align:center;font-size:1.5rem">${esc(heading)}</h2>` : ""}
         ${body ? `<p style="max-width:640px;margin:16px auto 0;line-height:1.6;font-size:15px;opacity:.8">${esc(body)}</p>` : ""}
       </section>`;
@@ -428,6 +440,7 @@ export function buildDetailPageHtml(opts: {
   const hidden = new Set(opts.hiddenIndexes ?? []);
   const visibleSections = opts.sections.filter((_, i) => !hidden.has(i));
   const trustChips = extractTrustChips(visibleSections);
+  const extended = extendTheme(opts.theme);
 
   const bodyParts: string[] = [];
   let imageTextCount = 0;
@@ -443,6 +456,7 @@ export function buildDetailPageHtml(opts: {
       opts.productName,
       pointIndex,
       bodyIndex,
+      extended,
     );
     if (html) bodyParts.push(html);
     if (section.type === "hero" && trustChips.length > 0) {

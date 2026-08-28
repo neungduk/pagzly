@@ -37,6 +37,7 @@ import {
   getDecorationColor,
   getHeroGradient,
   getSectionBackground,
+  getSectionInsetShadow,
   getSectionPattern,
   getTextPanelSurface,
   hexToRgba,
@@ -513,15 +514,12 @@ function sectionBackgroundStyle(theme: CategoryTheme, pattern: SectionColorPatte
   return { background: getSectionBackground(theme, pattern) };
 }
 
-/** 텍스트 블록 섹션 — 은은한 그라데이션 + 상단 액센트 라인 */
+/** 텍스트 블록 섹션 — 은은한 그라데이션 + 상·하단 액센트 라인 */
 function textSectionStyle(theme: CategoryTheme, pattern: SectionColorPattern) {
+  const inset = getSectionInsetShadow(theme, pattern);
   return {
     background: getSectionBackground(theme, pattern),
-    ...(pattern === "B"
-      ? { boxShadow: `inset 0 3px 0 ${hexToRgba(theme.accent, 0.24)}` }
-      : pattern === "A"
-        ? { boxShadow: `inset 0 2px 0 ${hexToRgba(theme.accent, 0.1)}` }
-        : {}),
+    ...(inset ? { boxShadow: inset } : {}),
   };
 }
 
@@ -744,7 +742,7 @@ function TrustStrip({ chips, theme }: { chips: string[]; theme: CategoryTheme })
         className={`mb-3 text-center ${TYPO.sectionLabel}`}
         style={{ color: theme.deepAccent }}
       >
-        TRUST
+        혜택 · 신뢰
       </p>
       <div className="flex flex-wrap items-center justify-center gap-2">
         {chips.map((chip) => (
@@ -2412,14 +2410,14 @@ export default function DetailSectionRenderer({
           section.slot !== "feature_callout";
         const pointIndex = isFullPoint ? imageTextCount++ : undefined;
         const bodyIndex = sections.slice(0, index).filter((s) => s.type !== "hero").length;
-        const pattern = section.type === "hero" ? "A" : getSectionPattern(bodyIndex);
+        const pattern = section.type === "hero" ? "A" : getSectionPattern(bodyIndex, section.type);
         const prevBodyIndex = sections.slice(0, index).filter((s) => s.type !== "hero").length - 1;
         const followPattern =
           section.type === "checklist" &&
           section.compactFollow === true &&
           index > 0 &&
           sections[index - 1].type !== "hero"
-            ? getSectionPattern(Math.max(0, prevBodyIndex))
+            ? getSectionPattern(Math.max(0, prevBodyIndex), sections[index - 1]!.type)
             : undefined;
         const sectionTheme = getSectionTheme(extendedTheme, section.type, bodyIndex);
         const breather =

@@ -845,7 +845,7 @@ export function buildSectionLengthGuide(category: string): string {
   }
 
   if (category === "식품/건강기능식품") {
-    return `\n\n## 식품 카피 길이·컨셉 정합\n${common}\n- cooking_steps: 각 단계 title 6자 내외 + body 1문장.\n- sourcing_story body: 원산지/생산 배경 2~3문장, 과장 없이 사실 위주.\n- serving_suggestion body: 섭취/제공 장면 1~2문장.\n- storage_tip body: 보관 방법 1문장.`;
+    return `\n\n## 식품 카피 길이·컨셉 정합\n${common}\n- cooking_steps: 각 단계 title 6자 내외 + body 1문장.\n- sourcing_story body: 원산지/생산 배경 2~3문장, 과장 없이 사실 위주. **입력·고시에 없는 원산지 지어내기 금지.**\n- serving_suggestion body: 섭취/제공 장면 1~2문장.\n- storage_tip body: 보관 방법 1문장. **입력에 없으면 "판매자 확인 필요".**\n- nutrition_table / spec_table: 알레르기·원산지·보관은 입력·고시 근거만.`;
   }
 
   if (category === "전자제품") {

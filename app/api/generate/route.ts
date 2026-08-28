@@ -5,7 +5,7 @@ import {
   isCosmeticsCategory,
   reviewCosmeticsCopy,
 } from "@/lib/cosmetics-compliance";
-import { FOOD_AI_PROMPT, isFoodCategory, reviewFoodCopy } from "@/lib/food-compliance";
+import { FOOD_AI_PROMPT, FOOD_SLOT_FACT_PROMPT, isFoodCategory, reviewFoodCopy } from "@/lib/food-compliance";
 import type {
   AiDisclosureSection,
   CtaPriceSection,
@@ -570,7 +570,9 @@ async function generateCopyWithDeepSeek(
   const cosmeticsGuide = isCosmetics
     ? `\n\n## 식약처 화장품 광고 기준 (필수)\n${COSMETICS_AI_PROMPT}`
     : "";
-  const foodGuide = isFood ? `\n\n## 식품 표시광고 기준 (필수)\n${FOOD_AI_PROMPT}` : "";
+  const foodGuide = isFood
+    ? `\n\n## 식품 표시광고 기준 (필수)\n${FOOD_AI_PROMPT}\n\n${FOOD_SLOT_FACT_PROMPT}`
+    : "";
 
   const length = productInfo.length === "short" ? "short" : "long";
   const template = getSlotTemplate(productInfo.category, length);
@@ -1022,7 +1024,8 @@ export async function POST(request: Request) {
     console.log("[generate template]", {
       category: body.category,
       template: resolveTemplateCategory(body.category),
-      lengthGuide: "buildSectionLengthGuide",
+      lengthGuide: buildSectionLengthGuide(body.category).match(/## [^\n]+/)?.[0] ?? "default",
+      slotCount: getSlotTemplate(body.category, body.length === "short" ? "short" : "long").length,
     });
 
     if (!body.productName || !body.category || !body.price) {
@@ -1252,6 +1255,7 @@ export async function POST(request: Request) {
       category: body.category,
       ingredients: body.ingredients,
       price: body.price,
+      keyFeatures: body.keyFeatures,
     });
     savedCopy.sections = applyBoldBlock(savedCopy.sections);
     savedCopy.sections = applyDesignerLayoutRhythm(savedCopy.sections);
