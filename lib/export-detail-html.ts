@@ -308,6 +308,25 @@ function sectionHtml(
         <p style="font-size:14px;line-height:1.65;opacity:.8;margin-top:12px">${esc(section.body)}</p>`,
         )}
       </section>`;
+    case "review_highlight": {
+      const praises = section.praises.filter(Boolean);
+      if (praises.length === 0) return "";
+      return `<section class="pagzly-review-highlight" style="${pad}background:${sectionSurface(theme, "A")}">
+        <h2 style="text-align:center;font-size:1.5rem;margin:0">${esc(section.heading)}</h2>
+        <p style="text-align:center;font-size:12px;opacity:.45;margin:8px 0 0">실제 구매자 리뷰에서 자주 나온 내용을 요약했습니다</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;max-width:680px;margin:32px auto 0">
+          ${praises
+            .map(
+              (praise) =>
+                `<div style="border-radius:16px;padding:24px;border:1px solid ${accent}33;background:${accent}0d">
+                  <span style="font-size:2rem;color:${accent};line-height:1">&ldquo;</span>
+                  <p style="margin:12px 0 0;font-size:14px;line-height:1.6;opacity:.85">${esc(praise)}</p>
+                </div>`,
+            )
+            .join("")}
+        </div>
+      </section>`;
+    }
     case "ai_disclosure":
       return `<section style="padding:20px;background:#f5f3ee;font-size:12px;line-height:1.5;opacity:.75;text-align:center">
         <strong>${esc(section.heading)}</strong> — ${esc(section.body)}

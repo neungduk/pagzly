@@ -2269,7 +2269,7 @@ function renderSection(
       return (
         <section
           key={`cta_price-${index}`}
-          className={`pagzly-ink-cta pagzly-ink-shimmer sticky bottom-0 z-20 shadow-[0_-8px_24px_-8px_rgba(27,27,24,0.2)] sm:static sm:shadow-none ${getCategoryRhythm(category).ctaPadClass}`}
+          className={`pagzly-ink-cta pagzly-ink-shimmer sticky bottom-0 z-20 shadow-[0_-8px_24px_-8px_rgba(27,27,24,0.2)] ${getCategoryRhythm(category).ctaPadClass}`}
           style={{ backgroundColor: getCtaBandBackground(theme) }}
         >
           <div className={`${TEXT_COL_CLASS} relative z-10 space-y-5`}>

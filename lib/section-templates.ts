@@ -21,7 +21,8 @@ export type TemplateCategory =
   | "패션/의류"
   | "식품"
   | "전자/가전"
-  | "생활/리빙";
+  | "생활/리빙"
+  | "반려동물";
 
 const BEAUTY: SlotDefinition[] = [
   { slot: "hero", type: "hero", required: true, note: "히어로 (제품 단독/사용 컷, 4:5)" },
@@ -561,6 +562,118 @@ const ELECTRONICS: SlotDefinition[] = [
   { slot: "cta_price", type: "cta_price", required: true, note: "가격/구매 정보" },
 ];
 
+const PET: SlotDefinition[] = [
+  { slot: "hero", type: "hero", required: true, note: "히어로 (제품·패키지 또는 반려동물 사용 컷, 4:5)" },
+  {
+    slot: "brand_story",
+    type: "brand_story",
+    required: false,
+    note: "brandName이 입력되지 않았으면 생략. 보호자·반려동물 신뢰를 짧게, 없는 수상·연혁 지어내지 말 것",
+  },
+  { slot: "checklist", type: "checklist", required: true, note: "안전·성분·사용법 핵심 3~4개. 질병 치료·예방 단정 금지" },
+  {
+    slot: "quick_points",
+    type: "image_text",
+    required: true,
+    repeatable: true,
+    minCount: 2,
+    maxCount: 4,
+    note: "짧은 미니 포인트 2~4개, layout: 'compact'. 성분표·용량·주의 문구 컷 활용",
+  },
+  {
+    slot: "target_persona",
+    type: "target_persona",
+    required: false,
+    note: "어떤 반려동물·보호자에게 맞는지. targetCustomer·keyFeatures 입력 기반만",
+  },
+  {
+    slot: "feature_callout",
+    type: "image_text",
+    required: true,
+    note: "성분·안전 1가지를 사진+말풍선으로. layout:\"callout\" 필수. 입력 성분만",
+  },
+  {
+    slot: "material_feature",
+    type: "image_text",
+    required: true,
+    note: "주요 성분·원료 (1:1). 없는 영양·함량 % 지어내지 말 것",
+  },
+  {
+    slot: "usage_scenario",
+    type: "image_text",
+    required: true,
+    note: "급여·사용 장면 (4:5). 반려동물과 함께하는 장면",
+  },
+  {
+    slot: "highlight_box",
+    type: "highlight_box",
+    required: true,
+    note: "성분·안전·사용법 3가지 카드. checklist와 다른 축, 2번째 카드에 가장 강조할 내용",
+  },
+  {
+    slot: "gallery",
+    type: "gallery",
+    required: true,
+    note: "제품·성분 라벨·급여 장면 (3:4). 최대 5장",
+    minCount: 2,
+    maxCount: 5,
+  },
+  {
+    slot: "step_card",
+    type: "step_card",
+    required: true,
+    note: "급여·사용 3단계. 체중별 급여량은 입력 수치가 있을 때만",
+  },
+  {
+    slot: "stat_infographic",
+    type: "stat_infographic",
+    required: false,
+    note: "입력에 실제 수치 근거가 있을 때만. 영양 % 날조 금지",
+  },
+  {
+    slot: "spec_table",
+    type: "spec_table",
+    required: true,
+    note: "급여량·적합 연령·주요 성분·원산지. 없으면 판매자 확인 필요",
+  },
+  {
+    slot: "faq",
+    type: "faq",
+    required: false,
+    minCount: 3,
+    maxCount: 5,
+    note: "급여·보관·알레르기. 입력 근거만. 질병 치료 답변 단정 금지",
+  },
+  {
+    slot: "caution",
+    type: "caution",
+    required: true,
+    note: "반려동물 안전·급여 주의. 수의학적 처방·치료 효과 단정 금지",
+  },
+  { slot: "material_detail", type: "image_text", required: true, note: "성분표·라벨 클로즈업 (1:1)" },
+  {
+    slot: "usage_scenario_extra",
+    type: "image_text",
+    required: false,
+    note: "추가 사용·보관 장면 (4:5)",
+  },
+  { slot: "packaging_design", type: "image_text", required: true, note: "패키지·용량·구성 (1:1)" },
+  { slot: "care_tip", type: "image_text", required: true, note: "보관·취급 (1:1)" },
+  {
+    slot: "shipping_info",
+    type: "spec_table",
+    required: false,
+    note: "배송비/배송기간/교환·환불. 수치 없으면 판매자 정책 확인",
+  },
+  {
+    slot: "ai_disclosure",
+    type: "ai_disclosure",
+    required: true,
+    note: "AI 생성 콘텐츠 고지. heading/body는 서버가 고정 문구로 채움",
+  },
+  { slot: "cta_price", type: "cta_price", required: true, note: "가격/구매 정보" },
+];
+
 const HOME_FALLBACK: SlotDefinition[] = [
   { slot: "hero", type: "hero", required: true, note: "히어로 (4:5)" },
   {
@@ -685,6 +798,7 @@ export const CATEGORY_SLOT_TEMPLATES: Record<TemplateCategory, SlotDefinition[]>
   "식품": FOOD,
   "전자/가전": ELECTRONICS,
   "생활/리빙": HOME_FALLBACK,
+  "반려동물": PET,
 };
 
 // 상품 등록 폼의 category 값(lib/category-theme.ts의 CATEGORY_THEMES 키)을
@@ -696,7 +810,7 @@ const CATEGORY_TO_TEMPLATE: Record<string, TemplateCategory> = {
   "식품/건강기능식품": "식품",
   "전자제품": "전자/가전",
   "생활용품": "생활/리빙",
-  "반려동물": "생활/리빙",
+  "반려동물": "반려동물",
   "기타": "생활/리빙",
 };
 
@@ -743,7 +857,7 @@ export function buildSectionLengthGuide(category: string): string {
   }
 
   if (category === "반려동물") {
-    return `\n\n## 반려동물 카피 길이·컨셉 정합 (생활/리빙 슬롯 폴백)\n${common}\n- 보호자 관점(안전·성분·사용법) 중심. 질병 치료·예방·수명 연장 단정 금지.\n- material_feature body: 입력된 성분·원산지만 2~3문장.\n- usage_scenario / usage_scenario_extra body: 급여·사용 장면 1~2문장. 체중별 급여량은 입력 수치가 있을 때만.\n- care_tip body: 보관·취급 1문장.\n- spec_table: 없는 영양·함량 %를 만들지 말 것.`;
+    return `\n\n## 반려동물 카피 길이·컨셉 정합\n${common}\n- 보호자 관점(안전·성분·사용법) 중심. 질병 치료·예방·수명 연장 단정 금지.\n- material_feature body: 입력된 성분·원산지만 2~3문장.\n- usage_scenario / usage_scenario_extra body: 급여·사용 장면 1~2문장. 체중별 급여량은 입력 수치가 있을 때만.\n- care_tip body: 보관·취급 1문장.\n- spec_table: 없는 영양·함량 %를 만들지 말 것.`;
   }
 
   return `\n\n## 카피 길이·리듬 정합\n${common}`;

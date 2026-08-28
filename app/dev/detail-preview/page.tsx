@@ -332,7 +332,7 @@ export default function DetailPreviewPage() {
           />
         </div>
       ) : (
-        <div className="mx-auto max-w-[430px] overflow-hidden border-x border-line bg-paper shadow-sm" data-pagzly-preview>
+        <div className="mx-auto max-w-[430px] overflow-x-hidden border-x border-line bg-paper shadow-sm" data-pagzly-preview>
           <DetailSectionRenderer
             sections={visibleSections}
             imageUrls={imageUrls}

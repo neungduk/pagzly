@@ -32,6 +32,7 @@ export function scoreDetailPageExport(
     { id: "jsonld", label: "JSON-LD", passed: html.includes("application/ld+json"), weight: 6 },
     { id: "seo", label: "SEO 텍스트 블록", passed: html.includes("pagzly-seo-text"), weight: 5 },
     { id: "trust", label: "TRUST 스트립", passed: html.includes("TRUST"), weight: 5 },
+    { id: "review_highlight", label: "리뷰 하이라이트 export", passed: !types.has("review_highlight") || html.includes("pagzly-review-highlight"), weight: 4 },
     { id: "sticky_cta", label: "Sticky CTA", passed: /pagzly-cta[\s\S]*sticky/.test(html), weight: 4 },
     { id: "callout", label: "말풍선 callout", passed: !hasSlot("feature_callout") || html.includes("pagzly-callout"), weight: 4 },
     { id: "gallery", label: "갤러리 export", passed: !types.has("gallery") || html.includes("pagzly-gallery"), weight: 4 },

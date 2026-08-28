@@ -155,6 +155,12 @@ const BUILTIN_SECTIONS: DetailSection[] = [
     ],
   },
   {
+    type: "review_highlight",
+    slot: "review_highlight",
+    heading: "실제 구매자들이 자주 남긴 이야기",
+    praises: ["속당김이 덜해요", "무향이라 아이도 써요", "끈적임 없이 흡수돼요"],
+  },
+  {
     type: "ai_disclosure",
     slot: "ai_disclosure",
     heading: "AI 생성 고지",

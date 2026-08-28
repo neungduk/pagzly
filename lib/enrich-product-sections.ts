@@ -61,13 +61,17 @@ const SPEC_SKELETONS: Record<string, SkeletonRow[]> = {
     { label: "사용연령", match: /연령|월령|대상/ },
     { label: "인증·수상", match: /인증|수상/ },
   ],
+  "반려동물": [
+    { label: "브랜드", match: /브랜드/ },
+    { label: "제조사", match: /제조/ },
+    { label: "원산지", match: /원산지|제조국/ },
+    { label: "주요 성분", match: /성분|원료/ },
+    { label: "급여량", match: /급여|용량|권장/ },
+    { label: "적합 연령", match: /연령|월령|대상/ },
+    { label: "보관방법", match: /보관/ },
+    { label: "주의 성분", match: /알레르기|주의|금기/ },
+  ],
 };
-
-const PET_SPEC_EXTRA: SkeletonRow[] = [
-  { label: "급여량", match: /급여|용량|권장/ },
-  { label: "적합 연령", match: /연령|월령|대상/ },
-  { label: "주의 성분", match: /알레르기|주의|금기/ },
-];
 
 const SHIPPING_SKELETON: SkeletonRow[] = [
   { label: "배송비", match: /배송비|배송 요금/ },
@@ -146,10 +150,7 @@ function enrichSpecTableSection(
 ): DetailSection {
   const templateCat = resolveTemplateCategory(category);
   const isShipping = section.slot === "shipping_info";
-  let skeleton = isShipping ? SHIPPING_SKELETON : SPEC_SKELETONS[templateCat];
-  if (!isShipping && category === "반려동물") {
-    skeleton = [...(skeleton ?? []), ...PET_SPEC_EXTRA];
-  }
+  const skeleton = isShipping ? SHIPPING_SKELETON : SPEC_SKELETONS[templateCat];
   if (!skeleton) return section;
 
   return {

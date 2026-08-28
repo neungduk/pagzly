@@ -13,7 +13,6 @@ import type {
   DetailSection,
   GeneratedCopy,
   ProductInput,
-  ReviewHighlightSection,
 } from "@/lib/types/generate";
 import { createClient } from "@/lib/supabase/server";
 import { extractProductTheme } from "@/lib/color-extract";
@@ -27,6 +26,7 @@ import {
 import { extractUrlSummary, type UrlSummaryResult } from "@/lib/url-crawler";
 import { buildQAFixPrompt, runDetailPageQA } from "@/lib/detail-page-qa";
 import { enrichSectionsWithProductMetadata } from "@/lib/enrich-product-sections";
+import { insertReviewHighlightSection } from "@/lib/section-inserts";
 import { formatConceptCopyBlock, generateConceptBrief } from "@/lib/concept-brief";
 import { generateConceptIcons, type ConceptIconMap } from "@/lib/concept-icons";
 import { generateIllustrationBanner } from "@/lib/concept-illustration";
@@ -131,39 +131,6 @@ function insertCustomGifSection(sections: DetailSection[], gifUrl: string): Deta
   const heroIdx = without.findIndex((s) => s.type === "hero");
   const insertAt = heroIdx >= 0 ? heroIdx + 1 : 0;
   return [...without.slice(0, insertAt), buildCustomGifSection(gifUrl), ...without.slice(insertAt)];
-}
-
-function buildReviewHighlightSection(praises: string[]): ReviewHighlightSection {
-  return {
-    type: "review_highlight",
-    slot: "review_highlight",
-    heading: "실제 구매자들이 자주 남긴 이야기",
-    praises,
-  };
-}
-
-/**
- * 판매자가 올린 리뷰 파일에서 뽑은 실제 후기 요약을, ai_disclosure(있으면
- * 그 앞) 또는 cta_price 바로 앞에 삽입한다. AI가 지어낸 카피가 아니라
- * lib/review-insights.ts가 원문에서 추출한 실데이터이므로 신뢰도 섹션으로
- * cta 직전에 배치 — "이만큼 많은 사람이 좋아했다 → 지금 구매" 흐름.
- */
-function insertReviewHighlightSection(
-  sections: DetailSection[],
-  praises: string[],
-): DetailSection[] {
-  const without = sections.filter(
-    (s) => s.slot !== "review_highlight" && s.type !== "review_highlight",
-  );
-  const anchorIdx = without.findIndex(
-    (s) => s.type === "ai_disclosure" || s.slot === "cta_price" || s.type === "cta_price",
-  );
-  const insertAt = anchorIdx >= 0 ? anchorIdx : without.length;
-  return [
-    ...without.slice(0, insertAt),
-    buildReviewHighlightSection(praises),
-    ...without.slice(insertAt),
-  ];
 }
 
 /**

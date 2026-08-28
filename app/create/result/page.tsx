@@ -12,15 +12,28 @@ import BlogPostPanel from "@/components/BlogPostPanel";
 import InstagramFeedPanel from "@/components/InstagramFeedPanel";
 import ToastBanner from "@/components/ToastBanner";
 import type { BlogBlockOverride, BlogPostGlobalOverride } from "@/lib/blog-post";
+import { DOWNLOAD_PLATFORMS, getDownloadPlatform, type DownloadPlatformId } from "@/lib/download-platforms";
 import type { InstagramSlideOverride } from "@/lib/instagram-feed";
+import { insertReviewHighlightSection } from "@/lib/section-inserts";
 import { DRAFT_SESSION_KEY, RETRY_PHOTO_ONLY_KEY, SESSION_KEY } from "@/components/CreateProductForm";
-import type { CustomGifSection, DetailSection, GenerateResponse, PhotoCostBreakdown } from "@/lib/types/generate";
+import type { CustomGifSection, DetailSection, GenerateResponse, PhotoCostBreakdown, ReviewInsightsInput } from "@/lib/types/generate";
 import { getCategoryTheme } from "@/lib/category-theme";
 import { buildDetailPageHtml } from "@/lib/export-detail-html";
 import { validateImageFile } from "@/lib/image-upload";
 import { createClient } from "@/lib/supabase";
 
 const MAX_GIF_BYTES = 8 * 1024 * 1024;
+
+function withReviewSections(
+  generated: GenerateResponse | undefined,
+  reviewInsights: ReviewInsightsInput | null | undefined,
+): GenerateResponse | undefined {
+  if (!generated?.sections) return generated;
+  const praises = reviewInsights?.commonPraises ?? generated.reviewInsights?.commonPraises ?? [];
+  const sections = insertReviewHighlightSection(generated.sections, praises);
+  if (sections === generated.sections) return generated;
+  return { ...generated, sections };
+}
 
 function insertOrReplaceCustomGif(sections: DetailSection[], gifUrl: string): DetailSection[] {
   const without = sections.filter((s) => s.slot !== "custom_gif" && s.type !== "custom_gif");
@@ -62,6 +75,7 @@ type ProductResult = {
   photoProcessingCost?: number;
   photoCostBreakdown?: PhotoCostBreakdown;
   generationCost?: number;
+  reviewInsights?: ReviewInsightsInput | null;
   generated?: GenerateResponse;
 };
 
@@ -141,9 +155,7 @@ function CreateResultContent() {
   );
   const [aiText, setAiText] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
-  const [downloadPlatform, setDownloadPlatform] = useState<"smartstore" | "coupang">(
-    "smartstore",
-  );
+  const [downloadPlatform, setDownloadPlatform] = useState<DownloadPlatformId>("smartstore");
   const [hiddenIndexes, setHiddenIndexes] = useState<number[]>([]);
   const [patchIndex, setPatchIndex] = useState(0);
   const [patchInstruction, setPatchInstruction] = useState("");
@@ -185,7 +197,13 @@ function CreateResultContent() {
             const parsed = JSON.parse(raw) as ProductResult;
             if (parsed.generated?.productId === id) {
               if (!cancelled) {
-                setData(parsed);
+                setData({
+                  ...parsed,
+                  generated: withReviewSections(
+                    parsed.generated,
+                    parsed.reviewInsights ?? parsed.generated?.reviewInsights,
+                  ),
+                });
                 setAiText(parsed.wholesaleUrl ?? "");
               }
               return;
@@ -217,9 +235,13 @@ function CreateResultContent() {
         }
 
         const mapped = mapProductRow(row as ProductRow);
-        setData(mapped);
-        setAiText(mapped.wholesaleUrl ?? "");
-        sessionStorage.setItem(SESSION_KEY, JSON.stringify(mapped));
+        const hydrated = {
+          ...mapped,
+          generated: withReviewSections(mapped.generated, mapped.reviewInsights),
+        };
+        setData(hydrated);
+        setAiText(hydrated.wholesaleUrl ?? "");
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(hydrated));
         return;
       }
 
@@ -227,7 +249,13 @@ function CreateResultContent() {
         try {
           const parsed = JSON.parse(raw) as ProductResult;
           if (!cancelled) {
-            setData(parsed);
+            setData({
+              ...parsed,
+              generated: withReviewSections(
+                parsed.generated,
+                parsed.reviewInsights ?? parsed.generated?.reviewInsights,
+              ),
+            });
             setAiText(parsed.wholesaleUrl ?? "");
           }
           return;
@@ -483,7 +511,7 @@ function CreateResultContent() {
       persist({
         ...data,
         wholesaleUrl: trimmed,
-        generated: result as GenerateResponse,
+        generated: withReviewSections(result as GenerateResponse, data.reviewInsights),
       });
       setToast({ tone: "ok", message: "AI가 상세페이지를 다시 구성했습니다." });
     } catch (err) {
@@ -503,16 +531,16 @@ function CreateResultContent() {
     try {
       freezeScrollRevealAnimations(captureRef.current);
       await new Promise((r) => setTimeout(r, 80));
-      const targetWidth = downloadPlatform === "coupang" ? 780 : 860;
+      const platform = getDownloadPlatform(downloadPlatform);
+      const targetWidth = platform.width;
       const elWidth = Math.max(1, captureRef.current.offsetWidth);
       const pixelRatio = targetWidth / elWidth;
       const dataUrl = await toPng(captureRef.current, {
         pixelRatio,
         cacheBust: true,
       });
-      const platformLabel = downloadPlatform === "coupang" ? "쿠팡" : "스마트스토어";
       const link = document.createElement("a");
-      link.download = `${data.productName}-상세페이지-${platformLabel}.png`;
+      link.download = `${data.productName}-상세페이지-${platform.label}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -742,29 +770,22 @@ function CreateResultContent() {
 
           {generated?.sections && generated.sections.length > 0 && (
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <div className="inline-flex rounded-lg border border-line bg-paper p-1">
-                <button
-                  type="button"
-                  onClick={() => setDownloadPlatform("smartstore")}
-                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                    downloadPlatform === "smartstore"
-                      ? "bg-ink text-paper"
-                      : "text-ink/60 hover:text-ink"
-                  }`}
-                >
-                  스마트스토어 860px
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDownloadPlatform("coupang")}
-                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                    downloadPlatform === "coupang"
-                      ? "bg-ink text-paper"
-                      : "text-ink/60 hover:text-ink"
-                  }`}
-                >
-                  쿠팡 780px
-                </button>
+              <div className="inline-flex flex-wrap rounded-lg border border-line bg-paper p-1">
+                {DOWNLOAD_PLATFORMS.map((platform) => (
+                  <button
+                    key={platform.id}
+                    type="button"
+                    onClick={() => setDownloadPlatform(platform.id)}
+                    title={platform.hint}
+                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                      downloadPlatform === platform.id
+                        ? "bg-ink text-paper"
+                        : "text-ink/60 hover:text-ink"
+                    }`}
+                  >
+                    {platform.label} {platform.width}px
+                  </button>
+                ))}
               </div>
               <button
                 type="button"
@@ -842,7 +863,7 @@ function CreateResultContent() {
             ref={captureRef}
             data-testid="detail-preview"
             data-pagzly-preview
-            className="relative overflow-hidden rounded-2xl border border-ink/20 bg-paper shadow-[0_24px_60px_-28px_rgba(27,27,24,0.45)]"
+            className="relative overflow-x-hidden rounded-2xl border border-ink/20 bg-paper shadow-[0_24px_60px_-28px_rgba(27,27,24,0.45)]"
           >
             <DetailSectionRenderer
               sections={visibleSections}

@@ -1,6 +1,6 @@
 # 상세페이지 업그레이드 로컬 검증
 
-시각: 2026-08-28T02:47:45.699Z
+시각: 2026-08-28T05:47:14.981Z
 
 **외부 AI API 호출: 없음 ($0)**
 
@@ -18,10 +18,10 @@
 
 ## 렌더·후처리 검증
 
-- [x] 섹션 수: 17
+- [x] 섹션 수: 18
 - [x] INFO(spec_table) 행 합계: 10
 - [x] 신뢰 스트립 칩: 3개 (무향, 당일발송, KC 인증)
-- [x] HTML export: `review\upgrade-sim\output.html` (19,308 bytes)
+- [x] HTML export: `review\upgrade-sim\output.html` (24,346 bytes)
 - [x] JSON-LD 포함: yes
 - [x] SEO 텍스트 블록: yes
 
@@ -50,10 +50,11 @@
 
 ## HTML Export 품질 점수
 
-- **100%** (46/46)
+- **100%** (50/50)
 - [x] JSON-LD (w6)
 - [x] SEO 텍스트 블록 (w5)
 - [x] TRUST 스트립 (w5)
+- [x] 리뷰 하이라이트 export (w4)
 - [x] Sticky CTA (w4)
 - [x] 말풍선 callout (w4)
 - [x] 갤러리 export (w4)
