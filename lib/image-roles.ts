@@ -65,6 +65,45 @@ export function getUploadRoleGuide(category: string): {
       ],
     };
   }
+  if (category === "전자제품") {
+    return {
+      title: "전자제품 사진 역할",
+      summary: "제품 정면·포트/버튼 디테일·사용 장면·패키지를 섞어 올리세요.",
+      roles: [
+        { role: "hero", label: "정면", hint: "대표 제품 컷 (1장+)" },
+        { role: "detail", label: "디테일", hint: "포트·버튼·스펙 라벨 확대" },
+        { role: "lifestyle", label: "사용", hint: "실사용·설치·연출 장면" },
+        { role: "package", label: "패키지", hint: "박스·구성품·매뉴얼" },
+        { role: "other", label: "기타", hint: "비교·스펙 참고 등" },
+      ],
+    };
+  }
+  if (category === "반려동물") {
+    return {
+      title: "반려동물 사진 역할",
+      summary: "제품·급여/사용 장면·성분 라벨·패키지를 섞어 올리세요.",
+      roles: [
+        { role: "hero", label: "제품", hint: "대표 제품·패키지 컷" },
+        { role: "detail", label: "성분·라벨", hint: "성분표·용량·주의 문구" },
+        { role: "lifestyle", label: "급여·사용", hint: "반려동물과 함께하는 장면" },
+        { role: "package", label: "패키지", hint: "박스·구성·사이즈 참고" },
+        { role: "other", label: "기타", hint: "부가 컷" },
+      ],
+    };
+  }
+  if (category === "생활용품") {
+    return {
+      title: "생활용품 사진 역할",
+      summary: "정면·디테일·사용 장면·패키지를 섞어 올리세요.",
+      roles: [
+        { role: "hero", label: "정면", hint: "대표 상품 컷" },
+        { role: "detail", label: "디테일", hint: "소재·기능부 확대" },
+        { role: "lifestyle", label: "사용", hint: "실사용·연출 장면" },
+        { role: "package", label: "패키지", hint: "박스·구성" },
+        { role: "other", label: "기타", hint: "부가 컷" },
+      ],
+    };
+  }
   return {
     title: "상품 사진 역할",
     summary:

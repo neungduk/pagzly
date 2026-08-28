@@ -228,6 +228,7 @@ export async function detectProductRegion(
   imageBuffer: Buffer,
   productName: string,
   mediaType: "image/jpeg" | "image/png" = "image/jpeg",
+  options?: { strict?: boolean },
 ): Promise<{ box: ProductBoundingBox | null; cost: number }> {
   if (!process.env.ANTHROPIC_API_KEY) return { box: null, cost: 0 };
   if (isTestMode()) {
@@ -256,8 +257,9 @@ export async function detectProductRegion(
               type: "text",
               text: `이 사진에서 메인으로 보이는 판매 상품(제품 본체·케이스·패키지 박스)의 bounding box를 하나만 0~1 정규화 좌표로 반환하세요.
 참고 상품명: '${productName}' (사진 속 브랜드/표기가 달라도 메인 상품을 잡으세요)
-반드시 제외: 사람, 손, 팔, 손목, 손가락, 강아지, 배경 가구·노트북·소품.
+반드시 제외: 사람, 손, 팔, 손목, 손가락, 강아지, 배경 가구·노트북·소품, 어두운 직사각 카드/플레이트/원본 프레임.
 사람이 상품을 들고 있어도 손·팔은 박스에 넣지 말고 상품만 타이트하게 잡으세요.
+${options?.strict ? "엄격 모드: 박스는 상품 본체만 — 여백·손·플레이트·어두운 배경판은 절대 포함하지 말고 가능한 한 타이트하게." : ""}
 
 JSON만 반환:
 { "xMin": 0.1, "yMin": 0.2, "xMax": 0.8, "yMax": 0.9 }
@@ -336,8 +338,10 @@ export async function detectCutoutHasHandOrPerson(
             },
             {
               type: "text",
-              text: `이 투명 배경 컷아웃에 사람 손·손가락·팔·손목·얼굴·피부가 조금이라도 보이나요?
-상품(이어버드·케이스·박스·기기)만 있으면 no.
+              text: `이 투명 배경 컷아웃에 다음이 조금이라도 보이나요?
+- 사람 손·손가락·팔·손목·얼굴·피부
+- 어두운 직사각형 카드/플레이트/원본 사진 프레임(검은·회색 박스)
+상품(이어버드·케이스·박스·기기·용기)만 깨끗하면 no.
 JSON만: { "handOrPerson": true } 또는 { "handOrPerson": false }`,
             },
           ],

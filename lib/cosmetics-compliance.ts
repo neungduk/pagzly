@@ -104,6 +104,7 @@ function sanitizeSection(
         ...section,
         heading: clean(section.heading),
         body: clean(section.body),
+        callout: section.callout ? clean(section.callout) : section.callout,
       };
     case "spec_table":
       return {

@@ -394,6 +394,7 @@ export const SLOT_IMAGE_RATIO: Record<string, string> = {
   install_scenario: IMAGE_RATIO.landscape4x5,
   material_detail: IMAGE_RATIO.square,
   usage_scenario_extra: IMAGE_RATIO.landscape4x5,
+  feature_callout: IMAGE_RATIO.square,
   step_card: IMAGE_RATIO.square,
   care_tip: IMAGE_RATIO.square,
 };

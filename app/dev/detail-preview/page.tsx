@@ -2,9 +2,11 @@
 
 import { useRef, useState } from "react";
 import { notFound } from "next/navigation";
-import DetailSectionRenderer from "@/components/DetailSectionRenderer";
 import DetailActionBar, { type DetailToolTab } from "@/components/DetailActionBar";
+import DetailSectionRenderer from "@/components/DetailSectionRenderer";
+import InstagramFeedPanel from "@/components/InstagramFeedPanel";
 import ToastBanner from "@/components/ToastBanner";
+import type { InstagramSlideOverride } from "@/lib/instagram-feed";
 import type { DetailSection } from "@/lib/types/generate";
 import { validateImageFile } from "@/lib/image-upload";
 
@@ -25,69 +27,75 @@ const initialSections: DetailSection[] = [
     badge: "무향",
   },
   {
+    type: "brand_story",
+    slot: "brand_story",
+    heading: "브랜드가 지키는 한 가지",
+    body: "복잡한 루틴이 아니라, 매일 쓸 수 있는 수분 레이어를 목표로 만들었습니다.",
+  },
+  {
     type: "checklist",
     slot: "checklist",
     heading: "이 크림이 하는 일",
     items: ["가벼운 젤", "속당김 케어", "무향", "아침·저녁"],
   },
   {
+    type: "target_persona",
+    slot: "target_persona",
+    heading: "이런 분께",
+    personas: ["속건조가 고민인 분", "무향을 선호하는 분", "메이크업 전 케어"],
+  },
+  {
     type: "image_text",
-    slot: "ingredient_highlight",
-    heading: "수분을 붙잡는 히알루론산",
-    body: "겉만 번들거리지 않습니다. 피부 결 사이에 수분을 남기는 가벼운 제형이에요. 메이크업 전에도 부담 없이 레이어링할 수 있습니다.",
+    slot: "feature_callout",
+    layout: "callout",
+    callout: "수분 레이어",
+    heading: "POINT",
+    body: "메이크업 전에도 부담 없이 레이어링할 수 있는 가벼운 제형입니다.",
     imageIndex: 1,
     imagePosition: "left",
   },
   {
     type: "image_text",
-    slot: "texture_feel",
-    heading: "답답함 없이 스며드는 결",
-    body: "손끝에서 녹듯 펴집니다. 두껍게 올리지 않아도 충분한 촉촉함. 끈적임이 남지 않아 일상에 맞추기 좋습니다.",
-    imageIndex: 2,
-    imagePosition: "right",
+    slot: "ingredient_highlight",
+    heading: "수분을 붙잡는 히알루론산",
+    body: "겉만 번들거리지 않습니다. 피부 결 사이에 수분을 남기는 가벼운 제형이에요.",
+    imageIndex: 1,
+    imagePosition: "left",
   },
   {
-    type: "illustration_banner",
-    slot: "illustration_banner",
-    heading: "수분 레이어의 리듬",
-    body: "겹겹이 쌓인 수분감이 피부 결 사이로 스며듭니다. 아침과 저녁, 같은 리듬으로 케어하세요.",
-    illustrationUrl: "/iteration-fixtures/04.jpg",
+    type: "highlight_box",
+    slot: "highlight_box",
+    heading: "3가지 강점",
+    cards: [
+      { title: "수분", body: "히알루론산으로 속당김 케어" },
+      { title: "가벼움", body: "끈적임 없는 젤 제형" },
+      { title: "무향", body: "향료 없이 데일리 사용" },
+    ],
   },
   {
-    type: "usage_steps",
-    slot: "usage_steps",
-    heading: "사용 순서",
+    type: "step_card",
+    slot: "step_card",
+    heading: "사용법",
     steps: [
-      "세안 후 피부결을 정리합니다",
-      "볼·이마에 소량씩 올립니다",
-      "손바닥으로 가볍게 눌러 흡수시킵니다",
+      { title: "세안", body: "세안 후 피부결을 정리합니다.", imageIndex: 2 },
+      { title: "도포", body: "볼·이마에 소량 올립니다.", imageIndex: 3 },
     ],
   },
   {
     type: "gallery",
     slot: "gallery",
     heading: "실제 사용 장면",
-    imageIndexes: [0, 3],
+    imageIndexes: [0, 1, 2, 3],
   },
   {
     type: "stat_infographic",
     slot: "stat_infographic",
     heading: "수치로 보는 핵심 포인트",
     metrics: [
-      { label: "수분 개선", value: "87%", percent: 87, style: "number" },
-      { label: "피부 장벽", value: "72%", percent: 72, style: "number" },
-      { label: "만족도", value: "94%", percent: 94, style: "number" },
+      { label: "수분감", value: "가벼운 젤", style: "number" },
+      { label: "무향", value: "100%", percent: 100, style: "bar", basis: "self_assessed" },
     ],
-  },
-  {
-    type: "review_highlight",
-    slot: "review_highlight",
-    heading: "실제 구매자들이 자주 남긴 이야기",
-    praises: [
-      "촉촉함이 하루 종일 지속된다",
-      "흡수가 빠르다",
-      "무향이라 자극이 없다",
-    ],
+    barAccent: "emphasis",
   },
   {
     type: "spec_table",
@@ -100,17 +108,55 @@ const initialSections: DetailSection[] = [
     ],
   },
   {
+    type: "faq",
+    slot: "faq",
+    heading: "자주 묻는 질문",
+    items: [
+      {
+        question: "민감성 피부도 사용 가능한가요?",
+        answer: "개인차가 있으니 패치 테스트 후 사용해 주세요.",
+      },
+      {
+        question: "메이크업 전에 쓸 수 있나요?",
+        answer: "얇게 레이어링하면 메이크업 전 사용에 적합합니다.",
+      },
+    ],
+  },
+  {
     type: "caution",
     slot: "caution",
     heading: "사용 시 주의",
-    body: "상처·염증 부위에는 사용하지 마세요. 이상 반응이 있으면 사용을 중단하고 전문가와 상담하세요.",
+    body: "상처·염증 부위에는 사용하지 마세요. 이상 반응이 있으면 사용을 중단하세요.",
+  },
+  {
+    type: "image_text",
+    slot: "customer_scenario",
+    heading: "아침 루틴",
+    body: "출근 전 3분, 속당김 없이 메이크업을 시작하세요.",
+    imageIndex: 3,
+    imagePosition: "left",
+  },
+  {
+    type: "spec_table",
+    slot: "shipping_info",
+    heading: "배송·교환 안내",
+    rows: [
+      { label: "배송비", value: "구매 금액·지역에 따라 달라질 수 있습니다" },
+      { label: "배송기간", value: "판매자 확인 필요" },
+    ],
+  },
+  {
+    type: "ai_disclosure",
+    slot: "ai_disclosure",
+    heading: "AI 생성 고지",
+    body: "이 상세페이지의 텍스트·이미지 일부는 AI가 생성·보정했습니다.",
   },
   {
     type: "cta_price",
     slot: "cta_price",
     price: 32900,
     targetCustomer: "20~30대 여성",
-    badges: ["무향", "50ml", "데일리 보습"],
+    badges: ["무향", "당일발송", "KC 인증"],
   },
 ];
 
@@ -124,6 +170,8 @@ export default function DetailPreviewPage() {
   const [aiText, setAiText] = useState("");
   const [patchIndex, setPatchIndex] = useState(0);
   const [patchInstruction, setPatchInstruction] = useState("");
+  const [hiddenIndexes, setHiddenIndexes] = useState<number[]>([]);
+  const [feedOverrides, setFeedOverrides] = useState<Record<string, InstagramSlideOverride>>({});
   const [toast, setToast] = useState<{ message: string; tone: "error" | "info" | "ok" } | null>(
     null,
   );
@@ -135,7 +183,29 @@ export default function DetailPreviewPage() {
   function handleTabChange(next: DetailToolTab) {
     setToolTab(next);
     if (next === "edit" || next === "patch") setEditMode(true);
+    if (next === "instagram") setEditMode(false);
   }
+
+  function handleReorder(from: number, to: number) {
+    if (to < 0 || to >= sections.length) return;
+    setSections((prev) => {
+      const next = [...prev];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item!);
+      return next;
+    });
+  }
+
+  function handleToggleHidden(index: number) {
+    setHiddenIndexes((prev) =>
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index],
+    );
+  }
+
+  const visibleOriginalIndexes = sections
+    .map((_, i) => i)
+    .filter((i) => !hiddenIndexes.includes(i));
+  const visibleSections = visibleOriginalIndexes.map((i) => sections[i]!);
 
   function handleAiGenerate() {
     const trimmed = aiText.trim();
@@ -188,6 +258,13 @@ export default function DetailPreviewPage() {
               message: "프리뷰에서는 섹션 AI API를 호출하지 않습니다. 결과 페이지에서 사용하세요.",
             })
           }
+          sections={sections}
+          hiddenIndexes={hiddenIndexes}
+          onReorder={handleReorder}
+          onToggleHidden={handleToggleHidden}
+          category="화장품/뷰티"
+          feedProductName="히알루론 수분 크림"
+          feedImageUrls={imageUrls}
         />
         <input
           ref={fileInputRef}
@@ -214,29 +291,47 @@ export default function DetailPreviewPage() {
           }}
         />
       </div>
-      <div className="mx-auto max-w-[430px] overflow-hidden border-x border-line bg-paper shadow-sm">
-        <DetailSectionRenderer
-          sections={sections}
-          imageUrls={imageUrls}
-          category="화장품/뷰티"
-          edit={{
-            enabled: editMode,
-            onChange: (index, section) => {
-              setSections((prev) => prev.map((item, i) => (i === index ? section : item)));
-            },
-            onReplaceImage: (imageIndex) => {
-              setReplaceImageIndex(imageIndex);
-              setToolTab("upload");
-              fileInputRef.current?.click();
-            },
-            onRequestAiPatch: (index) => {
-              setPatchIndex(index);
-              setEditMode(true);
-              setToolTab("patch");
-            },
-          }}
-        />
-      </div>
+      {toolTab === "instagram" ? (
+        <div className="mx-auto max-w-[430px] border-x border-line bg-paper p-3 shadow-sm">
+          <InstagramFeedPanel
+            variant="workspace"
+            productName="히알루론 수분 크림"
+            brandName="테스트 브랜드"
+            sections={visibleSections}
+            imageUrls={imageUrls}
+            overrides={feedOverrides}
+            onOverridesChange={setFeedOverrides}
+          />
+        </div>
+      ) : (
+        <div className="mx-auto max-w-[430px] overflow-hidden border-x border-line bg-paper shadow-sm">
+          <DetailSectionRenderer
+            sections={visibleSections}
+            imageUrls={imageUrls}
+            category="화장품/뷰티"
+            edit={{
+              enabled: editMode,
+              onChange: (displayIndex, section) => {
+                const originalIndex = visibleOriginalIndexes[displayIndex];
+                if (originalIndex === undefined) return;
+                setSections((prev) =>
+                  prev.map((item, i) => (i === originalIndex ? section : item)),
+                );
+              },
+              onReplaceImage: (imageIndex) => {
+                setReplaceImageIndex(imageIndex);
+                setToolTab("upload");
+                fileInputRef.current?.click();
+              },
+              onRequestAiPatch: (index) => {
+                setPatchIndex(index);
+                setEditMode(true);
+                setToolTab("patch");
+              },
+            }}
+          />
+        </div>
+      )}
       {toast && (
         <ToastBanner
           message={toast.message}

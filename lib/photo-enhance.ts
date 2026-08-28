@@ -27,6 +27,8 @@ import {
   measureCornerMeanAlpha,
   measureCutoutPlateRisk,
   measureTransparentRatio,
+  purgeDarkPlateFringe,
+  trimCutoutToOpaqueBounds,
   unifyCompositeGrain,
 } from "@/lib/photo-composite";
 import { isTestMode } from "@/lib/test-mode";
@@ -126,35 +128,26 @@ export type BackdropProvider =
 
 /**
  * `.env.local` BACKDROP_PROVIDER:
- * - 미설정 / 그 외 → flux-kontext-pro (22차부터 기본값, 원본 사진 통째로 배경만 교체)
- * - flux → 이전 기본값(빈 배경 생성 후 앱 합성)으로 롤백
- * - bria → 카테고리별 bria-replace / bria-genfill (미지원 카테고리는 flux-kontext-pro)
- * - nano-banana → A/B용 직접 토글
+ * - 미설정 → flux (빈 스튜디오 배경 + rembg 합성, PM급 단독 컷 — 손·플레이트 안정)
+ * - flux-kontext-pro → 원본 통째 배경 교체 (손·플레이트가 RGB에 남을 수 있음)
+ * - bria → 카테고리별 bria-replace / bria-genfill
+ * - nano-banana → A/B용
  *
- * 전자제품 예외: Pexels 라이프스타일/핸드헬드 소스가 많아 Kontext·Bria가
- * 손·원본 어두운 플레이트를 RGB에 구워넣는다. 빈 flux + rembg가 안정적.
- * (명시적으로 BACKDROP_PROVIDER=flux 인 경우와 동일 경로)
+ * Kontext/Bria/nano-banana는 productAlreadyComposited=true → 히어로 rembg 스킵.
+ * flux만 enhance 단계에서 rembg로 깨끗한 단독 컷을 만든다.
  */
 export function getBackdropProvider(category?: string): BackdropProvider {
-  const raw = process.env.BACKDROP_PROVIDER;
-  if (category === "전자제품") {
-    if (raw === "nano-banana") return "nano-banana";
-    if (raw === "flux") return "flux";
-    // kontext / bria / 미설정 → 전자제품은 빈 배경 경로 강제
-    console.log(
-      `[backdrop] 전자제품 → provider=flux (env=${raw ?? "unset"} 무시: 손·플레이트 방지)`,
-    );
-    return "flux";
-  }
-  // 22차: 프로덕션 기본값을 flux → flux-kontext-pro로 전환(18차 A/B 검증 후 사용자 선택).
-  // BACKDROP_PROVIDER=flux를 .env.local에 명시하면 언제든 이전 방식으로 즉시 롤백 가능.
-  if (raw === "nano-banana" || raw === "flux-kontext-pro" || raw === "flux") return raw;
+  const raw = process.env.BACKDROP_PROVIDER?.trim().toLowerCase();
+  if (raw === "nano-banana") return "nano-banana";
+  if (raw === "flux-kontext-pro") return "flux-kontext-pro";
+  if (raw === "flux") return "flux";
   if (raw === "bria") {
     if (category && BRIA_GENFILL_CATEGORIES.has(category)) return "bria-genfill";
     if (category && BRIA_REPLACE_CATEGORIES.has(category)) return "bria-replace";
-    return "flux-kontext-pro";
+    return "flux";
   }
-  return "flux-kontext-pro";
+  void category;
+  return "flux";
 }
 
 /** Bria Background Replace 후보 수. `.env.local` BRIA_BACKDROP_CANDIDATES (기본 2, 1–3). */
@@ -783,10 +776,22 @@ export async function generateBackdrop(
  * 배경제거/Kontext/Bria 입력 전에 상품 bbox만 남기도록 크롭.
  * 라이프스타일 샷의 손·팔·원본 프레임이 합성으로 넘어가는 것을 줄인다.
  */
+type PreCropOptions = {
+  /** bbox 주변 패딩 비율 (기본 0.04) */
+  pad?: number;
+  /** box 면적이 이 비율 이상이면 크롭 스킵 (기본 0.88) */
+  skipIfBoxAreaAbove?: number;
+  /** true면 Haiku에 타이트 bbox 요청 */
+  strict?: boolean;
+};
+
 async function preCropSourceToProduct(
   sourceImageUrl: string,
   productName: string,
+  options: PreCropOptions = {},
 ): Promise<{ url: string; cost: number; claudeCost: number; cropped: boolean }> {
+  const pad = options.pad ?? 0.04;
+  const skipThreshold = options.skipIfBoxAreaAbove ?? 0.88;
   try {
     const sourceRes = await fetch(sourceImageUrl);
     if (!sourceRes.ok) {
@@ -797,16 +802,18 @@ async function preCropSourceToProduct(
     const mType: "image/jpeg" | "image/png" =
       contentType?.includes("png") ? "image/png" : "image/jpeg";
 
-    const { box, cost: detectCost } = await detectProductRegion(sourceBuf, productName, mType);
+    const { box, cost: detectCost } = await detectProductRegion(sourceBuf, productName, mType, {
+      strict: options.strict,
+    });
     if (!box) {
       console.log("[preCrop] 상품 영역 감지 실패 — 원본 그대로");
       return { url: sourceImageUrl, cost: detectCost, claudeCost: detectCost, cropped: false };
     }
 
     const boxArea = (box.xMax - box.xMin) * (box.yMax - box.yMin);
-    if (boxArea >= 0.9) {
+    if (boxArea >= skipThreshold) {
       console.log(
-        `[preCrop] box 면적 ${(boxArea * 100).toFixed(0)}% ≥ 90% — 크롭 스킵`,
+        `[preCrop] box 면적 ${(boxArea * 100).toFixed(0)}% ≥ ${(skipThreshold * 100).toFixed(0)}% — 크롭 스킵`,
       );
       return { url: sourceImageUrl, cost: detectCost, claudeCost: detectCost, cropped: false };
     }
@@ -814,7 +821,6 @@ async function preCropSourceToProduct(
     const srcMeta = await sharp(sourceBuf).metadata();
     const sw = srcMeta.width ?? 1;
     const sh = srcMeta.height ?? 1;
-    const pad = 0.06;
     const cropLeft = Math.max(0, Math.round((box.xMin - pad) * sw));
     const cropTop = Math.max(0, Math.round((box.yMin - pad) * sh));
     const cropRight = Math.min(sw, Math.round((box.xMax + pad) * sw));
@@ -1619,14 +1625,39 @@ export async function enhanceProductImage(
     console.warn("[safeCrop] 텍스트 영역 감지 실패, 기본 crop 사용", error);
   }
 
-  // ── 사전 단계: productName이 있으면 상품 영역을 먼저 감지해서 원본 크롭 ──
-  let bgRemoveInput: string = sourceImageUrl;
-  let preCropCost = 0;
-  if (productName) {
-    const cropped = await preCropSourceToProduct(sourceImageUrl, productName);
-    bgRemoveInput = cropped.url;
-    preCropCost += cropped.cost;
-    claudeCost += cropped.claudeCost;
+  // ── rembg 컷아웃: preCrop 단계별 재시도 + 품질 스코어링 ──
+  const CUTOUT_CORNER_ALPHA_FAIL = 40;
+
+  type CutoutAttempt = {
+    buffer: Buffer;
+    transparentRatio: number;
+    cornerMaxAlpha: number;
+    plateRisk: Awaited<ReturnType<typeof measureCutoutPlateRisk>>;
+    handContaminated: boolean;
+    removeCost: number;
+    label: string;
+  };
+
+  function scoreCutout(attempt: CutoutAttempt): number {
+    if (attempt.handContaminated) return -1000;
+    if (attempt.plateRisk.risky) return -500;
+    if (attempt.transparentRatio < 0.05) return -400;
+    if (attempt.cornerMaxAlpha >= CUTOUT_CORNER_ALPHA_FAIL) return -300;
+    return (
+      attempt.transparentRatio * 120 -
+      attempt.cornerMaxAlpha * 0.8 -
+      attempt.plateRisk.opaqueAreaRatio * 45 -
+      attempt.plateRisk.softAlphaRatio * 20
+    );
+  }
+
+  function isCutoutAcceptable(attempt: CutoutAttempt): boolean {
+    return (
+      attempt.transparentRatio >= 0.05 &&
+      attempt.cornerMaxAlpha < CUTOUT_CORNER_ALPHA_FAIL &&
+      !attempt.plateRisk.risky &&
+      !attempt.handContaminated
+    );
   }
 
   async function runBackgroundRemove(input: string): Promise<{ buffer: Buffer; cost: number }> {
@@ -1644,100 +1675,131 @@ export async function enhanceProductImage(
     if (!cutoutResponse.ok) {
       throw new Error("보정된 이미지를 불러오지 못했습니다.");
     }
-    const buffer = Buffer.from(await cutoutResponse.arrayBuffer()) as Buffer;
+    let buffer = Buffer.from(await cutoutResponse.arrayBuffer()) as Buffer;
+    buffer = await trimCutoutToOpaqueBounds(buffer);
+    buffer = await purgeDarkPlateFringe(buffer);
     return { buffer, cost: sharpenCost };
   }
 
-  let removeCost = 0;
-  let finalCutoutBuffer: Buffer;
-  {
-    const first = await runBackgroundRemove(bgRemoveInput);
-    removeCost += first.cost;
-    finalCutoutBuffer = first.buffer;
+  async function evaluateCutout(
+    buffer: Buffer,
+    removeCost: number,
+    label: string,
+    checkHand: boolean,
+  ): Promise<CutoutAttempt> {
+    const transparentRatio = await measureTransparentRatio(buffer);
+    const corner = await measureCornerMeanAlpha(buffer);
+    const plateRisk = await measureCutoutPlateRisk(buffer);
+    let handContaminated = false;
+    if (checkHand) {
+      const handCheck = await detectCutoutHasHandOrPerson(buffer);
+      claudeCost += handCheck.cost;
+      handContaminated = handCheck.contaminated;
+    }
+    console.log(
+      `[cutout:${label}] transparent=${transparentRatio.toFixed(3)} corner=${corner.maxMeanAlpha.toFixed(1)} opaque=${plateRisk.opaqueAreaRatio.toFixed(3)} plateRisk=${plateRisk.risky} hand=${handContaminated}`,
+    );
+    return {
+      buffer,
+      transparentRatio,
+      cornerMaxAlpha: corner.maxMeanAlpha,
+      plateRisk,
+      handContaminated,
+      removeCost,
+      label,
+    };
   }
 
-  let cutoutAlpha = await measureTransparentRatio(finalCutoutBuffer);
-  let cornerAlpha = await measureCornerMeanAlpha(finalCutoutBuffer);
-  let plateRisk = await measureCutoutPlateRisk(finalCutoutBuffer);
+  const cropAttempts: PreCropOptions[] = productName
+    ? [{ pad: 0.04 }, { pad: 0.025, strict: true }, { pad: 0.012, strict: true, skipIfBoxAreaAbove: 0.95 }]
+    : [{}];
+
+  let preCropCost = 0;
+  let removeCost = 0;
+  let bestAttempt: CutoutAttempt | null = null;
+
+  for (let i = 0; i < cropAttempts.length; i += 1) {
+    const cropOpts = cropAttempts[i]!;
+    let bgRemoveInput = sourceImageUrl;
+    if (productName) {
+      const cropped = await preCropSourceToProduct(sourceImageUrl, productName, cropOpts);
+      bgRemoveInput = cropped.url;
+      preCropCost += cropped.cost;
+      claudeCost += cropped.claudeCost;
+    }
+    try {
+      const removed = await runBackgroundRemove(bgRemoveInput);
+      removeCost += removed.cost;
+      const attempt = await evaluateCutout(
+        removed.buffer,
+        removed.cost,
+        productName ? `preCrop-${i}` : "raw",
+        true,
+      );
+      if (!bestAttempt || scoreCutout(attempt) > scoreCutout(bestAttempt)) {
+        bestAttempt = attempt;
+      }
+      if (isCutoutAcceptable(attempt)) break;
+    } catch (err) {
+      console.warn(`[cutout] attempt ${i} failed`, err);
+    }
+  }
+
+  if (!bestAttempt) {
+    throw new Error("배경 제거에 실패했습니다.");
+  }
+
+  let finalCutoutBuffer = bestAttempt.buffer;
+  let cutoutAlpha = bestAttempt.transparentRatio;
+  let cornerAlpha = { maxMeanAlpha: bestAttempt.cornerMaxAlpha };
+  let plateRisk = bestAttempt.plateRisk;
   console.log(
-    `[cutout] transparentRatio=${cutoutAlpha.toFixed(3)} cornerMaxAlpha=${cornerAlpha.maxMeanAlpha.toFixed(1)} softAlpha=${plateRisk.softAlphaRatio.toFixed(3)} opaqueArea=${plateRisk.opaqueAreaRatio.toFixed(3)} bboxFill=${plateRisk.bboxFill.toFixed(3)} source=${sourceImageUrl.slice(-48)}`,
+    `[cutout] best=${bestAttempt.label} score=${scoreCutout(bestAttempt).toFixed(1)} source=${sourceImageUrl.slice(-48)}`,
   );
 
-  const CUTOUT_CORNER_ALPHA_FAIL = 48;
-  const looksBadPlate =
-    cutoutAlpha < 0.05 ||
-    cornerAlpha.maxMeanAlpha >= CUTOUT_CORNER_ALPHA_FAIL ||
-    plateRisk.risky;
-
-  // 손/플레이트 의심 시: 더 타이트한 preCrop 후 rembg 1회 재시도
-  if (productName) {
-    let needsRetry = looksBadPlate;
-    if (!needsRetry) {
-      const handCheck = await detectCutoutHasHandOrPerson(finalCutoutBuffer);
-      claudeCost += handCheck.cost;
-      needsRetry = handCheck.contaminated;
-    }
-    if (needsRetry) {
-      console.warn("[cutout] 손/플레이트 의심 — 타이트 preCrop 후 rembg 재시도");
-      const retryCrop = await preCropSourceToProduct(sourceImageUrl, productName);
-      preCropCost += retryCrop.cost;
-      claudeCost += retryCrop.claudeCost;
-      if (retryCrop.cropped || retryCrop.url !== bgRemoveInput) {
-        try {
-          const second = await runBackgroundRemove(retryCrop.url);
-          removeCost += second.cost;
-          const a2 = await measureTransparentRatio(second.buffer);
-          const c2 = await measureCornerMeanAlpha(second.buffer);
-          const p2 = await measureCutoutPlateRisk(second.buffer);
-          const better =
-            a2 >= 0.05 &&
-            c2.maxMeanAlpha < CUTOUT_CORNER_ALPHA_FAIL &&
-            !p2.risky &&
-            p2.opaqueAreaRatio <= plateRisk.opaqueAreaRatio;
-          console.log(
-            `[cutout-retry] transparent=${a2.toFixed(3)} corner=${c2.maxMeanAlpha.toFixed(1)} opaque=${p2.opaqueAreaRatio.toFixed(3)} better=${better}`,
-          );
-          if (better) {
-            finalCutoutBuffer = second.buffer;
-            cutoutAlpha = a2;
-            cornerAlpha = c2;
-            plateRisk = p2;
-          }
-          const hand2 = await detectCutoutHasHandOrPerson(finalCutoutBuffer);
-          claudeCost += hand2.cost;
-          if (hand2.contaminated) {
-            console.warn("[cutout-retry] 손 잔여 여전 — AI 합성 스킵(원본 세이프크롭)");
-            plateRisk = { ...plateRisk, risky: true };
-          }
-        } catch (retryErr) {
-          console.warn("[cutout-retry] 재시도 실패", retryErr);
-        }
-      }
-    }
-  }
-
   const cost = removeCost;
-  console.log(`[cost] enhanceProductImage: $${cost.toFixed(5)}`);
+  console.log(`[cost] enhanceProductImage rembg: $${cost.toFixed(5)}`);
 
   // 투명 거의 없음 = rembg 실패. 모서리/플레이트 = 원본 프레임 잔존.
   if (
     cutoutAlpha < 0.05 ||
     cornerAlpha.maxMeanAlpha >= CUTOUT_CORNER_ALPHA_FAIL ||
-    plateRisk.risky
+    plateRisk.risky ||
+    bestAttempt.handContaminated
   ) {
     console.warn(
-      `[cutout] FALLBACK: transparentRatio=${cutoutAlpha.toFixed(3)} cornerMaxAlpha=${cornerAlpha.maxMeanAlpha.toFixed(1)} plateRisk=${plateRisk.risky} bboxFill=${plateRisk.bboxFill.toFixed(3)} — AI 배경 합성 스킵, 원본 세이프크롭만 반환`,
+      `[cutout] FALLBACK: transparentRatio=${cutoutAlpha.toFixed(3)} cornerMaxAlpha=${cornerAlpha.maxMeanAlpha.toFixed(1)} plateRisk=${plateRisk.risky} hand=${bestAttempt.handContaminated} — AI 배경 합성 스킵, 원본 세이프크롭만 반환`,
     );
 
-    const sourceRes = await fetch(sourceImageUrl);
-    if (!sourceRes.ok) throw new Error("원본 이미지를 불러오지 못했습니다 (fallback).");
-    const sourceBuf = Buffer.from(await sourceRes.arrayBuffer());
-    const srcMeta = await sharp(sourceBuf).metadata();
+    let fallbackBuf: Buffer;
+    if (productName) {
+      const tight = await preCropSourceToProduct(sourceImageUrl, productName, {
+        pad: 0.02,
+        strict: true,
+        skipIfBoxAreaAbove: 0.98,
+      });
+      preCropCost += tight.cost;
+      claudeCost += tight.claudeCost;
+      if (tight.cropped && tight.url.startsWith("data:")) {
+        const b64 = tight.url.split(",")[1];
+        fallbackBuf = Buffer.from(b64!, "base64");
+      } else {
+        const sourceRes = await fetch(sourceImageUrl);
+        if (!sourceRes.ok) throw new Error("원본 이미지를 불러오지 못했습니다 (fallback).");
+        fallbackBuf = Buffer.from(await sourceRes.arrayBuffer());
+      }
+    } else {
+      const sourceRes = await fetch(sourceImageUrl);
+      if (!sourceRes.ok) throw new Error("원본 이미지를 불러오지 못했습니다 (fallback).");
+      fallbackBuf = Buffer.from(await sourceRes.arrayBuffer());
+    }
+
+    const srcMeta = await sharp(fallbackBuf).metadata();
     const sw = srcMeta.width ?? 1;
     const sh = srcMeta.height ?? 1;
 
     const cropBox = computeSafeCropBox(sw, sh, textRegions, 0.04);
-    const croppedSource = await sharp(sourceBuf)
+    const croppedSource = await sharp(fallbackBuf)
       .extract(cropBox)
       .resize(CANVAS_SIZE, CANVAS_SIZE, { fit: "cover" })
       .png()

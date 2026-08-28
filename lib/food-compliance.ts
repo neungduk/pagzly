@@ -101,6 +101,37 @@ function sanitizeSection(
         ...section,
         heading: clean(section.heading),
         body: clean(section.body),
+        callout: section.callout ? clean(section.callout) : section.callout,
+      };
+    case "step_card":
+      return {
+        ...section,
+        heading: clean(section.heading),
+        steps: section.steps.map((step) => ({
+          ...step,
+          title: clean(step.title),
+          body: clean(step.body),
+        })),
+      };
+    case "highlight_box":
+      return {
+        ...section,
+        heading: clean(section.heading),
+        cards: section.cards.map((card) => ({
+          ...card,
+          title: clean(card.title),
+          body: clean(card.body),
+        })),
+      };
+    case "stat_infographic":
+      return {
+        ...section,
+        heading: clean(section.heading),
+        metrics: section.metrics.map((metric) => ({
+          ...metric,
+          label: clean(metric.label),
+          value: clean(metric.value),
+        })),
       };
     case "spec_table":
       return {

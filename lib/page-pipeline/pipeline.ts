@@ -379,10 +379,23 @@ export async function runPageGenerationPipeline(
     const theme = getCategoryTheme(input.product.category);
     const html = buildDetailPageHtml({
       productName: input.product.productName,
+      brandName: input.product.brandName,
+      price: input.product.price ?? undefined,
       category: input.product.category,
       sections,
       imageUrls,
       theme,
+      description: copy!.featureDescription ?? copy!.solutionStatement,
+      features: [
+        copy!.benefit,
+        copy!.feature,
+        ...(structure?.usps ?? []),
+      ].filter(Boolean),
+      howToUse: copy!.sections.find((s) => /사용|HOW/i.test(s.title))?.body ?? "",
+      caution:
+        copy!.faq.find((f) => /주의|안전|caution/i.test(f.question))?.answer ??
+        "제품 라벨과 판매자 안내를 우선해 주세요.",
+      certifications: input.product.certifications,
     });
 
     const htmlPath = path.join(outputDir, "detail-page.html");

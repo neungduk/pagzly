@@ -10,6 +10,7 @@ import { freezeScrollRevealAnimations, unfreezeScrollRevealAnimations } from "@/
 import DetailActionBar, { type DetailToolTab } from "@/components/DetailActionBar";
 import InstagramFeedPanel from "@/components/InstagramFeedPanel";
 import ToastBanner from "@/components/ToastBanner";
+import type { InstagramSlideOverride } from "@/lib/instagram-feed";
 import { DRAFT_SESSION_KEY, RETRY_PHOTO_ONLY_KEY, SESSION_KEY } from "@/components/CreateProductForm";
 import type { CustomGifSection, DetailSection, GenerateResponse, PhotoCostBreakdown } from "@/lib/types/generate";
 import { getCategoryTheme } from "@/lib/category-theme";
@@ -43,6 +44,7 @@ function remapHiddenAfterReorder(hidden: number[], from: number, to: number): nu
 type ProductResult = {
   category: string;
   imageUrls: string[];
+  imagePaths?: string[];
   productName: string;
   brandName: string | null;
   price: number;
@@ -144,6 +146,7 @@ function CreateResultContent() {
   const [patchIndex, setPatchIndex] = useState(0);
   const [patchInstruction, setPatchInstruction] = useState("");
   const [patchLoading, setPatchLoading] = useState(false);
+  const [feedOverrides, setFeedOverrides] = useState<Record<string, InstagramSlideOverride>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -348,6 +351,7 @@ function CreateResultContent() {
   function handleTabChange(next: DetailToolTab) {
     setToolTab(next);
     if (next === "edit" || next === "patch") setEditMode(true);
+    if (next === "instagram") setEditMode(false);
   }
 
   async function handleSave() {
@@ -523,11 +527,18 @@ function CreateResultContent() {
         : categoryTheme;
       const html = buildDetailPageHtml({
         productName: data.productName,
+        brandName: data.brandName,
+        price: data.price,
         category: data.category,
         sections: data.generated.sections,
         imageUrls: data.imageUrls,
         theme: exportTheme,
         hiddenIndexes,
+        description: data.generated.description,
+        features: data.generated.features,
+        howToUse: data.generated.howToUse,
+        caution: data.generated.caution,
+        certifications: data.certifications,
       });
       const blob = new Blob([html], { type: "text/html;charset=utf-8" });
       const url = URL.createObjectURL(blob);
@@ -684,6 +695,9 @@ function CreateResultContent() {
               onPatchSubmit={() => void handlePatchSection()}
               patchLoading={patchLoading}
               onGifUploadClick={() => gifInputRef.current?.click()}
+              category={data.category}
+              feedProductName={data.productName}
+              feedImageUrls={data.imageUrls}
             />
             <input
               ref={fileInputRef}
@@ -764,19 +778,30 @@ function CreateResultContent() {
             </div>
           )}
 
-          {generated?.sections && generated.sections.length > 0 && (
+        </div>
+
+        {toolTab === "instagram" && generated?.sections && generated.sections.length > 0 ? (
+          <div
+            className="rounded-2xl border border-ink/20 bg-paper p-4 shadow-sm sm:p-6"
+            data-testid="instagram-feed-workspace"
+          >
+            <p className="mb-4 font-mono text-xs uppercase tracking-[0.2em] text-registration-red">
+              인스타 피드 작업 영역
+            </p>
             <InstagramFeedPanel
+              variant="workspace"
               productName={data.productName}
               brandName={data.brandName}
               sections={
                 visibleSections.length > 0 ? visibleSections : generated.sections
               }
               imageUrls={data.imageUrls}
+              imagePaths={data.imagePaths}
+              overrides={feedOverrides}
+              onOverridesChange={setFeedOverrides}
             />
-          )}
-        </div>
-
-        {visibleSections.length > 0 ? (
+          </div>
+        ) : visibleSections.length > 0 ? (
           <div
             ref={captureRef}
             data-testid="detail-preview"
@@ -787,6 +812,7 @@ function CreateResultContent() {
               sections={visibleSections}
               imageUrls={data.imageUrls}
               category={data.category}
+              productName={data.productName}
               theme={theme}
               conceptIcons={generated?.conceptIcons}
               edit={{

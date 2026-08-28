@@ -48,6 +48,12 @@ const BEAUTY: SlotDefinition[] = [
     note: "targetCustomer·keyFeatures 입력 기반으로만 작성",
   },
   {
+    slot: "feature_callout",
+    type: "image_text",
+    required: true,
+    note: "핵심 성분/효과 1가지를 사진+말풍선으로 강조. layout:\"callout\" 필수, callout 12~18자, heading 8자 내외, body 1~2문장. 효능 단정 금지",
+  },
+  {
     slot: "ingredient_highlight",
     type: "image_text",
     required: true,
@@ -176,10 +182,22 @@ const FASHION: SlotDefinition[] = [
     note: "targetCustomer·keyFeatures 입력 기반으로만 작성",
   },
   {
+    slot: "feature_callout",
+    type: "image_text",
+    required: true,
+    note: "핏/소재 핵심 1가지를 사진+말풍선으로 강조. layout:\"callout\" 필수, callout 12~18자, heading 8자 내외, body 1~2문장",
+  },
+  {
     slot: "detail_zoom",
     type: "image_text",
     required: true,
     note: "원단/봉제/디테일 확대 (1:1)",
+  },
+  {
+    slot: "highlight_box",
+    type: "highlight_box",
+    required: true,
+    note: "핏/소재/디테일 3가지를 카드 3장으로 요약(각 title 6자 내외 + body 1~2문장). checklist와 다른 축으로 구성하고, 가장 강조하고 싶은 내용을 2번째(가운데) 카드에 배치",
   },
   {
     slot: "model_multicut",
@@ -190,10 +208,22 @@ const FASHION: SlotDefinition[] = [
     maxCount: 6,
   },
   {
+    slot: "step_card",
+    type: "step_card",
+    required: true,
+    note: "착용/코디 3단계. 각 단계에 실제 상품 사진(imageIndex) 배정, title 6자 내외 + body 1문장. STEP 태그는 렌더러가 자동 부착",
+  },
+  {
+    slot: "stat_infographic",
+    type: "stat_infographic",
+    required: false,
+    note: "입력 데이터에 실제 수치 근거가 있을 때만 채움. 근거 없으면 생략. metrics 3~5개, style:\"bar\"+percent 또는 style:\"number\"",
+  },
+  {
     slot: "size_table",
     type: "spec_table",
     required: true,
-    note: "사이즈표 + 모델 착용 사이즈. 실측 데이터가 없는 항목은 지어내지 말고 '판매자 확인 필요'로 표시",
+    note: "사이즈표 + 모델 착용 사이즈. 호칭(S/M/L)만으로 cm을 지어내지 말 것. 실측·모델 정보가 입력에 없으면 '판매자 확인 필요'로 표시",
   },
   {
     slot: "faq",
@@ -286,6 +316,12 @@ const FOOD: SlotDefinition[] = [
     note: "targetCustomer·keyFeatures 입력 기반으로만 작성",
   },
   {
+    slot: "feature_callout",
+    type: "image_text",
+    required: true,
+    note: "맛/원재료 핵심 1가지를 사진+말풍선으로 강조. layout:\"callout\" 필수, callout 12~18자, heading 8자 내외, body 1~2문장. 효능 단정 금지",
+  },
+  {
     slot: "ingredient_highlight",
     type: "image_text",
     required: true,
@@ -298,6 +334,12 @@ const FOOD: SlotDefinition[] = [
     note: "조직감/단면 확대 (1:1)",
   },
   {
+    slot: "highlight_box",
+    type: "highlight_box",
+    required: true,
+    note: "맛/원재료/품질 3가지를 카드 3장으로 요약(각 title 6자 내외 + body 1~2문장). checklist와 다른 축, 가장 강조할 내용은 2번째 카드",
+  },
+  {
     slot: "illustration_banner",
     type: "illustration_banner",
     required: false,
@@ -308,6 +350,12 @@ const FOOD: SlotDefinition[] = [
     type: "usage_steps",
     required: false,
     note: "조리법/섭취방법 (가공식품에만 해당)",
+  },
+  {
+    slot: "step_card",
+    type: "step_card",
+    required: true,
+    note: "조리/섭취 3단계. 각 단계에 실제 상품 사진(imageIndex) 배정, title 6자 내외 + body 1문장. STEP 태그는 렌더러가 자동 부착",
   },
   {
     slot: "packaging",
@@ -333,7 +381,7 @@ const FOOD: SlotDefinition[] = [
     slot: "nutrition_table",
     type: "spec_table",
     required: true,
-    note: "영양성분표 + 알레르기 정보",
+    note: "영양성분표 + 알레르기 정보. 원산지·알레르기·보관은 입력·식품 고시 근거만 사용. 없는 함량·%·인증을 지어내지 말고 '판매자 확인 필요'로 표시",
   },
   {
     slot: "faq",
@@ -403,6 +451,12 @@ const ELECTRONICS: SlotDefinition[] = [
     note: "targetCustomer·keyFeatures 입력 기반으로만 작성",
   },
   {
+    slot: "feature_callout",
+    type: "image_text",
+    required: true,
+    note: "핵심 기능 1가지를 사진+말풍선으로 강조. layout:\"callout\" 필수, callout 12~18자, heading 8자 내외, body 1~2문장. 입력 스펙만",
+  },
+  {
     slot: "feature_detail",
     type: "image_text",
     required: true,
@@ -410,6 +464,12 @@ const ELECTRONICS: SlotDefinition[] = [
     repeatable: true,
     minCount: 1,
     maxCount: 3,
+  },
+  {
+    slot: "highlight_box",
+    type: "highlight_box",
+    required: true,
+    note: "핵심 스펙/기능 3가지를 카드 3장으로 요약(각 title 6자 내외 + body 1~2문장). checklist와 다른 축, 가장 강조할 내용은 2번째 카드",
   },
   {
     slot: "comparison_table",
@@ -454,6 +514,12 @@ const ELECTRONICS: SlotDefinition[] = [
     type: "image_text",
     required: true,
     note: "구성품 안내 (1:1). 가능하면 플랫레이에 가까운 컷",
+  },
+  {
+    slot: "step_card",
+    type: "step_card",
+    required: true,
+    note: "설치/사용 3단계. 각 단계에 실제 상품 사진(imageIndex) 배정, title 6자 내외 + body 1문장. STEP 태그는 렌더러가 자동 부착",
   },
   {
     slot: "illustration_banner",
@@ -520,6 +586,12 @@ const HOME_FALLBACK: SlotDefinition[] = [
     note: "targetCustomer·keyFeatures 입력 기반으로만 작성",
   },
   {
+    slot: "feature_callout",
+    type: "image_text",
+    required: true,
+    note: "소재/기능 핵심 1가지를 사진+말풍선으로 강조. layout:\"callout\" 필수, callout 12~18자, heading 8자 내외, body 1~2문장",
+  },
+  {
     slot: "material_feature",
     type: "image_text",
     required: true,
@@ -530,6 +602,12 @@ const HOME_FALLBACK: SlotDefinition[] = [
     type: "image_text",
     required: false,
     note: "실사용 장면 (4:5)",
+  },
+  {
+    slot: "highlight_box",
+    type: "highlight_box",
+    required: true,
+    note: "소재/기능/디자인 3가지를 카드 3장으로 요약(각 title 6자 내외 + body 1~2문장). checklist와 다른 축, 가장 강조할 내용은 2번째 카드",
   },
   {
     slot: "illustration_banner",
@@ -544,6 +622,18 @@ const HOME_FALLBACK: SlotDefinition[] = [
     note: "다양한 각도/구성 (3:4). 사진이 많으면 최대 5장",
     minCount: 2,
     maxCount: 5,
+  },
+  {
+    slot: "step_card",
+    type: "step_card",
+    required: true,
+    note: "사용/관리 3단계. 각 단계에 실제 상품 사진(imageIndex) 배정, title 6자 내외 + body 1문장. STEP 태그는 렌더러가 자동 부착",
+  },
+  {
+    slot: "stat_infographic",
+    type: "stat_infographic",
+    required: false,
+    note: "입력 데이터에 실제 수치 근거가 있을 때만 채움. 근거 없으면 생략. metrics 3~5개",
   },
   {
     slot: "spec_table",
@@ -627,6 +717,7 @@ export function buildSectionLengthGuide(category: string): string {
 - hero subheadline: 헤드라인을 보충하는 1문장. 상품명만 반복하지 말 것.
 - checklist items: 각 14자 내외.
 - image_text body (ingredient_highlight, texture_feel, detail_zoom, feature_detail 등): 2~3문장, 짧은 문장 + 설명 문장을 교차.
+- feature_callout: layout 반드시 "callout". callout 12~18자(말풍선), heading 8자 내외, body 1~2문장.
 - step_card: 각 단계 title 6자 내외 + body 1문장. STEP 태그는 서버가 자동으로 붙이므로 title에 STEP 01 등을 쓰지 말 것.
 - highlight_box: 카드 3장, title 6자 내외 + body 1~2문장. checklist와 다른 축으로 구성하고, 가장 강조하고 싶은 내용을 2번째 카드에.
 - quick_points: layout 반드시 "compact". heading 8자 내외, body 1문장. compact layout은 사진이 작아지므로 텍스트도 짧게.`;

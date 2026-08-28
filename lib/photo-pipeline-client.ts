@@ -5,6 +5,8 @@
 
 import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import type { ConceptBrief } from "@/lib/concept-brief";
+import { computeStudioCompositeLimit } from "@/lib/lifestyle-shot-planner";
+import { getLifestyleShotConfig } from "@/lib/lifestyle-shot-config";
 import type { PhotoCostBreakdown, ReferenceAnalysisInput } from "@/lib/types/generate";
 import type { ShadowAnalysis } from "@/lib/vision-utils";
 
@@ -317,6 +319,8 @@ export async function enhanceImages(params: {
     }
   }
 
+  const studioCompositeLimit = computeStudioCompositeLimit(uploaded.length);
+
   const results: UploadedImage[] = [];
   // 비히어로는 빈 section backdrop만 사용. 합성된 hero를 슬롯 3/6/9에 재쓰면
   // rembg가 스킵되며 손·어두운 플레이트가 복제된다 (전자제품 Pexels 라이프스타일샷에서 특히).
@@ -330,6 +334,11 @@ export async function enhanceImages(params: {
     reportEnhance(`사진 보정 ${index + 1}/${uploaded.length}`, enhanceStep, totalEnhanceSteps);
     const item = uploaded[index];
     const isHero = index === 0;
+    if (!isHero && index >= studioCompositeLimit) {
+      console.log(`[enhance] idx=${index} skip studio composite — keep original (lifestyle pool)`);
+      results.push(item);
+      continue;
+    }
     let resolvedBackdrop: string;
     let backdropLabel: string;
     if (isHero) {
@@ -369,7 +378,7 @@ export async function enhanceImages(params: {
   return { images: [...results, ...extras], cost: totalCost, decorCost, claudeCost };
 }
 
-export type PhotoPipelineStage = "backdrop" | "sections" | "enhancing";
+export type PhotoPipelineStage = "backdrop" | "sections" | "enhancing" | "lifestyle";
 
 export type PhotoPipelineProgressEvent = {
   stage: PhotoPipelineStage | "generating";
@@ -587,8 +596,73 @@ export async function runPhotoEnhancementPipeline(params: {
     claude: (photoCostBreakdown.claude ?? 0) + enhanced.claudeCost,
   };
 
+  let finalImages = enhanced.images;
+
+  if (uploaded.length >= getLifestyleShotConfig().minUploadCount) {
+    emit({
+      stage: "lifestyle",
+      detail: "AI 일상샷 생성 중",
+      costUsdSoFar: photoProcessingCost,
+    });
+    try {
+      const heroRef = finalImages[0];
+      const lifestyleRes = await fetch("/api/generate-lifestyle-shots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productImageUrl: heroRef?.url ?? uploaded[0]?.url,
+          referenceStoragePath: heroRef?.path ?? uploaded[0]?.path,
+          category: params.category,
+          productName: params.productName,
+          brandName: params.brandName,
+          targetCustomer: params.targetCustomer,
+          keyFeatures: params.keyFeatures,
+          uploadCount: uploaded.length,
+          draftToken: params.draftToken ?? null,
+        }),
+      });
+      const lifestyleJson = (await lifestyleRes.json()) as {
+        shots?: { url: string; path: string; label?: string }[];
+        cost?: number;
+        error?: string;
+      };
+      if (lifestyleRes.ok && lifestyleJson.shots?.length) {
+        for (const shot of lifestyleJson.shots) {
+          finalImages.push({ url: shot.url, path: shot.path });
+        }
+        const lifestyleCost = lifestyleJson.cost ?? 0;
+        photoProcessingCost += lifestyleCost;
+        photoCostBreakdown = {
+          ...photoCostBreakdown,
+          lifestyle: lifestyleCost,
+        };
+        emit({
+          stage: "lifestyle",
+          detail: `AI 일상샷 ${lifestyleJson.shots.length}장 완료`,
+          costUsdSoFar: photoProcessingCost,
+        });
+      } else if (!lifestyleRes.ok) {
+        console.warn("[lifestyle-shots] API skip:", lifestyleJson.error);
+        emit({
+          stage: "lifestyle",
+          detail: "일상샷 생성 생략",
+          warning: lifestyleJson.error,
+          costUsdSoFar: photoProcessingCost,
+        });
+      }
+    } catch (lifestyleErr) {
+      console.warn("[lifestyle-shots] failed:", lifestyleErr);
+      emit({
+        stage: "lifestyle",
+        detail: "일상샷 생성 생략",
+        warning: lifestyleErr instanceof Error ? lifestyleErr.message : String(lifestyleErr),
+        costUsdSoFar: photoProcessingCost,
+      });
+    }
+  }
+
   return {
-    images: enhanced.images,
+    images: finalImages,
     photoProcessingCost,
     photoCostBreakdown,
     conceptBrief: backdropResult.conceptBrief,

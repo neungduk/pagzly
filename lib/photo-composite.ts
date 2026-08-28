@@ -102,10 +102,61 @@ export async function measureCutoutPlateRisk(
 
   // 반투명 플레이트 OR 원본 프레임을 거의 통째로 남긴 경우(불투명 사각)
   const risky =
-    (softAlphaRatio >= 0.18 && opaqueAreaRatio >= 0.25) ||
-    opaqueAreaRatio >= 0.52 ||
-    (bboxFill >= 0.62 && opaqueAreaRatio >= 0.4);
+    (softAlphaRatio >= 0.12 && opaqueAreaRatio >= 0.2) ||
+    opaqueAreaRatio >= 0.45 ||
+    (bboxFill >= 0.55 && opaqueAreaRatio >= 0.32);
   return { softAlphaRatio, opaqueAreaRatio, bboxFill, risky };
+}
+
+/**
+ * rembg 직후 투명 여백을 제거해 제품 bbox만 남긴다. 원본 프레임/플레이트 여백 제거에 유효.
+ */
+export async function trimCutoutToOpaqueBounds(input: Buffer, marginPx = 6): Promise<Buffer> {
+  try {
+    return await sharp(input)
+      .trim({ threshold: 12, background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .extend({
+        top: marginPx,
+        bottom: marginPx,
+        left: marginPx,
+        right: marginPx,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .png()
+      .toBuffer();
+  } catch {
+    return input;
+  }
+}
+
+/**
+ * 컷아웃 가장자리의 어두운 직사각 플레이트/원본 프레임 잔여를 알파로 제거.
+ * rembg가 RGB는 남기고 알파만 반투명 처리한 경우를 정리한다.
+ */
+export async function purgeDarkPlateFringe(input: Buffer): Promise<Buffer> {
+  const { data, info } = await sharp(input).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const w = info.width;
+  const h = info.height;
+  if (w === 0 || h === 0) return input;
+  const border = Math.max(8, Math.floor(Math.min(w, h) * 0.1));
+  const out = Buffer.from(data);
+  for (let y = 0; y < h; y += 1) {
+    for (let x = 0; x < w; x += 1) {
+      const onBorder = x < border || y < border || x >= w - border || y >= h - border;
+      if (!onBorder) continue;
+      const i = (y * w + x) * 4;
+      const a = out[i + 3]!;
+      if (a < 16) continue;
+      const r = out[i]!;
+      const g = out[i + 1]!;
+      const b = out[i + 2]!;
+      const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+      if (lum < 58 || (lum < 95 && a < 235)) {
+        out[i + 3] = 0;
+      }
+    }
+  }
+  return sharp(out, { raw: { width: w, height: h, channels: 4 } }).png().toBuffer();
 }
 
 /**

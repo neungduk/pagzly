@@ -7,6 +7,7 @@ export type PhotoCostBreakdown = {
   sectionBackdrops?: number;
   enhance?: number;
   decor?: number;
+  lifestyle?: number;
   effects?: number;
   icons?: number;
   illustrations?: number;
@@ -129,8 +130,10 @@ export type ImageTextSection = {
   body: string;
   imageIndex: number;
   imagePosition: "left" | "right";
-  /** 기본 "full" = 기존 풀사이즈 이미지+텍스트. "compact" = 작은 썸네일+텍스트 한 줄 */
-  layout?: "full" | "compact";
+  /** 기본 "full" = 기존 풀사이즈 이미지+텍스트. "compact" = 작은 썸네일+텍스트 한 줄. "callout" = 사진 위 말풍선 강조 */
+  layout?: "full" | "compact" | "callout";
+  /** layout:"callout"일 때 사진 위 말풍선에 표시할 짧은 강조 문구 (12~18자 권장) */
+  callout?: string;
 };
 
 export type SpecTableSection = {
@@ -216,6 +219,11 @@ export type HighlightBoxSection = {
   heading: string;
   /** 2~4개 허용, 3개 권장. 가운데(중앙) 카드가 렌더러에 의해 자동 강조됨. */
   cards: { title: string; body: string }[];
+  /**
+   * 페이지 전체 색면 강조 블록(패턴 C). AI가 정하지 않고 서버가 페이지당 1개 highlight_box에
+   * boldBlock을 배정할 수 있다 (checklist boldBlock과 동일 원칙).
+   */
+  boldBlock?: boolean;
 };
 
 /**
@@ -261,6 +269,11 @@ export type StatInfographicSection = {
     style?: "bar" | "number" | "ring";
     basis?: "measured" | "self_assessed";
   }[];
+  /**
+   * style:"bar" 막대 강조 스타일. "emphasis"면 deepAccent 굵은 막대(PM 스타일).
+   * AI가 정하지 않고 서버가 bar metrics가 있을 때 자동 설정한다.
+   */
+  barAccent?: "default" | "emphasis";
 };
 
 export type IllustrationBannerSection = {

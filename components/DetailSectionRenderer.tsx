@@ -13,6 +13,8 @@ import {
 import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import type { DetailSection } from "@/lib/types/generate";
 import type { ConceptIconMap } from "@/lib/concept-icons";
+import { buildSectionImageAlt } from "@/lib/detail-image-alt";
+import { extractTrustChips } from "@/lib/extract-trust-chips";
 import EditableText from "@/components/EditableText";
 import DetailScrollReveal from "@/components/DetailScrollReveal";
 import SectionImage from "@/components/SectionImage";
@@ -47,6 +49,7 @@ type DetailSectionRendererProps = {
   sections: DetailSection[];
   imageUrls: string[];
   category: string;
+  productName?: string;
   theme?: CategoryTheme;
   conceptIcons?: ConceptIconMap;
   edit?: SectionEditApi;
@@ -83,7 +86,8 @@ const TYPO = {
   compactBody: "mt-1 text-sm leading-relaxed text-ink/72",
   sectionTitle:
     "pagzly-ink-headline font-heading text-[1.75rem] font-bold leading-[1.2] tracking-[-0.02em] text-ink sm:text-4xl",
-  sectionLabel: "font-mono text-[10px] font-semibold uppercase tracking-[0.32em]",
+  sectionLabel: "font-mono text-[11px] font-semibold uppercase tracking-[0.36em]",
+  pointLabel: "font-mono text-xs font-bold uppercase tracking-[0.38em]",
   body: "text-[0.9375rem] font-normal leading-[1.85] text-ink/68 sm:text-base",
   checklistItem: "mt-2.5 text-[11px] font-medium leading-snug text-ink/85 sm:text-sm",
   stepItem: "mt-2.5 max-w-[7.5rem] text-[11px] font-normal leading-relaxed text-ink/80 sm:max-w-sm sm:text-sm",
@@ -269,10 +273,12 @@ function MetricBar({
   percent,
   theme,
   large = false,
+  emphasis = false,
 }: {
   percent: number;
   theme: CategoryTheme;
   large?: boolean;
+  emphasis?: boolean;
 }) {
   const fillRef = useRef<HTMLDivElement>(null);
 
@@ -302,8 +308,10 @@ function MetricBar({
 
   return (
     <div
-      className={`${large ? "mt-3 h-3" : "mt-1.5 h-1.5"} w-full overflow-hidden rounded-full`}
-      style={{ backgroundColor: hexToRgba(theme.accent, 0.16) }}
+      className={`${large ? (emphasis ? "mt-3 h-4" : "mt-3 h-3") : "mt-1.5 h-1.5"} w-full overflow-hidden rounded-full`}
+      style={{
+        backgroundColor: hexToRgba(emphasis ? theme.deepAccent : theme.accent, emphasis ? 0.14 : 0.16),
+      }}
       aria-hidden="true"
     >
       <div
@@ -313,7 +321,8 @@ function MetricBar({
         data-fill-percent={percent}
         style={{
           width: `${percent}%`,
-          backgroundColor: theme.accent,
+          backgroundColor: emphasis ? theme.deepAccent : theme.accent,
+          boxShadow: emphasis ? `0 2px 8px ${hexToRgba(theme.deepAccent, 0.35)}` : undefined,
         }}
       />
     </div>
@@ -555,6 +564,42 @@ function SectionAccentHairline({ theme }: { theme: CategoryTheme }) {
   );
 }
 
+/** Kurly/페이지메이커형 히어로 직후 인증·배지 스트립 */
+function TrustStrip({ chips, theme }: { chips: string[]; theme: CategoryTheme }) {
+  if (chips.length === 0) return null;
+  return (
+    <div
+      className="border-b border-t px-6 py-4 sm:px-10"
+      style={{
+        borderColor: hexToRgba(theme.accent, 0.22),
+        backgroundColor: hexToRgba(theme.baseNeutral, 0.65),
+      }}
+    >
+      <p
+        className={`mb-3 text-center ${TYPO.sectionLabel}`}
+        style={{ color: theme.deepAccent }}
+      >
+        TRUST
+      </p>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        {chips.map((chip) => (
+          <span
+            key={chip}
+            className="rounded-full px-3 py-1.5 text-xs font-semibold tracking-wide"
+            style={{
+              backgroundColor: hexToRgba(theme.accent, 0.12),
+              color: theme.deepAccent,
+              boxShadow: `inset 0 0 0 1px ${hexToRgba(theme.accent, 0.28)}`,
+            }}
+          >
+            {chip}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ImageReplaceHit({
   enabled,
   onReplace,
@@ -585,11 +630,13 @@ function renderSection(
   pointIndex?: number,
   edit?: SectionEditApi,
   followPattern?: SectionColorPattern,
+  productName?: string,
 ) {
   const heroFallback = imageUrls[0] ?? "";
   switch (section.type) {
     case "hero": {
       const src = resolveImage(imageUrls, section.imageIndex);
+      const imgAlt = buildSectionImageAlt(productName ?? category, section.headline, "hero");
       return (
         <div key={`hero-wrap-${index}`} className="relative">
           <div
@@ -602,7 +649,7 @@ function renderSection(
           >
             <SectionImage
               src={src}
-              alt={section.headline}
+              alt={imgAlt}
               fallbackSrc={heroFallback}
               className="pagzly-hero-photo absolute inset-0 h-full w-full object-cover"
             />
@@ -617,8 +664,11 @@ function renderSection(
             />
             {section.badge ? (
               <span
-                className="absolute left-0 top-5 z-20 rounded-r-full px-4 py-1.5 text-xs font-semibold tracking-wide text-paper shadow-sm sm:top-7"
-                style={{ backgroundColor: theme.accent }}
+                className="absolute left-0 top-5 z-20 pl-4 pr-5 py-2 text-xs font-bold tracking-wide text-paper shadow-md sm:top-7"
+                style={{
+                  backgroundColor: theme.deepAccent,
+                  clipPath: "polygon(0 0, 100% 0, calc(100% - 8px) 50%, 100% 100%, 0 100%)",
+                }}
               >
                 {section.badge}
               </span>
@@ -730,6 +780,7 @@ function renderSection(
     case "image_text": {
       const src = resolveImage(imageUrls, section.imageIndex);
       const isCompact = section.layout === "compact";
+      const isCallout = section.layout === "callout" || section.slot === "feature_callout";
 
       if (isCompact) {
         const imageFirst = section.imagePosition !== "right";
@@ -747,7 +798,7 @@ function renderSection(
               <div className="relative shrink-0">
                 <SectionImage
                   src={src}
-                  alt={section.heading}
+                  alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
                   className="h-24 w-24 rounded-xl object-cover sm:h-[7.5rem] sm:w-[7.5rem]"
                 />
                 <ImageReplaceHit
@@ -777,6 +828,74 @@ function renderSection(
         );
       }
 
+      if (isCallout) {
+        const ratioClass = resolveImageRatioClass(section);
+        const bubbleText = section.callout ?? section.heading;
+        return (
+          <section
+            key={`image_text-${index}`}
+            style={sectionBackgroundStyle(theme, pattern)}
+          >
+            <div className="relative">
+              <SectionImage
+                src={src}
+                alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
+                className={`${ratioClass} w-full object-cover`}
+              />
+              <ImageReplaceHit
+                enabled={edit?.enabled}
+                onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
+              />
+              {bubbleText ? (
+                <div
+                  className="absolute bottom-6 left-1/2 z-10 max-w-[85%] -translate-x-1/2 sm:bottom-8"
+                  aria-hidden={!edit?.enabled}
+                >
+                  <div
+                    className="relative rounded-2xl px-5 py-3 text-center text-sm font-semibold leading-snug text-paper shadow-lg sm:text-base"
+                    style={{ backgroundColor: theme.deepAccent }}
+                  >
+                    <EditableText
+                      as="span"
+                      enabled={edit?.enabled}
+                      value={bubbleText}
+                      onChange={(callout) =>
+                        edit?.onChange(index, { ...section, callout, layout: "callout" })
+                      }
+                    />
+                    <span
+                      className="absolute -bottom-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45"
+                      style={{ backgroundColor: theme.deepAccent }}
+                      aria-hidden="true"
+                    />
+                  </div>
+                </div>
+              ) : null}
+            </div>
+            <div className={`${getCategoryRhythm(category).pointTextPadClass} ${TEXT_COL_CLASS}`}>
+              <p className={`mb-4 ${TYPO.sectionLabel}`} style={{ color: theme.deepAccent }}>
+                HIGHLIGHT
+              </p>
+              <EditableText
+                as="h3"
+                enabled={edit?.enabled}
+                value={section.heading}
+                onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+                className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
+              />
+              <EditableText
+                as="p"
+                multiline
+                enabled={edit?.enabled}
+                value={section.body}
+                onChange={(body) => edit?.onChange(index, { ...section, body })}
+                className={`mt-4 ${BODY_CLAMP} ${TYPO.body}`}
+              />
+            </div>
+          </section>
+        );
+      }
+
       const ratioClass = resolveImageRatioClass(section);
       const pointLabel =
         pointIndex != null
@@ -791,7 +910,7 @@ function renderSection(
           <div className="relative">
             <SectionImage
               src={src}
-              alt={section.heading}
+              alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
               className={`${ratioClass} w-full object-cover`}
             />
             <ImageReplaceHit
@@ -808,7 +927,7 @@ function renderSection(
               />
             ) : null}
             {pointLabel && (
-              <p className={`mb-4 ${TYPO.sectionLabel}`} style={{ color: theme.accent }}>
+              <p className={`mb-4 ${TYPO.pointLabel}`} style={{ color: theme.deepAccent }}>
                 {pointLabel}
               </p>
             )}
@@ -833,11 +952,9 @@ function renderSection(
     }
 
     case "spec_table": {
-      // AI가 근거 없는 값에 채워 넣는 안내 문구는 표에 그대로 노출하면 미완성처럼
-      // 보이므로, 편집 모드가 아닐 때는 해당 행을 숨긴다 (편집 모드에서는 어떤 값이
-      // 비어있는지 판매자가 알아야 하므로 그대로 보여준다).
-      const visibleRows = edit?.enabled ? section.rows : section.rows.filter((row) => !isPlaceholderValue(row.value));
+      const visibleRows = section.rows.filter((row) => row.label.trim());
       if (visibleRows.length === 0) return null;
+      const isShipping = section.slot === "shipping_info";
       return (
         <section
           key={`spec_table-${index}`}
@@ -857,7 +974,17 @@ function renderSection(
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
             className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
           />
-          <div className="mx-auto mt-10 max-w-xl overflow-hidden rounded-lg">
+          <div
+            className={`mx-auto mt-10 max-w-xl overflow-hidden rounded-lg ${isShipping ? "border-2" : ""}`}
+            style={
+              isShipping
+                ? {
+                    borderColor: hexToRgba(theme.accent, 0.35),
+                    backgroundColor: hexToRgba(theme.baseNeutral, 0.5),
+                  }
+                : undefined
+            }
+          >
             <table className="w-full text-sm">
               <tbody>
                 {visibleRows.map((row, visibleIndex) => {
@@ -894,7 +1021,13 @@ function renderSection(
                         />
                       </div>
                     </td>
-                    <td className="py-3.5 font-medium tracking-tight text-ink">
+                    <td
+                      className={`py-3.5 tracking-tight ${
+                        isPlaceholderValue(row.value)
+                          ? "font-normal text-ink/45"
+                          : "font-medium text-ink"
+                      }`}
+                    >
                       <EditableText
                         as="span"
                         enabled={edit?.enabled}
@@ -1035,6 +1168,8 @@ function renderSection(
       const cards = section.cards.slice(0, 4);
       if (cards.length === 0) return null;
       const centerIdx = Math.floor((cards.length - 1) / 2);
+      const boldBlock = section.boldBlock === true;
+      const boxPattern: SectionColorPattern = boldBlock ? "C" : pattern;
       const gridCols =
         cards.length <= 2
           ? "max-w-xl grid-cols-1 sm:grid-cols-2"
@@ -1045,15 +1180,22 @@ function renderSection(
         <section
           key={`highlight_box-${index}`}
           className={getCategoryRhythm(category).generousPadClass}
-          style={textSectionStyle(theme, pattern)}
+          style={textSectionStyle(theme, boxPattern)}
         >
-          <SectionAccentHairline theme={theme} />
+          {!boldBlock ? <SectionAccentHairline theme={theme} /> : null}
+          <p
+            className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`}
+            style={{ color: boldBlock ? hexToRgba(BRAND.paper, 0.75) : theme.deepAccent }}
+          >
+            KEY POINTS
+          </p>
           <EditableText
             as="h3"
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
             className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+            style={boldBlock ? { color: BRAND.paper } : undefined}
           />
           <div className={`mx-auto mt-12 grid gap-4 ${gridCols}`}>
             {cards.map((card, cardIndex) => {
@@ -1069,9 +1211,15 @@ function renderSection(
                   }`}
                   style={{
                     backgroundColor: emphasized
-                      ? hexToRgba(theme.deepAccent, SECTION_BG_PATTERN_C_ALPHA)
-                      : hexToRgba(theme.accent, 0.08),
-                    border: emphasized ? "none" : `1px solid ${hexToRgba(theme.accent, 0.18)}`,
+                      ? hexToRgba(theme.deepAccent, boldBlock ? 1 : SECTION_BG_PATTERN_C_ALPHA)
+                      : boldBlock
+                        ? hexToRgba(BRAND.paper, 0.12)
+                        : hexToRgba(theme.accent, 0.08),
+                    border: emphasized
+                      ? "none"
+                      : boldBlock
+                        ? `1px solid ${hexToRgba(BRAND.paper, 0.22)}`
+                        : `1px solid ${hexToRgba(theme.accent, 0.18)}`,
                     boxShadow: emphasized
                       ? "0 16px 40px -16px rgba(27,27,24,0.5)"
                       : undefined,
@@ -1079,7 +1227,7 @@ function renderSection(
                 >
                   <span
                     className="mx-auto font-mono text-[10px] font-semibold uppercase tracking-[0.28em]"
-                    style={{ color: emphasized ? hexToRgba(BRAND.paper, 0.7) : theme.deepAccent }}
+                    style={{ color: emphasized ? hexToRgba(BRAND.paper, 0.7) : boldBlock ? hexToRgba(BRAND.paper, 0.65) : theme.deepAccent }}
                     aria-hidden="true"
                   >
                     {String(cardIndex + 1).padStart(2, "0")}
@@ -1094,7 +1242,7 @@ function renderSection(
                       edit?.onChange(index, { ...section, cards: nextCards });
                     }}
                     className="font-heading text-lg font-bold tracking-[-0.02em]"
-                    style={emphasized ? { color: BRAND.paper } : undefined}
+                    style={emphasized ? { color: BRAND.paper } : boldBlock ? { color: BRAND.paper } : undefined}
                   />
                   <EditableText
                     as="p"
@@ -1110,7 +1258,9 @@ function renderSection(
                     style={
                       emphasized
                         ? { color: hexToRgba(BRAND.paper, 0.9) }
-                        : { color: hexToRgba(BRAND.ink, 0.68) }
+                        : boldBlock
+                          ? { color: hexToRgba(BRAND.paper, 0.82) }
+                          : { color: hexToRgba(BRAND.ink, 0.68) }
                     }
                   />
                 </div>
@@ -1308,7 +1458,7 @@ function renderSection(
                         className="font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl"
                       />
                     </div>
-                    <MetricBar percent={percent} theme={theme} large />
+                    <MetricBar percent={percent} theme={theme} large emphasis={section.barAccent === "emphasis"} />
                   </div>
                 );
               })}
@@ -1512,7 +1662,9 @@ function renderSection(
           className={getCategoryRhythm(category).generousPadClass}
           style={textSectionStyle(theme, pattern)}
         >
-          <SectionAccentHairline theme={theme} />
+          <p className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`} style={{ color: theme.deepAccent }}>
+            HOW TO USE
+          </p>
           <EditableText
             as="h3"
             enabled={edit?.enabled}
@@ -1528,12 +1680,12 @@ function renderSection(
                   <div className={`relative overflow-hidden rounded-xl ${ratioClass}`}>
                     <SectionImage
                       src={src}
-                      alt={step.title}
+                      alt={buildSectionImageAlt(productName ?? "", step.title, section.slot)}
                       className="h-full w-full object-cover"
                     />
                     <span
-                      className="absolute left-3 top-3 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-paper"
-                      style={{ backgroundColor: theme.accent }}
+                      className="absolute left-3 top-3 rounded-full px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-paper shadow-sm"
+                      style={{ backgroundColor: theme.deepAccent }}
                     >
                       STEP {String(stepIndex + 1).padStart(2, "0")}
                     </span>
@@ -1613,7 +1765,7 @@ function renderSection(
                 <div key={`${imageIndex}-${src}-${pairIndex}`} className="relative">
                   <SectionImage
                     src={src}
-                    alt={`${section.heading} ${imageIndex + 1}`}
+                    alt={buildSectionImageAlt(productName ?? "", `${section.heading} ${imageIndex + 1}`, section.slot)}
                     className={`${ratioClass} w-full object-cover`}
                   />
                   {pairLabel ? (
@@ -1768,7 +1920,10 @@ function renderSection(
           className={getCategoryRhythm(category).trustPadClass}
           style={textSectionStyle(theme, pattern)}
         >
-          <div className={TEXT_COL_CLASS}>
+          <div
+            className={`${TEXT_COL_CLASS} border-l-4 pl-6 sm:pl-8`}
+            style={{ borderColor: theme.deepAccent }}
+          >
             <p
               className={`mb-4 ${TYPO.sectionLabel}`}
               style={{ color: theme.deepAccent }}
@@ -1808,9 +1963,16 @@ function renderSection(
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
             className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
           />
-          <div className="mx-auto mt-10 max-w-xl space-y-8 text-left">
+          <div className="mx-auto mt-10 max-w-xl space-y-4 text-left">
             {section.items.map((item, itemIndex) => (
-              <div key={`${itemIndex}-${item.question.slice(0, 12)}`}>
+              <div
+                key={`${itemIndex}-${item.question.slice(0, 12)}`}
+                className="rounded-xl border px-5 py-4"
+                style={{
+                  borderColor: hexToRgba(theme.accent, 0.22),
+                  backgroundColor: hexToRgba(theme.baseNeutral, 0.45),
+                }}
+              >
                 <p className={`${TYPO.sectionLabel} mb-2`} style={{ color: theme.accent }}>
                   Q.
                 </p>
@@ -1905,7 +2067,7 @@ function renderSection(
       return (
         <section
           key={`cta_price-${index}`}
-          className={`pagzly-ink-cta pagzly-ink-shimmer ${getCategoryRhythm(category).ctaPadClass}`}
+          className={`pagzly-ink-cta pagzly-ink-shimmer sticky bottom-0 z-20 shadow-[0_-8px_24px_-8px_rgba(27,27,24,0.2)] sm:static sm:shadow-none ${getCategoryRhythm(category).ctaPadClass}`}
           style={{ backgroundColor: getCtaBandBackground(theme) }}
         >
           <div className={`${TEXT_COL_CLASS} relative z-10 space-y-5`}>
@@ -1934,18 +2096,14 @@ function renderSection(
                 {section.badges.map((badge) => (
                   <span
                     key={badge}
-                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold tracking-wide"
                     style={{
-                      backgroundColor: hexToRgba(theme.baseNeutral, 0.85),
-                      color: theme.deepAccent,
-                      boxShadow: `inset 0 0 0 1px ${hexToRgba(theme.accent, 0.2)}`,
+                      backgroundColor: theme.deepAccent,
+                      color: BRAND.paper,
+                      clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%)",
+                      paddingRight: "1.25rem",
                     }}
                   >
-                    <CheckCircle2
-                      className="h-3.5 w-3.5 shrink-0"
-                      style={{ color: theme.accent }}
-                      aria-hidden="true"
-                    />
                     {badge}
                   </span>
                 ))}
@@ -1976,12 +2134,14 @@ export default function DetailSectionRenderer({
   sections,
   imageUrls,
   category,
+  productName,
   theme: themeOverride,
   conceptIcons,
   edit,
 }: DetailSectionRendererProps) {
   const baseTheme = themeOverride ?? getCategoryTheme(category);
   const extendedTheme = extendTheme(baseTheme);
+  const trustChips = extractTrustChips(sections);
   let imageTextCount = 0;
 
   return (
@@ -1990,7 +2150,9 @@ export default function DetailSectionRenderer({
         const isFullPoint =
           section.type === "image_text" &&
           section.layout !== "compact" &&
-          section.slot !== "quick_points";
+          section.layout !== "callout" &&
+          section.slot !== "quick_points" &&
+          section.slot !== "feature_callout";
         const pointIndex = isFullPoint ? imageTextCount++ : undefined;
         const bodyIndex = sections.slice(0, index).filter((s) => s.type !== "hero").length;
         const pattern = section.type === "hero" ? "A" : getSectionPattern(bodyIndex);
@@ -2013,6 +2175,7 @@ export default function DetailSectionRenderer({
           pointIndex,
           edit,
           followPattern,
+          productName ?? category,
         );
         // hero 바로 다음 섹션 1곳에만: 미세한 대각선 클립(제안 A) + 강한 진입 모션(제안 C).
         // 나머지 섹션은 전부 기존 직사각형·절제된 페이드를 그대로 유지한다.
@@ -2023,6 +2186,9 @@ export default function DetailSectionRenderer({
               className={`relative z-10 ${HERO_TRANSITION_OVERLAP_CLASS}`}
               style={{ clipPath: getCategoryRhythm(category).heroTransitionClip }}
             >
+              {trustChips.length > 0 ? (
+                <TrustStrip chips={trustChips} theme={getSectionTheme(extendedTheme, "checklist", 0)} />
+              ) : null}
               {content}
             </div>
           ) : (

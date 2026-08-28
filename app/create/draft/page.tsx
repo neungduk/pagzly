@@ -54,6 +54,16 @@ function sectionPreviewText(section: DetailSection): string {
         .slice(0, 4)
         .map((m) => `${m.label} ${m.value}`)
         .join(" · ");
+    case "highlight_box":
+      return section.cards
+        .slice(0, 3)
+        .map((c) => `· ${c.title}`)
+        .join("\n");
+    case "step_card":
+      return section.steps
+        .slice(0, 3)
+        .map((s, i) => `${i + 1}. ${s.title}`)
+        .join("\n");
     case "cta_price":
       return `₩${Number(section.price).toLocaleString("ko-KR")}${
         section.targetCustomer ? ` · ${section.targetCustomer}` : ""
@@ -91,7 +101,7 @@ type PhotoPendingState = {
 
 function mapProgressToStage(event: PhotoPipelineProgressEvent): GeneratingStage {
   if (event.stage === "generating") return "generating";
-  if (event.stage === "enhancing") return "enhancing";
+  if (event.stage === "enhancing" || event.stage === "lifestyle") return "enhancing";
   return "backdrop";
 }
 
@@ -296,6 +306,14 @@ export default function CreateDraftPage() {
         ...currentDraft.payload,
         imageUrls: enhancedImages.map((i) => i.url),
         imagePaths: enhancedImages.map((i) => i.path),
+        imageRoles: (() => {
+          const prev = (currentDraft.payload.imageRoles as string[] | undefined) ?? [];
+          const roles = [...prev];
+          while (roles.length < enhancedImages.length) {
+            roles.push("lifestyle");
+          }
+          return roles.slice(0, enhancedImages.length);
+        })(),
         photoProcessingCost:
           ((currentDraft.payload.photoProcessingCost as number) ?? 0) + photoProcessingCost,
         photoCostBreakdown,

@@ -1,9 +1,20 @@
 "use client";
 
 import SectionStructureEditor from "@/components/SectionStructureEditor";
+import {
+  getTemplateSlotCoverage,
+  countMissingRequiredSlots,
+} from "@/lib/template-slot-coverage";
+import { resolveTemplateCategory } from "@/lib/section-templates";
 import type { DetailSection } from "@/lib/types/generate";
 
-export type DetailToolTab = "edit" | "upload" | "ai" | "structure" | "patch";
+export type DetailToolTab =
+  | "edit"
+  | "upload"
+  | "ai"
+  | "structure"
+  | "patch"
+  | "instagram";
 
 type DetailActionBarProps = {
   tab: DetailToolTab;
@@ -31,12 +42,16 @@ type DetailActionBarProps = {
   onPatchSubmit?: () => void;
   patchLoading?: boolean;
   onGifUploadClick?: () => void;
+  category?: string;
+  feedProductName?: string;
+  feedImageUrls?: string[];
 };
 
 const TABS: { id: DetailToolTab; label: string }[] = [
   { id: "edit", label: "직접 편집" },
   { id: "patch", label: "섹션 AI" },
   { id: "upload", label: "원클릭 업로드" },
+  { id: "instagram", label: "인스타 피드" },
   { id: "ai", label: "AI 자동 생성" },
   { id: "structure", label: "구성" },
 ];
@@ -67,16 +82,25 @@ export default function DetailActionBar({
   onPatchSubmit,
   patchLoading,
   onGifUploadClick,
+  category,
+  feedProductName,
+  feedImageUrls,
 }: DetailActionBarProps) {
   const btn =
     "inline-flex h-10 items-center justify-center rounded-lg px-3 text-sm font-semibold transition-transform transition-colors duration-200 active:scale-[0.98]";
+
+  const templateCat = category ? resolveTemplateCategory(category) : null;
+  const slotCoverage =
+    category && sections.length > 0 ? getTemplateSlotCoverage(sections, category) : [];
+  const missingRequired =
+    category && sections.length > 0 ? countMissingRequiredSlots(sections, category) : 0;
 
   return (
     <div className="overflow-hidden rounded-2xl border-2 border-ink/15 bg-paper shadow-sm">
       <div
         role="tablist"
         aria-label="상세페이지 수정"
-        className="grid grid-cols-3 border-b border-line bg-line/20 sm:grid-cols-5"
+        className="grid grid-cols-3 border-b border-line bg-line/20 sm:grid-cols-6"
       >
         {TABS.map((item) => {
           const active = tab === item.id;
@@ -234,8 +258,54 @@ export default function DetailActionBar({
         </div>
       )}
 
+      {tab === "instagram" && feedProductName && feedImageUrls && (
+        <div className="space-y-3 p-4" data-testid="panel-instagram">
+          <p className="text-xs leading-relaxed text-ink/55">
+            상세페이지와 같은 사진·카피로 Instagram 1:1 피드 {feedImageUrls.length}장 기준 최대
+            7슬라이드를 만듭니다. 아래 <strong>인스타 피드 작업 영역</strong>에서 문구·배경 사진을
+            고치고 PNG로 저장하세요. 일상샷(lifestyle-ai)이 있으면 피드에 우선 배치됩니다.
+          </p>
+          <ul className="space-y-1 text-[11px] text-ink/50">
+            <li>· 슬라이드별 제목·보조 문구 수정</li>
+            <li>· 상품 사진 번호 선택 또는 슬라이드 전용 업로드</li>
+            <li>· 실시간 1080×1080 미리보기 후 PNG 저장</li>
+          </ul>
+        </div>
+      )}
+
       {tab === "structure" && onReorder && onToggleHidden && (
         <div className="space-y-3 p-4">
+          {templateCat && (
+            <div className="rounded-lg border border-line bg-line/15 px-3 py-2.5">
+              <p className="text-xs font-semibold text-ink">
+                템플릿: {templateCat}
+                {missingRequired > 0 ? (
+                  <span className="ml-2 font-normal text-registration-red">
+                    필수 슬롯 {missingRequired}개 누락
+                  </span>
+                ) : (
+                  <span className="ml-2 font-normal text-ink/50">필수 슬롯 충족</span>
+                )}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {slotCoverage.map((item) => (
+                  <span
+                    key={item.slot}
+                    className={`rounded px-1.5 py-0.5 font-mono text-[9px] ${
+                      item.present
+                        ? "bg-ink/10 text-ink/70"
+                        : item.required
+                          ? "bg-registration-red/15 text-registration-red"
+                          : "bg-line/40 text-ink/35"
+                    }`}
+                    title={item.slot}
+                  >
+                    {item.present ? "✓" : "·"} {item.slot}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           <SectionStructureEditor
             sections={sections}
             hiddenIndexes={hiddenIndexes}

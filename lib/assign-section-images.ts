@@ -5,6 +5,7 @@ import {
   normalizeImageRoles,
   type ProductImageRole,
 } from "@/lib/image-roles";
+import { isLifestyleAiPath } from "@/lib/lifestyle-shot-planner";
 
 /** 업로드·생성 공통 한도 */
 export const MAX_PRODUCT_IMAGES = 10;
@@ -26,6 +27,8 @@ export type AssignSectionImagesOptions = {
   category?: string;
   /** 업로드 순서와 동일한 길이의 역할 태그 */
   imageRoles?: ProductImageRole[] | unknown;
+  /** storage path — AI 일상샷(lifestyle-ai) 인덱스 감지용 */
+  imagePaths?: string[];
 };
 
 function collectUsedIndexes(sections: DetailSection[]): number[] {
@@ -63,11 +66,20 @@ function preferForSlot(
   category: string | undefined,
   roles: ProductImageRole[],
   imageCount: number,
+  lifestyleAiIndexes: number[],
 ): number | undefined {
   const rolePrefer = (role: ProductImageRole, fallback?: number) => {
     const idx = firstIndexWithRole(roles, role);
     if (idx !== undefined) return idx;
     return fallback !== undefined && fallback < imageCount ? fallback : undefined;
+  };
+
+  const preferLifestyleAi = () => {
+    if (lifestyleAiIndexes.length === 0) return undefined;
+    const slotOffset =
+      slot === "usage_scenario_extra" || slot === "customer_scenario" ? 1 : 0;
+    const pick = lifestyleAiIndexes[Math.min(slotOffset, lifestyleAiIndexes.length - 1)];
+    return pick < imageCount ? pick : lifestyleAiIndexes[0];
   };
 
   if (slot === "ingredient_highlight") {
@@ -83,7 +95,13 @@ function preferForSlot(
     return rolePrefer("detail", imageCount > 1 ? 1 : undefined);
   }
   if (slot === "coordination" || slot === "seasonal_styling" || slot === "fit_guide") {
-    return rolePrefer("lifestyle", imageCount > 2 ? 2 : undefined);
+    return preferLifestyleAi() ?? rolePrefer("lifestyle", imageCount > 2 ? 2 : undefined);
+  }
+  if (
+    category === "의류/패션" &&
+    (slot === "model_multicut" || slot === "hero")
+  ) {
+    return rolePrefer("hero", 0) ?? preferLifestyleAi();
   }
   if (slot === "packaging_design") {
     return rolePrefer("package", imageCount > 3 ? 3 : undefined);
@@ -93,7 +111,18 @@ function preferForSlot(
     return rolePrefer("detail", imageCount > 1 ? 1 : undefined);
   }
   if (slot === "usage_scene" || slot === "lifestyle_shot") {
-    return rolePrefer("lifestyle", imageCount > 2 ? 2 : undefined);
+    return preferLifestyleAi() ?? rolePrefer("lifestyle", imageCount > 2 ? 2 : undefined);
+  }
+
+  if (
+    slot === "usage_scenario" ||
+    slot === "usage_scenario_extra" ||
+    slot === "customer_scenario" ||
+    slot === "serving_suggestion" ||
+    slot === "model_multicut" ||
+    slot === "install_scenario"
+  ) {
+    return preferLifestyleAi() ?? rolePrefer("lifestyle", imageCount > 2 ? 2 : undefined);
   }
 
   void category;
@@ -117,6 +146,10 @@ export function assignDistinctSectionImages(
 
   const category = options?.category;
   const roles = normalizeImageRoles(options?.imageRoles, imageCount);
+  const lifestyleAiIndexes =
+    options?.imagePaths
+      ?.map((p, i) => (isLifestyleAiPath(p) ? i : -1))
+      .filter((i) => i >= 0) ?? [];
 
   const pinStudioHero = sections.some((section) => section.slot === "ingredient_highlight");
   const hero = sections.find((section) => section.type === "hero");
@@ -198,7 +231,7 @@ export function assignDistinctSectionImages(
     if (section.type === "hero") {
       placements.push({ kind: "hero" });
     } else if (section.type === "image_text") {
-      const prefer = preferForSlot(section.slot, category, roles, imageCount);
+      const prefer = preferForSlot(section.slot, category, roles, imageCount, lifestyleAiIndexes);
       placements.push({ kind: "image_text", sectionIndex, prefer });
     } else if (section.type === "gallery") {
       const wanted = Math.min(
@@ -244,7 +277,7 @@ export function assignDistinctSectionImages(
       const bucket = galleryBuckets.get(placement.sectionIndex) ?? [];
       const lifestyle = indexesWithRole(roles, "lifestyle");
       const details = indexesWithRole(roles, "detail");
-      const pool = [...lifestyle, ...details];
+      const pool = [...lifestyleAiIndexes, ...lifestyle, ...details];
       const prefer = pool.find((i) => !bucket.includes(i) && i !== heroIndex);
       const idx = pick({
         prefer,

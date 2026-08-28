@@ -9,7 +9,7 @@ export type GeneratingStage = "uploading" | "backdrop" | "enhancing" | "generati
 const STAGE_MESSAGES: Record<GeneratingStage, string> = {
   uploading: "사진 업로드 중",
   backdrop: "배경 디자인 생성 중",
-  enhancing: "사진 보정 중",
+  enhancing: "사진 보정·일상샷 생성 중",
   generating: "AI 상세페이지 생성 중",
 };
 
@@ -25,6 +25,9 @@ const SLOT_LABELS: Record<string, string> = {
   texture_closeup: "텍스처 클로즈업",
   illustration_banner: "일러스트 배너",
   usage_steps: "사용법",
+  step_card: "사용법 스텝",
+  highlight_box: "핵심 3축",
+  feature_callout: "말풍선 강조",
   cooking_steps: "조리법",
   gallery: "갤러리",
   model_multicut: "모델 멀티컷",

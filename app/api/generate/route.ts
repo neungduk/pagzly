@@ -21,10 +21,12 @@ import {
   buildSectionLengthGuide,
   getSlotImageRatio,
   getSlotTemplate,
+  resolveTemplateCategory,
   type SlotDefinition,
 } from "@/lib/section-templates";
 import { extractUrlSummary, type UrlSummaryResult } from "@/lib/url-crawler";
 import { buildQAFixPrompt, runDetailPageQA } from "@/lib/detail-page-qa";
+import { enrichSectionsWithProductMetadata } from "@/lib/enrich-product-sections";
 import { formatConceptCopyBlock, generateConceptBrief } from "@/lib/concept-brief";
 import { generateConceptIcons, type ConceptIconMap } from "@/lib/concept-icons";
 import { generateIllustrationBanner } from "@/lib/concept-illustration";
@@ -178,19 +180,39 @@ function applyHeroBadge(sections: DetailSection[]): DetailSection[] {
   return sections.map((s) => (s.type === "hero" ? { ...s, badge } : s));
 }
 
-/** 페이지당 첫 번째 비압축 checklist에만 강조 색면 블록(패턴 C)을 배정. */
+/** 페이지당 첫 번째 비압축 checklist + 첫 highlight_box에 강조 색면 블록(패턴 C) 배정. */
 function applyBoldBlock(sections: DetailSection[]): DetailSection[] {
-  let assigned = false;
+  let checklistAssigned = false;
+  let highlightAssigned = false;
   return sections.map((section) => {
-    if (section.type !== "checklist") return section;
-    if (!section.compactFollow && !assigned) {
-      assigned = true;
-      return { ...section, boldBlock: true };
+    if (section.type === "checklist") {
+      if (!section.compactFollow && !checklistAssigned) {
+        checklistAssigned = true;
+        return { ...section, boldBlock: true };
+      }
+      if (section.boldBlock) return { ...section, boldBlock: false };
+      return section;
     }
-    if (section.boldBlock) {
-      return { ...section, boldBlock: false };
+    if (section.type === "highlight_box") {
+      if (!highlightAssigned) {
+        highlightAssigned = true;
+        return { ...section, boldBlock: true };
+      }
+      if (section.boldBlock) return { ...section, boldBlock: false };
+      return section;
     }
     return section;
+  });
+}
+
+/** bar metrics가 있는 stat_infographic에 PM 스타일 강조 막대를 자동 적용. */
+function applyStatBarAccent(sections: DetailSection[]): DetailSection[] {
+  return sections.map((section) => {
+    if (section.type !== "stat_infographic") return section;
+    const hasBar = section.metrics.some(
+      (m) => m.style === "bar" || (m.style !== "number" && m.style !== "ring" && m.percent != null),
+    );
+    return hasBar ? { ...section, barAccent: "emphasis" as const } : section;
   });
 }
 
@@ -372,7 +394,7 @@ ${productInfo.ingredients ? `성분/소재: ${productInfo.ingredients}` : ""}
 const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
   hero: `{ type: "hero", slot, headline, subheadline?, imageIndex }`,
   checklist: `{ type: "checklist", slot, heading, items[], compactFollow?: boolean } — gallery/image_text 직후 checklist일 때만 true`,
-  image_text: `{ type: "image_text", slot, heading, body, imageIndex, imagePosition: "left"|"right", layout?: "full"|"compact" } — quick_points는 layout:"compact" 필수`,
+  image_text: `{ type: "image_text", slot, heading, body, imageIndex, imagePosition: "left"|"right", layout?: "full"|"compact"|"callout", callout?: string } — quick_points는 layout:"compact" 필수. feature_callout 슬롯은 layout:"callout" 필수 + callout(12~18자 말풍선 문구)`,
   spec_table: `{ type: "spec_table", slot, heading, rows: [{label, value}] }`,
   usage_steps: `{ type: "usage_steps", slot, heading, steps[] }`,
   gallery: `{ type: "gallery", slot, heading, imageIndexes[] }`,
@@ -383,7 +405,7 @@ const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
   highlight_box: `{ type: "highlight_box", slot, heading, cards: [{title, body}] } — 정확히 3개(2~4개 허용) 카드로 핵심 효과/성분을 요약. 각 title은 6자 내외, body는 1~2문장. checklist와 겹치지 않게 서로 다른 효과/성분 축으로 구성. 가장 강조하고 싶은 내용을 가운데(2번째) 카드에 배치 — 서버가 가운데 카드를 자동으로 진하게 강조 처리함`,
   step_card: `{ type: "step_card", slot, heading, steps: [{title, body, imageIndex}] } — 사용법 3단계 권장. 각 단계에 실제 상품 사진 imageIndex를 배정(가능하면 서로 다른 사진), title은 6자 내외, body는 1문장. STEP 태그는 서버가 자동으로 붙이므로 title에 "STEP 01" 등을 직접 쓰지 말 것`,
   color_variation: `{ type: "color_variation", slot, heading, options: [{label, colorHex, imageIndex}] }`,
-  stat_infographic: `{ type: "stat_infographic", slot, heading, metrics: [{label, value, style: "bar"|"number"|"ring", percent?: 0-100, basis?: "measured"|"self_assessed"}] } — style:"bar"/"ring"은 percent 필수(원형 게이지로 강조하고 싶으면 "ring", 막대면 "bar"), style:"number"는 percent 생략. 입력에 실제 수치 근거가 있으면 basis:"measured", 근거 없이 AI가 합리적으로 추정한 값이면 basis:"self_assessed"(값은 보수적으로, 0/100 같은 극단값 금지). 완전히 근거·추정 불가면 섹션 생략`,
+  stat_infographic: `{ type: "stat_infographic", slot, heading, metrics: [{label, value, style: "bar"|"number"|"ring", percent?: 0-100, basis?: "measured"|"self_assessed"}] } — style:"bar"/"ring"은 percent 필수. bar 막대 강조 스타일(barAccent)은 서버가 자동 설정 — AI는 지정하지 말 것`,
   illustration_banner: `{ type: "illustration_banner", slot, heading?, body?, illustrationUrl: "" } — body는 분위기 1~2문장, illustrationUrl은 서버가 채우므로 빈 문자열`,
   faq: `{ type: "faq", slot, heading, items: [{question, answer}] } — 3~5개. 근거 없으면 슬롯 생략. 근거 없는 개별 질문은 답변을 "판매자에게 문의해주세요"`,
   target_persona: `{ type: "target_persona", slot, heading, personas[] } — 3~5개, 각 20자 내외. targetCustomer·keyFeatures 기반으로만`,
@@ -692,9 +714,14 @@ imageIndex는 0 ~ ${imageCount - 1} 범위 안에서만 사용하세요.
 - **사진 활용 목표**: 업로드가 ${Math.min(7, imageCount)}장 이상이면, 상세페이지 전체에서
   **서로 다른 imageIndex를 최소 ${Math.min(7, imageCount)}개** 쓰세요. 가능하면 0~${imageCount - 1}
   전체를 골고루 배정하고, 같은 컷을 image_text·step_card에 중복하지 마세요.
+- **AI 일상샷**: 뒤쪽 인덱스에 사람·반려동물이 포함된 AI 생성 일상 컷이 있을 수 있습니다.
+  usage_scenario, coordination, model_multicut, customer_scenario, serving_suggestion, gallery 후반
+  슬롯에는 이 일상 컷을 우선 배정하세요. 스튜디오 제품컷(히어로·성분·디테일)과 섞어
+  상세를 풍부하게 만드세요. 일상 슬롯 body는 "언제·어디서·누가"를 구체적으로 묘사하세요.
 사진이 1장뿐일 때만 같은 인덱스를 재사용하세요.
 표(spec_table 등) 항목은 상품 정보에 없는 수치를 지어내지 말고, 근거가 없으면
-"판매자 확인 필요" 또는 공란으로 표시하세요.
+"판매자 확인 필요"로 표시하세요. 서버가 쇼핑몰 고시형 기본 행(제조사·원산지·규격 등)을
+보강하므로, 입력에 있는 사실은 해당 행 label에 맞게 정확히 채우세요.
 
 ## 소재·스펙·성분 사실 제약 (필수)
 packaging_design, ingredient_highlight, fabric_composition, material_detail, design_detail,
@@ -731,7 +758,7 @@ comparison_chart 슬롯이 있다면: baselineLabel은 반드시 "일반 제품"
 illustration_banner의 illustrationUrl은 항상 빈 문자열("")로 두세요 (서버가 생성).
 illustration_banner의 body는 이 섹션 분위기를 설명하는 1~2문장 카피입니다 (image_text body와 비슷한 톤).
 quick_points 슬롯은 layout:"compact"로 2~4개 채우세요. heading 8자 내외, body 1문장, 사진은 작은 텍스처/디테일 컷.
-compact layout은 사진이 작아지므로 텍스트도 짧게 작성하세요.
+feature_callout 슬롯은 layout:"callout" + callout(12~18자 말풍선 강조) + heading 8자 내외 + body 1~2문장. 후기·인증 표현 금지.
 checklist의 compactFollow는 gallery 또는 image_text 섹션 **바로 다음**에 오는 checklist일 때만 true. 그 외에는 생략하거나 false.
 brand_story는 brandName이 입력된 경우에만 포함하세요. 없으면 슬롯 전체를 생략하고, 브랜드 히스토리·설립연도·수상내역을 지어내지 마세요.
 target_persona는 targetCustomer·keyFeatures 입력 기반으로만 3~5개 작성하세요. 근거가 없으면 슬롯을 생략하세요.
@@ -815,13 +842,20 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
       return { ...section, imageIndex: clampIndex(section.imageIndex) };
     }
     if (section.type === "image_text") {
-      const layout =
-        section.slot === "quick_points"
-          ? "compact"
+      const isCallout = section.slot === "feature_callout" || section.layout === "callout";
+      const layout = section.slot === "quick_points"
+        ? "compact"
+        : isCallout
+          ? "callout"
           : section.layout === "compact"
             ? "compact"
             : "full";
-      return { ...section, imageIndex: clampIndex(section.imageIndex), layout };
+      return {
+        ...section,
+        imageIndex: clampIndex(section.imageIndex),
+        layout,
+        callout: isCallout ? (section.callout ?? section.heading).slice(0, 24) : section.callout,
+      };
     }
     if (section.type === "gallery") {
       return {
@@ -904,6 +938,7 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
   parsed.sections = assignDistinctSectionImages(parsed.sections, imageCount, {
     category: productInfo.category,
     imageRoles: productInfo.imageRoles,
+    imagePaths: productInfo.imagePaths,
   });
   const freq = countImageIndexFrequency(parsed.sections);
   const usedDistinct = Object.keys(freq).length;
@@ -1011,6 +1046,11 @@ export async function POST(request: Request) {
       preview: wholesale.slice(0, 120),
       mode,
       useDraftSections,
+    });
+    console.log("[generate template]", {
+      category: body.category,
+      template: resolveTemplateCategory(body.category),
+      lengthGuide: "buildSectionLengthGuide",
     });
 
     if (!body.productName || !body.category || !body.price) {
@@ -1198,6 +1238,7 @@ export async function POST(request: Request) {
         {
           category: body.category,
           imageRoles: body.imageRoles,
+          imagePaths: body.imagePaths,
         },
       );
       const draftFreq = countImageIndexFrequency(savedCopy.sections);
@@ -1233,7 +1274,15 @@ export async function POST(request: Request) {
     }
 
     savedCopy.sections = applyHeroBadge(savedCopy.sections);
+    savedCopy.sections = enrichSectionsWithProductMetadata(savedCopy.sections, {
+      certifications: enrichedBody.certifications ?? body.certifications,
+      brandName: body.brandName,
+      category: body.category,
+      ingredients: body.ingredients,
+      price: body.price,
+    });
     savedCopy.sections = applyBoldBlock(savedCopy.sections);
+    savedCopy.sections = applyStatBarAccent(savedCopy.sections);
     savedCopy.sections = savedCopy.sections.map((section) =>
       section.type === "comparison_chart"
         ? sanitizeComparisonChartSection(section)
