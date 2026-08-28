@@ -1,4 +1,5 @@
 import type { DetailSection } from "@/lib/types/generate";
+import { shouldUseEditorialBleed } from "@/lib/designer-detail-patterns";
 
 const SECTION_KICKERS: Partial<Record<DetailSection["type"], string>> = {
   checklist: "OVERVIEW",
@@ -41,8 +42,11 @@ export function shouldUseSplitLayout(section: DetailSection): boolean {
   if (section.type !== "image_text") return false;
   if (section.layout === "compact" || section.layout === "callout") return false;
   if (section.slot === "quick_points" || section.slot === "feature_callout") return false;
+  if (shouldUseEditorialBleed(section)) return false;
   return true;
 }
+
+export { shouldUseEditorialBleed, EDITORIAL_BLEED_SLOTS } from "@/lib/designer-detail-patterns";
 
 export function shouldInsertBreather(
   prev: DetailSection | undefined,

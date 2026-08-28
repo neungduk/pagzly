@@ -138,11 +138,19 @@ const BUILTIN_SECTIONS: DetailSection[] = [
   },
   {
     type: "image_text",
-    slot: "customer_scenario",
+    slot: "usage_scenario",
+    layout: "full",
     heading: "아침 루틴",
     body: "출근 전 3분, 속당김 없이 메이크업을 시작하세요.",
     imageIndex: 3,
     imagePosition: "left",
+  },
+  {
+    type: "illustration_banner",
+    slot: "illustration_banner",
+    heading: "수분 레이어 컨셉",
+    body: "가볍게, 매일, 속부터.",
+    illustrationUrl: "",
   },
   {
     type: "spec_table",

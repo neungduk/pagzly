@@ -1,4 +1,5 @@
 import type { DetailSection } from "@/lib/types/generate";
+import { shouldUseEditorialBleed } from "@/lib/designer-detail-patterns";
 
 export type ExportScoreItem = {
   id: string;
@@ -36,6 +37,10 @@ export function scoreDetailPageExport(
     { id: "sticky_cta", label: "Sticky CTA", passed: /pagzly-cta[\s\S]*sticky/.test(html), weight: 4 },
     { id: "callout", label: "말풍선 callout", passed: !hasSlot("feature_callout") || html.includes("pagzly-callout"), weight: 4 },
     { id: "gallery", label: "갤러리 export", passed: !types.has("gallery") || html.includes("pagzly-gallery"), weight: 4 },
+    { id: "illustration", label: "일러스트 배너 export", passed: !types.has("illustration_banner") || html.includes("pagzly-illustration-banner"), weight: 3 },
+    { id: "comparison_table", label: "비교표 export", passed: !types.has("comparison_table") || /COMPARE[\s\S]*<table/.test(html), weight: 3 },
+    { id: "color_variation", label: "컬러 스와치 export", passed: !types.has("color_variation") || html.includes("pagzly-color-variation"), weight: 3 },
+    { id: "editorial", label: "에디토리얼 풀폭", passed: !sections.some((s) => s.type === "image_text" && shouldUseEditorialBleed(s)) || html.includes("pagzly-editorial"), weight: 3 },
     { id: "brand_story", label: "브랜드 스토리", passed: !types.has("brand_story") || html.includes("pagzly-brand-story"), weight: 3 },
     { id: "persona", label: "추천 대상", passed: !types.has("target_persona") || html.includes("pagzly-persona"), weight: 3 },
     { id: "faq_cards", label: "FAQ 카드형", passed: !types.has("faq") || html.includes("pagzly-faq-card"), weight: 4 },

@@ -20,6 +20,7 @@ import {
   getSectionKicker,
   resolveSplitImageLeft,
   shouldInsertBreather,
+  shouldUseEditorialBleed,
 } from "@/lib/detail-visual-rhythm";
 import EditableText from "@/components/EditableText";
 import DetailScrollReveal from "@/components/DetailScrollReveal";
@@ -93,7 +94,7 @@ const TYPO = {
     "font-heading text-base font-semibold leading-snug tracking-[-0.02em] text-ink sm:text-lg",
   compactBody: "mt-1.5 text-sm font-normal leading-relaxed text-ink/75",
   sectionTitle:
-    "pagzly-ink-headline font-heading text-[1.75rem] font-bold leading-[1.22] tracking-[-0.025em] text-ink sm:text-4xl",
+    "pagzly-ink-headline font-heading text-[2rem] font-bold leading-[1.2] tracking-[-0.03em] text-ink sm:text-[2.75rem]",
   sectionLabel: "font-mono text-[10px] font-semibold uppercase tracking-[0.32em]",
   pointLabel: "font-mono text-[10px] font-bold uppercase tracking-[0.34em]",
   body: "text-[0.9375rem] font-normal leading-[1.9] text-ink/72 sm:text-base sm:leading-[1.85]",
@@ -1080,6 +1081,59 @@ function renderSection(
       }
 
       const ratioClass = resolveImageRatioClass(section);
+
+      if (shouldUseEditorialBleed(section)) {
+        const kicker = getSectionKicker(section);
+        return (
+          <section
+            key={`image_text-${index}`}
+            className="relative overflow-hidden"
+            style={textSectionStyle(theme, pattern)}
+          >
+            <div className="relative w-full">
+              <SectionImage
+                src={src}
+                alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
+                className={`${ratioClass} w-full object-cover`}
+              />
+              <ImageReplaceHit
+                enabled={edit?.enabled}
+                onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
+              />
+              <div
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3"
+                style={{
+                  background: `linear-gradient(0deg, ${hexToRgba(theme.deepAccent, 0.55)} 0%, transparent 100%)`,
+                }}
+                aria-hidden="true"
+              />
+            </div>
+            <div className={`${getCategoryRhythm(category).pointTextPadClass} mx-auto max-w-xl px-6 text-center sm:px-10`}>
+              {kicker ? (
+                <p className={`mb-3 ${TYPO.sectionLabel}`} style={{ color: theme.deepAccent }}>
+                  {kicker}
+                </p>
+              ) : null}
+              <EditableText
+                as="h3"
+                enabled={edit?.enabled}
+                value={section.heading}
+                onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+                className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
+              />
+              <EditableText
+                as="p"
+                multiline
+                enabled={edit?.enabled}
+                value={section.body}
+                onChange={(body) => edit?.onChange(index, { ...section, body })}
+                className={`mt-4 line-clamp-4 ${TYPO.body}`}
+              />
+            </div>
+          </section>
+        );
+      }
+
       const pointLabel =
         pointIndex != null
           ? `POINT ${String(pointIndex + 1).padStart(2, "0")}`

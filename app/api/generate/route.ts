@@ -27,6 +27,10 @@ import { extractUrlSummary, type UrlSummaryResult } from "@/lib/url-crawler";
 import { buildQAFixPrompt, runDetailPageQA } from "@/lib/detail-page-qa";
 import { enrichSectionsWithProductMetadata } from "@/lib/enrich-product-sections";
 import { insertReviewHighlightSection } from "@/lib/section-inserts";
+import {
+  applyDesignerLayoutRhythm,
+  buildDesignerPatternGuide,
+} from "@/lib/designer-detail-patterns";
 import { formatConceptCopyBlock, generateConceptBrief } from "@/lib/concept-brief";
 import { generateConceptIcons, type ConceptIconMap } from "@/lib/concept-icons";
 import { generateIllustrationBanner } from "@/lib/concept-illustration";
@@ -650,6 +654,7 @@ async function generateCopyWithDeepSeek(
 한 상품에만 해당하는 구체적 사실·장면·수치가 없으면 억지로 지어내지 말고, 그 대신
 사용 맥락(언제·어디서·어떻게 쓰는지)을 구체적으로 묘사해서 추상적 형용사를 피하세요.
 ${buildSectionLengthGuide(productInfo.category)}
+${buildDesignerPatternGuide(productInfo.category)}
 ${isCosmetics ? `
 ## 화장품 stat_infographic 수치 규율
 - stat_infographic: keyFeatures·ingredients·certifications 등 **입력에 명시된 수치**만 metrics에 사용. 근거 없으면 stat_infographic 슬롯 전체를 생략. "판매자 확인 필요"나 임의 percent 금지. 비율/점유율 수치는 style:"bar"|"ring"+percent로(원형 강조는 ring), 시간·용량·중량·개수 같은 절대 수치는 style:"number"로 percent 없이 큰 숫자 강조. basis는 measured/self_assessed.
@@ -1249,6 +1254,7 @@ export async function POST(request: Request) {
       price: body.price,
     });
     savedCopy.sections = applyBoldBlock(savedCopy.sections);
+    savedCopy.sections = applyDesignerLayoutRhythm(savedCopy.sections);
     savedCopy.sections = applyStatBarAccent(savedCopy.sections);
     savedCopy.sections = savedCopy.sections.map((section) =>
       section.type === "comparison_chart"

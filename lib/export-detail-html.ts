@@ -5,6 +5,7 @@ import {
   formatSectionIndex,
   getSectionKicker,
   resolveSplitImageLeft,
+  shouldUseEditorialBleed,
   shouldUseSplitLayout,
 } from "@/lib/detail-visual-rhythm";
 import { extractTrustChips } from "@/lib/extract-trust-chips";
@@ -184,6 +185,17 @@ function sectionHtml(
           <p style="line-height:1.65;font-size:15px;opacity:.85">${esc(section.body)}</p>
         </section>`;
       }
+      if (shouldUseEditorialBleed(section)) {
+        const kicker = getSectionKicker(section);
+        return `<section class="pagzly-editorial" style="padding:0;background:${theme.baseNeutral}">
+          ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:4/5;object-fit:cover;display:block"/>` : ""}
+          <div style="padding:40px 24px 48px;text-align:center;max-width:640px;margin:0 auto">
+            ${kicker ? `<p style="font-size:11px;letter-spacing:.36em;color:${deep};margin:0 0 12px">${kicker}</p>` : ""}
+            <h2 style="font-size:2rem;margin:0;line-height:1.2">${esc(section.heading)}</h2>
+            <p style="line-height:1.85;font-size:16px;opacity:.85;margin-top:16px">${esc(section.body)}</p>
+          </div>
+        </section>`;
+      }
       if (shouldUseSplitLayout(section)) {
         const imageLeft = resolveSplitImageLeft(section, pointIndex);
         const pointLabel =
@@ -241,7 +253,7 @@ function sectionHtml(
               const src = imageUrls[idx] ?? "";
               const alt = buildSectionImageAlt(productName, `${section.heading} ${idx + 1}`, section.slot);
               return src
-                ? `<img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block"/>`
+                ? `<img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:3/4;object-fit:cover;display:block"/>`
                 : "";
             })
             .join("")}
@@ -308,6 +320,59 @@ function sectionHtml(
         <p style="font-size:14px;line-height:1.65;opacity:.8;margin-top:12px">${esc(section.body)}</p>`,
         )}
       </section>`;
+    case "comparison_table":
+      return `<section style="${pad}background:${theme.baseNeutral}">
+        <p style="text-align:center;font-size:11px;letter-spacing:.2em;color:${deep}">COMPARE</p>
+        <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
+        <table style="width:100%;max-width:560px;margin:24px auto 0;border-collapse:collapse;font-size:14px">
+          <thead><tr style="background:${accent}1a">
+            <th style="padding:12px;text-align:left"></th>
+            <th style="padding:12px;text-align:left">${esc(section.columns[0])}</th>
+            <th style="padding:12px;text-align:left;color:${deep};font-weight:700;background:${accent}24">${esc(section.columns[1])}</th>
+          </tr></thead>
+          <tbody>
+            ${section.rows
+              .map(
+                (row, ri) =>
+                  `<tr style="border-bottom:1px solid ${accent}33;background:${ri % 2 ? accent + "0d" : "transparent"}">
+                    <td style="padding:12px;font-weight:500;opacity:.65">${esc(row.label)}</td>
+                    <td style="padding:12px">${esc(row.values[0])}</td>
+                    <td style="padding:12px;font-weight:600;background:${accent}14">${esc(row.values[1])}</td>
+                  </tr>`,
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </section>`;
+    case "color_variation":
+      return `<section class="pagzly-color-variation" style="${pad}background:${theme.baseNeutral}">
+        <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;max-width:640px;margin:32px auto 0">
+          ${section.options
+            .map((opt) => {
+              const optSrc = imageUrls[opt.imageIndex] ?? "";
+              return `<div style="text-align:center">
+                ${optSrc ? `<img src="${esc(optSrc)}" alt="${esc(opt.label)}" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px"/>` : ""}
+                <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;font-size:14px">
+                  <span style="width:16px;height:16px;border-radius:999px;background:${esc(opt.colorHex)};box-shadow:0 0 0 1px ${accent}44"></span>
+                  ${esc(opt.label)}
+                </div>
+              </div>`;
+            })
+            .join("")}
+        </div>
+      </section>`;
+    case "illustration_banner": {
+      const illSrc = section.illustrationUrl || imageUrls[0] || "";
+      return `<section class="pagzly-illustration-banner" style="position:relative;aspect-ratio:16/9;overflow:hidden;background:${deep}">
+        ${illSrc ? `<img src="${esc(illSrc)}" alt="${esc(section.heading ?? "컨셉 배너")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"/>` : ""}
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,${deep}99,transparent 35%,transparent 55%,${deep}cc)"></div>
+        <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:32px 24px;text-align:center;color:#FAF8F3">
+          ${section.heading ? `<h2 style="font-size:1.75rem;margin:0">${esc(section.heading)}</h2>` : ""}
+          ${section.body ? `<p style="margin:12px 0 0;font-size:15px;opacity:.9;max-width:480px">${esc(section.body)}</p>` : ""}
+        </div>
+      </section>`;
+    }
     case "review_highlight": {
       const praises = section.praises.filter(Boolean);
       if (praises.length === 0) return "";
@@ -332,9 +397,10 @@ function sectionHtml(
         <strong>${esc(section.heading)}</strong> — ${esc(section.body)}
       </section>`;
     default: {
+      const fallback = section as DetailSection;
       const heading =
-        "heading" in section && typeof section.heading === "string" ? section.heading : "";
-      const body = "body" in section && typeof section.body === "string" ? section.body : "";
+        "heading" in fallback && typeof fallback.heading === "string" ? fallback.heading : "";
+      const body = "body" in fallback && typeof fallback.body === "string" ? fallback.body : "";
       return `<section style="${pad}background:${theme.baseNeutral}">
         ${heading ? `<h2 style="text-align:center;font-size:1.5rem">${esc(heading)}</h2>` : ""}
         ${body ? `<p style="max-width:640px;margin:16px auto 0;line-height:1.6;font-size:15px;opacity:.8">${esc(body)}</p>` : ""}

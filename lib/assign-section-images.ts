@@ -103,6 +103,25 @@ function preferForSlot(
   ) {
     return rolePrefer("hero", 0) ?? preferLifestyleAi();
   }
+  if (category === "의류/패션") {
+    if (
+      slot === "fabric_composition" ||
+      slot === "detail_zoom" ||
+      slot === "material_detail" ||
+      slot === "design_detail" ||
+      slot === "texture_feel"
+    ) {
+      const details = indexesWithRole(roles, "detail");
+      if (details.length > 0) return details[0];
+      return rolePrefer("detail", imageCount > 1 ? 1 : undefined);
+    }
+    if (slot === "coordination" || slot === "seasonal_styling" || slot === "fit_guide") {
+      return rolePrefer("lifestyle", imageCount > 2 ? 2 : undefined) ?? preferLifestyleAi();
+    }
+    if (slot === "packaging_design") {
+      return rolePrefer("package", imageCount > 3 ? 3 : undefined);
+    }
+  }
   if (slot === "packaging_design") {
     return rolePrefer("package", imageCount > 3 ? 3 : undefined);
   }

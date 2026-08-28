@@ -19,6 +19,7 @@ import { DRAFT_SESSION_KEY, RETRY_PHOTO_ONLY_KEY, SESSION_KEY } from "@/componen
 import type { CustomGifSection, DetailSection, GenerateResponse, PhotoCostBreakdown, ReviewInsightsInput } from "@/lib/types/generate";
 import { getCategoryTheme } from "@/lib/category-theme";
 import { buildDetailPageHtml } from "@/lib/export-detail-html";
+import { downloadPngSlicesZip } from "@/lib/split-detail-download";
 import { validateImageFile } from "@/lib/image-upload";
 import { createClient } from "@/lib/supabase";
 
@@ -145,6 +146,7 @@ function CreateResultContent() {
   const gifInputRef = useRef<HTMLInputElement>(null);
   const [data, setData] = useState<ProductResult | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [downloadingSplit, setDownloadingSplit] = useState(false);
   const [downloadingHtml, setDownloadingHtml] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -551,6 +553,39 @@ function CreateResultContent() {
     }
   }
 
+  async function handleDownloadSplit() {
+    if (!captureRef.current || !data) return;
+
+    setDownloadingSplit(true);
+    try {
+      freezeScrollRevealAnimations(captureRef.current);
+      await new Promise((r) => setTimeout(r, 80));
+      const platform = getDownloadPlatform(downloadPlatform);
+      const targetWidth = platform.width;
+      const elWidth = Math.max(1, captureRef.current.offsetWidth);
+      const pixelRatio = targetWidth / elWidth;
+      const dataUrl = await toPng(captureRef.current, {
+        pixelRatio,
+        cacheBust: true,
+      });
+      const sliceCount = await downloadPngSlicesZip({
+        dataUrl,
+        baseName: data.productName,
+        platformLabel: platform.label,
+      });
+      setToast({
+        tone: "ok",
+        message: `${platform.label} 규격으로 ${sliceCount}장 분할 ZIP을 내려받았습니다.`,
+      });
+    } catch (err) {
+      console.error("[download-split]", err);
+      setToast({ tone: "error", message: "분할 다운로드에 실패했습니다." });
+    } finally {
+      unfreezeScrollRevealAnimations(captureRef.current);
+      setDownloadingSplit(false);
+    }
+  }
+
   function handleDownloadHtml() {
     if (!data?.generated) return;
     setDownloadingHtml(true);
@@ -794,6 +829,15 @@ function CreateResultContent() {
                 className="inline-flex h-11 items-center justify-center rounded-xl bg-registration-red px-5 text-sm font-semibold text-paper transition-colors hover:bg-registration-red/85 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {downloading ? "다운로드 준비 중..." : "이미지로 다운로드"}
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadSplit}
+                disabled={downloadingSplit || downloading}
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-line px-5 text-sm font-semibold text-ink transition-colors hover:bg-line/30 disabled:cursor-not-allowed disabled:opacity-60"
+                data-testid="download-split-zip"
+              >
+                {downloadingSplit ? "분할 준비 중..." : "분할 ZIP"}
               </button>
               <button
                 type="button"

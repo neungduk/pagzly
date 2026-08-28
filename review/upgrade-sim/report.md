@@ -1,10 +1,16 @@
 # 상세페이지 업그레이드 로컬 검증
 
-시각: 2026-08-28T05:47:14.981Z
+시각: 2026-08-28T06:40:07.702Z
 
 **외부 AI API 호출: 없음 ($0)**
 
-- [x] `tsc --noEmit` 통과
+- [ ] `tsc --noEmit` 실패
+
+```
+Command failed: npx tsc --noEmit
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+```
 
 - 데이터: 내장 픽스처
 - 카테고리: 화장품/뷰티
@@ -18,10 +24,10 @@
 
 ## 렌더·후처리 검증
 
-- [x] 섹션 수: 18
+- [x] 섹션 수: 19
 - [x] INFO(spec_table) 행 합계: 10
 - [x] 신뢰 스트립 칩: 3개 (무향, 당일발송, KC 인증)
-- [x] HTML export: `review\upgrade-sim\output.html` (24,346 bytes)
+- [x] HTML export: `review\upgrade-sim\output.html` (24,710 bytes)
 - [x] JSON-LD 포함: yes
 - [x] SEO 텍스트 블록: yes
 
@@ -50,7 +56,7 @@
 
 ## HTML Export 품질 점수
 
-- **100%** (50/50)
+- **100%** (62/62)
 - [x] JSON-LD (w6)
 - [x] SEO 텍스트 블록 (w5)
 - [x] TRUST 스트립 (w5)
@@ -58,6 +64,10 @@
 - [x] Sticky CTA (w4)
 - [x] 말풍선 callout (w4)
 - [x] 갤러리 export (w4)
+- [x] 일러스트 배너 export (w3)
+- [x] 비교표 export (w3)
+- [x] 컬러 스와치 export (w3)
+- [x] 에디토리얼 풀폭 (w3)
 - [x] 브랜드 스토리 (w3)
 - [x] 추천 대상 (w3)
 - [x] FAQ 카드형 (w4)

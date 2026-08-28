@@ -37,7 +37,9 @@
 | 실제 리뷰 파일 → 후기 하이라이트 | ✅ | ❌ | ❌ | ❌ | ❌ | 가짜 후기 모자이크는 비목표 |
 | 리뷰 하이라이트 HTML export | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 2026-08-28 export 추가 |
 | 모바일 sticky CTA 미리보기 | ✅ | ✅ | ✅ | ✅ | ✅ | sm:static 제거 |
-| 다채널 분할 PNG (860/780/750) | ✅ | ✅ | 🟡 | 🟡 | 🟡 | 토스·오늘의집 750 추가 |
+| 에디토리얼 풀폭(사용 장면) 레이아웃 | ✅ | ✅ | 🟡 | ✅ | 🟡 | 2026-08-28 editorial bleed |
+| 분할 ZIP 다운로드 | ✅ | ✅ | 🟡 | ❌ | ❌ | 후커블식 다장 업로드 |
+| HTML export 전 섹션 타입 동기화 | ✅ | 🟡 | 🟡 | ❌ | ❌ | comparison_table·color·illustration |
 | HTML export + JSON-LD | ✅ | 🟡 | 🟡 | ❌ | ❌ |  |
 | 인스타 피드 탭 | ✅ | ❌ | 🟡 | ❌ | ❌ |  |
 | 블로그 글 초안·다운로드 | ✅ | ❌ | 🟡 | ❌ | ❌ |  |
@@ -59,6 +61,10 @@
 - 리뷰 하이라이트 HTML export (`lib/export-detail-html.ts`)
 - 모바일 sticky CTA — preview `overflow-x-hidden`, CTA `sm:static` 제거
 - 다채널 PNG: 스마트스토어 860 / 쿠팡 780 / 토스·오늘의집 750 (`lib/download-platforms.ts`)
+- 디자이너 패턴 학습 프롬프트 + 에디토리얼 풀폭 레이아웃 (`lib/designer-detail-patterns.ts`)
+- HTML export 동기화: comparison_table, color_variation, illustration_banner, gallery 3:4
+- 후커블식 분할 ZIP 다운로드 (`lib/split-detail-download.ts`)
+- 패션 사진 역할 → 슬롯 prefer 강화 (`assign-section-images.ts`)
 
 ## 명시적 비목표
 
