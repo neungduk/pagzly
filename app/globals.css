@@ -31,6 +31,25 @@ body {
   font-family: var(--font-sans);
 }
 
+/* 상세페이지 미리보기 — Noto Sans KR 본문 + Noto Serif KR 헤드라인 */
+[data-pagzly-preview] {
+  font-family: var(--font-detail-sans), var(--font-sans);
+  font-feature-settings: "kern" 1, "liga" 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+[data-pagzly-preview] .font-heading {
+  font-family: var(--font-detail-heading), var(--font-detail-sans), serif;
+  letter-spacing: -0.025em;
+}
+
+[data-pagzly-preview] .font-mono {
+  font-family: var(--font-detail-sans), var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.18em;
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-scroll-reveal] {
     opacity: 1 !important;

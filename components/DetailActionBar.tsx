@@ -14,7 +14,8 @@ export type DetailToolTab =
   | "ai"
   | "structure"
   | "patch"
-  | "instagram";
+  | "instagram"
+  | "blog";
 
 type DetailActionBarProps = {
   tab: DetailToolTab;
@@ -45,6 +46,8 @@ type DetailActionBarProps = {
   category?: string;
   feedProductName?: string;
   feedImageUrls?: string[];
+  blogProductName?: string;
+  blogCategory?: string;
 };
 
 const TABS: { id: DetailToolTab; label: string }[] = [
@@ -52,6 +55,7 @@ const TABS: { id: DetailToolTab; label: string }[] = [
   { id: "patch", label: "섹션 AI" },
   { id: "upload", label: "원클릭 업로드" },
   { id: "instagram", label: "인스타 피드" },
+  { id: "blog", label: "블로그" },
   { id: "ai", label: "AI 자동 생성" },
   { id: "structure", label: "구성" },
 ];
@@ -85,6 +89,8 @@ export default function DetailActionBar({
   category,
   feedProductName,
   feedImageUrls,
+  blogProductName,
+  blogCategory,
 }: DetailActionBarProps) {
   const btn =
     "inline-flex h-10 items-center justify-center rounded-lg px-3 text-sm font-semibold transition-transform transition-colors duration-200 active:scale-[0.98]";
@@ -100,7 +106,7 @@ export default function DetailActionBar({
       <div
         role="tablist"
         aria-label="상세페이지 수정"
-        className="grid grid-cols-3 border-b border-line bg-line/20 sm:grid-cols-6"
+        className="grid grid-cols-4 border-b border-line bg-line/20 sm:grid-cols-7"
       >
         {TABS.map((item) => {
           const active = tab === item.id;
@@ -255,6 +261,21 @@ export default function DetailActionBar({
           >
             {patchLoading ? "수정 중..." : "이 섹션만 AI 수정"}
           </button>
+        </div>
+      )}
+
+      {tab === "blog" && blogProductName && blogCategory && (
+        <div className="space-y-3 p-4" data-testid="panel-blog">
+          <p className="text-xs leading-relaxed text-ink/55">
+            상세페이지와 같은 사진·카피로 티스토리/블로그용 글 초안을 만듭니다. 아래{" "}
+            <strong>블로그 작업 영역</strong>에서 제목·문단을 고친 뒤 HTML·Markdown으로
+            저장하세요.
+          </p>
+          <ul className="space-y-1 text-[11px] text-ink/50">
+            <li>· 제목·요약·태그 수정</li>
+            <li>· 문단별 본문·이미지·FAQ 편집</li>
+            <li>· 티스토리 HTML / Markdown / TXT 다운로드</li>
+          </ul>
         </div>
       )}
 

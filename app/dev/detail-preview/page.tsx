@@ -4,8 +4,10 @@ import { useRef, useState } from "react";
 import { notFound } from "next/navigation";
 import DetailActionBar, { type DetailToolTab } from "@/components/DetailActionBar";
 import DetailSectionRenderer from "@/components/DetailSectionRenderer";
+import BlogPostPanel from "@/components/BlogPostPanel";
 import InstagramFeedPanel from "@/components/InstagramFeedPanel";
 import ToastBanner from "@/components/ToastBanner";
+import type { BlogBlockOverride, BlogPostGlobalOverride } from "@/lib/blog-post";
 import type { InstagramSlideOverride } from "@/lib/instagram-feed";
 import type { DetailSection } from "@/lib/types/generate";
 import { validateImageFile } from "@/lib/image-upload";
@@ -172,6 +174,10 @@ export default function DetailPreviewPage() {
   const [patchInstruction, setPatchInstruction] = useState("");
   const [hiddenIndexes, setHiddenIndexes] = useState<number[]>([]);
   const [feedOverrides, setFeedOverrides] = useState<Record<string, InstagramSlideOverride>>({});
+  const [blogBlockOverrides, setBlogBlockOverrides] = useState<Record<string, BlogBlockOverride>>(
+    {},
+  );
+  const [blogGlobalOverrides, setBlogGlobalOverrides] = useState<BlogPostGlobalOverride>({});
   const [toast, setToast] = useState<{ message: string; tone: "error" | "info" | "ok" } | null>(
     null,
   );
@@ -183,7 +189,7 @@ export default function DetailPreviewPage() {
   function handleTabChange(next: DetailToolTab) {
     setToolTab(next);
     if (next === "edit" || next === "patch") setEditMode(true);
-    if (next === "instagram") setEditMode(false);
+    if (next === "instagram" || next === "blog") setEditMode(false);
   }
 
   function handleReorder(from: number, to: number) {
@@ -265,6 +271,8 @@ export default function DetailPreviewPage() {
           category="화장품/뷰티"
           feedProductName="히알루론 수분 크림"
           feedImageUrls={imageUrls}
+          blogProductName="히알루론 수분 크림"
+          blogCategory="화장품/뷰티"
         />
         <input
           ref={fileInputRef}
@@ -303,8 +311,28 @@ export default function DetailPreviewPage() {
             onOverridesChange={setFeedOverrides}
           />
         </div>
+      ) : toolTab === "blog" ? (
+        <div className="mx-auto max-w-[430px] border-x border-line bg-paper p-3 shadow-sm">
+          <BlogPostPanel
+            variant="workspace"
+            productName="히알루론 수분 크림"
+            brandName="테스트 브랜드"
+            category="화장품/뷰티"
+            sections={visibleSections}
+            imageUrls={imageUrls}
+            description="속건조를 잡아주는 고보습 수분 크림입니다."
+            features={["히알루론산 고함량", "무향·저자극", "끈적임 없는 마무리"]}
+            howToUse="세안 후 토너 다음 단계에서 적당량을 펴 발라 주세요."
+            caution="눈 주위를 피하고, 이상 반응 시 사용을 중단하세요."
+            price={32900}
+            blockOverrides={blogBlockOverrides}
+            onBlockOverridesChange={setBlogBlockOverrides}
+            globalOverrides={blogGlobalOverrides}
+            onGlobalOverridesChange={setBlogGlobalOverrides}
+          />
+        </div>
       ) : (
-        <div className="mx-auto max-w-[430px] overflow-hidden border-x border-line bg-paper shadow-sm">
+        <div className="mx-auto max-w-[430px] overflow-hidden border-x border-line bg-paper shadow-sm" data-pagzly-preview>
           <DetailSectionRenderer
             sections={visibleSections}
             imageUrls={imageUrls}

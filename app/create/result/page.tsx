@@ -8,8 +8,10 @@ import DetailSectionRenderer from "@/components/DetailSectionRenderer";
 import GenerationCostStrip from "@/components/GenerationCostStrip";
 import { freezeScrollRevealAnimations, unfreezeScrollRevealAnimations } from "@/components/DetailScrollReveal";
 import DetailActionBar, { type DetailToolTab } from "@/components/DetailActionBar";
+import BlogPostPanel from "@/components/BlogPostPanel";
 import InstagramFeedPanel from "@/components/InstagramFeedPanel";
 import ToastBanner from "@/components/ToastBanner";
+import type { BlogBlockOverride, BlogPostGlobalOverride } from "@/lib/blog-post";
 import type { InstagramSlideOverride } from "@/lib/instagram-feed";
 import { DRAFT_SESSION_KEY, RETRY_PHOTO_ONLY_KEY, SESSION_KEY } from "@/components/CreateProductForm";
 import type { CustomGifSection, DetailSection, GenerateResponse, PhotoCostBreakdown } from "@/lib/types/generate";
@@ -147,6 +149,10 @@ function CreateResultContent() {
   const [patchInstruction, setPatchInstruction] = useState("");
   const [patchLoading, setPatchLoading] = useState(false);
   const [feedOverrides, setFeedOverrides] = useState<Record<string, InstagramSlideOverride>>({});
+  const [blogBlockOverrides, setBlogBlockOverrides] = useState<Record<string, BlogBlockOverride>>(
+    {},
+  );
+  const [blogGlobalOverrides, setBlogGlobalOverrides] = useState<BlogPostGlobalOverride>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -351,7 +357,7 @@ function CreateResultContent() {
   function handleTabChange(next: DetailToolTab) {
     setToolTab(next);
     if (next === "edit" || next === "patch") setEditMode(true);
-    if (next === "instagram") setEditMode(false);
+    if (next === "instagram" || next === "blog") setEditMode(false);
   }
 
   async function handleSave() {
@@ -698,6 +704,8 @@ function CreateResultContent() {
               category={data.category}
               feedProductName={data.productName}
               feedImageUrls={data.imageUrls}
+              blogProductName={data.productName}
+              blogCategory={data.category}
             />
             <input
               ref={fileInputRef}
@@ -799,6 +807,34 @@ function CreateResultContent() {
               imagePaths={data.imagePaths}
               overrides={feedOverrides}
               onOverridesChange={setFeedOverrides}
+            />
+          </div>
+        ) : toolTab === "blog" && generated?.sections && generated.sections.length > 0 ? (
+          <div
+            className="rounded-2xl border border-ink/20 bg-paper p-4 shadow-sm sm:p-6"
+            data-testid="blog-post-workspace"
+          >
+            <p className="mb-4 font-mono text-xs uppercase tracking-[0.2em] text-registration-red">
+              블로그 작업 영역
+            </p>
+            <BlogPostPanel
+              variant="workspace"
+              productName={data.productName}
+              brandName={data.brandName}
+              category={data.category}
+              sections={
+                visibleSections.length > 0 ? visibleSections : generated.sections
+              }
+              imageUrls={data.imageUrls}
+              description={generated.description}
+              features={generated.features}
+              howToUse={generated.howToUse}
+              caution={generated.caution}
+              price={data.price}
+              blockOverrides={blogBlockOverrides}
+              onBlockOverridesChange={setBlogBlockOverrides}
+              globalOverrides={blogGlobalOverrides}
+              onGlobalOverridesChange={setBlogGlobalOverrides}
             />
           </div>
         ) : visibleSections.length > 0 ? (

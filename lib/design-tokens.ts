@@ -59,9 +59,28 @@ export function getSectionPattern(bodyIndexZeroBased: number): SectionColorPatte
   return bodyIndexZeroBased % 2 === 0 ? "A" : "B";
 }
 
+/** 섹션 배경 — baseNeutral은 고정, accent 계열만 은은한 그라데이션으로 리듬을 만든다. */
 export function getSectionBackground(theme: CategoryTheme, pattern: SectionColorPattern): string {
-  if (pattern === "C") return hexToRgba(theme.deepAccent, SECTION_BG_PATTERN_C_ALPHA);
-  return pattern === "A" ? theme.baseNeutral : hexToRgba(theme.accent, SECTION_BG_PATTERN_B_ALPHA);
+  if (pattern === "C") {
+    return `linear-gradient(145deg, ${hexToRgba(theme.deepAccent, 0.93)} 0%, ${hexToRgba(theme.accent, 0.82)} 100%)`;
+  }
+  if (pattern === "A") {
+    return `linear-gradient(168deg, ${theme.baseNeutral} 0%, ${hexToRgba(theme.accentSoft, 0.38)} 100%)`;
+  }
+  return `linear-gradient(168deg, ${hexToRgba(theme.accent, 0.07)} 0%, ${hexToRgba(theme.accentSoft, 0.48)} 52%, ${theme.baseNeutral} 100%)`;
+}
+
+/** 텍스트 전용 카드 패널 — 단순 배경 위에 올리는 포인트 박스 */
+export function getTextPanelSurface(theme: CategoryTheme): {
+  background: string;
+  borderColor: string;
+  boxShadow: string;
+} {
+  return {
+    background: `linear-gradient(148deg, ${hexToRgba(BRAND.paper, 0.97)} 0%, ${hexToRgba(theme.accentSoft, 0.5)} 58%, ${hexToRgba(theme.accent, 0.1)} 100%)`,
+    borderColor: hexToRgba(theme.accent, 0.2),
+    boxShadow: `0 12px 40px ${hexToRgba(theme.deepAccent, 0.08)}`,
+  };
 }
 
 /** 패턴 C는 배경이 진하므로 텍스트/아이콘 색을 반전해야 한다는 걸 렌더러에 알리는 헬퍼. */
@@ -145,21 +164,21 @@ export type ThemeVariantKey = "base" | "warm" | "cool" | "bold";
 // UI 색과 과하게 충돌하지 않도록 함. 사용자가 "보조색 3개 이상 (더
 // 화려하게)"를 선택해 정확히 3개로 구성.
 const THEME_VARIANT_HUE_OFFSET: Record<Exclude<ThemeVariantKey, "base">, number> = {
-  warm: 40,
-  cool: -55,
-  bold: 130,
+  warm: 22,
+  cool: -26,
+  bold: 48,
 };
 
 export type ExtendedTheme = Record<ThemeVariantKey, CategoryTheme>;
 
 function hueShiftTheme(base: CategoryTheme, degrees: number): CategoryTheme {
+  const deepShift = Math.round(degrees * 0.55);
   return {
     ...base,
     accent: tokenHueShift(base.accent, degrees),
     accentSoft: tokenHueShift(base.accentSoft, degrees),
     accentText: tokenHueShift(base.accentText, degrees),
-    baseNeutral: tokenHueShift(base.baseNeutral, degrees),
-    deepAccent: tokenHueShift(base.deepAccent, degrees),
+    deepAccent: tokenHueShift(base.deepAccent, deepShift),
   };
 }
 
@@ -182,7 +201,7 @@ export function extendTheme(base: CategoryTheme): ExtendedTheme {
 // 전체에서 신뢰감 있게 일관된 색이어야 하는 지점)는 보조색 순환에서 제외하고
 // 항상 base 팔레트를 쓴다.
 const THEME_VARIANT_LOCKED_SECTION_TYPES = new Set(["hero", "cta_price"]);
-const THEME_VARIANT_CYCLE: ThemeVariantKey[] = ["base", "warm", "cool", "bold"];
+const THEME_VARIANT_CYCLE: ThemeVariantKey[] = ["base", "warm", "cool", "warm"];
 
 /**
  * bodyIndex(0-based, hero 제외 본문 섹션 순번 — getSectionPattern()이 쓰는

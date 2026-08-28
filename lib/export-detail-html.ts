@@ -1,9 +1,34 @@
 import type { CategoryTheme } from "@/lib/category-theme";
 import { buildSectionImageAlt } from "@/lib/detail-image-alt";
 import { buildSeoTextBlockHtml } from "@/lib/detail-seo-text";
+import {
+  formatSectionIndex,
+  getSectionKicker,
+  resolveSplitImageLeft,
+  shouldUseSplitLayout,
+} from "@/lib/detail-visual-rhythm";
 import { extractTrustChips } from "@/lib/extract-trust-chips";
+import { getSectionBackground, getTextPanelSurface, hexToRgba } from "@/lib/design-tokens";
 import { buildProductJsonLd, serializeJsonLdScripts } from "@/lib/product-json-ld";
+import {
+  DETAIL_EXPORT_FONT_CSS,
+  DETAIL_GOOGLE_FONTS_URL,
+} from "@/lib/detail-typography";
 import type { DetailSection, GeneratedCopy } from "@/lib/types/generate";
+
+function textPanelWrap(theme: CategoryTheme, inner: string): string {
+  const s = getTextPanelSurface(theme);
+  return `<div style="position:relative;margin-top:-28px;max-width:640px;margin-left:auto;margin-right:auto">
+    <div style="position:absolute;left:0;top:20px;width:4px;height:56px;border-radius:999px;background:${theme.accent}"></div>
+    <div style="border:1px solid ${s.borderColor};border-radius:16px;padding:32px 28px;background:${s.background};box-shadow:${s.boxShadow}">
+      ${inner}
+    </div>
+  </div>`;
+}
+
+function sectionSurface(theme: CategoryTheme, pattern: "A" | "B" | "C"): string {
+  return getSectionBackground(theme, pattern);
+}
 
 function esc(s: string): string {
   return s
@@ -28,6 +53,8 @@ function sectionHtml(
   imageUrls: string[],
   theme: CategoryTheme,
   productName: string,
+  pointIndex?: number,
+  bodyIndex?: number,
 ): string {
   const accent = theme.accent;
   const deep = theme.deepAccent;
@@ -45,12 +72,25 @@ function sectionHtml(
           ${section.subheadline ? `<p style="color:#FAF8F3cc;margin:8px 0 0">${esc(section.subheadline)}</p>` : ""}</div>
         </div></section>`;
     }
-    case "checklist":
-      return `<section style="${pad}background:${section.boldBlock ? deep : theme.baseNeutral};color:${section.boldBlock ? "#FAF8F3" : "#1B1B18"}">
-        <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
-        <ul style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:16px;list-style:none;padding:0;margin:32px 0 0">
-          ${section.items.map((item) => `<li style="text-align:center;font-size:15px">${esc(item)}</li>`).join("")}
+    case "checklist": {
+      const fg = section.boldBlock ? "#FAF8F3" : "#1B1B18";
+      const kicker = getSectionKicker(section);
+      const indexLabel = bodyIndex != null ? formatSectionIndex(bodyIndex) : "";
+      return `<section style="${pad}background:${section.boldBlock ? deep : theme.baseNeutral};color:${fg}">
+        <div style="text-align:center;max-width:640px;margin:0 auto 32px">
+          ${indexLabel ? `<span style="font-family:monospace;font-size:12px;font-weight:700;letter-spacing:.28em;color:${section.boldBlock ? "#FAF8F3" : accent};margin-right:12px">${indexLabel}</span>` : ""}
+          ${kicker ? `<span style="font-size:11px;letter-spacing:.36em;opacity:.75">${kicker}</span>` : ""}
+          <h2 style="font-size:1.75rem;margin:16px 0 0">${esc(section.heading)}</h2>
+        </div>
+        <ul style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;list-style:none;padding:0;margin:0">
+          ${section.items
+            .map(
+              (item) =>
+                `<li style="text-align:center;font-size:14px;padding:20px 16px;border-radius:16px;border:1px solid ${section.boldBlock ? "rgba(250,248,243,.22)" : accent + "3d"};background:${section.boldBlock ? "rgba(250,248,243,.08)" : accent + "0f"}">${esc(item)}</li>`,
+            )
+            .join("")}
         </ul></section>`;
+    }
     case "highlight_box": {
       const cards = section.cards.slice(0, 4);
       const center = Math.floor((cards.length - 1) / 2);
@@ -144,10 +184,32 @@ function sectionHtml(
           <p style="line-height:1.65;font-size:15px;opacity:.85">${esc(section.body)}</p>
         </section>`;
       }
-      return `<section style="${pad}background:${theme.baseNeutral}">
-        ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;margin-bottom:16px"/>` : ""}
-        <h2 style="font-size:1.35rem">${esc(section.heading)}</h2>
-        <p style="line-height:1.65;font-size:15px;opacity:.85">${esc(section.body)}</p>
+      if (shouldUseSplitLayout(section)) {
+        const imageLeft = resolveSplitImageLeft(section, pointIndex);
+        const pointLabel =
+          pointIndex != null ? `POINT ${String(pointIndex + 1).padStart(2, "0")}` : "";
+        const kicker = getSectionKicker(section) ?? "FEATURE";
+        return `<section style="${pad}background:${sectionSurface(theme, "A")}">
+          <div style="display:flex;flex-wrap:wrap;gap:32px;max-width:960px;margin:0 auto;align-items:center">
+            <div style="flex:1 1 280px;order:${imageLeft ? 1 : 2};position:relative">
+              ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:16px;box-shadow:0 20px 56px ${hexToRgba(theme.deepAccent, 0.14)}"/>` : ""}
+              ${pointLabel ? `<span style="position:absolute;left:16px;top:16px;background:${hexToRgba(deep, 0.9)};color:#FAF8F3;font-size:10px;font-weight:700;letter-spacing:.28em;padding:6px 12px;border-radius:999px">${pointLabel}</span>` : ""}
+            </div>
+            <div style="flex:1 1 280px;order:${imageLeft ? 2 : 1}">
+              <p style="font-size:11px;letter-spacing:.36em;color:${deep};margin:0 0 12px">${kicker}</p>
+              <h2 style="font-size:1.75rem;margin:0">${esc(section.heading)}</h2>
+              <p style="line-height:1.75;font-size:15px;opacity:.85;margin-top:16px">${esc(section.body)}</p>
+            </div>
+          </div>
+        </section>`;
+      }
+      return `<section style="${pad}background:${sectionSurface(theme, "A")}">
+        ${src ? `<div style="padding:0 12px"><img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:16px;box-shadow:0 16px 48px ${hexToRgba(theme.deepAccent, 0.12)}"/></div>` : ""}
+        ${textPanelWrap(
+          theme,
+          `<h2 style="font-size:1.35rem;margin:0">${esc(section.heading)}</h2>
+        <p style="line-height:1.65;font-size:15px;opacity:.85;margin-top:16px">${esc(section.body)}</p>`,
+        )}
       </section>`;
     }
     case "spec_table": {
@@ -187,12 +249,13 @@ function sectionHtml(
       </section>`;
     }
     case "brand_story":
-      return `<section class="pagzly-brand-story" style="${pad}background:${theme.baseNeutral}">
-        <div style="max-width:640px;margin:0 auto;border-left:4px solid ${deep};padding-left:24px">
-          <p style="font-size:11px;letter-spacing:.2em;color:${deep};margin:0 0 12px">STORY</p>
+      return `<section class="pagzly-brand-story" style="${pad}background:${sectionSurface(theme, "B")}">
+        ${textPanelWrap(
+          theme,
+          `<p style="font-size:11px;letter-spacing:.2em;color:${theme.deepAccent};margin:0 0 12px">STORY</p>
           <h2 style="font-size:1.35rem;margin:0">${esc(section.heading)}</h2>
-          <p style="line-height:1.65;font-size:15px;opacity:.85;margin-top:16px">${esc(section.body)}</p>
-        </div>
+          <p style="line-height:1.65;font-size:15px;opacity:.85;margin-top:16px">${esc(section.body)}</p>`,
+        )}
       </section>`;
     case "target_persona":
       return `<section class="pagzly-persona" style="${pad}background:${theme.baseNeutral}">
@@ -237,10 +300,13 @@ function sectionHtml(
             .join("")}
         </div></section>`;
     case "caution":
-      return `<section style="${pad}background:${theme.baseNeutral}">
-        <p style="font-size:11px;letter-spacing:.2em;color:${deep};margin:0 0 12px">NOTICE</p>
+      return `<section style="${pad}background:${sectionSurface(theme, "A")}">
+        ${textPanelWrap(
+          theme,
+          `<p style="font-size:11px;letter-spacing:.2em;color:${deep};margin:0 0 12px">NOTICE</p>
         <h2 style="font-size:1.25rem;margin:0">${esc(section.heading)}</h2>
-        <p style="font-size:14px;line-height:1.65;opacity:.8;margin-top:12px">${esc(section.body)}</p>
+        <p style="font-size:14px;line-height:1.65;opacity:.8;margin-top:12px">${esc(section.body)}</p>`,
+        )}
       </section>`;
     case "ai_disclosure":
       return `<section style="padding:20px;background:#f5f3ee;font-size:12px;line-height:1.5;opacity:.75;text-align:center">
@@ -279,9 +345,20 @@ export function buildDetailPageHtml(opts: {
   const trustChips = extractTrustChips(visibleSections);
 
   const bodyParts: string[] = [];
+  let imageTextCount = 0;
   for (let i = 0; i < visibleSections.length; i += 1) {
     const section = visibleSections[i]!;
-    const html = sectionHtml(section, opts.imageUrls, opts.theme, opts.productName);
+    const isFullPoint = shouldUseSplitLayout(section);
+    const pointIndex = isFullPoint ? imageTextCount++ : undefined;
+    const bodyIndex = visibleSections.slice(0, i).filter((s) => s.type !== "hero").length;
+    const html = sectionHtml(
+      section,
+      opts.imageUrls,
+      opts.theme,
+      opts.productName,
+      pointIndex,
+      bodyIndex,
+    );
     if (html) bodyParts.push(html);
     if (section.type === "hero" && trustChips.length > 0) {
       const next = visibleSections[i + 1];
@@ -331,11 +408,13 @@ export function buildDetailPageHtml(opts: {
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="description" content="${esc(metaDesc)}"/>
 <title>${esc(opts.productName)} — 상세페이지</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="stylesheet" href="${DETAIL_GOOGLE_FONTS_URL}"/>
 ${jsonLd}
 <style>
   *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;background:#FAF8F3;color:#1B1B18;font-size:16px;line-height:1.5}
-  h1,h2,h3{font-family:Georgia,"Times New Roman",serif;font-weight:700}
+  ${DETAIL_EXPORT_FONT_CSS}
   .pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3}
   .pagzly-seo-text{padding:20px;font-size:14px;line-height:1.65;border-bottom:1px solid #DAD5C9}
   .pagzly-seo-text h2{font-size:1rem;margin:16px 0 8px}

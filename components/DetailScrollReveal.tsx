@@ -14,7 +14,7 @@ type DetailScrollRevealProps = {
    * 히어로는 ken-burns·ink-scan이 있어 y를 줄인다.
    * hero-follow / section 은 ink 와이프·레일로 더 강하게.
    */
-  variant?: "hero" | "section" | "hero-follow";
+  variant?: "hero" | "section" | "section-alt" | "hero-follow";
 };
 
 /** 상세페이지 섹션 진입 — ink 블랙 와이프 + 강한 slide/scale (미리보기 전용 감성) */
@@ -37,8 +37,22 @@ export default function DetailScrollReveal({
       return;
     }
 
-    const yFrom = variant === "hero" ? 18 : variant === "hero-follow" ? 42 : 36;
-    const scaleFrom = variant === "hero" ? 1 : variant === "hero-follow" ? 0.9 : 0.94;
+    const yFrom =
+      variant === "hero"
+        ? 18
+        : variant === "hero-follow"
+          ? 42
+          : variant === "section-alt"
+            ? 28
+            : 36;
+    const scaleFrom =
+      variant === "hero"
+        ? 1
+        : variant === "hero-follow"
+          ? 0.9
+          : variant === "section-alt"
+            ? 0.96
+            : 0.94;
     const startRatio = variant === "hero" ? 0.94 : 0.88;
     const rect = el.getBoundingClientRect();
     const triggerLine = window.innerHeight * startRatio;

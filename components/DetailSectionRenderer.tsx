@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, type ReactNode } from "react";
 import {
   Check,
   CheckCircle2,
@@ -15,6 +15,12 @@ import type { DetailSection } from "@/lib/types/generate";
 import type { ConceptIconMap } from "@/lib/concept-icons";
 import { buildSectionImageAlt } from "@/lib/detail-image-alt";
 import { extractTrustChips } from "@/lib/extract-trust-chips";
+import {
+  formatSectionIndex,
+  getSectionKicker,
+  resolveSplitImageLeft,
+  shouldInsertBreather,
+} from "@/lib/detail-visual-rhythm";
 import EditableText from "@/components/EditableText";
 import DetailScrollReveal from "@/components/DetailScrollReveal";
 import SectionImage from "@/components/SectionImage";
@@ -31,6 +37,7 @@ import {
   getHeroGradient,
   getSectionBackground,
   getSectionPattern,
+  getTextPanelSurface,
   hexToRgba,
   extendTheme,
   getSectionTheme,
@@ -65,6 +72,7 @@ const THEME_ICONS: Record<string, LucideIcon> = {
 };
 
 const TEXT_COL_CLASS = "mx-auto max-w-xl text-center";
+const TEXT_COL_LEFT_CLASS = "max-w-xl text-left";
 const HEADLINE_CLAMP = "line-clamp-2";
 const BODY_CLAMP = "line-clamp-3";
 
@@ -78,19 +86,19 @@ const TYPO = {
     "font-heading text-[2.75rem] font-bold leading-[1.05] tracking-[-0.03em] text-white sm:text-6xl",
   bannerTitle:
     "font-heading text-[1.65rem] font-bold leading-[1.15] tracking-[-0.03em] text-white sm:text-[1.85rem]",
-  heroSub: "mt-4 max-w-xl text-base font-normal leading-relaxed text-white/88 sm:text-lg",
+  heroSub: "mt-4 max-w-xl text-base font-normal leading-relaxed text-white/90 sm:text-lg",
   bannerSub:
     "mt-3 max-w-md text-sm font-normal leading-relaxed text-white/88 sm:text-base",
   compactTitle:
-    "font-heading text-base font-bold leading-snug tracking-[-0.02em] text-ink sm:text-lg",
-  compactBody: "mt-1 text-sm leading-relaxed text-ink/72",
+    "font-heading text-base font-semibold leading-snug tracking-[-0.02em] text-ink sm:text-lg",
+  compactBody: "mt-1.5 text-sm font-normal leading-relaxed text-ink/75",
   sectionTitle:
-    "pagzly-ink-headline font-heading text-[1.75rem] font-bold leading-[1.2] tracking-[-0.02em] text-ink sm:text-4xl",
-  sectionLabel: "font-mono text-[11px] font-semibold uppercase tracking-[0.36em]",
-  pointLabel: "font-mono text-xs font-bold uppercase tracking-[0.38em]",
-  body: "text-[0.9375rem] font-normal leading-[1.85] text-ink/68 sm:text-base",
-  checklistItem: "mt-2.5 text-[11px] font-medium leading-snug text-ink/85 sm:text-sm",
-  stepItem: "mt-2.5 max-w-[7.5rem] text-[11px] font-normal leading-relaxed text-ink/80 sm:max-w-sm sm:text-sm",
+    "pagzly-ink-headline font-heading text-[1.75rem] font-bold leading-[1.22] tracking-[-0.025em] text-ink sm:text-4xl",
+  sectionLabel: "font-mono text-[10px] font-semibold uppercase tracking-[0.32em]",
+  pointLabel: "font-mono text-[10px] font-bold uppercase tracking-[0.34em]",
+  body: "text-[0.9375rem] font-normal leading-[1.9] text-ink/72 sm:text-base sm:leading-[1.85]",
+  checklistItem: "mt-2.5 text-xs font-medium leading-snug text-ink/82 sm:text-sm",
+  stepItem: "mt-2.5 max-w-[7.5rem] text-[11px] font-normal leading-relaxed text-ink/78 sm:max-w-sm sm:text-sm",
 } as const;
 
 function resolveImage(imageUrls: string[], index: number | undefined) {
@@ -501,17 +509,173 @@ function MetricBarFill({ percent, color }: { percent: number; color: string }) {
 }
 
 function sectionBackgroundStyle(theme: CategoryTheme, pattern: SectionColorPattern) {
-  return { backgroundColor: getSectionBackground(theme, pattern) };
+  return { background: getSectionBackground(theme, pattern) };
 }
 
-/** 텍스트 블록 섹션의 B 패턴만 상단 액센트 바로 구획을 읽히게 한다. 사진 위에는 쓰지 않음. */
+/** 텍스트 블록 섹션 — 은은한 그라데이션 + 상단 액센트 라인 */
 function textSectionStyle(theme: CategoryTheme, pattern: SectionColorPattern) {
   return {
-    backgroundColor: getSectionBackground(theme, pattern),
+    background: getSectionBackground(theme, pattern),
     ...(pattern === "B"
-      ? { boxShadow: `inset 0 4px 0 ${hexToRgba(theme.accent, 0.28)}` }
-      : {}),
+      ? { boxShadow: `inset 0 3px 0 ${hexToRgba(theme.accent, 0.24)}` }
+      : pattern === "A"
+        ? { boxShadow: `inset 0 2px 0 ${hexToRgba(theme.accent, 0.1)}` }
+        : {}),
   };
+}
+
+/** 본문 카피용 카드 — 단색 배경 대신 레이어·액센트 포인트 */
+function TextSectionPanel({
+  theme,
+  children,
+  className = "",
+  overlap = false,
+  align = "center",
+  flat = false,
+}: {
+  theme: CategoryTheme;
+  children: ReactNode;
+  className?: string;
+  overlap?: boolean;
+  align?: "center" | "left";
+  flat?: boolean;
+}) {
+  const textAlign = align === "left" ? "text-left" : "text-center";
+  if (flat) {
+    return <div className={`relative ${textAlign} ${className}`}>{children}</div>;
+  }
+  const surface = getTextPanelSurface(theme);
+  return (
+    <div className={`relative ${overlap ? "-mt-8 sm:-mt-10" : ""} ${className}`}>
+      <div
+        aria-hidden="true"
+        className={`absolute top-5 z-10 h-14 w-1 rounded-full ${align === "left" ? "left-0" : "-left-0.5"}`}
+        style={{ backgroundColor: theme.accent }}
+      />
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute -top-6 h-28 w-28 rounded-full opacity-50 ${align === "left" ? "-right-4" : "-right-6"}`}
+        style={{ backgroundColor: hexToRgba(theme.accent, 0.1) }}
+      />
+      <div
+        className="relative overflow-hidden rounded-2xl border px-6 py-8 sm:px-8 sm:py-10"
+        style={{
+          borderColor: surface.borderColor,
+          background: surface.background,
+          boxShadow: surface.boxShadow,
+        }}
+      >
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px"
+          style={{
+            background: `linear-gradient(90deg, transparent, ${hexToRgba(theme.accent, 0.35)}, transparent)`,
+          }}
+        />
+        <div className={`relative ${textAlign}`}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function SectionBackdropAccent({ theme }: { theme: CategoryTheme }) {
+  return (
+    <>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-16 top-12 h-40 w-40 rounded-full blur-3xl"
+        style={{ backgroundColor: hexToRgba(theme.accent, 0.08) }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-10 bottom-8 h-32 w-32 rounded-full blur-2xl"
+        style={{ backgroundColor: hexToRgba(theme.deepAccent, 0.06) }}
+      />
+    </>
+  );
+}
+
+function SectionBreather({ theme }: { theme: CategoryTheme }) {
+  return (
+    <div className="flex items-center justify-center gap-3 px-6 py-5" aria-hidden="true">
+      <span
+        className="h-px w-12"
+        style={{
+          background: `linear-gradient(90deg, transparent, ${hexToRgba(theme.accent, 0.45)})`,
+        }}
+      />
+      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: theme.accent }} />
+      <span
+        className="h-px w-12"
+        style={{
+          background: `linear-gradient(90deg, ${hexToRgba(theme.accent, 0.45)}, transparent)`,
+        }}
+      />
+    </div>
+  );
+}
+
+function SectionHeader({
+  theme,
+  title,
+  kicker,
+  indexLabel,
+  align = "center",
+  inverted,
+  edit,
+  onTitleChange,
+}: {
+  theme: CategoryTheme;
+  title: string;
+  kicker?: string | null;
+  indexLabel?: string | null;
+  align?: "center" | "left";
+  inverted?: boolean;
+  edit?: SectionEditApi;
+  onTitleChange?: (title: string) => void;
+}) {
+  const wrapClass = align === "left" ? TEXT_COL_LEFT_CLASS : TEXT_COL_CLASS;
+  const rowClass = align === "left" ? "justify-start" : "justify-center";
+
+  return (
+    <header className={`mb-8 ${wrapClass}`}>
+      {kicker || indexLabel ? (
+        <div className={`mb-3 flex items-center gap-3 ${rowClass}`}>
+          {indexLabel ? (
+            <span
+              className="font-mono text-xs font-bold tracking-[0.28em]"
+              style={{ color: inverted ? BRAND.paper : theme.accent }}
+            >
+              {indexLabel}
+            </span>
+          ) : null}
+          {indexLabel && kicker ? (
+            <span
+              className="h-3 w-px"
+              style={{ backgroundColor: hexToRgba(inverted ? BRAND.paper : theme.accent, 0.35) }}
+              aria-hidden="true"
+            />
+          ) : null}
+          {kicker ? (
+            <p
+              className={TYPO.sectionLabel}
+              style={{ color: inverted ? hexToRgba(BRAND.paper, 0.75) : theme.deepAccent }}
+            >
+              {kicker}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+      <EditableText
+        as="h3"
+        enabled={edit?.enabled}
+        value={title}
+        onChange={onTitleChange ?? (() => {})}
+        className={`pagzly-ink-headline ${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
+        style={inverted ? { color: BRAND.paper } : undefined}
+      />
+    </header>
+  );
 }
 
 /**
@@ -631,6 +795,7 @@ function renderSection(
   edit?: SectionEditApi,
   followPattern?: SectionColorPattern,
   productName?: string,
+  bodyIndex?: number,
 ) {
   const heroFallback = imageUrls[0] ?? "";
   switch (section.type) {
@@ -712,45 +877,58 @@ function renderSection(
       return (
         <section
           key={`checklist-${index}`}
-          className={
+          className={`relative overflow-hidden ${
             compactFollow
               ? "px-6 pb-10 pt-2 sm:px-10 sm:pb-14"
               : getCategoryRhythm(category).generousPadClass
-          }
+          }`}
           style={textSectionStyle(theme, checklistPattern)}
         >
-          <div className={TEXT_COL_CLASS}>
+          {!compactFollow ? <SectionBackdropAccent theme={theme} /> : null}
+          <div className="relative">
             {!compactFollow ? (
-              <div
-                className="mx-auto mb-6 h-px w-12"
-                style={{
-                  backgroundColor: boldBlock
-                    ? hexToRgba(BRAND.paper, 0.5)
-                    : hexToRgba(theme.accent, 0.45),
-                }}
-                aria-hidden="true"
+              <SectionHeader
+                theme={theme}
+                title={section.heading}
+                kicker={getSectionKicker(section)}
+                indexLabel={bodyIndex != null ? formatSectionIndex(bodyIndex) : null}
+                inverted={boldBlock}
+                edit={edit}
+                onTitleChange={(heading) => edit?.onChange(index, { ...section, heading })}
               />
-            ) : null}
-            <EditableText
-              as="h3"
-              enabled={edit?.enabled}
-              value={section.heading}
-              onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-              className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
-              style={boldBlock ? { color: BRAND.paper } : undefined}
-            />
+            ) : (
+              <div className={TEXT_COL_CLASS}>
+                <EditableText
+                  as="h3"
+                  enabled={edit?.enabled}
+                  value={section.heading}
+                  onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+                  className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
+                  style={boldBlock ? { color: BRAND.paper } : undefined}
+                />
+              </div>
+            )}
           </div>
           <ul
-            className={`${compactFollow ? "mt-8" : "mt-12"} grid ${
+            className={`relative ${compactFollow ? "mt-8" : "mt-10"} grid ${
               compactFollow ? "gap-x-3 gap-y-6" : getCategoryRhythm(category).checklistGapClass
-            } ${
-              checklistGridClass(section.items.length, category)
-            }`}
+            } ${checklistGridClass(section.items.length, category)}`}
           >
             {section.items.map((item, itemIndex) => (
               <li
                 key={`${itemIndex}-${item.slice(0, 12)}`}
-                className="flex flex-col items-center text-center"
+                className="flex flex-col items-center rounded-2xl border px-4 py-5 text-center transition-transform duration-300 hover:-translate-y-0.5"
+                style={{
+                  borderColor: boldBlock
+                    ? hexToRgba(BRAND.paper, 0.22)
+                    : hexToRgba(theme.accent, 0.24),
+                  backgroundColor: boldBlock
+                    ? hexToRgba(BRAND.paper, 0.08)
+                    : hexToRgba(theme.accent, 0.06),
+                  boxShadow: boldBlock
+                    ? undefined
+                    : `0 10px 28px -14px ${hexToRgba(theme.deepAccent, 0.14)}`,
+                }}
               >
                 <ConceptBadgeIcon
                   src={conceptIcons?.checklist?.[itemIndex]}
@@ -834,63 +1012,68 @@ function renderSection(
         return (
           <section
             key={`image_text-${index}`}
-            style={sectionBackgroundStyle(theme, pattern)}
+            className="pb-12 sm:pb-16"
+            style={textSectionStyle(theme, pattern)}
           >
-            <div className="relative">
-              <SectionImage
-                src={src}
-                alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
-                className={`${ratioClass} w-full object-cover`}
-              />
-              <ImageReplaceHit
-                enabled={edit?.enabled}
-                onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
-              />
-              {bubbleText ? (
-                <div
-                  className="absolute bottom-6 left-1/2 z-10 max-w-[85%] -translate-x-1/2 sm:bottom-8"
-                  aria-hidden={!edit?.enabled}
-                >
+            <div className="relative px-4 pt-4 sm:px-6 sm:pt-6">
+              <div className="overflow-hidden rounded-2xl shadow-[0_16px_48px_-12px_rgba(27,27,24,0.18)]">
+                <SectionImage
+                  src={src}
+                  alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
+                  className={`${ratioClass} w-full object-cover`}
+                />
+                <ImageReplaceHit
+                  enabled={edit?.enabled}
+                  onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
+                />
+                {bubbleText ? (
                   <div
-                    className="relative rounded-2xl px-5 py-3 text-center text-sm font-semibold leading-snug text-paper shadow-lg sm:text-base"
-                    style={{ backgroundColor: theme.deepAccent }}
+                    className="absolute bottom-6 left-1/2 z-10 max-w-[85%] -translate-x-1/2 sm:bottom-8"
+                    aria-hidden={!edit?.enabled}
                   >
-                    <EditableText
-                      as="span"
-                      enabled={edit?.enabled}
-                      value={bubbleText}
-                      onChange={(callout) =>
-                        edit?.onChange(index, { ...section, callout, layout: "callout" })
-                      }
-                    />
-                    <span
-                      className="absolute -bottom-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45"
+                    <div
+                      className="relative rounded-2xl px-5 py-3 text-center text-sm font-semibold leading-snug text-paper shadow-lg sm:text-base"
                       style={{ backgroundColor: theme.deepAccent }}
-                      aria-hidden="true"
-                    />
+                    >
+                      <EditableText
+                        as="span"
+                        enabled={edit?.enabled}
+                        value={bubbleText}
+                        onChange={(callout) =>
+                          edit?.onChange(index, { ...section, callout, layout: "callout" })
+                        }
+                      />
+                      <span
+                        className="absolute -bottom-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45"
+                        style={{ backgroundColor: theme.deepAccent }}
+                        aria-hidden="true"
+                      />
+                    </div>
                   </div>
-                </div>
-              ) : null}
+                ) : null}
+              </div>
             </div>
-            <div className={`${getCategoryRhythm(category).pointTextPadClass} ${TEXT_COL_CLASS}`}>
-              <p className={`mb-4 ${TYPO.sectionLabel}`} style={{ color: theme.deepAccent }}>
-                HIGHLIGHT
-              </p>
-              <EditableText
-                as="h3"
-                enabled={edit?.enabled}
-                value={section.heading}
-                onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-                className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
-              />
-              <EditableText
-                as="p"
-                multiline
-                enabled={edit?.enabled}
-                value={section.body}
-                onChange={(body) => edit?.onChange(index, { ...section, body })}
-                className={`mt-4 ${BODY_CLAMP} ${TYPO.body}`}
-              />
+            <div className={`${getCategoryRhythm(category).pointTextPadClass} px-6 sm:px-10`}>
+              <TextSectionPanel theme={theme} overlap>
+                <p className={`mb-4 ${TYPO.sectionLabel}`} style={{ color: theme.deepAccent }}>
+                  HIGHLIGHT
+                </p>
+                <EditableText
+                  as="h3"
+                  enabled={edit?.enabled}
+                  value={section.heading}
+                  onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+                  className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
+                />
+                <EditableText
+                  as="p"
+                  multiline
+                  enabled={edit?.enabled}
+                  value={section.body}
+                  onChange={(body) => edit?.onChange(index, { ...section, body })}
+                  className={`mt-4 ${BODY_CLAMP} ${TYPO.body}`}
+                />
+              </TextSectionPanel>
             </div>
           </section>
         );
@@ -901,51 +1084,71 @@ function renderSection(
         pointIndex != null
           ? `POINT ${String(pointIndex + 1).padStart(2, "0")}`
           : null;
+      const imageLeft = resolveSplitImageLeft(section, pointIndex);
+      const kicker = getSectionKicker(section);
 
       return (
         <section
           key={`image_text-${index}`}
-          style={sectionBackgroundStyle(theme, pattern)}
+          className={`relative overflow-hidden ${getCategoryRhythm(category).generousPadClass}`}
+          style={textSectionStyle(theme, pattern)}
         >
-          <div className="relative">
-            <SectionImage
-              src={src}
-              alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
-              className={`${ratioClass} w-full object-cover`}
-            />
-            <ImageReplaceHit
-              enabled={edit?.enabled}
-              onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
-            />
-          </div>
-          <div className={`${getCategoryRhythm(category).pointTextPadClass} ${TEXT_COL_CLASS}`}>
-            {section.slot === "ingredient_highlight" ? (
-              <div
-                className="mx-auto mb-6 h-1.5 w-16"
-                style={{ backgroundColor: theme.accent }}
-                aria-hidden="true"
-              />
-            ) : null}
-            {pointLabel && (
-              <p className={`mb-4 ${TYPO.pointLabel}`} style={{ color: theme.deepAccent }}>
-                {pointLabel}
-              </p>
-            )}
-            <EditableText
-              as="h3"
-              enabled={edit?.enabled}
-              value={section.heading}
-              onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-              className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
-            />
-            <EditableText
-              as="p"
-              multiline
-              enabled={edit?.enabled}
-              value={section.body}
-              onChange={(body) => edit?.onChange(index, { ...section, body })}
-              className={`mt-4 ${BODY_CLAMP} ${TYPO.body}`}
-            />
+          <SectionBackdropAccent theme={theme} />
+          <div className="relative mx-auto grid max-w-5xl items-center gap-8 px-6 sm:grid-cols-2 sm:gap-10 sm:px-10">
+            <div className={imageLeft ? "order-1" : "order-1 sm:order-2"}>
+              <div className="relative overflow-hidden rounded-2xl shadow-[0_20px_56px_-16px_rgba(27,27,24,0.22)]">
+                <SectionImage
+                  src={src}
+                  alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
+                  className={`${ratioClass} w-full object-cover`}
+                />
+                <ImageReplaceHit
+                  enabled={edit?.enabled}
+                  onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
+                />
+                {pointLabel ? (
+                  <span
+                    className="absolute left-4 top-4 rounded-full px-3 py-1 font-mono text-[10px] font-bold tracking-[0.28em] text-paper"
+                    style={{ backgroundColor: hexToRgba(theme.deepAccent, 0.9) }}
+                  >
+                    {pointLabel}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            <div
+              className={`${imageLeft ? "order-2" : "order-2 sm:order-1"} flex flex-col justify-center`}
+            >
+              <TextSectionPanel theme={theme} align="left" flat>
+                {kicker ? (
+                  <p className={`mb-3 ${TYPO.sectionLabel}`} style={{ color: theme.deepAccent }}>
+                    {kicker}
+                  </p>
+                ) : null}
+                {section.slot === "ingredient_highlight" ? (
+                  <div
+                    className="mb-5 h-1.5 w-14"
+                    style={{ backgroundColor: theme.accent }}
+                    aria-hidden="true"
+                  />
+                ) : null}
+                <EditableText
+                  as="h3"
+                  enabled={edit?.enabled}
+                  value={section.heading}
+                  onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+                  className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
+                />
+                <EditableText
+                  as="p"
+                  multiline
+                  enabled={edit?.enabled}
+                  value={section.body}
+                  onChange={(body) => edit?.onChange(index, { ...section, body })}
+                  className={`mt-4 line-clamp-5 ${TYPO.body}`}
+                />
+              </TextSectionPanel>
+            </div>
           </div>
         </section>
       );
@@ -1179,25 +1382,23 @@ function renderSection(
       return (
         <section
           key={`highlight_box-${index}`}
-          className={getCategoryRhythm(category).generousPadClass}
+          className={`relative overflow-hidden ${getCategoryRhythm(category).generousPadClass}`}
           style={textSectionStyle(theme, boxPattern)}
         >
+          {!boldBlock ? <SectionBackdropAccent theme={theme} /> : null}
           {!boldBlock ? <SectionAccentHairline theme={theme} /> : null}
-          <p
-            className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`}
-            style={{ color: boldBlock ? hexToRgba(BRAND.paper, 0.75) : theme.deepAccent }}
-          >
-            KEY POINTS
-          </p>
-          <EditableText
-            as="h3"
-            enabled={edit?.enabled}
-            value={section.heading}
-            onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
-            style={boldBlock ? { color: BRAND.paper } : undefined}
-          />
-          <div className={`mx-auto mt-12 grid gap-4 ${gridCols}`}>
+          <div className="relative">
+            <SectionHeader
+              theme={theme}
+              title={section.heading}
+              kicker={getSectionKicker(section)}
+              indexLabel={bodyIndex != null ? formatSectionIndex(bodyIndex) : null}
+              inverted={boldBlock}
+              edit={edit}
+              onTitleChange={(heading) => edit?.onChange(index, { ...section, heading })}
+            />
+          </div>
+          <div className={`relative mx-auto mt-10 grid gap-4 ${gridCols}`}>
             {cards.map((card, cardIndex) => {
               const emphasized = cardIndex === centerIdx;
               return (
@@ -1795,27 +1996,29 @@ function renderSection(
           style={textSectionStyle(theme, pattern)}
         >
           <div className={TEXT_COL_CLASS}>
-            <p
-              className={`mb-4 ${TYPO.sectionLabel}`}
-              style={{ color: theme.deepAccent }}
-            >
-              NOTICE
-            </p>
-            <EditableText
-              as="h3"
-              enabled={edit?.enabled}
-              value={section.heading}
-              onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-              className={`${HEADLINE_CLAMP} font-heading text-lg font-bold tracking-[-0.02em] text-ink sm:text-xl`}
-            />
-            <EditableText
-              as="p"
-              multiline
-              enabled={edit?.enabled}
-              value={section.body}
-              onChange={(body) => edit?.onChange(index, { ...section, body })}
-              className={`mt-5 ${BODY_CLAMP} ${TYPO.body}`}
-            />
+            <TextSectionPanel theme={theme}>
+              <p
+                className={`mb-4 ${TYPO.sectionLabel}`}
+                style={{ color: theme.deepAccent }}
+              >
+                NOTICE
+              </p>
+              <EditableText
+                as="h3"
+                enabled={edit?.enabled}
+                value={section.heading}
+                onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+                className={`${HEADLINE_CLAMP} font-heading text-lg font-bold tracking-[-0.02em] text-ink sm:text-xl`}
+              />
+              <EditableText
+                as="p"
+                multiline
+                enabled={edit?.enabled}
+                value={section.body}
+                onChange={(body) => edit?.onChange(index, { ...section, body })}
+                className={`mt-5 ${BODY_CLAMP} ${TYPO.body}`}
+              />
+            </TextSectionPanel>
           </div>
         </section>
       );
@@ -1920,31 +2123,30 @@ function renderSection(
           className={getCategoryRhythm(category).trustPadClass}
           style={textSectionStyle(theme, pattern)}
         >
-          <div
-            className={`${TEXT_COL_CLASS} border-l-4 pl-6 sm:pl-8`}
-            style={{ borderColor: theme.deepAccent }}
-          >
-            <p
-              className={`mb-4 ${TYPO.sectionLabel}`}
-              style={{ color: theme.deepAccent }}
-            >
-              STORY
-            </p>
-            <EditableText
-              as="h3"
-              enabled={edit?.enabled}
-              value={section.heading}
-              onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-              className={`${HEADLINE_CLAMP} font-heading text-lg font-bold tracking-[-0.02em] text-ink sm:text-xl`}
-            />
-            <EditableText
-              as="p"
-              multiline
-              enabled={edit?.enabled}
-              value={section.body}
-              onChange={(body) => edit?.onChange(index, { ...section, body })}
-              className={`mt-5 ${BODY_CLAMP} ${TYPO.body}`}
-            />
+          <div className={TEXT_COL_CLASS}>
+            <TextSectionPanel theme={theme}>
+              <p
+                className={`mb-4 ${TYPO.sectionLabel}`}
+                style={{ color: theme.deepAccent }}
+              >
+                STORY
+              </p>
+              <EditableText
+                as="h3"
+                enabled={edit?.enabled}
+                value={section.heading}
+                onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+                className={`${HEADLINE_CLAMP} font-heading text-lg font-bold tracking-[-0.02em] text-ink sm:text-xl`}
+              />
+              <EditableText
+                as="p"
+                multiline
+                enabled={edit?.enabled}
+                value={section.body}
+                onChange={(body) => edit?.onChange(index, { ...section, body })}
+                className={`mt-5 ${BODY_CLAMP} ${TYPO.body}`}
+              />
+            </TextSectionPanel>
           </div>
         </section>
       );
@@ -2147,6 +2349,7 @@ export default function DetailSectionRenderer({
   return (
     <div className="overflow-hidden">
       {sections.map((section, index) => {
+        const prevSection = index > 0 ? sections[index - 1] : undefined;
         const isFullPoint =
           section.type === "image_text" &&
           section.layout !== "compact" &&
@@ -2164,18 +2367,24 @@ export default function DetailSectionRenderer({
           sections[index - 1].type !== "hero"
             ? getSectionPattern(Math.max(0, prevBodyIndex))
             : undefined;
+        const sectionTheme = getSectionTheme(extendedTheme, section.type, bodyIndex);
+        const breather =
+          shouldInsertBreather(prevSection, section) && section.type !== "hero" ? (
+            <SectionBreather key={`breather-${index}`} theme={sectionTheme} />
+          ) : null;
         const content = renderSection(
           section,
           imageUrls,
           index,
           category,
-          getSectionTheme(extendedTheme, section.type, bodyIndex),
+          sectionTheme,
           pattern,
           conceptIcons,
           pointIndex,
           edit,
           followPattern,
           productName ?? category,
+          bodyIndex,
         );
         // hero 바로 다음 섹션 1곳에만: 미세한 대각선 클립(제안 A) + 강한 진입 모션(제안 C).
         // 나머지 섹션은 전부 기존 직사각형·절제된 페이드를 그대로 유지한다.
@@ -2194,13 +2403,21 @@ export default function DetailSectionRenderer({
           ) : (
             content
           );
-        const variant = isHeroFollow ? "hero-follow" : section.type === "hero" ? "hero" : "section";
+        const variant =
+          isHeroFollow
+            ? "hero-follow"
+            : section.type === "hero"
+              ? "hero"
+              : index % 2 === 0
+                ? "section"
+                : "section-alt";
         return (
-          <DetailScrollReveal
-            key={`${section.type}-${section.slot}-${index}`}
-            index={index}
-            variant={variant}
-          >
+          <Fragment key={`section-wrap-${index}`}>
+            {breather}
+            <DetailScrollReveal
+              index={index}
+              variant={variant}
+            >
             <div className="relative">
               {wrappedContent}
               {edit?.enabled && edit.onRequestAiPatch ? (
@@ -2215,6 +2432,7 @@ export default function DetailSectionRenderer({
               ) : null}
             </div>
           </DetailScrollReveal>
+          </Fragment>
         );
       })}
     </div>
