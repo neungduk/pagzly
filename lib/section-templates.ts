@@ -14,6 +14,9 @@ export type SlotDefinition = {
   minCount?: number; // gallery/repeatable 슬롯의 최소 이미지·항목 수
   maxCount?: number; // gallery/repeatable 슬롯의 최대 이미지·항목 수
   repeatable?: boolean; // true면 같은 slot을 여러 섹션(연속)으로 나눠 채울 수 있음
+  // required 슬롯 중 "짧은 구성" 모드에서도 반드시 남길 전환 핵심만 core.
+  // 미지정 시 core. "extra"는 짧은 구성에서만 제외, 긴 구성에는 영향 없음.
+  shortTier?: "core" | "extra";
 };
 
 export type TemplateCategory =
@@ -37,6 +40,7 @@ const BEAUTY: SlotDefinition[] = [
     slot: "quick_points",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     repeatable: true,
     minCount: 2,
     maxCount: 4,
@@ -58,6 +62,7 @@ const BEAUTY: SlotDefinition[] = [
     slot: "ingredient_highlight",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     note: "핵심 성분/기능 (1:1). 텍스처·원료가 보이는 컷을 배정",
   },
   {
@@ -124,23 +129,26 @@ const BEAUTY: SlotDefinition[] = [
     required: true,
     note: "주의사항 (식약처 표현 검수 대상 — 효능 단정 표현 금지)",
   },
-  { slot: "packaging_design", type: "image_text", required: true, note: "패키지/용기 디자인 (1:1)" },
+  { slot: "packaging_design", type: "image_text", required: true, shortTier: "extra", note: "패키지/용기 디자인 (1:1)" },
   {
     slot: "how_it_works",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     note: "작용 원리/사용 후 변화 설명 (1:1). 근거 없는 효능 단정 금지, 사용감 중심으로 서술",
   },
   {
     slot: "size_options",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     note: "용량/사이즈 옵션 안내 (1:1). 옵션 정보가 입력에 없으면 일반적인 용량 표기로 작성",
   },
   {
     slot: "customer_scenario",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     note: "실사용 상황/데일리 루틴 제안 (4:5)",
   },
   {
@@ -171,6 +179,7 @@ const FASHION: SlotDefinition[] = [
     slot: "quick_points",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     repeatable: true,
     minCount: 2,
     maxCount: 4,
@@ -192,6 +201,7 @@ const FASHION: SlotDefinition[] = [
     slot: "detail_zoom",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     note: "원단/봉제/디테일 확대 (1:1)",
   },
   {
@@ -262,19 +272,22 @@ const FASHION: SlotDefinition[] = [
     slot: "fabric_composition",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     note: "원단 구성/마감 확대 (detail_zoom과 다른 각도, 1:1)",
   },
   {
     slot: "fit_guide",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     note: "핏 가이드 — 타이트/루즈 등 착용감 설명 (4:5)",
   },
-  { slot: "packaging_design", type: "image_text", required: true, note: "포장/배송 패키지 소개 (1:1)" },
+  { slot: "packaging_design", type: "image_text", required: true, shortTier: "extra", note: "포장/배송 패키지 소개 (1:1)" },
   {
     slot: "seasonal_styling",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     note: "계절별 활용 제안 (4:5)",
   },
   {
@@ -305,6 +318,7 @@ const FOOD: SlotDefinition[] = [
     slot: "quick_points",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     repeatable: true,
     minCount: 2,
     maxCount: 4,
@@ -326,6 +340,7 @@ const FOOD: SlotDefinition[] = [
     slot: "ingredient_highlight",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     note: "원재료/원산지 강조 (1:1)",
   },
   {
@@ -402,16 +417,18 @@ const FOOD: SlotDefinition[] = [
     slot: "sourcing_story",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     note: "원산지/제조 과정 소개 (1:1). 입력에 없는 사실은 지어내지 말 것",
   },
   {
     slot: "serving_suggestion",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     note: "서빙/플레이팅 제안 (4:5)",
   },
-  { slot: "packaging_design", type: "image_text", required: true, note: "포장 상세 (1:1)" },
-  { slot: "storage_tip", type: "image_text", required: true, note: "보관 팁 (1:1)" },
+  { slot: "packaging_design", type: "image_text", required: true, shortTier: "extra", note: "포장 상세 (1:1)" },
+  { slot: "storage_tip", type: "image_text", required: true, shortTier: "extra", note: "보관 팁 (1:1)" },
   {
     slot: "shipping_info",
     type: "spec_table",
@@ -440,6 +457,7 @@ const ELECTRONICS: SlotDefinition[] = [
     slot: "quick_points",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     repeatable: true,
     minCount: 2,
     maxCount: 4,
@@ -455,6 +473,7 @@ const ELECTRONICS: SlotDefinition[] = [
     slot: "feature_callout",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     note: "핵심 기능 1가지를 사진+말풍선으로 강조. layout:\"callout\" 필수, callout 12~18자, heading 8자 내외, body 1~2문장. 입력 스펙만",
   },
   {
@@ -534,17 +553,19 @@ const ELECTRONICS: SlotDefinition[] = [
     required: true,
     note: "A/S, 주의사항",
   },
-  { slot: "design_detail", type: "image_text", required: true, note: "디자인/마감 디테일 (1:1)" },
+  { slot: "design_detail", type: "image_text", required: true, shortTier: "extra", note: "디자인/마감 디테일 (1:1)" },
   {
     slot: "connectivity",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     note: "연결성/호환성 안내 (1:1). 입력에 없는 스펙은 지어내지 말 것",
   },
   {
     slot: "install_scenario",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     note: "실사용/설치 장면 (4:5)",
   },
   {
@@ -575,6 +596,7 @@ const PET: SlotDefinition[] = [
     slot: "quick_points",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     repeatable: true,
     minCount: 2,
     maxCount: 4,
@@ -596,6 +618,7 @@ const PET: SlotDefinition[] = [
     slot: "material_feature",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     note: "주요 성분·원료 (1:1). 없는 영양·함량 % 지어내지 말 것",
   },
   {
@@ -614,6 +637,7 @@ const PET: SlotDefinition[] = [
     slot: "gallery",
     type: "gallery",
     required: true,
+    shortTier: "extra",
     note: "제품·성분 라벨·급여 장면 (3:4). 최대 5장",
     minCount: 2,
     maxCount: 5,
@@ -650,15 +674,15 @@ const PET: SlotDefinition[] = [
     required: true,
     note: "반려동물 안전·급여 주의. 수의학적 처방·치료 효과 단정 금지",
   },
-  { slot: "material_detail", type: "image_text", required: true, note: "성분표·라벨 클로즈업 (1:1)" },
+  { slot: "material_detail", type: "image_text", required: true, shortTier: "extra", note: "성분표·라벨 클로즈업 (1:1)" },
   {
     slot: "usage_scenario_extra",
     type: "image_text",
     required: false,
     note: "추가 사용·보관 장면 (4:5)",
   },
-  { slot: "packaging_design", type: "image_text", required: true, note: "패키지·용량·구성 (1:1)" },
-  { slot: "care_tip", type: "image_text", required: true, note: "보관·취급 (1:1)" },
+  { slot: "packaging_design", type: "image_text", required: true, shortTier: "extra", note: "패키지·용량·구성 (1:1)" },
+  { slot: "care_tip", type: "image_text", required: true, shortTier: "extra", note: "보관·취급 (1:1)" },
   {
     slot: "shipping_info",
     type: "spec_table",
@@ -687,6 +711,7 @@ const HOME_FALLBACK: SlotDefinition[] = [
     slot: "quick_points",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     repeatable: true,
     minCount: 2,
     maxCount: 4,
@@ -708,6 +733,7 @@ const HOME_FALLBACK: SlotDefinition[] = [
     slot: "material_feature",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     note: "소재/기능 강조 (1:1)",
   },
   {
@@ -768,14 +794,15 @@ const HOME_FALLBACK: SlotDefinition[] = [
     required: false,
     note: "사용 시 주의사항",
   },
-  { slot: "material_detail", type: "image_text", required: true, note: "소재 클로즈업 (1:1)" },
+  { slot: "material_detail", type: "image_text", required: true, shortTier: "extra", note: "소재 클로즈업 (1:1)" },
   {
     slot: "usage_scenario_extra",
     type: "image_text",
     required: true,
+    shortTier: "extra",
     note: "추가 실사용 장면 (4:5)",
   },
-  { slot: "packaging_design", type: "image_text", required: true, note: "포장/구성 안내 (1:1)" },
+  { slot: "packaging_design", type: "image_text", required: true, shortTier: "extra", note: "포장/구성 안내 (1:1)" },
   { slot: "care_tip", type: "image_text", required: true, note: "관리/세척 방법 (1:1)" },
   {
     slot: "shipping_info",
@@ -863,11 +890,16 @@ export function buildSectionLengthGuide(category: string): string {
   return `\n\n## 카피 길이·리듬 정합\n${common}`;
 }
 
-/** 짧은 구성: required 슬롯만. repeatable은 minCount개 템플릿 행으로 펼침. */
+/**
+ * 짧은 구성: required 슬롯 중 shortTier가 "extra"로 표시되지 않은 것만.
+ * (shortTier 미지정 = core — 기존 동작과 동일)
+ * repeatable은 minCount개 템플릿 행으로 펼침.
+ */
 function applyShortTemplate(template: SlotDefinition[]): SlotDefinition[] {
   const result: SlotDefinition[] = [];
   for (const def of template) {
     if (!def.required) continue;
+    if (def.shortTier === "extra") continue;
     const rowCount = def.repeatable && def.minCount ? def.minCount : 1;
     for (let i = 0; i < rowCount; i++) {
       result.push({ ...def, repeatable: false });
