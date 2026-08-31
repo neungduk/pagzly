@@ -73,13 +73,13 @@ export async function GET(req: NextRequest) {
         status: "done",
         purchase_type: "subscription_renewal",
         item_id: sub.tier_id,
-        credits_granted: tier.monthlyCredits,
+        credits_granted: tier.monthlyTokens,
         confirmed_at: now.toISOString(),
       });
 
       await serviceClient.rpc("grant_credits", {
         p_user_id: sub.user_id,
-        p_amount: tier.monthlyCredits,
+        p_amount: tier.monthlyTokens,
         p_reason: "subscription_grant",
         p_reference_id: orderId,
       });

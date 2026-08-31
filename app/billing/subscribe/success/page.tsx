@@ -113,7 +113,7 @@ function SubscribeSuccessContent() {
         <strong>{tier.label}</strong> 플랜이 활성화되었습니다.
       </p>
       <p className="mt-2 text-sm text-ink/60">
-        현재 크레딧 잔액: <strong>{result.balance}</strong>
+        현재 토큰 잔액: <strong>{result.balance.toLocaleString("ko-KR")}</strong>
       </p>
       <Link
         href="/create"

@@ -16,7 +16,7 @@ import type {
 } from "@/lib/types/generate";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { CREDIT_COST_PER_COMPLETION } from "@/lib/cost/saas-pricing-config";
+import { getCompletionTokenCost } from "@/lib/cost/saas-pricing-config";
 import { extractProductTheme } from "@/lib/color-extract";
 import {
   buildSectionLengthGuide,
@@ -1069,6 +1069,7 @@ export async function POST(request: Request) {
     }
 
     if (mode === "final") {
+      const tokenCost = getCompletionTokenCost(body.length);
       const { data: creditRow } = await supabase
         .from("user_credits")
         .select("balance")
@@ -1076,9 +1077,9 @@ export async function POST(request: Request) {
         .maybeSingle();
 
       const balance = creditRow?.balance ?? 0;
-      if (balance < CREDIT_COST_PER_COMPLETION) {
+      if (balance < tokenCost) {
         return NextResponse.json(
-          { error: "insufficient_credits", balance },
+          { error: "insufficient_credits", balance, required: tokenCost },
           { status: 402 },
         );
       }
@@ -1647,10 +1648,11 @@ export async function POST(request: Request) {
     }
 
     if (mode === "final") {
+      const tokenCost = getCompletionTokenCost(body.length);
       const serviceClient = createServiceRoleClient();
       const { error: deductError } = await serviceClient.rpc("deduct_credits", {
         p_user_id: user.id,
-        p_amount: CREDIT_COST_PER_COMPLETION,
+        p_amount: tokenCost,
         p_reason: "completion",
         p_reference_id: savedProduct.id,
       });

@@ -63,7 +63,7 @@ function PackSuccessContent() {
               ? "이미 처리된 결제입니다."
               : data.error === "amount_mismatch"
                 ? "결제 금액이 일치하지 않습니다."
-                : "크레딧 팩 구매 처리에 실패했습니다. 다시 시도해 주세요.";
+                : "토큰 팩 구매 처리에 실패했습니다. 다시 시도해 주세요.";
           setResult({ status: "error", message });
           return;
         }
@@ -122,10 +122,10 @@ function PackSuccessContent() {
     <div className="rounded-2xl border border-line bg-white p-8 text-center shadow-sm">
       <h1 className="text-2xl font-bold">구매가 완료되었습니다</h1>
       <p className="mt-3 text-sm text-ink/70">
-        <strong>{pack?.label ?? result.packId}</strong> 크레딧이 지급되었습니다.
+        <strong>{pack?.label ?? result.packId}</strong> 토큰이 지급되었습니다.
       </p>
       <p className="mt-2 text-sm text-ink/60">
-        현재 크레딧 잔액: <strong>{result.balance}</strong>
+        현재 토큰 잔액: <strong>{result.balance.toLocaleString("ko-KR")}</strong>
       </p>
       <Link
         href="/create"

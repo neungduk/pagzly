@@ -382,8 +382,23 @@ export default function CreateDraftPage() {
         draftToken: draftAfterEnhance.draftToken,
       }),
     });
-    const json = (await res.json()) as GenerateResponse & { error?: string };
-    if (!res.ok) throw new Error(json.error ?? "최종 생성에 실패했습니다.");
+    const json = (await res.json()) as GenerateResponse & {
+      error?: string;
+      balance?: number;
+      required?: number;
+    };
+    if (!res.ok) {
+      if (res.status === 402 && json.error === "insufficient_credits") {
+        const balance = json.balance ?? 0;
+        const required = json.required;
+        throw new Error(
+          required != null
+            ? `토큰이 부족합니다 (필요 ${required.toLocaleString("ko-KR")} / 보유 ${balance.toLocaleString("ko-KR")})`
+            : "토큰이 부족합니다. 토큰을 충전한 뒤 다시 시도해 주세요.",
+        );
+      }
+      throw new Error(json.error ?? "최종 생성에 실패했습니다.");
+    }
 
     setOverlaySnap(true);
     await new Promise((r) => setTimeout(r, SNAP_HOLD_MS));

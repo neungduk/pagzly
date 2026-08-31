@@ -83,7 +83,7 @@ export const LANDING_PLANS: LandingPlan[] = [
     period: "월",
     description: "처음 시작하는 셀러를 위한 플랜",
     features: [
-      "월 10크레딧 (상세페이지 10건)",
+      "월 1,000토큰 (긴 구성 약 10건)",
       "AI 자동 카피·레이아웃·색감 완성",
       "고해상도 이미지 즉시 다운로드",
       "직접 편집 가능",
@@ -97,7 +97,7 @@ export const LANDING_PLANS: LandingPlan[] = [
     period: "월",
     description: "매출이 늘고 있는 셀러를 위한 플랜",
     features: [
-      "월 30크레딧 (상세페이지 30건)",
+      "월 3,000토큰 (긴 구성 약 30건)",
       "AI 자동 카피·레이아웃·색감 완성",
       "고해상도 이미지 즉시 다운로드",
       "직접 편집 가능",
@@ -111,7 +111,7 @@ export const LANDING_PLANS: LandingPlan[] = [
     period: "월",
     description: "다품목을 운영하는 셀러를 위한 플랜",
     features: [
-      "월 55크레딧 (상세페이지 55건)",
+      "월 5,500토큰 (긴 구성 약 55건)",
       "AI 자동 카피·레이아웃·색감 완성",
       "고해상도 이미지 즉시 다운로드",
       "직접 편집 가능",

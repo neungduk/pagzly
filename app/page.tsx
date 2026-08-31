@@ -357,11 +357,11 @@ export default async function Home() {
               ))}
             </RevealOnScroll>
             <p className="mt-10 text-center text-sm text-ink/50">
-              가입하면 무료 크레딧 5개를 드립니다.{" "}
+              가입하면 무료 토큰 500개를 드립니다.{" "}
               <Link href="/billing/packs" className="underline underline-offset-2 hover:text-ink">
-                구독 없이 크레딧만 추가 구매
+                구독 없이 토큰만 추가 구매
               </Link>
-              하는 것도 가능해요 (5개 ₩16,900 · 15개 ₩44,900).
+              하는 것도 가능해요 (500토큰 ₩16,900 · 1,500토큰 ₩44,900).
             </p>
           </div>
         </section>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import TokenBalanceBadge from "@/components/TokenBalanceBadge";
 import { createClient } from "@/lib/supabase";
 
 const NAV_ITEMS = [
@@ -10,6 +11,8 @@ const NAV_ITEMS = [
     label: "상세페이지 만들기",
     match: (path: string) =>
       path === "/create" ||
+      path.startsWith("/create/detail") ||
+      path.startsWith("/create/social") ||
       path.startsWith("/create/result") ||
       path.startsWith("/create/draft"),
     icon: (
@@ -90,6 +93,7 @@ export default function AppSidebar() {
       </nav>
 
       <div className="border-t border-line p-2">
+        <TokenBalanceBadge />
         <button
           type="button"
           onClick={() => void handleLogout()}

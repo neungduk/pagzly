@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       status: "done",
       purchase_type: "pack_purchase",
       item_id: packId,
-      credits_granted: pack.credits,
+      credits_granted: pack.tokens,
       confirmed_at: new Date().toISOString(),
     });
 
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
 
     const { data: newBalance, error: grantError } = await serviceClient.rpc("grant_credits", {
       p_user_id: user.id,
-      p_amount: pack.credits,
+      p_amount: pack.tokens,
       p_reason: "pack_purchase",
       p_reference_id: orderId,
     });

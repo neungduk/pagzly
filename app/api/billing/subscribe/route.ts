@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
       status: "done",
       purchase_type: "subscription_initial",
       item_id: tier,
-      credits_granted: pricingTier.monthlyCredits,
+      credits_granted: pricingTier.monthlyTokens,
       confirmed_at: now.toISOString(),
     });
 
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
 
     const { data: newBalance, error: grantError } = await serviceClient.rpc("grant_credits", {
       p_user_id: customerKey,
-      p_amount: pricingTier.monthlyCredits,
+      p_amount: pricingTier.monthlyTokens,
       p_reason: "subscription_grant",
       p_reference_id: orderId,
     });

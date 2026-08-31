@@ -58,7 +58,11 @@ async function main() {
   }
 
   const browser = await chromium.launch();
-  const context = await browser.newContext({ storageState: STORAGE_STATE_PATH });
+  const context = await browser.newContext({
+    storageState: STORAGE_STATE_PATH,
+    viewport: { width: 430, height: 900 },
+    deviceScaleFactor: 2,
+  });
   const reportLines: string[] = [
     "# Playwright 시각 QA 리포트",
     "",
@@ -82,10 +86,7 @@ async function main() {
     const consoleErrors: string[] = [];
     const failedImages: string[] = [];
 
-    const page = await context.newPage({
-      viewport: { width: 430, height: 900 },
-      deviceScaleFactor: 2,
-    });
+    const page = await context.newPage();
 
     page.on("console", (msg) => {
       if (msg.type() === "error") {
