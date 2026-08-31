@@ -23,6 +23,7 @@ import {
   shouldUseEditorialBleed,
 } from "@/lib/detail-visual-rhythm";
 import EditableText from "@/components/EditableText";
+import ColorVariationInteractive from "@/components/ColorVariationInteractive";
 import DetailScrollReveal from "@/components/DetailScrollReveal";
 import SectionImage from "@/components/SectionImage";
 import {
@@ -1527,41 +1528,17 @@ function renderSection(
     case "color_variation": {
       const ratioClass = resolveImageRatioClass(section);
       return (
-        <section
-          key={`color_variation-${index}`}
-          className={getCategoryRhythm(category).generousPadClass}
-          style={textSectionStyle(theme, pattern)}
-        >
-          <SectionAccentHairline theme={theme} />
-          <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}>
-            {section.heading}
-          </h3>
-          <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {section.options.map((option) => {
-              const src = resolveImage(imageUrls, option.imageIndex);
-              return (
-                <div key={option.label} className="space-y-2 text-center">
-                  <SectionImage
-                    src={src}
-                    alt={option.label}
-                    className={`${ratioClass} w-full object-cover`}
-                  />
-                  <div className="flex items-center justify-center gap-2 text-sm text-ink/80">
-                    <span
-                      className="h-4 w-4 shrink-0 rounded-full"
-                      style={{
-                        backgroundColor: option.colorHex,
-                        boxShadow: `0 0 0 1px ${theme.accent}33`,
-                      }}
-                      aria-hidden="true"
-                    />
-                    {option.label}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
+        <ColorVariationInteractive
+          section={section}
+          index={index}
+          imageUrls={imageUrls}
+          theme={theme}
+          ratioClass={ratioClass}
+          padClass={getCategoryRhythm(category).generousPadClass}
+          textSectionStyle={textSectionStyle(theme, pattern)}
+          accentHairline={<SectionAccentHairline theme={theme} />}
+          titleClassName={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+        />
       );
     }
 

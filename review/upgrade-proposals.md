@@ -21,7 +21,20 @@
 
 ---
 
-## P0 — 다음 브리프 후보 (범위 작음, 회귀 위험 낮음)
+## P0 — 구현 완료 (48차 Track 2-D)
+
+| ID | 내용 | 파일 | 상태 |
+|----|------|------|------|
+| P0-1 | 패션 `size_table` note — 호칭만 쓰지 말고 실측·없으면 판매자 확인 | `lib/section-templates.ts` FASHION `size_table.note` | ✅ 29차+ |
+| P0-2 | 식품 슬롯 — 원산지·알레르기·보관은 입력·고시 근거만 | `lib/food-compliance.ts` FOOD_SLOT_FACT_PROMPT + FOOD slot notes | ✅ 29차+ |
+| P0-3 | 생성 로그 `category` + lengthGuide 헤더 | `app/api/generate/route.ts` | ✅ 29차+ |
+| P0-4 | 패션 업로드 힌트 — 착장·디테일·코디 | `lib/image-roles.ts` getUploadRoleGuide | ✅ 36차+ |
+
+---
+
+## P0 — (이전) 다음 브리프 후보
+
+_위 항목은 모두 구현 완료. 아래는 아카이브._
 
 | ID | 제안 | 파일/위치 | 근거 | 구현 시 주의 |
 |----|------|-----------|------|--------------|
@@ -36,6 +49,9 @@
 
 | ID | 제안 | 근거 | 리스크 |
 |----|------|------|--------|
+| P1-7 | **채팅형 편집 Phase 2** — 전체 페이지 단위 채팅(섹션 추가·순서 변경 지시) | 크리에이지 1단계 벤치마크 (48차) | 슬롯 신설·순서 변경 — 승인 필요 |
+| P1-8 | **채팅형 편집 Phase 3** — 요소 단위 클릭 + 레퍼런스 이미지 채팅 첨부 | 크리에이지 3단계 + `lib/reference-analysis.ts` 연동 여지 | UI·API 범위 큼 |
+| P1-9 | patch-section 토큰 과금 여부 | 46차 토큰 SSOT — completion만 과금 중 | 제품 결정 |
 | P1-1 | `반려동물` 전용 `TemplateCategory` + 급여/성분 중심 슬롯 (FOOD와 HOME 하이브리드) | §10.6 — 중기 후보 | 슬롯 순서·렌더러·프롬프트 전면 |
 | P1-2 | 패션 사진 역할 힌트(착장/디테일/코디)를 `assignDistinctSectionImages` prefer에 연결 | 경쟁툴 컷 분류 vs 우리 편중 이슈 | 배정 회귀 |
 | P1-3 | `review_highlight`를 “입력된 리뷰 요약이 있을 때만” 전 카테고리 선택 슬롯화 | CRO trust cascade | 가짜 후기 위험 — **입력 있을 때만** 전제 필수 |
@@ -65,7 +81,7 @@
 | ID | 제안 | 비고 |
 |----|------|------|
 | P2-1 | 영상/짧은 모션 히어로 | 새 AI 프로바이더 필요 — 범위 밖 |
-| P2-2 | HTML export 인터랙티브 컬러 스와치 | 마켓플레이스 script 제거 여부 미검증 (27차에서도 보류) |
+| P2-2 | HTML export 인터랙티브 컬러 스와치 | **48차 결론:** 스마트스토어·쿠팡 상세 HTML은 `<script>`·`<style>` 태그 차단(네이버 FAQ 4414). CSS-only `:checked`+radio는 **Pagzly 미리보기·자체 HTML 다운로드**에서 동작. 마켓 업로드용 export는 스타일 태그 제거 시 정적 그리드로 폴백 필요 — 별도 브리프. 구현: `ColorVariationInteractive`(미리보기) + `export-detail-html` radio 스와치 |
 | P2-3 | 3색 → 카테고리별 추가 토큰 | **비권장** — CHECKLIST·토큰과 충돌 |
 
 ---

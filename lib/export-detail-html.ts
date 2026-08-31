@@ -356,24 +356,54 @@ function sectionHtml(
           </tbody>
         </table>
       </section>`;
-    case "color_variation":
+    case "color_variation": {
+      const cvId = `pagzly-cv-${section.slot.replace(/\W/g, "")}`;
+      const inputs = section.options
+        .map(
+          (opt, i) =>
+            `<input type="radio" name="${cvId}" id="${cvId}-${i}"${i === 0 ? " checked" : ""} style="position:absolute;opacity:0;width:1px;height:1px;overflow:hidden"/>`,
+        )
+        .join("");
+      const swatches = section.options
+        .map(
+          (opt, i) =>
+            `<label for="${cvId}-${i}" style="display:inline-flex;align-items:center;gap:8px;margin:4px;padding:6px 12px;border:1px solid ${accent}44;border-radius:999px;font-size:14px;cursor:pointer">
+              <span style="width:16px;height:16px;border-radius:999px;background:${esc(opt.colorHex)};box-shadow:0 0 0 1px ${accent}44"></span>
+              ${esc(opt.label)}
+            </label>`,
+        )
+        .join("");
+      const images = section.options
+        .map((opt, i) => {
+          const optSrc = imageUrls[opt.imageIndex] ?? "";
+          return optSrc
+            ? `<img class="${cvId}-img" data-cv="${i}" src="${esc(optSrc)}" alt="${esc(opt.label)}" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px"/>`
+            : "";
+        })
+        .join("");
+      const selectors = section.options
+        .flatMap((_, active) => {
+          const show = section.options
+            .map(
+              (__, i) =>
+                `#${cvId}-${active}:checked ~ .${cvId}-stage .${cvId}-img[data-cv="${i}"]{display:${i === active ? "block" : "none"}!important}`,
+            )
+            .join("");
+          return show;
+        })
+        .join("");
       return `<section class="pagzly-color-variation" style="${pad}${sectionInset}background:${sectionBg}">
+        <style>
+          .${cvId}-swatches label:hover{border-color:${deep}!important}
+          .${cvId}-img{display:none}
+          ${selectors}
+        </style>
+        ${inputs}
         <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;max-width:640px;margin:32px auto 0">
-          ${section.options
-            .map((opt) => {
-              const optSrc = imageUrls[opt.imageIndex] ?? "";
-              return `<div style="text-align:center">
-                ${optSrc ? `<img src="${esc(optSrc)}" alt="${esc(opt.label)}" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px"/>` : ""}
-                <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;font-size:14px">
-                  <span style="width:16px;height:16px;border-radius:999px;background:${esc(opt.colorHex)};box-shadow:0 0 0 1px ${accent}44"></span>
-                  ${esc(opt.label)}
-                </div>
-              </div>`;
-            })
-            .join("")}
-        </div>
+        <div class="${cvId}-swatches" style="text-align:center;margin:32px auto 0">${swatches}</div>
+        <div class="${cvId}-stage" style="margin:24px auto 0;max-width:360px">${images}</div>
       </section>`;
+    }
     case "illustration_banner": {
       const illSrc = section.illustrationUrl || imageUrls[0] || "";
       return `<section class="pagzly-illustration-banner" style="position:relative;aspect-ratio:16/9;overflow:hidden;background:${deep}">
