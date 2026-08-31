@@ -307,12 +307,12 @@ export const SECTION_PADDING_CLASS = "p-6 sm:p-10";
 
 /** 렌더러 전용 — 레퍼런스급 여백 리듬(넉넉한 본문 / 타이트한 갤러리 헤더). */
 export const SECTION_BLOCK_PAD = {
-  generous: "px-6 py-14 sm:px-10 sm:py-24",
-  compact: "px-6 py-12 sm:px-10 sm:py-20",
-  pointText: "px-6 pt-9 pb-14 sm:px-10 sm:pt-11 sm:pb-20",
-  galleryTitle: "px-6 pt-8 pb-0 text-center sm:px-10 sm:pt-10 sm:pb-0",
-  cta: "px-6 py-20 sm:px-10 sm:py-32",
-  trust: "px-6 py-14 sm:px-10 sm:py-20",
+  generous: "px-6 py-16 sm:px-10 sm:py-28",
+  compact: "px-6 py-14 sm:px-10 sm:py-24",
+  pointText: "px-6 pt-10 pb-16 sm:px-10 sm:pt-12 sm:pb-24",
+  galleryTitle: "px-6 pt-9 pb-0 text-center sm:px-10 sm:pt-11 sm:pb-0",
+  cta: "px-6 py-24 sm:px-10 sm:py-36",
+  trust: "px-6 py-16 sm:px-10 sm:py-24",
 } as const;
 
 /** CTA 마감 밴드 — deepAccent 3색 안에서만 (별도 네이비/신규 색 금지). */
@@ -376,7 +376,7 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
       heroOverlayClass:
         "absolute inset-0 z-20 flex flex-col items-center justify-end px-10 pb-16 text-center sm:px-14 sm:pb-24",
       heroTitleExtra: "tracking-[-0.045em]",
-      generousPadClass: "px-6 py-14 sm:px-10 sm:py-24",
+      generousPadClass: "px-6 py-16 sm:px-10 sm:py-28",
       checklistGridFour: "grid-cols-2 sm:grid-cols-4",
       checklistGapClass: "gap-x-5 gap-y-8",
       pointTextPadClass: "px-8 pt-10 pb-16 sm:px-12 sm:pt-12 sm:pb-20",
@@ -393,7 +393,7 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
       ...DEFAULT_RHYTHM,
       heroOverlayClass:
         "absolute inset-0 z-20 flex flex-col items-center justify-end px-7 pb-20 text-center sm:px-12 sm:pb-32",
-      generousPadClass: "px-6 py-16 sm:px-10 sm:py-32",
+      generousPadClass: "px-6 py-20 sm:px-10 sm:py-36",
       checklistGridFour: "grid-cols-2 sm:grid-cols-4",
       checklistGapClass: "gap-x-6 gap-y-12",
       pointTextPadClass: "px-6 pt-12 pb-16 sm:px-10 sm:pt-16 sm:pb-24",
@@ -409,7 +409,7 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
       ...DEFAULT_RHYTHM,
       heroMinClass: "min-h-[78svh] sm:min-h-[700px]",
       heroTitleExtra: "tracking-[-0.05em] tabular-nums",
-      generousPadClass: "px-6 py-14 sm:px-10 sm:py-24",
+      generousPadClass: "px-6 py-16 sm:px-10 sm:py-28",
       checklistGridFour: "grid-cols-2 sm:grid-cols-4",
       checklistGapClass: "gap-x-5 gap-y-10",
       pointTextPadClass: "px-6 pt-7 pb-11 sm:px-10 sm:pt-9 sm:pb-14",
