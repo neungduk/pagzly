@@ -8,24 +8,32 @@ import fs from "fs";
 import path from "path";
 import { MARKETPLACE_PDP_MODULES, scoreMarketplaceModules } from "../lib/marketplace-pdp-patterns";
 import { extractUrlSummary } from "../lib/url-crawler";
+import { captureCompetitorLanding } from "./competitor-landing-capture";
 
 const ROOT = path.join(__dirname, "..");
 const OUT = path.join(ROOT, "review", "marketplace-pdp-learning-2026.md");
 
 type SiteGroup = {
   title: string;
-  sites: Array<{ name: string; url: string; kind: "ai_tool" | "market_guide" | "reference" }>;
+  sites: Array<{
+    name: string;
+    url: string;
+    kind: "ai_tool" | "market_guide" | "reference";
+    slug?: string;
+  }>;
 };
 
 const SITE_GROUPS: SiteGroup[] = [
   {
     title: "AI 상세페이지 도구",
     sites: [
-      { name: "후커블", url: "https://www.hookable.ai/", kind: "ai_tool" },
-      { name: "크리에이지", url: "https://creazy.ai/", kind: "ai_tool" },
-      { name: "GENCY", url: "https://gency.ai/", kind: "ai_tool" },
-      { name: "알잘AI", url: "https://alzal.kr/", kind: "ai_tool" },
-      { name: "드랩아트", url: "https://draph.art/", kind: "ai_tool" },
+      { name: "후커블", url: "https://www.hookable.ai/", kind: "ai_tool", slug: "hookable" },
+      { name: "크리에이지", url: "https://creazy.ai/", kind: "ai_tool", slug: "creazy" },
+      { name: "GENCY", url: "https://gency.ai/", kind: "ai_tool", slug: "gency" },
+      { name: "알잘AI", url: "https://alzal.kr/", kind: "ai_tool", slug: "alzal" },
+      { name: "드랩아트", url: "https://draph.art/", kind: "ai_tool", slug: "draph" },
+      { name: "가비아 AI 에디터", url: "https://aieditor.gabia.com/", kind: "ai_tool", slug: "gabia" },
+      { name: "셀러비서", url: "https://sellerbiseo.com/ko/", kind: "ai_tool", slug: "sellerbiseo" },
     ],
   },
   {
@@ -95,6 +103,13 @@ async function crawlAll() {
     blocks.push(`## ${group.title}\n`);
     for (const site of group.sites) {
       const result = await extractUrlSummary(site.url);
+      const slug =
+        site.slug ??
+        new URL(site.url).hostname.replace(/^www\./, "").split(".")[0] ??
+        "site";
+      const shot =
+        site.kind === "ai_tool" ? await captureCompetitorLanding(slug, site.url) : null;
+
       if (!result.ok) {
         blocks.push(`### ${site.name}\n- URL: ${site.url}\n- **크롤 실패**: ${result.reason}\n`);
         continue;
@@ -118,7 +133,12 @@ async function crawlAll() {
           `- kind: ${site.kind}\n` +
           `- title: ${result.title}\n` +
           `- 모듈 신호: ${topModules || "(없음)"}\n` +
-          `- excerpt: ${result.excerpt.slice(0, 240)}${result.excerpt.length > 240 ? "…" : ""}\n`,
+          `- excerpt: ${result.excerpt.slice(0, 240)}${result.excerpt.length > 240 ? "…" : ""}\n` +
+          (shot
+            ? shot.ok
+              ? `- 스크린샷: \`review/competitor-screens/${path.basename(shot.path)}\`\n`
+              : `- 스크린샷 실패: ${shot.reason}\n`
+            : ""),
       );
     }
   }
@@ -147,13 +167,15 @@ function gapsTable(): string {
 
 async function main() {
   const { body: crawled, moduleHits } = await crawlAll();
-  const md = `# 마켓플레이스·경쟁사 PDP 학습 (2026-08-28)
+  const md = `# 마켓플레이스·경쟁사 PDP 학습 (2026-08-31)
 
 자동 생성: \`npx tsx scripts/marketplace-pdp-scan.ts\`
 
+> 이번엔 텍스트뿐 아니라 실제 화면도 캡처함 — \`review/competitor-screens/\` (AI 도구 랜딩)
+
 ## 요약
 
-- **크롤 대상**: AI 상세 도구 5곳 + 마켓 PDP 가이드 3곳 (공개 HTML, API 비용 $0)
+- **크롤 대상**: AI 상세 도구 7곳 + 마켓 PDP 가이드 3곳 (공개 HTML, API 비용 $0)
 - **학습 방법**: 랜딩/가이드 텍스트에서 Page Maker 모듈 키워드 매칭 → Pagzly 슬롯과 대조
 - **비목표**: 가짜 리뷰, AR/3D, Figma 네이티브 (비용·정책)
 
@@ -169,9 +191,15 @@ ${moduleCoverageTable(moduleHits)}
 
 ${gapsTable()}
 
-## 이번 라운드 코드 반영
+## 이번 라운드 코드 반영 (45차)
 
-${CODE_UPGRADES.map((u) => `- ${u}`).join("\n")}
+${[
+  "lib/landing-content.ts — 레퍼런스 이미지 마케팅 문구",
+  "lib/url-crawler.ts — extractCompetitorDifferentiation",
+  "app/create/draft/page.tsx — 경쟁사 대비 차별화 포인트 카드",
+  "scripts/competitor-gap-scan.ts — 가비아·셀러비서 + 스크린샷",
+  ...CODE_UPGRADES,
+].map((u) => `- ${u}`).join("\n")}
 
 ## 디자이너·마켓 공통 원칙 (습득)
 
@@ -185,7 +213,7 @@ ${CODE_UPGRADES.map((u) => `- ${u}`).join("\n")}
 
 1. 채팅형 patch 탭 — 섹션별 재생성 UX
 2. HTML export 인터랙티브 스와치 — 마켓 script 정책 검증 후
-3. 이미지 dedup QA — assignDistinctSectionImages 회귀 테스트 강화
+3. 이미지 dedup QA — 소스 장수 부족 시 STRUCTURAL 분류 (45차 qa-visual-check 반영)
 `;
 
   fs.mkdirSync(path.dirname(OUT), { recursive: true });

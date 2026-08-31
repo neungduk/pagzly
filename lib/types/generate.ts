@@ -26,6 +26,11 @@ export type ReviewInsightsInput = {
   commonComplaints: string[];
 };
 
+export type CompetitorDifferentiationInput = {
+  competitorFocus: string[];
+  differentiationHints: string[];
+};
+
 export type SlotLength = "short" | "long";
 
 export type GenerateMode = "draft" | "final";
@@ -75,6 +80,7 @@ export type ProductInput = {
   referenceAnalysis?: ReferenceAnalysisInput | null;
   reviewInsights?: ReviewInsightsInput | null;
   planningDocText?: string | null;
+  competitorDifferentiation?: CompetitorDifferentiationInput | null;
   photoProcessingCost?: number;
   conceptBrief?: ConceptBrief;
   photoCostBreakdown?: PhotoCostBreakdown;
@@ -405,6 +411,7 @@ export type GenerateResponse = GeneratedCopy & {
   referenceAnalysis?: ReferenceAnalysisInput | null;
   reviewInsights?: ReviewInsightsInput | null;
   planningDocText?: string | null;
+  competitorDifferentiation?: CompetitorDifferentiationInput | null;
 };
 
 /** /api/generate mode=draft 응답 */
@@ -423,4 +430,5 @@ export type DraftGenerateResponse = GeneratedCopy & {
   referenceAnalysis?: ReferenceAnalysisInput | null;
   reviewInsights?: ReviewInsightsInput | null;
   planningDocText?: string | null;
+  competitorDifferentiation?: CompetitorDifferentiationInput | null;
 };

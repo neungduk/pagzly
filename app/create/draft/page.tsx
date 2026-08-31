@@ -201,6 +201,7 @@ export default function CreateDraftPage() {
           referenceAnalysis: json.referenceAnalysis ?? draft.payload.referenceAnalysis,
           reviewInsights: json.reviewInsights ?? null,
           planningDocText: json.planningDocText ?? null,
+          competitorDifferentiation: json.competitorDifferentiation ?? null,
         },
         draftToken: json.draftToken,
         sections: json.sections,
@@ -217,6 +218,7 @@ export default function CreateDraftPage() {
         referenceAnalysis: json.referenceAnalysis,
         reviewInsights: json.reviewInsights,
         planningDocText: json.planningDocText,
+        competitorDifferentiation: json.competitorDifferentiation,
         draftApproved: false,
       });
       sessionStorage.setItem(
@@ -402,6 +404,8 @@ export default function CreateDraftPage() {
           referenceAnalysis: json.referenceAnalysis ?? draftAfterEnhance.referenceAnalysis,
           reviewInsights: json.reviewInsights ?? draftAfterEnhance.reviewInsights ?? null,
           planningDocText: json.planningDocText ?? draftAfterEnhance.planningDocText ?? null,
+          competitorDifferentiation:
+            json.competitorDifferentiation ?? draftAfterEnhance.competitorDifferentiation ?? null,
           testMode: json.testMode ?? testMode,
           backdropFailed: draftAfterEnhance.payload.backdropFailed ?? false,
           generated: json,
@@ -585,11 +589,15 @@ export default function CreateDraftPage() {
             )}
         </div>
 
-        {(draft.reviewInsights || draft.referenceAnalysis) &&
+        {(draft.reviewInsights ||
+          draft.referenceAnalysis ||
+          draft.competitorDifferentiation) &&
           ((draft.referenceAnalysis?.colorHex?.length ?? 0) > 0 ||
             (draft.referenceAnalysis?.moodKeywords?.length ?? 0) > 0 ||
             (draft.reviewInsights?.commonPraises?.length ?? 0) > 0 ||
-            (draft.reviewInsights?.commonComplaints?.length ?? 0) > 0) && (
+            (draft.reviewInsights?.commonComplaints?.length ?? 0) > 0 ||
+            (draft.competitorDifferentiation?.competitorFocus?.length ?? 0) > 0 ||
+            (draft.competitorDifferentiation?.differentiationHints?.length ?? 0) > 0) && (
             <div className="relative mb-8 rounded-2xl border border-line bg-paper p-5 shadow-sm sm:p-6">
               <CropMarks color="text-line/80" />
               <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/40">
@@ -643,6 +651,32 @@ export default function CreateDraftPage() {
                       <ul className="mt-1 space-y-1 text-sm text-ink/70">
                         {draft.reviewInsights?.commonComplaints.map((c) => (
                           <li key={c}>· {c}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {((draft.competitorDifferentiation?.competitorFocus?.length ?? 0) > 0 ||
+                (draft.competitorDifferentiation?.differentiationHints?.length ?? 0) > 0) && (
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  {(draft.competitorDifferentiation?.competitorFocus?.length ?? 0) > 0 && (
+                    <div>
+                      <p className="text-sm font-semibold text-ink">경쟁 페이지가 강조하는 포인트</p>
+                      <ul className="mt-1 space-y-1 text-sm text-ink/70">
+                        {draft.competitorDifferentiation?.competitorFocus.map((p) => (
+                          <li key={p}>· {p}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {(draft.competitorDifferentiation?.differentiationHints?.length ?? 0) > 0 && (
+                    <div>
+                      <p className="text-sm font-semibold text-ink">우리 상품이 다르게 어필할 수 있는 지점</p>
+                      <ul className="mt-1 space-y-1 text-sm text-ink/70">
+                        {draft.competitorDifferentiation?.differentiationHints.map((h) => (
+                          <li key={h}>· {h}</li>
                         ))}
                       </ul>
                     </div>

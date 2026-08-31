@@ -69,6 +69,7 @@ export type DraftSessionPayload = {
   referenceAnalysis?: DraftGenerateResponse["referenceAnalysis"];
   reviewInsights?: DraftGenerateResponse["reviewInsights"];
   planningDocText?: DraftGenerateResponse["planningDocText"];
+  competitorDifferentiation?: DraftGenerateResponse["competitorDifferentiation"];
   /** false면 원본 이미지로 카피만 뽑은 상태 — 승인 전 */
   draftApproved: boolean;
   formSnapshot: {
@@ -468,6 +469,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           referenceAnalysis: draftResult.referenceAnalysis ?? null,
           reviewInsights: draftResult.reviewInsights ?? null,
           planningDocText: draftResult.planningDocText ?? null,
+          competitorDifferentiation: draftResult.competitorDifferentiation ?? null,
         },
         draftToken: draftResult.draftToken,
         sections: draftResult.sections,
@@ -484,6 +486,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         referenceAnalysis: draftResult.referenceAnalysis,
         reviewInsights: draftResult.reviewInsights,
         planningDocText: draftResult.planningDocText,
+        competitorDifferentiation: draftResult.competitorDifferentiation,
         draftApproved: false,
         formSnapshot: {
           category,

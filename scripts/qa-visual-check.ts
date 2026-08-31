@@ -8,10 +8,11 @@ import fs from "fs";
 import path from "path";
 import { freezeDetailScrollReveal } from "./capture-utils";
 
-const BASE_URL = process.env.BASE_URL ?? "http://localhost:3001";
+const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 const ROOT = path.join(__dirname, "..");
 const OUTPUT_DIR = path.join(ROOT, "review", "qa-screenshots");
 const REPORT_PATH = path.join(ROOT, "review", "qa-report.md");
+const STORAGE_STATE_PATH = path.join(__dirname, "auth-state.json");
 const SESSION_KEY = "pagzly-create-result";
 
 type CategoryCase = {
@@ -52,7 +53,12 @@ async function hashRemoteImage(url: string): Promise<string | null> {
 async function main() {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
+  if (!fs.existsSync(STORAGE_STATE_PATH)) {
+    throw new Error("로그인 세션 없음. npx tsx scripts/save-login-state.ts");
+  }
+
   const browser = await chromium.launch();
+  const context = await browser.newContext({ storageState: STORAGE_STATE_PATH });
   const reportLines: string[] = [
     "# Playwright 시각 QA 리포트",
     "",
@@ -76,7 +82,7 @@ async function main() {
     const consoleErrors: string[] = [];
     const failedImages: string[] = [];
 
-    const page = await browser.newPage({
+    const page = await context.newPage({
       viewport: { width: 430, height: 900 },
       deviceScaleFactor: 2,
     });
@@ -134,6 +140,15 @@ async function main() {
 
     const duplicates = [...hashMap.entries()].filter(([, urls]) => urls.length > 1);
     const sectionUrls = session.imageUrls ?? [];
+    const sourceImageCount = sectionUrls.length;
+    const structuralReuse =
+      duplicates.length > 0 && sourceImageCount > 0 && imgSrcs.length > sourceImageCount;
+    const duplicateLabel =
+      duplicates.length === 0
+        ? "없음 (PASS)"
+        : structuralReuse
+          ? `구조적 재사용 (소스 ${sourceImageCount}장 < DOM ${imgSrcs.length}장) — 사진 추가 권장`
+          : `${duplicates.length}건 (WARN)`;
     const sectionHashes = new Set<string>();
     for (const url of sectionUrls) {
       const h = await hashRemoteImage(url);
@@ -150,7 +165,7 @@ async function main() {
       `- **스크린샷:** \`review/qa-screenshots/${testCase.key}-full.png\``,
       `- **렌더 img 태그:** ${imgSrcs.length}개`,
       `- **섹션 imageUrls 고유 해시:** ${sectionUnique}/${sectionUrls.length} → ${sectionDistinctOk ? "PASS" : "FAIL"}`,
-      `- **DOM img 해시 중복:** ${duplicates.length === 0 ? "없음 (PASS)" : `${duplicates.length}건 (WARN)`}`,
+      `- **DOM img 해시 중복:** ${duplicateLabel}`,
     );
 
     if (duplicates.length > 0) {
@@ -173,6 +188,7 @@ async function main() {
 
   fs.writeFileSync(REPORT_PATH, reportLines.join("\n"), "utf8");
   console.log(`리포트 저장: ${REPORT_PATH}`);
+  await context.close();
   await browser.close();
 }
 

@@ -131,3 +131,108 @@ export async function extractUrlSummary(url: string): Promise<UrlSummaryResult> 
     clearTimeout(timer);
   }
 }
+
+export type CompetitorDifferentiation = {
+  competitorFocus: string[];
+  differentiationHints: string[];
+};
+
+const DEEPSEEK_MODEL = "deepseek-v4-flash";
+const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
+
+function normalizeDifferentiation(raw: unknown): CompetitorDifferentiation | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const competitorFocus = Array.isArray(o.competitorFocus)
+    ? o.competitorFocus.map(String).filter(Boolean).slice(0, 3)
+    : [];
+  const differentiationHints = Array.isArray(o.differentiationHints)
+    ? o.differentiationHints.map(String).filter(Boolean).slice(0, 3)
+    : [];
+  if (competitorFocus.length === 0 && differentiationHints.length === 0) return null;
+  return { competitorFocus, differentiationHints };
+}
+
+function parseKeyFeaturesList(raw: string[]): string[] {
+  return raw.flatMap((line) =>
+    line
+      .split(/[,，\n]/)
+      .map((s) => s.trim())
+      .filter(Boolean),
+  );
+}
+
+/**
+ * 경쟁사 URL 요약(extractUrlSummary 결과)을 구조화된 차별화 포인트로 변환.
+ * 실패 시 null (throw 금지).
+ */
+export async function extractCompetitorDifferentiation(
+  productName: string,
+  productKeyFeatures: string[],
+  competitorSummary: { title: string; excerpt: string },
+): Promise<CompetitorDifferentiation | null> {
+  if (!process.env.DEEPSEEK_API_KEY) {
+    console.warn("[url-crawler] DEEPSEEK_API_KEY 없음 — competitor differentiation 생략");
+    return null;
+  }
+
+  const features = parseKeyFeaturesList(productKeyFeatures);
+  const prompt = `다음은 경쟁사 상품 페이지 요약과 우리 상품 정보입니다.
+**입력에 실제로 있는 내용만** 바탕으로 구조적 차이를 요약하세요.
+- 경쟁사 브랜드명·카피 문구를 그대로 인용하지 마세요.
+- 입력에 없는 수치·인증·가격 비교·효능을 지어내지 마세요.
+- 확실하지 않으면 해당 항목은 빈 배열로 두세요.
+
+## 우리 상품
+- 이름: ${productName}
+- 특징: ${features.length > 0 ? features.join(", ") : "(미입력)"}
+
+## 경쟁사 페이지 요약
+- title: ${competitorSummary.title}
+- excerpt: ${competitorSummary.excerpt}
+
+JSON만 반환:
+{
+  "competitorFocus": ["경쟁사가 강조하는 포인트 2~3개, 각 1문장"],
+  "differentiationHints": ["우리 상품이 다르게 강조할 수 있는 지점 2~3개, 각 1문장"]
+}`;
+
+  try {
+    const response = await fetch(DEEPSEEK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: DEEPSEEK_MODEL,
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+        temperature: 0.2,
+      }),
+    });
+
+    const rawBody = await response.text();
+    if (!response.ok) {
+      console.warn("[url-crawler] competitor differentiation DeepSeek 오류:", rawBody.slice(0, 200));
+      return null;
+    }
+
+    const data = JSON.parse(rawBody) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) return null;
+
+    const parsed = normalizeDifferentiation(JSON.parse(content));
+    if (parsed) {
+      console.log(
+        `[url-crawler] competitor differentiation focus=${parsed.competitorFocus.length} hints=${parsed.differentiationHints.length}`,
+      );
+    }
+    return parsed;
+  } catch (error) {
+    console.warn("[url-crawler] competitor differentiation 실패", error);
+    return null;
+  }
+}

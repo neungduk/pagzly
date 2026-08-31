@@ -25,7 +25,7 @@ import {
   resolveTemplateCategory,
   type SlotDefinition,
 } from "@/lib/section-templates";
-import { extractUrlSummary, type UrlSummaryResult } from "@/lib/url-crawler";
+import { extractUrlSummary, extractCompetitorDifferentiation, type UrlSummaryResult } from "@/lib/url-crawler";
 import { buildQAFixPrompt, runDetailPageQA } from "@/lib/detail-page-qa";
 import { enrichSectionsWithProductMetadata } from "@/lib/enrich-product-sections";
 import { insertReviewHighlightSection } from "@/lib/section-inserts";
@@ -533,6 +533,30 @@ async function loadAuxiliaryInputs(body: ProductInput): Promise<{
       enriched.planningDocText = result.text || null;
     } catch (err) {
       console.warn("[generate] planning-doc 실패", err);
+    }
+  }
+
+  if (body.competitorUrl && !body.competitorDifferentiation) {
+    try {
+      const competitorResult = await extractUrlSummary(body.competitorUrl);
+      if (competitorResult.ok) {
+        const keyFeatures = body.keyFeatures
+          ? body.keyFeatures
+              .split(/[,，\n]/)
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [];
+        const differentiation = await extractCompetitorDifferentiation(
+          body.productName,
+          keyFeatures,
+          { title: competitorResult.title, excerpt: competitorResult.excerpt },
+        );
+        if (differentiation) {
+          enriched.competitorDifferentiation = differentiation;
+        }
+      }
+    } catch (err) {
+      console.warn("[generate] competitor-differentiation 실패", err);
     }
   }
 
@@ -1213,6 +1237,7 @@ export async function POST(request: Request) {
           referenceAnalysis: enrichedBody.referenceAnalysis ?? null,
           reviewInsights: enrichedBody.reviewInsights ?? null,
           planningDocText: enrichedBody.planningDocText ?? null,
+          competitorDifferentiation: enrichedBody.competitorDifferentiation ?? null,
         });
       }
     } else {
@@ -1667,6 +1692,7 @@ export async function POST(request: Request) {
       referenceAnalysis: enrichedBody.referenceAnalysis ?? null,
       reviewInsights: enrichedBody.reviewInsights ?? null,
       planningDocText: enrichedBody.planningDocText ?? null,
+      competitorDifferentiation: enrichedBody.competitorDifferentiation ?? null,
     });
   } catch (error) {
     console.error("[generate]", error);

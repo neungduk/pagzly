@@ -41,7 +41,7 @@ export const LANDING_FEATURES: LandingFeature[] = [
   {
     title: "AI 자동 생성",
     description:
-      "상품 사진만 업로드하면 AI가 카피, 레이아웃, 디자인까지 자동으로 완성합니다.",
+      "상품 사진만 업로드하면 AI가 카피, 레이아웃, 디자인까지 자동으로 완성합니다. 원하는 톤의 레퍼런스 이미지를 함께 올리면 그 색감·무드까지 반영해요.",
   },
   {
     title: "완성 즉시 다운로드",
