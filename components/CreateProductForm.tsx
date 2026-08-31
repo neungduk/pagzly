@@ -994,9 +994,9 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
                   직접 만든 GIF (선택)
                 </label>
                 <p className="mt-1 text-xs text-ink/40">
-                  이미 가지고 계신 GIF를 그대로 상세페이지에 삽입합니다. AI로 새로
-                  만들지 않아 별도 비용이 들지 않으며, 상단 대표 이미지 바로 아래에
-                  들어갑니다.
+                  동영상처럼 움직이는 사용 장면을 넣으면 체류시간이 올라갑니다. 이미 가지고
+                  계신 GIF를 그대로 상세페이지에 삽입합니다(AI 재생성 없음, 별도 비용 없음).
+                  상단 대표 이미지 바로 아래에 들어갑니다.
                 </p>
                 <div className="mt-2 flex flex-wrap items-center gap-3">
                   <button
