@@ -15,6 +15,8 @@ import type {
   ProductInput,
 } from "@/lib/types/generate";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { CREDIT_COST_PER_COMPLETION } from "@/lib/cost/saas-pricing-config";
 import { extractProductTheme } from "@/lib/color-extract";
 import {
   buildSectionLengthGuide,
@@ -1042,6 +1044,22 @@ export async function POST(request: Request) {
       );
     }
 
+    if (mode === "final") {
+      const { data: creditRow } = await supabase
+        .from("user_credits")
+        .select("balance")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      const balance = creditRow?.balance ?? 0;
+      if (balance < CREDIT_COST_PER_COMPLETION) {
+        return NextResponse.json(
+          { error: "insufficient_credits", balance },
+          { status: 402 },
+        );
+      }
+    }
+
     if (!useDraftSections && !process.env.DEEPSEEK_API_KEY) {
       return NextResponse.json(
         { error: "DEEPSEEK_API_KEY가 설정되지 않았습니다." },
@@ -1601,6 +1619,23 @@ export async function POST(request: Request) {
         { error: `상품 저장 실패: ${insertError?.message ?? "알 수 없는 오류"}` },
         { status: 500 },
       );
+    }
+
+    if (mode === "final") {
+      const serviceClient = createServiceRoleClient();
+      const { error: deductError } = await serviceClient.rpc("deduct_credits", {
+        p_user_id: user.id,
+        p_amount: CREDIT_COST_PER_COMPLETION,
+        p_reason: "completion",
+        p_reference_id: savedProduct.id,
+      });
+
+      if (deductError) {
+        console.error(
+          `[generate] deduct_credits failed for user=${user.id} product=${savedProduct.id}:`,
+          deductError,
+        );
+      }
     }
 
     if (body.imagePaths?.length) {

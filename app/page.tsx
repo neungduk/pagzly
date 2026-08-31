@@ -343,8 +343,8 @@ export default async function Home() {
                       </li>
                     ))}
                   </ul>
-                  <a
-                    href="#"
+                  <Link
+                    href="/billing/subscribe"
                     className={`relative mt-8 inline-flex h-11 items-center justify-center text-sm font-semibold transition-colors ${
                       plan.highlighted
                         ? "bg-ink text-paper hover:bg-ink/85"
@@ -352,10 +352,17 @@ export default async function Home() {
                     }`}
                   >
                     {plan.cta}
-                  </a>
+                  </Link>
                 </SpotlightCard>
               ))}
             </RevealOnScroll>
+            <p className="mt-10 text-center text-sm text-ink/50">
+              가입하면 무료 크레딧 5개를 드립니다.{" "}
+              <Link href="/billing/packs" className="underline underline-offset-2 hover:text-ink">
+                구독 없이 크레딧만 추가 구매
+              </Link>
+              하는 것도 가능해요 (5개 ₩16,900 · 15개 ₩44,900).
+            </p>
           </div>
         </section>
 
