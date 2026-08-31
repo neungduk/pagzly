@@ -585,6 +585,73 @@ export default function CreateDraftPage() {
             )}
         </div>
 
+        {(draft.reviewInsights || draft.referenceAnalysis) &&
+          ((draft.referenceAnalysis?.colorHex?.length ?? 0) > 0 ||
+            (draft.referenceAnalysis?.moodKeywords?.length ?? 0) > 0 ||
+            (draft.reviewInsights?.commonPraises?.length ?? 0) > 0 ||
+            (draft.reviewInsights?.commonComplaints?.length ?? 0) > 0) && (
+            <div className="relative mb-8 rounded-2xl border border-line bg-paper p-5 shadow-sm sm:p-6">
+              <CropMarks color="text-line/80" />
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/40">
+                Reference analysis
+              </p>
+              <p className="mt-1 text-xs text-ink/50">
+                업로드하신 참고 자료를 AI가 이렇게 읽고 반영했습니다.
+              </p>
+
+              {((draft.referenceAnalysis?.colorHex?.length ?? 0) > 0 ||
+                (draft.referenceAnalysis?.moodKeywords?.length ?? 0) > 0) && (
+                <div className="mt-4">
+                  <p className="text-sm font-semibold text-ink">레퍼런스 이미지 · 색감/무드</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {draft.referenceAnalysis?.colorHex?.map((hex) => (
+                      <span
+                        key={hex}
+                        className="h-6 w-6 rounded-full border border-line"
+                        style={{ backgroundColor: hex }}
+                        title={hex}
+                      />
+                    ))}
+                    {draft.referenceAnalysis?.moodKeywords?.map((kw) => (
+                      <span
+                        key={kw}
+                        className="rounded-md bg-line/40 px-2 py-0.5 text-xs text-ink/70"
+                      >
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {((draft.reviewInsights?.commonPraises?.length ?? 0) > 0 ||
+                (draft.reviewInsights?.commonComplaints?.length ?? 0) > 0) && (
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  {(draft.reviewInsights?.commonPraises?.length ?? 0) > 0 && (
+                    <div>
+                      <p className="text-sm font-semibold text-ink">자주 언급된 장점</p>
+                      <ul className="mt-1 space-y-1 text-sm text-ink/70">
+                        {draft.reviewInsights?.commonPraises.map((p) => (
+                          <li key={p}>· {p}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {(draft.reviewInsights?.commonComplaints?.length ?? 0) > 0 && (
+                    <div>
+                      <p className="text-sm font-semibold text-ink">자주 언급된 아쉬운 점</p>
+                      <ul className="mt-1 space-y-1 text-sm text-ink/70">
+                        {draft.reviewInsights?.commonComplaints.map((c) => (
+                          <li key={c}>· {c}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
         {photoPending && (
           <div className="mb-6 space-y-3 rounded-xl border border-mustard/40 bg-mustard/10 px-4 py-4 text-sm text-ink/80">
             <p className="font-medium text-ink">배경·보정 일부 실패</p>
