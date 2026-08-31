@@ -1,6 +1,8 @@
 "use client";
 
+import SectionPatchChat from "@/components/SectionPatchChat";
 import SectionStructureEditor from "@/components/SectionStructureEditor";
+import type { PatchChatMessage } from "@/lib/patch-section-suggestions";
 import {
   getTemplateSlotCoverage,
   countMissingRequiredSlots,
@@ -42,6 +44,7 @@ type DetailActionBarProps = {
   onPatchInstructionChange?: (value: string) => void;
   onPatchSubmit?: () => void;
   patchLoading?: boolean;
+  patchMessages?: PatchChatMessage[];
   onGifUploadClick?: () => void;
   category?: string;
   feedProductName?: string;
@@ -52,7 +55,7 @@ type DetailActionBarProps = {
 
 const TABS: { id: DetailToolTab; label: string }[] = [
   { id: "edit", label: "직접 편집" },
-  { id: "patch", label: "섹션 AI" },
+  { id: "patch", label: "섹션 채팅" },
   { id: "upload", label: "원클릭 업로드" },
   { id: "instagram", label: "인스타 피드" },
   { id: "blog", label: "블로그" },
@@ -85,6 +88,7 @@ export default function DetailActionBar({
   onPatchInstructionChange,
   onPatchSubmit,
   patchLoading,
+  patchMessages = [],
   onGifUploadClick,
   category,
   feedProductName,
@@ -218,50 +222,16 @@ export default function DetailActionBar({
       )}
 
       {tab === "patch" && onPatchIndexChange && onPatchInstructionChange && onPatchSubmit && (
-        <div className="space-y-3 p-4" data-testid="panel-patch">
-          <p className="text-xs leading-relaxed text-ink/55">
-            한 섹션만 골라 지시하면 카피·문구를 AI가 같은 구조로 수정합니다. 저장을 눌러 유지하세요.
-          </p>
-          <label className="block text-xs font-medium text-ink/70">
-            수정할 섹션
-            <select
-              data-testid="patch-section-index"
-              className="mt-1 h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm"
-              value={patchIndex}
-              onChange={(e) => onPatchIndexChange(Number(e.target.value))}
-            >
-              {sections.map((section, index) => {
-                const label =
-                  section.type === "hero"
-                    ? section.headline
-                    : "heading" in section && section.heading
-                      ? section.heading
-                      : section.slot;
-                return (
-                  <option key={`${section.slot}-${index}`} value={index}>
-                    {index + 1}. {label}
-                  </option>
-                );
-              })}
-            </select>
-          </label>
-          <textarea
-            data-testid="patch-instruction"
-            className="min-h-[88px] w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm"
-            placeholder='예: "더 짧게", "혜택 강조", "톤을 캐주얼하게"'
-            value={patchInstruction}
-            onChange={(e) => onPatchInstructionChange(e.target.value)}
-          />
-          <button
-            type="button"
-            data-testid="patch-submit"
-            disabled={patchLoading || !patchInstruction.trim()}
-            onClick={onPatchSubmit}
-            className={`${btn} w-full bg-registration-red text-paper hover:bg-registration-red/85 disabled:opacity-40`}
-          >
-            {patchLoading ? "수정 중..." : "이 섹션만 AI 수정"}
-          </button>
-        </div>
+        <SectionPatchChat
+          sections={sections}
+          patchIndex={patchIndex}
+          onPatchIndexChange={onPatchIndexChange}
+          messages={patchMessages}
+          instruction={patchInstruction}
+          onInstructionChange={onPatchInstructionChange}
+          onSubmit={onPatchSubmit}
+          loading={patchLoading}
+        />
       )}
 
       {tab === "blog" && blogProductName && blogCategory && (
@@ -341,14 +311,20 @@ export default function DetailActionBar({
             hidePatch
           />
           {onGifUploadClick && (
-            <button
-              type="button"
-              onClick={onGifUploadClick}
-              className={`${btn} w-full border border-line text-ink hover:bg-line/30`}
-              data-testid="gif-upload"
-            >
-              GIF 추가 / 교체
-            </button>
+            <div className="space-y-2">
+              <p className="text-xs leading-relaxed text-ink/50">
+                동영상처럼 움직이는 사용 장면을 넣으면 체류시간이 올라갑니다. hero 바로 아래에
+                삽입됩니다.
+              </p>
+              <button
+                type="button"
+                onClick={onGifUploadClick}
+                className={`${btn} w-full border border-line text-ink hover:bg-line/30`}
+                data-testid="gif-upload"
+              >
+                GIF 추가 / 교체
+              </button>
+            </div>
           )}
         </div>
       )}

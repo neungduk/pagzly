@@ -17,6 +17,7 @@ import type { InstagramSlideOverride } from "@/lib/instagram-feed";
 import { insertReviewHighlightSection } from "@/lib/section-inserts";
 import { DRAFT_SESSION_KEY, RETRY_PHOTO_ONLY_KEY, SESSION_KEY } from "@/components/CreateProductForm";
 import type { CustomGifSection, DetailSection, GenerateResponse, PhotoCostBreakdown, ReviewInsightsInput } from "@/lib/types/generate";
+import type { PatchChatMessage } from "@/lib/patch-section-suggestions";
 import { getCategoryTheme } from "@/lib/category-theme";
 import { buildDetailPageHtml } from "@/lib/export-detail-html";
 import { downloadPngSlicesZip } from "@/lib/split-detail-download";
@@ -162,6 +163,7 @@ function CreateResultContent() {
   const [patchIndex, setPatchIndex] = useState(0);
   const [patchInstruction, setPatchInstruction] = useState("");
   const [patchLoading, setPatchLoading] = useState(false);
+  const [patchHistories, setPatchHistories] = useState<Record<number, PatchChatMessage[]>>({});
   const [feedOverrides, setFeedOverrides] = useState<Record<string, InstagramSlideOverride>>({});
   const [blogBlockOverrides, setBlogBlockOverrides] = useState<Record<string, BlogBlockOverride>>(
     {},
@@ -309,12 +311,26 @@ function CreateResultContent() {
     );
   }
 
+  function appendPatchMessages(sectionIndex: number, msgs: PatchChatMessage[]) {
+    setPatchHistories((prev) => ({
+      ...prev,
+      [sectionIndex]: [...(prev[sectionIndex] ?? []), ...msgs],
+    }));
+  }
+
   async function handlePatchSection() {
     if (!data?.generated) return;
     const instruction = patchInstruction.trim();
     if (!instruction) return;
     const section = data.generated.sections[patchIndex];
     if (!section) return;
+    const userMsg: PatchChatMessage = {
+      role: "user",
+      text: instruction,
+      timestamp: Date.now(),
+    };
+    appendPatchMessages(patchIndex, [userMsg]);
+    setPatchInstruction("");
     setPatchLoading(true);
     try {
       const response = await fetch("/api/patch-section", {
@@ -336,13 +352,24 @@ function CreateResultContent() {
         i === patchIndex ? patched : item,
       );
       persist({ ...data, generated: { ...data.generated, sections } });
-      setPatchInstruction("");
-      setToast({ tone: "ok", message: "섹션이 AI로 수정됐습니다. 저장을 눌러 유지하세요." });
+      appendPatchMessages(patchIndex, [
+        {
+          role: "assistant",
+          text: "수정했어요. 미리보기에서 확인해 보세요.",
+          timestamp: Date.now(),
+        },
+      ]);
     } catch (err) {
-      setToast({
-        tone: "error",
-        message: err instanceof Error ? err.message : "섹션 수정에 실패했습니다.",
-      });
+      appendPatchMessages(patchIndex, [
+        {
+          role: "error",
+          text:
+            err instanceof Error
+              ? err.message
+              : "수정에 실패했어요. 다시 시도해 주세요.",
+          timestamp: Date.now(),
+        },
+      ]);
     } finally {
       setPatchLoading(false);
     }
@@ -763,6 +790,7 @@ function CreateResultContent() {
               onPatchInstructionChange={setPatchInstruction}
               onPatchSubmit={() => void handlePatchSection()}
               patchLoading={patchLoading}
+              patchMessages={patchHistories[patchIndex] ?? []}
               onGifUploadClick={() => gifInputRef.current?.click()}
               category={data.category}
               feedProductName={data.productName}
