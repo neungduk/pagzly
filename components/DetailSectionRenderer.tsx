@@ -11,8 +11,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
-import type { DetailSection } from "@/lib/types/generate";
+import type { DetailSection, ImageTextSection } from "@/lib/types/generate";
 import type { ConceptIconMap } from "@/lib/concept-icons";
+import { resolveCompactImageShape } from "@/lib/compact-image-shape";
 import { buildSectionImageAlt } from "@/lib/detail-image-alt";
 import { extractTrustChips } from "@/lib/extract-trust-chips";
 import {
@@ -22,10 +23,33 @@ import {
   shouldInsertBreather,
   shouldUseEditorialBleed,
 } from "@/lib/detail-visual-rhythm";
+import {
+  formatPointBadge,
+  getCategoryTitleKeyword,
+  isCertificationHighlight,
+  parseMegaKeywordHeading,
+} from "@/lib/detail-visual-enhancements";
+import {
+  isFashionCategory,
+  matchSizeDiagramRows,
+} from "@/lib/fashion-size-diagram";
+import { matchSizeComparisonRows } from "@/lib/size-comparison-diagram";
+import { extractQuickFacts, type QuickFact } from "@/lib/quick-fact-strip";
+import {
+  buildSectionAnchorIdMap,
+  buildSectionAnchors,
+} from "@/lib/section-anchor-nav";
+import { parseCertificationTokens } from "@/lib/enrich-product-sections";
 import EditableText from "@/components/EditableText";
 import ColorVariationInteractive from "@/components/ColorVariationInteractive";
 import DetailScrollReveal from "@/components/DetailScrollReveal";
+import FashionSizeDiagram from "@/components/FashionSizeDiagram";
+import SizeComparisonDiagram from "@/components/SizeComparisonDiagram";
+import AnnotatedImageOverlay from "@/components/AnnotatedImageOverlay";
+import QuickFactStrip from "@/components/QuickFactStrip";
+import SectionAnchorNav from "@/components/SectionAnchorNav";
 import SectionImage from "@/components/SectionImage";
+import CanvasSectionRenderer from "@/components/CanvasSectionRenderer";
 import {
   BRAND,
   SLOT_IMAGE_RATIO,
@@ -35,9 +59,9 @@ import {
   SECTION_BG_PATTERN_C_ALPHA,
   getCtaBandBackground,
   getCategoryRhythm,
+  getComposedSectionBackgroundStyle,
   getDecorationColor,
   getHeroGradient,
-  getSectionBackground,
   getSectionInsetShadow,
   getSectionPattern,
   getTextPanelSurface,
@@ -63,6 +87,15 @@ type DetailSectionRendererProps = {
   theme?: CategoryTheme;
   conceptIcons?: ConceptIconMap;
   edit?: SectionEditApi;
+  /** 결과 페이지 미리보기 — 히어로+초반 섹션만 노출 후 더보기 */
+  previewCollapse?: {
+    expanded: boolean;
+    collapsedAfterIndex: number;
+    hasMore: boolean;
+    onExpand: () => void;
+  };
+  brandName?: string | null;
+  certifications?: string | null;
 };
 
 const THEME_ICONS: Record<string, LucideIcon> = {
@@ -97,6 +130,12 @@ const TYPO = {
   compactBody: "mt-1.5 text-sm font-normal leading-relaxed text-ink/75",
   sectionTitle:
     "pagzly-ink-headline font-heading text-[2rem] font-bold leading-[1.2] tracking-[-0.03em] text-ink sm:text-[2.75rem]",
+  keywordDisplay:
+    "font-heading text-[clamp(2.25rem,11vw,4.25rem)] font-black uppercase leading-[0.92] tracking-[-0.06em]",
+  sectionSubtitle:
+    "pagzly-ink-headline font-heading text-xl font-semibold leading-snug tracking-[-0.02em] text-ink sm:text-2xl",
+  pointBadgePill:
+    "inline-block rounded-full border px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.22em]",
   sectionLabel: "font-mono text-[10px] font-semibold uppercase tracking-[0.32em]",
   pointLabel: "font-mono text-[10px] font-bold uppercase tracking-[0.34em]",
   body: "text-[0.9375rem] font-normal leading-[1.9] text-ink/72 sm:text-base sm:leading-[1.85]",
@@ -511,15 +550,19 @@ function MetricBarFill({ percent, color }: { percent: number; color: string }) {
   );
 }
 
-function sectionBackgroundStyle(theme: CategoryTheme, pattern: SectionColorPattern) {
-  return { background: getSectionBackground(theme, pattern) };
+function sectionBackgroundStyle(
+  theme: CategoryTheme,
+  pattern: SectionColorPattern,
+  category: string,
+) {
+  return getComposedSectionBackgroundStyle(theme, pattern, category);
 }
 
 /** 텍스트 블록 섹션 — 은은한 그라데이션 + 상·하단 액센트 라인 */
-function textSectionStyle(theme: CategoryTheme, pattern: SectionColorPattern) {
-  const inset = getSectionInsetShadow(theme, pattern);
+function textSectionStyle(theme: CategoryTheme, pattern: SectionColorPattern, category: string) {
+  const inset = getSectionInsetShadow(theme, pattern, category);
   return {
-    background: getSectionBackground(theme, pattern),
+    ...getComposedSectionBackgroundStyle(theme, pattern, category),
     ...(inset ? { boxShadow: inset } : {}),
   };
 }
@@ -620,6 +663,8 @@ function SectionHeader({
   title,
   kicker,
   indexLabel,
+  pointBadge,
+  megaKeyword,
   align = "center",
   inverted,
   edit,
@@ -629,6 +674,8 @@ function SectionHeader({
   title: string;
   kicker?: string | null;
   indexLabel?: string | null;
+  pointBadge?: string | null;
+  megaKeyword?: string | null;
   align?: "center" | "left";
   inverted?: boolean;
   edit?: SectionEditApi;
@@ -636,23 +683,34 @@ function SectionHeader({
 }) {
   const wrapClass = align === "left" ? TEXT_COL_LEFT_CLASS : TEXT_COL_CLASS;
   const rowClass = align === "left" ? "justify-start" : "justify-center";
+  const accentColor = inverted ? BRAND.paper : theme.accent;
 
   return (
     <header className={`mb-8 ${wrapClass}`}>
-      {kicker || indexLabel ? (
-        <div className={`mb-3 flex items-center gap-3 ${rowClass}`}>
-          {indexLabel ? (
+      {kicker || indexLabel || pointBadge ? (
+        <div className={`mb-3 flex flex-wrap items-center gap-3 ${rowClass}`}>
+          {pointBadge ? (
+            <span
+              className={TYPO.pointBadgePill}
+              style={{
+                borderColor: hexToRgba(accentColor, inverted ? 0.35 : 0.4),
+                color: inverted ? hexToRgba(BRAND.paper, 0.88) : theme.deepAccent,
+              }}
+            >
+              {pointBadge}
+            </span>
+          ) : indexLabel ? (
             <span
               className="font-mono text-xs font-bold tracking-[0.28em]"
-              style={{ color: inverted ? BRAND.paper : theme.accent }}
+              style={{ color: accentColor }}
             >
               {indexLabel}
             </span>
           ) : null}
-          {indexLabel && kicker ? (
+          {(pointBadge || indexLabel) && kicker ? (
             <span
               className="h-3 w-px"
-              style={{ backgroundColor: hexToRgba(inverted ? BRAND.paper : theme.accent, 0.35) }}
+              style={{ backgroundColor: hexToRgba(accentColor, 0.35) }}
               aria-hidden="true"
             />
           ) : null}
@@ -666,12 +724,20 @@ function SectionHeader({
           ) : null}
         </div>
       ) : null}
+      {megaKeyword ? (
+        <p
+          className={`${TYPO.keywordDisplay} ${HEADLINE_CLAMP}`}
+          style={{ color: inverted ? BRAND.paper : theme.deepAccent }}
+        >
+          {megaKeyword}
+        </p>
+      ) : null}
       <EditableText
         as="h3"
         enabled={edit?.enabled}
         value={title}
         onChange={onTitleChange ?? (() => {})}
-        className={`pagzly-ink-headline ${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
+        className={`pagzly-ink-headline ${HEADLINE_CLAMP} ${megaKeyword ? TYPO.sectionSubtitle : TYPO.sectionTitle}`}
         style={inverted ? { color: BRAND.paper } : undefined}
       />
     </header>
@@ -728,8 +794,38 @@ function SectionAccentHairline({ theme }: { theme: CategoryTheme }) {
   );
 }
 
+function PreviewCollapseBar({ onExpand }: { onExpand: () => void }) {
+  return (
+    <div className="relative border-t border-line bg-paper px-6 py-8 sm:px-10">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 -top-16 h-16 bg-gradient-to-t from-paper to-transparent"
+      />
+      <button
+        type="button"
+        data-testid="detail-preview-expand"
+        onClick={onExpand}
+        className="mx-auto flex w-full max-w-md items-center justify-center gap-2 rounded-xl border border-line bg-paper px-6 py-3.5 text-sm font-semibold text-ink shadow-sm transition-colors hover:bg-line/20"
+      >
+        상세정보 더보기
+        <span aria-hidden="true" className="text-registration-red">
+          ↓
+        </span>
+      </button>
+    </div>
+  );
+}
+
 /** Kurly/페이지메이커형 히어로 직후 인증·배지 스트립 */
-function TrustStrip({ chips, theme }: { chips: string[]; theme: CategoryTheme }) {
+function TrustStrip({
+  chips,
+  theme,
+  certTokens = [],
+}: {
+  chips: string[];
+  theme: CategoryTheme;
+  certTokens?: string[];
+}) {
   if (chips.length === 0) return null;
   return (
     <div
@@ -746,19 +842,32 @@ function TrustStrip({ chips, theme }: { chips: string[]; theme: CategoryTheme })
         혜택 · 신뢰
       </p>
       <div className="flex flex-wrap items-center justify-center gap-2">
-        {chips.map((chip) => (
-          <span
-            key={chip}
-            className="rounded-full px-3 py-1.5 text-xs font-semibold tracking-wide"
-            style={{
-              backgroundColor: hexToRgba(theme.accent, 0.12),
-              color: theme.deepAccent,
-              boxShadow: `inset 0 0 0 1px ${hexToRgba(theme.accent, 0.28)}`,
-            }}
-          >
-            {chip}
-          </span>
-        ))}
+        {chips.map((chip) => {
+          const certHighlight = certTokens.some(
+            (token) =>
+              token.length >= 2 &&
+              (chip.includes(token) ||
+                token.includes(chip) ||
+                chip.toLowerCase().includes(token.toLowerCase())),
+          );
+          return (
+            <span
+              key={chip}
+              className="rounded-full px-3 py-1.5 text-xs font-semibold tracking-wide"
+              style={{
+                backgroundColor: certHighlight
+                  ? hexToRgba(theme.accent, 0.22)
+                  : hexToRgba(theme.accent, 0.12),
+                color: certHighlight ? theme.accent : theme.deepAccent,
+                boxShadow: certHighlight
+                  ? `inset 0 -2px 0 0 ${theme.accent}`
+                  : `inset 0 0 0 1px ${hexToRgba(theme.accent, 0.28)}`,
+              }}
+            >
+              {chip}
+            </span>
+          );
+        })}
       </div>
     </div>
   );
@@ -783,6 +892,10 @@ function ImageReplaceHit({
   );
 }
 
+function countCompactImageTextSections(sections: DetailSection[]): number {
+  return sections.filter((s) => s.type === "image_text" && s.layout === "compact").length;
+}
+
 function renderSection(
   section: DetailSection,
   imageUrls: string[],
@@ -796,6 +909,11 @@ function renderSection(
   followPattern?: SectionColorPattern,
   productName?: string,
   bodyIndex?: number,
+  brandName?: string | null,
+  certTokens: string[] = [],
+  quickFacts: QuickFact[] = [],
+  compactImageTextIndex?: number,
+  totalCompactImageTextCount?: number,
 ) {
   const heroFallback = imageUrls[0] ?? "";
   switch (section.type) {
@@ -874,6 +992,7 @@ function renderSection(
         : compactFollow && followPattern
           ? followPattern
           : pattern;
+      const headingParts = parseMegaKeywordHeading(section.heading);
       return (
         <section
           key={`checklist-${index}`}
@@ -882,16 +1001,17 @@ function renderSection(
               ? "px-6 pb-10 pt-2 sm:px-10 sm:pb-14"
               : getCategoryRhythm(category).generousPadClass
           }`}
-          style={textSectionStyle(theme, checklistPattern)}
+          style={textSectionStyle(theme, checklistPattern, category)}
         >
           {!compactFollow ? <SectionBackdropAccent theme={theme} /> : null}
           <div className="relative">
             {!compactFollow ? (
               <SectionHeader
                 theme={theme}
-                title={section.heading}
+                title={headingParts.remainder || section.heading}
                 kicker={getSectionKicker(section)}
-                indexLabel={bodyIndex != null ? formatSectionIndex(bodyIndex) : null}
+                pointBadge={bodyIndex != null ? formatPointBadge(bodyIndex + 1) : null}
+                megaKeyword={headingParts.keyword}
                 inverted={boldBlock}
                 edit={edit}
                 onTitleChange={(heading) => edit?.onChange(index, { ...section, heading })}
@@ -958,15 +1078,93 @@ function renderSection(
     case "image_text": {
       const src = resolveImage(imageUrls, section.imageIndex);
       const isCompact = section.layout === "compact";
+      const isAnnotated =
+        section.layout === "annotated" &&
+        Array.isArray(section.annotations) &&
+        section.annotations.length > 0;
+      const isCirclePair =
+        section.layout === "circle-pair" &&
+        Array.isArray(section.circlePair) &&
+        section.circlePair.length === 2 &&
+        section.circlePair.every((item) => item.imageUrl?.trim() && item.label?.trim());
+      const isCircleSolo =
+        section.layout === "circle-solo" &&
+        section.circleSolo?.imageUrl?.trim() &&
+        section.circleSolo?.label?.trim();
       const isCallout = section.layout === "callout" || section.slot === "feature_callout";
+
+      if (isCircleSolo) {
+        const solo = section.circleSolo!;
+        return (
+          <section
+            key={`image_text-${index}`}
+            className="px-6 py-8 sm:px-10 sm:py-10"
+            style={textSectionStyle(theme, pattern, category)}
+          >
+            <div className="mx-auto flex max-w-md items-center justify-center">
+              <div className="flex min-w-0 flex-col items-center gap-3">
+                <div className="relative shrink-0">
+                  <SectionImage
+                    src={solo.imageUrl}
+                    alt={buildSectionImageAlt(productName ?? "", solo.label, section.slot)}
+                    className="h-[7.5rem] w-[7.5rem] rounded-full object-cover shadow-[0_12px_32px_-12px_rgba(27,27,24,0.28)] ring-1 ring-ink/10 sm:h-[9.375rem] sm:w-[9.375rem]"
+                  />
+                </div>
+                <p
+                  className={`text-center ${TYPO.compactTitle}`}
+                  style={{ color: theme.deepAccent }}
+                >
+                  {solo.label}
+                </p>
+              </div>
+            </div>
+          </section>
+        );
+      }
+
+      if (isCirclePair) {
+        const [left, right] = section.circlePair!;
+        return (
+          <section
+            key={`image_text-${index}`}
+            className="px-6 py-8 sm:px-10 sm:py-10"
+            style={textSectionStyle(theme, pattern, category)}
+          >
+            <div className="mx-auto flex max-w-md items-start justify-center gap-8 sm:gap-12">
+              {[left, right].map((item, pairIndex) => (
+                <div key={`${item.label}-${pairIndex}`} className="flex min-w-0 flex-1 flex-col items-center gap-3">
+                  <div className="relative shrink-0">
+                    <SectionImage
+                      src={item.imageUrl}
+                      alt={buildSectionImageAlt(productName ?? "", item.label, section.slot)}
+                      className="h-24 w-24 rounded-full object-cover shadow-[0_12px_32px_-12px_rgba(27,27,24,0.28)] ring-1 ring-ink/10 sm:h-[7.5rem] sm:w-[7.5rem]"
+                    />
+                  </div>
+                  <p
+                    className={`text-center ${TYPO.compactTitle}`}
+                    style={{ color: theme.deepAccent }}
+                  >
+                    {item.label}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      }
 
       if (isCompact) {
         const imageFirst = section.imagePosition !== "right";
+        const shape =
+          compactImageTextIndex != null && totalCompactImageTextCount != null
+            ? resolveCompactImageShape(section, compactImageTextIndex, totalCompactImageTextCount)
+            : resolveCompactImageShape(section, 0, 1);
+        const thumbRadius = shape === "circle" ? "rounded-full" : "rounded-xl";
         return (
           <section
             key={`image_text-${index}`}
             className="px-6 py-5 sm:px-10 sm:py-6"
-            style={textSectionStyle(theme, pattern)}
+            style={textSectionStyle(theme, pattern, category)}
           >
             <div
               className={`mx-auto flex max-w-xl items-center gap-4 ${
@@ -977,7 +1175,7 @@ function renderSection(
                 <SectionImage
                   src={src}
                   alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
-                  className="h-24 w-24 rounded-xl object-cover sm:h-[7.5rem] sm:w-[7.5rem]"
+                  className={`h-24 w-24 object-cover sm:h-[7.5rem] sm:w-[7.5rem] ${thumbRadius}`}
                 />
                 <ImageReplaceHit
                   enabled={edit?.enabled}
@@ -1006,6 +1204,58 @@ function renderSection(
         );
       }
 
+      if (isAnnotated) {
+        const ratioClass = resolveImageRatioClass(section);
+        const imageLeft = resolveSplitImageLeft(section, pointIndex);
+        return (
+          <section
+            key={`image_text-${index}`}
+            className={`relative overflow-hidden ${getCategoryRhythm(category).generousPadClass}`}
+            style={textSectionStyle(theme, pattern, category)}
+          >
+            <SectionBackdropAccent theme={theme} />
+            <div className="relative mx-auto grid max-w-5xl items-center gap-8 px-6 sm:grid-cols-2 sm:gap-10 sm:px-10">
+              <div className={imageLeft ? "order-1" : "order-1 sm:order-2"}>
+                <div className="relative overflow-hidden rounded-2xl shadow-[0_20px_56px_-16px_rgba(27,27,24,0.22)]">
+                  <SectionImage
+                    src={src}
+                    alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
+                    className={`${ratioClass} w-full object-cover`}
+                  />
+                  <AnnotatedImageOverlay annotations={section.annotations!} theme={theme} />
+                  <ImageReplaceHit
+                    enabled={edit?.enabled}
+                    onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
+                  />
+                </div>
+              </div>
+              <div className={`${imageLeft ? "order-2" : "order-2 sm:order-1"} min-w-0`}>
+                <TextSectionPanel theme={theme}>
+                  <p className={`mb-4 ${TYPO.sectionLabel}`} style={{ color: theme.deepAccent }}>
+                    FEATURE
+                  </p>
+                  <EditableText
+                    as="h3"
+                    enabled={edit?.enabled}
+                    value={section.heading}
+                    onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+                    className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
+                  />
+                  <EditableText
+                    as="p"
+                    multiline
+                    enabled={edit?.enabled}
+                    value={section.body}
+                    onChange={(body) => edit?.onChange(index, { ...section, body })}
+                    className={`mt-4 ${BODY_CLAMP} ${TYPO.body}`}
+                  />
+                </TextSectionPanel>
+              </div>
+            </div>
+          </section>
+        );
+      }
+
       if (isCallout) {
         const ratioClass = resolveImageRatioClass(section);
         const bubbleText = section.callout ?? section.heading;
@@ -1013,7 +1263,7 @@ function renderSection(
           <section
             key={`image_text-${index}`}
             className="pb-12 sm:pb-16"
-            style={textSectionStyle(theme, pattern)}
+            style={textSectionStyle(theme, pattern, category)}
           >
             <div className="relative px-4 pt-4 sm:px-6 sm:pt-6">
               <div className="overflow-hidden rounded-2xl shadow-[0_16px_48px_-12px_rgba(27,27,24,0.18)]">
@@ -1087,7 +1337,7 @@ function renderSection(
           <section
             key={`image_text-${index}`}
             className="relative overflow-hidden"
-            style={textSectionStyle(theme, pattern)}
+            style={textSectionStyle(theme, pattern, category)}
           >
             <div className="relative w-full">
               <SectionImage
@@ -1144,7 +1394,7 @@ function renderSection(
         <section
           key={`image_text-${index}`}
           className={`relative overflow-hidden ${getCategoryRhythm(category).generousPadClass}`}
-          style={textSectionStyle(theme, pattern)}
+          style={textSectionStyle(theme, pattern, category)}
         >
           <SectionBackdropAccent theme={theme} />
           <div className="relative mx-auto grid max-w-5xl items-center gap-8 px-6 sm:grid-cols-2 sm:gap-10 sm:px-10">
@@ -1211,11 +1461,34 @@ function renderSection(
       const visibleRows = section.rows.filter((row) => row.label.trim());
       if (visibleRows.length === 0) return null;
       const isShipping = section.slot === "shipping_info";
+      const isSizeTable = section.slot === "size_table";
+      const sizeDiagramMatches =
+        isSizeTable && isFashionCategory(category)
+          ? matchSizeDiagramRows(visibleRows)
+          : [];
+      const sizeComparisonDims =
+        section.slot === "spec_table" && !isFashionCategory(category)
+          ? matchSizeComparisonRows(visibleRows)
+          : [];
+      const specThumbUrls = (
+        section.imageIndexes?.length
+          ? section.imageIndexes
+              .map((idx) => resolveImage(imageUrls, idx))
+              .filter((url): url is string => Boolean(url))
+          : [resolveImage(imageUrls, 0) || heroFallback].filter(Boolean)
+      ) as string[];
+      const isMainSpecTable = section.slot === "spec_table";
+      const specSectionStyle = isMainSpecTable
+        ? {
+            ...textSectionStyle(theme, pattern, category),
+            backgroundColor: hexToRgba(theme.baseNeutral, 0.06),
+          }
+        : textSectionStyle(theme, pattern, category);
       return (
         <section
           key={`spec_table-${index}`}
           className={getCategoryRhythm(category).trustPadClass}
-          style={textSectionStyle(theme, pattern)}
+          style={specSectionStyle}
         >
           <p
             className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`}
@@ -1230,8 +1503,42 @@ function renderSection(
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
             className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
           />
+          {specThumbUrls.length > 0 ? (
+            <div
+              className={`mx-auto mt-8 flex items-center justify-center gap-3 sm:gap-4 ${TEXT_COL_CLASS} ${
+                specThumbUrls.length > 1 ? "max-w-md" : ""
+              }`}
+            >
+              {specThumbUrls.map((thumbUrl, thumbIndex) => (
+                <SectionImage
+                  key={`spec-thumb-${thumbIndex}`}
+                  src={thumbUrl}
+                  alt={buildSectionImageAlt(
+                    productName ?? "",
+                    specThumbUrls.length > 1
+                      ? `${section.heading} ${thumbIndex + 1}`
+                      : section.heading,
+                    section.slot,
+                  )}
+                  className={
+                    specThumbUrls.length > 1
+                      ? "h-20 w-20 rounded-xl object-cover shadow-[0_10px_28px_-10px_rgba(27,27,24,0.24)] ring-1 ring-ink/10 sm:h-24 sm:w-24"
+                      : "mx-auto h-28 w-28 rounded-2xl object-cover shadow-[0_12px_32px_-12px_rgba(27,27,24,0.28)] ring-1 ring-ink/10 sm:h-32 sm:w-32"
+                  }
+                />
+              ))}
+            </div>
+          ) : null}
+          {sizeDiagramMatches.length > 0 ? (
+            <FashionSizeDiagram matches={sizeDiagramMatches} theme={theme} />
+          ) : null}
+          {sizeComparisonDims.length > 0 ? (
+            <SizeComparisonDiagram dimensions={sizeComparisonDims} theme={theme} />
+          ) : null}
           <div
-            className={`mx-auto mt-10 max-w-xl overflow-hidden rounded-lg ${isShipping ? "border-2" : ""}`}
+            className={`mx-auto max-w-xl overflow-hidden rounded-lg ${isShipping ? "border-2" : ""} ${
+              sizeDiagramMatches.length > 0 || sizeComparisonDims.length > 0 ? "mt-6" : "mt-10"
+            }`}
             style={
               isShipping
                 ? {
@@ -1284,17 +1591,40 @@ function renderSection(
                           : "font-medium text-ink"
                       }`}
                     >
-                      <EditableText
-                        as="span"
-                        enabled={edit?.enabled}
-                        value={row.value}
-                        onChange={(value) => {
-                          const rows = section.rows.map((item, i) =>
-                            i === rowIndex ? { ...item, value } : item,
-                          );
-                          edit?.onChange(index, { ...section, rows });
-                        }}
-                      />
+                      {isCertificationHighlight(row.label, row.value, certTokens) ? (
+                        <span
+                          className="inline-block rounded-md px-2 py-0.5"
+                          style={{
+                            color: theme.accent,
+                            backgroundColor: hexToRgba(theme.accent, 0.14),
+                            boxShadow: `inset 0 -2px 0 0 ${hexToRgba(theme.accent, 0.55)}`,
+                          }}
+                        >
+                          <EditableText
+                            as="span"
+                            enabled={edit?.enabled}
+                            value={row.value}
+                            onChange={(value) => {
+                              const rows = section.rows.map((item, i) =>
+                                i === rowIndex ? { ...item, value } : item,
+                              );
+                              edit?.onChange(index, { ...section, rows });
+                            }}
+                          />
+                        </span>
+                      ) : (
+                        <EditableText
+                          as="span"
+                          enabled={edit?.enabled}
+                          value={row.value}
+                          onChange={(value) => {
+                            const rows = section.rows.map((item, i) =>
+                              i === rowIndex ? { ...item, value } : item,
+                            );
+                            edit?.onChange(index, { ...section, rows });
+                          }}
+                        />
+                      )}
                       {(() => {
                         const percent = parseMetricPercent(row.value);
                         return percent != null ? (
@@ -1317,7 +1647,7 @@ function renderSection(
         <section
           key={`comparison_table-${index}`}
           className={getCategoryRhythm(category).generousPadClass}
-          style={textSectionStyle(theme, pattern)}
+          style={textSectionStyle(theme, pattern, category)}
         >
           <p
             className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`}
@@ -1389,7 +1719,7 @@ function renderSection(
         <section
           key={`comparison_chart-${index}`}
           className={getCategoryRhythm(category).generousPadClass}
-          style={textSectionStyle(theme, pattern)}
+          style={textSectionStyle(theme, pattern, category)}
         >
           <p
             className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`}
@@ -1423,11 +1753,14 @@ function renderSection(
     case "highlight_box": {
       const cards = section.cards.slice(0, 4);
       if (cards.length === 0) return null;
+      const isTrustEvidence = section.slot === "seller_trust_evidence";
       const centerIdx = Math.floor((cards.length - 1) / 2);
       const boldBlock = section.boldBlock === true;
       const boxPattern: SectionColorPattern = boldBlock ? "C" : pattern;
-      const gridCols =
-        cards.length <= 2
+      const headingParts = parseMegaKeywordHeading(section.heading);
+      const gridCols = isTrustEvidence
+        ? "max-w-3xl grid-cols-1"
+        : cards.length <= 2
           ? "max-w-xl grid-cols-1 sm:grid-cols-2"
           : cards.length === 3
             ? "max-w-4xl grid-cols-1 sm:grid-cols-3"
@@ -1436,33 +1769,37 @@ function renderSection(
         <section
           key={`highlight_box-${index}`}
           className={`relative overflow-hidden ${getCategoryRhythm(category).generousPadClass}`}
-          style={textSectionStyle(theme, boxPattern)}
+          style={textSectionStyle(theme, boxPattern, category)}
         >
           {!boldBlock ? <SectionBackdropAccent theme={theme} /> : null}
           {!boldBlock ? <SectionAccentHairline theme={theme} /> : null}
-          <div className="relative">
-            <SectionHeader
-              theme={theme}
-              title={section.heading}
-              kicker={getSectionKicker(section)}
-              indexLabel={bodyIndex != null ? formatSectionIndex(bodyIndex) : null}
-              inverted={boldBlock}
-              edit={edit}
-              onTitleChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            />
-          </div>
-          <div className={`relative mx-auto mt-10 grid gap-4 ${gridCols}`}>
+          {!isTrustEvidence || section.heading ? (
+            <div className="relative">
+              <SectionHeader
+                theme={theme}
+                title={headingParts.remainder || section.heading}
+                kicker={getSectionKicker(section)}
+                pointBadge={bodyIndex != null ? formatPointBadge(bodyIndex + 1) : null}
+                megaKeyword={headingParts.keyword}
+                inverted={boldBlock}
+                edit={edit}
+                onTitleChange={(heading) => edit?.onChange(index, { ...section, heading })}
+              />
+            </div>
+          ) : null}
+          <div className={`relative mx-auto ${isTrustEvidence ? "mt-0" : "mt-10"} grid gap-4 ${gridCols}`}>
             {cards.map((card, cardIndex) => {
               const emphasized = cardIndex === centerIdx;
+              const cardKeyword = parseMegaKeywordHeading(card.title);
               return (
                 <div
                   key={cardIndex}
                   data-preview-pulse={emphasized ? "true" : undefined}
                   className={`flex flex-col gap-2 rounded-2xl px-6 py-8 text-center ${
-                    emphasized
+                    emphasized && !isTrustEvidence
                       ? "pagzly-pulse-card pagzly-ink-shimmer sm:-translate-y-2"
                       : ""
-                  }`}
+                  } ${isTrustEvidence ? "py-10 sm:py-14" : ""}`}
                   style={{
                     backgroundColor: emphasized
                       ? hexToRgba(theme.deepAccent, boldBlock ? 1 : SECTION_BG_PATTERN_C_ALPHA)
@@ -1479,44 +1816,79 @@ function renderSection(
                       : undefined,
                   }}
                 >
-                  <span
-                    className="mx-auto font-mono text-[10px] font-semibold uppercase tracking-[0.28em]"
-                    style={{ color: emphasized ? hexToRgba(BRAND.paper, 0.7) : boldBlock ? hexToRgba(BRAND.paper, 0.65) : theme.deepAccent }}
-                    aria-hidden="true"
-                  >
-                    {String(cardIndex + 1).padStart(2, "0")}
-                  </span>
+                  {!isTrustEvidence ? (
+                    <span
+                      className={`mx-auto ${TYPO.pointBadgePill}`}
+                      style={{
+                        borderColor: emphasized
+                          ? hexToRgba(BRAND.paper, 0.35)
+                          : boldBlock
+                            ? hexToRgba(BRAND.paper, 0.28)
+                            : hexToRgba(theme.accent, 0.35),
+                        color: emphasized
+                          ? hexToRgba(BRAND.paper, 0.82)
+                          : boldBlock
+                            ? hexToRgba(BRAND.paper, 0.65)
+                            : theme.deepAccent,
+                      }}
+                      aria-hidden="true"
+                    >
+                      {formatPointBadge(cardIndex + 1)}
+                    </span>
+                  ) : null}
+                  {cardKeyword.keyword && !isTrustEvidence ? (
+                    <p
+                      className={`${TYPO.keywordDisplay} text-[clamp(1.75rem,8vw,2.75rem)]`}
+                      style={
+                        emphasized
+                          ? { color: BRAND.paper }
+                          : boldBlock
+                            ? { color: BRAND.paper }
+                            : { color: theme.deepAccent }
+                      }
+                    >
+                      {cardKeyword.keyword}
+                    </p>
+                  ) : null}
                   <EditableText
                     as="p"
                     enabled={edit?.enabled}
-                    value={card.title}
+                    value={cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title}
                     onChange={(title) => {
                       const nextCards = [...section.cards];
                       nextCards[cardIndex] = { ...nextCards[cardIndex], title };
                       edit?.onChange(index, { ...section, cards: nextCards });
                     }}
-                    className="font-heading text-lg font-bold tracking-[-0.02em]"
+                    className={
+                      isTrustEvidence
+                        ? "font-heading text-2xl font-bold tracking-[-0.03em] sm:text-4xl"
+                        : cardKeyword.keyword
+                          ? "font-heading text-base font-semibold tracking-[-0.02em]"
+                          : "font-heading text-lg font-bold tracking-[-0.02em]"
+                    }
                     style={emphasized ? { color: BRAND.paper } : boldBlock ? { color: BRAND.paper } : undefined}
                   />
-                  <EditableText
-                    as="p"
-                    multiline
-                    enabled={edit?.enabled}
-                    value={card.body}
-                    onChange={(body) => {
-                      const nextCards = [...section.cards];
-                      nextCards[cardIndex] = { ...nextCards[cardIndex], body };
-                      edit?.onChange(index, { ...section, cards: nextCards });
-                    }}
-                    className="text-sm leading-relaxed"
-                    style={
-                      emphasized
-                        ? { color: hexToRgba(BRAND.paper, 0.9) }
-                        : boldBlock
-                          ? { color: hexToRgba(BRAND.paper, 0.82) }
-                          : { color: hexToRgba(BRAND.ink, 0.68) }
-                    }
-                  />
+                  {card.body ? (
+                    <EditableText
+                      as="p"
+                      multiline
+                      enabled={edit?.enabled}
+                      value={card.body}
+                      onChange={(body) => {
+                        const nextCards = [...section.cards];
+                        nextCards[cardIndex] = { ...nextCards[cardIndex], body };
+                        edit?.onChange(index, { ...section, cards: nextCards });
+                      }}
+                      className="text-sm leading-relaxed"
+                      style={
+                        emphasized
+                          ? { color: hexToRgba(BRAND.paper, 0.9) }
+                          : boldBlock
+                            ? { color: hexToRgba(BRAND.paper, 0.82) }
+                            : { color: hexToRgba(BRAND.ink, 0.68) }
+                      }
+                    />
+                  ) : null}
                 </div>
               );
             })}
@@ -1535,7 +1907,7 @@ function renderSection(
           theme={theme}
           ratioClass={ratioClass}
           padClass={getCategoryRhythm(category).generousPadClass}
-          textSectionStyle={textSectionStyle(theme, pattern)}
+          textSectionStyle={textSectionStyle(theme, pattern, category)}
           accentHairline={<SectionAccentHairline theme={theme} />}
           titleClassName={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
         />
@@ -1567,7 +1939,7 @@ function renderSection(
         <section
           key={`stat_infographic-${index}`}
           className={getCategoryRhythm(category).generousPadClass}
-          style={textSectionStyle(theme, pattern)}
+          style={textSectionStyle(theme, pattern, category)}
         >
           <SectionAccentHairline theme={theme} />
           <EditableText
@@ -1827,7 +2199,7 @@ function renderSection(
         <section
           key={`usage_steps-${index}`}
           className={getCategoryRhythm(category).generousPadClass}
-          style={textSectionStyle(theme, pattern)}
+          style={textSectionStyle(theme, pattern, category)}
         >
           <SectionAccentHairline theme={theme} />
           <EditableText
@@ -1890,7 +2262,7 @@ function renderSection(
         <section
           key={`step_card-${index}`}
           className={getCategoryRhythm(category).generousPadClass}
-          style={textSectionStyle(theme, pattern)}
+          style={textSectionStyle(theme, pattern, category)}
         >
           <p className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`} style={{ color: theme.deepAccent }}>
             HOW TO USE
@@ -1962,7 +2334,7 @@ function renderSection(
       return (
         <section
           key={`gallery-${index}`}
-          style={sectionBackgroundStyle(theme, pattern)}
+          style={sectionBackgroundStyle(theme, pattern, category)}
         >
           <div className={getCategoryRhythm(category).galleryTitlePadClass}>
             <EditableText
@@ -2022,7 +2394,7 @@ function renderSection(
         <section
           key={`caution-${index}`}
           className={getCategoryRhythm(category).trustPadClass}
-          style={textSectionStyle(theme, pattern)}
+          style={textSectionStyle(theme, pattern, category)}
         >
           <div className={TEXT_COL_CLASS}>
             <TextSectionPanel theme={theme}>
@@ -2065,7 +2437,7 @@ function renderSection(
         <section
           key={`review_highlight-${index}`}
           className={getCategoryRhythm(category).generousPadClass}
-          style={textSectionStyle(theme, pattern)}
+          style={textSectionStyle(theme, pattern, category)}
         >
           <SectionAccentHairline theme={theme} />
           <EditableText
@@ -2117,7 +2489,7 @@ function renderSection(
         <section
           key={`ai_disclosure-${index}`}
           className={getCategoryRhythm(category).trustPadClass}
-          style={textSectionStyle(theme, pattern)}
+          style={textSectionStyle(theme, pattern, category)}
         >
           <div className={TEXT_COL_CLASS}>
             <p
@@ -2145,12 +2517,86 @@ function renderSection(
         </section>
       );
 
-    case "brand_story":
+    case "canvas":
+      return (
+        <CanvasSectionRenderer
+          key={`canvas-${index}`}
+          section={section}
+          imageUrls={imageUrls}
+          productName={productName}
+          theme={theme}
+          productContext={{
+            category,
+            productName: productName ?? "",
+            imageUrls,
+          }}
+          edit={
+            edit?.enabled
+              ? {
+                  enabled: true,
+                  onChange: (next) => edit.onChange(index, next),
+                }
+              : undefined
+          }
+        />
+      );
+
+    case "brand_story": {
+      const hasBrandCard = Boolean(brandName?.trim());
+      const categoryKeyword = getCategoryTitleKeyword(category);
+      if (hasBrandCard) {
+        return (
+          <section key={`brand_story-${index}`} className="relative overflow-hidden">
+            <div
+              className="flex flex-col items-center justify-center px-6 py-16 text-center sm:px-10 sm:py-20"
+              style={{ backgroundColor: theme.deepAccent }}
+            >
+              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.32em] text-paper/75">
+                {brandName}
+              </p>
+              <p className={`mt-4 ${TYPO.keywordDisplay} text-paper`}>{categoryKeyword}</p>
+            </div>
+            {quickFacts.length > 0 ? (
+              <QuickFactStrip facts={quickFacts} theme={theme} />
+            ) : null}
+            <div
+              className={getCategoryRhythm(category).trustPadClass}
+              style={textSectionStyle(theme, pattern, category)}
+            >
+              <div className={TEXT_COL_CLASS}>
+                <TextSectionPanel theme={theme} overlap>
+                  <p
+                    className={`mb-4 ${TYPO.sectionLabel}`}
+                    style={{ color: theme.deepAccent }}
+                  >
+                    STORY
+                  </p>
+                  <EditableText
+                    as="h3"
+                    enabled={edit?.enabled}
+                    value={section.heading}
+                    onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+                    className={`${HEADLINE_CLAMP} font-heading text-lg font-bold tracking-[-0.02em] text-ink sm:text-xl`}
+                  />
+                  <EditableText
+                    as="p"
+                    multiline
+                    enabled={edit?.enabled}
+                    value={section.body}
+                    onChange={(body) => edit?.onChange(index, { ...section, body })}
+                    className={`mt-5 ${BODY_CLAMP} ${TYPO.body}`}
+                  />
+                </TextSectionPanel>
+              </div>
+            </div>
+          </section>
+        );
+      }
       return (
         <section
           key={`brand_story-${index}`}
           className={getCategoryRhythm(category).trustPadClass}
-          style={textSectionStyle(theme, pattern)}
+          style={textSectionStyle(theme, pattern, category)}
         >
           <div className={TEXT_COL_CLASS}>
             <TextSectionPanel theme={theme}>
@@ -2179,13 +2625,14 @@ function renderSection(
           </div>
         </section>
       );
+    }
 
     case "faq":
       return (
         <section
           key={`faq-${index}`}
           className={getCategoryRhythm(category).trustPadClass}
-          style={textSectionStyle(theme, pattern)}
+          style={textSectionStyle(theme, pattern, category)}
         >
           <EditableText
             as="h3"
@@ -2249,7 +2696,7 @@ function renderSection(
         <section
           key={`target_persona-${index}`}
           className={getCategoryRhythm(category).generousPadClass}
-          style={textSectionStyle(theme, pattern)}
+          style={textSectionStyle(theme, pattern, category)}
         >
           <div className={TEXT_COL_CLASS}>
             <SectionAccentHairline theme={theme} />
@@ -2369,15 +2816,34 @@ export default function DetailSectionRenderer({
   theme: themeOverride,
   conceptIcons,
   edit,
+  previewCollapse,
+  brandName,
+  certifications,
 }: DetailSectionRendererProps) {
   const baseTheme = themeOverride ?? getCategoryTheme(category);
   const extendedTheme = extendTheme(baseTheme);
   const trustChips = extractTrustChips(sections);
+  const certTokens = parseCertificationTokens(certifications);
+  const quickFacts = extractQuickFacts(sections);
+  const sectionAnchors = buildSectionAnchors(sections);
+  const anchorIdMap = buildSectionAnchorIdMap(sections);
   let imageTextCount = 0;
+  const totalCompactImageTextCount = countCompactImageTextSections(sections);
 
   return (
-    <div className="overflow-hidden">
+    <div className="overflow-hidden scroll-smooth">
+      {sectionAnchors.length > 0 ? (
+        <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} />
+      ) : null}
       {sections.map((section, index) => {
+        if (
+          previewCollapse &&
+          !previewCollapse.expanded &&
+          index > previewCollapse.collapsedAfterIndex
+        ) {
+          return null;
+        }
+
         const prevSection = index > 0 ? sections[index - 1] : undefined;
         const isFullPoint =
           section.type === "image_text" &&
@@ -2386,6 +2852,12 @@ export default function DetailSectionRenderer({
           section.slot !== "quick_points" &&
           section.slot !== "feature_callout";
         const pointIndex = isFullPoint ? imageTextCount++ : undefined;
+        const compactImageTextIndex =
+          section.type === "image_text" && section.layout === "compact"
+            ? sections
+                .slice(0, index)
+                .filter((s) => s.type === "image_text" && s.layout === "compact").length
+            : undefined;
         const bodyIndex = sections.slice(0, index).filter((s) => s.type !== "hero").length;
         const pattern = section.type === "hero" ? "A" : getSectionPattern(bodyIndex, section.type);
         const prevBodyIndex = sections.slice(0, index).filter((s) => s.type !== "hero").length - 1;
@@ -2414,6 +2886,11 @@ export default function DetailSectionRenderer({
           followPattern,
           productName ?? category,
           bodyIndex,
+          brandName,
+          certTokens,
+          quickFacts,
+          compactImageTextIndex,
+          totalCompactImageTextCount,
         );
         // hero 바로 다음 섹션 1곳에만: 미세한 대각선 클립(제안 A) + 강한 진입 모션(제안 C).
         // 나머지 섹션은 전부 기존 직사각형·절제된 페이드를 그대로 유지한다.
@@ -2425,7 +2902,11 @@ export default function DetailSectionRenderer({
               style={{ clipPath: getCategoryRhythm(category).heroTransitionClip }}
             >
               {trustChips.length > 0 ? (
-                <TrustStrip chips={trustChips} theme={getSectionTheme(extendedTheme, "checklist", 0)} />
+                <TrustStrip
+                  chips={trustChips}
+                  theme={getSectionTheme(extendedTheme, "checklist", 0)}
+                  certTokens={certTokens}
+                />
               ) : null}
               {content}
             </div>
@@ -2440,6 +2921,7 @@ export default function DetailSectionRenderer({
               : index % 2 === 0
                 ? "section"
                 : "section-alt";
+        const anchorId = anchorIdMap.get(index);
         return (
           <Fragment key={`section-wrap-${index}`}>
             {breather}
@@ -2447,7 +2929,12 @@ export default function DetailSectionRenderer({
               index={index}
               variant={variant}
             >
-            <div className="relative">
+            <div
+              id={anchorId}
+              data-section-index={index}
+              data-section-slot={section.slot}
+              className={anchorId ? "relative scroll-mt-14" : "relative scroll-mt-14"}
+            >
               {wrappedContent}
               {edit?.enabled && edit.onRequestAiPatch ? (
                 <button
@@ -2461,6 +2948,12 @@ export default function DetailSectionRenderer({
               ) : null}
             </div>
           </DetailScrollReveal>
+            {previewCollapse &&
+            !previewCollapse.expanded &&
+            previewCollapse.hasMore &&
+            index === previewCollapse.collapsedAfterIndex ? (
+              <PreviewCollapseBar onExpand={previewCollapse.onExpand} />
+            ) : null}
           </Fragment>
         );
       })}

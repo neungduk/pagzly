@@ -14,6 +14,7 @@ import {
   getUploadRoleGuide,
   type ProductImageRole,
 } from "@/lib/image-roles";
+import { pickAutofillVisionIndices } from "@/lib/autofill-vision-pick";
 
 const CATEGORIES = [
   "의류/패션",
@@ -84,6 +85,7 @@ export type DraftSessionPayload = {
     certifications: string;
     competitorUrl: string;
     wholesaleUrl: string;
+    sellerTrustEvidence: string;
   };
 };
 
@@ -121,13 +123,17 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const [certifications, setCertifications] = useState("");
   const [competitorUrl, setCompetitorUrl] = useState("");
   const [wholesaleUrl, setWholesaleUrl] = useState("");
+  const [sellerTrustEvidence, setSellerTrustEvidence] = useState("");
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referencePreview, setReferencePreview] = useState<string | null>(null);
+  const [lifestyleImage, setLifestyleImage] = useState<File | null>(null);
+  const [lifestylePreview, setLifestylePreview] = useState<string | null>(null);
   const [reviewFile, setReviewFile] = useState<File | null>(null);
   const [planningDoc, setPlanningDoc] = useState<File | null>(null);
   const [customGif, setCustomGif] = useState<File | null>(null);
   const [customGifPreview, setCustomGifPreview] = useState<string | null>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
+  const lifestyleInputRef = useRef<HTMLInputElement>(null);
   const reviewInputRef = useRef<HTMLInputElement>(null);
   const planningInputRef = useRef<HTMLInputElement>(null);
   const customGifInputRef = useRef<HTMLInputElement>(null);
@@ -135,6 +141,10 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [loadingStage, setLoadingStage] = useState<LoadingStage>("idle");
   const [overlaySnapComplete, setOverlaySnapComplete] = useState(false);
+  const [autofillLoading, setAutofillLoading] = useState(false);
+  const [autofillError, setAutofillError] = useState<string | null>(null);
+  const [autofillNotice, setAutofillNotice] = useState(false);
+  const [autofillTargetHint, setAutofillTargetHint] = useState<string | null>(null);
   const loading = loadingStage !== "idle";
 
   const sectionCountHint = useMemo(() => {
@@ -163,6 +173,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       setCertifications(snap.certifications ?? "");
       setCompetitorUrl(snap.competitorUrl ?? "");
       setWholesaleUrl(snap.wholesaleUrl ?? "");
+      setSellerTrustEvidence(snap.sellerTrustEvidence ?? "");
       const urls = (draft.payload.imageUrls as string[] | undefined) ?? [];
       const paths = (draft.payload.imagePaths as string[] | undefined) ?? [];
       if (urls.length > 0) {
@@ -311,6 +322,93 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     setReferencePreview(URL.createObjectURL(file));
   }
 
+  function handleLifestyleImage(file: File | null) {
+    if (!file) return;
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setError("라이프스타일 사진은 JPG, PNG만 업로드할 수 있습니다.");
+      return;
+    }
+    if (lifestylePreview) URL.revokeObjectURL(lifestylePreview);
+    setError(null);
+    setLifestyleImage(file);
+    setLifestylePreview(URL.createObjectURL(file));
+  }
+
+  const autofillReady = Boolean(category) && productName.trim().length >= 5;
+
+  async function handleAutofillDraft() {
+    if (!autofillReady || autofillLoading) return;
+    setAutofillError(null);
+    setAutofillLoading(true);
+    try {
+      let imageUrls: string[] = [];
+      if (restoredUploads?.length) {
+        const all = restoredUploads.map((item) => item.url);
+        const indices = pickAutofillVisionIndices(all.length);
+        imageUrls = indices.map((i) => all[i]).filter(Boolean);
+      } else if (images.length > 0) {
+        const indices = pickAutofillVisionIndices(images.length);
+        const uploaded = await uploadImages(indices.map((i) => images[i]));
+        imageUrls = uploaded.map((item) => item.url);
+      }
+
+      const res = await fetch("/api/autofill-draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category,
+          productName: productName.trim(),
+          brandName: brandName.trim() || null,
+          imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+        }),
+      });
+      const json = (await res.json()) as {
+        draft?: { keyFeatures?: string; targetCustomer?: string };
+        error?: string;
+        visionCost?: number;
+        visionImageCount?: number;
+      };
+      if (!res.ok) {
+        setAutofillError(json.error ?? "자동입력에 실패했습니다.");
+        return;
+      }
+      const draft = json.draft;
+      if (!draft) return;
+
+      let filled = false;
+      if (!keyFeatures.trim() && draft.keyFeatures?.trim()) {
+        setKeyFeatures(draft.keyFeatures.trim());
+        filled = true;
+      }
+      if (!targetCustomer.trim() && draft.targetCustomer?.trim()) {
+        const suggestion = draft.targetCustomer.trim();
+        const match = TARGET_CUSTOMERS.find(
+          (item) => suggestion.includes(item) || item.includes(suggestion.split(/[\s,]/)[0] ?? ""),
+        );
+        if (match) {
+          setTargetCustomer(match);
+          filled = true;
+        } else {
+          setAutofillTargetHint(suggestion);
+        }
+      }
+      if (filled) {
+        setAutofillNotice(true);
+        if ((json.visionImageCount ?? 0) > 0) {
+          console.log(
+            `[autofill] Vision ${json.visionImageCount}장 반영 (visionCost=$${(json.visionCost ?? 0).toFixed(4)})`,
+          );
+        }
+      } else if (!keyFeatures.trim() && !targetCustomer.trim()) {
+        setAutofillError("채울 수 있는 빈 필드가 없거나 초안이 비어 있습니다.");
+      }
+    } catch {
+      setAutofillError("자동입력에 실패했습니다.");
+    } finally {
+      setAutofillLoading(false);
+    }
+  }
+
   function handleReviewFile(file: File | null) {
     if (!file) return;
     const lower = file.name.toLowerCase();
@@ -391,12 +489,16 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         images.length > 0 ? await uploadImages(images) : (restoredUploads as UploadedImage[]);
 
       let referenceImageUrl: string | null = null;
+      let lifestyleImageUrl: string | null = null;
       let reviewFileUrl: string | null = null;
       let planningDocUrl: string | null = null;
       let customGifUrl: string | null = null;
 
       if (referenceImage) {
         referenceImageUrl = await uploadAuxFile(referenceImage, "reference");
+      }
+      if (lifestyleImage) {
+        lifestyleImageUrl = await uploadAuxFile(lifestyleImage, "lifestyle");
       }
       if (reviewFile) {
         reviewFileUrl = await uploadAuxFile(reviewFile, "review");
@@ -428,7 +530,9 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         certifications: certifications.trim() || null,
         competitorUrl: competitorUrl.trim() || null,
         wholesaleUrl: wholesaleUrl.trim() || null,
+        sellerTrustEvidence: sellerTrustEvidence.trim() || null,
         referenceImageUrl,
+        lifestyleImageUrl,
         reviewFileUrl,
         planningDocUrl,
         customGifUrl,
@@ -500,6 +604,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           certifications: certifications.trim(),
           competitorUrl: competitorUrl.trim(),
           wholesaleUrl: wholesaleUrl.trim(),
+          sellerTrustEvidence: sellerTrustEvidence.trim(),
         },
       };
       sessionStorage.setItem(DRAFT_SESSION_KEY, JSON.stringify(draftSession));
@@ -625,6 +730,13 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
               JPG, PNG · 최소 {MIN_IMAGES}장 · 최대 {MAX_IMAGES}장 · AI가 서로 다른 사진 최소{" "}
               {MIN_IMAGES}장을 상세페이지에 사용합니다
             </p>
+            <p
+              className="mt-2 text-sm leading-relaxed text-ink/70"
+              data-testid="photo-minimal-input-hint"
+            >
+              사진과 상품명만으로도 AI가 상세페이지를 생성합니다. 아래 선택 항목을 채우면 더
+              정확해집니다.
+            </p>
 
             <div
               className="mt-3 rounded-xl border border-line bg-line/15 px-4 py-3"
@@ -745,6 +857,24 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
                   placeholder="예: 오버사이즈 코튼 셔츠"
                   className={inputClass}
                 />
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={!autofillReady || autofillLoading}
+                    onClick={handleAutofillDraft}
+                    className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink/80 hover:bg-line/30 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {autofillLoading ? "AI 자동입력 중…" : "AI 자동입력"}
+                  </button>
+                  {!autofillReady ? (
+                    <span className="text-xs text-ink/40">카테고리 + 상품명 5자 이상</span>
+                  ) : images.length > 0 || (restoredUploads?.length ?? 0) > 0 ? (
+                    <span className="text-xs text-ink/45">업로드한 사진도 함께 분석합니다</span>
+                  ) : null}
+                  {autofillError ? (
+                    <span className="text-xs text-registration-red">{autofillError}</span>
+                  ) : null}
+                </div>
               </div>
 
               <div>
@@ -788,7 +918,11 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
                   <select
                     id="targetCustomer"
                     value={targetCustomer}
-                    onChange={(e) => setTargetCustomer(e.target.value)}
+                    onChange={(e) => {
+                      setTargetCustomer(e.target.value);
+                      setAutofillNotice(false);
+                      setAutofillTargetHint(null);
+                    }}
                     className={inputClass}
                   >
                     <option value="">선택 (선택사항)</option>
@@ -807,6 +941,16 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           <section className={sectionClass}>
             <h2 className="font-heading text-lg font-bold text-ink">상품 특징</h2>
             <div className="mt-5 space-y-5">
+              {autofillNotice ? (
+                <p className="rounded-lg border border-line bg-paper px-3 py-2 text-xs text-ink/70">
+                  AI가 작성한 초안입니다. 실제와 다르면 꼭 수정해 주세요.
+                  {autofillTargetHint ? (
+                    <span className="mt-1 block text-ink/55">
+                      타겟 고객 제안: {autofillTargetHint} (목록에서 가장 가까운 항목을 선택해 주세요)
+                    </span>
+                  ) : null}
+                </p>
+              ) : null}
               <div>
                 <label htmlFor="keyFeatures" className={labelClass}>
                   핵심 특징 / 강조 포인트
@@ -815,7 +959,10 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
                   id="keyFeatures"
                   rows={4}
                   value={keyFeatures}
-                  onChange={(e) => setKeyFeatures(e.target.value)}
+                  onChange={(e) => {
+                    setKeyFeatures(e.target.value);
+                    setAutofillNotice(false);
+                  }}
                   placeholder="예: 100% 순면, 사계절 착용 가능, 루즈핏 디자인"
                   className={`${inputClass} resize-none`}
                 />
@@ -902,6 +1049,62 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
                   className="hidden"
                   onChange={(e) => {
                     handleReferenceImage(e.target.files?.[0] ?? null);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="lifestyleImage" className={labelClass}>
+                  인물/라이프스타일 사진 (선택)
+                </label>
+                <p className="mt-1 text-xs text-ink/40">
+                  실제 사용 장면 사진이 있으면 업로드해 주세요. 제품 사진을 자연스럽게 합성해 드립니다.
+                  (AI가 가짜 인물을 만들지는 않습니다)
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => lifestyleInputRef.current?.click()}
+                    className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink/80 hover:bg-line/30"
+                  >
+                    {lifestyleImage ? "다른 이미지 선택" : "이미지 선택"}
+                  </button>
+                  {lifestyleImage && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (lifestylePreview) URL.revokeObjectURL(lifestylePreview);
+                        setLifestyleImage(null);
+                        setLifestylePreview(null);
+                      }}
+                      className="text-sm text-ink/50 hover:text-registration-red"
+                    >
+                      제거
+                    </button>
+                  )}
+                  {lifestyleImage && (
+                    <span className="text-xs text-ink/50">{lifestyleImage.name}</span>
+                  )}
+                </div>
+                {lifestylePreview && (
+                  <div className="mt-3 h-24 w-24 overflow-hidden rounded-lg border border-line">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={lifestylePreview}
+                      alt="라이프스타일 미리보기"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                )}
+                <input
+                  id="lifestyleImage"
+                  ref={lifestyleInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleLifestyleImage(e.target.files?.[0] ?? null);
                     e.target.value = "";
                   }}
                 />
@@ -1048,6 +1251,24 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           <section className={sectionClass}>
             <h2 className="font-heading text-lg font-bold text-ink">추가 옵션</h2>
             <div className="mt-5 space-y-5">
+              <div>
+                <label htmlFor="sellerTrustEvidence" className={labelClass}>
+                  판매·랭킹 근거 (선택)
+                </label>
+                <input
+                  id="sellerTrustEvidence"
+                  type="text"
+                  value={sellerTrustEvidence}
+                  onChange={(e) => setSellerTrustEvidence(e.target.value)}
+                  placeholder='예: "올리브영 판매 1위", "누적 판매 3만개"'
+                  className={inputClass}
+                />
+                <p className="mt-1.5 text-xs text-ink/40">
+                  직접 보유한 근거만 입력하세요. 비워 두면 표시하지 않으며, AI가 리뷰 수·조회수 등을
+                  만들지 않습니다.
+                </p>
+              </div>
+
               <div>
                 <label htmlFor="competitorUrl" className={labelClass}>
                   경쟁사 URL

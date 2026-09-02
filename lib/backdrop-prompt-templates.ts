@@ -163,18 +163,20 @@ export const CATEGORY_PHOTOGRAPHY_TEMPLATES: Record<string, PhotographyTemplate>
     labelKo: "테크 미니멀",
     lighting: "cool diffused studio light, crisp rim highlight, subtle gradient falloff",
     composition: "shallow depth of field, empty center for device, soft vignette",
-    texture: "smooth cool gray-to-slate soft-focus gradient, faint bokeh, no geometric props",
+    texture:
+      "smooth cool gray-to-slate soft-focus gradient, faint bokeh, soft brushed metal or concrete texture hint at frame edge only, no geometric props",
     prompt:
-      "cool diffused studio light, crisp rim highlight, shallow depth of field, smooth cool gray soft-focus gradient backdrop, faint bokeh, gentle vignette, empty center, no cables, no gadgets as props, no liquid, no glass, no product, no text, no logo",
+      "cool diffused studio light, crisp rim highlight, shallow depth of field, smooth cool gray-to-slate soft-focus gradient backdrop, faint bokeh, gentle vignette, soft out-of-focus brushed metal or concrete texture hint at frame edges only, empty center, no cables, no gadgets as props, no defined geometric objects, no liquid, no glass, no product, no text, no logo",
   },
   "식품/건강기능식품": {
     id: "food-studio",
     labelKo: "내추럴 미니멀",
     lighting: "warm natural daylight, soft diffused window light, gentle shadow",
     composition: "shallow depth of field, empty center for packaging, soft vignette",
-    texture: "smooth warm cream-to-sand soft-focus gradient, faint bokeh, no food props",
+    texture:
+      "smooth warm cream-to-sand soft-focus gradient, faint bokeh, soft out-of-focus wood grain or linen texture hint at frame edge only, no food props",
     prompt:
-      "warm natural daylight, soft diffused window light, shallow depth of field, smooth warm cream soft-focus gradient backdrop, faint bokeh, gentle vignette, empty center, no ingredients as props, no plates, no glass condensation, no water droplets, no product, no text, no logo",
+      "warm natural daylight, soft diffused window light, shallow depth of field, smooth warm cream-to-sand soft-focus gradient backdrop, faint bokeh, gentle vignette, soft out-of-focus wood grain or linen texture hint at frame edges only, empty center, appetizing mood-shot atmosphere with warm steam-like softness and natural window light feel (still no food or dish in frame), no ingredients as props, no plates, no dishes, no ceramic objects with defined edges, no glass condensation, no water droplets, no product, no text, no logo",
   },
   "생활용품": {
     id: "home-studio",

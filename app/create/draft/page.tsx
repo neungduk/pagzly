@@ -23,6 +23,7 @@ import {
   type UploadedImage,
 } from "@/lib/photo-pipeline-client";
 import { getSectionAidaPhase } from "@/lib/section-aida";
+import { buildGenerationPipelineSummary } from "@/lib/generation-pipeline-summary";
 import type { DetailSection, GenerateResponse, PhotoCostBreakdown } from "@/lib/types/generate";
 
 function sectionPreviewText(section: DetailSection): string {
@@ -101,7 +102,13 @@ type PhotoPendingState = {
 
 function mapProgressToStage(event: PhotoPipelineProgressEvent): GeneratingStage {
   if (event.stage === "generating") return "generating";
-  if (event.stage === "enhancing" || event.stage === "lifestyle") return "enhancing";
+  if (
+    event.stage === "enhancing" ||
+    event.stage === "lifestyle" ||
+    event.stage === "lifestyle-composite"
+  ) {
+    return "enhancing";
+  }
   return "backdrop";
 }
 
@@ -287,6 +294,7 @@ export default function CreateDraftPage() {
       ingredients: snap.ingredients || null,
       targetCustomer: snap.targetCustomer || null,
       referenceImageUrl: (currentDraft.payload.referenceImageUrl as string | null) ?? null,
+      lifestyleImageUrl: (currentDraft.payload.lifestyleImageUrl as string | null) ?? null,
       draftToken: currentDraft.draftToken,
       pickBackdrop: waitForBackdropPick,
       onStage: (event) => {
@@ -408,6 +416,16 @@ export default function CreateDraftPage() {
     setRetryPhotoOnly(false);
 
     try {
+      const pipelineSummary = buildGenerationPipelineSummary({
+        imageAnalysis: json.imageAnalysis,
+        theme: json.theme,
+        photoProcessingCost: Number(draftAfterEnhance.payload.photoProcessingCost) || 0,
+        photoCostBreakdown: json.photoCostBreakdown ?? photoCostBreakdown,
+        backdropFailed: Boolean(draftAfterEnhance.payload.backdropFailed),
+        sectionCount: json.sections?.length ?? 0,
+      });
+      pipelineSummary.completedAt = new Date().toISOString();
+
       sessionStorage.setItem(
         SESSION_KEY,
         JSON.stringify({
@@ -423,6 +441,7 @@ export default function CreateDraftPage() {
             json.competitorDifferentiation ?? draftAfterEnhance.competitorDifferentiation ?? null,
           testMode: json.testMode ?? testMode,
           backdropFailed: draftAfterEnhance.payload.backdropFailed ?? false,
+          pipelineSummary,
           generated: json,
           draftApproved: true,
         }),

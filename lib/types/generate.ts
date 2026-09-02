@@ -8,6 +8,7 @@ export type PhotoCostBreakdown = {
   enhance?: number;
   decor?: number;
   lifestyle?: number;
+  lifestyleComposite?: number;
   effects?: number;
   icons?: number;
   illustrations?: number;
@@ -72,6 +73,8 @@ export type ProductInput = {
   wholesaleUrl?: string | null;
   /** 레퍼런스 무드/색상 참고 이미지 (Supabase Storage URL) */
   referenceImageUrl?: string | null;
+  /** 64차 — 인물/라이프스타일 사진 (제품 합성용, AI 가짜 인물 생성 아님) */
+  lifestyleImageUrl?: string | null;
   /** 고객 리뷰 엑셀/txt (Supabase Storage URL) */
   reviewFileUrl?: string | null;
   /** 기획안 PDF/DOCX (Supabase Storage URL) */
@@ -93,6 +96,11 @@ export type ProductInput = {
   customGifUrl?: string | null;
   /** AI 재생성 등 — 기존 products 행 id가 있으면 insert 대신 update */
   productId?: string | null;
+  /**
+   * 판매자가 직접 보유한 판매·랭킹 근거 (예: "올리브영 판매 1위", "누적 판매 3만개").
+   * 비어 있으면 섹션을 생성하지 않음 — AI가 임의 숫자·베스트셀러 문구를 만들지 않음.
+   */
+  sellerTrustEvidence?: string | null;
 };
 
 // slot: lib/section-templates.ts가 카테고리별로 고정한 슬롯 이름
@@ -137,9 +145,17 @@ export type ImageTextSection = {
   imageIndex: number;
   imagePosition: "left" | "right";
   /** 기본 "full" = 기존 풀사이즈 이미지+텍스트. "compact" = 작은 썸네일+텍스트 한 줄. "callout" = 사진 위 말풍선 강조 */
-  layout?: "full" | "compact" | "callout";
+  layout?: "full" | "compact" | "callout" | "annotated" | "circle-pair" | "circle-solo";
+  /** compact 썸네일 모서리 — 기본 square, circle 시 rounded-full */
+  imageShape?: "square" | "circle";
   /** layout:"callout"일 때 사진 위 말풍선에 표시할 짧은 강조 문구 (12~18자 권장) */
   callout?: string;
+  /** layout:"annotated"일 때 부품/기능 주석 (전자제품 등) */
+  annotations?: { label: string; xPct: number; yPct: number }[];
+  /** layout:"circle-pair"일 때 원형 크롭 2개 + 라벨 (정확히 2개) */
+  circlePair?: { imageUrl: string; label: string }[];
+  /** layout:"circle-solo"일 때 원형 크롭 1개 + 라벨 */
+  circleSolo?: { imageUrl: string; label: string };
 };
 
 export type SpecTableSection = {
@@ -147,6 +163,8 @@ export type SpecTableSection = {
   slot: string;
   heading: string;
   rows: { label: string; value: string }[];
+  /** INFO 썸네일용 이미지 인덱스 (최대 3, assign-section-images가 배정) */
+  imageIndexes?: number[];
 };
 
 export type UsageStepsSection = {
@@ -346,6 +364,91 @@ export type ReviewHighlightSection = {
   praises: string[];
 };
 
+export type CanvasElement =
+  | {
+      id: string;
+      kind: "text";
+      role: "main" | "sub" | "body" | "custom";
+      text: string;
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      fontSize?: number;
+      color?: string;
+      align?: "left" | "center" | "right";
+      z: number;
+      hidden?: boolean;
+      locked?: boolean;
+    }
+  | {
+      id: string;
+      kind: "image";
+      imageIndex?: number;
+      url?: string;
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      radius?: number;
+      z: number;
+      hidden?: boolean;
+      locked?: boolean;
+    }
+  | {
+      id: string;
+      kind: "shape";
+      shape: "rect" | "circle" | "line";
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      fill?: string;
+      stroke?: string;
+      z: number;
+      hidden?: boolean;
+      locked?: boolean;
+    }
+  | {
+      id: string;
+      kind: "table";
+      rows: { label: string; value: string }[];
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      headerColor?: string;
+      borderColor?: string;
+      z: number;
+      hidden?: boolean;
+      locked?: boolean;
+    }
+  | {
+      id: string;
+      kind: "ai-image";
+      prompt: string;
+      refImageUrl?: string;
+      resultUrl?: string;
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      radius?: number;
+      z: number;
+      status: "pending" | "done" | "failed";
+      hidden?: boolean;
+      locked?: boolean;
+    };
+
+export type CanvasSection = {
+  type: "canvas";
+  slot: string;
+  frameWidth: number;
+  frameHeight: number;
+  background?: { color?: string; imageUrl?: string };
+  elements: CanvasElement[];
+};
+
 export type DetailSection =
   | HeroSection
   | ChecklistSection
@@ -367,7 +470,8 @@ export type DetailSection =
   | BrandStorySection
   | AiDisclosureSection
   | CustomGifSection
-  | ReviewHighlightSection;
+  | ReviewHighlightSection
+  | CanvasSection;
 
 export type GeneratedCopy = {
   sections: DetailSection[];

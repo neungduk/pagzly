@@ -8,6 +8,7 @@ import type { ConceptBrief } from "@/lib/concept-brief";
 import { computeStudioCompositeLimit } from "@/lib/lifestyle-shot-planner";
 import { getLifestyleShotConfig } from "@/lib/lifestyle-shot-config";
 import type { PhotoCostBreakdown, ReferenceAnalysisInput } from "@/lib/types/generate";
+import { extractCosmeticsFormulation } from "@/lib/cosmetics-texture-swatch";
 import type { ShadowAnalysis } from "@/lib/vision-utils";
 
 export type UploadedImage = {
@@ -378,7 +379,12 @@ export async function enhanceImages(params: {
   return { images: [...results, ...extras], cost: totalCost, decorCost, claudeCost };
 }
 
-export type PhotoPipelineStage = "backdrop" | "sections" | "enhancing" | "lifestyle";
+export type PhotoPipelineStage =
+  | "backdrop"
+  | "sections"
+  | "enhancing"
+  | "lifestyle-composite"
+  | "lifestyle";
 
 export type PhotoPipelineProgressEvent = {
   stage: PhotoPipelineStage | "generating";
@@ -410,6 +416,7 @@ export async function runPhotoEnhancementPipeline(params: {
   ingredients?: string | null;
   targetCustomer?: string | null;
   referenceImageUrl?: string | null;
+  lifestyleImageUrl?: string | null;
   draftToken?: string | null;
   pickBackdrop: (urls: string[]) => Promise<string>;
   onStage?: PhotoPipelineProgressCallback;
@@ -514,6 +521,15 @@ export async function runPhotoEnhancementPipeline(params: {
   // TEST_MODE에서는 section-backdrops API가 디스크 캐시를 쓰므로 비용 캡이 유지된다.
   if (backdropResult.shadowAnalysis && uploaded.length >= 1) {
     emit({ stage: "sections", detail: "섹션 배경 생성 중", costUsdSoFar: photoProcessingCost });
+    const productFormulation =
+      params.category === "화장품/뷰티"
+        ? extractCosmeticsFormulation(
+            undefined,
+            [params.ingredients, params.keyFeatures, backdropResult.conceptBrief?.theme]
+              .filter(Boolean)
+              .join(" "),
+          )
+        : null;
     try {
       const sectionRes = await fetch("/api/section-backdrops", {
         method: "POST",
@@ -524,6 +540,7 @@ export async function runPhotoEnhancementPipeline(params: {
           category: params.category,
           theme: backdropResult.theme,
           draftToken: params.draftToken ?? null,
+          productFormulation,
         }),
       });
       const sectionJson = (await sectionRes.json()) as {
@@ -597,6 +614,73 @@ export async function runPhotoEnhancementPipeline(params: {
   };
 
   let finalImages = enhanced.images;
+
+  if (params.lifestyleImageUrl) {
+    emit({
+      stage: "lifestyle-composite",
+      detail: "라이프스타일 합성 중",
+      costUsdSoFar: photoProcessingCost,
+    });
+    try {
+      const heroRef = finalImages[0];
+      const compositeRes = await fetch("/api/lifestyle-composite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lifestyleImageUrl: params.lifestyleImageUrl,
+          productImageUrl: heroRef?.url ?? uploaded[0]?.url,
+          category: params.category,
+          productName: params.productName,
+          storageBasePath: heroRef?.path ?? uploaded[0]?.path,
+        }),
+      });
+      const compositeJson = (await compositeRes.json()) as {
+        url?: string;
+        path?: string | null;
+        cost?: number;
+        composited?: boolean;
+        error?: string;
+        fallbackReason?: string;
+      };
+      if (compositeRes.ok && compositeJson.url) {
+        if (compositeJson.composited) {
+          const compositePath =
+            compositeJson.path?.trim() ||
+            (compositeJson.url.includes("lifestyle-composite")
+              ? compositeJson.url
+              : `lifestyle-composite/${Date.now()}.png`);
+          finalImages.push({ url: compositeJson.url, path: compositePath });
+          console.log(
+            `[lifestyle-composite] appended image index ${finalImages.length - 1} path=${compositePath.slice(0, 80)}`,
+          );
+        }
+        const compositeCost = compositeJson.cost ?? 0;
+        photoProcessingCost += compositeCost;
+        photoCostBreakdown = {
+          ...photoCostBreakdown,
+          lifestyleComposite: compositeCost,
+        };
+        emit({
+          stage: "lifestyle-composite",
+          detail: compositeJson.composited
+            ? "라이프스타일 합성 완료"
+            : "라이프스타일 합성 생략 — 원본 사용",
+          warning: compositeJson.fallbackReason,
+          costUsdSoFar: photoProcessingCost,
+        });
+      } else if (!compositeRes.ok) {
+        console.warn("[lifestyle-composite] skip:", compositeJson.error);
+      }
+    } catch (compositeErr) {
+      console.warn("[lifestyle-composite] failed:", compositeErr);
+      emit({
+        stage: "lifestyle-composite",
+        detail: "라이프스타일 합성 생략",
+        warning: compositeErr instanceof Error ? compositeErr.message : String(compositeErr),
+        costUsdSoFar: photoProcessingCost,
+      });
+    }
+  }
 
   if (uploaded.length >= getLifestyleShotConfig().minUploadCount) {
     emit({

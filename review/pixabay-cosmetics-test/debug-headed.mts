@@ -1,0 +1,15 @@
+﻿import { chromium } from "playwright";
+import fs from "fs";
+import path from "path";
+const ROOT = path.join(import.meta.dirname, "..", "..");
+const ASSET_DIR = path.join(ROOT, "scripts", "test-assets", "_pixabay-cosmetics-run");
+fs.mkdirSync(ASSET_DIR, { recursive: true });
+const browser = await chromium.launch({ headless: false, channel: "chrome" });
+const page = await browser.newPage();
+await page.goto("https://pixabay.com/images/search/skincare+cream/", { waitUntil: "load", timeout: 180000 });
+await page.waitForTimeout(15000);
+console.log("title", await page.title());
+const n = await page.locator('a[href*="/photos/"]').count();
+console.log("photo links", n);
+await page.screenshot({ path: "pixabay-headed.png" });
+await browser.close();

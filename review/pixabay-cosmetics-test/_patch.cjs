@@ -1,0 +1,10 @@
+﻿const fs = require("fs");
+const f = require("path").join(__dirname, "_run-inline-qa.ts");
+let s = fs.readFileSync(f, "utf8");
+s = s.replace(`const ROOT = path.join(__dirname, "..");`, `const ROOT = path.join(__dirname, "..", "..");`);
+s = s.replace(`const OUT_DIR = path.join(ROOT, "review", "pexels-one-detail");`, `const OUT_DIR = path.join(ROOT, "review", "pixabay-cosmetics-test");`);
+s = s.replace(`const ASSET_DIR = path.join(__dirname, "test-assets", "_pexels-one-run");`, `const ASSET_DIR = path.join(ROOT, "scripts", "test-assets", "_pixabay-cosmetics-run");`);
+s = s.replace(`from "./capture-utils";`, `from "../../scripts/capture-utils";`);
+s = s.replace(`path.join(__dirname, "auth-state.json")`, `path.join(ROOT, "scripts", "auth-state.json")`);
+fs.writeFileSync(f, s);
+console.log("patched", f);

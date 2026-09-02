@@ -5,7 +5,7 @@ import {
   normalizeImageRoles,
   type ProductImageRole,
 } from "@/lib/image-roles";
-import { isLifestyleAiPath } from "@/lib/lifestyle-shot-planner";
+import { isLifestyleAiPath, isLifestyleCompositePath } from "@/lib/lifestyle-shot-planner";
 
 /** 업로드·생성 공통 한도 */
 export const MAX_PRODUCT_IMAGES = 10;
@@ -18,10 +18,11 @@ function clampIndex(index: number, imageCount: number): number {
 
 type Placement =
   | { kind: "hero" }
-  | { kind: "image_text"; sectionIndex: number; prefer?: number }
+  | { kind: "image_text"; sectionIndex: number; prefer?: number; slot?: string }
   | { kind: "gallery_cell"; sectionIndex: number; cell: number }
   | { kind: "step"; sectionIndex: number; stepIndex: number }
-  | { kind: "color_option"; sectionIndex: number; optionIndex: number };
+  | { kind: "color_option"; sectionIndex: number; optionIndex: number }
+  | { kind: "spec_thumb"; sectionIndex: number; cell: number };
 
 export type AssignSectionImagesOptions = {
   category?: string;
@@ -45,6 +46,8 @@ function collectUsedIndexes(sections: DetailSection[]): number[] {
       section.options.forEach((o) => add(o.imageIndex));
     } else if (section.type === "step_card") {
       section.steps.forEach((s) => add(s.imageIndex));
+    } else if (section.type === "spec_table" && section.slot === "spec_table") {
+      section.imageIndexes?.forEach(add);
     }
   }
   return used;
@@ -67,11 +70,21 @@ function preferForSlot(
   roles: ProductImageRole[],
   imageCount: number,
   lifestyleAiIndexes: number[],
+  lifestyleCompositeIndexes: number[],
 ): number | undefined {
   const rolePrefer = (role: ProductImageRole, fallback?: number) => {
     const idx = firstIndexWithRole(roles, role);
     if (idx !== undefined) return idx;
     return fallback !== undefined && fallback < imageCount ? fallback : undefined;
+  };
+
+  const preferLifestyleComposite = () => {
+    if (lifestyleCompositeIndexes.length === 0) return undefined;
+    const slotOffset =
+      slot === "usage_scenario_extra" || slot === "customer_scenario" ? 0 : 0;
+    const pick =
+      lifestyleCompositeIndexes[Math.min(slotOffset, lifestyleCompositeIndexes.length - 1)];
+    return pick < imageCount ? pick : lifestyleCompositeIndexes[0];
   };
 
   const preferLifestyleAi = () => {
@@ -91,11 +104,23 @@ function preferForSlot(
     return rolePrefer("detail", imageCount > 2 ? 2 : undefined);
   }
 
-  if (slot === "detail_zoom" || slot === "fabric_composition" || slot === "quick_points") {
+  if (slot === "detail_zoom" || slot === "fabric_composition") {
     return rolePrefer("detail", imageCount > 1 ? 1 : undefined);
   }
+  // compact 96px — 낱개 매크로 detail보다 단일 피사체 package/hero 우선 (54차)
+  if (slot === "quick_points") {
+    return (
+      rolePrefer("package") ??
+      rolePrefer("hero") ??
+      rolePrefer("detail", imageCount > 1 ? 1 : undefined)
+    );
+  }
   if (slot === "coordination" || slot === "seasonal_styling" || slot === "fit_guide") {
-    return preferLifestyleAi() ?? rolePrefer("lifestyle", imageCount > 2 ? 2 : undefined);
+    return (
+      preferLifestyleComposite() ??
+      preferLifestyleAi() ??
+      rolePrefer("lifestyle", imageCount > 2 ? 2 : undefined)
+    );
   }
   if (
     category === "의류/패션" &&
@@ -116,7 +141,11 @@ function preferForSlot(
       return rolePrefer("detail", imageCount > 1 ? 1 : undefined);
     }
     if (slot === "coordination" || slot === "seasonal_styling" || slot === "fit_guide") {
-      return rolePrefer("lifestyle", imageCount > 2 ? 2 : undefined) ?? preferLifestyleAi();
+      return (
+        preferLifestyleComposite() ??
+        rolePrefer("lifestyle", imageCount > 2 ? 2 : undefined) ??
+        preferLifestyleAi()
+      );
     }
     if (slot === "packaging_design") {
       return rolePrefer("package", imageCount > 3 ? 3 : undefined);
@@ -130,7 +159,11 @@ function preferForSlot(
     return rolePrefer("detail", imageCount > 1 ? 1 : undefined);
   }
   if (slot === "usage_scene" || slot === "lifestyle_shot") {
-    return preferLifestyleAi() ?? rolePrefer("lifestyle", imageCount > 2 ? 2 : undefined);
+    return (
+      preferLifestyleComposite() ??
+      preferLifestyleAi() ??
+      rolePrefer("lifestyle", imageCount > 2 ? 2 : undefined)
+    );
   }
 
   if (
@@ -141,7 +174,11 @@ function preferForSlot(
     slot === "model_multicut" ||
     slot === "install_scenario"
   ) {
-    return preferLifestyleAi() ?? rolePrefer("lifestyle", imageCount > 2 ? 2 : undefined);
+    return (
+      preferLifestyleComposite() ??
+      preferLifestyleAi() ??
+      rolePrefer("lifestyle", imageCount > 2 ? 2 : undefined)
+    );
   }
 
   void category;
@@ -168,6 +205,10 @@ export function assignDistinctSectionImages(
   const lifestyleAiIndexes =
     options?.imagePaths
       ?.map((p, i) => (isLifestyleAiPath(p) ? i : -1))
+      .filter((i) => i >= 0) ?? [];
+  const lifestyleCompositeIndexes =
+    options?.imagePaths
+      ?.map((p, i) => (isLifestyleCompositePath(p) ? i : -1))
       .filter((i) => i >= 0) ?? [];
 
   const pinStudioHero = sections.some((section) => section.slot === "ingredient_highlight");
@@ -256,8 +297,15 @@ export function assignDistinctSectionImages(
     if (section.type === "hero") {
       placements.push({ kind: "hero" });
     } else if (section.type === "image_text") {
-      const prefer = preferForSlot(section.slot, category, roles, imageCount, lifestyleAiIndexes);
-      placements.push({ kind: "image_text", sectionIndex, prefer });
+      const prefer = preferForSlot(
+        section.slot,
+        category,
+        roles,
+        imageCount,
+        lifestyleAiIndexes,
+        lifestyleCompositeIndexes,
+      );
+      placements.push({ kind: "image_text", sectionIndex, prefer, slot: section.slot });
     } else if (section.type === "gallery") {
       const wanted = Math.min(
         Math.max(section.imageIndexes?.length ?? 2, imageCount >= 7 ? 4 : imageCount >= 4 ? 3 : 2),
@@ -275,11 +323,26 @@ export function assignDistinctSectionImages(
       section.options.forEach((_, optionIndex) => {
         placements.push({ kind: "color_option", sectionIndex, optionIndex });
       });
+    } else if (section.type === "spec_table" && section.slot === "spec_table") {
+      const detailLifestyle = [
+        ...new Set([
+          ...indexesWithRole(roles, "detail"),
+          ...indexesWithRole(roles, "lifestyle"),
+        ]),
+      ].filter((i) => i >= 0 && i < imageCount);
+      const wanted =
+        detailLifestyle.length >= 2
+          ? Math.min(3, detailLifestyle.length, imageCount)
+          : 1;
+      for (let cell = 0; cell < wanted; cell += 1) {
+        placements.push({ kind: "spec_thumb", sectionIndex, cell });
+      }
     }
   });
 
   const assigned = new Map<string, number>();
   const galleryBuckets = new Map<number, number[]>();
+  const specThumbBuckets = new Map<number, number[]>();
 
   for (const placement of placements) {
     if (placement.kind === "hero") {
@@ -289,9 +352,10 @@ export function assignDistinctSectionImages(
       continue;
     }
     if (placement.kind === "image_text") {
+      const isQuickPoints = placement.slot === "quick_points";
       const idx = pick({
         prefer: placement.prefer,
-        excludeHero: imageCount >= 3,
+        excludeHero: isQuickPoints ? false : imageCount >= 3,
         uniqueAmongImageText: true,
       });
       imageTextUsed.add(idx);
@@ -302,7 +366,12 @@ export function assignDistinctSectionImages(
       const bucket = galleryBuckets.get(placement.sectionIndex) ?? [];
       const lifestyle = indexesWithRole(roles, "lifestyle");
       const details = indexesWithRole(roles, "detail");
-      const pool = [...lifestyleAiIndexes, ...lifestyle, ...details];
+      const pool = [
+        ...lifestyleCompositeIndexes,
+        ...lifestyleAiIndexes,
+        ...lifestyle,
+        ...details,
+      ];
       const prefer = pool.find((i) => !bucket.includes(i) && i !== heroIndex);
       const idx = pick({
         prefer,
@@ -325,6 +394,24 @@ export function assignDistinctSectionImages(
     if (placement.kind === "color_option") {
       const idx = pick({ excludeHero: imageCount >= 3 });
       assigned.set(`opt:${placement.sectionIndex}:${placement.optionIndex}`, idx);
+      continue;
+    }
+    if (placement.kind === "spec_thumb") {
+      const bucket = specThumbBuckets.get(placement.sectionIndex) ?? [];
+      const detailLifestyle = [
+        ...new Set([
+          ...indexesWithRole(roles, "detail"),
+          ...indexesWithRole(roles, "lifestyle"),
+        ]),
+      ].filter((i) => i >= 0 && i < imageCount);
+      const pool = detailLifestyle.length > 0 ? detailLifestyle : undefined;
+      const idx = pick({
+        prefer: pool?.find((i) => !bucket.includes(i)),
+        avoid: bucket,
+        excludeHero: imageCount >= 4,
+      });
+      bucket.push(idx);
+      specThumbBuckets.set(placement.sectionIndex, bucket);
     }
   }
 
@@ -361,6 +448,11 @@ export function assignDistinctSectionImages(
             assigned.get(`opt:${sectionIndex}:${optionIndex}`) ?? option.imageIndex,
         })),
       };
+    }
+    if (section.type === "spec_table" && section.slot === "spec_table") {
+      const indexes = specThumbBuckets.get(sectionIndex);
+      if (!indexes || indexes.length === 0) return section;
+      return { ...section, imageIndexes: indexes };
     }
     return section;
   });
@@ -407,6 +499,9 @@ export function countImageIndexFrequency(sections: DetailSection[]): Record<numb
     else if (section.type === "gallery") section.imageIndexes.forEach(add);
     else if (section.type === "step_card") section.steps.forEach((s) => add(s.imageIndex));
     else if (section.type === "color_variation") section.options.forEach((o) => add(o.imageIndex));
+    else if (section.type === "spec_table" && section.slot === "spec_table") {
+      section.imageIndexes?.forEach(add);
+    }
   }
   return freq;
 }

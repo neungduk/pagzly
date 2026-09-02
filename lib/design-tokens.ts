@@ -28,21 +28,37 @@ export const BRAND_SOFT = {
 // 1. 컬러 — 페이지 전체에서 accentColor / baseNeutral / deepAccent 3개만 순환.
 // ---------------------------------------------------------------------------
 
-export function hexToRgba(hex: string, alpha: number): string {
+function parseHexRgb(hex: string): { r: number; g: number; b: number } {
   const normalized = hex.replace("#", "");
-  const bigint = parseInt(
+  const expanded =
     normalized.length === 3
       ? normalized
           .split("")
           .map((c) => c + c)
           .join("")
-      : normalized,
-    16,
-  );
-  const r = (bigint >> 16) & 255;
-  const g = (bigint >> 8) & 255;
-  const b = bigint & 255;
+      : normalized;
+  const bigint = parseInt(expanded, 16);
+  return {
+    r: (bigint >> 16) & 255,
+    g: (bigint >> 8) & 255,
+    b: bigint & 255,
+  };
+}
+
+export function hexToRgba(hex: string, alpha: number): string {
+  const { r, g, b } = parseHexRgb(hex);
   return `rgba(${r},${g},${b},${alpha})`;
+}
+
+/** BRAND.paper 등 바탕색에 accent를 tintRatio(0~1)만큼 섞어 hex 반환 — 58차 baseNeutral */
+export function mixHex(base: string, tint: string, tintRatio: number): string {
+  const ratio = Math.min(1, Math.max(0, tintRatio));
+  const b = parseHexRgb(base);
+  const t = parseHexRgb(tint);
+  const r = Math.round(b.r * (1 - ratio) + t.r * ratio);
+  const g = Math.round(b.g * (1 - ratio) + t.g * ratio);
+  const bl = Math.round(b.b * (1 - ratio) + t.b * ratio);
+  return `#${[r, g, bl].map((v) => v.toString(16).padStart(2, "0")).join("")}`.toUpperCase();
 }
 
 // 섹션 배경은 패턴 A(baseNeutral 단색) / 패턴 B(accentColor 10~15% 옅은 단색) / 패턴 C(deepAccent
@@ -84,35 +100,93 @@ export function getSectionPattern(
 }
 
 /** 섹션 배경 — baseNeutral은 고정, accent 계열만 은은한 그라데이션으로 리듬을 만든다. */
-export function getSectionBackground(theme: CategoryTheme, pattern: SectionColorPattern): string {
+export function getSectionBackground(
+  theme: CategoryTheme,
+  pattern: SectionColorPattern,
+  category?: string,
+): string {
+  const fashionMinimal = category === "의류/패션";
+  const accentSoftA = fashionMinimal ? 0.21 : 0.42;
+  const accentB = fashionMinimal ? 0.05 : 0.1;
+  const accentSoftB = fashionMinimal ? 0.275 : 0.55;
+  const accentSoftD = fashionMinimal ? 0.39 : 0.78;
+  const accentD = fashionMinimal ? 0.07 : 0.14;
+  const accentE = fashionMinimal ? 0.04 : 0.12;
+  const deepAccentE = fashionMinimal ? 0.035 : 0.1;
+
   if (pattern === "C") {
     return `linear-gradient(145deg, ${hexToRgba(theme.deepAccent, 0.93)} 0%, ${hexToRgba(theme.accent, 0.82)} 100%)`;
   }
   if (pattern === "A") {
-    return `linear-gradient(168deg, ${theme.baseNeutral} 0%, ${hexToRgba(theme.accentSoft, 0.42)} 100%)`;
+    return `linear-gradient(168deg, ${theme.baseNeutral} 0%, ${hexToRgba(theme.accentSoft, accentSoftA)} 100%)`;
   }
   if (pattern === "B") {
-    return `linear-gradient(168deg, ${hexToRgba(theme.accent, 0.1)} 0%, ${hexToRgba(theme.accentSoft, 0.55)} 52%, ${theme.baseNeutral} 100%)`;
+    return `linear-gradient(168deg, ${hexToRgba(theme.accent, accentB)} 0%, ${hexToRgba(theme.accentSoft, accentSoftB)} 52%, ${theme.baseNeutral} 100%)`;
   }
   if (pattern === "D") {
-    return `linear-gradient(175deg, ${hexToRgba(theme.accentSoft, 0.78)} 0%, ${hexToRgba(theme.accent, 0.14)} 45%, ${theme.baseNeutral} 100%)`;
+    return `linear-gradient(175deg, ${hexToRgba(theme.accentSoft, accentSoftD)} 0%, ${hexToRgba(theme.accent, accentD)} 45%, ${theme.baseNeutral} 100%)`;
   }
-  return `linear-gradient(180deg, ${theme.baseNeutral} 0%, ${hexToRgba(theme.accent, 0.08)} 42%, ${hexToRgba(theme.deepAccent, 0.07)} 100%)`;
+  return `linear-gradient(180deg, ${theme.baseNeutral} 0%, ${hexToRgba(theme.accent, accentE)} 42%, ${hexToRgba(theme.deepAccent, deepAccentE)} 100%)`;
+}
+
+/** 51차 — 카테고리별 은은한 SVG 반복 패턴 (AI 이미지 없음, opt-in) */
+const CATEGORY_PATTERN_SVG: Partial<Record<string, string>> = {
+  "화장품/뷰티": `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><circle cx="16" cy="16" r="6" fill="%231B1B18" fill-opacity="0.05"/><circle cx="56" cy="28" r="9" fill="%231B1B18" fill-opacity="0.04"/><circle cx="32" cy="58" r="5" fill="%231B1B18" fill-opacity="0.045"/></svg>`,
+  "식품/건강기능식품": `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><path d="M8 72 Q24 48 40 72 T72 72" fill="none" stroke="%231B1B18" stroke-opacity="0.05" stroke-width="3"/><path d="M20 24 Q36 8 52 24 T84 24" fill="none" stroke="%231B1B18" stroke-opacity="0.04" stroke-width="2.5"/></svg>`,
+  "반려동물": `<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72"><ellipse cx="24" cy="20" rx="5" ry="7" fill="%231B1B18" fill-opacity="0.05"/><ellipse cx="48" cy="20" rx="5" ry="7" fill="%231B1B18" fill-opacity="0.05"/><ellipse cx="16" cy="38" rx="4" ry="6" fill="%231B1B18" fill-opacity="0.04"/><ellipse cx="56" cy="38" rx="4" ry="6" fill="%231B1B18" fill-opacity="0.04"/><ellipse cx="36" cy="48" rx="10" ry="8" fill="%231B1B18" fill-opacity="0.045"/></svg>`,
+  "전자제품": `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><circle cx="12" cy="12" r="1.5" fill="%231B1B18" fill-opacity="0.06"/><circle cx="32" cy="12" r="1.5" fill="%231B1B18" fill-opacity="0.06"/><circle cx="52" cy="12" r="1.5" fill="%231B1B18" fill-opacity="0.06"/><circle cx="12" cy="32" r="1.5" fill="%231B1B18" fill-opacity="0.05"/><circle cx="32" cy="32" r="1.5" fill="%231B1B18" fill-opacity="0.05"/><circle cx="52" cy="32" r="1.5" fill="%231B1B18" fill-opacity="0.05"/></svg>`,
+  "의류/패션": `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><path d="M0 20 L80 0" stroke="%231B1B18" stroke-opacity="0.04" stroke-width="1"/><path d="M0 50 L80 30" stroke="%231B1B18" stroke-opacity="0.035" stroke-width="1"/><path d="M0 80 L80 60" stroke="%231B1B18" stroke-opacity="0.04" stroke-width="1"/></svg>`,
+};
+
+export function getCategoryPatternBackground(category?: string): string | undefined {
+  if (!category) return undefined;
+  const svg = CATEGORY_PATTERN_SVG[category];
+  if (!svg) return undefined;
+  return `url("data:image/svg+xml,${svg}")`;
+}
+
+/** 그radient 위에 카테고리 패턴을 은은하게 합성 */
+export function composeSectionBackground(gradient: string, category?: string): string {
+  const pattern = getCategoryPatternBackground(category);
+  if (!pattern) return gradient;
+  return `${pattern}, ${gradient}`;
+}
+
+/** 미리보기/익스port 공통 — 패턴 repeat + gradient */
+export function getComposedSectionBackgroundStyle(
+  theme: CategoryTheme,
+  pattern: SectionColorPattern,
+  category?: string,
+): { background: string; backgroundRepeat?: string; backgroundSize?: string } {
+  const gradient = getSectionBackground(theme, pattern, category);
+  const patternUrl = getCategoryPatternBackground(category);
+  if (!patternUrl) return { background: gradient };
+  return {
+    background: `${patternUrl}, ${gradient}`,
+    backgroundRepeat: "repeat, no-repeat",
+    backgroundSize: "auto, 100% 100%",
+  };
 }
 
 /** 패턴별 상·하단 액센트 라인 — 스크롤 시 섹션 경계가 읽히도록. */
 export function getSectionInsetShadow(
   theme: CategoryTheme,
   pattern: SectionColorPattern,
+  category?: string,
 ): string | undefined {
+  const fashionMinimal = category === "의류/패션";
+  const accentLine = fashionMinimal ? 0.13 : 0.26;
+  const accentLineA = fashionMinimal ? 0.07 : 0.14;
+  const deepLineE = fashionMinimal ? 0.05 : 0.1;
+
   if (pattern === "C") return undefined;
   if (pattern === "B" || pattern === "D") {
-    return `inset 0 3px 0 ${hexToRgba(theme.accent, 0.26)}`;
+    return `inset 0 3px 0 ${hexToRgba(theme.accent, accentLine)}`;
   }
   if (pattern === "E") {
-    return `inset 0 -3px 0 ${hexToRgba(theme.deepAccent, 0.1)}`;
+    return `inset 0 -3px 0 ${hexToRgba(theme.deepAccent, deepLineE)}`;
   }
-  return `inset 0 2px 0 ${hexToRgba(theme.accent, 0.14)}`;
+  return `inset 0 2px 0 ${hexToRgba(theme.accent, accentLineA)}`;
 }
 
 /** 텍스트 전용 카드 패널 — 단순 배경 위에 올리는 포인트 박스 */
@@ -277,11 +351,15 @@ export function resolveSectionSurface(
   extended: ExtendedTheme,
   sectionType: string,
   bodyIndexZeroBased: number,
+  category?: string,
 ): ResolvedSectionSurface {
   const pattern = getSectionPattern(bodyIndexZeroBased, sectionType);
   const theme = getSectionTheme(extended, sectionType, bodyIndexZeroBased);
-  const background = getSectionBackground(theme, pattern);
-  const insetShadow = getSectionInsetShadow(theme, pattern);
+  const background = composeSectionBackground(
+    getSectionBackground(theme, pattern, category),
+    category,
+  );
+  const insetShadow = getSectionInsetShadow(theme, pattern, category);
   return { theme, pattern, background, insetShadow };
 }
 

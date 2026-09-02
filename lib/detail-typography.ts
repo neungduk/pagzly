@@ -1,12 +1,12 @@
-/** 상세페이지 전용 타이포 — 미리보기·HTML export 공통 스택 */
+/** 상세페이지 전용 타이포 — 미리보기·HTML export 공통 스택 (Noto Sans KR 고딕) */
 
 export const DETAIL_GOOGLE_FONTS_URL =
-  "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@600;700&display=swap";
+  "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap";
 
 export const DETAIL_FONT_STACK = {
-  sans: '"Noto Sans KR", "Pretendard", system-ui, -apple-system, "Malgun Gothic", sans-serif',
-  heading: '"Noto Serif KR", "Noto Sans KR", Georgia, serif',
-  label: '"Noto Sans KR", "Pretendard", sans-serif',
+  sans: '"Noto Sans KR", system-ui, -apple-system, "Malgun Gothic", sans-serif',
+  heading: '"Noto Sans KR", system-ui, -apple-system, "Malgun Gothic", sans-serif',
+  label: '"Noto Sans KR", system-ui, sans-serif',
 } as const;
 
 export const DETAIL_EXPORT_FONT_CSS = `

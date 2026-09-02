@@ -16,6 +16,7 @@ type SectionStructureEditorProps = {
   patchLoading?: boolean;
   /** true면 순서/숨김만 (섹션 AI는 별도 탭) */
   hidePatch?: boolean;
+  onAddCanvas?: () => void;
 };
 
 export default function SectionStructureEditor({
@@ -30,6 +31,7 @@ export default function SectionStructureEditor({
   onPatchSubmit,
   patchLoading,
   hidePatch = false,
+  onAddCanvas,
 }: SectionStructureEditorProps) {
   const hidden = new Set(hiddenIndexes);
   const btn =
@@ -128,6 +130,17 @@ export default function SectionStructureEditor({
         </button>
       </div>
       )}
+
+      {onAddCanvas ? (
+        <button
+          type="button"
+          onClick={onAddCanvas}
+          className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-dashed border-line text-xs font-semibold text-ink hover:bg-line/20"
+          data-testid="add-canvas-section-mobile"
+        >
+          자유 캔버스 추가
+        </button>
+      ) : null}
     </div>
   );
 }

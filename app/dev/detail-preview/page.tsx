@@ -107,6 +107,7 @@ const initialSections: DetailSection[] = [
       { label: "용량", value: "50ml" },
       { label: "제형", value: "젤 크림" },
       { label: "향", value: "무향" },
+      { label: "원산지", value: "국내" },
     ],
   },
   {
@@ -162,9 +163,445 @@ const initialSections: DetailSection[] = [
   },
 ];
 
+/** 56차 캡처용 — 패션 + 55차 UI 3종(사이즈 다이어그램·퀵팩트·앵커) 검증 */
+const capture56Sections: DetailSection[] = [
+  {
+    type: "hero",
+    slot: "hero",
+    headline: "데일리에 맞는 오버핏 실루엣",
+    subheadline: "에센셜 코튼 티셔츠",
+    imageIndex: 0,
+    badge: "면 100%",
+  },
+  {
+    type: "brand_story",
+    slot: "brand_story",
+    heading: "미니멀 라인의 기준",
+    body: "불필요한 장식 없이 소재와 핏만으로 말하는 데일리웨어를 만듭니다.",
+  },
+  {
+    type: "checklist",
+    slot: "checklist",
+    heading: "핏 포인트",
+    items: ["20수 순면", "오버핏", "4색 컬러", "사계절"],
+  },
+  {
+    type: "spec_table",
+    slot: "spec_table",
+    heading: "제품 정보",
+    rows: [
+      { label: "소재", value: "면 100%" },
+      { label: "원산지", value: "국내" },
+      { label: "색상", value: "3종" },
+      { label: "제조사", value: "NEUTRAL LINE" },
+    ],
+  },
+  {
+    type: "gallery",
+    slot: "model_multicut",
+    heading: "착장 컷",
+    imageIndexes: [0, 1, 2, 3],
+  },
+  {
+    type: "step_card",
+    slot: "step_card",
+    heading: "코디 가이드",
+    steps: [
+      { title: "데님", body: "캐주얼 데일리룩.", imageIndex: 1 },
+      { title: "슬랙스", body: "포멀한 오피스룩.", imageIndex: 2 },
+    ],
+  },
+  {
+    type: "spec_table",
+    slot: "size_table",
+    heading: "사이즈 안내",
+    rows: [
+      { label: "어깨너비", value: "48cm" },
+      { label: "가슴단면", value: "52cm" },
+      { label: "총장", value: "68cm" },
+      { label: "소매길이", value: "62cm" },
+      { label: "모델 착용", value: "판매자 확인 필요" },
+    ],
+  },
+  {
+    type: "faq",
+    slot: "faq",
+    heading: "자주 묻는 질문",
+    items: [
+      {
+        question: "세탁 방법은 어떻게 되나요?",
+        answer: "찬물 단독 세탁을 권장합니다.",
+      },
+      {
+        question: "핏은 어떤가요?",
+        answer: "오버핏이라 한 치수 크게 나옵니다.",
+      },
+    ],
+  },
+  {
+    type: "spec_table",
+    slot: "shipping_info",
+    heading: "배송·교환 안내",
+    rows: [
+      { label: "배송비", value: "3,000원 (5만원 이상 무료)" },
+      { label: "배송기간", value: "2~3영업일" },
+    ],
+  },
+  {
+    type: "cta_price",
+    slot: "cta_price",
+    price: 39000,
+    targetCustomer: "20~40대 데일리룩",
+    badges: ["면 100%", "당일발송"],
+  },
+];
+
+const capture56Meta = {
+  category: "의류/패션",
+  brandName: "NEUTRAL LINE",
+  productName: "에센셜 코튼 티셔츠",
+};
+
+/** 57차 B — 식품 크기비교 다이어그램 캡처용 */
+const capture57FoodSections: DetailSection[] = [
+  {
+    type: "hero",
+    slot: "hero",
+    headline: "집에서 즐기는 프리미엄 스테이크",
+    subheadline: "와규 스테이크",
+    imageIndex: 0,
+    badge: "냉동",
+  },
+  {
+    type: "brand_story",
+    slot: "brand_story",
+    heading: "한 끼의 품격",
+    body: "좋은 원육만으로 완성하는 홈쿡 스테이크 라인입니다.",
+  },
+  {
+    type: "spec_table",
+    slot: "spec_table",
+    heading: "제품 정보",
+    rows: [
+      { label: "가로", value: "16.5cm" },
+      { label: "세로", value: "6.5cm" },
+      { label: "중량", value: "200g" },
+      { label: "원산지", value: "국내" },
+    ],
+  },
+  {
+    type: "gallery",
+    slot: "gallery",
+    heading: "구성",
+    imageIndexes: [0, 1, 2],
+  },
+  {
+    type: "faq",
+    slot: "faq",
+    heading: "자주 묻는 질문",
+    items: [{ question: "해동 방법은?", answer: "냉장 해동 12시간을 권장합니다." }],
+  },
+  {
+    type: "cta_price",
+    slot: "cta_price",
+    price: 18900,
+    targetCustomer: "홈쿡족",
+    badges: ["냉동배송"],
+  },
+];
+
+const capture57FoodMeta = {
+  category: "식품/건강기능식품",
+  brandName: "한그릇 키친",
+  productName: "와규 스테이크",
+};
+
+/** 57차 B — 전자제품 크기비교 다이어그램 캡처용 */
+const capture57ElectronicsSections: DetailSection[] = [
+  {
+    type: "hero",
+    slot: "hero",
+    headline: "작지만 강한 사운드",
+    subheadline: "AURA ONE Pro",
+    imageIndex: 0,
+    badge: "ANC",
+  },
+  {
+    type: "brand_story",
+    slot: "brand_story",
+    heading: "사운드의 새 기준",
+    body: "출퇴근과 운동을 위한 컴팩트한 오픈형 이어버드.",
+  },
+  {
+    type: "spec_table",
+    slot: "spec_table",
+    heading: "제품 정보",
+    rows: [
+      { label: "가로", value: "5.8cm" },
+      { label: "높이", value: "3.2cm" },
+      { label: "지름", value: "4.1cm" },
+      { label: "무게", value: "58g" },
+    ],
+  },
+  {
+    type: "gallery",
+    slot: "gallery",
+    heading: "구성",
+    imageIndexes: [0, 1, 2],
+  },
+  {
+    type: "faq",
+    slot: "faq",
+    heading: "자주 묻는 질문",
+    items: [{ question: "방수 등급은?", answer: "IPX5 생활방수를 지원합니다." }],
+  },
+  {
+    type: "cta_price",
+    slot: "cta_price",
+    price: 189000,
+    targetCustomer: "20~40대",
+    badges: ["KC 인증"],
+  },
+];
+
+const capture57ElectronicsMeta = {
+  category: "전자제품",
+  brandName: "NORA AUDIO",
+  productName: "AURA ONE Pro",
+};
+
+/** 60차 — compact image_text 2개 이상 (square/circle 교차) */
+const capture60Sections: DetailSection[] = [
+  {
+    type: "hero",
+    slot: "hero",
+    headline: "속건조, 오늘부터 덜 신경 쓰세요",
+    subheadline: "히알루론 수분 크림",
+    imageIndex: 0,
+    badge: "무향",
+  },
+  {
+    type: "image_text",
+    slot: "feature_callout",
+    layout: "compact",
+    heading: "무향 케어",
+    body: "향료 없이 데일리로 쓰기 좋은 가벼운 제형입니다.",
+    imageIndex: 1,
+    imagePosition: "left",
+  },
+  {
+    type: "image_text",
+    slot: "ingredient_highlight",
+    layout: "compact",
+    heading: "3중 레이어",
+    body: "히알루론산 레이어가 속당김을 케어합니다.",
+    imageIndex: 2,
+    imagePosition: "right",
+  },
+  {
+    type: "image_text",
+    slot: "texture_detail",
+    layout: "compact",
+    heading: "젤 크림 제형",
+    body: "끈적임 없이 흡수되는 워터리 텍스처.",
+    imageIndex: 3,
+    imagePosition: "left",
+  },
+  {
+    type: "cta_price",
+    slot: "cta_price",
+    price: 32900,
+    targetCustomer: "20~30대 여성",
+    badges: ["무향", "당일발송"],
+  },
+];
+
+const capture60Meta = {
+  category: "화장품/뷰티",
+  brandName: "AURA LAB",
+  productName: "히알루론 수분 크림",
+};
+
+/** 59차 — 전자제품 annotated 주석 mock */
+const capture59Sections: DetailSection[] = [
+  {
+    type: "hero",
+    slot: "hero",
+    headline: "작지만 강한 사운드",
+    subheadline: "AURA ONE Pro",
+    imageIndex: 0,
+    badge: "ANC",
+  },
+  {
+    type: "brand_story",
+    slot: "brand_story",
+    heading: "사운드의 새 기준",
+    body: "출퇴근과 운동을 위한 컴팩트한 오픈형 이어버드.",
+  },
+  {
+    type: "image_text",
+    slot: "feature_detail",
+    layout: "annotated",
+    heading: "듀얼 드라이버 구조",
+    body: "저음과 고음을 분리 재생해 밸런스 있는 사운드를 제공합니다.",
+    imageIndex: 1,
+    imagePosition: "left",
+    annotations: [
+      { label: "ANC 드라이버", xPct: 32, yPct: 38 },
+      { label: "이어팁", xPct: 72, yPct: 58 },
+      { label: "터치 센서", xPct: 48, yPct: 24 },
+    ],
+  },
+  {
+    type: "spec_table",
+    slot: "spec_table",
+    heading: "제품 정보",
+    rows: [
+      { label: "무게", value: "58g" },
+      { label: "배터리", value: "최대 8시간" },
+      { label: "방수", value: "IPX5" },
+    ],
+  },
+  {
+    type: "cta_price",
+    slot: "cta_price",
+    price: 189000,
+    targetCustomer: "20~40대",
+    badges: ["KC 인증"],
+  },
+];
+
+const capture59Meta = {
+  category: "전자제품",
+  brandName: "NORA AUDIO",
+  productName: "AURA ONE Pro",
+};
+
+/** 65차 — circle-pair (성분 2개 mock) */
+const capture65Sections: DetailSection[] = (() => {
+  const specIdx = initialSections.findIndex((s) => s.type === "spec_table" && s.slot === "spec_table");
+  const circlePair: DetailSection = {
+    type: "image_text",
+    slot: "ingredient_circle_pair",
+    layout: "circle-pair",
+    heading: "",
+    body: "",
+    imageIndex: 1,
+    imagePosition: "left",
+    circlePair: [
+      { imageUrl: "/iteration-fixtures/02.jpg", label: "히알루론산" },
+      { imageUrl: "/iteration-fixtures/03.jpg", label: "판테놀" },
+    ],
+  };
+  if (specIdx < 0) return [...initialSections, circlePair];
+  return [
+    ...initialSections.slice(0, specIdx),
+    circlePair,
+    ...initialSections.slice(specIdx),
+  ];
+})();
+
+const capture65Meta = {
+  category: "화장품/뷰티",
+  brandName: "AURA LAB",
+  productName: "히알루론 수분 크림",
+};
+
+/** 69차 — circle-solo (성분 1개 mock) */
+const capture69SoloSections: DetailSection[] = (() => {
+  const specIdx = initialSections.findIndex((s) => s.type === "spec_table" && s.slot === "spec_table");
+  const circleSolo: DetailSection = {
+    type: "image_text",
+    slot: "ingredient_circle_solo",
+    layout: "circle-solo",
+    heading: "",
+    body: "",
+    imageIndex: 1,
+    imagePosition: "left",
+    circleSolo: { imageUrl: "/iteration-fixtures/02.jpg", label: "히알루론산" },
+  };
+  if (specIdx < 0) return [...initialSections, circleSolo];
+  return [
+    ...initialSections.slice(0, specIdx),
+    circleSolo,
+    ...initialSections.slice(specIdx),
+  ];
+})();
+
+const capture69SoloMeta = capture65Meta;
+
+/** 69차 — spec_table 3장 썸네일 + 배경 틴트 */
+const capture69SpecMultiSections: DetailSection[] = initialSections.map((section) =>
+  section.type === "spec_table" && section.slot === "spec_table"
+    ? { ...section, imageIndexes: [1, 2, 3] }
+    : section,
+);
+
+const capture69SpecMultiMeta = capture65Meta;
+
+type CapturePreset = {
+  sections: DetailSection[];
+  category: string;
+  brandName: string;
+  productName: string;
+};
+
+/** 58차 — 6카테고리 baseNeutral 캡처용 */
+const CAPTURE58_PRESETS: Record<string, CapturePreset> = {
+  "58-fashion": { sections: capture56Sections, ...capture56Meta },
+  "58-cosmetics": {
+    sections: initialSections,
+    category: "화장품/뷰티",
+    brandName: "AURA LAB",
+    productName: "히알루론 수분 크림",
+  },
+  "58-food": { sections: capture57FoodSections, ...capture57FoodMeta },
+  "58-electronics": { sections: capture57ElectronicsSections, ...capture57ElectronicsMeta },
+  "58-living": {
+    sections: initialSections,
+    category: "생활용품",
+    brandName: "PLAIN HOME",
+    productName: "세라믹 식기 세트",
+  },
+  "58-pet": {
+    sections: initialSections,
+    category: "반려동물",
+    brandName: "PAW FRIEND",
+    productName: "저알러지 사료",
+  },
+};
+
+function resolveCapturePreset(): CapturePreset | null {
+  if (typeof window === "undefined") return null;
+  const capture = new URLSearchParams(window.location.search).get("capture");
+  if (capture === "1") return { sections: capture56Sections, ...capture56Meta };
+  if (capture === "57-food") return { sections: capture57FoodSections, ...capture57FoodMeta };
+  if (capture === "57-electronics") {
+    return { sections: capture57ElectronicsSections, ...capture57ElectronicsMeta };
+  }
+  if (capture && CAPTURE58_PRESETS[capture]) return CAPTURE58_PRESETS[capture]!;
+  if (capture === "60-compact-shapes") return { sections: capture60Sections, ...capture60Meta };
+  if (capture === "59-electronics") return { sections: capture59Sections, ...capture59Meta };
+  if (capture === "65-circle-pair") return { sections: capture65Sections, ...capture65Meta };
+  if (capture === "65-no-ingredients") return { sections: initialSections, ...capture65Meta };
+  if (capture === "69-circle-solo") return { sections: capture69SoloSections, ...capture69SoloMeta };
+  if (capture === "69-spec-multi") {
+    return { sections: capture69SpecMultiSections, ...capture69SpecMultiMeta };
+  }
+  return null;
+}
+
+function readCaptureMode(): boolean {
+  return resolveCapturePreset() !== null;
+}
+
 export default function DetailPreviewPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [sections, setSections] = useState(initialSections);
+  const [capturePreset] = useState(resolveCapturePreset);
+  const captureMode = capturePreset !== null;
+  const [sections, setSections] = useState(() =>
+    capturePreset ? capturePreset.sections : initialSections,
+  );
   const [imageUrls, setImageUrls] = useState(initialImageUrls);
   const [editMode, setEditMode] = useState(false);
   const [toolTab, setToolTab] = useState<DetailToolTab>("edit");
@@ -181,6 +618,10 @@ export default function DetailPreviewPage() {
   const [toast, setToast] = useState<{ message: string; tone: "error" | "info" | "ok" } | null>(
     null,
   );
+
+  const previewCategory = capturePreset?.category ?? "화장품/뷰티";
+  const previewBrandName = capturePreset?.brandName ?? "테스트 브랜드";
+  const previewProductName = capturePreset?.productName ?? "히알루론 수분 크림";
 
   if (process.env.NODE_ENV !== "development") {
     notFound();
@@ -234,6 +675,7 @@ export default function DetailPreviewPage() {
       <div
         data-preview-chrome
         className="sticky top-0 z-30 mx-auto max-w-[430px] space-y-3 bg-paper/95 px-3 py-3 backdrop-blur-md"
+        style={captureMode ? { display: "none" } : undefined}
       >
         <p className="text-center text-xs text-ink/45">
           /dev/detail-preview — 레이아웃·버튼 확인용
@@ -268,11 +710,11 @@ export default function DetailPreviewPage() {
           hiddenIndexes={hiddenIndexes}
           onReorder={handleReorder}
           onToggleHidden={handleToggleHidden}
-          category="화장품/뷰티"
-          feedProductName="히알루론 수분 크림"
+          category={previewCategory}
+          feedProductName={previewProductName}
           feedImageUrls={imageUrls}
-          blogProductName="히알루론 수분 크림"
-          blogCategory="화장품/뷰티"
+          blogProductName={previewProductName}
+          blogCategory={previewCategory}
         />
         <input
           ref={fileInputRef}
@@ -303,8 +745,8 @@ export default function DetailPreviewPage() {
         <div className="mx-auto max-w-[430px] border-x border-line bg-paper p-3 shadow-sm">
           <InstagramFeedPanel
             variant="workspace"
-            productName="히알루론 수분 크림"
-            brandName="테스트 브랜드"
+            productName={previewProductName}
+            brandName={previewBrandName}
             sections={visibleSections}
             imageUrls={imageUrls}
             overrides={feedOverrides}
@@ -315,9 +757,9 @@ export default function DetailPreviewPage() {
         <div className="mx-auto max-w-[430px] border-x border-line bg-paper p-3 shadow-sm">
           <BlogPostPanel
             variant="workspace"
-            productName="히알루론 수분 크림"
-            brandName="테스트 브랜드"
-            category="화장품/뷰티"
+            productName={previewProductName}
+            brandName={previewBrandName}
+            category={previewCategory}
             sections={visibleSections}
             imageUrls={imageUrls}
             description="속건조를 잡아주는 고보습 수분 크림입니다."
@@ -336,7 +778,9 @@ export default function DetailPreviewPage() {
           <DetailSectionRenderer
             sections={visibleSections}
             imageUrls={imageUrls}
-            category="화장품/뷰티"
+            category={previewCategory}
+            brandName={previewBrandName}
+            productName={previewProductName}
             edit={{
               enabled: editMode,
               onChange: (displayIndex, section) => {

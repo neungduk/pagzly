@@ -32,7 +32,7 @@ export function getUploadRoleGuide(category: string): {
         "착장·디테일·코디를 섞어 올리세요. 같은 각도 팩샷만 7장이면 상세가 단조로워집니다.",
       roles: [
         { role: "hero", label: "착장", hint: "모델/전신·대표 착용컷 (1장+)" },
-        { role: "detail", label: "디테일", hint: "원단·봉제·카라·단추 확대" },
+        { role: "detail", label: "디테일", hint: "원단·봉제·카라·단추 확대. 매크로/클로즈업이면 감각 카피와 잘 맞습니다" },
         { role: "lifestyle", label: "코디", hint: "매치·장면·다른 아이템과 함께" },
         { role: "package", label: "패키지", hint: "택·포장·배송 구성 (있으면)" },
         { role: "other", label: "기타", hint: "컬러칩·사이즈 참고 등" },
@@ -45,7 +45,7 @@ export function getUploadRoleGuide(category: string): {
       summary: "정면·텍스처·사용감·패키지를 섞어 올리세요. 병만 반복되면 성분이 안 살아납니다.",
       roles: [
         { role: "hero", label: "정면", hint: "대표 제품 컷" },
-        { role: "detail", label: "텍스처", hint: "질감·성분·매크로" },
+        { role: "detail", label: "텍스처", hint: "질감·성분·매크로. 클로즈업이면 texture 슬롯과 잘 매칭됩니다" },
         { role: "lifestyle", label: "사용감", hint: "발색·바르는 장면" },
         { role: "package", label: "패키지", hint: "박스·구성품" },
         { role: "other", label: "기타", hint: "부가 컷" },
@@ -58,7 +58,7 @@ export function getUploadRoleGuide(category: string): {
       summary: "완성/플레이팅·원재료·패키지를 섞어 올리세요.",
       roles: [
         { role: "hero", label: "완성", hint: "플레이팅·대표 컷" },
-        { role: "detail", label: "원재료", hint: "재료·단면·클로즈업" },
+        { role: "detail", label: "원재료", hint: "재료·단면·클로즈업. 매크로 사진은 감각 카피와 잘 맞습니다" },
         { role: "lifestyle", label: "장면", hint: "먹는/활용 장면" },
         { role: "package", label: "패키지", hint: "박스·라벨" },
         { role: "other", label: "기타", hint: "부가 컷" },

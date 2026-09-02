@@ -81,6 +81,9 @@ export function getCompletionTokenCost(length?: string | null): number {
 /** 인스타 피드·블로그 전용 미니 생성 — 완성 1건당 토큰 (최소 사진 5장) */
 export const TOKEN_COST_SOCIAL_MINI = 60;
 
+/** 캔버스 AI 이미지 1장 생성 */
+export const TOKEN_COST_CANVAS_AI_IMAGE = 20;
+
 /** 미니 생성 최소/최대 사진 장수 */
 export const SOCIAL_MINI_MIN_PHOTOS = 5;
 export const SOCIAL_MINI_MAX_PHOTOS = 10;

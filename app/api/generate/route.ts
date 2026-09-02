@@ -28,7 +28,7 @@ import {
 import { extractUrlSummary, extractCompetitorDifferentiation, type UrlSummaryResult } from "@/lib/url-crawler";
 import { buildQAFixPrompt, runDetailPageQA } from "@/lib/detail-page-qa";
 import { enrichSectionsWithProductMetadata } from "@/lib/enrich-product-sections";
-import { insertReviewHighlightSection } from "@/lib/section-inserts";
+import { insertReviewHighlightSection, insertSellerTrustEvidence } from "@/lib/section-inserts";
 import {
   applyDesignerLayoutRhythm,
   buildDesignerPatternGuide,
@@ -56,6 +56,8 @@ import { sanitizeComparisonChartSection } from "@/lib/comparison-chart-guard";
 import { isTestMode } from "@/lib/test-mode";
 import { isForceRegenerate } from "@/lib/force-regenerate";
 import { assignDistinctSectionImages, countImageIndexFrequency } from "@/lib/assign-section-images";
+import { applyElectronicsAnnotatedSections } from "@/lib/apply-electronics-annotations";
+import { applyIngredientCircleVisual } from "@/lib/apply-ingredient-circle-pair";
 import { applyConceptOverlaysToProductImages } from "@/lib/concept-effects";
 import { makeComparisonPair } from "@/lib/photo-composite";
 import { uploadPngBuffer } from "@/lib/upload-png";
@@ -386,6 +388,7 @@ const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
   ai_disclosure: `{ type: "ai_disclosure", slot: "ai_disclosure", heading, body } — 서버가 고정 문구로 덮어쓰므로 생략하거나 빈 값으로 둬도 됨`,
   custom_gif: `{ type: "custom_gif", slot: "custom_gif", heading?, gifUrl } — AI는 이 섹션을 생성하지 않음. 판매자가 GIF를 업로드했을 때 서버가 조립 단계에서 자동 삽입`,
   review_highlight: `{ type: "review_highlight", slot: "review_highlight", heading, praises: string[] } — AI는 이 섹션을 생성하지 않음. 판매자가 리뷰 파일을 업로드했을 때 실제 후기 요약(commonPraises)으로 서버가 조립 단계에서 자동 삽입`,
+  canvas: `{ type: "canvas", slot, frameWidth, frameHeight, background?, elements[] } — AI는 이 섹션을 생성하지 않음. 판매자가 result 화면에서 수동 추가`,
 };
 
 // 카테고리별 고정 슬롯 순서를 프롬프트용 텍스트로 변환한다. AI는 레이아웃을
@@ -671,6 +674,9 @@ async function generateCopyWithDeepSeek(
 - checklist item
   - 나쁜 예: "뛰어난 성능"
   - 좋은 예: "충전 10분, 재생 2시간" (숫자로 검증 가능한 사실)
+  - **리뉴얼/투명 공개형**(keyFeatures·ingredients에 개선·변경·기존 대비·RENEWAL 뉘앙스가 있을 때만):
+    "✅ 사과 → 고구마로 원료 변경", "✅ USDA 승인 시설에서 제조"처럼 **무엇이 어떻게 바뀌었는지** 구체적으로.
+    근거 없으면 ✅ 형식을 쓰지 마세요.
 - image_text body
   - 나쁜 예: "고객들에게 사랑받는 이유가 있습니다. 지금 바로 만나보세요."
   - 좋은 예: "이염 걱정 없이 흰 옷과 함께 세탁해도 됩니다. 매일 입는 옷이라 더 중요했어요."
@@ -681,6 +687,16 @@ async function generateCopyWithDeepSeek(
 
 한 상품에만 해당하는 구체적 사실·장면·수치가 없으면 억지로 지어내지 말고, 그 대신
 사용 맥락(언제·어디서·어떻게 쓰는지)을 구체적으로 묘사해서 추상적 형용사를 피하세요.
+
+## 본문 3단 스토리텔링 (checklist 또는 image_text 중 최소 1곳)
+checklist 또는 image_text(ingredient_highlight, texture_feel, detail_zoom, texture_closeup,
+feature_detail, material_feature 등) 슬롯 **중 최소 1곳**에서 아래 3단 흐름을 시도하세요.
+입력 근거가 없으면 해당 단계는 생략하고, 억지로 채우지 마세요.
+1. **(선택) 고객 pain point 인용구** — wholesaleUrl·keyFeatures·reviewInsights·targetCustomer에
+   고객 고민·반응·니즈가 있으면 1문장 인용 톤으로 짧게 (예: "민감한 피부를 위한 1차 세안제가 있었으면 좋겠어요").
+2. **해시태그형 헤드라인** — heading 또는 callout에 짧은 해시태그 1개 (8~14자, 예: "#참마장벽밀크").
+3. **수치 감각 스탯** — keyFeatures·ingredients·certifications·wholesaleUrl에 **실제로 있는 숫자만**
+   body에 활용 (예: "자극감 없는 부드러운 롤링감 48%"). 입력에 없는 %·수치는 절대 지어내지 마세요.
 ${buildSectionLengthGuide(productInfo.category)}
 ${buildDesignerPatternGuide(productInfo.category)}
 ${isCosmetics ? `
@@ -697,6 +713,7 @@ ${productInfo.targetCustomer ? `- 타겟 고객: ${productInfo.targetCustomer}` 
 ${productInfo.keyFeatures ? `- 핵심 특징: ${productInfo.keyFeatures}` : ""}
 ${productInfo.ingredients ? `- 성분/소재: ${productInfo.ingredients}` : ""}
 ${productInfo.certifications ? `- 인증/수상: ${productInfo.certifications}` : ""}
+${productInfo.sellerTrustEvidence ? `- 판매자 입력 판매·랭킹 근거(그대로 활용, 지어내지 말 것): ${productInfo.sellerTrustEvidence}` : ""}
 - 업로드된 사진 수: ${imageCount}장 (인덱스 0 ~ ${imageCount - 1})
 
 ## AI 이미지 분석 결과
@@ -940,6 +957,14 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
     imageRoles: productInfo.imageRoles,
     imagePaths: productInfo.imagePaths,
   });
+  {
+    const pair = applyIngredientCircleVisual(
+      parsed.sections,
+      productInfo.imageUrls,
+      productInfo.ingredients,
+    );
+    parsed.sections = pair.sections;
+  }
   const freq = countImageIndexFrequency(parsed.sections);
   const usedDistinct = Object.keys(freq).length;
   const maxFreq = Math.max(0, ...Object.values(freq));
@@ -1286,6 +1311,14 @@ export async function POST(request: Request) {
       console.log("[custom-gif] 판매자 GIF 삽입 (AI 처리 없음, 비용 $0)");
     }
 
+    savedCopy.sections = insertSellerTrustEvidence(
+      savedCopy.sections,
+      body.sellerTrustEvidence,
+    );
+    if (body.sellerTrustEvidence?.trim()) {
+      console.log("[seller-trust] 판매자 입력 근거 배너 삽입 (AI 미생성)");
+    }
+
     const reviewPraises = enrichedBody.reviewInsights?.commonPraises ?? [];
     if (reviewPraises.length > 0) {
       savedCopy.sections = insertReviewHighlightSection(savedCopy.sections, reviewPraises);
@@ -1304,11 +1337,32 @@ export async function POST(request: Request) {
     savedCopy.sections = applyBoldBlock(savedCopy.sections);
     savedCopy.sections = applyDesignerLayoutRhythm(savedCopy.sections);
     savedCopy.sections = applyStatBarAccent(savedCopy.sections);
+    {
+      const pair = applyIngredientCircleVisual(
+        savedCopy.sections,
+        body.imageUrls,
+        body.ingredients,
+      );
+      savedCopy.sections = pair.sections;
+    }
     savedCopy.sections = savedCopy.sections.map((section) =>
       section.type === "comparison_chart"
         ? sanitizeComparisonChartSection(section)
         : section,
     );
+
+    if (mode === "final" && body.category === "전자제품") {
+      const ann = await applyElectronicsAnnotatedSections(
+        savedCopy.sections,
+        body.category,
+        body.imageUrls,
+      );
+      savedCopy.sections = ann.sections;
+      claudeCost += ann.annotationCost;
+      if (ann.applied) {
+        console.log("[generate] 전자제품 annotated 레이아웃 적용");
+      }
+    }
 
     let imageUrls = [...body.imageUrls];
     let imagePaths = [...(body.imagePaths ?? [])];

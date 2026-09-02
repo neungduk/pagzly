@@ -15,6 +15,11 @@ import { fetchFileBuffer } from "@/lib/fetch-file-buffer";
 import { analyzeReferenceImage } from "@/lib/reference-analysis";
 import { isTestMode } from "@/lib/test-mode";
 import { logForceRegenerateStatus } from "@/lib/force-regenerate";
+import {
+  analyzeShadowDirection,
+  DEFAULT_SHADOW,
+  type ShadowAnalysis,
+} from "@/lib/vision-utils";
 
 const SOURCE_IMAGE_EXPIRED = "SOURCE_IMAGE_EXPIRED";
 
@@ -153,6 +158,21 @@ export async function POST(request: Request) {
 
     const provider = getBackdropProvider(category);
     console.log(`[generate-backdrop] BACKDROP_PROVIDER=${provider}`);
+
+    let heroShadow: ShadowAnalysis = { ...DEFAULT_SHADOW };
+    let heroShadowCost = 0;
+    if (imageUrls?.[0]) {
+      try {
+        const heroBuffer = await fetchFileBuffer(imageUrls[0]);
+        const heroResult = await analyzeShadowDirection(heroBuffer);
+        heroShadow = heroResult.shadow;
+        heroShadowCost = heroResult.cost;
+        console.log(`[generate-backdrop] 히어로 조명 1회 분석: ${heroShadow.promptHint}`);
+      } catch (err) {
+        console.warn("[generate-backdrop] 히어로 조명 분석 실패 — DEFAULT_SHADOW", err);
+      }
+    }
+
     const backdropArgs = [
       category,
       productName,
@@ -160,6 +180,7 @@ export async function POST(request: Request) {
       theme,
       imageUrls?.[0],
       conceptBrief,
+      heroShadow,
     ] as const;
     const { buffer, candidateUrls, cost: backdropCost, shadow, claudeCost, autoPicked } =
       provider === "bria-replace"
@@ -209,7 +230,7 @@ export async function POST(request: Request) {
       cost: backdropCost + conceptBriefCost + referenceAnalysisCost,
       conceptBriefCost,
       backdropCost,
-      claudeCost: (claudeCost ?? 0) + referenceAnalysisCost,
+      claudeCost: (claudeCost ?? 0) + referenceAnalysisCost + heroShadowCost,
       referenceAnalysis,
       referenceAnalysisCost,
       shadowAnalysis: shadow,

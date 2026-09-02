@@ -6,6 +6,10 @@ import type { ConceptBrief } from "@/lib/concept-brief";
 import { formatConceptPromptBlock } from "@/lib/concept-brief";
 import { resolvePhotographyTemplate, applyToneToTemplate } from "@/lib/backdrop-prompt-templates";
 import {
+  buildCosmeticsTextureSwatchPrompt,
+  extractCosmeticsFormulation,
+} from "@/lib/cosmetics-texture-swatch";
+import {
   analyzeShadowDirection,
   applySafeCrop,
   computeSafeCropBox,
@@ -312,6 +316,28 @@ const BRIA_GENFILL_REF: ModelRef =
 const GENFILL_ALPHA_KEEP_THRESHOLD = 16;
 const GENFILL_MASK_BLUR = 6;
 
+async function resolveShadowForBackdrop(
+  sourceImageUrl: string | undefined,
+  shadowHint?: ShadowAnalysis,
+): Promise<{ shadow: ShadowAnalysis; claudeCost: number }> {
+  if (shadowHint) {
+    console.log("[shadow] 히어로 조명 락 재사용");
+    return { shadow: shadowHint, claudeCost: 0 };
+  }
+  if (!sourceImageUrl) {
+    return { shadow: { ...DEFAULT_SHADOW }, claudeCost: 0 };
+  }
+  try {
+    const sourceBuffer = await fetchSourceBuffer(sourceImageUrl);
+    const shadowResult = await analyzeShadowDirection(sourceBuffer);
+    console.log(`[shadow] 분석 결과: ${shadowResult.shadow.promptHint}`);
+    return { shadow: shadowResult.shadow, claudeCost: shadowResult.cost };
+  } catch (error) {
+    console.warn("[shadow] 원본 그림자 분석 실패, 기본 조명 사용", error);
+    return { shadow: { ...DEFAULT_SHADOW }, claudeCost: 0 };
+  }
+}
+
 export type EnhanceImageOptions = {
   shadowHint?: ShadowAnalysis;
   conceptBrief?: ConceptBrief;
@@ -570,23 +596,15 @@ export async function generateBackdrop(
   theme: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
   sourceImageUrl?: string,
   conceptBrief?: ConceptBrief,
+  shadowHint?: ShadowAnalysis,
 ): Promise<GenerateBackdropResult> {
   const replicate = getReplicateClient();
   const basePrompt = BACKDROP_PROMPTS[category] ?? BACKDROP_PROMPTS["기타"];
   let claudeCost = 0;
 
-  let shadow: ShadowAnalysis = { ...DEFAULT_SHADOW };
-  if (sourceImageUrl) {
-    try {
-      const sourceBuffer = await fetchSourceBuffer(sourceImageUrl);
-      const shadowResult = await analyzeShadowDirection(sourceBuffer);
-      shadow = shadowResult.shadow;
-      claudeCost += shadowResult.cost;
-      console.log(`[shadow] 분석 결과: ${shadow.promptHint}`);
-    } catch (error) {
-      console.warn("[shadow] 원본 그림자 분석 실패, 기본 조명 사용", error);
-    }
-  }
+  const resolved = await resolveShadowForBackdrop(sourceImageUrl, shadowHint);
+  const shadow = resolved.shadow;
+  claudeCost += resolved.claudeCost;
 
   const photography = applyToneToTemplate(
     resolvePhotographyTemplate(conceptBrief, category),
@@ -861,6 +879,7 @@ export async function generateBackdropViaBria(
   theme: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
   sourceImageUrl?: string,
   conceptBrief?: ConceptBrief,
+  shadowHint?: ShadowAnalysis,
 ): Promise<GenerateBackdropResult> {
   if (!sourceImageUrl) {
     throw new Error("Bria Background Replace는 원본 상품 사진(sourceImageUrl)이 필요합니다.");
@@ -878,16 +897,9 @@ export async function generateBackdropViaBria(
     console.warn("[generateBackdropViaBria] preCrop 실패 — 원본 사용", error);
   }
 
-  let shadow: ShadowAnalysis = { ...DEFAULT_SHADOW };
-  try {
-    const sourceBuffer = await fetchSourceBuffer(inputImageUrl);
-    const shadowResult = await analyzeShadowDirection(sourceBuffer);
-    shadow = shadowResult.shadow;
-    claudeCost += shadowResult.cost;
-    console.log(`[shadow] 분석 결과: ${shadow.promptHint}`);
-  } catch (error) {
-    console.warn("[shadow] 원본 그림자 분석 실패, 기본 조명 사용", error);
-  }
+  const resolved = await resolveShadowForBackdrop(sourceImageUrl, shadowHint);
+  const shadow = resolved.shadow;
+  claudeCost += resolved.claudeCost;
 
   const lock = lightingLockPrompt(shadow);
   const bgPrompt = buildBriaBackdropPrompt(category, theme, shadow, conceptBrief);
@@ -972,6 +984,7 @@ export async function generateBackdropViaNanoBanana(
   theme: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
   sourceImageUrl?: string,
   conceptBrief?: ConceptBrief,
+  shadowHint?: ShadowAnalysis,
 ): Promise<GenerateBackdropResult> {
   if (!sourceImageUrl) {
     throw new Error("nano-banana 배경 생성은 원본 상품 사진(sourceImageUrl)이 필요합니다.");
@@ -989,15 +1002,9 @@ export async function generateBackdropViaNanoBanana(
     console.warn("[generateBackdropViaNanoBanana] preCrop 실패 — 원본 사용", error);
   }
 
-  let shadow: ShadowAnalysis = { ...DEFAULT_SHADOW };
-  try {
-    const sourceBuffer = await fetchSourceBuffer(inputImageUrl);
-    const shadowResult = await analyzeShadowDirection(sourceBuffer);
-    shadow = shadowResult.shadow;
-    claudeCost += shadowResult.cost;
-  } catch (error) {
-    console.warn("[shadow] 원본 그림자 분석 실패, 기본 조명 사용", error);
-  }
+  const resolved = await resolveShadowForBackdrop(sourceImageUrl, shadowHint);
+  const shadow = resolved.shadow;
+  claudeCost += resolved.claudeCost;
 
   const bgPrompt = buildBriaBackdropPrompt(category, theme, shadow, conceptBrief);
   const candidateCount = getBriaBackdropCandidateCount();
@@ -1071,6 +1078,7 @@ export async function generateBackdropViaFluxKontext(
   theme: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
   sourceImageUrl?: string,
   conceptBrief?: ConceptBrief,
+  shadowHint?: ShadowAnalysis,
 ): Promise<GenerateBackdropResult> {
   if (!sourceImageUrl) {
     throw new Error("flux-kontext-pro 배경 생성은 원본 상품 사진(sourceImageUrl)이 필요합니다.");
@@ -1088,15 +1096,9 @@ export async function generateBackdropViaFluxKontext(
     console.warn("[generateBackdropViaFluxKontext] preCrop 실패 — 원본 사용", error);
   }
 
-  let shadow: ShadowAnalysis = { ...DEFAULT_SHADOW };
-  try {
-    const sourceBuffer = await fetchSourceBuffer(inputImageUrl);
-    const shadowResult = await analyzeShadowDirection(sourceBuffer);
-    shadow = shadowResult.shadow;
-    claudeCost += shadowResult.cost;
-  } catch (error) {
-    console.warn("[shadow] 원본 그림자 분석 실패, 기본 조명 사용", error);
-  }
+  const resolved = await resolveShadowForBackdrop(sourceImageUrl, shadowHint);
+  const shadow = resolved.shadow;
+  claudeCost += resolved.claudeCost;
 
   const bgPrompt = buildBriaBackdropPrompt(category, theme, shadow, conceptBrief);
   const candidateCount = getBriaBackdropCandidateCount();
@@ -1174,6 +1176,7 @@ export async function generateBackdropViaBriaGenFill(
   theme: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
   sourceImageUrl?: string,
   conceptBrief?: ConceptBrief,
+  shadowHint?: ShadowAnalysis,
 ): Promise<GenerateBackdropResult> {
   if (!sourceImageUrl) {
     throw new Error("Bria GenFill은 원본 상품 사진(sourceImageUrl)이 필요합니다.");
@@ -1182,16 +1185,9 @@ export async function generateBackdropViaBriaGenFill(
   const replicate = getReplicateClient();
   let claudeCost = 0;
 
-  let shadow: ShadowAnalysis = { ...DEFAULT_SHADOW };
-  try {
-    const sourceBuffer = await fetchSourceBuffer(sourceImageUrl);
-    const shadowResult = await analyzeShadowDirection(sourceBuffer);
-    shadow = shadowResult.shadow;
-    claudeCost += shadowResult.cost;
-    console.log(`[shadow] 분석 결과: ${shadow.promptHint}`);
-  } catch (error) {
-    console.warn("[shadow] 원본 그림자 분석 실패, 기본 조명 사용", error);
-  }
+  const resolved = await resolveShadowForBackdrop(sourceImageUrl, shadowHint);
+  const shadow = resolved.shadow;
+  claudeCost += resolved.claudeCost;
 
   const lock = lightingLockPrompt(shadow);
   const bgPrompt = buildBriaBackdropPrompt(category, theme, shadow, conceptBrief);
@@ -1386,16 +1382,31 @@ export async function generateSectionBackdropVariants(
   category = "기타",
   theme?: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">,
   routerContext?: SectionBackdropRouterContext,
+  productFormulation?: string | null,
 ): Promise<{ ingredientUrl: string | null; textureUrl: string | null; cost: number }> {
   const lock = lightingLockPrompt(shadow);
   const conceptBlock = conceptBrief ? formatConceptPromptBlock(conceptBrief, category) : "";
   const sectionPrompts = getSectionBackdropPrompts(category);
   const toneDescription = theme ? describeColorTone(theme.baseNeutral) : "soft pastel";
+  const formulation =
+    category === "화장품/뷰티"
+      ? productFormulation ??
+        extractCosmeticsFormulation(
+          undefined,
+          [conceptBrief?.theme, conceptBrief?.mood, ...(conceptBrief?.motif_keywords ?? [])]
+            .filter(Boolean)
+            .join(" "),
+        )
+      : null;
   const kinds = ["ingredient", "texture"] as const;
   const results = await Promise.allSettled(
     kinds.map(async (kind) => {
+      const basePrompt =
+        kind === "ingredient" && formulation
+          ? buildCosmeticsTextureSwatchPrompt(formulation, toneDescription)
+          : sectionPrompts[kind].replace(/\{\{TONE\}\}/g, toneDescription);
       const prompt = [
-        sectionPrompts[kind].replace(/\{\{TONE\}\}/g, toneDescription),
+        basePrompt,
         conceptBlock,
         lock,
         "obey lighting lock color temperature exactly, no golden hour, no amber gel",

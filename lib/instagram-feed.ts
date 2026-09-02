@@ -197,15 +197,15 @@ function drawCover(
   ctx.fillRect(0, 0, size, size);
 
   ctx.fillStyle = "rgba(250,248,243,0.12)";
-  ctx.font = "600 22px Pretendard, sans-serif";
+  ctx.font = "600 22px \"Noto Sans KR\", sans-serif";
   ctx.fillText("NEW", 72, 96);
 
   ctx.fillStyle = "#FAF8F3";
-  ctx.font = "700 68px 'Gmarket Sans', Pretendard, sans-serif";
+  ctx.font = "700 68px \"Noto Sans KR\", sans-serif";
   wrapText(ctx, slide.title, 72, size - 240, size - 144, 76);
   if (slide.subtitle) {
     ctx.fillStyle = "rgba(250,248,243,0.72)";
-    ctx.font = "500 30px Pretendard, sans-serif";
+    ctx.font = "500 30px \"Noto Sans KR\", sans-serif";
     ctx.fillText(slide.subtitle, 72, size - 88);
   }
 }
@@ -237,11 +237,11 @@ function drawFeature(
   ctx.stroke();
 
   ctx.fillStyle = "#FAF8F3";
-  ctx.font = "700 52px 'Gmarket Sans', Pretendard, sans-serif";
+  ctx.font = '700 52px "Noto Sans KR", sans-serif';
   wrapText(ctx, slide.title, pad, pad + photoH + 88, size - pad * 2, 60);
   if (slide.subtitle) {
     ctx.fillStyle = "rgba(250,248,243,0.68)";
-    ctx.font = "400 28px Pretendard, sans-serif";
+    ctx.font = '400 28px "Noto Sans KR", sans-serif';
     wrapText(ctx, slide.subtitle, pad, pad + photoH + 168, size - pad * 2, 38);
   }
 }
@@ -260,12 +260,12 @@ function drawCta(
   ctx.fillRect(0, 0, size, size);
 
   ctx.fillStyle = "#FAF8F3";
-  ctx.font = "700 76px 'Gmarket Sans', Pretendard, sans-serif";
+  ctx.font = '700 76px "Noto Sans KR", sans-serif';
   ctx.textAlign = "center";
   wrapTextCentered(ctx, slide.title, size / 2, size / 2 - 60, size - 160, 84);
   if (slide.subtitle) {
     ctx.fillStyle = "rgba(250,248,243,0.78)";
-    ctx.font = "500 32px Pretendard, sans-serif";
+    ctx.font = '500 32px "Noto Sans KR", sans-serif';
     ctx.fillText(slide.subtitle, size / 2, size / 2 + 72);
   }
 
@@ -277,7 +277,7 @@ function drawCta(
   roundRect(ctx, btnX, btnY, btnW, btnH, 32);
   ctx.fill();
   ctx.fillStyle = "#FAF8F3";
-  ctx.font = "700 26px Pretendard, sans-serif";
+  ctx.font = '700 26px "Noto Sans KR", sans-serif';
   ctx.fillText("지금 확인하기", size / 2, btnY + 42);
   ctx.textAlign = "left";
 }

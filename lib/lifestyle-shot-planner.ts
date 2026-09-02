@@ -124,7 +124,13 @@ export function planLifestyleShots(params: {
 }
 
 export const LIFESTYLE_AI_PATH_MARKER = "lifestyle-ai";
+export const LIFESTYLE_COMPOSITE_PATH_MARKER = "lifestyle-composite";
 
 export function isLifestyleAiPath(path: string): boolean {
   return path.includes(LIFESTYLE_AI_PATH_MARKER);
+}
+
+/** 64/66차 — 사용자 라이프스타일 업로드 + 제품 합성 결과 (nano-banana) */
+export function isLifestyleCompositePath(path: string): boolean {
+  return path.includes(LIFESTYLE_COMPOSITE_PATH_MARKER);
 }

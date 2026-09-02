@@ -1,0 +1,52 @@
+# 화장품 Pixabay QA 테스트 리포트
+
+생성: 2026-08-31T23:53:05.697Z
+BASE_URL: http://localhost:3000
+TEST_MODE: false
+실행 시간: 652.2s
+
+## 입력 (가라 상품)
+
+| 필드 | 값 |
+|------|-----|
+| 상품명 | 글로우밤 수분 크림 |
+| 브랜드 | 루미에르 랩 |
+| 카테고리 | 화장품/뷰티 |
+| 가격 | 25000원 |
+| 타겟 | 20~40대 민감성·건성 피부 |
+| 핵심 특징 | 수분감 있는 텍스처, 산뜻한 마무리, 민감성 피부 사용 가능, 속당김 케어, 무향 포뮬러 |
+| 성분 | 히알루론산, 세라마이드, 판테놀, 알로에베라잎추출물, 글리세린 |
+| 인증 | 피부 자극 테스트 완료, 동물실험 없음 |
+| wholesaleUrl | 원본: GlowBalm Moisture Cream 50ml / 워터리 크림, 무향, 민감성 피부 / 사용법: 세안 후 적당량을 얼굴에 펴 바름 |
+
+## Pixabay 이미지 (page URL)
+
+1. https://pixabay.com/photos/self-care-morning-routine-activity-6886590/
+2. https://pixabay.com/photos/cosmetic-skincare-female-natural-2357981/
+3. https://pixabay.com/photos/beauty-face-closeup-portrait-young-4664847/
+4. https://pixabay.com/photos/cosmetics-beauty-health-make-up-5475900/
+5. https://pixabay.com/photos/hygiene-cleanliness-skincare-870763/
+6. https://pixabay.com/photos/sunblock-skincare-healthy-skin-1461397/
+7. https://pixabay.com/photos/ai-generated-bottle-cosmetics-cream-8329349/
+
+## 결과
+
+- **스크린샷:** `review/qa-screenshots/cosmetics-pixabay-test-full.png`
+- **session:** `review/pixabay-cosmetics-test/session.json`
+- **productId:** 6b2c8740-bc00-4b55-8bf6-f738a07a4bfd
+- **sections:** 23
+- **generationCost:** 0.1389661688
+
+## API 에러
+
+없음
+
+## 콘솔 (error/warning)
+
+없음
+
+## 품질 관찰 (자동 실행 후 수동 보완 필요)
+
+- 스크린샷을 열어 합성·카피·여백을 확인하세요.
+- pixabay-1.jpg(비화장품)는 제외하고 7장 JPEG + 1 PNG(2357981) 사용.
+

@@ -51,6 +51,9 @@ export function sanitizeText(text: string): {
   text: string;
   replacements: ComplianceReplacement[];
 } {
+  if (typeof text !== "string") {
+    return { text: text == null ? "" : String(text), replacements: [] };
+  }
   let result = text;
   const replacementCounts = new Map<string, ComplianceReplacement>();
 

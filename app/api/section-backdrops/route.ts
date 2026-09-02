@@ -30,9 +30,11 @@ export async function POST(request: Request) {
       category?: string;
       theme?: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">;
       draftToken?: string | null;
+      productFormulation?: string | null;
     };
 
-    const { shadowAnalysis, conceptBrief, category, theme, draftToken } = body;
+    const { shadowAnalysis, conceptBrief, category, theme, draftToken, productFormulation } =
+      body;
 
     if (!shadowAnalysis) {
       return NextResponse.json({ error: "shadowAnalysis가 필요합니다." }, { status: 400 });
@@ -72,6 +74,7 @@ export async function POST(request: Request) {
       category ?? "기타",
       theme,
       { userId, draftToken },
+      productFormulation,
     );
 
     if (isTestMode() && ingredientUrl && textureUrl) {

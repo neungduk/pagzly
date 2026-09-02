@@ -2,19 +2,23 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import DetailSectionRenderer from "@/components/DetailSectionRenderer";
 import GenerationCostStrip from "@/components/GenerationCostStrip";
 import { freezeScrollRevealAnimations, unfreezeScrollRevealAnimations } from "@/components/DetailScrollReveal";
 import DetailActionBar, { type DetailToolTab } from "@/components/DetailActionBar";
+import DetailStructureSidebar from "@/components/DetailStructureSidebar";
+import DetailToolsAccordion from "@/components/DetailToolsAccordion";
+import GenerationPipelineSummaryCard from "@/components/GenerationPipelineSummaryCard";
+import SectionPatchChat from "@/components/SectionPatchChat";
 import BlogPostPanel from "@/components/BlogPostPanel";
 import InstagramFeedPanel from "@/components/InstagramFeedPanel";
 import ToastBanner from "@/components/ToastBanner";
 import type { BlogBlockOverride, BlogPostGlobalOverride } from "@/lib/blog-post";
 import { DOWNLOAD_PLATFORMS, getDownloadPlatform, type DownloadPlatformId } from "@/lib/download-platforms";
 import type { InstagramSlideOverride } from "@/lib/instagram-feed";
-import { insertReviewHighlightSection } from "@/lib/section-inserts";
+import { insertEmptyCanvasSection, insertReviewHighlightSection } from "@/lib/section-inserts";
 import { DRAFT_SESSION_KEY, RETRY_PHOTO_ONLY_KEY, SESSION_KEY } from "@/components/CreateProductForm";
 import type { CustomGifSection, DetailSection, GenerateResponse, PhotoCostBreakdown, ReviewInsightsInput } from "@/lib/types/generate";
 import type { PatchChatMessage } from "@/lib/patch-section-suggestions";
@@ -22,6 +26,11 @@ import { getCategoryTheme } from "@/lib/category-theme";
 import { buildDetailPageHtml } from "@/lib/export-detail-html";
 import { downloadPngSlicesZip } from "@/lib/split-detail-download";
 import { validateImageFile } from "@/lib/image-upload";
+import { computePreviewCollapseEnd } from "@/lib/detail-preview-collapse";
+import {
+  buildGenerationPipelineSummary,
+  type GenerationPipelineSummary,
+} from "@/lib/generation-pipeline-summary";
 import { createClient } from "@/lib/supabase";
 
 const MAX_GIF_BYTES = 8 * 1024 * 1024;
@@ -79,6 +88,7 @@ type ProductResult = {
   generationCost?: number;
   reviewInsights?: ReviewInsightsInput | null;
   generated?: GenerateResponse;
+  pipelineSummary?: GenerationPipelineSummary;
 };
 
 type ProductRow = {
@@ -139,6 +149,18 @@ function mapProductRow(row: ProductRow): ProductResult {
   };
 }
 
+function resolvePipelineSummary(data: ProductResult): GenerationPipelineSummary {
+  if (data.pipelineSummary) return data.pipelineSummary;
+  return buildGenerationPipelineSummary({
+    imageAnalysis: data.generated?.imageAnalysis,
+    theme: data.generated?.theme,
+    photoProcessingCost: data.photoProcessingCost,
+    photoCostBreakdown: data.photoCostBreakdown ?? data.generated?.photoCostBreakdown,
+    backdropFailed: data.backdropFailed,
+    sectionCount: data.generated?.sections.length ?? 0,
+  });
+}
+
 function CreateResultContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -169,6 +191,7 @@ function CreateResultContent() {
     {},
   );
   const [blogGlobalOverrides, setBlogGlobalOverrides] = useState<BlogPostGlobalOverride>({});
+  const [detailExpanded, setDetailExpanded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -309,6 +332,15 @@ function CreateResultContent() {
     setHiddenIndexes((prev) =>
       prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index],
     );
+  }
+
+  function handleAddCanvas() {
+    if (!data?.generated) return;
+    const baseNeutral =
+      data.generated.theme?.baseNeutral ?? getCategoryTheme(data.category).baseNeutral;
+    const sections = insertEmptyCanvasSection(data.generated.sections, baseNeutral);
+    persist({ ...data, generated: { ...data.generated, sections } });
+    setToast({ message: "자유 캔버스 섹션을 추가했습니다.", tone: "ok" });
   }
 
   function appendPatchMessages(sectionIndex: number, msgs: PatchChatMessage[]) {
@@ -558,6 +590,12 @@ function CreateResultContent() {
 
     setDownloading(true);
     try {
+      const sections = data.generated?.sections.filter((_, i) => !hiddenIndexes.includes(i)) ?? [];
+      const collapse = computePreviewCollapseEnd(sections);
+      const wasCollapsed = collapse.hasMore && !detailExpanded;
+      if (wasCollapsed) setDetailExpanded(true);
+      if (wasCollapsed) await new Promise((r) => setTimeout(r, 450));
+
       freezeScrollRevealAnimations(captureRef.current);
       await new Promise((r) => setTimeout(r, 80));
       const platform = getDownloadPlatform(downloadPlatform);
@@ -575,7 +613,7 @@ function CreateResultContent() {
     } catch (err) {
       console.error("[download]", err);
     } finally {
-      unfreezeScrollRevealAnimations(captureRef.current);
+      if (captureRef.current) unfreezeScrollRevealAnimations(captureRef.current);
       setDownloading(false);
     }
   }
@@ -585,6 +623,12 @@ function CreateResultContent() {
 
     setDownloadingSplit(true);
     try {
+      const sections = data.generated?.sections.filter((_, i) => !hiddenIndexes.includes(i)) ?? [];
+      const collapse = computePreviewCollapseEnd(sections);
+      const wasCollapsed = collapse.hasMore && !detailExpanded;
+      if (wasCollapsed) setDetailExpanded(true);
+      if (wasCollapsed) await new Promise((r) => setTimeout(r, 450));
+
       freezeScrollRevealAnimations(captureRef.current);
       await new Promise((r) => setTimeout(r, 80));
       const platform = getDownloadPlatform(downloadPlatform);
@@ -608,7 +652,7 @@ function CreateResultContent() {
       console.error("[download-split]", err);
       setToast({ tone: "error", message: "분할 다운로드에 실패했습니다." });
     } finally {
-      unfreezeScrollRevealAnimations(captureRef.current);
+      if (captureRef.current) unfreezeScrollRevealAnimations(captureRef.current);
       setDownloadingSplit(false);
     }
   }
@@ -681,12 +725,163 @@ function CreateResultContent() {
     generated?.sections.map((_, i) => i).filter((i) => !hiddenSet.has(i)) ?? [];
   const visibleSections =
     generated?.sections.filter((_, i) => !hiddenSet.has(i)) ?? [];
+  const previewCollapse = computePreviewCollapseEnd(visibleSections);
+  const pipelineSummary = resolvePipelineSummary(data);
+
+  function scrollToSection(originalIndex: number) {
+    setPatchIndex(originalIndex);
+    setEditMode(true);
+    const displayIndex = visibleOriginalIndexes.indexOf(originalIndex);
+    if (displayIndex < 0) return;
+    window.requestAnimationFrame(() => {
+      const el = captureRef.current?.querySelector(`[data-section-index="${displayIndex}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  const toolBtn =
+    "inline-flex h-10 items-center justify-center rounded-lg px-3 text-sm font-semibold transition-transform transition-colors duration-200 active:scale-[0.98]";
+
+  const hiddenFileInputs = (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png"
+        className="hidden"
+        data-testid="file-input"
+        onChange={(e) => {
+          void handleFileSelected(e.target.files?.[0]);
+          e.target.value = "";
+        }}
+      />
+      <input
+        ref={gifInputRef}
+        type="file"
+        accept="image/gif"
+        className="hidden"
+        data-testid="gif-file-input"
+        onChange={(e) => {
+          void handleGifSelected(e.target.files?.[0]);
+          e.target.value = "";
+        }}
+      />
+    </>
+  );
+
+  const detailPreview =
+    visibleSections.length > 0 ? (
+      <div
+        ref={captureRef}
+        data-testid="detail-preview"
+        data-pagzly-preview
+        className="relative overflow-x-hidden rounded-2xl border border-ink/20 bg-paper shadow-[0_24px_60px_-28px_rgba(27,27,24,0.45)]"
+      >
+        <DetailSectionRenderer
+          sections={visibleSections}
+          imageUrls={data.imageUrls}
+          category={data.category}
+          productName={data.productName}
+          brandName={data.brandName}
+          certifications={data.certifications}
+          theme={theme}
+          conceptIcons={generated?.conceptIcons}
+          previewCollapse={
+            previewCollapse.hasMore
+              ? {
+                  expanded: detailExpanded,
+                  collapsedAfterIndex: previewCollapse.collapsedAfterIndex,
+                  hasMore: previewCollapse.hasMore,
+                  onExpand: () => setDetailExpanded(true),
+                }
+              : undefined
+          }
+          edit={{
+            enabled: editMode,
+            onChange: (displayIndex, section) => {
+              const originalIndex = visibleOriginalIndexes[displayIndex];
+              if (originalIndex === undefined) return;
+              handleSectionChange(originalIndex, section);
+            },
+            onReplaceImage: (imageIndex) => {
+              setReplaceImageIndex(imageIndex);
+              setToolTab("upload");
+              fileInputRef.current?.click();
+            },
+            onRequestAiPatch: (displayIndex) => {
+              const originalIndex = visibleOriginalIndexes[displayIndex];
+              if (originalIndex === undefined) return;
+              setPatchIndex(originalIndex);
+              setEditMode(true);
+              setToolTab("patch");
+            },
+          }}
+        />
+        <p className="border-t border-line bg-line/10 px-6 py-3 text-center text-[11px] text-ink/45">
+          이 상세페이지는 AI가 자동 생성한 콘텐츠를 포함합니다. 게시 전 실제 상품 정보와 대조 확인해
+          주세요.
+        </p>
+      </div>
+    ) : (
+      <div className="rounded-2xl border border-line bg-paper p-6 text-sm text-ink/60 shadow-sm">
+        생성된 섹션이 없습니다. 상품을 다시 등록해 주세요.
+      </div>
+    );
+
+  const downloadControls =
+    generated?.sections && generated.sections.length > 0 ? (
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="inline-flex flex-wrap rounded-lg border border-line bg-paper p-1">
+          {DOWNLOAD_PLATFORMS.map((platform) => (
+            <button
+              key={platform.id}
+              type="button"
+              onClick={() => setDownloadPlatform(platform.id)}
+              title={platform.hint}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                downloadPlatform === platform.id
+                  ? "bg-ink text-paper"
+                  : "text-ink/60 hover:text-ink"
+              }`}
+            >
+              {platform.label} {platform.width}px
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={handleDownload}
+          disabled={downloading}
+          className="inline-flex h-11 items-center justify-center rounded-xl bg-registration-red px-5 text-sm font-semibold text-paper transition-colors hover:bg-registration-red/85 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {downloading ? "다운로드 준비 중..." : "이미지로 다운로드"}
+        </button>
+        <button
+          type="button"
+          onClick={handleDownloadSplit}
+          disabled={downloadingSplit || downloading}
+          className="inline-flex h-11 items-center justify-center rounded-xl border border-line px-5 text-sm font-semibold text-ink transition-colors hover:bg-line/30 disabled:cursor-not-allowed disabled:opacity-60"
+          data-testid="download-split-zip"
+        >
+          {downloadingSplit ? "분할 준비 중..." : "분할 ZIP"}
+        </button>
+        <button
+          type="button"
+          onClick={handleDownloadHtml}
+          disabled={downloadingHtml}
+          className="inline-flex h-11 items-center justify-center rounded-xl border border-line px-5 text-sm font-semibold text-ink transition-colors hover:bg-line/30 disabled:cursor-not-allowed disabled:opacity-60"
+          data-testid="download-html"
+        >
+          {downloadingHtml ? "HTML 준비 중..." : "HTML 보내기"}
+        </button>
+      </div>
+    ) : null;
 
   return (
     <div className="min-h-full bg-paper text-ink">
       <div className="absolute inset-0 -z-10 bg-gradient-to-b from-line/40 to-paper" />
 
-      <main className="mx-auto max-w-3xl space-y-6 px-6 py-10 pb-16">
+      <main className="mx-auto max-w-[1600px] space-y-6 px-4 py-10 pb-16 sm:px-6">
         <div className="rounded-2xl border border-line bg-paper p-6 shadow-sm sm:p-8">
           <div className="flex flex-wrap items-center gap-3">
             <p className="font-mono text-xs uppercase tracking-[0.2em] text-registration-red">
@@ -764,7 +959,208 @@ function CreateResultContent() {
             </div>
           )}
 
-          <div className="sticky top-0 z-30 -mx-6 mb-2 bg-paper/95 px-6 py-3 backdrop-blur-md sm:-mx-8 sm:px-8">
+          <div className="mt-6 grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            <InfoItem label="카테고리" value={data.category} />
+            <InfoItem label="판매 가격" value={`₩${data.price.toLocaleString()}`} />
+            {data.brandName && <InfoItem label="브랜드" value={data.brandName} />}
+            {data.targetCustomer && (
+              <InfoItem label="타겟 고객" value={data.targetCustomer} />
+            )}
+          </div>
+
+        </div>
+
+        {hiddenFileInputs}
+
+        <div
+          className="hidden lg:grid lg:grid-cols-[minmax(220px,260px)_minmax(0,1fr)_minmax(300px,360px)] lg:items-start lg:gap-5"
+          data-testid="result-desktop-split"
+        >
+          <DetailStructureSidebar
+            sections={generated?.sections ?? []}
+            hiddenIndexes={hiddenIndexes}
+            selectedIndex={patchIndex}
+            onSelectSection={scrollToSection}
+            onReorder={handleReorder}
+            onToggleHidden={handleToggleHidden}
+            onAddCanvas={handleAddCanvas}
+            category={data.category}
+          />
+          <div className="min-w-0 space-y-4">
+            {detailPreview}
+            {downloadControls ? <div className="pt-2">{downloadControls}</div> : null}
+          </div>
+          <aside className="sticky top-4 max-h-[calc(100vh-2rem)] space-y-4 overflow-y-auto">
+            <GenerationPipelineSummaryCard summary={pipelineSummary} />
+            <div className="rounded-2xl border-2 border-ink/15 bg-paper p-3 shadow-sm">
+              <p className="text-xs font-semibold text-ink">직접 편집</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditMode((v) => !v)}
+                  className={`${toolBtn} ${
+                    editMode ? "bg-ink text-paper" : "border border-line text-ink hover:bg-line/30"
+                  }`}
+                >
+                  {editMode ? "편집 중" : "편집 시작"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleSave()}
+                  disabled={!editMode || saving}
+                  className={`${toolBtn} border border-line text-ink hover:bg-line/30 disabled:cursor-not-allowed disabled:opacity-40`}
+                >
+                  {saving ? "저장 중..." : "저장"}
+                </button>
+              </div>
+            </div>
+            <div
+              className="overflow-hidden rounded-2xl border-2 border-ink/15 bg-paper shadow-sm"
+              data-testid="desktop-patch-panel"
+            >
+              <SectionPatchChat
+                sections={generated?.sections ?? []}
+                patchIndex={patchIndex}
+                onPatchIndexChange={setPatchIndex}
+                messages={patchHistories[patchIndex] ?? []}
+                instruction={patchInstruction}
+                onInstructionChange={setPatchInstruction}
+                onSubmit={() => void handlePatchSection()}
+                loading={patchLoading}
+              />
+            </div>
+            <DetailToolsAccordion
+              defaultOpen="upload"
+              items={[
+                {
+                  id: "upload",
+                  label: "원클릭 업로드",
+                  children: (
+                    <div className="space-y-3">
+                      <p className="text-xs leading-relaxed text-ink/55">
+                        JPG·PNG, 8MB 이하. 미리보기는 즉시 바뀝니다.
+                      </p>
+                      {data.imageUrls.length > 0 ? (
+                        <label className="block text-xs font-medium text-ink/70">
+                          교체할 사진
+                          <select
+                            data-testid="replace-image-index-desktop"
+                            value={Math.min(
+                              replaceImageIndex,
+                              Math.max(0, data.imageUrls.length - 1),
+                            )}
+                            onChange={(e) => setReplaceImageIndex(Number(e.target.value))}
+                            className="mt-1 h-10 w-full rounded-lg border border-line bg-paper px-3 text-sm"
+                          >
+                            {Array.from({ length: data.imageUrls.length }, (_, i) => (
+                              <option key={i} value={i}>
+                                사진 {i + 1}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`${toolBtn} w-full bg-ink text-paper hover:bg-ink/85`}
+                      >
+                        원클릭 업로드
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => gifInputRef.current?.click()}
+                        className={`${toolBtn} w-full border border-line text-ink hover:bg-line/30`}
+                        data-testid="gif-upload-desktop"
+                      >
+                        GIF 추가 / 교체
+                      </button>
+                    </div>
+                  ),
+                },
+                {
+                  id: "ai",
+                  label: "AI 자동 생성",
+                  children: (
+                    <div className="space-y-3">
+                      <p className="text-xs leading-relaxed text-ink/55">
+                        1688/도매꾹 원본 상품명·스펙·설명을 붙여넣으면 카피를 다시 만듭니다.
+                      </p>
+                      <textarea
+                        data-testid="ai-wholesale-desktop"
+                        value={aiText}
+                        onChange={(e) => setAiText(e.target.value)}
+                        rows={4}
+                        placeholder="원본 판매 페이지의 상품명, 스펙, 상세 설명을 붙여넣어 주세요."
+                        className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void handleAiGenerate()}
+                        disabled={aiLoading}
+                        className={`${toolBtn} w-full bg-registration-red text-paper disabled:opacity-50`}
+                      >
+                        {aiLoading ? "생성 중..." : "생성 요청"}
+                      </button>
+                    </div>
+                  ),
+                },
+                {
+                  id: "instagram",
+                  label: "인스타 피드",
+                  children:
+                    generated?.sections && generated.sections.length > 0 ? (
+                      <InstagramFeedPanel
+                        variant="workspace"
+                        productName={data.productName}
+                        brandName={data.brandName}
+                        sections={
+                          visibleSections.length > 0 ? visibleSections : generated.sections
+                        }
+                        imageUrls={data.imageUrls}
+                        imagePaths={data.imagePaths}
+                        overrides={feedOverrides}
+                        onOverridesChange={setFeedOverrides}
+                      />
+                    ) : (
+                      <p className="text-xs text-ink/50">생성된 섹션이 없습니다.</p>
+                    ),
+                },
+                {
+                  id: "blog",
+                  label: "블로그",
+                  children:
+                    generated?.sections && generated.sections.length > 0 ? (
+                      <BlogPostPanel
+                        variant="workspace"
+                        productName={data.productName}
+                        brandName={data.brandName}
+                        category={data.category}
+                        sections={
+                          visibleSections.length > 0 ? visibleSections : generated.sections
+                        }
+                        imageUrls={data.imageUrls}
+                        description={generated.description}
+                        features={generated.features}
+                        howToUse={generated.howToUse}
+                        caution={generated.caution}
+                        price={data.price}
+                        blockOverrides={blogBlockOverrides}
+                        onBlockOverridesChange={setBlogBlockOverrides}
+                        globalOverrides={blogGlobalOverrides}
+                        onGlobalOverridesChange={setBlogGlobalOverrides}
+                      />
+                    ) : (
+                      <p className="text-xs text-ink/50">생성된 섹션이 없습니다.</p>
+                    ),
+                },
+              ]}
+            />
+          </aside>
+        </div>
+
+        <div className="space-y-6 lg:hidden" data-testid="result-mobile-tools">
+          <div className="sticky top-0 z-30 -mx-4 bg-paper/95 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6">
             <DetailActionBar
               tab={toolTab}
               onTabChange={handleTabChange}
@@ -797,90 +1193,11 @@ function CreateResultContent() {
               feedImageUrls={data.imageUrls}
               blogProductName={data.productName}
               blogCategory={data.category}
-            />
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png"
-              className="hidden"
-              data-testid="file-input"
-              onChange={(e) => {
-                void handleFileSelected(e.target.files?.[0]);
-                e.target.value = "";
-              }}
-            />
-            <input
-              ref={gifInputRef}
-              type="file"
-              accept="image/gif"
-              className="hidden"
-              data-testid="gif-file-input"
-              onChange={(e) => {
-                void handleGifSelected(e.target.files?.[0]);
-                e.target.value = "";
-              }}
+              onAddCanvas={handleAddCanvas}
             />
           </div>
-
-          <div className="mt-6 grid gap-4 text-sm sm:grid-cols-2">
-            <InfoItem label="카테고리" value={data.category} />
-            <InfoItem label="판매 가격" value={`₩${data.price.toLocaleString()}`} />
-            {data.brandName && <InfoItem label="브랜드" value={data.brandName} />}
-            {data.targetCustomer && (
-              <InfoItem label="타겟 고객" value={data.targetCustomer} />
-            )}
-          </div>
-
-          {generated?.sections && generated.sections.length > 0 && (
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <div className="inline-flex flex-wrap rounded-lg border border-line bg-paper p-1">
-                {DOWNLOAD_PLATFORMS.map((platform) => (
-                  <button
-                    key={platform.id}
-                    type="button"
-                    onClick={() => setDownloadPlatform(platform.id)}
-                    title={platform.hint}
-                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                      downloadPlatform === platform.id
-                        ? "bg-ink text-paper"
-                        : "text-ink/60 hover:text-ink"
-                    }`}
-                  >
-                    {platform.label} {platform.width}px
-                  </button>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={handleDownload}
-                disabled={downloading}
-                className="inline-flex h-11 items-center justify-center rounded-xl bg-registration-red px-5 text-sm font-semibold text-paper transition-colors hover:bg-registration-red/85 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {downloading ? "다운로드 준비 중..." : "이미지로 다운로드"}
-              </button>
-              <button
-                type="button"
-                onClick={handleDownloadSplit}
-                disabled={downloadingSplit || downloading}
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-line px-5 text-sm font-semibold text-ink transition-colors hover:bg-line/30 disabled:cursor-not-allowed disabled:opacity-60"
-                data-testid="download-split-zip"
-              >
-                {downloadingSplit ? "분할 준비 중..." : "분할 ZIP"}
-              </button>
-              <button
-                type="button"
-                onClick={handleDownloadHtml}
-                disabled={downloadingHtml}
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-line px-5 text-sm font-semibold text-ink transition-colors hover:bg-line/30 disabled:cursor-not-allowed disabled:opacity-60"
-                data-testid="download-html"
-              >
-                {downloadingHtml ? "HTML 준비 중..." : "HTML 내보내기"}
-              </button>
-            </div>
-          )}
-
-        </div>
-
+          <GenerationPipelineSummaryCard summary={pipelineSummary} />
+          {downloadControls}
         {toolTab === "instagram" && generated?.sections && generated.sections.length > 0 ? (
           <div
             className="rounded-2xl border border-ink/20 bg-paper p-4 shadow-sm sm:p-6"
@@ -930,51 +1247,10 @@ function CreateResultContent() {
               onGlobalOverridesChange={setBlogGlobalOverrides}
             />
           </div>
-        ) : visibleSections.length > 0 ? (
-          <div
-            ref={captureRef}
-            data-testid="detail-preview"
-            data-pagzly-preview
-            className="relative overflow-x-hidden rounded-2xl border border-ink/20 bg-paper shadow-[0_24px_60px_-28px_rgba(27,27,24,0.45)]"
-          >
-            <DetailSectionRenderer
-              sections={visibleSections}
-              imageUrls={data.imageUrls}
-              category={data.category}
-              productName={data.productName}
-              theme={theme}
-              conceptIcons={generated?.conceptIcons}
-              edit={{
-                enabled: editMode,
-                onChange: (displayIndex, section) => {
-                  const originalIndex = visibleOriginalIndexes[displayIndex];
-                  if (originalIndex === undefined) return;
-                  handleSectionChange(originalIndex, section);
-                },
-                onReplaceImage: (imageIndex) => {
-                  setReplaceImageIndex(imageIndex);
-                  setToolTab("upload");
-                  fileInputRef.current?.click();
-                },
-                onRequestAiPatch: (displayIndex) => {
-                  const originalIndex = visibleOriginalIndexes[displayIndex];
-                  if (originalIndex === undefined) return;
-                  setPatchIndex(originalIndex);
-                  setEditMode(true);
-                  setToolTab("patch");
-                },
-              }}
-            />
-            <p className="border-t border-line bg-line/10 px-6 py-3 text-center text-[11px] text-ink/45">
-              이 상세페이지는 AI가 자동 생성한 콘텐츠를 포함합니다. 게시 전 실제 상품 정보와 대조
-              확인해 주세요.
-            </p>
-          </div>
         ) : (
-          <div className="rounded-2xl border border-line bg-paper p-6 text-sm text-ink/60 shadow-sm">
-            생성된 섹션이 없습니다. 상품을 다시 등록해 주세요.
-          </div>
+          detailPreview
         )}
+        </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
           <Link

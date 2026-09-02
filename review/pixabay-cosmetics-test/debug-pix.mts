@@ -1,0 +1,14 @@
+﻿import { chromium } from "playwright";
+import fs from "fs";
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage();
+await page.goto("https://pixabay.com/images/search/skincare+cream/", { waitUntil: "domcontentloaded", timeout: 120000 });
+await page.waitForTimeout(5000);
+const title = await page.title();
+const html = await page.content();
+fs.writeFileSync("pixabay-debug.html", html.slice(0, 50000));
+console.log("title", title);
+console.log("links", await page.locator("a").count());
+console.log("photo links", await page.locator('a[href*="/photos/"]').count());
+await page.screenshot({ path: "pixabay-debug.png", fullPage: true });
+await browser.close();

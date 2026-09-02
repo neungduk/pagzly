@@ -51,6 +51,7 @@ type DetailActionBarProps = {
   feedImageUrls?: string[];
   blogProductName?: string;
   blogCategory?: string;
+  onAddCanvas?: () => void;
 };
 
 const TABS: { id: DetailToolTab; label: string }[] = [
@@ -95,6 +96,7 @@ export default function DetailActionBar({
   feedImageUrls,
   blogProductName,
   blogCategory,
+  onAddCanvas,
 }: DetailActionBarProps) {
   const btn =
     "inline-flex h-10 items-center justify-center rounded-lg px-3 text-sm font-semibold transition-transform transition-colors duration-200 active:scale-[0.98]";
@@ -309,6 +311,7 @@ export default function DetailActionBar({
             onPatchSubmit={onPatchSubmit ?? (() => {})}
             patchLoading={patchLoading}
             hidePatch
+            onAddCanvas={onAddCanvas}
           />
           {onGifUploadClick && (
             <div className="space-y-2">

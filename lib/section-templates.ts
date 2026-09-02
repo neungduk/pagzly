@@ -202,7 +202,7 @@ const FASHION: SlotDefinition[] = [
     type: "image_text",
     required: true,
     shortTier: "extra",
-    note: "원단/봉제/디테일 확대 (1:1)",
+    note: "원단/봉제/디테일 확대 (1:1). 매크로·클로즈업이면 감각 카피와 잘 맞습니다",
   },
   {
     slot: "highlight_box",
@@ -347,7 +347,7 @@ const FOOD: SlotDefinition[] = [
     slot: "texture_closeup",
     type: "image_text",
     required: false,
-    note: "조직감/단면 확대 (1:1)",
+    note: "조직감/단면 확대 (1:1). 질감이 잘 보이는 매크로/클로즈업 사진을 올리면 감각적 카피와 자연스럽게 매칭됩니다",
   },
   {
     slot: "highlight_box",
@@ -857,7 +857,7 @@ export function buildSectionLengthGuide(category: string): string {
   const common = `- hero headline: 한 줄, 공백 포함 22자 이내, 핵심 강점 1개만.
 - hero subheadline: 헤드라인을 보충하는 1문장. 상품명만 반복하지 말 것.
 - checklist items: 각 14자 내외.
-- image_text body (ingredient_highlight, texture_feel, detail_zoom, feature_detail 등): 2~3문장, 짧은 문장 + 설명 문장을 교차.
+- image_text body (ingredient_highlight, texture_feel, detail_zoom, texture_closeup, feature_detail 등): 2~3문장, 짧은 문장 + 설명 문장을 교차. 가능하면 **고객 인용 → #해시태그 헤드라인 → 입력 근거 수치** 3단 흐름(근거 없으면 해당 단계 생략).
 - feature_callout: layout 반드시 "callout". callout 12~18자(말풍선), heading 8자 내외, body 1~2문장.
 - step_card: 각 단계 title 6자 내외 + body 1문장. STEP 태그는 서버가 자동으로 붙이므로 title에 STEP 01 등을 쓰지 말 것.
 - highlight_box: 카드 3장, title 6자 내외 + body 1~2문장. checklist와 다른 축으로 구성하고, 가장 강조하고 싶은 내용을 2번째 카드에.
