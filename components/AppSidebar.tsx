@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import TokenBalanceBadge from "@/components/TokenBalanceBadge";
 import { createClient } from "@/lib/supabase";
 
 const NAV_ITEMS = [
@@ -93,7 +92,6 @@ export default function AppSidebar() {
       </nav>
 
       <div className="border-t border-line p-2">
-        <TokenBalanceBadge />
         <button
           type="button"
           onClick={() => void handleLogout()}

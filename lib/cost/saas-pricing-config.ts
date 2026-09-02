@@ -16,12 +16,47 @@ export type PricingTier = {
   label: string;
   monthlyPriceKrw: number;
   monthlyTokens: number;
+  /** 카드 제목 아래 한 줄 설명 */
+  tagline: string;
+  /** "OO의 모든 기능 포함" 표시용 (starter는 없음) */
+  inheritsFrom?: PricingTierId;
 };
 
+/** 모든 유료 플랜에서 동일하게 제공되는 핵심 기능 — 표시용 */
+export const PAGZLY_CORE_FEATURES = [
+  "AI 상세페이지 자동 생성 (사진 보정 + 카피 + 배경 합성)",
+  "레퍼런스 이미지로 초안 자동입력",
+  "섹션별 AI 채팅 수정",
+  "자유 캔버스 에디터 (텍스트 · 이미지 · 도형 · 표)",
+  "GIF 자동 생성",
+  "인스타그램 피드 · 블로그 미니 생성",
+  "무제한 다운로드",
+] as const;
+
 export const PRICING_TIERS: PricingTier[] = [
-  { id: "starter", label: "스타터", monthlyPriceKrw: 29000, monthlyTokens: 1000 },
-  { id: "growth", label: "그로스", monthlyPriceKrw: 79000, monthlyTokens: 3000 },
-  { id: "pro", label: "프로", monthlyPriceKrw: 149000, monthlyTokens: 5500 },
+  {
+    id: "starter",
+    label: "스타터",
+    monthlyPriceKrw: 29000,
+    monthlyTokens: 1000,
+    tagline: "이제 막 상세페이지 제작을 시작하는 셀러에게",
+  },
+  {
+    id: "growth",
+    label: "그로스",
+    monthlyPriceKrw: 79000,
+    monthlyTokens: 3000,
+    tagline: "여러 상품을 함께 운영하는 셀러에게",
+    inheritsFrom: "starter",
+  },
+  {
+    id: "pro",
+    label: "프로",
+    monthlyPriceKrw: 149000,
+    monthlyTokens: 5500,
+    tagline: "상세페이지 제작을 본격적으로 늘리는 셀러에게",
+    inheritsFrom: "growth",
+  },
 ];
 
 export type CreditPack = {
