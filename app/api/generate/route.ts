@@ -30,6 +30,11 @@ import { buildQAFixPrompt, runDetailPageQA } from "@/lib/detail-page-qa";
 import { enrichSectionsWithProductMetadata } from "@/lib/enrich-product-sections";
 import { insertReviewHighlightSection, insertSellerTrustEvidence } from "@/lib/section-inserts";
 import {
+  dropHollowHighlightBoxes,
+  HIGHLIGHT_BOX_RETRY_APPENDIX,
+  missingRequiredHighlightBox,
+} from "@/lib/highlight-box-guard";
+import {
   applyDesignerLayoutRhythm,
   buildDesignerPatternGuide,
 } from "@/lib/designer-detail-patterns";
@@ -56,7 +61,30 @@ import { sanitizeComparisonChartSection } from "@/lib/comparison-chart-guard";
 import { isTestMode } from "@/lib/test-mode";
 import { isForceRegenerate } from "@/lib/force-regenerate";
 import { assignDistinctSectionImages, countImageIndexFrequency } from "@/lib/assign-section-images";
+import { detectRoleShortages } from "@/lib/role-shortage";
+import { computeAHashesFromUrls } from "@/lib/image-ahash";
+import {
+  dedupeImageUrlArrays,
+  filenameOfUrl,
+  remapSectionImageIndexes,
+} from "@/lib/dedupe-image-urls";
+import {
+  hasAiLifestyleOrigin,
+  normalizeImageOrigins,
+  remapOriginsByIndexMap,
+  type ProductImageOrigin,
+} from "@/lib/image-origins";
+import {
+  countVisionRolesApplied,
+  expandVisionTagsByIndex,
+  mergeImageRolesWithVision,
+  normalizeImageRoles,
+  parseVisionImageRoles,
+  type VisionImageRoleJudgment,
+} from "@/lib/image-roles";
+import { parseImageAnalysisResponse } from "@/lib/parse-image-analysis-response";
 import { applyElectronicsAnnotatedSections } from "@/lib/apply-electronics-annotations";
+import { applyCosmeticsAnnotatedSections } from "@/lib/apply-cosmetics-annotations";
 import { applyIngredientCircleVisual } from "@/lib/apply-ingredient-circle-pair";
 import { applyConceptOverlaysToProductImages } from "@/lib/concept-effects";
 import { makeComparisonPair } from "@/lib/photo-composite";
@@ -100,20 +128,26 @@ async function uploadDataUrlAndGetPublicUrl(
 export const AI_DISCLOSURE_BODY =
   "본 제품의 상세페이지 중 일부 이미지 및 연출 컷은 AI 생성 기술을 활용하여 제작되었으며 실제 제품 및 사용 환경과 일부 차이가 있을 수 있습니다.";
 
+export const AI_DISCLOSURE_BODY_WITH_LIFESTYLE =
+  "본 제품의 상세페이지 중 일부 연출 컷의 배경·인물은 AI로 생성되었으며, 사용 장면은 실제와 다를 수 있습니다. 제품 자체는 판매자 원본 이미지를 합성한 것입니다.";
+
 export const AI_DISCLOSURE_HEADING = "AI 생성 콘텐츠 안내";
 
-function buildAiDisclosureSection(): AiDisclosureSection {
+function buildAiDisclosureSection(opts?: { hasAiLifestyle?: boolean }): AiDisclosureSection {
   return {
     type: "ai_disclosure",
     slot: "ai_disclosure",
     heading: AI_DISCLOSURE_HEADING,
-    body: AI_DISCLOSURE_BODY,
+    body: opts?.hasAiLifestyle ? AI_DISCLOSURE_BODY_WITH_LIFESTYLE : AI_DISCLOSURE_BODY,
   };
 }
 
 /** 템플릿 순서상 cta_price 앞에 고정 고지 섹션을 보장 */
-function ensureAiDisclosure(sections: DetailSection[]): DetailSection[] {
-  const disclosure = buildAiDisclosureSection();
+function ensureAiDisclosure(
+  sections: DetailSection[],
+  opts?: { hasAiLifestyle?: boolean },
+): DetailSection[] {
+  const disclosure = buildAiDisclosureSection(opts);
   const without = sections.filter((s) => s.slot !== "ai_disclosure" && s.type !== "ai_disclosure");
   const ctaIdx = without.findIndex((s) => s.slot === "cta_price" || s.type === "cta_price");
   if (ctaIdx >= 0) {
@@ -253,7 +287,7 @@ async function analyzeImagesWithClaude(
   anthropic: Anthropic,
   imageUrls: string[],
   productInfo: ProductInput,
-): Promise<{ analysis: string; cost: number }> {
+): Promise<{ analysis: string; roles: VisionImageRoleJudgment[]; cost: number }> {
   const testMode = isTestMode();
   const analysisUrls = testMode
     ? imageUrls.slice(0, TEST_MODE_ANALYSIS_MAX_IMAGES)
@@ -276,7 +310,11 @@ async function analyzeImagesWithClaude(
       console.log(
         `[image-analysis] TEST_MODE 캐시 히트 (${payloads.length}장, model=${cached.model}) — Claude 호출 생략`,
       );
-      return { analysis: cached.analysis, cost: 0 };
+      return {
+        analysis: cached.analysis,
+        roles: parseVisionImageRoles(cached.roles),
+        cost: 0,
+      };
     }
     if (cached && isForceRegenerate()) {
       console.log("[image-analysis] FORCE_REGENERATE — 캐시 무시, Claude 재분석");
@@ -303,17 +341,7 @@ async function analyzeImagesWithClaude(
     );
   }
 
-  const message = await anthropic.messages.create({
-    model,
-    max_tokens: 1500,
-    messages: [
-      {
-        role: "user",
-        content: [
-          ...imageBlocks,
-          {
-            type: "text",
-            text: `당신은 이커머스 상품 분석 전문가입니다. 첨부된 상품 사진을 분석해 주세요.
+  const analysisPrompt = `당신은 이커머스 상품 분석 전문가입니다. 첨부된 상품 사진을 분석해 주세요.
 
 상품명: ${productInfo.productName}
 카테고리: ${productInfo.category}
@@ -321,16 +349,41 @@ ${productInfo.brandName ? `브랜드: ${productInfo.brandName}` : ""}
 ${productInfo.keyFeatures ? `사용자 입력 특징: ${productInfo.keyFeatures}` : ""}
 ${productInfo.ingredients ? `성분/소재: ${productInfo.ingredients}` : ""}
 
-다음 항목을 한국어로 상세히 분석해 주세요:
-1. 제품 색상 (정확한 색상명)
-2. 질감/소재 (보이는 질감, 마감, 재질)
-3. 시각적 특징 (형태, 디자인, 패턴, 포장 등)
-4. 전반적인 인상 및 타겟 고객에게 어필할 포인트
-5. 상세페이지에 강조하면 좋을 USP${cosmeticsNote}
+각 사진(0부터 시작하는 첨부 순서)의 용도 역할을 먼저 판정하세요.
+role은 다음만 허용: hero | detail | lifestyle | package | other
+판정 기준:
+- package: 박스·파우치·구성품 나열·택배 포장이 보이면
+- lifestyle: 사람 손·신체·실제 사용/생활 배경이 보이면
+- detail: 질감·라벨·기능부·매크로 확대·옆으로 누운 단독컷이면
+- hero: 배경이 정리된 단독 제품 정면/대표컷이면
+- other: 위에 명확하지 않으면
+confidence는 0~1 (확실할수록 높음). 첨부 장수(${payloads.length})만큼 roles에 모두 넣으세요.
+각 role에 tags: 사진에서 보이는 짧은 키워드 2~4개(한글 또는 영문). 예: ["질감","클로즈업","스와치"] / ["박스","구성품"] / ["정면","단독"]. 효능·마케팅 문구 금지.
 
-각 사진이 몇 번째로 첨부되었는지(0부터 시작하는 순서)도 함께 기억해 두세요.
-이후 상세페이지 섹션을 구성할 때 어떤 사진이 어떤 용도(전체샷/질감클로즈업/사용장면 등)로
-적합한지 판단하는 데 사용됩니다.`,
+analysis 문자열에는 다음 항목을 한국어로 적어 주세요(roles 작성 후):
+1. 제품 색상 2. 질감/소재 3. 시각적 특징 4. 인상·어필 포인트 5. USP${cosmeticsNote}
+
+반드시 아래 JSON 객체 하나만 출력하세요 (앞뒤 설명 금지, 마크다운 코드블록 허용).
+**필수: JSON의 첫 번째 키는 반드시 "roles"이고, 그 다음에 "analysis"를 쓰세요.**
+(토큰 한도로 뒤가 잘려도 역할 판정이 남도록 — analysis를 앞에 두지 마세요.)
+{
+  "roles": [
+    { "index": 0, "role": "hero", "confidence": 0.9, "reason": "정면 단독 제품컷", "tags": ["정면", "단독", "패키지"] }
+  ],
+  "analysis": "한국어 상세 분석 텍스트"
+}`;
+
+  const message = await anthropic.messages.create({
+    model,
+    max_tokens: 4096,
+    messages: [
+      {
+        role: "user",
+        content: [
+          ...imageBlocks,
+          {
+            type: "text",
+            text: analysisPrompt,
           },
         ],
       },
@@ -342,8 +395,78 @@ ${productInfo.ingredients ? `성분/소재: ${productInfo.ingredients}` : ""}
     throw new Error("Claude Vision 분석 결과를 받지 못했습니다.");
   }
 
-  const cost = calculateClaudeCost(model, message.usage);
+  console.log(
+    `[image-analysis] raw stop=${message.stop_reason} chars=${textBlock.text.length} preview=${JSON.stringify(textBlock.text.slice(0, 400))}`,
+  );
+
+  let parsed = parseImageAnalysisResponse(textBlock.text, payloads.length);
+  let cost = calculateClaudeCost(model, message.usage);
   logClaudeCost("imageAnalysis", model, cost);
+
+  // roles가 비면(JSON 잘림·스키마 이탈) roles-only 1회 재시도 — 서술 분석은 유지
+  if (parsed.roles.length === 0 && payloads.length > 0) {
+    console.warn(
+      `[image-analysis] roles empty after parse (analysisChars=${parsed.analysis.length}) — roles-only retry`,
+    );
+    try {
+      const retry = await anthropic.messages.create({
+        model,
+        max_tokens: 1200,
+        messages: [
+          {
+            role: "user",
+            content: [
+              ...imageBlocks,
+              {
+                type: "text",
+                text: `첨부 사진 ${payloads.length}장의 용도만 JSON으로 판정하세요. 0-based index.
+role: hero|detail|lifestyle|package|other
+tags: 짧은 키워드 2~4개 (예 ["질감","클로즈업"])
+{
+  "roles": [{ "index": 0, "role": "hero", "confidence": 0.9, "reason": "한줄", "tags": ["정면","단독"] }]
+}
+설명·analysis 금지. roles만.`,
+              },
+            ],
+          },
+        ],
+      });
+      const retryText = retry.content.find((b) => b.type === "text");
+      const retryCost = calculateClaudeCost(model, retry.usage);
+      cost += retryCost;
+      logClaudeCost("imageAnalysisRolesRetry", model, retryCost);
+      if (retryText?.type === "text") {
+        console.log(
+          `[image-analysis] roles-retry stop=${retry.stop_reason} chars=${retryText.text.length} preview=${JSON.stringify(retryText.text.slice(0, 300))}`,
+        );
+        const retryParsed = parseImageAnalysisResponse(retryText.text, payloads.length);
+        if (retryParsed.roles.length > 0) {
+          parsed = {
+            analysis: parsed.analysis || retryParsed.analysis,
+            roles: retryParsed.roles,
+          };
+        }
+      }
+    } catch (retryErr) {
+      console.warn("[image-analysis] roles-only retry failed", retryErr);
+    }
+  }
+
+  console.log(
+    `[image-analysis] parsed roles=${parsed.roles.length}/${payloads.length} rolesJson=${JSON.stringify(parsed.roles)}`,
+  );
+  console.log(
+    `[image-analysis] tokenBudget responseChars=${textBlock.text.length} max_tokens=4096 stop=${message.stop_reason} images=${payloads.length}`,
+  );
+
+  if (parsed.roles.length === 0 && payloads.length > 0) {
+    console.warn("[image-roles] vision roles 비어있음 — 순서 기본값 폴백", {
+      reason: "parse_empty_after_retry",
+      rawLength: textBlock.text.length,
+      stopReason: message.stop_reason,
+      imageCount: payloads.length,
+    });
+  }
 
   if (testMode) {
     const cacheKey = buildImageAnalysisCacheKey({
@@ -355,14 +478,15 @@ ${productInfo.ingredients ? `성분/소재: ${productInfo.ingredients}` : ""}
       imageCacheKey: productInfo.imageCacheKey,
     });
     writeImageAnalysisCache(cacheKey, {
-      analysis: textBlock.text,
+      analysis: parsed.analysis,
+      roles: parsed.roles,
       model,
       imageCount: payloads.length,
       createdAt: new Date().toISOString(),
     });
   }
 
-  return { analysis: textBlock.text, cost };
+  return { analysis: parsed.analysis, roles: parsed.roles, cost };
 }
 
 // 섹션 타입별 JSON 필드 형식. slot 값은 템플릿이 지정한 이름을 그대로 써야 한다.
@@ -384,7 +508,7 @@ const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
   illustration_banner: `{ type: "illustration_banner", slot, heading?, body?, illustrationUrl: "" } — body는 분위기 1~2문장, illustrationUrl은 서버가 채우므로 빈 문자열`,
   faq: `{ type: "faq", slot, heading, items: [{question, answer}] } — 3~5개. 근거 없으면 슬롯 생략. 근거 없는 개별 질문은 답변을 "판매자에게 문의해주세요"`,
   target_persona: `{ type: "target_persona", slot, heading, personas[] } — 3~5개, 각 20자 내외. targetCustomer·keyFeatures 기반으로만`,
-  brand_story: `{ type: "brand_story", slot, heading, body } — brandName이 없으면 슬롯 전체 생략. 없는 히스토리·수상 지어내지 말 것`,
+  brand_story: `{ type: "brand_story", slot, heading, body } — brandName이 없으면 슬롯 전체 생략. 브랜드의 시작·철학·만드는 방식 중 하나를 골라 2~3문단으로 쓰되, 판매자 입력에 없는 창업연도·공장·수상 등 사실을 지어내지 말 것. 근거가 약하면 짧게`,
   ai_disclosure: `{ type: "ai_disclosure", slot: "ai_disclosure", heading, body } — 서버가 고정 문구로 덮어쓰므로 생략하거나 빈 값으로 둬도 됨`,
   custom_gif: `{ type: "custom_gif", slot: "custom_gif", heading?, gifUrl } — AI는 이 섹션을 생성하지 않음. 판매자가 GIF를 업로드했을 때 서버가 조립 단계에서 자동 삽입`,
   review_highlight: `{ type: "review_highlight", slot: "review_highlight", heading, praises: string[] } — AI는 이 섹션을 생성하지 않음. 판매자가 리뷰 파일을 업로드했을 때 실제 후기 요약(commonPraises)으로 서버가 조립 단계에서 자동 삽입`,
@@ -777,7 +901,9 @@ illustration_banner의 body는 이 섹션 분위기를 설명하는 1~2문장 �
 quick_points 슬롯은 layout:"compact"로 2~4개 채우세요. heading 8자 내외, body 1문장, 사진은 작은 텍스처/디테일 컷.
 feature_callout 슬롯은 layout:"callout" + callout(12~18자 말풍선 강조) + heading 8자 내외 + body 1~2문장. 후기·인증 표현 금지.
 checklist의 compactFollow는 gallery 또는 image_text 섹션 **바로 다음**에 오는 checklist일 때만 true. 그 외에는 생략하거나 false.
-brand_story는 brandName이 입력된 경우에만 포함하세요. 없으면 슬롯 전체를 생략하고, 브랜드 히스토리·설립연도·수상내역을 지어내지 마세요.
+brand_story는 brandName이 입력된 경우에만 포함하세요. 없으면 슬롯 전체를 생략하세요.
+본문은 브랜드의 시작·철학·만드는 방식 중 하나를 골라 2~3문단으로 쓸 수 있습니다.
+판매자가 입력하지 않은 사실(창업 연도, 공장 위치, 수상 이력 등)을 절대 지어내지 마세요. 근거가 없으면 한 단락으로 짧게 쓰세요.
 target_persona는 targetCustomer·keyFeatures 입력 기반으로만 3~5개 작성하세요. 근거가 없으면 슬롯을 생략하세요.
 faq는 keyFeatures·ingredients·certifications 등 입력에 근거한 질문만 3~5개. 근거가 전혀 없으면 슬롯 전체를 생략하세요. 개별 질문에 근거가 없으면 답변을 "판매자에게 문의해주세요"로 두고, 효능·의학적 단정은 금지합니다.
 shipping_info는 type:"spec_table"로 배송비/기간/교환·환불 행을 채우세요. 구체 수치가 없으면 값을 "판매자 정책을 확인해주세요"로 두세요.
@@ -927,7 +1053,12 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
       };
     }
     if (section.type === "highlight_box") {
-      return { ...section, cards: section.cards.slice(0, 4) };
+      const cards = Array.isArray(section.cards)
+        ? section.cards
+            .filter((card) => (card?.title ?? "").trim() || (card?.body ?? "").trim())
+            .slice(0, 4)
+        : [];
+      return { ...section, cards };
     }
     if (section.type === "illustration_banner") {
       return { ...section, illustrationUrl: "" };
@@ -947,15 +1078,37 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
     return section;
   });
 
+  parsed.sections = dropHollowHighlightBoxes(parsed.sections);
+
   // AI가 슬롯 순서를 어겼거나 알 수 없는 slot을 만들었더라도, 최종 출력은
   // 항상 카테고리 고정 템플릿 순서를 따르도록 강제 재정렬한다. 레이아웃
   // 틀은 서버가 지키고, AI는 콘텐츠만 책임진다는 원칙을 코드로도 보장.
   parsed.sections = normalizeSectionsToTemplate(parsed.sections, template);
   parsed.sections = ensureAiDisclosure(parsed.sections);
+  const rolesForAssign = normalizeImageRoles(productInfo.imageRoles, imageCount);
+  const shortage = detectRoleShortages({
+    roles: rolesForAssign,
+    category: productInfo.category,
+  });
+  if (shortage) {
+    console.warn(`[role-shortage] ${shortage.message}`);
+    notices.push(shortage.message);
+  }
+  const imageHashes = await computeAHashesFromUrls(productInfo.imageUrls).catch(() =>
+    productInfo.imageUrls.map(() => null),
+  );
+  const visionExpand = expandVisionTagsByIndex(
+    productInfo.visionImageRoles,
+    imageCount,
+  );
   parsed.sections = assignDistinctSectionImages(parsed.sections, imageCount, {
     category: productInfo.category,
     imageRoles: productInfo.imageRoles,
     imagePaths: productInfo.imagePaths,
+    imageHashes,
+    textOnlySlots: shortage?.preferTextOnlySlots ?? [],
+    imageTags: visionExpand.imageTags,
+    imageReasons: visionExpand.imageReasons,
   });
   {
     const pair = applyIngredientCircleVisual(
@@ -964,10 +1117,24 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
       productInfo.ingredients,
     );
     parsed.sections = pair.sections;
+    // 105차 3번 — circle 삽입이 assign 뒤면 인덱스가 dedup/재배정을 우회함 → 즉시 재배정
+    if (pair.applied) {
+      parsed.sections = assignDistinctSectionImages(parsed.sections, imageCount, {
+        category: productInfo.category,
+        imageRoles: productInfo.imageRoles,
+        imagePaths: productInfo.imagePaths,
+        imageHashes,
+        textOnlySlots: shortage?.preferTextOnlySlots ?? [],
+        imageTags: visionExpand.imageTags,
+        imageReasons: visionExpand.imageReasons,
+      });
+      console.log("[images] reassigned after ingredient circle insert (draft)");
+    }
   }
   const freq = countImageIndexFrequency(parsed.sections);
   const usedDistinct = Object.keys(freq).length;
   const maxFreq = Math.max(0, ...Object.values(freq));
+  // [assign-images] 상세 로그는 assignDistinctSectionImages 내부에서 출력
   console.log(
     `[images] assigned distinct=${usedDistinct}/${imageCount} maxFreq=${maxFreq} freq=${JSON.stringify(freq)}`,
   );
@@ -1121,8 +1288,16 @@ export async function POST(request: Request) {
 
     let savedCopy: GeneratedCopy;
     let imageAnalysis = "";
+    let visionImageRoles: VisionImageRoleJudgment[] = [];
+    let resolvedImageRoles = mergeImageRolesWithVision({
+      imageCount: body.imageUrls.length,
+      userRoles: body.imageRoles,
+      userSet: body.imageRoleUserSet,
+      visionRoles: body.visionImageRoles,
+    });
     let claudeCost = body.photoCostBreakdown?.claude ?? 0;
-    let theme: Awaited<ReturnType<typeof extractProductTheme>> | null = null;
+    let theme: Awaited<ReturnType<typeof extractProductTheme>> | null =
+      body.theme ?? null;
     let urlAnalysisNotices: string[] = [];
     let qaSummary = "";
     let mfdsReviewed = false;
@@ -1131,7 +1306,10 @@ export async function POST(request: Request) {
     let referenceAnalysisCost = 0;
     let reviewInsightsCost = 0;
     let auxConceptBriefCost = 0;
-    let enrichedBody: ProductInput = body;
+    let enrichedBody: ProductInput = {
+      ...body,
+      imageRoles: resolvedImageRoles,
+    };
 
     if (!useDraftSections) {
       const analysisImageLimit = isTestMode()
@@ -1145,11 +1323,22 @@ export async function POST(request: Request) {
         }),
       ]);
       imageAnalysis = imageAnalysisResult.analysis;
-      theme = extractedTheme;
+      visionImageRoles = imageAnalysisResult.roles;
+      resolvedImageRoles = mergeImageRolesWithVision({
+        imageCount: body.imageUrls.length,
+        userRoles: body.imageRoles,
+        userSet: body.imageRoleUserSet,
+        visionRoles: visionImageRoles,
+      });
+      theme = extractedTheme ?? theme;
       claudeCost += imageAnalysisResult.cost;
 
-      const aux = await loadAuxiliaryInputs(body);
-      enrichedBody = aux.enriched;
+      const aux = await loadAuxiliaryInputs({
+        ...body,
+        imageRoles: resolvedImageRoles,
+        visionImageRoles,
+      });
+      enrichedBody = { ...aux.enriched, imageRoles: resolvedImageRoles };
       referenceAnalysisCost = aux.referenceAnalysisCost;
       reviewInsightsCost = aux.reviewInsightsCost;
       auxConceptBriefCost = aux.conceptBriefCost;
@@ -1167,9 +1356,29 @@ export async function POST(request: Request) {
       urlAnalysisNotices = notices;
 
       let copyToSave = generated;
+      totalDeepSeekCost = deepSeekCost;
+
+      if (missingRequiredHighlightBox(copyToSave.sections, body.category, body.length)) {
+        console.warn("[generate] required highlight_box empty/missing — 1회 재생성 시도");
+        const retryHb = await generateCopyWithDeepSeek(
+          enrichedBody,
+          imageAnalysis,
+          enrichedBody.imageUrls.length,
+          HIGHLIGHT_BOX_RETRY_APPENDIX,
+        );
+        copyToSave = retryHb.copy;
+        totalDeepSeekCost += retryHb.cost;
+        urlAnalysisNotices = retryHb.notices;
+        if (missingRequiredHighlightBox(copyToSave.sections, body.category, body.length)) {
+          console.warn(
+            "[generate] highlight_box still empty after retry — dropping hollow section and continuing",
+          );
+        }
+      }
+
       let qaResult = await runDetailPageQA({
         imageUrls: body.imageUrls,
-        sections: generated.sections,
+        sections: copyToSave.sections,
         category: body.category,
         productName: body.productName,
         keyFeatures: body.keyFeatures,
@@ -1187,8 +1396,6 @@ export async function POST(request: Request) {
             i.category === "text_overlap" ||
             i.category === "material_hallucination"),
       );
-
-      totalDeepSeekCost = deepSeekCost;
 
       if (!qaResult.pass && copyFixable) {
         console.log("[qa] critical 카피 이슈 — 1회 재생성 시도");
@@ -1228,7 +1435,7 @@ export async function POST(request: Request) {
       replacements = finalCopy?.replacements ?? [];
       savedCopy = {
         ...savedCopy,
-        sections: ensureAiDisclosure(savedCopy.sections),
+        sections: dropHollowHighlightBoxes(ensureAiDisclosure(savedCopy.sections)),
       };
 
       if (mode === "draft") {
@@ -1236,6 +1443,11 @@ export async function POST(request: Request) {
           typeof crypto !== "undefined" && "randomUUID" in crypto
             ? crypto.randomUUID()
             : `draft-${Date.now()}`;
+        const visionRolesApplied = countVisionRolesApplied(
+          resolvedImageRoles,
+          visionImageRoles,
+          body.imageRoleUserSet,
+        );
         const photoCostBreakdown = {
           ...body.photoCostBreakdown,
           conceptBrief: (body.photoCostBreakdown?.conceptBrief ?? 0) + auxConceptBriefCost,
@@ -1243,14 +1455,17 @@ export async function POST(request: Request) {
             (body.photoCostBreakdown?.referenceAnalysis ?? 0) + referenceAnalysisCost,
           reviewInsights: (body.photoCostBreakdown?.reviewInsights ?? 0) + reviewInsightsCost,
           claude: claudeCost,
+          visionRolesApplied,
         };
         console.log(
-          `[cost] draft product="${body.productName}" deepSeek=$${totalDeepSeekCost.toFixed(4)} claude=$${claudeCost.toFixed(4)} token=${draftToken}`,
+          `[cost] draft product="${body.productName}" deepSeek=$${totalDeepSeekCost.toFixed(4)} claude=$${claudeCost.toFixed(4)} visionRoles=${visionImageRoles.length} applied=${visionRolesApplied} token=${draftToken}`,
         );
         return NextResponse.json({
           ...savedCopy,
           draftToken,
           imageAnalysis,
+          imageRoles: resolvedImageRoles,
+          visionImageRoles,
           mfdsReviewed,
           replacements,
           theme,
@@ -1267,8 +1482,31 @@ export async function POST(request: Request) {
         });
       }
     } else {
+      // draft→final: Vision은 draft에서 이미 수행. 분석·역할·테마가 유실되지 않게 body에서 복원.
+      imageAnalysis =
+        typeof body.imageAnalysis === "string" ? body.imageAnalysis : "";
+      visionImageRoles = Array.isArray(body.visionImageRoles)
+        ? parseVisionImageRoles(body.visionImageRoles)
+        : [];
+      if (visionImageRoles.length === 0) {
+        console.warn(
+          `[image-roles] draft→final visionImageRoles empty (analysisChars=${imageAnalysis.length}) — form/draft defaults만 사용`,
+        );
+      } else {
+        console.log(
+          `[image-roles] draft→final visionImageRoles=${visionImageRoles.length} analysisChars=${imageAnalysis.length}`,
+        );
+      }
+      resolvedImageRoles = mergeImageRolesWithVision({
+        imageCount: body.imageUrls.length,
+        userRoles: body.imageRoles,
+        userSet: body.imageRoleUserSet,
+        visionRoles: visionImageRoles,
+      });
       savedCopy = {
-        sections: ensureAiDisclosure(body.draftSections as DetailSection[]),
+        sections: dropHollowHighlightBoxes(
+          ensureAiDisclosure(body.draftSections as DetailSection[]),
+        ),
         headlines: body.draftHeadlines ?? [],
         description: body.draftDescription ?? "",
         features: body.draftFeatures ?? [],
@@ -1276,31 +1514,54 @@ export async function POST(request: Request) {
         caution: body.draftCaution ?? "",
       };
       // draft 시점 배정이 enhance 이후 장수/순서와 어긋나면 같은 컷이 반복됨 → final에서 재배정
+      const finalShortage = detectRoleShortages({
+        roles: resolvedImageRoles,
+        category: body.category,
+      });
+      if (finalShortage) {
+        console.warn(`[role-shortage] final ${finalShortage.message}`);
+      }
+      const finalHashes = await computeAHashesFromUrls(body.imageUrls).catch(() =>
+        body.imageUrls.map(() => null),
+      );
+      const visionExpandFinal = expandVisionTagsByIndex(
+        visionImageRoles,
+        body.imageUrls.length,
+      );
       savedCopy.sections = assignDistinctSectionImages(
         savedCopy.sections,
         body.imageUrls.length,
         {
           category: body.category,
-          imageRoles: body.imageRoles,
+          imageRoles: resolvedImageRoles,
           imagePaths: body.imagePaths,
+          imageHashes: finalHashes,
+          textOnlySlots: finalShortage?.preferTextOnlySlots ?? [],
+          imageTags: visionExpandFinal.imageTags,
+          imageReasons: visionExpandFinal.imageReasons,
         },
       );
       const draftFreq = countImageIndexFrequency(savedCopy.sections);
       console.log(
         `[images] final-from-draft reassigned distinct=${Object.keys(draftFreq).length}/${body.imageUrls.length} freq=${JSON.stringify(draftFreq)}`,
       );
-      const aux = await loadAuxiliaryInputs(body);
-      enrichedBody = aux.enriched;
+      const aux = await loadAuxiliaryInputs({
+        ...body,
+        imageRoles: resolvedImageRoles,
+      });
+      enrichedBody = { ...aux.enriched, imageRoles: resolvedImageRoles };
       referenceAnalysisCost = aux.referenceAnalysisCost;
       reviewInsightsCost = aux.reviewInsightsCost;
       auxConceptBriefCost = aux.conceptBriefCost;
       claudeCost += referenceAnalysisCost + auxConceptBriefCost;
-      theme = await extractProductTheme(body.imageUrls).catch((err) => {
-        console.warn("[generate] 상품 색상 추출 실패, 카테고리 기본 테마로 폴백", err);
-        return null;
-      });
+      if (!theme) {
+        theme = await extractProductTheme(body.imageUrls).catch((err) => {
+          console.warn("[generate] 상품 색상 추출 실패, 카테고리 기본 테마로 폴백", err);
+          return null;
+        });
+      }
       console.log(
-        `[generate] final-from-draft token=${body.draftToken ?? "n/a"} sections=${savedCopy.sections.length}`,
+        `[generate] final-from-draft token=${body.draftToken ?? "n/a"} sections=${savedCopy.sections.length} imageAnalysisChars=${imageAnalysis.length}`,
       );
     }
 
@@ -1363,9 +1624,66 @@ export async function POST(request: Request) {
         console.log("[generate] 전자제품 annotated 레이아웃 적용");
       }
     }
+    if (mode === "final" && isCosmeticsCategory(body.category)) {
+      const ann = await applyCosmeticsAnnotatedSections(
+        savedCopy.sections,
+        body.category,
+        body.imageUrls,
+      );
+      savedCopy.sections = ann.sections;
+      claudeCost += ann.annotationCost;
+      if (ann.applied) {
+        console.log("[generate] 화장품 annotated 레이아웃 적용");
+      }
+    }
 
     let imageUrls = [...body.imageUrls];
     let imagePaths = [...(body.imagePaths ?? [])];
+    let imageOrigins = normalizeImageOrigins(body.imageOrigins, imageUrls.length);
+    // 101차 — body에 이미 같은 URL이 여러 번 들어온 경우(뷰티 extras 등) 여기서 제거
+    {
+      const before = imageUrls.length;
+      const deduped = dedupeImageUrlArrays(imageUrls, imagePaths);
+      if (deduped.removed > 0) {
+        console.warn(
+          `[generate] dedupe body.imageUrls ${before} → ${deduped.urls.length} removed=${deduped.removed}`,
+        );
+        imageOrigins = remapOriginsByIndexMap(imageOrigins, deduped.indexMap, deduped.urls.length);
+        imageUrls = deduped.urls;
+        imagePaths = deduped.paths;
+        savedCopy.sections = remapSectionImageIndexes(savedCopy.sections, deduped.indexMap);
+      }
+      // 105차 3번 — circle(·annotated) 삽입 이후 assign은 조건부면 안 됨. dedupe 여부와 무관하게 항상 재배정.
+      const rolesSlice = resolvedImageRoles.slice(0, imageUrls.length);
+      while (rolesSlice.length < imageUrls.length) {
+        rolesSlice.push("other");
+      }
+      const postCircleHashes = await computeAHashesFromUrls(imageUrls).catch(() =>
+        imageUrls.map(() => null),
+      );
+      const visionExpandPost = expandVisionTagsByIndex(visionImageRoles, imageUrls.length);
+      savedCopy.sections = assignDistinctSectionImages(
+        savedCopy.sections,
+        imageUrls.length,
+        {
+          category: body.category,
+          imageRoles: rolesSlice,
+          imagePaths,
+          imageOrigins,
+          imageHashes: postCircleHashes,
+          textOnlySlots:
+            detectRoleShortages({
+              roles: rolesSlice,
+              category: body.category,
+            })?.preferTextOnlySlots ?? [],
+          imageTags: visionExpandPost.imageTags,
+          imageReasons: visionExpandPost.imageReasons,
+        },
+      );
+      console.log(
+        `[images] post-circle reassign always distinct=${Object.keys(countImageIndexFrequency(savedCopy.sections)).length}/${imageUrls.length}`,
+      );
+    }
     const productImageCount = imageUrls.length;
     let effectsCost = 0;
     if (isCosmetics) {
@@ -1396,15 +1714,15 @@ export async function POST(request: Request) {
               pairIndexes.push(imageUrls.length);
               imageUrls.push(uploaded.publicUrl);
               imagePaths.push(uploaded.path);
+              imageOrigins.push("compare");
             }
             if (pairIndexes.length === 2) {
-              savedCopy.sections = savedCopy.sections.map((section) =>
-                section.type === "gallery"
-                  ? { ...section, imageIndexes: pairIndexes }
-                  : section,
-              );
+              // 104차 A-1 — gallery 강제 배정 해제.
+              // before/after는 같은 구도 색보정 쌍이라 체감 중복만 키움.
+              // URL은 풀에 append만 하고, gallery는 assignDistinctSectionImages 결과를 유지.
               console.log(
-                `[gallery] before/after → [${pairIndexes.join(",")}] from hero[${heroIndex}]`,
+                `[gallery] before/after append-only [${pairIndexes.join(",")}] ` +
+                  `from hero[${heroIndex}] (no force-assign)`,
               );
             }
           }
@@ -1430,6 +1748,7 @@ export async function POST(request: Request) {
           cosmeticsOnly: true,
         });
         effectsCost = overlayResult.cost;
+        const fxAppendedIndexes: number[] = [];
         for (const overlay of overlayResult.overlays) {
           const basePath =
             imagePaths[overlay.imageIndex] ?? `${user.id}/${Date.now()}-${overlay.imageIndex}.png`;
@@ -1439,8 +1758,49 @@ export async function POST(request: Request) {
             console.warn("[effects] 업로드 실패, 원본 유지:", uploaded.error);
             continue;
           }
-          imageUrls[overlay.imageIndex] = uploaded.publicUrl;
-          imagePaths[overlay.imageIndex] = uploaded.path;
+          // 100차 — 덮어쓰기 대신 append. 원본 슬롯 유지 + 변형이 풀에 추가됨.
+          // 97차: moisture 등은 히어로 인덱스에 배정되지 않음(pickOverlayAssignments).
+          fxAppendedIndexes.push(imageUrls.length);
+          imageUrls.push(uploaded.publicUrl);
+          imagePaths.push(uploaded.path);
+          imageOrigins.push("fx");
+        }
+        if (fxAppendedIndexes.length > 0) {
+          const rolesForAssign = [
+            ...resolvedImageRoles,
+            ...fxAppendedIndexes.map(() => "detail" as const),
+          ];
+          while (rolesForAssign.length < imageUrls.length) {
+            rolesForAssign.push("other");
+          }
+          while (imageOrigins.length < imageUrls.length) {
+            imageOrigins.push("other");
+          }
+          const fxHashes = await computeAHashesFromUrls(imageUrls).catch(() =>
+            imageUrls.map(() => null),
+          );
+          const visionExpandFx = expandVisionTagsByIndex(visionImageRoles, imageUrls.length);
+          savedCopy.sections = assignDistinctSectionImages(
+            savedCopy.sections,
+            imageUrls.length,
+            {
+              category: body.category,
+              imageRoles: rolesForAssign,
+              imagePaths,
+              imageOrigins,
+              imageHashes: fxHashes,
+              textOnlySlots:
+                detectRoleShortages({
+                  roles: rolesForAssign,
+                  category: body.category,
+                })?.preferTextOnlySlots ?? [],
+              imageTags: visionExpandFx.imageTags,
+              imageReasons: visionExpandFx.imageReasons,
+            },
+          );
+          console.log(
+            `[effects] fx append +${fxAppendedIndexes.length} → imageUrls=${imageUrls.length} reassigned`,
+          );
         }
       } catch (error) {
         console.warn("[effects] 합성 생략 — 원본 이미지 유지", error);
@@ -1593,6 +1953,11 @@ export async function POST(request: Request) {
       );
     }
 
+    const visionRolesApplied = countVisionRolesApplied(
+      resolvedImageRoles,
+      visionImageRoles,
+      body.imageRoleUserSet,
+    );
     const photoCostBreakdown = {
       ...body.photoCostBreakdown,
       conceptBrief: (body.photoCostBreakdown?.conceptBrief ?? 0) + auxConceptBriefCost,
@@ -1603,6 +1968,10 @@ export async function POST(request: Request) {
       illustrations: illustrationCost,
       claude: claudeCost,
       effects: effectsCost,
+      visionRolesApplied:
+        visionRolesApplied > 0
+          ? visionRolesApplied
+          : (body.photoCostBreakdown?.visionRolesApplied ?? 0),
     };
 
     const generationCost =
@@ -1631,6 +2000,30 @@ export async function POST(request: Request) {
         `total=$${generationCost.toFixed(4)}`,
     );
 
+    // 101차 — DB 기록 직전 최종 중복 제거 + 진단 로그
+    {
+      const beforeN = imageUrls.length;
+      const deduped = dedupeImageUrlArrays(imageUrls, imagePaths);
+      if (deduped.removed > 0) {
+        imageOrigins = remapOriginsByIndexMap(imageOrigins, deduped.indexMap, deduped.urls.length);
+        imageUrls = deduped.urls;
+        imagePaths = deduped.paths;
+        savedCopy.sections = remapSectionImageIndexes(savedCopy.sections, deduped.indexMap);
+        console.warn(
+          `[generate] pre-save dedupe ${beforeN} → ${imageUrls.length} removed=${deduped.removed}`,
+        );
+      }
+      console.log(
+        `[generate] image_urls n=${imageUrls.length} unique=${new Set(imageUrls).size} urls=[${imageUrls.map(filenameOfUrl).join(", ")}]`,
+      );
+    }
+
+    // 105/106차 C — AI 사용샷이 풀에 있으면 고지 문구 강화 (origin 플래그 기준)
+    {
+      const hasAiLifestyle = hasAiLifestyleOrigin(imageOrigins);
+      savedCopy.sections = ensureAiDisclosure(savedCopy.sections, { hasAiLifestyle });
+    }
+
     const { data: savedProduct, error: insertError } = body.productId
       ? await supabase
           .from("products")
@@ -1638,6 +2031,7 @@ export async function POST(request: Request) {
             category: body.category,
             product_name: body.productName,
             brand_name: body.brandName ?? null,
+            logo_url: body.logoUrl ?? null,
             price: body.price,
             target_customer: body.targetCustomer ?? null,
             key_features: body.keyFeatures ?? null,
@@ -1646,12 +2040,22 @@ export async function POST(request: Request) {
             competitor_url: body.competitorUrl ?? null,
             wholesale_url: body.wholesaleUrl ?? null,
             image_urls: imageUrls,
+            image_origins: imageOrigins,
             headlines: savedCopy.headlines,
             description: savedCopy.description,
             features: savedCopy.features,
             how_to_use: savedCopy.howToUse,
             caution: savedCopy.caution,
             image_analysis: imageAnalysis,
+            theme: theme
+              ? {
+                  accent: theme.accent,
+                  baseNeutral: theme.baseNeutral,
+                  deepAccent: theme.deepAccent,
+                }
+              : null,
+            photo_cost_breakdown: photoCostBreakdown,
+            image_roles: resolvedImageRoles,
             mfds_reviewed: mfdsReviewed,
             replacements,
             sections: savedCopy.sections,
@@ -1668,6 +2072,7 @@ export async function POST(request: Request) {
             category: body.category,
             product_name: body.productName,
             brand_name: body.brandName ?? null,
+            logo_url: body.logoUrl ?? null,
             price: body.price,
             target_customer: body.targetCustomer ?? null,
             key_features: body.keyFeatures ?? null,
@@ -1676,12 +2081,22 @@ export async function POST(request: Request) {
             competitor_url: body.competitorUrl ?? null,
             wholesale_url: body.wholesaleUrl ?? null,
             image_urls: imageUrls,
+            image_origins: imageOrigins,
             headlines: savedCopy.headlines,
             description: savedCopy.description,
             features: savedCopy.features,
             how_to_use: savedCopy.howToUse,
             caution: savedCopy.caution,
             image_analysis: imageAnalysis,
+            theme: theme
+              ? {
+                  accent: theme.accent,
+                  baseNeutral: theme.baseNeutral,
+                  deepAccent: theme.deepAccent,
+                }
+              : null,
+            photo_cost_breakdown: photoCostBreakdown,
+            image_roles: resolvedImageRoles,
             mfds_reviewed: mfdsReviewed,
             replacements,
             sections: savedCopy.sections,
@@ -1745,6 +2160,8 @@ export async function POST(request: Request) {
       generationCost,
       testMode: isTestMode(),
       imageUrls,
+      imageOrigins,
+      imagePaths,
       referenceAnalysis: enrichedBody.referenceAnalysis ?? null,
       reviewInsights: enrichedBody.reviewInsights ?? null,
       planningDocText: enrichedBody.planningDocText ?? null,

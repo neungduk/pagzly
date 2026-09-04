@@ -13,7 +13,7 @@ const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 const SHOT_DIR = path.join(ROOT, "review", "qa-screenshots");
 
 const CAPTURES = [
-  { capture: "58-fashion", slug: "fashion", waitFor: "FASHION" },
+  { capture: "58-fashion", slug: "fashion", waitFor: "NEUTRAL LINE" },
   { capture: "58-cosmetics", slug: "cosmetics", waitFor: "AURA LAB" },
   { capture: "58-food", slug: "food", waitFor: "한그릇 키친" },
   { capture: "58-electronics", slug: "electronics", waitFor: "NORA AUDIO" },

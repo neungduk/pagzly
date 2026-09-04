@@ -136,13 +136,16 @@ const CATEGORY_PATTERN_SVG: Partial<Record<string, string>> = {
   "반려동물": `<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72"><ellipse cx="24" cy="20" rx="5" ry="7" fill="%231B1B18" fill-opacity="0.05"/><ellipse cx="48" cy="20" rx="5" ry="7" fill="%231B1B18" fill-opacity="0.05"/><ellipse cx="16" cy="38" rx="4" ry="6" fill="%231B1B18" fill-opacity="0.04"/><ellipse cx="56" cy="38" rx="4" ry="6" fill="%231B1B18" fill-opacity="0.04"/><ellipse cx="36" cy="48" rx="10" ry="8" fill="%231B1B18" fill-opacity="0.045"/></svg>`,
   "전자제품": `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><circle cx="12" cy="12" r="1.5" fill="%231B1B18" fill-opacity="0.06"/><circle cx="32" cy="12" r="1.5" fill="%231B1B18" fill-opacity="0.06"/><circle cx="52" cy="12" r="1.5" fill="%231B1B18" fill-opacity="0.06"/><circle cx="12" cy="32" r="1.5" fill="%231B1B18" fill-opacity="0.05"/><circle cx="32" cy="32" r="1.5" fill="%231B1B18" fill-opacity="0.05"/><circle cx="52" cy="32" r="1.5" fill="%231B1B18" fill-opacity="0.05"/></svg>`,
   "의류/패션": `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><path d="M0 20 L80 0" stroke="%231B1B18" stroke-opacity="0.04" stroke-width="1"/><path d="M0 50 L80 30" stroke="%231B1B18" stroke-opacity="0.035" stroke-width="1"/><path d="M0 80 L80 60" stroke="%231B1B18" stroke-opacity="0.04" stroke-width="1"/></svg>`,
+  /** 119차 — 108차 맵 누락분. 생활용품: 둥근 사각(식기·타일 리듬), opacity 4~5% */
+  "생활용품": `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect x="10" y="12" width="16" height="16" rx="3" fill="%231B1B18" fill-opacity="0.05"/><rect x="48" y="18" width="12" height="12" rx="2.5" fill="%231B1B18" fill-opacity="0.04"/><rect x="22" y="48" width="20" height="14" rx="3" fill="%231B1B18" fill-opacity="0.045"/><rect x="54" y="52" width="10" height="10" rx="2" fill="%231B1B18" fill-opacity="0.04"/></svg>`,
 };
 
 export function getCategoryPatternBackground(category?: string): string | undefined {
   if (!category) return undefined;
   const svg = CATEGORY_PATTERN_SVG[category];
   if (!svg) return undefined;
-  return `url("data:image/svg+xml,${svg}")`;
+  // 단일 따옴표로 감싸 SVG 내부 xmlns="..." 와 충돌하지 않게 함 (119차 — 생활용품 키 추가와 함께 실제 페인트 확인)
+  return `url('data:image/svg+xml,${svg}')`;
 }
 
 /** 그radient 위에 카테고리 패턴을 은은하게 합성 */

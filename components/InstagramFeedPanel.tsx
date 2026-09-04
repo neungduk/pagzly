@@ -16,6 +16,7 @@ export type InstagramFeedPanelProps = {
   sections: DetailSection[];
   imageUrls: string[];
   imagePaths?: string[];
+  imageOrigins?: import("@/lib/image-origins").ProductImageOrigin[];
   /** action bar 탭 안에 넣을 때 */
   variant?: "collapse" | "embedded" | "workspace";
   overrides?: Record<string, InstagramSlideOverride>;
@@ -70,6 +71,7 @@ export default function InstagramFeedPanel({
   sections,
   imageUrls,
   imagePaths,
+  imageOrigins,
   variant = "collapse",
   overrides: controlledOverrides,
   onOverridesChange,
@@ -287,7 +289,11 @@ export default function InstagramFeedPanel({
                   {imageUrls.map((_, i) => (
                     <option key={i} value={i}>
                       사진 {i + 1}
-                      {imagePaths?.[i]?.includes("lifestyle-ai") ? " · 일상샷" : ""}
+                      {imageOrigins?.[i] === "ai-lifestyle"
+                        ? " · AI 연출 배경·인물"
+                        : imagePaths?.[i]?.includes("lifestyle-ai")
+                          ? " · AI 연출 배경·인물"
+                          : ""}
                     </option>
                   ))}
                 </select>

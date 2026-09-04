@@ -25,6 +25,8 @@ export async function POST(request: Request) {
       brandName?: string | null;
       targetCustomer?: string | null;
       keyFeatures?: string | null;
+      productSizeHint?: string | null;
+      enableAiLifestyleShots?: boolean;
       uploadCount?: number;
       draftToken?: string | null;
     };
@@ -34,6 +36,11 @@ export async function POST(request: Request) {
         { error: "productImageUrl, referenceStoragePath, productName, category가 필요합니다." },
         { status: 400 },
       );
+    }
+
+    if (body.enableAiLifestyleShots !== true) {
+      console.log("[generate-lifestyle-shots] skipped — enableAiLifestyleShots not true");
+      return NextResponse.json({ shots: [], cost: 0, skipped: "opt_in_required" });
     }
 
     const uploadCount = body.uploadCount ?? 1;
@@ -46,6 +53,7 @@ export async function POST(request: Request) {
       brandName: body.brandName,
       targetCustomer: body.targetCustomer,
       keyFeatures: body.keyFeatures,
+      productSizeHint: body.productSizeHint,
       uploadCount,
       userId: user.id,
       draftToken: body.draftToken,

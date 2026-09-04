@@ -9,6 +9,7 @@ import {
 import {
   CopyValidationError,
   detectCopyHallucinations,
+  detectGenericCliches,
   parseJsonLoose,
   validateDetailPageCopy,
 } from "@/lib/copy-orchestrator/validate-copy";
@@ -49,7 +50,22 @@ function buildAntiHallucinationBlock(product: CopyProductInput): string {
 `.trim();
 }
 
-function buildDeepSeekPrompt(
+/** 116차 — 문체 루브릭 (환각 금지와 별도). dry-run/스모크용 export */
+export function buildStyleRubricBlock(): string {
+  return `
+## 문체 루브릭 (톤·리듬)
+- 헤드라인은 짧게: mainHeadline은 한국어 기준 대략 25자 내외, 한 문장에 개념 하나만. 줄바꿈해도 리듬이 살아야 함.
+- 추상적 형용사 대신 구체적 어휘: "최고의", "완벽한", "특별한", "놀라운" 같은 빈 형용사보다, 입력된 사실(성분/질감/사용 장면)과 Claude copyTone 앵커에서 나온 구체적 단어를 쓰세요.
+- 문장 리듬 변화: 같은 길이의 문장을 반복하지 말고 짧은 문장과 긴 문장을 섞으세요.
+- 진부한 AI-카피 클리셰 금지 (표현만 바꿀 것, 사실 관계는 유지):
+  "이제 고민은 그만", "당신을 위한 선택", "완벽한 선택", "새로운 시작", "여기 있습니다",
+  "지금 바로 만나보세요", "당신의 피부를 위한", "더 이상 망설이지 마세요", "오늘부터 달라집니다",
+  "경험해보세요", "만나보세요"를 CTA/헤드라인에 남발하지 마세요.
+- Claude가 준 copyTone 앵커(감각 어휘·장면)를 헤드라인·본문에 실제로 반영하세요.
+`.trim();
+}
+
+export function buildDeepSeekPrompt(
   product: CopyProductInput,
   structure: PageStructurePlan,
 ): string {
@@ -72,6 +88,8 @@ HTML을 절대 생성하지 마세요. content/data만 출력합니다.
 ${compliance}
 
 ${buildAntiHallucinationBlock(product)}
+
+${buildStyleRubricBlock()}
 
 ## 상품 정보
 상품명: ${product.productName}
@@ -123,6 +141,7 @@ export type DeepSeekCopyResult = {
   model: string;
   deepSeekCostUsd: number;
   hallucinationWarnings: string[];
+  clicheWarnings: string[];
   rawText: string;
 };
 
@@ -153,7 +172,7 @@ export async function generateDetailCopyWithDeepSeek(
           {
             role: "system",
             content:
-              "You output only valid JSON for e-commerce detail copy. No HTML. No invented claims.",
+              "You output only valid JSON for e-commerce detail copy. No HTML. No invented claims. Avoid generic AI marketing clichés.",
           },
           { role: "user", content: prompt },
         ],
@@ -181,6 +200,17 @@ export async function generateDetailCopyWithDeepSeek(
   let usage: unknown = null;
   let copy: DetailPageCopy;
   let costAcc = 0;
+  let clicheWarnings: string[] = [];
+
+  const acceptOrThrowCliches = (candidate: DetailPageCopy) => {
+    const hits = detectGenericCliches(candidate);
+    if (hits.length >= 2) {
+      throw new CopyValidationError([
+        `generic clichés (≥2): ${hits.join(" | ")}`,
+      ]);
+    }
+    return hits;
+  };
 
   try {
     const first = await callOnce();
@@ -188,6 +218,7 @@ export async function generateDetailCopyWithDeepSeek(
     usage = first.usage;
     costAcc += calculateDeepSeekCost(usage);
     copy = validateDetailPageCopy(parseJsonLoose(rawText));
+    clicheWarnings = acceptOrThrowCliches(copy);
   } catch (firstErr) {
     console.warn(
       "[deepseek-copy] invalid — retry once:",
@@ -198,6 +229,13 @@ export async function generateDetailCopyWithDeepSeek(
     usage = second.usage;
     costAcc += calculateDeepSeekCost(usage);
     copy = validateDetailPageCopy(parseJsonLoose(rawText));
+    // 재시도 한도 소진 — 클리셰가 남아도 추가 호출 없이 경고만
+    clicheWarnings = detectGenericCliches(copy);
+    if (clicheWarnings.length >= 2) {
+      console.warn(
+        `[deepseek-copy] clichés remain after retry: ${clicheWarnings.join(" | ")}`,
+      );
+    }
   }
 
   let hallucinationWarnings = detectCopyHallucinations(copy, product);
@@ -219,6 +257,7 @@ export async function generateDetailCopyWithDeepSeek(
     model: DEEPSEEK_MODEL,
     deepSeekCostUsd,
     hallucinationWarnings,
+    clicheWarnings,
     rawText,
   };
 }

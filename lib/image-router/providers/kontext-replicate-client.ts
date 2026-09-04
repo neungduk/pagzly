@@ -66,7 +66,7 @@ export async function generateKontextProViaReplicate(
 
   const replicateInput: Record<string, unknown> = {
     prompt,
-    aspect_ratio: "match_input_image",
+    aspect_ratio: input.request.aspectRatio ?? "3:4",
     output_format: "png",
   };
 
@@ -76,7 +76,7 @@ export async function generateKontextProViaReplicate(
 
   console.log(
     `[replicate-kontext] run ${REPLICATE_KONTEXT_PRO_REF} task=${taskType} ` +
-      `hasImage=${Boolean(sourceUrl)}`,
+      `hasImage=${Boolean(sourceUrl)} aspect=${String(replicateInput.aspect_ratio)}`,
   );
 
   try {

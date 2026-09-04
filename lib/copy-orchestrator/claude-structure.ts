@@ -55,6 +55,10 @@ async function loadImagePayload(source: string): Promise<ImagePayload> {
   return { mediaType, data: buf.toString("base64") };
 }
 
+export function buildStructureSystemPrompt(product: CopyProductInput): string {
+  return buildSystemPrompt(product);
+}
+
 function buildSystemPrompt(product: CopyProductInput): string {
   const compliance = isCosmeticsCategory(product.category)
     ? `\n${COSMETICS_AI_PROMPT}`
@@ -92,6 +96,13 @@ Rules:
 - Keep purpose and copyDirection under 120 Korean characters each
 - Keep productAnalysis / targetCustomerAnalysis under 280 characters each
 - usps: 3–5 short phrases
+- copyTone (필수·구체화): 한 단어 톤("친근함")으로 끝내지 말 것.
+  상품 사실(성분·질감·사용 장면·카테고리)에 근거한 **스타일 앵커 2~3개**를 쓰세요.
+  각 앵커는 카피라이터가 문장에 바로 쓸 수 있는 감각 어휘·장면이어야 합니다.
+  예: 미스트 → "가볍다 / 산뜻하다 / 화장 위 뿌리는 순간" ;
+  세럼 → "촉촉한 층 / 흡수 후 보습막 / 아침 스킨케어 루틴" ;
+  식품 → "한 스푼의 고소함 / 아침 테이블 / 담백한 뒷맛".
+  추상 형용사만 나열("프리미엄·고급·특별한")하는 copyTone은 금지.
 - Valid compact JSON only — no markdown, no trailing commas, no HTML`;
 }
 

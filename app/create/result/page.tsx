@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { toPng } from "html-to-image";
 import DetailSectionRenderer from "@/components/DetailSectionRenderer";
 import GenerationCostStrip from "@/components/GenerationCostStrip";
 import { freezeScrollRevealAnimations, unfreezeScrollRevealAnimations } from "@/components/DetailScrollReveal";
@@ -23,7 +22,9 @@ import { DRAFT_SESSION_KEY, RETRY_PHOTO_ONLY_KEY, SESSION_KEY } from "@/componen
 import type { CustomGifSection, DetailSection, GenerateResponse, PhotoCostBreakdown, ReviewInsightsInput } from "@/lib/types/generate";
 import type { PatchChatMessage } from "@/lib/patch-section-suggestions";
 import { getCategoryTheme } from "@/lib/category-theme";
+import { resolveHeadlineFontKind } from "@/lib/detail-typography";
 import { buildDetailPageHtml } from "@/lib/export-detail-html";
+import { captureDetailToPng, captureDetailToPngBlob, downloadBlob, prepareCaptureRoot } from "@/lib/capture-detail-png";
 import { downloadPngSlicesZip } from "@/lib/split-detail-download";
 import { validateImageFile } from "@/lib/image-upload";
 import { computePreviewCollapseEnd } from "@/lib/detail-preview-collapse";
@@ -31,6 +32,10 @@ import {
   buildGenerationPipelineSummary,
   type GenerationPipelineSummary,
 } from "@/lib/generation-pipeline-summary";
+import {
+  countPlacements,
+  shouldWarnSparseProductImages,
+} from "@/lib/assign-section-images";
 import { createClient } from "@/lib/supabase";
 
 const MAX_GIF_BYTES = 8 * 1024 * 1024;
@@ -71,8 +76,10 @@ type ProductResult = {
   category: string;
   imageUrls: string[];
   imagePaths?: string[];
+  imageOrigins?: import("@/lib/image-origins").ProductImageOrigin[];
   productName: string;
   brandName: string | null;
+  logoUrl?: string | null;
   price: number;
   targetCustomer: string | null;
   keyFeatures: string | null;
@@ -96,6 +103,7 @@ type ProductRow = {
   category: string;
   product_name: string;
   brand_name: string | null;
+  logo_url?: string | null;
   price: number | string;
   target_customer: string | null;
   key_features: string | null;
@@ -109,6 +117,10 @@ type ProductRow = {
   features: string[] | null;
   how_to_use: string | null;
   caution: string | null;
+  image_analysis: string | null;
+  theme: GenerateResponse["theme"] | null;
+  photo_cost_breakdown: PhotoCostBreakdown | null;
+  image_origins?: import("@/lib/image-origins").ProductImageOrigin[] | null;
   mfds_reviewed: boolean | null;
   replacements: GenerateResponse["replacements"];
   sections: DetailSection[] | null;
@@ -124,18 +136,22 @@ function mapProductRow(row: ProductRow): ProductResult {
     features: row.features ?? [],
     howToUse: row.how_to_use ?? "",
     caution: row.caution ?? "",
-    imageAnalysis: "",
+    imageAnalysis: row.image_analysis ?? "",
     productId: row.id,
     mfdsReviewed: row.mfds_reviewed ?? false,
     replacements: row.replacements ?? [],
     imageUrls: row.image_urls ?? [],
+    theme: row.theme ?? null,
+    photoCostBreakdown: row.photo_cost_breakdown ?? undefined,
   };
 
   return {
     category: row.category,
     imageUrls: row.image_urls ?? [],
+    imageOrigins: row.image_origins ?? undefined,
     productName: row.product_name,
     brandName: row.brand_name,
+    logoUrl: row.logo_url ?? null,
     price: Number(row.price),
     targetCustomer: row.target_customer,
     keyFeatures: row.key_features,
@@ -145,6 +161,7 @@ function mapProductRow(row: ProductRow): ProductResult {
     wholesaleUrl: row.wholesale_url,
     createdAt: row.created_at,
     generationCost: row.generation_cost != null ? Number(row.generation_cost) : undefined,
+    photoCostBreakdown: row.photo_cost_breakdown ?? undefined,
     generated,
   };
 }
@@ -186,6 +203,7 @@ function CreateResultContent() {
   const [patchInstruction, setPatchInstruction] = useState("");
   const [patchLoading, setPatchLoading] = useState(false);
   const [patchHistories, setPatchHistories] = useState<Record<number, PatchChatMessage[]>>({});
+  const [selectedElementPath, setSelectedElementPath] = useState<string | null>(null);
   const [feedOverrides, setFeedOverrides] = useState<Record<string, InstagramSlideOverride>>({});
   const [blogBlockOverrides, setBlogBlockOverrides] = useState<Record<string, BlogBlockOverride>>(
     {},
@@ -244,7 +262,7 @@ function CreateResultContent() {
         const { data: row, error } = await supabase
           .from("products")
           .select(
-            "id, category, product_name, brand_name, price, target_customer, key_features, ingredients, certifications, competitor_url, wholesale_url, image_urls, headlines, description, features, how_to_use, caution, mfds_reviewed, replacements, sections, created_at, generation_cost",
+            "id, category, product_name, brand_name, logo_url, price, target_customer, key_features, ingredients, certifications, competitor_url, wholesale_url, image_urls, image_origins, headlines, description, features, how_to_use, caution, image_analysis, theme, photo_cost_breakdown, mfds_reviewed, replacements, sections, created_at, generation_cost",
           )
           .eq("id", id)
           .single();
@@ -350,7 +368,7 @@ function CreateResultContent() {
     }));
   }
 
-  async function handlePatchSection() {
+  async function handlePatchSection(opts?: { referenceImageDataUrl?: string | null }) {
     if (!data?.generated) return;
     const instruction = patchInstruction.trim();
     if (!instruction) return;
@@ -358,7 +376,9 @@ function CreateResultContent() {
     if (!section) return;
     const userMsg: PatchChatMessage = {
       role: "user",
-      text: instruction,
+      text: selectedElementPath
+        ? `[${selectedElementPath}] ${instruction}`
+        : instruction,
       timestamp: Date.now(),
     };
     appendPatchMessages(patchIndex, [userMsg]);
@@ -373,6 +393,8 @@ function CreateResultContent() {
           instruction,
           category: data.category,
           productName: data.productName,
+          elementPath: selectedElementPath ?? undefined,
+          referenceImageBase64: opts?.referenceImageDataUrl ?? undefined,
         }),
       });
       const result = await response.json();
@@ -585,10 +607,30 @@ function CreateResultContent() {
     }
   }
 
+  /** 데스크톱/모바일 둘 다 마운트되므로, 실제로 보이는 preview만 캡처 */
+  function resolveCaptureRoot(): HTMLElement | null {
+    const nodes = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-testid="detail-preview"]'),
+    );
+    const visible = nodes.find((el) => {
+      const r = el.getBoundingClientRect();
+      return r.width >= 40 && r.height >= 40;
+    });
+    if (visible) return visible;
+    if (captureRef.current) {
+      const r = captureRef.current.getBoundingClientRect();
+      if (r.width >= 40 && r.height >= 40) return captureRef.current;
+    }
+    return visible ?? captureRef.current;
+  }
+
   async function handleDownload() {
-    if (!captureRef.current || !data) return;
+    if (!data) return;
+    const root = resolveCaptureRoot();
+    if (!root) return;
 
     setDownloading(true);
+    let restoreImages: (() => void) | null = null;
     try {
       const sections = data.generated?.sections.filter((_, i) => !hiddenIndexes.includes(i)) ?? [];
       const collapse = computePreviewCollapseEnd(sections);
@@ -596,32 +638,37 @@ function CreateResultContent() {
       if (wasCollapsed) setDetailExpanded(true);
       if (wasCollapsed) await new Promise((r) => setTimeout(r, 450));
 
-      freezeScrollRevealAnimations(captureRef.current);
+      const captureRoot = resolveCaptureRoot();
+      if (!captureRoot) throw new Error("미리보기 영역을 찾을 수 없습니다.");
+
+      freezeScrollRevealAnimations(captureRoot);
       await new Promise((r) => setTimeout(r, 80));
+      restoreImages = await prepareCaptureRoot(captureRoot);
       const platform = getDownloadPlatform(downloadPlatform);
-      const targetWidth = platform.width;
-      const elWidth = Math.max(1, captureRef.current.offsetWidth);
-      const pixelRatio = targetWidth / elWidth;
-      const dataUrl = await toPng(captureRef.current, {
-        pixelRatio,
-        cacheBust: true,
-      });
-      const link = document.createElement("a");
-      link.download = `${data.productName}-상세페이지-${platform.label}.png`;
-      link.href = dataUrl;
-      link.click();
+      const blob = await captureDetailToPngBlob(captureRoot, platform.width);
+      await downloadBlob(blob, `${data.productName}-상세페이지-${platform.label}.png`);
+      setToast({ tone: "ok", message: `${platform.label} 규격 PNG를 내려받았습니다.` });
     } catch (err) {
       console.error("[download]", err);
+      setToast({
+        tone: "error",
+        message: err instanceof Error ? err.message : "이미지 다운로드에 실패했습니다.",
+      });
     } finally {
-      if (captureRef.current) unfreezeScrollRevealAnimations(captureRef.current);
+      restoreImages?.();
+      const el = resolveCaptureRoot();
+      if (el) unfreezeScrollRevealAnimations(el);
       setDownloading(false);
     }
   }
 
   async function handleDownloadSplit() {
-    if (!captureRef.current || !data) return;
+    if (!data) return;
+    const root = resolveCaptureRoot();
+    if (!root) return;
 
     setDownloadingSplit(true);
+    let restoreImages: (() => void) | null = null;
     try {
       const sections = data.generated?.sections.filter((_, i) => !hiddenIndexes.includes(i)) ?? [];
       const collapse = computePreviewCollapseEnd(sections);
@@ -629,16 +676,14 @@ function CreateResultContent() {
       if (wasCollapsed) setDetailExpanded(true);
       if (wasCollapsed) await new Promise((r) => setTimeout(r, 450));
 
-      freezeScrollRevealAnimations(captureRef.current);
+      const captureRoot = resolveCaptureRoot();
+      if (!captureRoot) throw new Error("미리보기 영역을 찾을 수 없습니다.");
+
+      freezeScrollRevealAnimations(captureRoot);
       await new Promise((r) => setTimeout(r, 80));
+      restoreImages = await prepareCaptureRoot(captureRoot);
       const platform = getDownloadPlatform(downloadPlatform);
-      const targetWidth = platform.width;
-      const elWidth = Math.max(1, captureRef.current.offsetWidth);
-      const pixelRatio = targetWidth / elWidth;
-      const dataUrl = await toPng(captureRef.current, {
-        pixelRatio,
-        cacheBust: true,
-      });
+      const dataUrl = await captureDetailToPng(captureRoot, platform.width);
       const sliceCount = await downloadPngSlicesZip({
         dataUrl,
         baseName: data.productName,
@@ -652,7 +697,9 @@ function CreateResultContent() {
       console.error("[download-split]", err);
       setToast({ tone: "error", message: "분할 다운로드에 실패했습니다." });
     } finally {
-      if (captureRef.current) unfreezeScrollRevealAnimations(captureRef.current);
+      restoreImages?.();
+      const el = resolveCaptureRoot();
+      if (el) unfreezeScrollRevealAnimations(el);
       setDownloadingSplit(false);
     }
   }
@@ -668,6 +715,9 @@ function CreateResultContent() {
       const html = buildDetailPageHtml({
         productName: data.productName,
         brandName: data.brandName,
+        logoUrl: data.logoUrl,
+        ingredients: data.ingredients,
+        keyFeatures: data.keyFeatures,
         price: data.price,
         category: data.category,
         sections: data.generated.sections,
@@ -711,6 +761,16 @@ function CreateResultContent() {
     data.photoCostBreakdown ?? generated?.photoCostBreakdown ?? undefined;
   const generationCost =
     data.generationCost ?? generated?.generationCost ?? undefined;
+  const uniqueProductImageCount = new Set(
+    (data.imageUrls ?? []).filter(
+      (url) => !/compare-(before|after)/i.test(url) && !/illustration-/i.test(url),
+    ),
+  ).size;
+  const imagePlacementCount = countPlacements(generated?.sections ?? []);
+  const sparseImageWarning = shouldWarnSparseProductImages(
+    uniqueProductImageCount,
+    imagePlacementCount,
+  );
 
   function handleRetryPhotoFromResult() {
     sessionStorage.setItem(RETRY_PHOTO_ONLY_KEY, "1");
@@ -734,7 +794,7 @@ function CreateResultContent() {
     const displayIndex = visibleOriginalIndexes.indexOf(originalIndex);
     if (displayIndex < 0) return;
     window.requestAnimationFrame(() => {
-      const el = captureRef.current?.querySelector(`[data-section-index="${displayIndex}"]`);
+      const el = resolveCaptureRoot()?.querySelector(`[data-section-index="${displayIndex}"]`);
       el?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }
@@ -769,20 +829,27 @@ function CreateResultContent() {
     </>
   );
 
-  const detailPreview =
+  // 같은 JSX 객체를 데스크톱/모바일에 두 번 넣으면 ref가 숨김 노드로 붙음 → 함수로 각각 생성
+  const renderDetailPreview = (bindCaptureRef: boolean) =>
     visibleSections.length > 0 ? (
       <div
-        ref={captureRef}
+        ref={bindCaptureRef ? captureRef : undefined}
         data-testid="detail-preview"
         data-pagzly-preview
+        data-headline-face={resolveHeadlineFontKind(data.category)}
         className="relative overflow-x-hidden rounded-2xl border border-ink/20 bg-paper shadow-[0_24px_60px_-28px_rgba(27,27,24,0.45)]"
       >
         <DetailSectionRenderer
           sections={visibleSections}
           imageUrls={data.imageUrls}
+          imageOrigins={data.imageOrigins}
+          sellerAiBadges={!downloading && !downloadingSplit}
           category={data.category}
           productName={data.productName}
           brandName={data.brandName}
+          logoUrl={data.logoUrl}
+          ingredients={data.ingredients}
+          keyFeatures={data.keyFeatures}
           certifications={data.certifications}
           theme={theme}
           conceptIcons={generated?.conceptIcons}
@@ -812,6 +879,14 @@ function CreateResultContent() {
               const originalIndex = visibleOriginalIndexes[displayIndex];
               if (originalIndex === undefined) return;
               setPatchIndex(originalIndex);
+              setEditMode(true);
+              setToolTab("patch");
+            },
+            onElementSelect: (displayIndex, elementPath) => {
+              const originalIndex = visibleOriginalIndexes[displayIndex];
+              if (originalIndex === undefined) return;
+              setPatchIndex(originalIndex);
+              setSelectedElementPath(elementPath);
               setEditMode(true);
               setToolTab("patch");
             },
@@ -934,6 +1009,13 @@ function CreateResultContent() {
             </div>
           )}
 
+          {sparseImageWarning && (
+            <div className="mt-4 rounded-lg border border-line bg-line/20 px-4 py-3 text-sm text-ink/75">
+              사용 가능한 사진이 {uniqueProductImageCount}장뿐이라 일부 섹션에서 같은 사진이
+              반복됩니다. 사진을 추가하면 더 다양한 구성으로 만들 수 있어요.
+            </div>
+          )}
+
           {generated?.urlAnalysisNotices && generated.urlAnalysisNotices.length > 0 && (
             <div className="mt-4 rounded-lg border border-line bg-line/20 px-4 py-3 text-xs text-ink/70">
               <p className="font-medium text-ink">URL 자동 분석 안내</p>
@@ -987,7 +1069,7 @@ function CreateResultContent() {
             category={data.category}
           />
           <div className="min-w-0 space-y-4">
-            {detailPreview}
+            {renderDetailPreview(true)}
             {downloadControls ? <div className="pt-2">{downloadControls}</div> : null}
           </div>
           <aside className="sticky top-4 max-h-[calc(100vh-2rem)] space-y-4 overflow-y-auto">
@@ -1021,12 +1103,17 @@ function CreateResultContent() {
               <SectionPatchChat
                 sections={generated?.sections ?? []}
                 patchIndex={patchIndex}
-                onPatchIndexChange={setPatchIndex}
+                onPatchIndexChange={(index) => {
+                  setPatchIndex(index);
+                  setSelectedElementPath(null);
+                }}
                 messages={patchHistories[patchIndex] ?? []}
                 instruction={patchInstruction}
                 onInstructionChange={setPatchInstruction}
-                onSubmit={() => void handlePatchSection()}
+                onSubmit={(opts) => void handlePatchSection(opts)}
                 loading={patchLoading}
+                selectedElementPath={selectedElementPath}
+                onClearElementPath={() => setSelectedElementPath(null)}
               />
             </div>
             <DetailToolsAccordion
@@ -1055,6 +1142,9 @@ function CreateResultContent() {
                             {Array.from({ length: data.imageUrls.length }, (_, i) => (
                               <option key={i} value={i}>
                                 사진 {i + 1}
+                                {data.imageOrigins?.[i] === "ai-lifestyle"
+                                  ? " · AI 연출 배경·인물"
+                                  : ""}
                               </option>
                             ))}
                           </select>
@@ -1119,6 +1209,7 @@ function CreateResultContent() {
                         }
                         imageUrls={data.imageUrls}
                         imagePaths={data.imagePaths}
+                        imageOrigins={data.imageOrigins}
                         overrides={feedOverrides}
                         onOverridesChange={setFeedOverrides}
                       />
@@ -1181,12 +1272,17 @@ function CreateResultContent() {
               onReorder={handleReorder}
               onToggleHidden={handleToggleHidden}
               patchIndex={patchIndex}
-              onPatchIndexChange={setPatchIndex}
+              onPatchIndexChange={(index) => {
+                setPatchIndex(index);
+                setSelectedElementPath(null);
+              }}
               patchInstruction={patchInstruction}
               onPatchInstructionChange={setPatchInstruction}
-              onPatchSubmit={() => void handlePatchSection()}
+              onPatchSubmit={(opts) => void handlePatchSection(opts)}
               patchLoading={patchLoading}
               patchMessages={patchHistories[patchIndex] ?? []}
+              selectedElementPath={selectedElementPath}
+              onClearElementPath={() => setSelectedElementPath(null)}
               onGifUploadClick={() => gifInputRef.current?.click()}
               category={data.category}
               feedProductName={data.productName}
@@ -1215,6 +1311,7 @@ function CreateResultContent() {
               }
               imageUrls={data.imageUrls}
               imagePaths={data.imagePaths}
+              imageOrigins={data.imageOrigins}
               overrides={feedOverrides}
               onOverridesChange={setFeedOverrides}
             />
@@ -1248,7 +1345,7 @@ function CreateResultContent() {
             />
           </div>
         ) : (
-          detailPreview
+          renderDetailPreview(false)
         )}
         </div>
 

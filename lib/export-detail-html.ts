@@ -24,6 +24,20 @@ import {
   buildSizeComparisonDiagramSvg,
   matchSizeComparisonRows,
 } from "@/lib/size-comparison-diagram";
+import {
+  buildVolumeComparisonDiagramSvg,
+  buildVolumeComparisonEntries,
+  matchProductVolumeMl,
+} from "@/lib/volume-comparison-diagram";
+import { buildUsageOrderFlowSvg } from "@/lib/usage-order-diagram";
+import { buildFoodRatioDiagramSvg, prepareFoodRatioSlices } from "@/lib/food-ratio-diagram";
+import {
+  buildPackageContentsDiagramSvg,
+  preparePackageContentsItems,
+} from "@/lib/package-contents-diagram";
+import { isCosmeticsCategory } from "@/lib/cosmetics-compliance";
+import { isFoodCategory } from "@/lib/food-compliance";
+import { buildHeroBrandMarkHtml } from "@/lib/hero-brand-mark";
 import { buildQuickFactStripHtml, extractQuickFacts } from "@/lib/quick-fact-strip";
 import {
   buildAnchorNavHtml,
@@ -42,9 +56,10 @@ import {
 } from "@/lib/design-tokens";
 import { buildProductJsonLd, serializeJsonLdScripts } from "@/lib/product-json-ld";
 import {
-  DETAIL_EXPORT_FONT_CSS,
+  buildDetailExportFontCss,
   DETAIL_FONT_STACK,
   DETAIL_GOOGLE_FONTS_URL,
+  displayHeadlineInlineCss,
 } from "@/lib/detail-typography";
 import type { DetailSection, GeneratedCopy } from "@/lib/types/generate";
 
@@ -93,6 +108,24 @@ function sectionBgStyle(sectionBg: string, category: string): string {
   return `background:${sectionBg};background-repeat:repeat,no-repeat;background-size:auto,100% 100%`;
 }
 
+/** 잘못된 index를 [0]으로 몰아넣으면 HTML export에서도 동일컷 반복처럼 보임 */
+function resolveExportImage(imageUrls: string[], index: number | undefined): string {
+  if (
+    typeof index === "number" &&
+    Number.isInteger(index) &&
+    index >= 0 &&
+    index < imageUrls.length
+  ) {
+    return imageUrls[index] ?? "";
+  }
+  return "";
+}
+
+/** 섹션 디스플레이 헤드라인 (표·라벨 제외) */
+function dh2(category: string, escapedText: string, extraStyle: string): string {
+  return `<h2 class="pagzly-display-headline" style="${displayHeadlineInlineCss(category)};${extraStyle}">${escapedText}</h2>`;
+}
+
 function sectionHtml(
   section: DetailSection,
   imageUrls: string[],
@@ -106,6 +139,9 @@ function sectionHtml(
   certTokens: string[] = [],
   anchorId?: string,
   quickFacts: { label: string; value: string }[] = [],
+  logoUrl?: string | null,
+  ingredients?: string | null,
+  keyFeatures?: string | null,
 ): string {
   const sectionIdAttr = anchorId ? ` id="${anchorId}"` : "";
   const pad = "padding:48px 20px;";
@@ -124,14 +160,20 @@ function sectionHtml(
 
   switch (section.type) {
     case "hero": {
-      const src = imageUrls[section.imageIndex] ?? imageUrls[0] ?? "";
+      const src = resolveExportImage(imageUrls, section.imageIndex);
       const alt = buildSectionImageAlt(productName, section.headline, "hero");
+      const brandMarkHtml = buildHeroBrandMarkHtml({
+        logoUrl,
+        brandName,
+        productName,
+      });
       return `<section${sectionIdAttr} class="hero"${sectionIdAttr} style="${pad}position:relative;min-height:70vh;background:${baseTheme.baseNeutral}">
         ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;height:70vh;object-fit:cover"/>` : ""}
         ${section.badge ? `<span style="position:absolute;left:0;top:20px;background:${deep};color:#FAF8F3;padding:8px 16px;font-size:12px;font-weight:700">${esc(section.badge)}</span>` : ""}
+        ${brandMarkHtml}
         <div style="position:absolute;inset:0;background:linear-gradient(0deg,${deep}cc,transparent);display:flex;align-items:flex-end;padding:40px 20px">
-          <div><h1 style="color:#FAF8F3;font-size:2rem;margin:0">${esc(section.headline)}</h1>
-          ${section.subheadline ? `<p style="color:#FAF8F3cc;margin:8px 0 0">${esc(section.subheadline)}</p>` : ""}</div>
+          <div><h1 class="pagzly-display-headline" style="color:#FAF8F3;font-size:2rem;margin:0;${displayHeadlineInlineCss(category)}">${esc(section.headline)}</h1>
+          ${section.subheadline ? `<p style="color:#FAF8F3cc;margin:8px 0 0;font-family:${DETAIL_FONT_STACK.sans}">${esc(section.subheadline)}</p>` : ""}</div>
         </div></section>`;
     }
     case "checklist": {
@@ -145,7 +187,7 @@ function sectionHtml(
           ${pointBadge ? `<span style="display:inline-block;font-family:${DETAIL_FONT_STACK.label};font-size:10px;font-weight:700;letter-spacing:.22em;border:1px solid ${section.boldBlock ? "rgba(250,248,243,.35)" : accent + "66"};border-radius:999px;padding:4px 12px;color:${section.boldBlock ? "#FAF8F3" : deep}">${pointBadge}</span>` : ""}
           ${kicker ? `<span style="font-size:11px;letter-spacing:.36em;opacity:.75;margin-left:12px">${kicker}</span>` : ""}
           ${headingParts.keyword ? `<p style="font-size:clamp(2rem,10vw,3.5rem);font-weight:900;line-height:.92;letter-spacing:-.06em;margin:16px 0 0;text-transform:uppercase;color:${section.boldBlock ? "#FAF8F3" : deep}">${esc(headingParts.keyword)}</p>` : ""}
-          <h2 style="font-size:${headingParts.keyword ? "1.35rem" : "1.75rem"};margin:16px 0 0;font-weight:${headingParts.keyword ? "600" : "700"}">${esc(headingParts.remainder || section.heading)}</h2>
+          ${dh2(category, esc(headingParts.remainder || section.heading), `font-size:${headingParts.keyword ? "1.35rem" : "1.75rem"};margin:16px 0 0;font-weight:${headingParts.keyword ? "600" : "700"}`)}
         </div>
         <ul style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;list-style:none;padding:0;margin:0">
           ${section.items
@@ -158,6 +200,7 @@ function sectionHtml(
     }
     case "highlight_box": {
       const cards = section.cards.slice(0, 4);
+      if (cards.length === 0) return "";
       const center = Math.floor((cards.length - 1) / 2);
       const bg = section.boldBlock ? deep : sectionBg;
       const fg = section.boldBlock ? "#FAF8F3" : "#1B1B18";
@@ -182,10 +225,17 @@ function sectionHtml(
             .join("")}
         </div></section>`;
     }
-    case "step_card":
+    case "step_card": {
+      const flowHtml = isCosmeticsCategory(category)
+        ? buildUsageOrderFlowSvg(
+            section.steps.map((s) => s.title).filter(Boolean),
+            deep,
+            "#1B1B18",
+          )
+        : "";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         <p style="text-align:center;font-size:11px;letter-spacing:.2em;color:${deep}">HOW TO USE</p>
-        <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
+        ${dh2(category, esc(section.heading), "text-align:center;font-size:1.5rem")}
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:32px">
           ${section.steps
             .map((step, i) => {
@@ -197,10 +247,11 @@ function sectionHtml(
               </div><h3 style="margin:12px 0 4px">${esc(step.title)}</h3><p style="margin:0;font-size:13px;opacity:.8">${esc(step.body)}</p></div>`;
             })
             .join("")}
-        </div></section>`;
+        </div>${flowHtml}</section>`;
+    }
     case "stat_infographic":
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
+        ${dh2(category, esc(section.heading), "text-align:center;font-size:1.5rem")}
         <div style="max-width:480px;margin:32px auto 0;display:flex;flex-direction:column;gap:20px">
           ${section.metrics
             .map((m) => {
@@ -219,7 +270,7 @@ function sectionHtml(
     case "comparison_chart":
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         <p style="text-align:center;color:${deep};font-size:11px;letter-spacing:.2em">COMPARE</p>
-        <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
+        ${dh2(category, esc(section.heading), "text-align:center;font-size:1.5rem")}
         <div style="max-width:420px;margin:32px auto 0;display:flex;flex-direction:column;gap:24px">
           ${section.metrics
             .map((m) => {
@@ -281,7 +332,7 @@ function sectionHtml(
           ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:4/5;object-fit:cover;display:block"/>` : ""}
           <div style="padding:40px 24px 48px;text-align:center;max-width:640px;margin:0 auto">
             ${kicker ? `<p style="font-size:11px;letter-spacing:.36em;color:${deep};margin:0 0 12px">${kicker}</p>` : ""}
-            <h2 style="font-size:2rem;margin:0;line-height:1.2">${esc(section.heading)}</h2>
+            ${dh2(category, esc(section.heading), "font-size:2rem;margin:0;line-height:1.2")}
             <p style="line-height:1.85;font-size:16px;opacity:.85;margin-top:16px">${esc(section.body)}</p>
           </div>
         </section>`;
@@ -291,6 +342,20 @@ function sectionHtml(
         const pointLabel =
           pointIndex != null ? `POINT ${String(pointIndex + 1).padStart(2, "0")}` : "";
         const kicker = getSectionKicker(section) ?? "FEATURE";
+        const pkgItems =
+          section.slot === "package_contents"
+            ? preparePackageContentsItems(section.body, keyFeatures)
+            : null;
+        const pkgHtml = pkgItems
+          ? buildPackageContentsDiagramSvg(pkgItems, deep, "#1B1B18")
+          : "";
+        const foodSlices =
+          isFoodCategory(category) && section.slot === "sourcing_story"
+            ? prepareFoodRatioSlices(ingredients, keyFeatures)
+            : null;
+        const foodHtml = foodSlices
+          ? buildFoodRatioDiagramSvg(foodSlices, deep, "#1B1B18")
+          : "";
         return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
           <div style="display:flex;flex-wrap:wrap;gap:32px;max-width:960px;margin:0 auto;align-items:center">
             <div style="flex:1 1 280px;order:${imageLeft ? 1 : 2};position:relative">
@@ -299,17 +364,18 @@ function sectionHtml(
             </div>
             <div style="flex:1 1 280px;order:${imageLeft ? 2 : 1}">
               <p style="font-size:11px;letter-spacing:.36em;color:${deep};margin:0 0 12px">${kicker}</p>
-              <h2 style="font-size:1.75rem;margin:0">${esc(section.heading)}</h2>
+              ${dh2(category, esc(section.heading), "font-size:1.75rem;margin:0")}
               <p style="line-height:1.75;font-size:15px;opacity:.85;margin-top:16px">${esc(section.body)}</p>
             </div>
           </div>
+          ${pkgHtml}${foodHtml}
         </section>`;
       }
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         ${src ? `<div style="padding:0 12px"><img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:16px;box-shadow:0 16px 48px ${hexToRgba(theme.deepAccent, 0.12)}"/></div>` : ""}
         ${textPanelWrap(
           theme,
-          `<h2 style="font-size:1.35rem;margin:0">${esc(section.heading)}</h2>
+          `${dh2(category, esc(section.heading), "font-size:1.35rem;margin:0")}
         <p style="line-height:1.65;font-size:15px;opacity:.85;margin-top:16px">${esc(section.body)}</p>`,
         )}
       </section>`;
@@ -325,18 +391,41 @@ function sectionHtml(
         section.slot === "spec_table" && !isFashionCategory(category)
           ? matchSizeComparisonRows(section.rows)
           : [];
+      const volumeEntries =
+        section.slot === "spec_table" && isCosmeticsCategory(category)
+          ? buildVolumeComparisonEntries(matchProductVolumeMl(section.rows))
+          : null;
+      const volumeHtml =
+        volumeEntries && volumeEntries.length >= 2
+          ? buildVolumeComparisonDiagramSvg(volumeEntries, deep, deep)
+          : "";
+      const foodSlices =
+        section.slot === "spec_table" && isFoodCategory(category)
+          ? prepareFoodRatioSlices(ingredients, keyFeatures)
+          : null;
+      const foodHtml = foodSlices
+        ? buildFoodRatioDiagramSvg(foodSlices, deep, "#1B1B18")
+        : "";
       const diagramHtml =
         sizeMatches.length > 0
           ? buildFashionSizeDiagramSvg(sizeMatches, deep, deep)
-          : comparisonDims.length > 0
-            ? buildSizeComparisonDiagramSvg(comparisonDims, deep, deep)
-            : "";
+          : volumeHtml
+            ? volumeHtml
+            : foodHtml
+              ? foodHtml
+              : comparisonDims.length > 0
+                ? buildSizeComparisonDiagramSvg(
+                    comparisonDims,
+                    baseTheme.accentText,
+                    baseTheme.accentText,
+                  )
+                : "";
       const specThumbUrls = (
         section.imageIndexes?.length
           ? section.imageIndexes
-              .map((idx) => imageUrls[idx] ?? "")
+              .map((idx) => resolveExportImage(imageUrls, idx))
               .filter((url) => url.trim())
-          : [imageUrls[0] ?? ""].filter((url) => url.trim())
+          : []
       );
       const thumbSize = specThumbUrls.length > 1 ? 80 : 112;
       const thumbRadius = specThumbUrls.length > 1 ? 12 : 16;
@@ -366,7 +455,7 @@ function sectionHtml(
       const tableMargin = diagramHtml ? "16px" : "24px";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${specTableBg}${bgCss}" class="${isShipping ? "pagzly-shipping" : ""}">
         <p style="text-align:center;font-size:11px;letter-spacing:.2em;color:${deep}">INFO</p>
-        <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
+        ${dh2(category, esc(section.heading), "text-align:center;font-size:1.5rem")}
         ${thumbHtml}
         ${diagramHtml}
         ${
@@ -396,9 +485,21 @@ function sectionHtml(
     case "brand_story": {
       const hasBrandCard = Boolean(brandName?.trim());
       const categoryKeyword = getCategoryTitleKeyword(category);
+      const storyImgs = (section.imageIndexes ?? [])
+        .map((idx) => {
+          const src = imageUrls[idx] ?? "";
+          if (!src) return "";
+          const alt = buildSectionImageAlt(productName, section.heading, section.slot);
+          return `<img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:12px;display:block"/>`;
+        })
+        .filter(Boolean);
+      const galleryHtml =
+        storyImgs.length > 0
+          ? `<div style="margin-top:28px;display:grid;grid-template-columns:repeat(${Math.min(storyImgs.length, 2)},1fr);gap:12px">${storyImgs.join("")}</div>`
+          : "";
       const storyInner = `<p style="font-size:11px;letter-spacing:.2em;color:${theme.deepAccent};margin:0 0 12px">STORY</p>
-          <h2 style="font-size:1.35rem;margin:0">${esc(section.heading)}</h2>
-          <p style="line-height:1.65;font-size:15px;opacity:.85;margin-top:16px">${esc(section.body)}</p>`;
+          ${dh2(category, esc(section.heading), "font-size:1.35rem;margin:0")}
+          <p style="line-height:1.75;font-size:15px;opacity:.85;margin-top:16px;white-space:pre-line">${esc(section.body)}</p>${galleryHtml}`;
       if (hasBrandCard) {
         const quickFactHtml = buildQuickFactStripHtml(quickFacts, theme);
         return `<section${sectionIdAttr} class="pagzly-brand-story">
@@ -417,17 +518,21 @@ function sectionHtml(
     }
     case "target_persona":
       return `<section${sectionIdAttr} class="pagzly-persona" style="${pad}${sectionInset}${bgCss}">
-        <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
+        ${dh2(category, esc(section.heading), "text-align:center;font-size:1.5rem")}
         <ul style="max-width:480px;margin:24px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px">
           ${section.personas.map((p) => `<li style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;background:${sectionBg};box-shadow:inset 0 0 0 1px ${accent}33;font-size:14px;font-weight:500;color:${deep}">✓ ${esc(p)}</li>`).join("")}
         </ul>
       </section>`;
-    case "usage_steps":
+    case "usage_steps": {
+      const flowHtml = isCosmeticsCategory(category)
+        ? buildUsageOrderFlowSvg(section.steps, deep, "#1B1B18")
+        : "";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
+        ${dh2(category, esc(section.heading), "text-align:center;font-size:1.5rem")}
         <ol style="max-width:640px;margin:32px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:16px">
           ${section.steps.map((s, i) => `<li><span style="color:${accent};font-size:11px;font-weight:700">STEP ${String(i + 1).padStart(2, "0")}</span><div style="font-size:15px;margin-top:4px">${esc(s)}</div></li>`).join("")}
-        </ol></section>`;
+        </ol>${flowHtml}</section>`;
+    }
     case "custom_gif":
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss};text-align:center">
         ${section.heading ? `<h2>${esc(section.heading)}</h2>` : ""}
@@ -443,7 +548,7 @@ function sectionHtml(
       </section>`;
     case "faq":
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
+        ${dh2(category, esc(section.heading), "text-align:center;font-size:1.5rem")}
         <div style="max-width:640px;margin:24px auto 0;display:flex;flex-direction:column;gap:16px">
           ${section.items
             .map(
@@ -469,7 +574,7 @@ function sectionHtml(
     case "comparison_table":
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         <p style="text-align:center;font-size:11px;letter-spacing:.2em;color:${deep}">COMPARE</p>
-        <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
+        ${dh2(category, esc(section.heading), "text-align:center;font-size:1.5rem")}
         <table style="width:100%;max-width:560px;margin:24px auto 0;border-collapse:collapse;font-size:14px">
           <thead><tr style="background:${accent}1a">
             <th style="padding:12px;text-align:left"></th>
@@ -533,7 +638,7 @@ function sectionHtml(
           ${selectors}
         </style>
         ${inputs}
-        <h2 style="text-align:center;font-size:1.5rem">${esc(section.heading)}</h2>
+        ${dh2(category, esc(section.heading), "text-align:center;font-size:1.5rem")}
         <div class="${cvId}-swatches" style="text-align:center;margin:32px auto 0">${swatches}</div>
         <div class="${cvId}-stage" style="margin:24px auto 0;max-width:360px">${images}</div>
       </section>`;
@@ -591,6 +696,9 @@ function sectionHtml(
 export function buildDetailPageHtml(opts: {
   productName: string;
   brandName?: string | null;
+  logoUrl?: string | null;
+  ingredients?: string | null;
+  keyFeatures?: string | null;
   price?: number;
   category: string;
   sections: DetailSection[];
@@ -634,6 +742,9 @@ export function buildDetailPageHtml(opts: {
       certTokens,
       anchorIdMap.get(i),
       quickFacts,
+      opts.logoUrl,
+      opts.ingredients,
+      opts.keyFeatures,
     );
     if (html) bodyParts.push(html);
     if (section.type === "hero" && trustChips.length > 0) {
@@ -691,7 +802,7 @@ ${jsonLd}
 <style>
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
-  ${DETAIL_EXPORT_FONT_CSS}
+  ${buildDetailExportFontCss(opts.category)}
   .pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3}
   .pagzly-anchor-nav a{scroll-margin-top:52px}
   .pagzly-seo-text{padding:20px;font-size:14px;line-height:1.65;border-bottom:1px solid #DAD5C9}

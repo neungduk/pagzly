@@ -1,5 +1,6 @@
 "use client";
 
+import PageStructureChat from "@/components/PageStructureChat";
 import { slotDisplayLabel } from "@/components/GeneratingOverlay";
 import { getSlotTemplate } from "@/lib/section-templates";
 import type { DetailSection } from "@/lib/types/generate";
@@ -115,6 +116,14 @@ export default function DetailStructureSidebar({
           );
         })}
       </ul>
+      {sections.length > 0 ? (
+        <PageStructureChat
+          sections={sections}
+          hiddenIndexes={hiddenIndexes}
+          onReorder={onReorder}
+          onToggleHidden={onToggleHidden}
+        />
+      ) : null}
       {onAddCanvas ? (
         <div className="border-t border-line p-2">
           <button

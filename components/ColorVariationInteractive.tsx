@@ -17,7 +17,15 @@ type Props = {
 };
 
 function resolveImage(imageUrls: string[], imageIndex: number): string {
-  return imageUrls[imageIndex] ?? imageUrls[0] ?? "";
+  if (
+    Number.isInteger(imageIndex) &&
+    imageIndex >= 0 &&
+    imageIndex < imageUrls.length
+  ) {
+    return imageUrls[imageIndex] ?? "";
+  }
+  // 잘못된 index를 [0]으로 몰아넣으면 전 옵션이 같은 사진처럼 보임
+  return "";
 }
 
 export default function ColorVariationInteractive({

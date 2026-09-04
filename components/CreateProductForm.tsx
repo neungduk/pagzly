@@ -81,6 +81,8 @@ export type DraftSessionPayload = {
     price: string;
     targetCustomer: string;
     keyFeatures: string;
+    productSizeHint?: string;
+    enableAiLifestyleShots?: boolean;
     ingredients: string;
     certifications: string;
     competitorUrl: string;
@@ -112,6 +114,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [imageRoles, setImageRoles] = useState<ProductImageRole[]>([]);
+  const [imageRoleUserSet, setImageRoleUserSet] = useState<boolean[]>([]);
   /** draft 수정 복귀 시 — 이미 업로드된 URL (새 File 없이 재제출 가능) */
   const [restoredUploads, setRestoredUploads] = useState<UploadedImage[] | null>(null);
   const [productName, setProductName] = useState("");
@@ -119,6 +122,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const [price, setPrice] = useState("");
   const [targetCustomer, setTargetCustomer] = useState("");
   const [keyFeatures, setKeyFeatures] = useState("");
+  const [productSizeHint, setProductSizeHint] = useState("");
+  const [enableAiLifestyleShots, setEnableAiLifestyleShots] = useState(false);
   const [ingredients, setIngredients] = useState("");
   const [certifications, setCertifications] = useState("");
   const [competitorUrl, setCompetitorUrl] = useState("");
@@ -126,6 +131,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const [sellerTrustEvidence, setSellerTrustEvidence] = useState("");
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referencePreview, setReferencePreview] = useState<string | null>(null);
+  const [logoImage, setLogoImage] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [lifestyleImage, setLifestyleImage] = useState<File | null>(null);
   const [lifestylePreview, setLifestylePreview] = useState<string | null>(null);
   const [reviewFile, setReviewFile] = useState<File | null>(null);
@@ -133,6 +140,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const [customGif, setCustomGif] = useState<File | null>(null);
   const [customGifPreview, setCustomGifPreview] = useState<string | null>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const lifestyleInputRef = useRef<HTMLInputElement>(null);
   const reviewInputRef = useRef<HTMLInputElement>(null);
   const planningInputRef = useRef<HTMLInputElement>(null);
@@ -185,9 +193,11 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           })),
         );
         const savedRoles = (draft.payload.imageRoles as ProductImageRole[] | undefined) ?? [];
+        const savedUserSet = (draft.payload.imageRoleUserSet as boolean[] | undefined) ?? [];
         setImageRoles(
           urls.map((_, i) => savedRoles[i] ?? defaultRoleForIndex(i)),
         );
+        setImageRoleUserSet(urls.map((_, i) => savedUserSet[i] === true));
       }
     } catch {
       // ignore corrupt draft
@@ -228,6 +238,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         const added = nextFiles.map((_, i) => defaultRoleForIndex(start + i));
         return [...prev, ...added];
       });
+      setImageRoleUserSet((prev) => [...prev, ...nextFiles.map(() => false)]);
     },
     [images.length],
   );
@@ -237,12 +248,18 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     setImages((prev) => prev.filter((_, i) => i !== index));
     setPreviews((prev) => prev.filter((_, i) => i !== index));
     setImageRoles((prev) => prev.filter((_, i) => i !== index));
+    setImageRoleUserSet((prev) => prev.filter((_, i) => i !== index));
   }
 
   function setRoleAt(index: number, role: ProductImageRole) {
     setImageRoles((prev) => {
       const next = [...prev];
       next[index] = role;
+      return next;
+    });
+    setImageRoleUserSet((prev) => {
+      const next = [...prev];
+      next[index] = true;
       return next;
     });
   }
@@ -320,6 +337,23 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     setError(null);
     setReferenceImage(file);
     setReferencePreview(URL.createObjectURL(file));
+  }
+
+  function handleLogoImage(file: File | null) {
+    if (!file) return;
+    const ok =
+      file.type === "image/png" ||
+      file.type === "image/svg+xml" ||
+      file.type === "image/jpeg" ||
+      file.name.toLowerCase().endsWith(".svg");
+    if (!ok) {
+      setError("브랜드 로고는 PNG/SVG(권장) 또는 JPG만 업로드할 수 있습니다.");
+      return;
+    }
+    if (logoPreview) URL.revokeObjectURL(logoPreview);
+    setError(null);
+    setLogoImage(file);
+    setLogoPreview(URL.createObjectURL(file));
   }
 
   function handleLifestyleImage(file: File | null) {
@@ -489,6 +523,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         images.length > 0 ? await uploadImages(images) : (restoredUploads as UploadedImage[]);
 
       let referenceImageUrl: string | null = null;
+      let logoUrl: string | null = null;
       let lifestyleImageUrl: string | null = null;
       let reviewFileUrl: string | null = null;
       let planningDocUrl: string | null = null;
@@ -496,6 +531,9 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
 
       if (referenceImage) {
         referenceImageUrl = await uploadAuxFile(referenceImage, "reference");
+      }
+      if (logoImage) {
+        logoUrl = await uploadAuxFile(logoImage, "logo");
       }
       if (lifestyleImage) {
         lifestyleImageUrl = await uploadAuxFile(lifestyleImage, "lifestyle");
@@ -513,6 +551,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       // 승인 전: 원본 업로드만으로 카피 draft 생성 (배경/보정 비용 스킵)
       const imageUrls = uploaded.map((item) => item.url);
       const imagePaths = uploaded.map((item) => item.path);
+      const imageOrigins = uploaded.map(() => "original" as const);
 
       const payload = {
         category,
@@ -520,18 +559,23 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         mode: "draft" as const,
         imageUrls,
         imagePaths,
+        imageOrigins,
         imageRoles: imageRoles.slice(0, imageUrls.length),
+        imageRoleUserSet: imageRoleUserSet.slice(0, imageUrls.length),
         productName: productName.trim(),
         brandName: brandName.trim() || null,
         price: Number(price),
         targetCustomer: targetCustomer || null,
         keyFeatures: keyFeatures.trim() || null,
+        productSizeHint: productSizeHint.trim() || null,
+        enableAiLifestyleShots,
         ingredients: ingredients.trim() || null,
         certifications: certifications.trim() || null,
         competitorUrl: competitorUrl.trim() || null,
         wholesaleUrl: wholesaleUrl.trim() || null,
         sellerTrustEvidence: sellerTrustEvidence.trim() || null,
         referenceImageUrl,
+        logoUrl,
         lifestyleImageUrl,
         reviewFileUrl,
         planningDocUrl,
@@ -546,6 +590,10 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           .sort()
           .join("|"),
       };
+
+      console.log(
+        `[create-form] submit enableAiLifestyleShots=${enableAiLifestyleShots} productSizeHint=${Boolean(productSizeHint.trim())}`,
+      );
 
       setLoadingStage("generating");
 
@@ -569,6 +617,11 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         payload: {
           ...payload,
           imageUrls: draftResult.imageUrls ?? payload.imageUrls,
+          imageRoles: draftResult.imageRoles ?? payload.imageRoles,
+          imageRoleUserSet: payload.imageRoleUserSet,
+          visionImageRoles: draftResult.visionImageRoles ?? null,
+          imageAnalysis: draftResult.imageAnalysis,
+          theme: draftResult.theme ?? null,
           photoCostBreakdown: draftResult.photoCostBreakdown ?? payload.photoCostBreakdown,
           referenceAnalysis: draftResult.referenceAnalysis ?? null,
           reviewInsights: draftResult.reviewInsights ?? null,
@@ -600,6 +653,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           price,
           targetCustomer,
           keyFeatures: keyFeatures.trim(),
+          productSizeHint: productSizeHint.trim(),
+          enableAiLifestyleShots,
           ingredients: ingredients.trim(),
           certifications: certifications.trim(),
           competitorUrl: competitorUrl.trim(),
@@ -969,6 +1024,52 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
               </div>
 
               <div>
+                <label htmlFor="productSizeHint" className={labelClass}>
+                  용량 / 크기 <span className="font-normal text-ink/45">(선택)</span>
+                </label>
+                <input
+                  id="productSizeHint"
+                  type="text"
+                  value={productSizeHint}
+                  onChange={(e) => setProductSizeHint(e.target.value)}
+                  placeholder="예: 35mL, 높이 약 9cm"
+                  className={inputClass}
+                />
+                <p className="mt-1.5 text-[11px] leading-relaxed text-ink/45">
+                  AI 연출 사용샷을 쓰려면 높이(cm)를 꼭 넣어 주세요. 예: 35mL, 높이 약 9cm
+                </p>
+              </div>
+
+              <label
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border-2 px-4 py-4 transition-colors ${
+                  enableAiLifestyleShots
+                    ? "border-ink/40 bg-ink/[0.04] shadow-sm"
+                    : "border-dashed border-ink/25 bg-line/20 hover:border-ink/35 hover:bg-line/30"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={enableAiLifestyleShots}
+                  onChange={(e) => {
+                    const next = e.target.checked;
+                    setEnableAiLifestyleShots(next);
+                    console.log(`[create-form] enableAiLifestyleShots=${next}`);
+                  }}
+                  className="mt-1 h-5 w-5 shrink-0 rounded border-line accent-ink"
+                />
+                <span className="min-w-0 text-sm leading-relaxed text-ink/85">
+                  <span className="font-heading text-base font-bold text-ink">
+                    AI 연출 사용샷을 추가해 보세요
+                  </span>
+                  <span className="mt-1.5 block text-xs text-ink/60">
+                    권장: 인물 사진이 없어도, AI가 배경·인물 장면을 만들고 실제 제품 사진을 손
+                    위치에 합성합니다. 위 용량/크기에 높이(cm)를 입력해 주세요. 연출 장면은
+                    실제와 다를 수 있으니 게시 전에 확인해 주세요. (기본 꺼짐)
+                  </span>
+                </span>
+              </label>
+
+              <div>
                 <label htmlFor="ingredients" className={labelClass}>
                   주요 성분 또는 소재
                 </label>
@@ -1055,12 +1156,67 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
               </div>
 
               <div>
+                <label htmlFor="logoImage" className={labelClass}>
+                  브랜드 로고 (선택)
+                </label>
+                <p className="mt-1 text-xs text-ink/40">
+                  히어로 상단 표시용. PNG/SVG·배경 투명 권장 (JPG도 가능)
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => logoInputRef.current?.click()}
+                    className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink/80 hover:bg-line/30"
+                  >
+                    {logoImage ? "다른 로고 선택" : "로고 선택"}
+                  </button>
+                  {logoImage && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (logoPreview) URL.revokeObjectURL(logoPreview);
+                        setLogoImage(null);
+                        setLogoPreview(null);
+                      }}
+                      className="text-sm text-ink/50 hover:text-registration-red"
+                    >
+                      제거
+                    </button>
+                  )}
+                  {logoImage && (
+                    <span className="text-xs text-ink/50">{logoImage.name}</span>
+                  )}
+                </div>
+                {logoPreview && (
+                  <div className="mt-3 flex h-16 max-w-[28%] items-center justify-center overflow-hidden rounded-lg border border-line bg-line/20 px-3 py-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={logoPreview}
+                      alt="브랜드 로고 미리보기"
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  </div>
+                )}
+                <input
+                  id="logoImage"
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/png,image/svg+xml,image/jpeg,.svg"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleLogoImage(e.target.files?.[0] ?? null);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+
+              <div>
                 <label htmlFor="lifestyleImage" className={labelClass}>
                   인물/라이프스타일 사진 (선택)
                 </label>
                 <p className="mt-1 text-xs text-ink/40">
-                  실제 사용 장면 사진이 있으면 업로드해 주세요. 제품 사진을 자연스럽게 합성해 드립니다.
-                  (AI가 가짜 인물을 만들지는 않습니다)
+                  인물 사진을 올리면 그 사진에 제품을 합성합니다. AI 연출 사용샷은 위 「상품
+                  특징」에서 켤 수 있습니다.
                 </p>
                 <div className="mt-2 flex flex-wrap items-center gap-3">
                   <button

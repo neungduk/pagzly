@@ -198,37 +198,64 @@ export function pickOverlayAssignments(
   const hero = sections.find((s) => s.type === "hero")?.imageIndex ?? 0;
   const texture = sections.find((s) => s.slot === "texture_feel")?.imageIndex;
   const ingredient = sections.find((s) => s.slot === "ingredient_highlight")?.imageIndex;
-  const fallbackPoint =
+  // 히어로와 겹치지 않는 안전한 폴백(텍스처/성분 우선, 없으면 히어로가 아닌 다음 컷)
+  let fallbackPoint =
     ingredient ?? texture ?? Math.min(1, Math.max(0, imageCount - 1));
+  if (fallbackPoint === hero) {
+    fallbackPoint = -1;
+    for (let i = 0; i < imageCount; i += 1) {
+      if (i !== hero) {
+        fallbackPoint = i;
+        break;
+      }
+    }
+  }
 
   const used = new Set<number>();
-  return effectIds.map((id, specIndex) => {
+  return effectIds.flatMap((id, specIndex) => {
     let imageIndex = fallbackPoint;
     let label = "copy-match";
     if (id === "moisture" || id === "nourishing") {
+      // 97차 — 히어로 헤드라인 키워드 매치로 moisture가 제품컷에 붙는 경로 차단
       const match = sections.find((section) => {
         const text = `${section.heading ?? ""} ${section.headline ?? ""}`;
         return (
+          section.imageIndex !== hero &&
           /수분|촉촉|물방울|보습|영양|오일|앰플/.test(text) &&
           typeof section.imageIndex === "number"
         );
       });
       imageIndex = match?.imageIndex ?? fallbackPoint;
+      // 극단: 이미지 1장뿐이면 fallback도 히어로뿐 → 이 효과는 스킵
+      if (imageIndex < 0 || imageIndex === hero) {
+        console.log(
+          `[concept-effects] ${id} skipped — no non-hero target (hero=${hero}, imageCount=${imageCount})`,
+        );
+        return [];
+      }
+      console.log(
+        `[concept-effects] ${id} → image[${imageIndex}] (hero=${hero}, heroExcluded=${imageIndex !== hero})`,
+      );
     } else if (id === "cleansing") {
       const match = sections.find((section) => {
         const text = `${section.heading ?? ""} ${section.headline ?? ""}`;
         return /클렌|거품|세안|버블/.test(text) && typeof section.imageIndex === "number";
       });
-      imageIndex = match?.imageIndex ?? fallbackPoint;
+      imageIndex = match?.imageIndex ?? (fallbackPoint >= 0 ? fallbackPoint : 0);
     } else if (id === "cooling" || id === "tech-glow" || id === "warm-light") {
       imageIndex = hero;
       label = "hero";
     }
+
+    if (imageIndex < 0) {
+      imageIndex = Math.min(1, Math.max(0, imageCount - 1));
+    }
+
     if (used.has(imageIndex)) {
       // 히어로로 몰아넣지 말고, 아직 안 쓴 컷(또는 히어로 제외 다음 인덱스)을 고른다.
-      let next = fallbackPoint;
+      let next = fallbackPoint >= 0 ? fallbackPoint : 0;
       for (let i = 0; i < imageCount; i += 1) {
-        const candidate = (fallbackPoint + 1 + i) % imageCount;
+        const candidate = ((fallbackPoint >= 0 ? fallbackPoint : 0) + 1 + i) % imageCount;
         if (!used.has(candidate)) {
           next = candidate;
           break;
@@ -237,8 +264,17 @@ export function pickOverlayAssignments(
       imageIndex = next;
       label = `spread-${next}`;
     }
+
+    // moisture/nourishing은 재배치 후에도 히어로면 스킵
+    if ((id === "moisture" || id === "nourishing") && imageIndex === hero) {
+      console.log(
+        `[concept-effects] ${id} skipped after spread — would land on hero=${hero}`,
+      );
+      return [];
+    }
+
     used.add(imageIndex);
-    return { specIndex, imageIndex, label };
+    return [{ specIndex, imageIndex, label }];
   });
 }
 

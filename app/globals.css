@@ -20,6 +20,7 @@
 
   --font-sans: var(--font-noto-sans-kr), "Noto Sans KR", system-ui, -apple-system, "Malgun Gothic", sans-serif;
   --font-heading: var(--font-noto-sans-kr), "Noto Sans KR", system-ui, -apple-system, "Malgun Gothic", sans-serif;
+  --font-heading-serif: var(--font-noto-serif-kr), "Noto Serif KR", var(--font-noto-sans-kr), "Noto Sans KR", system-ui, serif;
   --font-mono: var(--font-noto-sans-kr), "Noto Sans KR", system-ui, -apple-system, "Malgun Gothic", sans-serif;
 }
 
@@ -29,7 +30,7 @@ body {
   font-family: var(--font-sans);
 }
 
-/* 상세페이지 미리보기 — Noto Sans KR 고딕 통일 */
+/* 상세페이지 미리보기 — 본문 Sans, 디스플레이 헤드라인만 카테고리 페이스 */
 [data-pagzly-preview] {
   font-family: var(--font-sans);
   font-feature-settings: "kern" 1, "liga" 1;
@@ -40,6 +41,23 @@ body {
 [data-pagzly-preview] .font-heading {
   font-family: var(--font-heading);
   letter-spacing: -0.025em;
+}
+
+/* 117차 — 히어로·섹션 타이틀 전용 (본문/라벨/표 제외) */
+[data-pagzly-preview][data-headline-face="serif"] .pagzly-display-headline {
+  font-family: var(--font-heading-serif);
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+[data-pagzly-preview][data-headline-face="sans-display"] .pagzly-display-headline {
+  font-family: var(--font-heading);
+  letter-spacing: -0.045em;
+  font-weight: 800;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 [data-pagzly-preview] .font-mono {

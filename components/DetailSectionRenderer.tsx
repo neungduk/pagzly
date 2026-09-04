@@ -34,6 +34,19 @@ import {
   matchSizeDiagramRows,
 } from "@/lib/fashion-size-diagram";
 import { matchSizeComparisonRows } from "@/lib/size-comparison-diagram";
+import {
+  buildVolumeComparisonEntries,
+  matchProductVolumeMl,
+} from "@/lib/volume-comparison-diagram";
+import { isCosmeticsCategory } from "@/lib/cosmetics-compliance";
+import { isFoodCategory } from "@/lib/food-compliance";
+import { prepareFoodRatioSlices } from "@/lib/food-ratio-diagram";
+import { preparePackageContentsItems } from "@/lib/package-contents-diagram";
+import {
+  heroWordmarkClassName,
+  heroWordmarkWrapClassName,
+  resolveHeroBrandMark,
+} from "@/lib/hero-brand-mark";
 import { extractQuickFacts, type QuickFact } from "@/lib/quick-fact-strip";
 import {
   buildSectionAnchorIdMap,
@@ -45,10 +58,16 @@ import ColorVariationInteractive from "@/components/ColorVariationInteractive";
 import DetailScrollReveal from "@/components/DetailScrollReveal";
 import FashionSizeDiagram from "@/components/FashionSizeDiagram";
 import SizeComparisonDiagram from "@/components/SizeComparisonDiagram";
+import { headlineDisplayStyle } from "@/lib/detail-typography";
+import VolumeComparisonDiagram from "@/components/VolumeComparisonDiagram";
+import UsageOrderFlowDiagram from "@/components/UsageOrderFlowDiagram";
+import FoodRatioDiagram from "@/components/FoodRatioDiagram";
+import PackageContentsDiagram from "@/components/PackageContentsDiagram";
 import AnnotatedImageOverlay from "@/components/AnnotatedImageOverlay";
 import QuickFactStrip from "@/components/QuickFactStrip";
 import SectionAnchorNav from "@/components/SectionAnchorNav";
 import SectionImage from "@/components/SectionImage";
+import { SellerImageMetaContext } from "@/components/SellerImageMetaContext";
 import CanvasSectionRenderer from "@/components/CanvasSectionRenderer";
 import {
   BRAND,
@@ -77,11 +96,29 @@ export type SectionEditApi = {
   onReplaceImage?: (imageIndex: number) => void;
   /** 미리보기에서 섹션 AI 수정 탭으로 바로 진입 */
   onRequestAiPatch?: (sectionIndex: number) => void;
+  /** 96차 — 편집 모드에서 필드 클릭 시 elementPath 전달 */
+  onElementSelect?: (sectionIndex: number, elementPath: string) => void;
 };
+
+function elementSelectProps(
+  edit: SectionEditApi | undefined,
+  sectionIndex: number,
+  elementPath: string,
+): { elementPath?: string; onElementSelect?: (path: string) => void } {
+  if (!edit?.enabled || !edit.onElementSelect) return {};
+  return {
+    elementPath,
+    onElementSelect: (path) => edit.onElementSelect?.(sectionIndex, path),
+  };
+}
 
 type DetailSectionRendererProps = {
   sections: DetailSection[];
   imageUrls: string[];
+  /** 106차 — AI 연출 배지용 출처 (판매자 미리보기 전용) */
+  imageOrigins?: import("@/lib/image-origins").ProductImageOrigin[];
+  /** true면 ai-lifestyle 컷에 배지 표시 (캡처/내보내기 시 false) */
+  sellerAiBadges?: boolean;
   category: string;
   productName?: string;
   theme?: CategoryTheme;
@@ -95,6 +132,11 @@ type DetailSectionRendererProps = {
     onExpand: () => void;
   };
   brandName?: string | null;
+  /** 109차 — 판매자 업로드 브랜드 로고 (없으면 워드마크 폴백) */
+  logoUrl?: string | null;
+  /** 113차 — 식품 비율·전자 구성품 파싱용 */
+  ingredients?: string | null;
+  keyFeatures?: string | null;
   certifications?: string | null;
 };
 
@@ -119,7 +161,7 @@ const TYPO = {
   heroCategory:
     "mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.28em] text-white/80",
   heroTitle:
-    "font-heading text-[2.75rem] font-bold leading-[1.05] tracking-[-0.03em] text-white sm:text-6xl",
+    "pagzly-display-headline font-heading text-[2.75rem] font-bold leading-[1.05] tracking-[-0.03em] text-white sm:text-6xl",
   bannerTitle:
     "font-heading text-[1.65rem] font-bold leading-[1.15] tracking-[-0.03em] text-white sm:text-[1.85rem]",
   heroSub: "mt-4 max-w-xl text-base font-normal leading-relaxed text-white/90 sm:text-lg",
@@ -129,7 +171,7 @@ const TYPO = {
     "font-heading text-base font-semibold leading-snug tracking-[-0.02em] text-ink sm:text-lg",
   compactBody: "mt-1.5 text-sm font-normal leading-relaxed text-ink/75",
   sectionTitle:
-    "pagzly-ink-headline font-heading text-[2rem] font-bold leading-[1.2] tracking-[-0.03em] text-ink sm:text-[2.75rem]",
+    "pagzly-display-headline pagzly-ink-headline font-heading text-[2rem] font-bold leading-[1.2] tracking-[-0.03em] text-ink sm:text-[2.75rem]",
   keywordDisplay:
     "font-heading text-[clamp(2.25rem,11vw,4.25rem)] font-black uppercase leading-[0.92] tracking-[-0.06em]",
   sectionSubtitle:
@@ -914,12 +956,20 @@ function renderSection(
   quickFacts: QuickFact[] = [],
   compactImageTextIndex?: number,
   totalCompactImageTextCount?: number,
+  logoUrl?: string | null,
+  ingredients?: string | null,
+  keyFeatures?: string | null,
 ) {
   const heroFallback = imageUrls[0] ?? "";
   switch (section.type) {
     case "hero": {
       const src = resolveImage(imageUrls, section.imageIndex);
       const imgAlt = buildSectionImageAlt(productName ?? category, section.headline, "hero");
+      const brandMark = resolveHeroBrandMark({
+        logoUrl,
+        brandName,
+        productName,
+      });
       return (
         <div key={`hero-wrap-${index}`} className="relative">
           <div
@@ -956,6 +1006,33 @@ function renderSection(
                 {section.badge}
               </span>
             ) : null}
+            {brandMark.kind === "logo" && logoUrl ? (
+              <div
+                className="absolute left-1/2 top-5 z-30 flex max-w-[28%] -translate-x-1/2 items-center justify-center px-3 py-2 sm:top-7"
+                data-hero-brand-mark="logo"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={logoUrl}
+                  alt={brandMark.displayName ? `${brandMark.displayName} 로고` : "브랜드 로고"}
+                  className="block h-auto max-h-16 w-auto max-w-full object-contain"
+                />
+              </div>
+            ) : null}
+            {brandMark.kind === "wordmark" ? (
+              <div
+                className={heroWordmarkWrapClassName()}
+                data-hero-brand-mark="wordmark"
+                data-wordmark-scrim="local"
+              >
+                <p
+                  className={`${heroWordmarkClassName(brandMark.script)} text-center`}
+                  data-wordmark-script={brandMark.script}
+                >
+                  {brandMark.displayName}
+                </p>
+              </div>
+            ) : null}
             <div className={getCategoryRhythm(category).heroOverlayClass}>
               <p className={TYPO.heroCategory}>{category}</p>
               <EditableText
@@ -966,6 +1043,8 @@ function renderSection(
                   edit?.onChange(index, { ...section, headline })
                 }
                 className={`pagzly-ink-headline ${HEADLINE_CLAMP} ${TYPO.heroTitle} ${getCategoryRhythm(category).heroTitleExtra}`}
+                style={headlineDisplayStyle(category)}
+                {...elementSelectProps(edit, index, "headline")}
               />
               {(section.subheadline || edit?.enabled) ? (
                 <EditableText
@@ -976,6 +1055,7 @@ function renderSection(
                     edit?.onChange(index, { ...section, subheadline })
                   }
                   className={`${HEADLINE_CLAMP} ${TYPO.heroSub}`}
+                  {...elementSelectProps(edit, index, "subheadline")}
                 />
               ) : null}
             </div>
@@ -985,6 +1065,16 @@ function renderSection(
     }
 
     case "checklist": {
+      const items = Array.isArray(section.items)
+        ? section.items.filter((item) => String(item).trim())
+        : [];
+      if (items.length === 0) {
+        console.warn("[DetailSectionRenderer] checklist items empty — section skipped", {
+          index,
+          heading: section.heading,
+        });
+        return null;
+      }
       const compactFollow = section.compactFollow === true;
       const boldBlock = section.boldBlock === true && !compactFollow;
       const checklistPattern: SectionColorPattern = boldBlock
@@ -1032,9 +1122,9 @@ function renderSection(
           <ul
             className={`relative ${compactFollow ? "mt-8" : "mt-10"} grid ${
               compactFollow ? "gap-x-3 gap-y-6" : getCategoryRhythm(category).checklistGapClass
-            } ${checklistGridClass(section.items.length, category)}`}
+            } ${checklistGridClass(items.length, category)}`}
           >
-            {section.items.map((item, itemIndex) => (
+            {items.map((item, itemIndex) => (
               <li
                 key={`${itemIndex}-${item.slice(0, 12)}`}
                 className="flex flex-col items-center rounded-2xl border px-4 py-5 text-center transition-transform duration-300 hover:-translate-y-0.5"
@@ -1077,6 +1167,24 @@ function renderSection(
 
     case "image_text": {
       const src = resolveImage(imageUrls, section.imageIndex);
+      if (section.layout === "text_only") {
+        return (
+          <section
+            key={`image_text-${index}`}
+            className="px-6 py-10 sm:px-10 sm:py-12"
+            style={textSectionStyle(theme, pattern, category)}
+          >
+            <div className="mx-auto max-w-xl">
+              <h2 className={TYPO.sectionTitle} style={{ color: theme.deepAccent }}>
+                {section.heading}
+              </h2>
+              <p className={`mt-4 whitespace-pre-line ${TYPO.body}`} style={{ color: BRAND.ink }}>
+                {section.body}
+              </p>
+            </div>
+          </section>
+        );
+      }
       const isCompact = section.layout === "compact";
       const isAnnotated =
         section.layout === "annotated" &&
@@ -1250,6 +1358,22 @@ function renderSection(
                     className={`mt-4 ${BODY_CLAMP} ${TYPO.body}`}
                   />
                 </TextSectionPanel>
+                {section.slot === "package_contents" ? (
+                  (() => {
+                    const items = preparePackageContentsItems(section.body, keyFeatures);
+                    return items ? (
+                      <PackageContentsDiagram items={items} theme={theme} />
+                    ) : null;
+                  })()
+                ) : null}
+                {isFoodCategory(category) && section.slot === "sourcing_story" ? (
+                  (() => {
+                    const slices = prepareFoodRatioSlices(ingredients, keyFeatures);
+                    return slices ? (
+                      <FoodRatioDiagram slices={slices} theme={theme} />
+                    ) : null;
+                  })()
+                ) : null}
               </div>
             </div>
           </section>
@@ -1453,6 +1577,22 @@ function renderSection(
               </TextSectionPanel>
             </div>
           </div>
+          {section.slot === "package_contents" ? (
+            (() => {
+              const items = preparePackageContentsItems(section.body, keyFeatures);
+              return items ? (
+                <PackageContentsDiagram items={items} theme={theme} />
+              ) : null;
+            })()
+          ) : null}
+          {isFoodCategory(category) && section.slot === "sourcing_story" ? (
+            (() => {
+              const slices = prepareFoodRatioSlices(ingredients, keyFeatures);
+              return slices ? (
+                <FoodRatioDiagram slices={slices} theme={theme} />
+              ) : null;
+            })()
+          ) : null}
         </section>
       );
     }
@@ -1470,6 +1610,14 @@ function renderSection(
         section.slot === "spec_table" && !isFashionCategory(category)
           ? matchSizeComparisonRows(visibleRows)
           : [];
+      const volumeEntries =
+        section.slot === "spec_table" && isCosmeticsCategory(category)
+          ? buildVolumeComparisonEntries(matchProductVolumeMl(visibleRows))
+          : null;
+      const showVolumeDiagram = Boolean(volumeEntries && volumeEntries.length >= 2);
+      // 화장품: 용량 다이어그램 우선. 용량 없고 cm만 있으면 기존 캔 비교.
+      const showSizeComparison =
+        sizeComparisonDims.length > 0 && !showVolumeDiagram;
       const specThumbUrls = (
         section.imageIndexes?.length
           ? section.imageIndexes
@@ -1532,12 +1680,29 @@ function renderSection(
           {sizeDiagramMatches.length > 0 ? (
             <FashionSizeDiagram matches={sizeDiagramMatches} theme={theme} />
           ) : null}
-          {sizeComparisonDims.length > 0 ? (
-            <SizeComparisonDiagram dimensions={sizeComparisonDims} theme={theme} />
+          {showVolumeDiagram && volumeEntries ? (
+            <VolumeComparisonDiagram entries={volumeEntries} theme={theme} />
+          ) : null}
+          {showSizeComparison ? (
+            <SizeComparisonDiagram
+              dimensions={sizeComparisonDims}
+              theme={theme}
+              category={category}
+            />
+          ) : null}
+          {isFoodCategory(category) ? (
+            (() => {
+              const slices = prepareFoodRatioSlices(ingredients, keyFeatures);
+              return slices ? (
+                <FoodRatioDiagram slices={slices} theme={theme} />
+              ) : null;
+            })()
           ) : null}
           <div
             className={`mx-auto max-w-xl overflow-hidden rounded-lg ${isShipping ? "border-2" : ""} ${
-              sizeDiagramMatches.length > 0 || sizeComparisonDims.length > 0 ? "mt-6" : "mt-10"
+              sizeDiagramMatches.length > 0 || showSizeComparison || showVolumeDiagram
+                ? "mt-6"
+                : "mt-10"
             }`}
             style={
               isShipping
@@ -1751,8 +1916,16 @@ function renderSection(
       );
 
     case "highlight_box": {
-      const cards = section.cards.slice(0, 4);
-      if (cards.length === 0) return null;
+      const cards = (Array.isArray(section.cards) ? section.cards : [])
+        .filter((card) => (card.title ?? "").trim() || (card.body ?? "").trim())
+        .slice(0, 4);
+      if (cards.length === 0) {
+        console.warn("[DetailSectionRenderer] highlight_box cards empty — section skipped", {
+          index,
+          heading: section.heading,
+        });
+        return null;
+      }
       const isTrustEvidence = section.slot === "seller_trust_evidence";
       const centerIdx = Math.floor((cards.length - 1) / 2);
       const boldBlock = section.boldBlock === true;
@@ -1867,6 +2040,7 @@ function renderSection(
                           : "font-heading text-lg font-bold tracking-[-0.02em]"
                     }
                     style={emphasized ? { color: BRAND.paper } : boldBlock ? { color: BRAND.paper } : undefined}
+                    {...elementSelectProps(edit, index, `cards[${cardIndex}].title`)}
                   />
                   {card.body ? (
                     <EditableText
@@ -1887,6 +2061,7 @@ function renderSection(
                             ? { color: hexToRgba(BRAND.paper, 0.82) }
                             : { color: hexToRgba(BRAND.ink, 0.68) }
                       }
+                      {...elementSelectProps(edit, index, `cards[${cardIndex}].body`)}
                     />
                   ) : null}
                 </div>
@@ -1915,6 +2090,13 @@ function renderSection(
     }
 
     case "stat_infographic": {
+      if (!Array.isArray(section.metrics) || section.metrics.length === 0) {
+        console.warn("[DetailSectionRenderer] stat_infographic metrics empty — section skipped", {
+          index,
+          heading: section.heading,
+        });
+        return null;
+      }
       const indexedMetrics = section.metrics.map((metric, metricIndex) => ({ metric, metricIndex }));
       const numberMetrics = indexedMetrics.filter(({ metric }) => metric.style === "number");
       const ringMetrics = indexedMetrics.filter(({ metric }) => metric.style === "ring");
@@ -2251,12 +2433,21 @@ function renderSection(
               </li>
             ))}
           </ol>
+          {isCosmeticsCategory(category) ? (
+            <UsageOrderFlowDiagram steps={section.steps} theme={theme} />
+          ) : null}
         </section>
       );
 
     case "step_card": {
-      const steps = section.steps;
-      if (steps.length === 0) return null;
+      const steps = Array.isArray(section.steps) ? section.steps : [];
+      if (steps.length === 0) {
+        console.warn("[DetailSectionRenderer] step_card steps empty — section skipped", {
+          index,
+          heading: section.heading,
+        });
+        return null;
+      }
       const ratioClass = resolveImageRatioClass(section);
       return (
         <section
@@ -2323,11 +2514,24 @@ function renderSection(
               );
             })}
           </div>
+          {isCosmeticsCategory(category) ? (
+            <UsageOrderFlowDiagram
+              steps={steps.map((s) => s.title).filter(Boolean)}
+              theme={theme}
+            />
+          ) : null}
         </section>
       );
     }
 
     case "gallery": {
+      if (!Array.isArray(section.imageIndexes) || section.imageIndexes.length === 0) {
+        console.warn("[DetailSectionRenderer] gallery imageIndexes empty — section skipped", {
+          index,
+          heading: section.heading,
+        });
+        return null;
+      }
       const ratioClass = resolveImageRatioClass(section);
       const pairCompare =
         category === "화장품/뷰티" && section.imageIndexes.length >= 2;
@@ -2544,6 +2748,59 @@ function renderSection(
     case "brand_story": {
       const hasBrandCard = Boolean(brandName?.trim());
       const categoryKeyword = getCategoryTitleKeyword(category);
+      const storyImages = (section.imageIndexes ?? [])
+        .map((i) => resolveImage(imageUrls, i))
+        .filter(Boolean);
+      const storyBodyClass = `mt-5 whitespace-pre-line ${TYPO.body}`;
+      const storyText = (
+        <>
+          <p className={`mb-4 ${TYPO.sectionLabel}`} style={{ color: theme.deepAccent }}>
+            STORY
+          </p>
+          <EditableText
+            as="h3"
+            enabled={edit?.enabled}
+            value={section.heading}
+            onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+            className={`${HEADLINE_CLAMP} font-heading text-lg font-bold tracking-[-0.02em] text-ink sm:text-xl`}
+          />
+          <EditableText
+            as="p"
+            multiline
+            enabled={edit?.enabled}
+            value={section.body}
+            onChange={(body) => edit?.onChange(index, { ...section, body })}
+            className={storyBodyClass}
+          />
+        </>
+      );
+      const storyGallery =
+        storyImages.length > 0 ? (
+          <div
+            className={`mt-8 grid gap-3 ${
+              storyImages.length > 1 ? "grid-cols-2" : "grid-cols-1"
+            }`}
+          >
+            {storyImages.map((src, i) => (
+              <div
+                key={`brand-story-img-${i}`}
+                className="relative overflow-hidden rounded-xl"
+              >
+                <SectionImage
+                  src={src}
+                  alt={buildSectionImageAlt(
+                    productName ?? "",
+                    section.heading,
+                    section.slot,
+                  )}
+                  className="aspect-[4/5] w-full object-cover"
+                  imageIndex={section.imageIndexes?.[i]}
+                />
+              </div>
+            ))}
+          </div>
+        ) : null;
+
       if (hasBrandCard) {
         return (
           <section key={`brand_story-${index}`} className="relative overflow-hidden">
@@ -2565,27 +2822,8 @@ function renderSection(
             >
               <div className={TEXT_COL_CLASS}>
                 <TextSectionPanel theme={theme} overlap>
-                  <p
-                    className={`mb-4 ${TYPO.sectionLabel}`}
-                    style={{ color: theme.deepAccent }}
-                  >
-                    STORY
-                  </p>
-                  <EditableText
-                    as="h3"
-                    enabled={edit?.enabled}
-                    value={section.heading}
-                    onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-                    className={`${HEADLINE_CLAMP} font-heading text-lg font-bold tracking-[-0.02em] text-ink sm:text-xl`}
-                  />
-                  <EditableText
-                    as="p"
-                    multiline
-                    enabled={edit?.enabled}
-                    value={section.body}
-                    onChange={(body) => edit?.onChange(index, { ...section, body })}
-                    className={`mt-5 ${BODY_CLAMP} ${TYPO.body}`}
-                  />
+                  {storyText}
+                  {storyGallery}
                 </TextSectionPanel>
               </div>
             </div>
@@ -2600,27 +2838,8 @@ function renderSection(
         >
           <div className={TEXT_COL_CLASS}>
             <TextSectionPanel theme={theme}>
-              <p
-                className={`mb-4 ${TYPO.sectionLabel}`}
-                style={{ color: theme.deepAccent }}
-              >
-                STORY
-              </p>
-              <EditableText
-                as="h3"
-                enabled={edit?.enabled}
-                value={section.heading}
-                onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-                className={`${HEADLINE_CLAMP} font-heading text-lg font-bold tracking-[-0.02em] text-ink sm:text-xl`}
-              />
-              <EditableText
-                as="p"
-                multiline
-                enabled={edit?.enabled}
-                value={section.body}
-                onChange={(body) => edit?.onChange(index, { ...section, body })}
-                className={`mt-5 ${BODY_CLAMP} ${TYPO.body}`}
-              />
+              {storyText}
+              {storyGallery}
             </TextSectionPanel>
           </div>
         </section>
@@ -2628,6 +2847,13 @@ function renderSection(
     }
 
     case "faq":
+      if (!Array.isArray(section.items) || section.items.length === 0) {
+        console.warn("[DetailSectionRenderer] faq items empty — section skipped", {
+          index,
+          heading: section.heading,
+        });
+        return null;
+      }
       return (
         <section
           key={`faq-${index}`}
@@ -2811,6 +3037,8 @@ function renderSection(
 export default function DetailSectionRenderer({
   sections,
   imageUrls,
+  imageOrigins,
+  sellerAiBadges = false,
   category,
   productName,
   theme: themeOverride,
@@ -2818,6 +3046,9 @@ export default function DetailSectionRenderer({
   edit,
   previewCollapse,
   brandName,
+  logoUrl,
+  ingredients,
+  keyFeatures,
   certifications,
 }: DetailSectionRendererProps) {
   const baseTheme = themeOverride ?? getCategoryTheme(category);
@@ -2828,9 +3059,18 @@ export default function DetailSectionRenderer({
   const sectionAnchors = buildSectionAnchors(sections);
   const anchorIdMap = buildSectionAnchorIdMap(sections);
   let imageTextCount = 0;
+  let lastRenderedSection: DetailSection | undefined;
+  let lastRenderedWasHero = false;
   const totalCompactImageTextCount = countCompactImageTextSections(sections);
 
   return (
+    <SellerImageMetaContext.Provider
+      value={{
+        urls: imageUrls,
+        origins: imageOrigins ?? [],
+        showBadges: sellerAiBadges === true,
+      }}
+    >
     <div className="overflow-hidden scroll-smooth">
       {sectionAnchors.length > 0 ? (
         <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} />
@@ -2844,7 +3084,6 @@ export default function DetailSectionRenderer({
           return null;
         }
 
-        const prevSection = index > 0 ? sections[index - 1] : undefined;
         const isFullPoint =
           section.type === "image_text" &&
           section.layout !== "compact" &&
@@ -2869,10 +3108,6 @@ export default function DetailSectionRenderer({
             ? getSectionPattern(Math.max(0, prevBodyIndex), sections[index - 1]!.type)
             : undefined;
         const sectionTheme = getSectionTheme(extendedTheme, section.type, bodyIndex);
-        const breather =
-          shouldInsertBreather(prevSection, section) && section.type !== "hero" ? (
-            <SectionBreather key={`breather-${index}`} theme={sectionTheme} />
-          ) : null;
         const content = renderSection(
           section,
           imageUrls,
@@ -2891,10 +3126,22 @@ export default function DetailSectionRenderer({
           quickFacts,
           compactImageTextIndex,
           totalCompactImageTextCount,
+          logoUrl,
+          ingredients,
+          keyFeatures,
         );
+        if (!content) {
+          return null;
+        }
+        const isHeroFollow = lastRenderedWasHero;
+        const breather =
+          shouldInsertBreather(lastRenderedSection, section) && section.type !== "hero" ? (
+            <SectionBreather key={`breather-${index}`} theme={sectionTheme} />
+          ) : null;
+        lastRenderedSection = section;
+        lastRenderedWasHero = section.type === "hero";
         // hero 바로 다음 섹션 1곳에만: 미세한 대각선 클립(제안 A) + 강한 진입 모션(제안 C).
         // 나머지 섹션은 전부 기존 직사각형·절제된 페이드를 그대로 유지한다.
-        const isHeroFollow = index > 0 && sections[index - 1]?.type === "hero";
         const wrappedContent =
           isHeroFollow && content ? (
             <div
@@ -2958,5 +3205,6 @@ export default function DetailSectionRenderer({
         );
       })}
     </div>
+    </SellerImageMetaContext.Provider>
   );
 }

@@ -102,6 +102,25 @@ export function getPricingTier(id: PricingTierId): PricingTier {
   return PRICING_TIERS.find((t) => t.id === id) ?? PRICING_TIERS[0]!;
 }
 
+export type BillingCycle = "monthly" | "annual";
+
+/** 연간 결제 시 무료로 제공되는 개월 수 (연간가 = 월가 × (12 - ANNUAL_FREE_MONTHS)) */
+export const ANNUAL_FREE_MONTHS = 2;
+
+export function getAnnualPriceKrw(tier: PricingTier): number {
+  return tier.monthlyPriceKrw * (12 - ANNUAL_FREE_MONTHS);
+}
+
+/** 결제 주기별 청구 금액 */
+export function getPriceForCycle(tier: PricingTier, cycle: BillingCycle): number {
+  return cycle === "annual" ? getAnnualPriceKrw(tier) : tier.monthlyPriceKrw;
+}
+
+/** 결제 주기별 이번 청구로 지급할 토큰 수 (연간은 12개월치 선지급) */
+export function getTokensForCycle(tier: PricingTier, cycle: BillingCycle): number {
+  return cycle === "annual" ? tier.monthlyTokens * 12 : tier.monthlyTokens;
+}
+
 export function getCreditPack(id: string): CreditPack | undefined {
   return CREDIT_PACKS.find((p) => p.id === id);
 }

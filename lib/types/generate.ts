@@ -15,6 +15,8 @@ export type PhotoCostBreakdown = {
   claude?: number;
   referenceAnalysis?: number;
   reviewInsights?: number;
+  /** Vision 역할이 user 잠금이 아닌 인덱스에 실제로 반영된 장수 (UI 배지) */
+  visionRolesApplied?: number;
 };
 
 export type ReferenceAnalysisInput = {
@@ -60,12 +62,22 @@ export type ProductInput = {
    * hero=대표/착장, detail=디테일, lifestyle=코디/사용, package=패키지, other=기타
    */
   imageRoles?: import("@/lib/image-roles").ProductImageRole[];
+  /** 사용자가 드롭다운으로 직접 고른 인덱스 — true면 Vision이 덮어쓰지 않음 */
+  imageRoleUserSet?: boolean[];
+  /** draft Vision 판정 — final 경로에서 재호출 없이 역할 병합에 사용 */
+  visionImageRoles?: import("@/lib/image-roles").VisionImageRoleJudgment[];
+  /** draft에서 받은 이미지 분석 텍스트 — final 저장·파이프라인 표시용 */
+  imageAnalysis?: string;
+  /** draft에서 추출한 테마 — final에서 재추출 실패 시 폴백 */
+  theme?: import("@/lib/color-extract").ExtractedTheme | null;
   productName: string;
   brandName?: string | null;
   price: number;
   targetCustomer?: string | null;
   keyFeatures?: string | null;
   ingredients?: string | null;
+  /** 용량·크기 힌트 (예: "35mL, 높이 약 9cm") — 사용샷 스케일·카피용 */
+  productSizeHint?: string | null;
   certifications?: string | null;
   competitorUrl?: string | null;
   // URL이 아니라, 판매자가 1688/도매꾹 원본 상품 페이지에서 직접 복사해
@@ -73,8 +85,20 @@ export type ProductInput = {
   wholesaleUrl?: string | null;
   /** 레퍼런스 무드/색상 참고 이미지 (Supabase Storage URL) */
   referenceImageUrl?: string | null;
-  /** 64차 — 인물/라이프스타일 사진 (제품 합성용, AI 가짜 인물 생성 아님) */
+  /** 109차 — 브랜드 로고 (PNG/SVG 권장, 히어로 표시) */
+  logoUrl?: string | null;
+  /** 64차 — 인물/라이프스타일 사진 (제품 합성용). 미업로드 시 AI 연출 인물컷이 쓰일 수 있음 */
   lifestyleImageUrl?: string | null;
+  /**
+   * 103/105차 C — AI 인물 사용샷(img2img) 옵트인.
+   * false/미지정이면 generate-lifestyle-shots 생략. 인물 사진 합성(composite)과는 별개.
+   */
+  enableAiLifestyleShots?: boolean;
+  /**
+   * 106차 — imageUrls와 동일 길이의 출처 플래그.
+   * ai-lifestyle | composite | enhanced | original | fx | compare | other
+   */
+  imageOrigins?: import("@/lib/image-origins").ProductImageOrigin[];
   /** 고객 리뷰 엑셀/txt (Supabase Storage URL) */
   reviewFileUrl?: string | null;
   /** 기획안 PDF/DOCX (Supabase Storage URL) */
@@ -145,7 +169,8 @@ export type ImageTextSection = {
   imageIndex: number;
   imagePosition: "left" | "right";
   /** 기본 "full" = 기존 풀사이즈 이미지+텍스트. "compact" = 작은 썸네일+텍스트 한 줄. "callout" = 사진 위 말풍선 강조 */
-  layout?: "full" | "compact" | "callout" | "annotated" | "circle-pair" | "circle-solo";
+  /** "text_only" = 맞는 사진이 없을 때 카피만 (104차 B/C) */
+  layout?: "full" | "compact" | "callout" | "annotated" | "circle-pair" | "circle-solo" | "text_only";
   /** compact 썸네일 모서리 — 기본 square, circle 시 rounded-full */
   imageShape?: "square" | "circle";
   /** layout:"callout"일 때 사진 위 말풍선에 표시할 짧은 강조 문구 (12~18자 권장) */
@@ -329,6 +354,8 @@ export type BrandStorySection = {
   slot: string;
   heading: string;
   body: string;
+  /** 107차 — 미사용 컷이 남을 때만 1~2장 (없으면 텍스트 전용) */
+  imageIndexes?: number[];
 };
 
 /** AI 생성 콘텐츠 고지 — 카피는 서버가 고정 문구로 주입 */
@@ -512,6 +539,8 @@ export type GenerateResponse = GeneratedCopy & {
   generationCost?: number;
   testMode?: boolean;
   imageUrls?: string[];
+  imagePaths?: string[];
+  imageOrigins?: import("@/lib/image-origins").ProductImageOrigin[];
   referenceAnalysis?: ReferenceAnalysisInput | null;
   reviewInsights?: ReviewInsightsInput | null;
   planningDocText?: string | null;
@@ -522,6 +551,8 @@ export type GenerateResponse = GeneratedCopy & {
 export type DraftGenerateResponse = GeneratedCopy & {
   draftToken: string;
   imageAnalysis: string;
+  imageRoles?: import("@/lib/image-roles").ProductImageRole[];
+  visionImageRoles?: import("@/lib/image-roles").VisionImageRoleJudgment[];
   mfdsReviewed?: boolean;
   replacements?: ComplianceReplacement[];
   theme?: ExtractedTheme | null;

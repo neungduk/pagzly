@@ -365,6 +365,38 @@ export function detectCopyHallucinations(
   return issues;
 }
 
+/** 116차 — AI 상투 클리셰 (mainHeadline / subHeadline / cta만). 사실 관계는 건드리지 않음 */
+export const GENERIC_CLICHE_PATTERNS: Array<{ id: string; re: RegExp }> = [
+  { id: "이제 고민은 그만", re: /이제\s*고민은\s*그만/ },
+  { id: "당신을 위한 선택", re: /당신(?:을)?\s*위한\s*(?:완벽한\s*)?선택/ },
+  { id: "완벽한 선택", re: /완벽한\s*선택/ },
+  { id: "새로운 시작", re: /새로운\s*시작/ },
+  { id: "여기 있습니다", re: /여기\s*있습니다/ },
+  { id: "지금 바로 만나보세요", re: /지금\s*바로\s*만나보세요/ },
+  { id: "당신의 피부를 위한", re: /당신의\s*피부(?:를)?\s*위한/ },
+  { id: "더 이상 망설이지 마세요", re: /더\s*이상\s*망설이지\s*마세요/ },
+  { id: "오늘부터 달라집니다", re: /오늘부터\s*달라집니다/ },
+  { id: "경험해보세요", re: /경험해\s*보세요/ },
+  { id: "만나보세요", re: /만나보세요/ },
+];
+
+export function detectGenericCliches(copy: DetailPageCopy): string[] {
+  const fields: Array<{ label: string; text: string }> = [
+    { label: "mainHeadline", text: copy.mainHeadline ?? "" },
+    { label: "subHeadline", text: copy.subHeadline ?? "" },
+    { label: "cta", text: copy.cta ?? "" },
+  ];
+  const hits: string[] = [];
+  for (const { label, text } of fields) {
+    for (const { id, re } of GENERIC_CLICHE_PATTERNS) {
+      if (re.test(text)) {
+        hits.push(`${label}: ${id}`);
+      }
+    }
+  }
+  return hits;
+}
+
 export const DETAIL_PAGE_COPY_JSON_SCHEMA = {
   type: "object",
   required: [

@@ -32,10 +32,14 @@ function SubscribeSuccessContent() {
 
     async function completeSubscribe() {
       try {
+        const cycleParam = searchParams.get("cycle");
+        const billingCycle =
+          cycleParam === "annual" || cycleParam === "monthly" ? cycleParam : "monthly";
+
         const res = await fetch("/api/billing/subscribe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tier, customerKey, authKey }),
+          body: JSON.stringify({ tier, customerKey, authKey, billingCycle }),
         });
 
         const data = (await res.json()) as {

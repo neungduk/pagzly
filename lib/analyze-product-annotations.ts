@@ -8,9 +8,50 @@ import {
   type ImageAnnotation,
 } from "@/lib/product-annotations";
 
+export type AnnotationDomain = "electronics" | "cosmetics";
+
+function buildAnnotationPrompt(domain: AnnotationDomain, hints: string[]): string {
+  if (domain === "cosmetics") {
+    return `화장품·뷰티 제품 사진에서 아래 힌트와 관련된 **물리적으로 보이는** 구조·재질·표기 위치를 찾아 주석 좌표를 JSON으로만 반환하세요.
+힌트: ${hints.join(", ")}
+
+{
+  "annotations": [
+    { "label": "8자 이내 한국어 라벨", "xPct": 0-100, "yPct": 0-100 }
+  ],
+  "confidence": "high" | "low"
+}
+
+규칙:
+- 이미지 좌상단 기준 xPct/yPct (0~100)
+- 실제로 보이는 부위만, 최대 4개
+- 라벨은 물리 특징만: 예) 노즐, 캡, 보틀, 글라스, 오일층, mL 표기, 펌프
+- **금지:** 효능·효과·사용 결과 (보습, 속건조, 장벽 강화, 24시간, 미백, 주름 개선 등)
+- 위치를 확신할 수 없으면 confidence:"low" 와 빈 annotations
+- 제품 밖 빈 공간이나 엉뚱한 곳에 찍지 말 것`;
+  }
+
+  return `전자제품 사진에서 아래 기능/부품이 보이는 위치를 찾아 주석 좌표를 JSON으로만 반환하세요.
+기능 힌트: ${hints.join(", ")}
+
+{
+  "annotations": [
+    { "label": "8자 이내 한국어 라벨", "xPct": 0-100, "yPct": 0-100 }
+  ],
+  "confidence": "high" | "low"
+}
+
+규칙:
+- 이미지 좌상단 기준 xPct/yPct (0~100)
+- 실제로 보이는 부위만, 최대 4개
+- 위치를 확신할 수 없으면 confidence:"low" 와 빈 annotations
+- 제품 밖 빈 공간이나 엉뚱한 곳에 찍지 말 것`;
+}
+
 export async function analyzeProductAnnotations(
   imageBuffer: Buffer,
   featureHints: string[],
+  options?: { domain?: AnnotationDomain },
 ): Promise<{ annotations: ImageAnnotation[]; reliable: boolean; cost: number }> {
   if (!process.env.ANTHROPIC_API_KEY || isTestMode()) {
     if (isTestMode()) {
@@ -23,6 +64,8 @@ export async function analyzeProductAnnotations(
   if (hints.length === 0) {
     return { annotations: [], reliable: false, cost: 0 };
   }
+
+  const domain = options?.domain ?? "electronics";
 
   try {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -43,21 +86,7 @@ export async function analyzeProductAnnotations(
             },
             {
               type: "text",
-              text: `전자제품 사진에서 아래 기능/부품이 보이는 위치를 찾아 주석 좌표를 JSON으로만 반환하세요.
-기능 힌트: ${hints.join(", ")}
-
-{
-  "annotations": [
-    { "label": "8자 이내 한국어 라벨", "xPct": 0-100, "yPct": 0-100 }
-  ],
-  "confidence": "high" | "low"
-}
-
-규칙:
-- 이미지 좌상단 기준 xPct/yPct (0~100)
-- 실제로 보이는 부위만, 최대 4개
-- 위치를 확신할 수 없으면 confidence:"low" 와 빈 annotations
-- 제품 밖 빈 공간이나 엉뚱한 곳에 찍지 말 것`,
+              text: buildAnnotationPrompt(domain, hints),
             },
           ],
         },
@@ -78,7 +107,7 @@ export async function analyzeProductAnnotations(
     const annotations = sanitizeAnnotations(parsed.annotations);
     const reliable = parsed.confidence === "high" && areAnnotationsReliable(annotations);
     console.log(
-      `[annotations] vision confidence=${parsed.confidence ?? "unknown"} reliable=${reliable} count=${annotations.length}`,
+      `[annotations] domain=${domain} confidence=${parsed.confidence ?? "unknown"} reliable=${reliable} count=${annotations.length}`,
     );
     return { annotations: reliable ? annotations : [], reliable, cost };
   } catch (error) {

@@ -35,8 +35,14 @@ export function buildGenerationPipelineSummary(input: {
   photoCostBreakdown?: PhotoCostBreakdown;
   backdropFailed?: boolean;
   sectionCount?: number;
+  /** Vision 역할이 image_roles에 실제로 들어간 장수 (없으면 breakdown에서 읽음) */
+  visionRolesApplied?: number | null;
 }): GenerationPipelineSummary {
   const imageDone = Boolean(input.imageAnalysis?.trim());
+  const visionApplied =
+    input.visionRolesApplied ??
+    input.photoCostBreakdown?.visionRolesApplied ??
+    0;
   const toneDone = Boolean(input.theme?.baseNeutral?.trim());
   const layoutRan = photoPipelineRan(input.photoProcessingCost, input.photoCostBreakdown);
   const contentDone = (input.sectionCount ?? 0) > 0;
@@ -46,7 +52,12 @@ export function buildGenerationPipelineSummary(input: {
       id: "image_analysis",
       label: "이미지 분석 완료",
       done: imageDone,
-      detail: imageDone ? "Vision 분석 반영" : undefined,
+      // 102차 — 서술형 analysis만으로는 "Vision 분석 반영" 표시하지 않음
+      detail: imageDone
+        ? visionApplied > 0
+          ? `Vision 역할 반영 (${visionApplied}장)`
+          : "서술 분석 완료"
+        : undefined,
     },
     {
       id: "tone_manner",

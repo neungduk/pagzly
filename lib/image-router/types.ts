@@ -12,6 +12,8 @@ export const IMAGE_TASK_TYPES = [
   "PRODUCT_PLACEMENT",
   "PRODUCT_SCENE_CHANGE",
   "PRODUCT_LIFESTYLE_EDIT",
+  /** 111차 — 제품 없는 인물 씬 (빈손 grasp) → 이후 픽셀 합성 */
+  "PRODUCT_LIFESTYLE_EMPTY_SCENE",
   "DETAIL_PAGE_GRAPHIC",
 ] as const;
 

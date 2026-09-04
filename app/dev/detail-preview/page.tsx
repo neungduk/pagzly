@@ -11,6 +11,7 @@ import type { BlogBlockOverride, BlogPostGlobalOverride } from "@/lib/blog-post"
 import type { InstagramSlideOverride } from "@/lib/instagram-feed";
 import type { DetailSection } from "@/lib/types/generate";
 import { validateImageFile } from "@/lib/image-upload";
+import { resolveHeadlineFontKind } from "@/lib/detail-typography";
 
 const initialImageUrls = [
   "/iteration-fixtures/01.jpg",
@@ -774,7 +775,11 @@ export default function DetailPreviewPage() {
           />
         </div>
       ) : (
-        <div className="mx-auto max-w-[430px] overflow-x-hidden border-x border-line bg-paper shadow-sm" data-pagzly-preview>
+        <div
+          className="mx-auto max-w-[430px] overflow-x-hidden border-x border-line bg-paper shadow-sm"
+          data-pagzly-preview
+          data-headline-face={resolveHeadlineFontKind(previewCategory)}
+        >
           <DetailSectionRenderer
             sections={visibleSections}
             imageUrls={imageUrls}

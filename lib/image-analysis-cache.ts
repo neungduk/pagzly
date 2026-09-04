@@ -9,6 +9,8 @@ export type ImageAnalysisCacheEntry = {
   model: string;
   imageCount: number;
   createdAt: string;
+  /** 100차 — Vision 역할 판정 (없으면 구캐시) */
+  roles?: import("@/lib/image-roles").VisionImageRoleJudgment[];
 };
 
 function ensureCacheDir(): void {

@@ -1,358 +1,193 @@
 "use client";
 
-
-
 import Link from "next/link";
-
 import Script from "next/script";
-
 import { useRouter } from "next/navigation";
-
 import { useCallback, useEffect, useState } from "react";
-
 import BillingAccountSummary from "@/components/BillingAccountSummary";
 import BillingCycleToggle from "@/components/BillingCycleToggle";
 import BillingPlanFeatureList from "@/components/BillingPlanFeatureList";
 import BillingRecommendedBadge from "@/components/BillingRecommendedBadge";
 import PagzlyLogo from "@/components/PagzlyLogo";
-
 import {
-
   PRICING_TIERS,
-
+  getAnnualPriceKrw,
+  getPriceForCycle,
   getPricingTier,
-
+  type BillingCycle,
   type PricingTierId,
-
 } from "@/lib/cost/saas-pricing-config";
-
 import { createClient } from "@/lib/supabase";
 
-
-
 declare global {
-
   interface Window {
-
     TossPayments: (clientKey: string) => {
-
       payment: (options: { customerKey: string }) => {
-
         requestBillingAuth: (params: {
-
           method: string;
-
           successUrl: string;
-
           failUrl: string;
-
           customerName?: string;
-
           customerEmail?: string;
-
         }) => Promise<void>;
-
       };
-
     };
-
   }
-
 }
 
-
-
 export default function SubscribePage() {
-
   const router = useRouter();
-
   const [userId, setUserId] = useState<string | null>(null);
-
   const [activeTier, setActiveTier] = useState<PricingTierId | null>(null);
-
   const [balance, setBalance] = useState(0);
-
   const [loading, setLoading] = useState(true);
-
   const [submittingTier, setSubmittingTier] = useState<PricingTierId | null>(null);
-
   const [error, setError] = useState<string | null>(null);
-
   const [sdkReady, setSdkReady] = useState(false);
-
-
+  const [cycle, setCycle] = useState<BillingCycle>("monthly");
 
   useEffect(() => {
-
     async function load() {
-
       const supabase = createClient();
-
       const {
-
         data: { user },
-
       } = await supabase.auth.getUser();
 
-
-
       if (!user) {
-
         router.replace("/login");
-
         return;
-
       }
-
-
 
       setUserId(user.id);
 
-
-
       const [{ data: subscription }, { data: creditRow }] = await Promise.all([
-
         supabase
-
           .from("subscriptions")
-
           .select("tier_id, status")
-
           .eq("user_id", user.id)
-
           .maybeSingle(),
-
         supabase.from("user_credits").select("balance").eq("user_id", user.id).maybeSingle(),
-
       ]);
 
-
-
       if (subscription?.status === "active" && subscription.tier_id) {
-
         setActiveTier(subscription.tier_id as PricingTierId);
-
       }
-
       setBalance(creditRow?.balance ?? 0);
 
-
-
       setLoading(false);
-
     }
 
-
-
     void load();
-
   }, [router]);
 
-
-
   const handleSubscribe = useCallback(
-
     async (tierId: PricingTierId) => {
-
       const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
-
       if (!userId) return;
-
       if (!clientKey) {
-
         setError("NEXT_PUBLIC_TOSS_CLIENT_KEY가 설정되지 않았습니다.");
-
         return;
-
       }
-
       if (!window.TossPayments) {
-
         setError("토스페이먼츠 SDK를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
-
         return;
-
       }
-
-
 
       setError(null);
-
       setSubmittingTier(tierId);
 
-
-
       try {
-
         const tossPayments = window.TossPayments(clientKey);
-
         const payment = tossPayments.payment({ customerKey: userId });
-
         const tier = getPricingTier(tierId);
-
         const origin = window.location.origin;
-
-        const successUrl = `${origin}/billing/subscribe/success?tier=${tierId}`;
-
+        const successUrl = `${origin}/billing/subscribe/success?tier=${tierId}&cycle=${cycle}`;
         const failUrl = `${origin}/billing/subscribe/fail`;
 
-
-
         await payment.requestBillingAuth({
-
           method: "CARD",
-
           successUrl,
-
           failUrl,
-
           customerName: `Pagzly ${tier.label}`,
-
         });
-
       } catch (err) {
-
         const message =
-
           err instanceof Error ? err.message : "카드 등록을 시작하지 못했습니다.";
-
         setError(message);
-
         setSubmittingTier(null);
-
       }
-
     },
-
-    [userId],
-
+    [userId, cycle],
   );
 
-
-
   if (loading) {
-
     return (
-
       <div className="flex min-h-screen items-center justify-center bg-paper text-ink">
-
         <p className="text-sm text-ink/60">불러오는 중…</p>
-
       </div>
-
     );
-
   }
 
-
-
   if (activeTier) {
-
     const tier = getPricingTier(activeTier);
-
     return (
-
       <div className="flex min-h-screen flex-col bg-paper text-ink">
-
         <header className="border-b border-line px-6 py-5">
-
           <Link href="/">
-
             <PagzlyLogo className="h-8 w-auto" />
-
           </Link>
-
         </header>
-
         <main className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-6 py-16">
-
           <BillingAccountSummary balance={balance} activeTier={activeTier} />
-
           <p className="mt-4 text-center text-sm text-ink/65">
             <Link href="/billing/packs" className="font-medium text-registration-red hover:underline">
               토큰만 추가로 구매하려면 → 토큰 팩 구매
             </Link>
           </p>
-
           <div className="mt-6 rounded-2xl border border-line bg-white p-8 text-center shadow-sm">
-
             <h1 className="text-2xl font-bold">이미 구독 중입니다</h1>
-
             <p className="mt-3 text-sm text-ink/70">
-
               현재 <strong>{tier.label}</strong> 플랜을 이용 중입니다.
-
             </p>
-
             <Link
-
               href="/create"
-
               className="mt-8 inline-flex rounded-lg bg-registration-red px-5 py-3 text-sm font-semibold text-white"
-
             >
-
               상세페이지 만들기
-
             </Link>
-
           </div>
-
         </main>
-
       </div>
-
     );
-
   }
 
-
-
   return (
-
     <>
-
       <Script
-
         src="https://js.tosspayments.com/v2/standard"
-
         strategy="afterInteractive"
-
         onLoad={() => setSdkReady(true)}
-
       />
 
-
-
       <div className="flex min-h-screen flex-col bg-paper text-ink">
-
         <header className="border-b border-line px-6 py-5">
-
           <Link href="/">
-
             <PagzlyLogo className="h-8 w-auto" />
-
           </Link>
-
         </header>
 
-
-
         <main className="mx-auto w-full max-w-5xl px-6 py-12">
-
           <div className="text-center">
             <p className="text-xs font-medium uppercase tracking-wide text-ink/40">PAGZLY 요금제</p>
             <h1 className="mt-2 text-3xl font-bold">요금제 플랜</h1>
             <p className="mt-3 text-sm text-ink/60">
-              상세페이지 제작에 필요한 토큰을 매월 자동으로 충전합니다. 카드 등록 후 첫 결제가 즉시 진행됩니다.
+              상세페이지 제작에 필요한 토큰을 매월 자동으로 충전합니다. 카드 등록 후 첫 결제가 즉시
+              진행됩니다.
             </p>
-            <BillingCycleToggle />
+            <BillingCycleToggle value={cycle} onChange={setCycle} />
           </div>
 
-
-
           <BillingAccountSummary balance={balance} activeTier={activeTier} />
-
           <p className="mt-4 text-center text-sm text-ink/65">
             <Link href="/billing/packs" className="font-medium text-registration-red hover:underline">
               토큰만 추가로 구매하려면 → 토큰 팩 구매
@@ -360,22 +195,17 @@ export default function SubscribePage() {
           </p>
 
           {error ? (
-
             <p className="mx-auto mt-6 max-w-xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-
               {error}
-
             </p>
-
           ) : null}
 
-
-
           <div className="mt-10 grid gap-6 md:grid-cols-3">
-
             {PRICING_TIERS.map((tier) => {
               const isSubmitting = submittingTier === tier.id;
               const isPopular = tier.id === "growth";
+              const price = getPriceForCycle(tier, cycle);
+              const unitLabel = cycle === "annual" ? "원 / 년" : "원 / 월";
               return (
                 <div
                   key={tier.id}
@@ -389,9 +219,15 @@ export default function SubscribePage() {
                     {tier.label}
                   </p>
                   <p className="mt-3 text-3xl font-bold tabular-nums">
-                    {tier.monthlyPriceKrw.toLocaleString("ko-KR")}
-                    <span className="ml-1 text-base font-medium text-ink/60">원 / 월</span>
+                    {price.toLocaleString("ko-KR")}
+                    <span className="ml-1 text-base font-medium text-ink/60">{unitLabel}</span>
                   </p>
+                  {cycle === "annual" ? (
+                    <p className="mt-1 text-xs text-registration-red">
+                      월 {Math.round(getAnnualPriceKrw(tier) / 12).toLocaleString("ko-KR")}원 상당 ·
+                      2개월 무료
+                    </p>
+                  ) : null}
                   <p className="mt-3 text-sm text-ink/65">{tier.tagline}</p>
                   <button
                     type="button"
@@ -408,16 +244,9 @@ export default function SubscribePage() {
                 </div>
               );
             })}
-
           </div>
-
         </main>
-
       </div>
-
     </>
-
   );
-
 }
-

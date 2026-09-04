@@ -51,7 +51,12 @@ includesAll(
 const tokens = read("lib/design-tokens.ts");
 includesAll(
   tokens,
-  ["CATEGORY_PATTERN_SVG", "getCategoryPatternBackground", "composeSectionBackground"],
+  [
+    "CATEGORY_PATTERN_SVG",
+    "getCategoryPatternBackground",
+    "composeSectionBackground",
+    '"생활용품"',
+  ],
   "T1-C category SVG patterns",
 );
 

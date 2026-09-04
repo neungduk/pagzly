@@ -10,6 +10,7 @@ const KONTEXT_TASKS = new Set<ImageTaskType>([
   "PRODUCT_PLACEMENT",
   "PRODUCT_SCENE_CHANGE",
   "PRODUCT_LIFESTYLE_EDIT",
+  "PRODUCT_LIFESTYLE_EMPTY_SCENE",
 ]);
 
 const FLUX_TASKS = new Set<ImageTaskType>([

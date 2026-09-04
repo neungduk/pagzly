@@ -62,42 +62,47 @@ function buildPetShots(productName: string, ctx: string): LifestyleShotPlan[] {
 
 function buildHumanShots(
   category: string,
-  productName: string,
+  _productName: string,
   ctx: string,
   features?: string | null,
+  _productSizeHint?: string | null,
 ): LifestyleShotPlan[] {
+  // 111차 — 안 1(빈손): 제품은 그리지 않고 grasp 자세만. 스케일 문장·제품 보존 지시 제거.
   const feat = features?.trim();
-  const featHint = feat ? ` Highlight: ${feat.slice(0, 120)}.` : "";
+  const featHint = feat ? ` Scene mood hint: ${feat.slice(0, 80)}.` : "";
+
+  const emptyHandCore =
+    "a person's hand in a natural holding gesture, fingers curled as if holding a small bottle — the hand must be completely empty, absolutely no bottle, no cylindrical object of any kind, no dropper cap, no jar, no package, no brand logo, no product silhouette; empty fingers and skin only in the grasp";
 
   const wide: LifestyleShotPlan = {
-    taskType: "PRODUCT_LIFESTYLE_EDIT",
+    taskType: "PRODUCT_LIFESTYLE_EMPTY_SCENE",
     aspectRatio: "3:4",
     label: "일상 와이드",
-    prompt: `Create an authentic everyday lifestyle scene in ${ctx}. A real person naturally uses or holds "${productName}" in a candid moment — relaxed posture, not posed catalog model.${featHint} Product packaging and branding must stay identical to the reference. Soft natural lighting, Korean daily-life aesthetic, photorealistic editorial.`,
+    prompt: `Authentic everyday lifestyle scene in ${ctx}. Show ${emptyHandCore}. Relaxed posture, candid, not a catalog model.${featHint} Soft natural lighting, Korean daily-life aesthetic, photorealistic editorial.`,
   };
 
   const close: LifestyleShotPlan = {
-    taskType: "PRODUCT_LIFESTYLE_EDIT",
+    taskType: "PRODUCT_LIFESTYLE_EMPTY_SCENE",
     aspectRatio: "2:3",
     label: "사용 클로즈업",
     prompt:
       category === "화장품/뷰티"
-        ? `Close-up lifestyle shot: person's hands or face applying "${productName}" in a morning skincare routine. Bathroom or vanity mirror context, dewy natural skin, product label readable.${featHint} Candid beauty editorial, not studio packshot.`
+        ? `Close-up lifestyle: ${emptyHandCore} near face or vanity in a morning skincare routine. Bathroom or vanity mirror context, dewy natural skin.${featHint} Candid beauty editorial — do not draw any product.`
         : category === "의류/패션"
-          ? `Person wearing or adjusting "${productName}" in a mirror or street candid shot. Outfit feels lived-in and real, not runway. Fabric and garment details visible.${featHint}`
+          ? `Person adjusting clothing in a mirror or street candid shot in ${ctx}. Hands natural; no product bottle in frame.${featHint}`
           : category === "식품/건강기능식품"
-            ? `Person enjoying "${productName}" at a dining table — natural bite, pour, or serve moment. Steam, texture, appetite appeal.${featHint} Product packaging visible on table.`
-            : `Person actively using "${productName}" in ${ctx} — hands-on, practical everyday moment.${featHint} Product clearly visible with correct branding.`,
+            ? `Person at a dining table in a natural pour-or-serve gesture with ${emptyHandCore}.${featHint} No product packaging drawn.`
+            : `Person in ${ctx} with ${emptyHandCore} — practical everyday moment.${featHint} No product drawn.`,
   };
 
   const social: LifestyleShotPlan = {
-    taskType: "PRODUCT_LIFESTYLE_EDIT",
+    taskType: "PRODUCT_LIFESTYLE_EMPTY_SCENE",
     aspectRatio: "3:4",
     label: "함께하는 장면",
     prompt:
       category === "의류/패션"
-        ? `Two friends or a couple styled casually with "${productName}" as part of their outfit coordination in ${ctx}. Walking or chatting, candid street or cafe vibe. Garment looks natural on body.${featHint}`
-        : `Two people sharing a relaxed moment involving "${productName}" in ${ctx} — coffee table, sofa, or kitchen. Warm social everyday scene, product placed naturally in frame.${featHint}`,
+        ? `Two friends casually styled in ${ctx}. Walking or chatting, candid street or cafe vibe. No product bottle in frame.${featHint}`
+        : `Two people sharing a relaxed moment in ${ctx} — coffee table, sofa, or kitchen. One person shows ${emptyHandCore}. Warm social everyday scene.${featHint} No product drawn.`,
   };
 
   return [wide, close, social];
@@ -109,7 +114,10 @@ export function planLifestyleShots(params: {
   brandName?: string | null;
   targetCustomer?: string | null;
   keyFeatures?: string | null;
+  productSizeHint?: string | null;
   count: number;
+  /** true면 Replicate 호출 없이 프롬프트만 반환 (105차 dry-run) */
+  dryRun?: boolean;
 }): LifestyleShotPlan[] {
   const ctx = sceneContext(params.category, params.targetCustomer);
   const brand = params.brandName?.trim();
@@ -118,9 +126,30 @@ export function planLifestyleShots(params: {
   const pool =
     params.category === "반려동물"
       ? buildPetShots(name, ctx)
-      : buildHumanShots(params.category, name, ctx, params.keyFeatures);
+      : buildHumanShots(
+          params.category,
+          name,
+          ctx,
+          params.keyFeatures,
+          params.productSizeHint,
+        );
 
-  return pool.slice(0, Math.max(1, Math.min(params.count, pool.length)));
+  const plans = pool.slice(0, Math.max(1, Math.min(params.count, pool.length)));
+  if (params.dryRun) {
+    console.log(
+      "[lifestyle-planner:dry-run]",
+      JSON.stringify(
+        plans.map((p) => ({
+          label: p.label,
+          aspectRatio: p.aspectRatio,
+          prompt: p.prompt,
+        })),
+        null,
+        2,
+      ),
+    );
+  }
+  return plans;
 }
 
 export const LIFESTYLE_AI_PATH_MARKER = "lifestyle-ai";

@@ -204,6 +204,10 @@ export default function CreateDraftPage() {
         payload: {
           ...draft.payload,
           imageUrls: json.imageUrls ?? draft.payload.imageUrls,
+          imageRoles: json.imageRoles ?? draft.payload.imageRoles,
+          visionImageRoles: json.visionImageRoles ?? draft.payload.visionImageRoles,
+          imageAnalysis: json.imageAnalysis,
+          theme: json.theme ?? draft.payload.theme,
           photoCostBreakdown: json.photoCostBreakdown ?? draft.payload.photoCostBreakdown,
           referenceAnalysis: json.referenceAnalysis ?? draft.payload.referenceAnalysis,
           reviewInsights: json.reviewInsights ?? null,
@@ -291,6 +295,8 @@ export default function CreateDraftPage() {
       brandName: snap.brandName || null,
       price: Number(snap.price) || Number(currentDraft.payload.price) || 0,
       keyFeatures: snap.keyFeatures || null,
+      productSizeHint: snap.productSizeHint || null,
+      enableAiLifestyleShots: snap.enableAiLifestyleShots === true,
       ingredients: snap.ingredients || null,
       targetCustomer: snap.targetCustomer || null,
       referenceImageUrl: (currentDraft.payload.referenceImageUrl as string | null) ?? null,
@@ -316,6 +322,7 @@ export default function CreateDraftPage() {
         ...currentDraft.payload,
         imageUrls: enhancedImages.map((i) => i.url),
         imagePaths: enhancedImages.map((i) => i.path),
+        imageOrigins: enhancedImages.map((i) => i.origin ?? "original"),
         imageRoles: (() => {
           const prev = (currentDraft.payload.imageRoles as string[] | undefined) ?? [];
           const roles = [...prev];
@@ -324,6 +331,17 @@ export default function CreateDraftPage() {
           }
           return roles.slice(0, enhancedImages.length);
         })(),
+        imageRoleUserSet: (() => {
+          const prev = (currentDraft.payload.imageRoleUserSet as boolean[] | undefined) ?? [];
+          const flags = [...prev];
+          while (flags.length < enhancedImages.length) {
+            flags.push(false);
+          }
+          return flags.slice(0, enhancedImages.length);
+        })(),
+        visionImageRoles: currentDraft.payload.visionImageRoles ?? null,
+        imageAnalysis: currentDraft.imageAnalysis ?? currentDraft.payload.imageAnalysis,
+        theme: currentDraft.theme ?? currentDraft.payload.theme ?? null,
         photoProcessingCost:
           ((currentDraft.payload.photoProcessingCost as number) ?? 0) + photoProcessingCost,
         photoCostBreakdown,
@@ -377,6 +395,27 @@ export default function CreateDraftPage() {
         mode: "final",
         imageUrls: enhancedImages.map((i) => i.url),
         imagePaths: enhancedImages.map((i) => i.path),
+        imageOrigins: enhancedImages.map((i) => i.origin ?? "original"),
+        imageAnalysis: draftAfterEnhance.imageAnalysis ?? draftAfterEnhance.payload.imageAnalysis,
+        theme: draftAfterEnhance.theme ?? draftAfterEnhance.payload.theme ?? null,
+        visionImageRoles:
+          draftAfterEnhance.payload.visionImageRoles ?? null,
+        imageRoles: (() => {
+          const prev = (draftAfterEnhance.payload.imageRoles as string[] | undefined) ?? [];
+          const roles = [...prev];
+          while (roles.length < enhancedImages.length) {
+            roles.push("lifestyle");
+          }
+          return roles.slice(0, enhancedImages.length);
+        })(),
+        imageRoleUserSet: (() => {
+          const prev = (draftAfterEnhance.payload.imageRoleUserSet as boolean[] | undefined) ?? [];
+          const flags = [...prev];
+          while (flags.length < enhancedImages.length) {
+            flags.push(false);
+          }
+          return flags.slice(0, enhancedImages.length);
+        })(),
         photoProcessingCost: draftAfterEnhance.payload.photoProcessingCost,
         photoCostBreakdown,
         conceptBrief: conceptBrief ?? draftAfterEnhance.payload.conceptBrief,
@@ -423,6 +462,10 @@ export default function CreateDraftPage() {
         photoCostBreakdown: json.photoCostBreakdown ?? photoCostBreakdown,
         backdropFailed: Boolean(draftAfterEnhance.payload.backdropFailed),
         sectionCount: json.sections?.length ?? 0,
+        visionRolesApplied:
+          (json.photoCostBreakdown as PhotoCostBreakdown | undefined)?.visionRolesApplied ??
+          (photoCostBreakdown as PhotoCostBreakdown).visionRolesApplied ??
+          0,
       });
       pipelineSummary.completedAt = new Date().toISOString();
 
@@ -431,6 +474,10 @@ export default function CreateDraftPage() {
         JSON.stringify({
           ...draftAfterEnhance.payload,
           imageUrls: json.imageUrls ?? enhancedImages.map((i) => i.url),
+          imagePaths: json.imagePaths ?? enhancedImages.map((i) => i.path),
+          imageOrigins:
+            json.imageOrigins ??
+            enhancedImages.map((i) => i.origin ?? "original"),
           photoCostBreakdown: json.photoCostBreakdown ?? photoCostBreakdown,
           photoProcessingCost: draftAfterEnhance.payload.photoProcessingCost,
           generationCost: json.generationCost,

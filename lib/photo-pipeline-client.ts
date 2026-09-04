@@ -7,6 +7,7 @@ import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import type { ConceptBrief } from "@/lib/concept-brief";
 import { computeStudioCompositeLimit } from "@/lib/lifestyle-shot-planner";
 import { getLifestyleShotConfig } from "@/lib/lifestyle-shot-config";
+import type { ProductImageOrigin } from "@/lib/image-origins";
 import type { PhotoCostBreakdown, ReferenceAnalysisInput } from "@/lib/types/generate";
 import { extractCosmeticsFormulation } from "@/lib/cosmetics-texture-swatch";
 import type { ShadowAnalysis } from "@/lib/vision-utils";
@@ -14,6 +15,7 @@ import type { ShadowAnalysis } from "@/lib/vision-utils";
 export type UploadedImage = {
   url: string;
   path: string;
+  origin?: ProductImageOrigin;
 };
 
 export const SOURCE_IMAGE_EXPIRED = "SOURCE_IMAGE_EXPIRED";
@@ -257,7 +259,11 @@ export async function enhanceImages(params: {
     if (result.decorDataUrl) {
       decorDataUrl = result.decorDataUrl;
     }
-    return { url: result.enhancedUrl, path: result.enhancedPath };
+    return {
+      url: result.enhancedUrl,
+      path: result.enhancedPath,
+      origin: "enhanced" as const,
+    };
   }
 
   async function enhanceOne(
@@ -290,7 +296,9 @@ export async function enhanceImages(params: {
 
   const extras: UploadedImage[] = [];
   if (isBeauty) {
-    if (uploaded.length < 2 && sectionBackdrops?.ingredientUrl) {
+    // 100차 — 업로드가 많아도 성분/텍스처 파생을 최소 1장씩 확보.
+    // 101차 — 실패 시 원본 URL을 복제해 넣지 않음(같은 URL 3회 저장 방지). 성공분만 extras.
+    if (sectionBackdrops?.ingredientUrl) {
       enhanceStep += 1;
       reportEnhance("성분 배경 합성", enhanceStep, totalEnhanceSteps);
       try {
@@ -300,20 +308,23 @@ export async function enhanceImages(params: {
           pathSuffix: "ingredient",
         });
         if (extra) extras.push(extra);
+        else console.warn("[enhance-image] ingredient extra 실패 — 원본 복제하지 않음");
       } catch (err) {
         console.warn("[enhance-image] 성분 배경 추가 합성 실패:", err);
       }
     }
-    if (uploaded.length + extras.length < 3 && sectionBackdrops?.textureUrl) {
+    if (sectionBackdrops?.textureUrl) {
       enhanceStep += 1;
       reportEnhance("텍스처 배경 합성", enhanceStep, totalEnhanceSteps);
       try {
-        const extra = await enhanceOne(uploaded[0], sectionBackdrops.textureUrl, {
+        const source = uploaded[Math.min(1, uploaded.length - 1)] ?? uploaded[0];
+        const extra = await enhanceOne(source, sectionBackdrops.textureUrl, {
           applyDecor: false,
           keepOriginal: true,
           pathSuffix: "texture",
         });
         if (extra) extras.push(extra);
+        else console.warn("[enhance-image] texture extra 실패 — 원본 복제하지 않음");
       } catch (err) {
         console.warn("[enhance-image] 텍스처 배경 추가 합성 실패:", err);
       }
@@ -321,8 +332,13 @@ export async function enhanceImages(params: {
   }
 
   const studioCompositeLimit = computeStudioCompositeLimit(uploaded.length);
+  const studioPassthrough = Math.max(0, uploaded.length - studioCompositeLimit);
+  console.log(
+    `[photo-pipeline] studioLimit=${studioCompositeLimit} uploaded=${uploaded.length} passthrough=${studioPassthrough}`,
+  );
 
   const results: UploadedImage[] = [];
+  let enhanceFailCount = 0;
   // 비히어로는 빈 section backdrop만 사용. 합성된 hero를 슬롯 3/6/9에 재쓰면
   // rembg가 스킵되며 손·어두운 플레이트가 복제된다 (전자제품 Pexels 라이프스타일샷에서 특히).
   const sectionPool = [
@@ -337,7 +353,7 @@ export async function enhanceImages(params: {
     const isHero = index === 0;
     if (!isHero && index >= studioCompositeLimit) {
       console.log(`[enhance] idx=${index} skip studio composite — keep original (lifestyle pool)`);
-      results.push(item);
+      results.push({ ...item, origin: item.origin ?? "original" });
       continue;
     }
     let resolvedBackdrop: string;
@@ -365,18 +381,47 @@ export async function enhanceImages(params: {
         backdropAlreadyComposited: isHero ? backdropAlreadyComposited : false,
       });
       if (!enhanced) {
+        enhanceFailCount += 1;
         console.error(
           `[enhance-image] FALLBACK: slot ${index} 원본 유지 — ${item.path}`,
         );
       }
-      results.push(enhanced ?? item);
+      // 보정 실패해도 슬롯을 버리지 않는다 — 원본을 풀에 남겨 30회 동일컷 반복을 막는다.
+      results.push(enhanced ?? { ...item, origin: item.origin ?? "original" });
     } catch (err) {
+      enhanceFailCount += 1;
       console.error("[enhance-image] FALLBACK: 보정 예외, 원본 사용:", item.path, err);
-      results.push(item);
+      results.push({ ...item, origin: item.origin ?? "original" });
     }
   }
 
-  return { images: [...results, ...extras], cost: totalCost, decorCost, claudeCost };
+  console.log(
+    `[enhance-image] done uploaded=${uploaded.length} kept=${results.length} extras=${extras.length} fallbackOriginals=${enhanceFailCount}`,
+  );
+
+  // 101차 — 동일 URL이 extras/폴백으로 여러 번 들어오면 풀에서 제거
+  const merged = [...results, ...extras];
+  const deduped: UploadedImage[] = [];
+  const seenUrls = new Set<string>();
+  for (const img of merged) {
+    if (!img?.url || seenUrls.has(img.url)) {
+      if (img?.url) {
+        console.warn(
+          `[enhance-image] drop duplicate url ${img.url.split("/").pop() ?? img.url}`,
+        );
+      }
+      continue;
+    }
+    seenUrls.add(img.url);
+    deduped.push(img);
+  }
+  if (deduped.length !== merged.length) {
+    console.warn(
+      `[enhance-image] deduped ${merged.length} → ${deduped.length} (removed ${merged.length - deduped.length})`,
+    );
+  }
+
+  return { images: deduped, cost: totalCost, decorCost, claudeCost };
 }
 
 export type PhotoPipelineStage =
@@ -413,6 +458,9 @@ export async function runPhotoEnhancementPipeline(params: {
   brandName: string | null;
   price: number;
   keyFeatures?: string | null;
+  productSizeHint?: string | null;
+  /** false/미지정이면 AI 인물 사용샷 생성 생략 (105차 C 옵트인) */
+  enableAiLifestyleShots?: boolean;
   ingredients?: string | null;
   targetCustomer?: string | null;
   referenceImageUrl?: string | null;
@@ -649,7 +697,11 @@ export async function runPhotoEnhancementPipeline(params: {
             (compositeJson.url.includes("lifestyle-composite")
               ? compositeJson.url
               : `lifestyle-composite/${Date.now()}.png`);
-          finalImages.push({ url: compositeJson.url, path: compositePath });
+          finalImages.push({
+            url: compositeJson.url,
+            path: compositePath,
+            origin: "composite",
+          });
           console.log(
             `[lifestyle-composite] appended image index ${finalImages.length - 1} path=${compositePath.slice(0, 80)}`,
           );
@@ -683,24 +735,35 @@ export async function runPhotoEnhancementPipeline(params: {
   }
 
   if (uploaded.length >= getLifestyleShotConfig().minUploadCount) {
+    console.log(
+      `[photo-pipeline] enableAiLifestyleShots=${params.enableAiLifestyleShots === true}`,
+    );
+    if (params.enableAiLifestyleShots !== true) {
+      console.log(
+        "[photo-pipeline] AI lifestyle shots skipped — enableAiLifestyleShots not opted in",
+      );
+    } else {
     emit({
       stage: "lifestyle",
       detail: "AI 일상샷 생성 중",
       costUsdSoFar: photoProcessingCost,
     });
     try {
-      const heroRef = finalImages[0];
+      const heroRef = uploaded[0];
       const lifestyleRes = await fetch("/api/generate-lifestyle-shots", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          productImageUrl: heroRef?.url ?? uploaded[0]?.url,
-          referenceStoragePath: heroRef?.path ?? uploaded[0]?.path,
+          // 103차 A — enhanced 대신 원본 업로드 컷 (스케일·라벨 단서 유지)
+          productImageUrl: heroRef?.url ?? finalImages[0]?.url,
+          referenceStoragePath: heroRef?.path ?? finalImages[0]?.path,
           category: params.category,
           productName: params.productName,
           brandName: params.brandName,
           targetCustomer: params.targetCustomer,
           keyFeatures: params.keyFeatures,
+          productSizeHint: params.productSizeHint ?? null,
+          enableAiLifestyleShots: true,
           uploadCount: uploaded.length,
           draftToken: params.draftToken ?? null,
         }),
@@ -712,7 +775,7 @@ export async function runPhotoEnhancementPipeline(params: {
       };
       if (lifestyleRes.ok && lifestyleJson.shots?.length) {
         for (const shot of lifestyleJson.shots) {
-          finalImages.push({ url: shot.url, path: shot.path });
+          finalImages.push({ url: shot.url, path: shot.path, origin: "ai-lifestyle" });
         }
         const lifestyleCost = lifestyleJson.cost ?? 0;
         photoProcessingCost += lifestyleCost;
@@ -743,7 +806,29 @@ export async function runPhotoEnhancementPipeline(params: {
         costUsdSoFar: photoProcessingCost,
       });
     }
+    } // enableAiLifestyleShots
   }
+
+  const uploadedCount = uploaded.length;
+  const finalUnique = new Set(finalImages.map((i) => i.url)).size;
+  if (finalUnique < finalImages.length) {
+    const dedupedFinal: UploadedImage[] = [];
+    const seen = new Set<string>();
+    for (const img of finalImages) {
+      if (!img.url || seen.has(img.url)) continue;
+      seen.add(img.url);
+      dedupedFinal.push(img);
+    }
+    console.warn(
+      `[photo-pipeline] final dedupe ${finalImages.length} → ${dedupedFinal.length}`,
+    );
+    finalImages = dedupedFinal;
+  }
+  const studioLimit = computeStudioCompositeLimit(uploadedCount);
+  const passthrough = Math.max(0, uploadedCount - studioLimit);
+  console.log(
+    `[photo-pipeline] uploaded=${uploadedCount} enhanced=${enhanced.images.length} passthrough=${passthrough} finalUnique=${new Set(finalImages.map((i) => i.url)).size}`,
+  );
 
   return {
     images: finalImages,

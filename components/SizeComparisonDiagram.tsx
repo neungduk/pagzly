@@ -1,4 +1,5 @@
 import type { CategoryTheme } from "@/lib/category-theme";
+import { getCategoryTheme } from "@/lib/category-theme";
 import {
   REFERENCE_CAN,
   type SizeComparisonDimension,
@@ -7,6 +8,8 @@ import {
 type SizeComparisonDiagramProps = {
   dimensions: SizeComparisonDimension[];
   theme: CategoryTheme;
+  /** 있으면 hue-shift 없는 카테고리 기본 accentText로 스트로크 (크림 배경 대비) */
+  category?: string;
 };
 
 function CapLine({
@@ -39,10 +42,15 @@ function CapLine({
   );
 }
 
-export default function SizeComparisonDiagram({ dimensions, theme }: SizeComparisonDiagramProps) {
+export default function SizeComparisonDiagram({
+  dimensions,
+  theme,
+  category,
+}: SizeComparisonDiagramProps) {
   if (dimensions.length === 0) return null;
 
-  const stroke = theme.deepAccent;
+  // 119차 — 본문 위 가독성: 카테고리 기본 accentText(식품 #92400E). 섹션 hue-shift deepAccent 골드보다 크림에서 강함
+  const stroke = category ? getCategoryTheme(category).accentText : theme.accentText;
   const heightDim =
     dimensions.find((d) => d.kind === "height") ??
     dimensions.find((d) => d.kind === "width") ??
@@ -67,7 +75,7 @@ export default function SizeComparisonDiagram({ dimensions, theme }: SizeCompari
 
   return (
     <div className="mx-auto mt-8 max-w-[340px] text-center">
-      <p className="mb-2 text-[11px] tracking-wide text-ink/55">
+      <p className="mb-2 text-[11px] tracking-wide" style={{ color: stroke, opacity: 0.85 }}>
         크기 비교 (기준: {REFERENCE_CAN.label})
       </p>
       <svg
@@ -78,7 +86,7 @@ export default function SizeComparisonDiagram({ dimensions, theme }: SizeCompari
         aria-label="크기 비교 다이어그램"
         className="mx-auto"
       >
-        <text x={canX + canW / 2} y={24} textAnchor="middle" fontSize={10} fill={stroke} opacity={0.7}>
+        <text x={canX + canW / 2} y={24} textAnchor="middle" fontSize={10} fill={stroke} opacity={0.9}>
           {REFERENCE_CAN.label}
         </text>
         <rect
@@ -89,10 +97,10 @@ export default function SizeComparisonDiagram({ dimensions, theme }: SizeCompari
           rx={canW / 2}
           fill="none"
           stroke={stroke}
-          strokeWidth={1.6}
-          opacity={0.55}
+          strokeWidth={1.8}
+          opacity={0.88}
         />
-        <text x={prodX + prodW / 2} y={24} textAnchor="middle" fontSize={10} fill={stroke} opacity={0.7}>
+        <text x={prodX + prodW / 2} y={24} textAnchor="middle" fontSize={10} fill={stroke} opacity={0.9}>
           제품
         </text>
         <rect
@@ -103,8 +111,8 @@ export default function SizeComparisonDiagram({ dimensions, theme }: SizeCompari
           rx={6}
           fill="none"
           stroke={stroke}
-          strokeWidth={1.6}
-          opacity={0.75}
+          strokeWidth={1.8}
+          opacity={1}
         />
         <CapLine x1={canX - 14} y1={canY} x2={canX - 14} y2={canY + canH} color={stroke} />
         <text

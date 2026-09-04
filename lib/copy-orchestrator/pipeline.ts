@@ -12,7 +12,10 @@ export type DetailCopyPipelineResult = {
   structure: PageStructurePlan;
   copy: DetailPageCopy;
   claude: Pick<ClaudeStructureResult, "model" | "claudeCostUsd">;
-  deepseek: Pick<DeepSeekCopyResult, "model" | "deepSeekCostUsd" | "hallucinationWarnings">;
+  deepseek: Pick<
+    DeepSeekCopyResult,
+    "model" | "deepSeekCostUsd" | "hallucinationWarnings" | "clicheWarnings"
+  >;
   totalCostUsd: number;
 };
 
@@ -34,6 +37,7 @@ export async function runDetailCopyPipeline(
       model: deepseek.model,
       deepSeekCostUsd: deepseek.deepSeekCostUsd,
       hallucinationWarnings: deepseek.hallucinationWarnings,
+      clicheWarnings: deepseek.clicheWarnings,
     },
     totalCostUsd:
       Math.round((claude.claudeCostUsd + deepseek.deepSeekCostUsd) * 1_000_000) / 1_000_000,

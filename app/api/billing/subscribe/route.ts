@@ -1,10 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPricingTier, type PricingTierId } from "@/lib/cost/saas-pricing-config";
+import {
+  getPriceForCycle,
+  getPricingTier,
+  getTokensForCycle,
+  type BillingCycle,
+  type PricingTierId,
+} from "@/lib/cost/saas-pricing-config";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { chargeBillingKey, issueBillingKey } from "@/lib/toss/client";
 
 const TIER_IDS: PricingTierId[] = ["starter", "growth", "pro"];
+
+function parseBillingCycle(raw: unknown): BillingCycle | null {
+  if (raw == null || raw === "") return "monthly";
+  if (raw === "monthly" || raw === "annual") return raw;
+  return null;
+}
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -20,11 +32,17 @@ export async function POST(req: NextRequest) {
     tier?: string;
     customerKey?: string;
     authKey?: string;
+    billingCycle?: string;
   };
   const { tier, customerKey, authKey } = body;
+  const billingCycle = parseBillingCycle(body.billingCycle);
 
   if (!tier || !customerKey || !authKey) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
+  }
+
+  if (billingCycle == null) {
+    return NextResponse.json({ error: "invalid_billing_cycle" }, { status: 400 });
   }
 
   if (!TIER_IDS.includes(tier as PricingTierId)) {
@@ -36,6 +54,8 @@ export async function POST(req: NextRequest) {
   }
 
   const pricingTier = getPricingTier(tier as PricingTierId);
+  const amount = getPriceForCycle(pricingTier, billingCycle);
+  const tokens = getTokensForCycle(pricingTier, billingCycle);
   const serviceClient = createServiceRoleClient();
 
   const { data: existingSubscription } = await serviceClient
@@ -57,13 +77,17 @@ export async function POST(req: NextRequest) {
       billingKey: billing.billingKey,
       customerKey,
       orderId,
-      orderName: `Pagzly ${pricingTier.label} 구독`,
-      amount: pricingTier.monthlyPriceKrw,
+      orderName: `Pagzly ${pricingTier.label} ${billingCycle === "annual" ? "연간" : ""} 구독`.trim(),
+      amount,
     });
 
     const now = new Date();
     const periodEnd = new Date(now);
-    periodEnd.setMonth(periodEnd.getMonth() + 1);
+    if (billingCycle === "annual") {
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    } else {
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+    }
 
     const { error: subscriptionError } = await serviceClient.from("subscriptions").upsert({
       user_id: customerKey,
@@ -74,6 +98,7 @@ export async function POST(req: NextRequest) {
       current_period_start: now.toISOString(),
       current_period_end: periodEnd.toISOString(),
       next_billing_at: periodEnd.toISOString(),
+      billing_cycle: billingCycle,
       failed_charge_count: 0,
       updated_at: now.toISOString(),
     });
@@ -84,11 +109,11 @@ export async function POST(req: NextRequest) {
       user_id: customerKey,
       toss_payment_key: payment.paymentKey,
       order_id: orderId,
-      amount: pricingTier.monthlyPriceKrw,
+      amount,
       status: "done",
       purchase_type: "subscription_initial",
       item_id: tier,
-      credits_granted: pricingTier.monthlyTokens,
+      credits_granted: tokens,
       confirmed_at: now.toISOString(),
     });
 
@@ -96,14 +121,14 @@ export async function POST(req: NextRequest) {
 
     const { data: newBalance, error: grantError } = await serviceClient.rpc("grant_credits", {
       p_user_id: customerKey,
-      p_amount: pricingTier.monthlyTokens,
+      p_amount: tokens,
       p_reason: "subscription_grant",
       p_reference_id: orderId,
     });
 
     if (grantError) throw grantError;
 
-    return NextResponse.json({ ok: true, tier, balance: newBalance });
+    return NextResponse.json({ ok: true, tier, balance: newBalance, billingCycle });
   } catch (err) {
     console.error("[billing/subscribe] failed:", err);
     return NextResponse.json({ error: "subscribe_failed" }, { status: 500 });

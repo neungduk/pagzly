@@ -1,5 +1,6 @@
 "use client";
 
+import PageStructureChat from "@/components/PageStructureChat";
 import { getSectionAidaShort } from "@/lib/section-aida";
 import type { DetailSection } from "@/lib/types/generate";
 
@@ -130,6 +131,15 @@ export default function SectionStructureEditor({
         </button>
       </div>
       )}
+
+      {sections.length > 0 ? (
+        <PageStructureChat
+          sections={sections}
+          hiddenIndexes={hiddenIndexes}
+          onReorder={onReorder}
+          onToggleHidden={onToggleHidden}
+        />
+      ) : null}
 
       {onAddCanvas ? (
         <button

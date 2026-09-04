@@ -42,9 +42,11 @@ type DetailActionBarProps = {
   onPatchIndexChange?: (index: number) => void;
   patchInstruction?: string;
   onPatchInstructionChange?: (value: string) => void;
-  onPatchSubmit?: () => void;
+  onPatchSubmit?: (opts?: { referenceImageDataUrl?: string | null }) => void;
   patchLoading?: boolean;
   patchMessages?: PatchChatMessage[];
+  selectedElementPath?: string | null;
+  onClearElementPath?: () => void;
   onGifUploadClick?: () => void;
   category?: string;
   feedProductName?: string;
@@ -90,6 +92,8 @@ export default function DetailActionBar({
   onPatchSubmit,
   patchLoading,
   patchMessages = [],
+  selectedElementPath,
+  onClearElementPath,
   onGifUploadClick,
   category,
   feedProductName,
@@ -233,6 +237,8 @@ export default function DetailActionBar({
           onInstructionChange={onPatchInstructionChange}
           onSubmit={onPatchSubmit}
           loading={patchLoading}
+          selectedElementPath={selectedElementPath}
+          onClearElementPath={onClearElementPath}
         />
       )}
 

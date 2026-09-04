@@ -138,7 +138,7 @@ function sanitizeSection(
       return {
         ...section,
         heading: clean(section.heading),
-        cards: section.cards.map((card) => ({
+        cards: (section.cards ?? []).map((card) => ({
           ...card,
           title: clean(card.title),
           body: clean(card.body),

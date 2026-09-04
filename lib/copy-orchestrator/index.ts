@@ -17,6 +17,7 @@ export {
   CopyValidationError,
   DETAIL_PAGE_COPY_JSON_SCHEMA,
   detectCopyHallucinations,
+  detectGenericCliches,
   parseJsonLoose,
   validateDetailPageCopy,
   validatePageStructurePlan,
@@ -28,6 +29,8 @@ export {
 } from "@/lib/copy-orchestrator/claude-structure";
 
 export {
+  buildDeepSeekPrompt,
+  buildStyleRubricBlock,
   generateDetailCopyWithDeepSeek,
   type DeepSeekCopyResult,
 } from "@/lib/copy-orchestrator/deepseek-copy";

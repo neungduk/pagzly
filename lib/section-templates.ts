@@ -33,7 +33,7 @@ const BEAUTY: SlotDefinition[] = [
     slot: "brand_story",
     type: "brand_story",
     required: false,
-    note: "brandName이 입력되지 않았으면 이 슬롯 전체를 생략. 입력된 브랜드명 기반으로만 작성, 없는 브랜드 히스토리·수상내역 지어내지 말 것",
+    note: "brandName이 없으면 생략. 시작·철학·만드는 방식 중 하나를 2~3문단으로. 입력에 없는 창업연도·공장·수상은 지어내지 말 것",
   },
   { slot: "checklist", type: "checklist", required: true, note: "핵심 포인트 3~4개" },
   {
@@ -172,7 +172,7 @@ const FASHION: SlotDefinition[] = [
     slot: "brand_story",
     type: "brand_story",
     required: false,
-    note: "brandName이 입력되지 않았으면 이 슬롯 전체를 생략. 입력된 브랜드명 기반으로만 작성, 없는 브랜드 히스토리·수상내역 지어내지 말 것",
+    note: "brandName이 없으면 생략. 시작·철학·만드는 방식 중 하나를 2~3문단으로. 입력에 없는 창업연도·공장·수상은 지어내지 말 것",
   },
   { slot: "checklist", type: "checklist", required: true, note: "핏/소재 핵심 포인트" },
   {
@@ -311,7 +311,7 @@ const FOOD: SlotDefinition[] = [
     slot: "brand_story",
     type: "brand_story",
     required: false,
-    note: "brandName이 입력되지 않았으면 이 슬롯 전체를 생략. 입력된 브랜드명 기반으로만 작성, 없는 브랜드 히스토리·수상내역 지어내지 말 것",
+    note: "brandName이 없으면 생략. 시작·철학·만드는 방식 중 하나를 2~3문단으로. 입력에 없는 창업연도·공장·수상은 지어내지 말 것",
   },
   { slot: "checklist", type: "checklist", required: true, note: "맛/원재료 핵심 포인트" },
   {
@@ -450,7 +450,7 @@ const ELECTRONICS: SlotDefinition[] = [
     slot: "brand_story",
     type: "brand_story",
     required: false,
-    note: "brandName이 입력되지 않았으면 이 슬롯 전체를 생략. 입력된 브랜드명 기반으로만 작성, 없는 브랜드 히스토리·수상내역 지어내지 말 것",
+    note: "brandName이 없으면 생략. 시작·철학·만드는 방식 중 하나를 2~3문단으로. 입력에 없는 창업연도·공장·수상은 지어내지 말 것",
   },
   { slot: "checklist", type: "checklist", required: true, note: "핵심 스펙 3~4개" },
   {
@@ -704,7 +704,7 @@ const HOME_FALLBACK: SlotDefinition[] = [
     slot: "brand_story",
     type: "brand_story",
     required: false,
-    note: "brandName이 입력되지 않았으면 이 슬롯 전체를 생략. 입력된 브랜드명 기반으로만 작성, 없는 브랜드 히스토리·수상내역 지어내지 말 것",
+    note: "brandName이 없으면 생략. 시작·철학·만드는 방식 중 하나를 2~3문단으로. 입력에 없는 창업연도·공장·수상은 지어내지 말 것",
   },
   { slot: "checklist", type: "checklist", required: true, note: "핵심 포인트 3~4개" },
   {

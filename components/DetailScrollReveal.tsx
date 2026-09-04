@@ -108,7 +108,11 @@ export function freezeScrollRevealAnimations(root: HTMLElement | null): void {
   root.querySelectorAll("[data-scroll-reveal]").forEach((node) => {
     const el = node as HTMLElement;
     el.classList.add("is-ink-in");
+    // gsap + 인라인 둘 다 — 클론 캡처 시 opacity:0으로 하얀 PNG 되는 것 방지
     gsap.set(el, { opacity: 1, y: 0, scale: 1, clearProps: "transform" });
+    el.style.opacity = "1";
+    el.style.transform = "none";
+    el.style.visibility = "visible";
   });
   root.querySelectorAll<HTMLElement>("[data-fill-bar]").forEach((node) => {
     const pct = node.dataset.fillPercent ?? "100";
