@@ -195,6 +195,7 @@ function CreateResultContent() {
   const [toast, setToast] = useState<{ message: string; tone: "error" | "info" | "ok" } | null>(
     null,
   );
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [aiText, setAiText] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [downloadPlatform, setDownloadPlatform] = useState<DownloadPlatformId>("smartstore");
@@ -271,10 +272,14 @@ function CreateResultContent() {
 
         if (error || !row) {
           console.warn("[create/result] DB load failed", error);
-          if (draftRaw) {
-            router.replace("/create/draft");
-          } else {
-            router.replace("/create");
+          const baseMsg = "저장된 페이지를 불러오지 못했습니다. 다시 시도해 주세요.";
+          const detail =
+            process.env.NODE_ENV === "development" && error?.message
+              ? `${baseMsg} (${error.message})`
+              : baseMsg;
+          if (!cancelled) {
+            setLoadError(detail);
+            setToast({ message: detail, tone: "error" });
           }
           return;
         }
@@ -744,6 +749,35 @@ function CreateResultContent() {
     } finally {
       setDownloadingHtml(false);
     }
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-full flex-col items-center justify-center gap-4 bg-paper px-6 text-center">
+        <p className="max-w-md text-sm text-ink/80 whitespace-pre-wrap">{loadError}</p>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/create/history"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-line px-4 text-sm font-semibold text-ink/80 transition-colors hover:bg-line/20"
+          >
+            작업 내역으로
+          </Link>
+          <Link
+            href="/create"
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-registration-red px-4 text-sm font-semibold text-paper transition-colors hover:bg-registration-red/85"
+          >
+            새로 만들기
+          </Link>
+        </div>
+        {toast && (
+          <ToastBanner
+            message={toast.message}
+            tone={toast.tone}
+            onDismiss={() => setToast(null)}
+          />
+        )}
+      </div>
+    );
   }
 
   if (!data) {

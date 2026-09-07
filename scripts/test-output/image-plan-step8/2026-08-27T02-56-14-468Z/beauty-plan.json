@@ -1,0 +1,60 @@
+{
+  "imagePlan": [
+    {
+      "order": 1,
+      "taskType": "HERO_PRODUCT",
+      "purpose": "제품의 첫인상을 결정하는 메인 히어로 이미지로 브랜드 톤앤매너를 전달함",
+      "prompt": "Elegant hero product shot of two round glass jars with white lids, one labeled 'Bright & Glow Day Cream' and the other 'Bright & Glow Night Cream' with pastel lavender and white labels featuring a small purple flower logo and 'Wishteria' brand name, arranged on a minimalist white cylindrical pedestal with soft arch-shaped background elements, bright airy studio lighting, soft shadows, clean white and lavender color palette, product packaging text and colors preserved exactly, 3:4 vertical composition, photorealistic, high-end cosmetic photography",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "3:4"
+    },
+    {
+      "order": 2,
+      "taskType": "PRODUCT_ONLY",
+      "purpose": "제품 단독 클로즈업으로 패키지 디자인과 라벨 정보를 명확히 보여줌",
+      "prompt": "Clean close-up studio shot of a single round glass jar with white lid, lavender and white label reading 'Bright & Glow Day Cream' with small purple flower logo, centered on plain white background, soft even lighting, no shadows distortion, sharp focus on label text and ingredients list, minimal aesetic, 1:1 square composition, e-commerce product photography style",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "1:1"
+    },
+    {
+      "order": 3,
+      "taskType": "LIFESTYLE",
+      "purpose": "실제 사용 환경을 연출해 소비자가 제품 사용 장면을 상상하게 함",
+      "prompt": "Lifestyle flat lay of the white and lavender labeled cosmetic jars placed on a marble vanity table beside fresh white flowers, a soft cotton towel, and morning sunlight streaming through a window, calm minimalist bathroom aesthetic, pastel tones, product clearly visible with brand label readable, 4:5 vertical composition, natural soft lighting, high-end beauty editorial style",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "4:5"
+    },
+    {
+      "order": 4,
+      "taskType": "PRODUCT_USAGE",
+      "purpose": "제품 사용 방법과 텍스처를 시각적으로 전달해 구매 결정을 도움",
+      "prompt": "Close-up of a woman's hand gently scooping a small amount of light, glossy hydrating cream from an open jar labeled 'Bright & Glow Day Cream' with lavender packaging, soft skin tone, natural daylight, shallow depth of field emphasizing the lightweight glowing texture of the cream, clean white background, 4:5 vertical composition, photorealistic beauty photography",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "4:5"
+    },
+    {
+      "order": 5,
+      "taskType": "FEATURE_HIGHLIGHT",
+      "purpose": "히알루론산, 나이아신아마이드 등 핵심 성분을 시각적으로 강조",
+      "prompt": "Minimalist ingredient highlight composition featuring the white and lavender labeled cosmetic jar surrounded by botanical elements like aloe leaves, water droplets, and soft glowing light particles to symbolize hydration and brightening ingredients such as hyaluronic acid and niacinamide, clean white backdrop, soft pastel lighting, elegant cosmetic advertising style, 4:5 vertical composition",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "4:5"
+    },
+    {
+      "order": 6,
+      "taskType": "COMPARISON",
+      "purpose": "데이크림과 나이트크림의 차이를 비교해 세트 구성의 이해를 도움",
+      "prompt": "Side-by-side comparison layout of two identical round glass jars, one labeled 'Bright & Glow Day Cream' with sun icon accent and the other 'Bright & Glow Night Cream' with moon icon accent, both with lavender and white labels, placed symmetrically on white background with soft studio lighting, clean minimal design for product comparison graphic, 3:2 horizontal composition",
+      "qualityLevel": "STANDARD",
+      "aspectRatio": "3:2"
+    },
+    {
+      "order": 7,
+      "taskType": "BACKGROUND_REPLACEMENT",
+      "purpose": "다양한 배경 연출로 브랜드 무드를 확장하고 시각적 다양성을 제공",
+      "prompt": "Take the uploaded product photo of the two white lavender-labeled cosmetic jars and replace the background with a soft dreamy pastel purple gradient studio backdrop, maintaining the same jar positions, lighting direction, and label details exactly as in the original photo, add subtle soft light glow around the product to enhance premium skincare feel, 3:4 vertical composition",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "3:4"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "imagePlan": [
+    {
+      "order": 1,
+      "taskType": "HERO_PRODUCT",
+      "purpose": "제품의 첫인상을 결정짓는 메인 이미지로 매트 화이트 세라믹 보울 세트의 질감과 디자인을 명확히 보여줌",
+      "prompt": "Professional studio product photography of a set of two matte white ceramic bowls, stacked slightly offset, on a clean neutral beige background with soft natural side lighting, minimalist Scandinavian style, subtle warm shadows, showing smooth matte texture and rounded rim edges, high resolution commercial e-commerce photography, no text, no logo overlay",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "3:4"
+    },
+    {
+      "order": 2,
+      "taskType": "PRODUCT_ONLY",
+      "purpose": "제품 단독 컷으로 2개 세트 구성과 색감을 정확히 전달",
+      "prompt": "Two matte white ceramic bowls placed side by side on a plain white seamless background, clean e-commerce product photography, soft even studio lighting, sharp focus on ceramic texture and subtle rim curvature, no shadows harsh, top-down slight angle view",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "1:1"
+    },
+    {
+      "order": 3,
+      "taskType": "BACKGROUND_REPLACEMENT",
+      "purpose": "업로드된 원본 제품 사진의 우드 테이블 감성을 유지하면서 배경을 더 정돈해 홈카페 분위기를 강조",
+      "prompt": "Keep the exact same stacked ceramic bowls, ceramic cups, and plate arrangement as in the original uploaded photo on the live-edge wooden table, but replace the background with a softly blurred bright cozy home cafe interior with warm natural window light, beige linen curtain, and a small green plant, preserving original product shapes, colors, and textures precisely",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "4:5"
+    },
+    {
+      "order": 4,
+      "taskType": "LIFESTYLE",
+      "purpose": "실제 사용 환경을 보여주어 자취생활자·홈카페 타겟에게 공감을 유도",
+      "prompt": "Lifestyle photo of a cozy home cafe corner, matte white ceramic bowl set with two bowls on a wooden table, filled with granola and fresh berries, a cup of coffee beside it, soft morning sunlight streaming through a window, warm minimalist Scandinavian interior, shallow depth of field, natural candid feel",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "4:5"
+    },
+    {
+      "order": 5,
+      "taskType": "PRODUCT_USAGE",
+      "purpose": "전자레인지·식기세척기 사용 가능이라는 핵심 기능을 시각적으로 설명",
+      "prompt": "Split composition showing the same matte white ceramic bowl placed inside a modern microwave on the left side and inside an open dishwasher rack on the right side, clean bright kitchen setting, soft studio-like lighting, emphasizing safety and convenience of ceramic material, realistic photography style",
+      "qualityLevel": "STANDARD",
+      "aspectRatio": "3:2"
+    },
+    {
+      "order": 6,
+      "taskType": "FEATURE_HIGHLIGHT",
+      "purpose": "내열 세라믹 소재와 미니멀 디자인의 디테일을 클로즈업으로 강조",
+      "prompt": "Extreme close-up macro shot of the matte white ceramic bowl rim and surface, showing fine matte texture, subtle glaze finish, and rounded minimalist edge, soft diffused lighting highlighting the heat-resistant ceramic material, clean neutral background, professional product detail photography",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "1:1"
+    },
+    {
+      "order": 7,
+      "taskType": "DETAIL_PAGE_GRAPHIC",
+      "purpose": "제품 사이즈와 세트 구성 정보를 한눈에 전달하는 정보성 그래픽 이미지",
+      "prompt": "Clean minimalist product infographic layout showing two matte white ceramic bowls from top view and side view with dimension guide lines, neutral beige background, simple flat design elements, soft shadows, e-commerce specification image style, no visible text, space reserved for measurement labels",
+      "qualityLevel": "STANDARD",
+      "aspectRatio": "4:3"
+    },
+    {
+      "order": 8,
+      "taskType": "PROBLEM_SOLUTION",
+      "purpose": "기존 무거운 그릇 대비 가볍고 미니멀한 디자인의 장점을 대비로 보여줌",
+      "prompt": "Split image comparison: left side shows a cluttered bulky colorful dinnerware set on a messy table, right side shows the same clean matte white ceramic bowl set neatly arranged on a minimalist wooden table with soft natural light, illustrating a clean simple lifestyle upgrade, realistic photography style",
+      "qualityLevel": "STANDARD",
+      "aspectRatio": "16:9"
+    }
+  ]
+}

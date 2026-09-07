@@ -1,0 +1,68 @@
+{
+  "imagePlan": [
+    {
+      "order": 1,
+      "taskType": "HERO_PRODUCT",
+      "purpose": "제품의 첫인상을 전달하는 대표 히어로 이미지로 브랜드와 텍스처를 강조합니다.",
+      "prompt": "A premium studio product photo of a small round glass jar with a white lid, labeled 'Wishteria Bright & Glow' in lavender and white tones, standing upright on a minimalist white cylindrical pedestal, soft diffused daylight, pastel white and lilac background with blurred arch shapes, clean elegant beauty aesthetic, high resolution, centered composition, sharp focus on label text and logo",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "3:4"
+    },
+    {
+      "order": 2,
+      "taskType": "PRODUCT_ONLY",
+      "purpose": "제품 단독 컷으로 패키지 디자인과 라벨 디테일을 명확히 보여줍니다.",
+      "prompt": "A clean product-only shot of the same round glass jar with white cap and lavender 'Bright & Glow' label, isolated on a pure white seamless background, soft studio lighting, no shadows harsh, sharp focus on brand logo and ingredient text, e-commerce style catalog photo",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "1:1"
+    },
+    {
+      "order": 3,
+      "taskType": "LIFESTYLE",
+      "purpose": "실제 사용 환경을 보여주어 소비자의 라이프스타일 이입을 유도합니다.",
+      "prompt": "A lifestyle flat-lay scene of the lavender-labeled glass jar placed on a marble bathroom counter next to a small towel, dried flowers, and soft morning sunlight streaming in, calm pastel tones, minimalist skincare routine aesthetic, shallow depth of field",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "4:5"
+    },
+    {
+      "order": 4,
+      "taskType": "PRODUCT_USAGE",
+      "purpose": "제품 사용 방법과 텍스처감을 시각적으로 전달합니다.",
+      "prompt": "A close-up macro shot of a woman's hand gently scooping a small amount of light, glossy hydrating cream from the open glass jar labeled 'Bright & Glow', soft focus background, natural skin tone, clean white studio setting, emphasizing lightweight texture and glow finish",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "4:5"
+    },
+    {
+      "order": 5,
+      "taskType": "FEATURE_HIGHLIGHT",
+      "purpose": "히알루론산, 나이아신아마이드 등 핵심 성분을 시각적으로 강조합니다.",
+      "prompt": "A minimalist flat-lay composition showing the glass jar surrounded by visual icons and ingredient elements: water droplets symbolizing hyaluronic acid, small niacinamide molecule graphic, and panthenol leaf icon, arranged on a soft pastel lavender background, clean modern skincare ad style, bright even lighting",
+      "qualityLevel": "STANDARD",
+      "aspectRatio": "4:3"
+    },
+    {
+      "order": 6,
+      "taskType": "PROBLEM_SOLUTION",
+      "purpose": "민감 피부 고민과 제품의 진정 효과를 대비하여 설득력을 높입니다.",
+      "prompt": "A split-screen concept image: left side shows a close-up of dry, dull skin texture in cool tones, right side shows radiant, hydrated glowing skin in warm soft light, with the lavender-labeled jar placed at the center as the solution, clean beauty editorial style",
+      "qualityLevel": "STANDARD",
+      "aspectRatio": "3:2"
+    },
+    {
+      "order": 7,
+      "taskType": "BACKGROUND_REPLACEMENT",
+      "purpose": "제품 사진의 배경을 브랜드 톤에 맞는 고급스러운 배경으로 교체하여 상세페이지 분위기를 통일합니다.",
+      "prompt": "Take the uploaded product photo of the two round glass jars labeled 'Bright & Glow' and replace the white arch background with a softly lit pastel lilac gradient backdrop, subtle silk fabric texture, maintaining original jar shapes, labels, and lighting on the product, luxury skincare editorial look",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "3:4"
+    },
+    {
+      "order": 8,
+      "taskType": "DETAIL_PAGE_GRAPHIC",
+      "purpose": "제품 스펙과 사용법을 안내하는 인포그래픽으로 상세페이지 정보 전달력을 높입니다.",
+      "prompt": "A clean infographic-style layout featuring the glass jar centered, surrounded by minimal icons and short labels indicating '30ml volume', 'fragrance-free', 'for sensitive skin', 'lightweight texture', pastel lavender and white color palette, modern sans-serif typography, flat design aesthetic",
+      "qualityLevel": "STANDARD",
+      "aspectRatio": "4:3"
+    }
+  ]
+}

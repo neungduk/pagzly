@@ -1,0 +1,68 @@
+{
+  "imagePlan": [
+    {
+      "order": 1,
+      "taskType": "HERO_PRODUCT",
+      "purpose": "브랜드와 제품 정체성을 명확히 보여주는 대표 이미지를 제공하여 첫인상을 강화한다.",
+      "prompt": "Studio product photo of a black protein shaker bottle with orange rim accent, labeled 'FITDAILY' vanilla protein shake, standing upright on a clean light gray gradient background, soft professional studio lighting, sharp focus on bottle logo and texture, subtle reflection beneath bottle, minimalist composition, high-end commercial photography style, 3:4 vertical aspect ratio",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "3:4"
+    },
+    {
+      "order": 2,
+      "taskType": "PRODUCT_ONLY",
+      "purpose": "12팩 구성 제품을 한눈에 파악할 수 있도록 패키지 전체 구성을 보여준다.",
+      "prompt": "Clean flat lay of 12 individual portable protein shake pouches in black and orange FITDAILY branded packaging, arranged neatly in a 4x3 grid on a white seamless background, soft even studio lighting, no shadows harsh, product packaging clearly visible with labels, commercial e-commerce photography, 4:5 aspect ratio",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "4:5"
+    },
+    {
+      "order": 3,
+      "taskType": "LIFESTYLE",
+      "purpose": "운동 후 간편하게 섭취하는 실제 사용 상황을 보여줘 타겟 고객의 공감을 유도한다.",
+      "prompt": "A fit young Asian woman in workout clothes drinking from a black and orange FITDAILY protein shaker bottle at a modern gym, sweat visible, natural gym lighting with soft window light, candid athletic lifestyle photography, blurred gym equipment in background, energetic post-workout mood, 4:5 aspect ratio",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "4:5"
+    },
+    {
+      "order": 4,
+      "taskType": "PRODUCT_USAGE",
+      "purpose": "제품을 물에 타서 마시는 사용 과정을 보여줘 사용 편의성을 전달한다.",
+      "prompt": "Close-up action shot of vanilla protein powder pouring from a portable FITDAILY pouch into a black shaker bottle with orange rim, dynamic powder splash motion frozen in time, warm indoor lighting, shallow depth of field, focus on shaker bottle logo and powder texture, similar to reference image style, 3:4 aspect ratio",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "3:4"
+    },
+    {
+      "order": 5,
+      "taskType": "FEATURE_HIGHLIGHT",
+      "purpose": "단백질 20g, 저당 등 핵심 영양 특징을 시각적으로 강조한다.",
+      "prompt": "Minimalist infographic-style product photo of the FITDAILY protein shake pouch standing on a clean white surface, surrounded by subtle graphic icons space for '20g protein' and 'low sugar' text overlays, soft studio lighting, clean negative space for text placement, professional health supplement product photography, 1:1 aspect ratio",
+      "qualityLevel": "STANDARD",
+      "aspectRatio": "1:1"
+    },
+    {
+      "order": 6,
+      "taskType": "PROBLEM_SOLUTION",
+      "purpose": "바쁜 일상 속에서 간편하게 단백질을 섭취할 수 있다는 문제 해결 포인트를 강조한다.",
+      "prompt": "Split composition showing a busy person rushing out the door in the morning on one side, and on the other side the same person casually holding a portable FITDAILY protein pouch, warm natural lighting, lifestyle photography style, contrast between hectic morning and simple convenient solution, 4:5 aspect ratio",
+      "qualityLevel": "STANDARD",
+      "aspectRatio": "4:5"
+    },
+    {
+      "order": 7,
+      "taskType": "DETAIL_PAGE_GRAPHIC",
+      "purpose": "분리유청단백, 바닐라향 등 성분 정보를 신뢰감 있게 전달한다.",
+      "prompt": "Clean overhead flat lay of raw vanilla pods and whey protein powder scattered artistically next to the FITDAILY protein shake pouch, natural soft daylight, beige and cream color palette, minimalist ingredient showcase photography, professional food supplement styling, 4:3 aspect ratio",
+      "qualityLevel": "STANDARD",
+      "aspectRatio": "4:3"
+    },
+    {
+      "order": 8,
+      "taskType": "BACKGROUND_REPLACEMENT",
+      "purpose": "업로드된 실제 사용 이미지를 활용하되 배경을 깔끔하게 정리해 신뢰도 높은 디테일 컷으로 제공한다.",
+      "prompt": "Using the uploaded close-up image of vanilla protein powder pouring into a black FITDAILY shaker bottle with orange rim as reference, replace the blurred skin-tone background with a clean neutral light gray studio backdrop, keep the powder splash, shaker bottle, and pouch exactly as in the original, enhance lighting to look crisp and professional for e-commerce, 9:16 aspect ratio",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "9:16"
+    }
+  ]
+}

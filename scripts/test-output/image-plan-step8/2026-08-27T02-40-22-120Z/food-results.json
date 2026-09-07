@@ -1,0 +1,27 @@
+{
+  "succeeded": 0,
+  "failed": 2,
+  "totalImageCostUsd": 0,
+  "items": [
+    {
+      "order": 1,
+      "taskType": "HERO_PRODUCT",
+      "status": "failed",
+      "provider": "gemini",
+      "model": "gemini-3-pro-image",
+      "actualCost": 0,
+      "outputUrls": [],
+      "errorMessage": "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."
+    },
+    {
+      "order": 2,
+      "taskType": "PRODUCT_ONLY",
+      "status": "failed",
+      "provider": "gemini",
+      "model": "gemini-3-pro-image",
+      "actualCost": 0,
+      "outputUrls": [],
+      "errorMessage": "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."
+    }
+  ]
+}

@@ -1,0 +1,107 @@
+﻿diff --git a/components/CreateProductForm.tsx b/components/CreateProductForm.tsx
+index 1e71d3a..9ebb693 100644
+--- a/components/CreateProductForm.tsx
++++ b/components/CreateProductForm.tsx
+@@ -82,6 +82,8 @@ export type DraftSessionPayload = {
+     targetCustomer: string;
+     keyFeatures: string;
+     productSizeHint?: string;
++    /** 126李????쇱씠?꾩뒪????⑹꽦???쒗뭹 ?믪씠(cm). 鍮?臾몄옄???덉슜 */
++    productHeightCm: string;
+     enableAiLifestyleShots?: boolean;
+     ingredients: string;
+     certifications: string;
+@@ -123,6 +125,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
+   const [targetCustomer, setTargetCustomer] = useState("");
+   const [keyFeatures, setKeyFeatures] = useState("");
+   const [productSizeHint, setProductSizeHint] = useState("");
++  /** ?쇱씠?꾩뒪????⑹꽦???쒗뭹 ?믪씠(cm). 鍮?臾몄옄??= 誘몄엯???⑹꽦 ?앸왂) */
++  const [productHeightCm, setProductHeightCm] = useState("");
+   const [enableAiLifestyleShots, setEnableAiLifestyleShots] = useState(false);
+   const [ingredients, setIngredients] = useState("");
+   const [certifications, setCertifications] = useState("");
+@@ -177,6 +181,9 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
+       setPrice(snap.price ?? "");
+       setTargetCustomer(snap.targetCustomer ?? "");
+       setKeyFeatures(snap.keyFeatures ?? "");
++      setProductSizeHint(snap.productSizeHint ?? "");
++      setProductHeightCm(snap.productHeightCm ?? "");
++      setEnableAiLifestyleShots(snap.enableAiLifestyleShots === true);
+       setIngredients(snap.ingredients ?? "");
+       setCertifications(snap.certifications ?? "");
+       setCompetitorUrl(snap.competitorUrl ?? "");
+@@ -548,6 +555,14 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
+         customGifUrl = await uploadAuxFile(customGif, "custom-gif");
+       }
+ 
++      const parsedHeightCm = (() => {
++        const raw = productHeightCm.trim().replace(/,/g, ".");
++        if (!raw) return null;
++        const n = Number(raw);
++        if (!Number.isFinite(n) || n < 2 || n > 80) return null;
++        return n;
++      })();
++
+       // ?뱀씤 ?? ?먮낯 ?낅줈?쒕쭔?쇰줈 移댄뵾 draft ?앹꽦 (諛곌꼍/蹂댁젙 鍮꾩슜 ?ㅽ궢)
+       const imageUrls = uploaded.map((item) => item.url);
+       const imagePaths = uploaded.map((item) => item.path);
+@@ -568,6 +583,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
+         targetCustomer: targetCustomer || null,
+         keyFeatures: keyFeatures.trim() || null,
+         productSizeHint: productSizeHint.trim() || null,
++        productHeightCm: productHeightCm.trim(),
+         enableAiLifestyleShots,
+         ingredients: ingredients.trim() || null,
+         certifications: certifications.trim() || null,
+@@ -592,7 +608,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
+       };
+ 
+       console.log(
+-        `[create-form] submit enableAiLifestyleShots=${enableAiLifestyleShots} productSizeHint=${Boolean(productSizeHint.trim())}`,
++        `[126cha][create-form] submit lifestyle=${Boolean(lifestyleImageUrl)} productHeightCm=${JSON.stringify(productHeightCm.trim())} parsed=${parsedHeightCm} productSizeHint=${JSON.stringify(productSizeHint.trim() || null)} enableAiLifestyleShots=${enableAiLifestyleShots}`,
+       );
+ 
+       setLoadingStage("generating");
+@@ -654,6 +670,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
+           targetCustomer,
+           keyFeatures: keyFeatures.trim(),
+           productSizeHint: productSizeHint.trim(),
++          productHeightCm: productHeightCm.trim(),
+           enableAiLifestyleShots,
+           ingredients: ingredients.trim(),
+           certifications: certifications.trim(),
+@@ -1036,7 +1053,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
+                   className={inputClass}
+                 />
+                 <p className="mt-1.5 text-[11px] leading-relaxed text-ink/45">
+-                  AI ?곗텧 ?ъ슜?룹쓣 ?곕젮硫??믪씠(cm)瑜?瑗??ｌ뼱 二쇱꽭?? ?? 35mL, ?믪씠 ??9cm
++                  ?⑸웾(mL)怨??믪씠(cm)瑜??④퍡 ?곸뼱???⑸땲?? ?믪씠留뚯쑝濡쒕룄 ?⑸땲?? ?? 35mL, ?믪씠 ??+                  9cm ??李멸퀬?먮즺???뚯젣???믪씠(cm)??移몄씠 ?덉쑝硫?洹몄そ???곗꽑?낅땲??
+                 </p>
+               </div>
+ 
+@@ -1264,6 +1282,27 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
+                     e.target.value = "";
+                   }}
+                 />
++                <div className="mt-4">
++                  <label htmlFor="productHeightCm" className={labelClass}>
++                    ?쒗뭹 ?믪씠 (?좏깮, cm) ???낅젰?섎㈃ ???ш린 ?鍮??뺥솗???⑹꽦??媛?ν빐??+                  </label>
++                  <input
++                    id="productHeightCm"
++                    type="number"
++                    inputMode="decimal"
++                    min={2}
++                    max={80}
++                    step="0.1"
++                    value={productHeightCm}
++                    onChange={(e) => setProductHeightCm(e.target.value)}
++                    placeholder="?? 9"
++                    className={inputClass}
++                  />
++                  <p className="mt-1.5 text-[11px] leading-relaxed text-ink/45">
++                    鍮꾩슦硫??쇱씠?꾩뒪????⑹꽦? ?덉쟾?섍쾶 ?앸왂?⑸땲?? (?⑸웾 mL留뚯쑝濡쒕뒗 ?믪씠瑜?+                    異붿젙?섏? ?딆뒿?덈떎)
++                  </p>
++                </div>
+               </div>
+ 
+               <div>

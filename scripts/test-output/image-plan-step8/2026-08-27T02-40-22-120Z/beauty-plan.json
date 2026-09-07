@@ -1,0 +1,68 @@
+{
+  "imagePlan": [
+    {
+      "order": 1,
+      "taskType": "HERO_PRODUCT",
+      "purpose": "제품의 첫인상을 결정하는 대표 이미지로 세련되고 청결한 브랜드 톤을 전달",
+      "prompt": "Professional studio product photography of a small glass cosmetic jar labeled 'AURA LAB Glow Serum' with a light purple and white minimalist label, soft matte white lid, placed on a white cylindrical pedestal against a softly blurred white arch-shaped backdrop, gentle diffused daylight lighting, subtle soft shadows, clean minimalist aesthetic, high-end skincare branding, sharp focus on jar label, ultra realistic, 8k resolution",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "3:4"
+    },
+    {
+      "order": 2,
+      "taskType": "PRODUCT_ONLY",
+      "purpose": "제품 단독 컷으로 용기 디자인과 텍스트 정보를 명확히 보여줌",
+      "prompt": "Clean product-only photo of a single glass jar of 'AURA LAB Glow Serum' with matte white lid and lavender-white label listing hyaluronic acid, niacinamide, fragrance-free, centered on plain white seamless background, soft studio lighting, no shadows harsh, crisp label text legible, e-commerce style catalog shot",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "1:1"
+    },
+    {
+      "order": 3,
+      "taskType": "BACKGROUND_REPLACEMENT",
+      "purpose": "업로드된 실제 제품 사진의 배경을 고급스러운 뷰티 브랜드 톤으로 교체",
+      "prompt": "Take the uploaded product jars and replace the background with a soft pastel lavender gradient studio backdrop, maintain original jar shapes, labels, and lighting direction on the products, add subtle soft reflections on a glossy white surface beneath jars, keep brand text and colors identical, luxurious skincare editorial feel",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "4:5"
+    },
+    {
+      "order": 4,
+      "taskType": "LIFESTYLE",
+      "purpose": "타겟 고객이 실생활에서 세럼을 사용하는 모습을 보여줘 감성적 공감 유도",
+      "prompt": "Lifestyle photo of a young Asian woman in her 20s-30s with clear glowing skin applying a few drops of serum from a small glass jar labeled 'AURA LAB Glow Serum' onto her fingertips, soft natural window light, minimalist bathroom vanity with white marble counter, calm morning skincare routine mood, shallow depth of field, realistic skin texture",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "4:5"
+    },
+    {
+      "order": 5,
+      "taskType": "PRODUCT_USAGE",
+      "purpose": "제형과 사용감을 시각적으로 전달해 가벼운 텍스처를 강조",
+      "prompt": "Close-up macro shot of a light, watery serum texture being scooped with a fingertip from an open glass jar labeled 'AURA LAB Glow Serum', showing glossy translucent gel-like consistency, soft studio lighting highlighting texture and hydration droplets, clean white background, high detail macro photography",
+      "qualityLevel": "STANDARD",
+      "aspectRatio": "1:1"
+    },
+    {
+      "order": 6,
+      "taskType": "FEATURE_HIGHLIGHT",
+      "purpose": "히알루론산, 나이아신아마이드, 무향료 등 핵심 성분을 인포그래픽으로 강조",
+      "prompt": "Minimalist beauty product infographic layout featuring the glass serum jar labeled 'AURA LAB Glow Serum' in the center, surrounded by clean icon illustrations of a water droplet (hyaluronic acid), a brightening leaf (niacinamide), and a no-fragrance symbol, soft lavender and white color palette, elegant sans-serif Korean-friendly typography space, flat clean design, product detail page graphic style",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "4:3"
+    },
+    {
+      "order": 7,
+      "taskType": "PROBLEM_SOLUTION",
+      "purpose": "민감성 피부의 건조함 문제와 세럼 사용 후 개선된 결과를 비교해 설득력 강화",
+      "prompt": "Split-composition beauty image, left side showing a close-up of dry, dull-looking skin texture with subtle redness, right side showing the same skin area now hydrated, smooth, and radiant after using 'AURA LAB Glow Serum' jar placed nearby, soft clinical yet warm lighting, before-and-after skincare concept, realistic skin macro photography",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "16:9"
+    },
+    {
+      "order": 8,
+      "taskType": "DETAIL_PAGE_GRAPHIC",
+      "purpose": "성분표와 용량, 브랜드 정보를 정리한 상세페이지 마무리 섹션용 그래픽",
+      "prompt": "Clean detail-page graphic layout showing the 'AURA LAB Glow Serum' 30ml jar on a soft lavender-white gradient background with minimalist text placeholders for ingredients list (Hyaluronic Acid, Glycerin, Panthenol), volume '30ml', and brand logo 'AURA LAB', elegant modern skincare packaging design, e-commerce closing banner style",
+      "qualityLevel": "STANDARD",
+      "aspectRatio": "3:2"
+    }
+  ]
+}

@@ -896,6 +896,8 @@ comparison_chart 슬롯이 있다면: baselineLabel은 반드시 "일반 제품"
 2026.08"). 근거가 없으면 basis:"self_assessed"로 하고, 이때 ourValue는 baselineValue보다
 합리적인 범위 내에서만 높게(대략 1.2~1.8배 수준, 극단적으로 부풀리지 말 것) 설정하세요.
 입력에 근거도 없고 합리적으로 추정할 수도 없으면 comparison_chart 슬롯 전체를 생략하세요.
+화장품/뷰티이고 ingredients(전성분·주요 성분)가 입력에 있으면 comparison_chart를 생략하지 말고
+안정성·자극감·사용감 등 self_assessed 축으로라도 채워 주세요(수치 지어내기 금지·극단값 금지 규칙은 동일).
 illustration_banner의 illustrationUrl은 항상 빈 문자열("")로 두세요 (서버가 생성).
 illustration_banner의 body는 이 섹션 분위기를 설명하는 1~2문장 카피입니다 (image_text body와 비슷한 톤).
 quick_points 슬롯은 layout:"compact"로 2~4개 채우세요. heading 8자 내외, body 1문장, 사진은 작은 텍스처/디테일 컷.

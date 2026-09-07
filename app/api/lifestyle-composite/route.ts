@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { resolveLifestyleCompositeScale } from "@/lib/lifestyle-composite-scale-gate";
 import { compositeProductOnLifestylePhoto } from "@/lib/lifestyle-product-composite";
 import { isTestMode } from "@/lib/test-mode";
 import { uploadPngBuffer } from "@/lib/upload-png";
@@ -28,6 +29,9 @@ export async function POST(request: Request) {
       category?: string;
       productName?: string;
       storageBasePath?: string;
+      /** 실측 높이(cm). 없으면 productSizeHint에서 파싱 */
+      productHeightCm?: number | null;
+      productSizeHint?: string | null;
     };
 
     const lifestyleImageUrl = body.lifestyleImageUrl?.trim();
@@ -42,6 +46,14 @@ export async function POST(request: Request) {
       );
     }
 
+    const scale = resolveLifestyleCompositeScale({
+      productHeightCm: body.productHeightCm,
+      productSizeHint: body.productSizeHint,
+    });
+    console.log(
+      `[125cha][api/lifestyle-composite] body.productHeightCm=${body.productHeightCm ?? null} parsed=${scale.productHeightCm} shouldAttempt=${scale.shouldAttempt}`,
+    );
+
     if (isTestMode()) {
       console.log("[lifestyle-composite] TEST_MODE — 원본 라이프스타일 반환 ($0)");
       return NextResponse.json({
@@ -50,6 +62,23 @@ export async function POST(request: Request) {
         cost: 0,
         composited: false,
         fromTestMode: true,
+        fallbackReason: scale.shouldAttempt
+          ? undefined
+          : scale.skipReason,
+      });
+    }
+
+    // 124차 — 높이 힌트 없으면 유료 합성 시도 자체를 하지 않음 (옵션 1)
+    if (!scale.shouldAttempt) {
+      console.warn(
+        `[lifestyle-composite] skip paste — ${scale.skipReason}`,
+      );
+      return NextResponse.json({
+        url: lifestyleImageUrl,
+        path: null,
+        cost: 0,
+        composited: false,
+        fallbackReason: scale.skipReason,
       });
     }
 
@@ -58,6 +87,8 @@ export async function POST(request: Request) {
       productImageUrl,
       category,
       productName,
+      productHeightCm: scale.productHeightCm,
+      requirePixelPaste: true,
     });
 
     if (!result.composited || result.url === lifestyleImageUrl) {

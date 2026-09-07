@@ -1,0 +1,19 @@
+{
+  "succeeded": 1,
+  "failed": 0,
+  "totalImageCostUsd": 0.043271,
+  "items": [
+    {
+      "order": 1,
+      "taskType": "HERO_PRODUCT",
+      "status": "succeeded",
+      "provider": "flux",
+      "model": "flux-2-pro",
+      "actualCost": 0.043271,
+      "outputUrls": [
+        "https://replicate.delivery/xezq/7Cuf9FovirXmcSNC8LEbEkzskBxbjXJ0cmzUouN0bxBT0qjLA/tmpu9b7nj98.webp"
+      ],
+      "errorMessage": "Recovered via flux fallback after gemini failure"
+    }
+  ]
+}

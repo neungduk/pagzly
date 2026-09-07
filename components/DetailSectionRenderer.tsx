@@ -1909,9 +1909,20 @@ function renderSection(
               />
             ))}
           </div>
-          <p className="mx-auto mt-6 max-w-md text-center text-xs text-ink/40">
-            {section.basisNote}
-          </p>
+          {(section.basisNote || section.basis === "self_assessed") && (
+            <p
+              className={`mx-auto mt-6 max-w-md text-center text-xs ${
+                section.basis === "self_assessed"
+                  ? "rounded-md bg-ink/5 px-3 py-2 font-medium text-ink/55"
+                  : "text-ink/40"
+              }`}
+            >
+              {section.basisNote ||
+                (section.basis === "self_assessed"
+                  ? "자체 평가 기준 (개인차가 있을 수 있어요)"
+                  : "")}
+            </p>
+          )}
         </section>
       );
 

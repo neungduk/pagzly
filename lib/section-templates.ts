@@ -107,7 +107,7 @@ const BEAUTY: SlotDefinition[] = [
     slot: "comparison_chart",
     type: "comparison_chart",
     required: false,
-    note: "입력에 실측 근거가 있으면 basis:\"measured\", 없으면 basis:\"self_assessed\"로 채우되 baselineLabel은 \"일반 제품\"만 사용(특정 브랜드명 금지). 근거·추정 둘 다 불가하면 슬롯 생략.",
+    note: "화장품/뷰티: ingredients(전성분·주요 성분)가 입력에 있으면 이 슬롯을 적극 채우세요. 안정성·자극감·사용감 등 2~4축을 basis:\"self_assessed\"로 비교해도 됩니다(수치는 30~85, 극단 0/100 금지, ourValue≤baseline×2). baselineLabel은 \"일반 제품\"만. 실측 근거가 있으면 basis:\"measured\"+basisNote 출처. 성분·인증 수치를 지어내지 말 것. ingredients도 keyFeatures도 없어 합리 추정조차 불가하면 슬롯 생략. self_assessed면 서버가 디스클레이머를 강제합니다.",
   },
   {
     slot: "spec_table",

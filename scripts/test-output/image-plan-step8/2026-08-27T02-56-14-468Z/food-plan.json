@@ -1,0 +1,68 @@
+{
+  "imagePlan": [
+    {
+      "order": 1,
+      "taskType": "HERO_PRODUCT",
+      "purpose": "제품의 정체성을 명확히 보여주는 대표 히어로 이미지로 첫인상을 결정한다.",
+      "prompt": "Professional studio product photo of a black protein shaker bottle with an orange rim lid, labeled 'FITDAILY' vanilla protein shake, standing upright on a clean white background with soft studio lighting, subtle reflection beneath the bottle, sharp focus, high resolution commercial photography, centered composition, no scoop or powder splash, minimalistic and premium look",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "3:4"
+    },
+    {
+      "order": 2,
+      "taskType": "PRODUCT_ONLY",
+      "purpose": "제품 패키지 디자인과 브랜드 로고를 자세히 확인할 수 있도록 클린한 단독 컷을 제공한다.",
+      "prompt": "Clean product-only photo of a black portable protein shake pouch with orange accent color and FITDAILY vanilla logo printed on the front, placed on a plain light gray background, soft even lighting, no shadows, isolated object shot, e-commerce catalog style, ultra sharp detail",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "1:1"
+    },
+    {
+      "order": 3,
+      "taskType": "PRODUCT_USAGE",
+      "purpose": "실제 파우더를 셰이커에 붓는 사용 장면을 통해 제품 사용법과 신선함을 시각적으로 전달한다.",
+      "prompt": "Close-up action shot of white vanilla protein powder being poured from a measuring scoop into a black shaker bottle with orange rim, powder particles floating in the air, warm natural lighting, blurred hand in background, dynamic motion capture, appetizing and energetic mood, high detail macro photography",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "4:5"
+    },
+    {
+      "order": 4,
+      "taskType": "LIFESTYLE",
+      "purpose": "운동 후 간편하게 마시는 라이프스타일 장면으로 타겟 고객의 공감을 유도한다.",
+      "prompt": "Lifestyle photo of a fit young person in workout clothes drinking a vanilla protein shake from a black and orange shaker bottle at a modern gym, natural daylight through windows, energetic and healthy atmosphere, shallow depth of field, realistic candid photography style",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "4:5"
+    },
+    {
+      "order": 5,
+      "taskType": "FEATURE_HIGHLIGHT",
+      "purpose": "단백질 20g, 저당 등 핵심 영양 정보를 그래픽으로 강조하여 구매 결정을 돕는다.",
+      "prompt": "Minimalist infographic style image showing a black protein shake pouch with orange details next to bold clean icons representing '20g Protein', 'Low Sugar', and 'Portable Pouch', white background, modern flat design elements, soft shadows, professional health product marketing layout",
+      "qualityLevel": "STANDARD",
+      "aspectRatio": "4:3"
+    },
+    {
+      "order": 6,
+      "taskType": "PRODUCT_USAGE",
+      "purpose": "휴대용 파우치의 편리한 휴대성을 강조하여 야외 및 이동 중 사용 가능함을 보여준다.",
+      "prompt": "Photo of a black protein shake pouch with orange trim being held in a hand, placed inside an open gym bag next to a towel and water bottle, natural outdoor lighting, casual lifestyle context emphasizing portability, realistic photography style",
+      "qualityLevel": "STANDARD",
+      "aspectRatio": "4:5"
+    },
+    {
+      "order": 7,
+      "taskType": "DETAIL_PAGE_GRAPHIC",
+      "purpose": "12팩 구성과 전체 패키지 구성을 한눈에 보여주는 구성품 이미지를 제공한다.",
+      "prompt": "Top-down flat lay photo of 12 individual black and orange vanilla protein shake pouches neatly arranged in a grid pattern on a white background, consistent studio lighting, clean and organized layout, product packaging display for e-commerce, high resolution",
+      "qualityLevel": "STANDARD",
+      "aspectRatio": "1:1"
+    },
+    {
+      "order": 8,
+      "taskType": "BACKGROUND_REPLACEMENT",
+      "purpose": "업로드된 실제 제품 사진의 배경을 깔끔하게 교체하여 신뢰감 있는 상세페이지용 이미지를 제공한다.",
+      "prompt": "Take the uploaded photo of a black shaker bottle with orange rim and white protein powder being poured in, replace the blurry skin-toned background with a clean minimalist light gray gradient studio background, keep the powder splash, hand, scoop, and bottle exactly as in the original, enhance lighting for a premium commercial look",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "3:4"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+diff --git a/app/create/draft/page.tsx b/app/create/draft/page.tsx
+index b6f2adb..a72adeb 100644
+--- a/app/create/draft/page.tsx
++++ b/app/create/draft/page.tsx
+@@ -288,6 +288,22 @@ export default function CreateDraftPage() {
+     setLoadingStage("backdrop");
+     setOverlayProgress(undefined);
+ 
++    const rawHeight =
++      typeof snap.productHeightCm === "string"
++        ? snap.productHeightCm.trim().replace(/,/g, ".")
++        : typeof snap.productHeightCm === "number"
++          ? String(snap.productHeightCm)
++          : "";
++    const snapHeight = (() => {
++      if (!rawHeight) return null;
++      const n = Number(rawHeight);
++      if (!Number.isFinite(n) || n < 2 || n > 80) return null;
++      return n;
++    })();
++    console.log(
++      `[126cha][draft] runPhotoEnhancementPipeline productHeightCmRaw=${JSON.stringify(snap.productHeightCm ?? null)} parsed=${snapHeight} productSizeHint=${JSON.stringify(snap.productSizeHint || null)} lifestyleImageUrl=${Boolean(currentDraft.payload.lifestyleImageUrl)}`,
++    );
++
+     const photo = await runPhotoEnhancementPipeline({
+       uploaded,
+       category: snap.category,
+@@ -296,6 +312,7 @@ export default function CreateDraftPage() {
+       price: Number(snap.price) || Number(currentDraft.payload.price) || 0,
+       keyFeatures: snap.keyFeatures || null,
+       productSizeHint: snap.productSizeHint || null,
++      productHeightCm: snapHeight,
+       enableAiLifestyleShots: snap.enableAiLifestyleShots === true,
+       ingredients: snap.ingredients || null,
+       targetCustomer: snap.targetCustomer || null,

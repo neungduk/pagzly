@@ -5,6 +5,7 @@
 
 import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import type { ConceptBrief } from "@/lib/concept-brief";
+import { buildLifestyleCompositeRequestBody } from "@/lib/lifestyle-composite-request";
 import { computeStudioCompositeLimit } from "@/lib/lifestyle-shot-planner";
 import { getLifestyleShotConfig } from "@/lib/lifestyle-shot-config";
 import type { ProductImageOrigin } from "@/lib/image-origins";
@@ -459,6 +460,8 @@ export async function runPhotoEnhancementPipeline(params: {
   price: number;
   keyFeatures?: string | null;
   productSizeHint?: string | null;
+  /** 125차 — 폼에서 받은 실측 높이(cm). hint 파싱보다 우선 */
+  productHeightCm?: number | null;
   /** false/미지정이면 AI 인물 사용샷 생성 생략 (105차 C 옵트인) */
   enableAiLifestyleShots?: boolean;
   ingredients?: string | null;
@@ -670,58 +673,78 @@ export async function runPhotoEnhancementPipeline(params: {
       costUsdSoFar: photoProcessingCost,
     });
     try {
-      const heroRef = finalImages[0];
-      const compositeRes = await fetch("/api/lifestyle-composite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lifestyleImageUrl: params.lifestyleImageUrl,
-          productImageUrl: heroRef?.url ?? uploaded[0]?.url,
-          category: params.category,
-          productName: params.productName,
-          storageBasePath: heroRef?.path ?? uploaded[0]?.path,
-        }),
+      const built = buildLifestyleCompositeRequestBody({
+        lifestyleImageUrl: params.lifestyleImageUrl,
+        productImageUrl: finalImages[0]?.url ?? uploaded[0]?.url ?? "",
+        category: params.category,
+        productName: params.productName,
+        storageBasePath: finalImages[0]?.path ?? uploaded[0]?.path,
+        productHeightCm: params.productHeightCm,
+        productSizeHint: params.productSizeHint,
       });
-      const compositeJson = (await compositeRes.json()) as {
-        url?: string;
-        path?: string | null;
-        cost?: number;
-        composited?: boolean;
-        error?: string;
-        fallbackReason?: string;
-      };
-      if (compositeRes.ok && compositeJson.url) {
-        if (compositeJson.composited) {
-          const compositePath =
-            compositeJson.path?.trim() ||
-            (compositeJson.url.includes("lifestyle-composite")
-              ? compositeJson.url
-              : `lifestyle-composite/${Date.now()}.png`);
-          finalImages.push({
-            url: compositeJson.url,
-            path: compositePath,
-            origin: "composite",
-          });
-          console.log(
-            `[lifestyle-composite] appended image index ${finalImages.length - 1} path=${compositePath.slice(0, 80)}`,
-          );
-        }
-        const compositeCost = compositeJson.cost ?? 0;
-        photoProcessingCost += compositeCost;
-        photoCostBreakdown = {
-          ...photoCostBreakdown,
-          lifestyleComposite: compositeCost,
-        };
+      console.log(
+        `[125cha][photo-pipeline] lifestyle scale shouldAttempt=${built.shouldAttempt} productHeightCm=${built.productHeightCm} hint=${JSON.stringify(params.productSizeHint ?? null)}`,
+      );
+      if (!built.shouldAttempt || !built.body) {
+        console.warn(
+          `[lifestyle-composite] skip — ${built.skipReason ?? "missing-product-height-cm"} (제품 높이 cm 필요)`,
+        );
         emit({
           stage: "lifestyle-composite",
-          detail: compositeJson.composited
-            ? "라이프스타일 합성 완료"
-            : "라이프스타일 합성 생략 — 원본 사용",
-          warning: compositeJson.fallbackReason,
+          detail: "라이프스타일 합성 생략 — 제품 높이(cm) 없음",
+          warning: "제품 높이(cm)를 입력하면 손 크기 기준으로 합성합니다.",
           costUsdSoFar: photoProcessingCost,
         });
-      } else if (!compositeRes.ok) {
-        console.warn("[lifestyle-composite] skip:", compositeJson.error);
+      } else {
+        console.log(
+          `[125cha][photo-pipeline] POST /api/lifestyle-composite body.productHeightCm=${built.body.productHeightCm} body.productSizeHint=${JSON.stringify(built.body.productSizeHint)}`,
+        );
+        const compositeRes = await fetch("/api/lifestyle-composite", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(built.body),
+        });
+        const compositeJson = (await compositeRes.json()) as {
+          url?: string;
+          path?: string | null;
+          cost?: number;
+          composited?: boolean;
+          error?: string;
+          fallbackReason?: string;
+        };
+        if (compositeRes.ok && compositeJson.url) {
+          if (compositeJson.composited) {
+            const compositePath =
+              compositeJson.path?.trim() ||
+              (compositeJson.url.includes("lifestyle-composite")
+                ? compositeJson.url
+                : `lifestyle-composite/${Date.now()}.png`);
+            finalImages.push({
+              url: compositeJson.url,
+              path: compositePath,
+              origin: "composite",
+            });
+            console.log(
+              `[lifestyle-composite] appended image index ${finalImages.length - 1} path=${compositePath.slice(0, 80)}`,
+            );
+          }
+          const compositeCost = compositeJson.cost ?? 0;
+          photoProcessingCost += compositeCost;
+          photoCostBreakdown = {
+            ...photoCostBreakdown,
+            lifestyleComposite: compositeCost,
+          };
+          emit({
+            stage: "lifestyle-composite",
+            detail: compositeJson.composited
+              ? "라이프스타일 합성 완료"
+              : "라이프스타일 합성 생략 — 원본 사용",
+            warning: compositeJson.fallbackReason,
+            costUsdSoFar: photoProcessingCost,
+          });
+        } else if (!compositeRes.ok) {
+          console.warn("[lifestyle-composite] skip:", compositeJson.error);
+        }
       }
     } catch (compositeErr) {
       console.warn("[lifestyle-composite] failed:", compositeErr);

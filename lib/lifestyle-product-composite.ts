@@ -850,6 +850,23 @@ export async function compositeProductOnLifestylePhoto(params: {
     requirePixelPaste,
   } = params;
 
+  // 124차 — requirePixelPaste면 높이(cm) 없이 Vision raw box로 붙이지 않음
+  if (
+    requirePixelPaste &&
+    (productHeightCm == null || !(productHeightCm > 0))
+  ) {
+    console.warn(
+      "[lifestyle-composite] requirePixelPaste but missing productHeightCm — skip paste",
+    );
+    return {
+      url: lifestyleImageUrl,
+      cost: 0,
+      composited: false,
+      fallbackReason: "missing-product-height-cm",
+      method: "none",
+    };
+  }
+
   let cost = 0;
   try {
     const cutout = await removeProductBackground(productImageUrl);

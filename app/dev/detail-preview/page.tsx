@@ -371,6 +371,136 @@ const capture57ElectronicsMeta = {
   productName: "AURA ONE Pro",
 };
 
+/** 122차 — 생활용품 QA 픽스처 (PLAIN HOME / 린넨 데코 쿠션 — qa-fixtures 이미지와 정합) */
+const capture58LivingSections: DetailSection[] = [
+  {
+    type: "hero",
+    slot: "hero",
+    headline: "소파 위에 작은 안식처가 필요할 때",
+    subheadline: "린넨 데코 쿠션",
+    imageIndex: 0,
+    badge: "2p 세트",
+  },
+  {
+    type: "brand_story",
+    slot: "brand_story",
+    heading: "손으로 고른 일상 텍스타일",
+    body: "PLAIN HOME은 장식보다 쓰임에 집중합니다. 소파에 올렸을 때 부담 없는 색과 린넨 혼방의 손감만 남깁니다.",
+  },
+  {
+    type: "checklist",
+    slot: "checklist",
+    heading: "이 쿠션이 하는 일",
+    items: ["린넨 혼방 커버", "분리 세탁 가능", "소프트 필링", "2p 기본 구성"],
+  },
+  {
+    type: "spec_table",
+    slot: "spec_table",
+    heading: "제품 정보",
+    rows: [
+      { label: "사이즈", value: "45×45cm" },
+      { label: "소재", value: "린넨 혼방" },
+      { label: "구성", value: "쿠션 2p 세트" },
+      { label: "색상", value: "오트밀 · 스카이" },
+    ],
+  },
+  {
+    type: "gallery",
+    slot: "gallery",
+    heading: "실사용 컷",
+    imageIndexes: [0, 1, 2, 3],
+  },
+  {
+    type: "faq",
+    slot: "faq",
+    heading: "자주 묻는 질문",
+    items: [
+      {
+        question: "커버만 세탁할 수 있나요?",
+        answer: "지퍼형 커버입니다. 중성 세제·약하게 세탁 후 그늘에서 건조해 주세요.",
+      },
+    ],
+  },
+  {
+    type: "cta_price",
+    slot: "cta_price",
+    price: 34900,
+    targetCustomer: "거실·침실 소파",
+    badges: ["2p 세트", "당일발송"],
+  },
+];
+
+const capture58LivingMeta = {
+  category: "생활용품",
+  brandName: "PLAIN HOME",
+  productName: "린넨 데코 쿠션",
+};
+
+/** 122차 — 반려동물 QA 픽스처 (PAW FRIEND / 강아지 리드줄 — qa-fixtures 이미지와 정합) */
+const capture58PetSections: DetailSection[] = [
+  {
+    type: "hero",
+    slot: "hero",
+    headline: "산책이 더 가벼워지는 이유",
+    subheadline: "강아지 리드줄",
+    imageIndex: 0,
+    badge: "대형견용",
+  },
+  {
+    type: "brand_story",
+    slot: "brand_story",
+    heading: "반려동물의 일상을 단순하게",
+    body: "PAW FRIEND는 복잡한 장식 대신, 대형견도 안심하고 잡는 견고한 그립과 반사 스티치로 매일의 산책을 만듭니다.",
+  },
+  {
+    type: "checklist",
+    slot: "checklist",
+    heading: "이 리드줄이 하는 일",
+    items: ["대형견 대응", "반사 스티치", "메탈 카라비너", "하네스 호환"],
+  },
+  {
+    type: "spec_table",
+    slot: "spec_table",
+    heading: "제품 정보",
+    rows: [
+      { label: "길이", value: "150cm" },
+      { label: "소재", value: "나일론 · 메탈 클립" },
+      { label: "대상", value: "중·대형견" },
+      { label: "호환", value: "하네스 · 목줄 고리" },
+    ],
+  },
+  {
+    type: "gallery",
+    slot: "gallery",
+    heading: "구성 · 디테일",
+    imageIndexes: [0, 1, 2, 3],
+  },
+  {
+    type: "faq",
+    slot: "faq",
+    heading: "자주 묻는 질문",
+    items: [
+      {
+        question: "대형견에도 써도 되나요?",
+        answer: "중·대형견용으로 설계했습니다. 하네스 고리에 연결해 사용하는 것을 권장합니다.",
+      },
+    ],
+  },
+  {
+    type: "cta_price",
+    slot: "cta_price",
+    price: 28900,
+    targetCustomer: "매일 산책하는 보호자",
+    badges: ["대형견용", "반사 스티치"],
+  },
+];
+
+const capture58PetMeta = {
+  category: "반려동물",
+  brandName: "PAW FRIEND",
+  productName: "강아지 리드줄",
+};
+
 /** 60차 — compact image_text 2개 이상 (square/circle 교차) */
 const capture60Sections: DetailSection[] = [
   {
@@ -531,6 +661,42 @@ const capture69SoloSections: DetailSection[] = (() => {
 
 const capture69SoloMeta = capture65Meta;
 
+/** 124차 — comparison_chart self_assessed 디스클레이머 가시성 */
+const capture124ComparisonSections: DetailSection[] = [
+  {
+    type: "hero",
+    slot: "hero",
+    headline: "속건조, 오늘부터 덜 신경 쓰세요",
+    subheadline: "히알루론 수분 크림",
+    imageIndex: 0,
+    badge: "무향",
+  },
+  {
+    type: "comparison_chart",
+    slot: "comparison_chart",
+    heading: "일반 제품과 무엇이 다른가요",
+    ourLabel: "AURA LAB",
+    baselineLabel: "일반 제품",
+    unit: "%",
+    basis: "self_assessed",
+    basisNote: "자체 평가 기준 (개인차가 있을 수 있어요)",
+    metrics: [
+      { label: "안정성", ourValue: 78, baselineValue: 55 },
+      { label: "자극감", ourValue: 42, baselineValue: 60 },
+      { label: "사용감", ourValue: 72, baselineValue: 58 },
+    ],
+  },
+  {
+    type: "cta_price",
+    slot: "cta_price",
+    price: 28900,
+    targetCustomer: "속건조 고민",
+    badges: ["무향", "데일리"],
+  },
+];
+
+const capture124ComparisonMeta = capture65Meta;
+
 /** 69차 — spec_table 3장 썸네일 + 배경 틴트 */
 const capture69SpecMultiSections: DetailSection[] = initialSections.map((section) =>
   section.type === "spec_table" && section.slot === "spec_table"
@@ -545,30 +711,80 @@ type CapturePreset = {
   category: string;
   brandName: string;
   productName: string;
+  /** 121차 — capture=58-* 전용 카테고리 이미지. 없으면 iteration-fixtures */
+  imageUrls?: string[];
 };
+
+const QA_FIXTURE_COSMETICS = [
+  "/qa-fixtures/cosmetics/01.jpg",
+  "/qa-fixtures/cosmetics/02.jpg",
+  "/qa-fixtures/cosmetics/03.jpg",
+  "/qa-fixtures/cosmetics/04.jpg",
+];
+const QA_FIXTURE_FASHION = [
+  "/qa-fixtures/fashion/01.png",
+  "/qa-fixtures/fashion/02.png",
+  "/qa-fixtures/fashion/03.png",
+  "/qa-fixtures/fashion/04.png",
+];
+const QA_FIXTURE_FOOD = [
+  "/qa-fixtures/food/01.png",
+  "/qa-fixtures/food/02.png",
+  "/qa-fixtures/food/03.png",
+  "/qa-fixtures/food/04.png",
+];
+const QA_FIXTURE_ELECTRONICS = [
+  "/qa-fixtures/electronics/01.png",
+  "/qa-fixtures/electronics/02.png",
+  "/qa-fixtures/electronics/03.png",
+  "/qa-fixtures/electronics/04.png",
+];
+const QA_FIXTURE_LIVING = [
+  "/qa-fixtures/living/01.png",
+  "/qa-fixtures/living/02.png",
+  "/qa-fixtures/living/03.png",
+  "/qa-fixtures/living/04.png",
+];
+const QA_FIXTURE_PET = [
+  "/qa-fixtures/pet/01.png",
+  "/qa-fixtures/pet/02.png",
+  "/qa-fixtures/pet/03.png",
+  "/qa-fixtures/pet/04.png",
+];
 
 /** 58차 — 6카테고리 baseNeutral 캡처용 */
 const CAPTURE58_PRESETS: Record<string, CapturePreset> = {
-  "58-fashion": { sections: capture56Sections, ...capture56Meta },
+  "58-fashion": {
+    sections: capture56Sections,
+    ...capture56Meta,
+    imageUrls: QA_FIXTURE_FASHION,
+  },
   "58-cosmetics": {
     sections: initialSections,
     category: "화장품/뷰티",
     brandName: "AURA LAB",
     productName: "히알루론 수분 크림",
+    imageUrls: QA_FIXTURE_COSMETICS,
   },
-  "58-food": { sections: capture57FoodSections, ...capture57FoodMeta },
-  "58-electronics": { sections: capture57ElectronicsSections, ...capture57ElectronicsMeta },
+  "58-food": {
+    sections: capture57FoodSections,
+    ...capture57FoodMeta,
+    imageUrls: QA_FIXTURE_FOOD,
+  },
+  "58-electronics": {
+    sections: capture57ElectronicsSections,
+    ...capture57ElectronicsMeta,
+    imageUrls: QA_FIXTURE_ELECTRONICS,
+  },
   "58-living": {
-    sections: initialSections,
-    category: "생활용품",
-    brandName: "PLAIN HOME",
-    productName: "세라믹 식기 세트",
+    sections: capture58LivingSections,
+    ...capture58LivingMeta,
+    imageUrls: QA_FIXTURE_LIVING,
   },
   "58-pet": {
-    sections: initialSections,
-    category: "반려동물",
-    brandName: "PAW FRIEND",
-    productName: "저알러지 사료",
+    sections: capture58PetSections,
+    ...capture58PetMeta,
+    imageUrls: QA_FIXTURE_PET,
   },
 };
 
@@ -586,6 +802,9 @@ function resolveCapturePreset(): CapturePreset | null {
   if (capture === "65-circle-pair") return { sections: capture65Sections, ...capture65Meta };
   if (capture === "65-no-ingredients") return { sections: initialSections, ...capture65Meta };
   if (capture === "69-circle-solo") return { sections: capture69SoloSections, ...capture69SoloMeta };
+  if (capture === "124-comparison") {
+    return { sections: capture124ComparisonSections, ...capture124ComparisonMeta };
+  }
   if (capture === "69-spec-multi") {
     return { sections: capture69SpecMultiSections, ...capture69SpecMultiMeta };
   }
@@ -603,7 +822,9 @@ export default function DetailPreviewPage() {
   const [sections, setSections] = useState(() =>
     capturePreset ? capturePreset.sections : initialSections,
   );
-  const [imageUrls, setImageUrls] = useState(initialImageUrls);
+  const [imageUrls, setImageUrls] = useState(
+    () => capturePreset?.imageUrls ?? initialImageUrls,
+  );
   const [editMode, setEditMode] = useState(false);
   const [toolTab, setToolTab] = useState<DetailToolTab>("edit");
   const [replaceImageIndex, setReplaceImageIndex] = useState(0);

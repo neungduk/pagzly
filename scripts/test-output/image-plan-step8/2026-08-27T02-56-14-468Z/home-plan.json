@@ -1,0 +1,68 @@
+{
+  "imagePlan": [
+    {
+      "order": 1,
+      "taskType": "HERO_PRODUCT",
+      "purpose": "제품의 첫인상을 결정하는 대표 이미지로 매트 화이트 세라믹 보울 세트의 미니멀한 디자인을 강조",
+      "prompt": "A clean hero product shot of two stacked matte white ceramic bowls with subtle speckled texture, identical in shape and glaze to a live-edge wooden table product photo, centered on a soft neutral beige background with gentle natural window light, minimalist styling, soft shadows, high-end product photography, sharp focus on bowl rims, no text, studio quality",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "3:4"
+    },
+    {
+      "order": 2,
+      "taskType": "PRODUCT_ONLY",
+      "purpose": "보울 세트 2개를 단독으로 배치해 형태와 마감을 명확히 전달",
+      "prompt": "Two matte white ceramic bowls with light beige speckled rim, one nested slightly askew on top of the other, placed on a plain white seamless background, soft even studio lighting, product catalog style, high detail on ceramic glaze texture and matte finish, no props, centered composition",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "1:1"
+    },
+    {
+      "order": 3,
+      "taskType": "BACKGROUND_REPLACEMENT",
+      "purpose": "업로드된 실제 제품 사진의 배경을 밝은 홈카페 톤으로 교체해 감성적인 무드 강조",
+      "prompt": "Take the uploaded photo of matte white ceramic bowls and cups on a live-edge wooden table, keep the exact bowls, cups, and plate shapes and glaze colors unchanged, replace the background with a bright airy home cafe interior featuring soft linen curtains and warm morning light, maintain original table and macrame placemats, natural shadows, editorial lifestyle photography",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "4:5"
+    },
+    {
+      "order": 4,
+      "taskType": "LIFESTYLE",
+      "purpose": "자취생활자의 실제 사용 장면을 연출해 제품이 일상에 자연스럽게 녹아드는 모습을 보여줌",
+      "prompt": "A cozy single-person studio apartment kitchen counter scene with the matte white ceramic bowl set holding fresh salad and granola, soft morning sunlight through a window, minimalist Scandinavian interior, wooden countertop, small plant in background, lifestyle photography, warm and inviting mood, bowls exactly matching original speckled matte white ceramic design",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "4:5"
+    },
+    {
+      "order": 5,
+      "taskType": "PRODUCT_USAGE",
+      "purpose": "전자레인지와 식기세척기 사용 가능함을 시각적으로 전달해 실용성 강조",
+      "prompt": "Split-style realistic photo showing the matte white ceramic bowl placed inside an open microwave on the left side and the same bowl placed inside a dishwasher rack on the right side, clean modern kitchen appliances, bright neutral lighting, bowl design consistent with speckled matte white ceramic glaze, product demonstration photography",
+      "qualityLevel": "STANDARD",
+      "aspectRatio": "4:3"
+    },
+    {
+      "order": 6,
+      "taskType": "FEATURE_HIGHLIGHT",
+      "purpose": "내열 세라믹 소재와 매트 유약 마감 등 소재 디테일을 확대해 신뢰감 부여",
+      "prompt": "Extreme close-up macro shot of the matte white ceramic bowl rim showing fine speckled glaze texture and smooth matte finish, soft directional studio lighting highlighting the heat-resistant ceramic surface, shallow depth of field, minimal background blur, professional product detail photography",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "1:1"
+    },
+    {
+      "order": 7,
+      "taskType": "DETAIL_PAGE_GRAPHIC",
+      "purpose": "제품 사이즈와 세트 구성 정보를 시각적으로 정리해 구매 결정에 도움",
+      "prompt": "Flat lay infographic style image of two matte white speckled ceramic bowls arranged side by side on a clean light beige background, minimal dimension lines and clean icons style layout space around bowls for size and material text overlay, top-down view, soft shadow, e-commerce spec sheet photography",
+      "qualityLevel": "STANDARD",
+      "aspectRatio": "1:1"
+    },
+    {
+      "order": 8,
+      "taskType": "PRODUCT_EDIT",
+      "purpose": "원본 촬영 이미지를 활용해 제품만 선명하게 부각되도록 배경 흐림과 조명을 보정",
+      "prompt": "Edit the uploaded live-edge wooden table photo with ceramic bowls, cups, and plate: keep all product shapes, glaze colors, and table exactly the same, enhance lighting to make the bowls and cups appear brighter and more in focus, slightly blur the background plant and doorway further for a professional bokeh effect, retain warm cozy tone, high-end lifestyle product photography",
+      "qualityLevel": "PREMIUM",
+      "aspectRatio": "3:4"
+    }
+  ]
+}
