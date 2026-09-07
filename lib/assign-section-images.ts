@@ -911,11 +911,6 @@ export function assignDistinctSectionImages(
   return mapped;
 }
 
-/** 프롬프트/로그용: 실제로 몇 장이 쓰였는지 */
-export function countDistinctSectionImages(sections: DetailSection[]): number {
-  return collectUsedIndexes(sections).length;
-}
-
 /** 진단용: 인덱스별 사용 횟수 */
 export function countImageIndexFrequency(sections: DetailSection[]): Record<number, number> {
   const freq: Record<number, number> = {};

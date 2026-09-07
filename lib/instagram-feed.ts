@@ -366,5 +366,3 @@ export async function renderInstagramFeedPng(slide: InstagramFeedSlide): Promise
 
   return canvas.toDataURL("image/png");
 }
-
-export const INSTAGRAM_FEED_SIZE = FEED_SIZE;

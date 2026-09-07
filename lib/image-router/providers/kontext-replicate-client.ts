@@ -116,8 +116,3 @@ export async function generateKontextProViaReplicate(
     throw classifyProviderError(err, { provider: "kontext", model: "flux-kontext-pro" });
   }
 }
-
-/** 테스트·provider reset */
-export function resetKontextReplicateClientForTests(): void {
-  kontextReplicateClient = null;
-}

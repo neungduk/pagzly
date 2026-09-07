@@ -11,10 +11,6 @@ export function canvasElementBoxCss(el: Pick<CanvasElement, "x" | "y" | "w" | "h
   return `position:absolute;left:${el.x}%;top:${el.y}%;width:${el.w}%;height:${el.h}%;z-index:${el.z}`;
 }
 
-export function canvasFramePaddingBottom(frameWidth: number, frameHeight: number): number {
-  return (frameHeight / frameWidth) * 100;
-}
-
 export function resolveCanvasImageSrc(
   imageUrls: string[],
   el: Extract<CanvasElement, { kind: "image" }>,

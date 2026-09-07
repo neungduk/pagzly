@@ -64,7 +64,6 @@ export function mixHex(base: string, tint: string, tintRatio: number): string {
 // 섹션 배경은 패턴 A(baseNeutral 단색) / 패턴 B(accentColor 10~15% 옅은 단색) / 패턴 C(deepAccent
 // 거의 솔리드 강조 블록, 19차 Part B 신규 — 페이지당 1곳만, ChecklistSection.boldBlock으로만 켜짐)
 // 세 가지만 허용. 그라데이션은 hero 전용.
-export const SECTION_BG_PATTERN_B_ALPHA = 0.15; // 10~15% 범위 상단 — A/B 구획이 스크롤에서 읽히도록
 export const SECTION_BG_PATTERN_C_ALPHA = 0.92; // 거의 솔리드 — 페이지메이커의 강조 색면 블록 참고
 
 export type SectionColorPattern = "A" | "B" | "C" | "D" | "E";
@@ -203,11 +202,6 @@ export function getTextPanelSurface(theme: CategoryTheme): {
     borderColor: hexToRgba(theme.accent, 0.2),
     boxShadow: `0 12px 40px ${hexToRgba(theme.deepAccent, 0.08)}`,
   };
-}
-
-/** 패턴 C는 배경이 진하므로 텍스트/아이콘 색을 반전해야 한다는 걸 렌더러에 알리는 헬퍼. */
-export function isBoldPattern(pattern: SectionColorPattern): boolean {
-  return pattern === "C";
 }
 
 // hero만 예외적으로 진→연 그라데이션 허용 (deepAccent → accent → transparent).
@@ -371,7 +365,6 @@ export function resolveSectionSurface(
 // ---------------------------------------------------------------------------
 
 export const DECORATION_OPACITY = 0.1; // 8~12% 범위 중간값
-export const DECORATION_ALLOWED_SECTION_TYPES = ["hero"] as const;
 
 export function getDecorationColor(theme: CategoryTheme): string {
   return hexToRgba(theme.accent, DECORATION_OPACITY);
@@ -380,11 +373,6 @@ export function getDecorationColor(theme: CategoryTheme): string {
 // ---------------------------------------------------------------------------
 // 3. 여백 — 섹션 간 상하 여백, 섹션 내부 좌우 패딩 고정값.
 // ---------------------------------------------------------------------------
-
-// 80px 데스크톱 / 48px 모바일 (tailwind: 20 = 80px, 12 = 48px)
-export const SECTION_GAP_CLASS = "space-y-12 sm:space-y-20";
-// 섹션 내부 좌우 패딩 고정값 (텍스트가 화면 끝까지 붙지 않도록)
-export const SECTION_PADDING_CLASS = "p-6 sm:p-10";
 
 /** 렌더러 전용 — 레퍼런스급 여백 리듬(넉넉한 본문 / 타이트한 갤러리 헤더). */
 export const SECTION_BLOCK_PAD = {
@@ -562,15 +550,6 @@ export const SLOT_IMAGE_RATIO: Record<string, string> = {
   feature_callout: IMAGE_RATIO.square,
   step_card: IMAGE_RATIO.square,
   care_tip: IMAGE_RATIO.square,
-};
-
-// ---------------------------------------------------------------------------
-// 5. 타이포그래피 — 헤드라인/본문 길이 제한 (자동 요약은 각 호출부 책임).
-// ---------------------------------------------------------------------------
-
-export const TYPOGRAPHY = {
-  headlineMaxLines: 2,
-  bodyMaxLines: 3,
 };
 
 // ---------------------------------------------------------------------------

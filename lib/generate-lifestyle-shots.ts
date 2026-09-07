@@ -7,7 +7,6 @@ import {
 } from "@/lib/lifestyle-shot-config";
 import type { ImageAspectRatio } from "@/lib/image-router/types";
 import {
-  isLifestyleAiPath,
   LIFESTYLE_AI_PATH_MARKER,
   planLifestyleShots,
   type LifestyleShotPlan,
@@ -399,10 +398,4 @@ async function generateOneShot(params: {
     console.warn(`[lifestyle-shots] shot ${index} error:`, err);
     return null;
   }
-}
-
-export function lifestyleAiIndexesFromPaths(paths: string[]): number[] {
-  return paths
-    .map((p, i) => (isLifestyleAiPath(p) ? i : -1))
-    .filter((i) => i >= 0);
 }
