@@ -519,7 +519,7 @@ const ELECTRONICS: SlotDefinition[] = [
     slot: "spec_table",
     type: "spec_table",
     required: true,
-    note: "전체 스펙 표 — 규격/전력/호환성. 입력 데이터에 없는 수치는 공란 처리",
+    note: "전체 스펙 표 — 규격/전력/호환성. 입력 데이터에 없는 수치는 공란 처리. certifications 필드에 KC/전자파적합성 등 인증정보가 있으면 별도 행으로 그대로 노출(예: 'KC 인증' 행에 입력값 그대로). 입력에 없는 인증번호를 지어내지 말 것 — 없으면 해당 행 자체를 생략.",
   },
   {
     slot: "faq",

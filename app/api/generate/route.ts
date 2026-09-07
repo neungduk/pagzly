@@ -28,7 +28,7 @@ import {
 import { extractUrlSummary, extractCompetitorDifferentiation, type UrlSummaryResult } from "@/lib/url-crawler";
 import { buildQAFixPrompt, runDetailPageQA } from "@/lib/detail-page-qa";
 import { enrichSectionsWithProductMetadata } from "@/lib/enrich-product-sections";
-import { insertReviewHighlightSection, insertSellerTrustEvidence } from "@/lib/section-inserts";
+import { insertReviewHighlightSection, insertReviewAxisComparisonSection, insertSellerTrustEvidence } from "@/lib/section-inserts";
 import {
   dropHollowHighlightBoxes,
   HIGHLIGHT_BOX_RETRY_APPENDIX,
@@ -511,7 +511,7 @@ const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
   brand_story: `{ type: "brand_story", slot, heading, body } — brandName이 없으면 슬롯 전체 생략. 브랜드의 시작·철학·만드는 방식 중 하나를 골라 2~3문단으로 쓰되, 판매자 입력에 없는 창업연도·공장·수상 등 사실을 지어내지 말 것. 근거가 약하면 짧게`,
   ai_disclosure: `{ type: "ai_disclosure", slot: "ai_disclosure", heading, body } — 서버가 고정 문구로 덮어쓰므로 생략하거나 빈 값으로 둬도 됨`,
   custom_gif: `{ type: "custom_gif", slot: "custom_gif", heading?, gifUrl } — AI는 이 섹션을 생성하지 않음. 판매자가 GIF를 업로드했을 때 서버가 조립 단계에서 자동 삽입`,
-  review_highlight: `{ type: "review_highlight", slot: "review_highlight", heading, praises: string[] } — AI는 이 섹션을 생성하지 않음. 판매자가 리뷰 파일을 업로드했을 때 실제 후기 요약(commonPraises)으로 서버가 조립 단계에서 자동 삽입`,
+  review_highlight: `{ type: "review_highlight", slot: "review_highlight", heading, praises: string[], concerns?: string[] } — AI는 이 섹션을 생성하지 않음. 판매자가 리뷰 파일을 업로드했을 때 실제 후기 요약(commonPraises/commonComplaints)으로 서버가 조립 단계에서 자동 삽입`,
   canvas: `{ type: "canvas", slot, frameWidth, frameHeight, background?, elements[] } — AI는 이 섹션을 생성하지 않음. 판매자가 result 화면에서 수동 추가`,
 };
 
@@ -643,6 +643,12 @@ async function loadAuxiliaryInputs(body: ProductInput): Promise<{
       enriched.reviewInsights = {
         commonPraises: result.commonPraises,
         commonComplaints: result.commonComplaints,
+        reviewLineCount: result.reviewLineCount,
+        praiseMatchCounts: result.praiseMatchCounts,
+        complaintMatchCounts: result.complaintMatchCounts,
+        ...(result.axisComparison && result.axisComparison.length >= 2
+          ? { axisComparison: result.axisComparison }
+          : {}),
       };
       reviewInsightsCost = result.cost;
     } catch (err) {
@@ -1583,9 +1589,41 @@ export async function POST(request: Request) {
     }
 
     const reviewPraises = enrichedBody.reviewInsights?.commonPraises ?? [];
+    const reviewComplaints = enrichedBody.reviewInsights?.commonComplaints ?? [];
+    const reviewLineCount = enrichedBody.reviewInsights?.reviewLineCount;
+    const praiseMatchCounts = enrichedBody.reviewInsights?.praiseMatchCounts;
+    const complaintMatchCounts = enrichedBody.reviewInsights?.complaintMatchCounts;
     if (reviewPraises.length > 0) {
-      savedCopy.sections = insertReviewHighlightSection(savedCopy.sections, reviewPraises);
-      console.log(`[review-highlight] 실제 후기 하이라이트 삽입 (${reviewPraises.length}개, AI 미생성)`);
+      savedCopy.sections = insertReviewHighlightSection(
+        savedCopy.sections,
+        reviewPraises,
+        reviewComplaints,
+        reviewLineCount,
+        praiseMatchCounts,
+        complaintMatchCounts,
+      );
+      console.log(
+        `[review-highlight] 실제 후기 하이라이트 삽입 (praises=${reviewPraises.length} concerns=${reviewComplaints.filter(Boolean).length} sourceReviewCount=${reviewLineCount ?? 0}, AI 미생성)`,
+      );
+    }
+
+    const axisComparison = enrichedBody.reviewInsights?.axisComparison;
+    if (axisComparison && axisComparison.length >= 2) {
+      const beforeLen = savedCopy.sections.length;
+      savedCopy.sections = insertReviewAxisComparisonSection(
+        savedCopy.sections,
+        axisComparison,
+        body.brandName,
+      );
+      if (savedCopy.sections.length > beforeLen) {
+        console.log(
+          `[review-axis-comparison] measured comparison_chart 삽입 (axes=${axisComparison.length}, AI 미생성)`,
+        );
+      } else {
+        console.log(
+          `[review-axis-comparison] 기존 comparison_chart 있어 서버 삽입 스킵 (axes=${axisComparison.length})`,
+        );
+      }
     }
 
     savedCopy.sections = applyHeroBadge(savedCopy.sections);

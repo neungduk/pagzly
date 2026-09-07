@@ -16,6 +16,21 @@ function specTableIndex(sections: DetailSection[]): number {
   return sections.findIndex((s) => s.type === "spec_table" && s.slot === "spec_table");
 }
 
+/** 129차 — comparison_chart가 있으면 그 앞에 삽입해 128차 병합이 발동하도록 */
+function comparisonChartIndex(sections: DetailSection[]): number {
+  return sections.findIndex(
+    (s) =>
+      s.type === "comparison_chart" && Array.isArray(s.metrics) && s.metrics.length > 0,
+  );
+}
+
+/** circle 삽입 위치: chart 우선, 없으면 spec_table (기존 폴백) */
+function circleInsertIndex(sections: DetailSection[]): number {
+  const chartIdx = comparisonChartIndex(sections);
+  if (chartIdx >= 0) return chartIdx;
+  return specTableIndex(sections);
+}
+
 /** ingredient_highlight와 다른 인덱스를 고른다 (104차 A-2). */
 function pickAlternateIndex(
   sections: DetailSection[],
@@ -40,7 +55,7 @@ function pickAlternateIndex(
   return avoid;
 }
 
-/** 69차 — 성분 1개=circle-solo, 2개+=circle-pair (INFO 직전 삽입) */
+/** 69차 — 성분 1개=circle-solo, 2개+=circle-pair; 129차 — chart 앞 우선, 없으면 spec_table 앞 */
 export function applyIngredientCircleVisual(
   sections: DetailSection[],
   imageUrls: string[],
@@ -55,10 +70,12 @@ export function applyIngredientCircleVisual(
     return { sections, applied: false };
   }
 
-  const specIdx = specTableIndex(sections);
-  if (specIdx < 0) {
+  const insertIdx = circleInsertIndex(sections);
+  if (insertIdx < 0) {
     return { sections, applied: false };
   }
+  const insertBefore =
+    comparisonChartIndex(sections) >= 0 ? "comparison_chart" : "spec_table";
 
   const ingSection = sections.find(
     (s): s is ImageTextSection =>
@@ -90,9 +107,13 @@ export function applyIngredientCircleVisual(
       imagePosition: "left",
       circleSolo: { imageUrl: soloUrl, label: labels[0]! },
     };
-    const next = [...sections.slice(0, specIdx), circleSection, ...sections.slice(specIdx)];
+    const next = [
+      ...sections.slice(0, insertIdx),
+      circleSection,
+      ...sections.slice(insertIdx),
+    ];
     console.log(
-      `[circle-solo] INFO 직전 삽입 — "${labels[0]}" (img ${soloIndex}, avoid ingredient ${ingSection.imageIndex})`,
+      `[circle-solo] ${insertBefore} 직전 삽입 — "${labels[0]}" (img ${soloIndex}, avoid ingredient ${ingSection.imageIndex})`,
     );
     return { sections: next, applied: true };
   }
@@ -124,12 +145,13 @@ export function applyIngredientCircleVisual(
     ],
   };
 
-  const next = [...sections.slice(0, specIdx), circleSection, ...sections.slice(specIdx)];
+  const next = [
+    ...sections.slice(0, insertIdx),
+    circleSection,
+    ...sections.slice(insertIdx),
+  ];
   console.log(
-    `[circle-pair] INFO 직전 삽입 — "${labels[0]}" / "${labels[1]}" (img ${ingSection.imageIndex}, ${texSection.imageIndex})`,
+    `[circle-pair] ${insertBefore} 직전 삽입 — "${labels[0]}" / "${labels[1]}" (img ${ingSection.imageIndex}, ${texSection.imageIndex})`,
   );
   return { sections: next, applied: true };
 }
-
-/** @deprecated applyIngredientCircleVisual 사용 */
-export const applyIngredientCirclePair = applyIngredientCircleVisual;

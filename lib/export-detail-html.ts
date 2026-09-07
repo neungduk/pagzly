@@ -290,6 +290,29 @@ function sectionHtml(
             .join("")}
         </div>
         ${section.basisNote ? `<p style="text-align:center;font-size:11px;opacity:.4;margin-top:20px">${esc(section.basisNote)}</p>` : ""}
+        ${
+          Array.isArray(section.evidenceQuotes) &&
+          section.evidenceQuotes.some((e) => e.quotes?.some((q) => Boolean(q?.trim())))
+            ? `<details style="max-width:420px;margin:28px auto 0;border:1px solid rgba(27,27,24,0.12);border-radius:12px;padding:12px 16px;background:rgba(250,248,243,0.85)">
+                <summary style="cursor:pointer;text-align:center;font-size:12px;font-weight:600;opacity:.6">근거 보기</summary>
+                <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(27,27,24,0.1)">
+                  ${section.evidenceQuotes
+                    .filter((e) => e.quotes?.some((q) => Boolean(q?.trim())))
+                    .map(
+                      (e) =>
+                        `<div style="margin-bottom:16px"><p style="text-align:center;font-size:11px;font-weight:500;opacity:.45;margin:0 0 8px">${esc(e.label)}</p>${e.quotes
+                          .filter(Boolean)
+                          .map(
+                            (q) =>
+                              `<p style="text-align:center;font-size:13px;line-height:1.6;opacity:.55;margin:0 0 8px;padding:12px;border:1px solid rgba(27,27,24,0.08);border-radius:12px">&ldquo; ${esc(q)}</p>`,
+                          )
+                          .join("")}</div>`,
+                    )
+                    .join("")}
+                </div>
+              </details>`
+            : ""
+        }
       </section>`;
     case "image_text": {
       const src = imageUrls[section.imageIndex] ?? "";
@@ -655,22 +678,62 @@ function sectionHtml(
       </section>`;
     }
     case "review_highlight": {
-      const praises = section.praises.filter(Boolean);
-      if (praises.length === 0) return "";
+      const praiseItems = section.praises
+        .map((text, i) => ({
+          text,
+          matchCount: section.praiseMatchCounts?.[i] ?? 0,
+        }))
+        .filter((p) => Boolean(p.text));
+      if (praiseItems.length === 0) return "";
+      const concernItems = (section.concerns ?? [])
+        .map((text, i) => ({
+          text,
+          matchCount: section.complaintMatchCounts?.[i] ?? 0,
+        }))
+        .filter((c) => Boolean(c.text));
+      const countCaption =
+        typeof section.sourceReviewCount === "number" && section.sourceReviewCount > 0
+          ? `<p style="text-align:center;font-size:12px;opacity:.4;margin:8px 0 0">실제 리뷰 ${section.sourceReviewCount}건 분석</p>`
+          : "";
+      const concernsBlock =
+        concernItems.length > 0
+          ? `<div class="pagzly-review-concerns" style="max-width:560px;margin:40px auto 0;padding-top:28px;border-top:1px solid rgba(27,27,24,0.1)">
+              <p style="text-align:center;font-size:12px;font-weight:500;letter-spacing:.02em;opacity:.45;margin:0">실제 후기에 나온 아쉬운 점</p>
+              <ul style="list-style:none;padding:0;margin:16px 0 0">
+                ${concernItems
+                  .map(
+                    (c) =>
+                      `<li style="text-align:center;font-size:13px;line-height:1.6;opacity:.5;margin:0 0 10px">${esc(c.text)}${
+                        c.matchCount > 0
+                          ? `<div style="font-size:11px;opacity:.4;margin-top:4px">${c.matchCount}건 언급</div>`
+                          : ""
+                      }</li>`,
+                  )
+                  .join("")}
+              </ul>
+            </div>`
+          : "";
       return `<section${sectionIdAttr} class="pagzly-review-highlight" style="${pad}${sectionInset}${bgCss}">
         <h2 style="text-align:center;font-size:1.5rem;margin:0">${esc(section.heading)}</h2>
+        ${countCaption}
         <p style="text-align:center;font-size:12px;opacity:.45;margin:8px 0 0">실제 구매자 리뷰에서 자주 나온 내용을 요약했습니다</p>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;max-width:680px;margin:32px auto 0">
-          ${praises
+          ${praiseItems
             .map(
-              (praise) =>
+              (item) =>
                 `<div style="border-radius:16px;padding:24px;border:1px solid ${accent}33;background:${accent}0d">
                   <span style="font-size:2rem;color:${accent};line-height:1">&ldquo;</span>
-                  <p style="margin:12px 0 0;font-size:14px;line-height:1.6;opacity:.85">${esc(praise)}</p>
+                  <p style="margin:12px 0 0;font-size:14px;line-height:1.6;opacity:.85">${esc(item.text)}</p>
+                  ${
+                    item.matchCount > 0
+                      ? `<p style="margin:10px 0 0;font-size:11px;opacity:.4">${item.matchCount}건 언급</p>`
+                      : ""
+                  }
                 </div>`,
             )
             .join("")}
         </div>
+        ${concernsBlock}
       </section>`;
     }
     case "ai_disclosure":

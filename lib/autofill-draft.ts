@@ -167,8 +167,4 @@ export async function generateAutofillDraft(
     deepseekCost,
     visionImageCount,
   };
-}
-
-/** @deprecated generateAutofillDraft 사용 */
-export const generateAutofillDraftFromPhotos = generateAutofillDraft;
-
+}

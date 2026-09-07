@@ -32,7 +32,10 @@ export function calculateClaudeCost(
   );
 }
 
+import { addCostLogTally } from "@/lib/cost-log-tally";
+
 export function logClaudeCost(label: string, model: string, cost: number): void {
   if (cost <= 0) return;
   console.log(`[cost] claude/${label} (${model}): $${cost.toFixed(4)}`);
+  addCostLogTally(`claude/${label}`, cost);
 }

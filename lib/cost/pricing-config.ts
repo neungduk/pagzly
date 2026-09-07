@@ -86,6 +86,3 @@ export function resolveImagePricing(
   }
   return null;
 }
-
-/** @deprecated — use PRICING_CONFIG via resolveImagePricing; kept for ImageRouter compat */
-export const IMAGE_PRICING_CONFIG = PRICING_CONFIG;

@@ -102,6 +102,8 @@ export async function generateIllustrationBanner(
 
   const prompt = [
     "abstract decorative background art only, wide 16:9 landscape",
+    "professional editorial illustration, magazine-quality decorative art",
+    "sharp focus, refined color grading, subtle gradient mesh",
     "soft gradient waves, fluid organic shapes, single centered motif symbol",
     styleAscii || "flat minimal editorial illustration",
     themeAscii ? `mood: ${themeAscii}` : "",

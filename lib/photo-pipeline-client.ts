@@ -400,6 +400,17 @@ export async function enhanceImages(params: {
     `[enhance-image] done uploaded=${uploaded.length} kept=${results.length} extras=${extras.length} fallbackOriginals=${enhanceFailCount}`,
   );
 
+  // 130차 — 서버 per-image [cost] 집계 한 줄 (개별 로그는 유지)
+  try {
+    await fetch("/api/enhance-image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ flushCostTalliesOnly: true }),
+    });
+  } catch (err) {
+    console.warn("[cost] tally flush failed:", err);
+  }
+
   // 101차 — 동일 URL이 extras/폴백으로 여러 번 들어오면 풀에서 제거
   const merged = [...results, ...extras];
   const deduped: UploadedImage[] = [];
@@ -442,9 +453,6 @@ export type PhotoPipelineProgressEvent = {
   retrying?: boolean;
   warning?: string;
 };
-
-/** @deprecated — use PhotoPipelineProgressEvent */
-export type PhotoPipelineProgress = PhotoPipelineStage;
 
 export type PhotoPipelineProgressCallback = (event: PhotoPipelineProgressEvent) => void;
 

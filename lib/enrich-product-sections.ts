@@ -105,7 +105,7 @@ function resolveSkeletonValue(
     const ing = meta.ingredients.trim();
     return ing.length > 80 ? `${ing.slice(0, 77)}…` : ing;
   }
-  if (skel.label === "인증·수상") {
+  if (skel.label === "인증·수상" || skel.label === "KC 인증") {
     const certs = parseCertificationTokens(meta.certifications);
     if (certs.length > 0) return certs.join(", ");
   }
@@ -126,10 +126,20 @@ function mergeSpecRows(
     price?: number;
   },
 ): { label: string; value: string }[] {
-  const merged: { label: string; value: string }[] = skeleton.map((skel) => ({
-    label: skel.label,
-    value: resolveSkeletonValue(skel, existing, meta),
-  }));
+  const merged: { label: string; value: string }[] = [];
+  for (const skel of skeleton) {
+    // 전자제품 KC 인증: 입력 없으면 행 자체 생략 (공란/플레이스홀더 금지)
+    if (skel.label === "KC 인증") {
+      const certs = parseCertificationTokens(meta.certifications);
+      if (certs.length === 0) continue;
+      merged.push({ label: skel.label, value: certs.join(", ") });
+      continue;
+    }
+    merged.push({
+      label: skel.label,
+      value: resolveSkeletonValue(skel, existing, meta),
+    });
+  }
 
   for (const row of existing) {
     if (!merged.some((m) => m.label === row.label)) {

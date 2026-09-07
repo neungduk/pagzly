@@ -11,7 +11,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
-import type { DetailSection, ImageTextSection } from "@/lib/types/generate";
+import type {
+  ComparisonChartSection,
+  DetailSection,
+  ImageTextSection,
+} from "@/lib/types/generate";
 import type { ConceptIconMap } from "@/lib/concept-icons";
 import { resolveCompactImageShape } from "@/lib/compact-image-shape";
 import { buildSectionImageAlt } from "@/lib/detail-image-alt";
@@ -938,6 +942,239 @@ function countCompactImageTextSections(sections: DetailSection[]): number {
   return sections.filter((s) => s.type === "image_text" && s.layout === "compact").length;
 }
 
+/** circle-pair 유효성 — findCircleComparisonComboIndices / renderSection 공용 */
+function isCirclePairSection(section: DetailSection): boolean {
+  return (
+    section.type === "image_text" &&
+    section.layout === "circle-pair" &&
+    Array.isArray(section.circlePair) &&
+    section.circlePair.length === 2 &&
+    section.circlePair.every((item) => item.imageUrl?.trim() && item.label?.trim())
+  );
+}
+
+/** circle-solo 유효성 — findCircleComparisonComboIndices / renderSection 공용 */
+function isCircleSoloSection(section: DetailSection): boolean {
+  return (
+    section.type === "image_text" &&
+    section.layout === "circle-solo" &&
+    Boolean(section.circleSolo?.imageUrl?.trim() && section.circleSolo?.label?.trim())
+  );
+}
+
+function isIngredientCircleSection(section: DetailSection): boolean {
+  return isCirclePairSection(section) || isCircleSoloSection(section);
+}
+
+function isComparisonChartWithMetrics(section: DetailSection): boolean {
+  return (
+    section.type === "comparison_chart" &&
+    Array.isArray(section.metrics) &&
+    section.metrics.length > 0
+  );
+}
+
+/**
+ * sections 배열은 건드리지 않고, 인접한 circle↔comparison_chart 쌍만 감지.
+ * key: circle 섹션 index, value: 바로 옆 comparison_chart index.
+ * 한 인덱스는 최대 하나의 쌍에만 속함(좌→우 스캔, 사용 인덱스 제외).
+ */
+function findCircleComparisonComboIndices(sections: DetailSection[]): Map<number, number> {
+  const map = new Map<number, number>();
+  const used = new Set<number>();
+  for (let i = 0; i < sections.length - 1; i += 1) {
+    if (used.has(i) || used.has(i + 1)) continue;
+    const a = sections[i]!;
+    const b = sections[i + 1]!;
+    if (isIngredientCircleSection(a) && isComparisonChartWithMetrics(b)) {
+      map.set(i, i + 1);
+      used.add(i);
+      used.add(i + 1);
+    } else if (isComparisonChartWithMetrics(a) && isIngredientCircleSection(b)) {
+      map.set(i + 1, i);
+      used.add(i);
+      used.add(i + 1);
+    }
+  }
+  return map;
+}
+
+const CIRCLE_COMBO_IMG_CLASS =
+  "h-20 w-20 rounded-full object-cover shadow-[0_12px_32px_-12px_rgba(27,27,24,0.28)] ring-1 ring-ink/10 sm:h-24 sm:w-24";
+const CIRCLE_SOLO_IMG_CLASS =
+  "h-[7.5rem] w-[7.5rem] rounded-full object-cover shadow-[0_12px_32px_-12px_rgba(27,27,24,0.28)] ring-1 ring-ink/10 sm:h-[9.375rem] sm:w-[9.375rem]";
+const CIRCLE_PAIR_IMG_CLASS =
+  "h-24 w-24 rounded-full object-cover shadow-[0_12px_32px_-12px_rgba(27,27,24,0.28)] ring-1 ring-ink/10 sm:h-[7.5rem] sm:w-[7.5rem]";
+
+function renderIngredientCircleVisual(params: {
+  section: ImageTextSection;
+  productName: string;
+  theme: CategoryTheme;
+  /** 병합 카드 안에서는 한 단계 작은 원 */
+  compact?: boolean;
+}): ReactNode {
+  const { section, productName, theme, compact = false } = params;
+  if (isCircleSoloSection(section) && section.circleSolo) {
+    const solo = section.circleSolo;
+    return (
+      <div className="mx-auto flex max-w-md items-center justify-center">
+        <div className="flex min-w-0 flex-col items-center gap-3">
+          <div className="relative shrink-0">
+            <SectionImage
+              src={solo.imageUrl}
+              alt={buildSectionImageAlt(productName, solo.label, section.slot)}
+              className={compact ? CIRCLE_COMBO_IMG_CLASS : CIRCLE_SOLO_IMG_CLASS}
+            />
+          </div>
+          <p className={`text-center ${TYPO.compactTitle}`} style={{ color: theme.deepAccent }}>
+            {solo.label}
+          </p>
+        </div>
+      </div>
+    );
+  }
+  if (isCirclePairSection(section) && section.circlePair) {
+    const [left, right] = section.circlePair;
+    return (
+      <div className="mx-auto flex max-w-md items-start justify-center gap-8 sm:gap-12">
+        {[left, right].map((item, pairIndex) => (
+          <div
+            key={`${item.label}-${pairIndex}`}
+            className="flex min-w-0 flex-1 flex-col items-center gap-3"
+          >
+            <div className="relative shrink-0">
+              <SectionImage
+                src={item.imageUrl}
+                alt={buildSectionImageAlt(productName, item.label, section.slot)}
+                className={compact ? CIRCLE_COMBO_IMG_CLASS : CIRCLE_PAIR_IMG_CLASS}
+              />
+            </div>
+            <p className={`text-center ${TYPO.compactTitle}`} style={{ color: theme.deepAccent }}>
+              {item.label}
+            </p>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+}
+
+function renderComparisonChartBody(params: {
+  section: ComparisonChartSection;
+  theme: CategoryTheme;
+}): ReactNode {
+  const { section, theme } = params;
+  const evidence =
+    Array.isArray(section.evidenceQuotes) && section.evidenceQuotes.length > 0
+      ? section.evidenceQuotes.filter((e) => e.quotes?.some((q) => Boolean(q?.trim())))
+      : [];
+  return (
+    <>
+      <p
+        className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`}
+        style={{ color: theme.deepAccent }}
+      >
+        COMPARE
+      </p>
+      <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}>
+        {section.heading}
+      </h3>
+      <div className="mx-auto mt-10 max-w-md space-y-8">
+        {section.metrics.map((metric, metricIndex) => (
+          <ComparisonMetricRow
+            key={`${metric.label}-${metricIndex}`}
+            label={metric.label}
+            ourLabel={section.ourLabel}
+            baselineLabel={section.baselineLabel}
+            ourValue={metric.ourValue}
+            baselineValue={metric.baselineValue}
+            unit={section.unit ?? "%"}
+            theme={theme}
+          />
+        ))}
+      </div>
+      {(section.basisNote || section.basis === "self_assessed") && (
+        <p
+          className={`mx-auto mt-6 max-w-md text-center text-xs ${
+            section.basis === "self_assessed"
+              ? "rounded-md bg-ink/5 px-3 py-2 font-medium text-ink/55"
+              : "text-ink/40"
+          }`}
+        >
+          {section.basisNote ||
+            (section.basis === "self_assessed"
+              ? "자체 평가 기준 (개인차가 있을 수 있어요)"
+              : "")}
+        </p>
+      )}
+      {evidence.length > 0 ? (
+        <details
+          className="mx-auto mt-8 max-w-md rounded-xl border border-line bg-paper/80 px-4 py-3"
+          data-testid="comparison-evidence"
+        >
+          <summary className="cursor-pointer text-center text-xs font-semibold text-ink/60">
+            근거 보기
+          </summary>
+          <div className="mt-4 space-y-5 border-t border-line/60 pt-4">
+            {evidence.map((item, i) => (
+              <div key={`${item.label}-${i}`}>
+                <p className="mb-2 text-center text-[11px] font-medium tracking-wide text-ink/45">
+                  {item.label}
+                </p>
+                <ul className="space-y-2.5">
+                  {item.quotes.filter(Boolean).map((quote, qi) => (
+                    <li
+                      key={qi}
+                      className="rounded-xl border border-ink/10 bg-paper px-4 py-3 text-center text-[12px] leading-relaxed text-ink/55 sm:text-[13px]"
+                    >
+                      <span className="mr-1 font-heading text-lg leading-none text-ink/25" aria-hidden>
+                        &ldquo;
+                      </span>
+                      {quote}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </details>
+      ) : null}
+    </>
+  );
+}
+
+/** 인접 circle + comparison_chart를 하나의 <section>으로 병합 렌더 */
+function renderCircleComparisonCombo(params: {
+  circleSection: ImageTextSection;
+  chartSection: ComparisonChartSection;
+  index: number;
+  category: string;
+  theme: CategoryTheme;
+  pattern: SectionColorPattern;
+  productName: string;
+}): ReactNode {
+  const { circleSection, chartSection, index, category, theme, pattern, productName } = params;
+  return (
+    <section
+      key={`circle-comparison-combo-${index}`}
+      className={getCategoryRhythm(category).generousPadClass}
+      style={textSectionStyle(theme, pattern, category)}
+      data-testid="circle-comparison-combo"
+    >
+      <div className="mb-10">
+        {renderIngredientCircleVisual({
+          section: circleSection,
+          productName,
+          theme,
+          compact: true,
+        })}
+      </div>
+      {renderComparisonChartBody({ section: chartSection, theme })}
+    </section>
+  );
+}
+
 function renderSection(
   section: DetailSection,
   imageUrls: string[],
@@ -1190,73 +1427,22 @@ function renderSection(
         section.layout === "annotated" &&
         Array.isArray(section.annotations) &&
         section.annotations.length > 0;
-      const isCirclePair =
-        section.layout === "circle-pair" &&
-        Array.isArray(section.circlePair) &&
-        section.circlePair.length === 2 &&
-        section.circlePair.every((item) => item.imageUrl?.trim() && item.label?.trim());
-      const isCircleSolo =
-        section.layout === "circle-solo" &&
-        section.circleSolo?.imageUrl?.trim() &&
-        section.circleSolo?.label?.trim();
+      const isCirclePair = isCirclePairSection(section);
+      const isCircleSolo = isCircleSoloSection(section);
       const isCallout = section.layout === "callout" || section.slot === "feature_callout";
 
-      if (isCircleSolo) {
-        const solo = section.circleSolo!;
+      if (isCircleSolo || isCirclePair) {
         return (
           <section
             key={`image_text-${index}`}
             className="px-6 py-8 sm:px-10 sm:py-10"
             style={textSectionStyle(theme, pattern, category)}
           >
-            <div className="mx-auto flex max-w-md items-center justify-center">
-              <div className="flex min-w-0 flex-col items-center gap-3">
-                <div className="relative shrink-0">
-                  <SectionImage
-                    src={solo.imageUrl}
-                    alt={buildSectionImageAlt(productName ?? "", solo.label, section.slot)}
-                    className="h-[7.5rem] w-[7.5rem] rounded-full object-cover shadow-[0_12px_32px_-12px_rgba(27,27,24,0.28)] ring-1 ring-ink/10 sm:h-[9.375rem] sm:w-[9.375rem]"
-                  />
-                </div>
-                <p
-                  className={`text-center ${TYPO.compactTitle}`}
-                  style={{ color: theme.deepAccent }}
-                >
-                  {solo.label}
-                </p>
-              </div>
-            </div>
-          </section>
-        );
-      }
-
-      if (isCirclePair) {
-        const [left, right] = section.circlePair!;
-        return (
-          <section
-            key={`image_text-${index}`}
-            className="px-6 py-8 sm:px-10 sm:py-10"
-            style={textSectionStyle(theme, pattern, category)}
-          >
-            <div className="mx-auto flex max-w-md items-start justify-center gap-8 sm:gap-12">
-              {[left, right].map((item, pairIndex) => (
-                <div key={`${item.label}-${pairIndex}`} className="flex min-w-0 flex-1 flex-col items-center gap-3">
-                  <div className="relative shrink-0">
-                    <SectionImage
-                      src={item.imageUrl}
-                      alt={buildSectionImageAlt(productName ?? "", item.label, section.slot)}
-                      className="h-24 w-24 rounded-full object-cover shadow-[0_12px_32px_-12px_rgba(27,27,24,0.28)] ring-1 ring-ink/10 sm:h-[7.5rem] sm:w-[7.5rem]"
-                    />
-                  </div>
-                  <p
-                    className={`text-center ${TYPO.compactTitle}`}
-                    style={{ color: theme.deepAccent }}
-                  >
-                    {item.label}
-                  </p>
-                </div>
-              ))}
-            </div>
+            {renderIngredientCircleVisual({
+              section,
+              productName: productName ?? "",
+              theme,
+            })}
           </section>
         );
       }
@@ -1886,43 +2072,7 @@ function renderSection(
           className={getCategoryRhythm(category).generousPadClass}
           style={textSectionStyle(theme, pattern, category)}
         >
-          <p
-            className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`}
-            style={{ color: theme.deepAccent }}
-          >
-            COMPARE
-          </p>
-          <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}>
-            {section.heading}
-          </h3>
-          <div className="mx-auto mt-10 max-w-md space-y-8">
-            {section.metrics.map((metric, metricIndex) => (
-              <ComparisonMetricRow
-                key={`${metric.label}-${metricIndex}`}
-                label={metric.label}
-                ourLabel={section.ourLabel}
-                baselineLabel={section.baselineLabel}
-                ourValue={metric.ourValue}
-                baselineValue={metric.baselineValue}
-                unit={section.unit ?? "%"}
-                theme={theme}
-              />
-            ))}
-          </div>
-          {(section.basisNote || section.basis === "self_assessed") && (
-            <p
-              className={`mx-auto mt-6 max-w-md text-center text-xs ${
-                section.basis === "self_assessed"
-                  ? "rounded-md bg-ink/5 px-3 py-2 font-medium text-ink/55"
-                  : "text-ink/40"
-              }`}
-            >
-              {section.basisNote ||
-                (section.basis === "self_assessed"
-                  ? "자체 평가 기준 (개인차가 있을 수 있어요)"
-                  : "")}
-            </p>
-          )}
+          {renderComparisonChartBody({ section, theme })}
         </section>
       );
 
@@ -2640,17 +2790,31 @@ function renderSection(
       );
 
     case "review_highlight": {
-      const praises = section.praises.filter(Boolean);
-      if (praises.length === 0) return null;
+      const praiseItems = section.praises
+        .map((text, i) => ({
+          text,
+          matchCount: section.praiseMatchCounts?.[i] ?? 0,
+          originalIndex: i,
+        }))
+        .filter((p) => Boolean(p.text));
+      if (praiseItems.length === 0) return null;
+      const concernItems = (section.concerns ?? [])
+        .map((text, i) => ({
+          text,
+          matchCount: section.complaintMatchCounts?.[i] ?? 0,
+          originalIndex: i,
+        }))
+        .filter((c) => Boolean(c.text));
       const gridCols =
-        praises.length === 1
+        praiseItems.length === 1
           ? "max-w-md grid-cols-1"
-          : praises.length === 2
+          : praiseItems.length === 2
             ? "max-w-2xl grid-cols-1 sm:grid-cols-2"
             : "max-w-4xl grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
       return (
         <section
           key={`review_highlight-${index}`}
+          data-testid="review-highlight"
           className={getCategoryRhythm(category).generousPadClass}
           style={textSectionStyle(theme, pattern, category)}
         >
@@ -2662,11 +2826,20 @@ function renderSection(
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
             className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
           />
+          {typeof section.sourceReviewCount === "number" &&
+          section.sourceReviewCount > 0 ? (
+            <p
+              data-testid="review-highlight-count"
+              className="mx-auto mt-2 max-w-xl text-center text-[11px] text-ink/40 sm:text-xs"
+            >
+              실제 리뷰 {section.sourceReviewCount}건 분석
+            </p>
+          ) : null}
           <p className="mx-auto mt-2 max-w-xl text-center text-xs text-ink/40">
             실제 구매자 리뷰에서 자주 나온 내용을 요약했습니다
           </p>
           <div className={`mx-auto mt-10 grid gap-x-5 gap-y-6 ${gridCols}`}>
-            {praises.map((praise, praiseIndex) => (
+            {praiseItems.map((item, praiseIndex) => (
               <LayeredPanel
                 key={praiseIndex}
                 theme={theme}
@@ -2684,17 +2857,61 @@ function renderSection(
                   as="p"
                   multiline
                   enabled={edit?.enabled}
-                  value={praise}
+                  value={item.text}
                   onChange={(next) => {
                     const nextPraises = [...section.praises];
-                    nextPraises[praiseIndex] = next;
+                    nextPraises[item.originalIndex] = next;
                     edit?.onChange(index, { ...section, praises: nextPraises });
                   }}
                   className={`${TYPO.body} text-ink/80`}
                 />
+                {item.matchCount > 0 ? (
+                  <p
+                    data-testid="review-match-badge"
+                    className="text-[11px] text-ink/40 sm:text-xs"
+                  >
+                    {item.matchCount}건 언급
+                  </p>
+                ) : null}
               </LayeredPanel>
             ))}
           </div>
+          {concernItems.length > 0 ? (
+            <div
+              data-testid="review-highlight-concerns"
+              className="mx-auto mt-12 max-w-xl border-t border-ink/10 pt-8"
+            >
+              <p className="text-center text-[11px] font-medium tracking-wide text-ink/45 sm:text-xs">
+                실제 후기에 나온 아쉬운 점
+              </p>
+              <ul className="mt-4 space-y-2.5">
+                {concernItems.map((item, concernIndex) => (
+                  <li key={concernIndex}>
+                    <EditableText
+                      as="p"
+                      multiline
+                      enabled={edit?.enabled}
+                      value={item.text}
+                      onChange={(next) => {
+                        const nextConcerns = [...(section.concerns ?? [])];
+                        nextConcerns[item.originalIndex] = next;
+                        edit?.onChange(index, { ...section, concerns: nextConcerns });
+                      }}
+                      className="text-center text-[12px] leading-relaxed text-ink/50 sm:text-[13px]"
+                    />
+                    {item.matchCount > 0 ? (
+                      <p
+                        data-testid="review-match-badge"
+                        className="mt-1 text-center text-[11px] text-ink/40 sm:text-xs"
+                      >
+                        {item.matchCount}건 언급
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </section>
       );
     }
@@ -3073,6 +3290,18 @@ export default function DetailSectionRenderer({
   let lastRenderedSection: DetailSection | undefined;
   let lastRenderedWasHero = false;
   const totalCompactImageTextCount = countCompactImageTextSections(sections);
+  const circleChartCombos = findCircleComparisonComboIndices(sections);
+  const comboLeadToPair = new Map<
+    number,
+    { circleIdx: number; chartIdx: number }
+  >();
+  const comboTrailIndices = new Set<number>();
+  for (const [circleIdx, chartIdx] of circleChartCombos) {
+    const lead = Math.min(circleIdx, chartIdx);
+    const trail = Math.max(circleIdx, chartIdx);
+    comboLeadToPair.set(lead, { circleIdx, chartIdx });
+    comboTrailIndices.add(trail);
+  }
 
   return (
     <SellerImageMetaContext.Provider
@@ -3119,28 +3348,56 @@ export default function DetailSectionRenderer({
             ? getSectionPattern(Math.max(0, prevBodyIndex), sections[index - 1]!.type)
             : undefined;
         const sectionTheme = getSectionTheme(extendedTheme, section.type, bodyIndex);
-        const content = renderSection(
-          section,
-          imageUrls,
-          index,
-          category,
-          sectionTheme,
-          pattern,
-          conceptIcons,
-          pointIndex,
-          edit,
-          followPattern,
-          productName ?? category,
-          bodyIndex,
-          brandName,
-          certTokens,
-          quickFacts,
-          compactImageTextIndex,
-          totalCompactImageTextCount,
-          logoUrl,
-          ingredients,
-          keyFeatures,
-        );
+
+        let content: ReactNode;
+        const comboPair = comboLeadToPair.get(index);
+        if (comboPair) {
+          const circleSection = sections[comboPair.circleIdx] as ImageTextSection;
+          const chartSection = sections[comboPair.chartIdx] as ComparisonChartSection;
+          const chartBodyIndex = sections
+            .slice(0, comboPair.chartIdx)
+            .filter((s) => s.type !== "hero").length;
+          const chartPattern = getSectionPattern(chartBodyIndex, "comparison_chart");
+          const chartTheme = getSectionTheme(
+            extendedTheme,
+            "comparison_chart",
+            chartBodyIndex,
+          );
+          content = renderCircleComparisonCombo({
+            circleSection,
+            chartSection,
+            index,
+            category,
+            theme: chartTheme,
+            pattern: chartPattern,
+            productName: productName ?? category,
+          });
+        } else if (comboTrailIndices.has(index)) {
+          content = null;
+        } else {
+          content = renderSection(
+            section,
+            imageUrls,
+            index,
+            category,
+            sectionTheme,
+            pattern,
+            conceptIcons,
+            pointIndex,
+            edit,
+            followPattern,
+            productName ?? category,
+            bodyIndex,
+            brandName,
+            certTokens,
+            quickFacts,
+            compactImageTextIndex,
+            totalCompactImageTextCount,
+            logoUrl,
+            ingredients,
+            keyFeatures,
+          );
+        }
         if (!content) {
           return null;
         }

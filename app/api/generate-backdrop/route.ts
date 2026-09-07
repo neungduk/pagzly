@@ -20,6 +20,7 @@ import {
   DEFAULT_SHADOW,
   type ShadowAnalysis,
 } from "@/lib/vision-utils";
+import { resetCostLogTallies } from "@/lib/cost-log-tally";
 
 const SOURCE_IMAGE_EXPIRED = "SOURCE_IMAGE_EXPIRED";
 
@@ -60,6 +61,9 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
     }
+
+    // 130차 — 이어지는 enhance 배치의 [cost] 집계 기준점
+    resetCostLogTallies();
 
     if (!process.env.REPLICATE_API_TOKEN) {
       return NextResponse.json(

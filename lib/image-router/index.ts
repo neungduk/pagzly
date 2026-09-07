@@ -20,7 +20,6 @@ export {
 export {
   DEFAULT_PAGE_GENERATION_BUDGET,
   DEFAULT_PROVIDER_TIMEOUT_MS,
-  DEFAULT_ROUTER_RETRY_LIMIT,
   IMAGE_PRICING_CONFIG,
   getModelConfig,
 } from "@/lib/image-router/pricing/config";

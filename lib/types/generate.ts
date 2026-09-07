@@ -27,6 +27,18 @@ export type ReferenceAnalysisInput = {
 export type ReviewInsightsInput = {
   commonPraises: string[];
   commonComplaints: string[];
+  /** 파싱된 리뷰 라인 수 (없으면 캡션 생략) */
+  reviewLineCount?: number;
+  /** 135차 — praises와 동일 인덱스·길이 (키워드 매칭 건수) */
+  praiseMatchCounts?: number[];
+  /** 135차 — commonComplaints와 동일 인덱스·길이 */
+  complaintMatchCounts?: number[];
+  /** 137차 — 리뷰 축 비교(서버 삽입 comparison_chart용) */
+  axisComparison?: {
+    label: string;
+    ourValue: number;
+    quotes: string[];
+  }[];
 };
 
 export type CompetitorDifferentiationInput = {
@@ -253,6 +265,8 @@ export type ComparisonChartSection = {
   /** measured면 출처 한 줄(예: "자체 성분 테스트, 2026.08"), self_assessed면
    * 서버가 고정 디스클레이머로 강제 주입하므로 비워 응답해도 됨. */
   basisNote?: string;
+  /** 137차 — basis:"measured"이고 리뷰 근거가 있을 때만. 축별 실제 매칭 리뷰 원문(최대 2개), 지어내지 않음 */
+  evidenceQuotes?: { label: string; quotes: string[] }[];
 };
 
 /**
@@ -383,12 +397,22 @@ export type CustomGifSection = {
  * 실데이터이며, 서버가 조립 단계에서 주입한다 (AI는 이 섹션을 생성하지 않음).
  * praises는 원문 그대로의 인용문이 아니라 여러 리뷰에서 반복된 내용의 요약이므로,
  * 렌더링 시 특정 인물이 말한 것처럼(가짜 이름·별점 등) 표시하지 않는다.
+ * concerns(131차)는 같은 추출의 아쉬운 점 — 반박/안심 카피 없이 있는 그대로만 노출.
+ * sourceReviewCount(133차)는 파싱된 리뷰 건수 캡션용.
  */
 export type ReviewHighlightSection = {
   type: "review_highlight";
   slot: string;
   heading: string;
   praises: string[];
+  /** 실제 후기의 아쉬운 점. 없으면 생략 */
+  concerns?: string[];
+  /** 분석에 쓴 리뷰 라인 수. 없으면 캡션 생략 */
+  sourceReviewCount?: number;
+  /** 135차 — praises와 동일 인덱스 (매칭 0이면 렌더에서 배지 숨김) */
+  praiseMatchCounts?: number[];
+  /** 135차 — concerns와 동일 인덱스 */
+  complaintMatchCounts?: number[];
 };
 
 export type CanvasElement =

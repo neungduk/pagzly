@@ -697,6 +697,392 @@ const capture124ComparisonSections: DetailSection[] = [
 
 const capture124ComparisonMeta = capture65Meta;
 
+/** 128차 — circle-pair 바로 다음 comparison_chart (병합 성공) */
+const capture128CircleThenChartSections: DetailSection[] = [
+  {
+    type: "hero",
+    slot: "hero",
+    headline: "성분과 비교가 한눈에",
+    subheadline: "히알루론 수분 크림",
+    imageIndex: 0,
+    badge: "무향",
+  },
+  {
+    type: "image_text",
+    slot: "ingredient_circle_pair",
+    layout: "circle-pair",
+    heading: "",
+    body: "",
+    imageIndex: 1,
+    imagePosition: "left",
+    circlePair: [
+      { imageUrl: "/iteration-fixtures/02.jpg", label: "히알루론산" },
+      { imageUrl: "/iteration-fixtures/03.jpg", label: "판테놀" },
+    ],
+  },
+  {
+    type: "comparison_chart",
+    slot: "comparison_chart",
+    heading: "일반 제품과 무엇이 다른가요",
+    ourLabel: "AURA LAB",
+    baselineLabel: "일반 제품",
+    unit: "%",
+    basis: "self_assessed",
+    basisNote: "자체 평가 기준 (개인차가 있을 수 있어요)",
+    metrics: [
+      { label: "안정성", ourValue: 78, baselineValue: 55 },
+      { label: "자극감", ourValue: 42, baselineValue: 60 },
+      { label: "사용감", ourValue: 72, baselineValue: 58 },
+    ],
+  },
+  {
+    type: "cta_price",
+    slot: "cta_price",
+    price: 28900,
+    targetCustomer: "속건조 고민",
+    badges: ["무향", "데일리"],
+  },
+];
+
+/** 128차 — comparison_chart 바로 다음 circle-pair (순서 반전 병합) */
+const capture128ChartThenCircleSections: DetailSection[] = [
+  capture128CircleThenChartSections[0]!,
+  capture128CircleThenChartSections[2]!,
+  capture128CircleThenChartSections[1]!,
+  capture128CircleThenChartSections[3]!,
+];
+
+/** 128차 — 인접하지 않음(사이에 checklist) → 병합 금지 */
+const capture128NonAdjacentSections: DetailSection[] = [
+  capture128CircleThenChartSections[0]!,
+  capture128CircleThenChartSections[1]!,
+  {
+    type: "checklist",
+    slot: "checklist",
+    heading: "사이에 낀 섹션",
+    items: ["병합되면 안 됩니다", "각자 독립 렌더"],
+  },
+  capture128CircleThenChartSections[2]!,
+  capture128CircleThenChartSections[3]!,
+];
+
+const capture128Meta = capture65Meta;
+
+/**
+ * 129차 — far chart에 applyIngredientCircleVisual 적용 후 결과와 동일:
+ * circle이 comparison_chart 바로 앞 → 128 combo 발동.
+ */
+const capture129AfterApplyFarSections: DetailSection[] = [
+  {
+    type: "hero",
+    slot: "hero",
+    headline: "성분과 비교가 한눈에",
+    subheadline: "히알루론 수분 크림",
+    imageIndex: 0,
+    badge: "무향",
+  },
+  {
+    type: "image_text",
+    slot: "ingredient_circle_pair",
+    layout: "circle-pair",
+    heading: "",
+    body: "",
+    imageIndex: 1,
+    imagePosition: "left",
+    circlePair: [
+      { imageUrl: "/iteration-fixtures/02.jpg", label: "히알루론산" },
+      { imageUrl: "/iteration-fixtures/03.jpg", label: "판테놀" },
+    ],
+  },
+  {
+    type: "comparison_chart",
+    slot: "comparison_chart",
+    heading: "일반 제품과 무엇이 다른가요",
+    ourLabel: "AURA LAB",
+    baselineLabel: "일반 제품",
+    unit: "%",
+    basis: "self_assessed",
+    basisNote: "자체 평가 기준 (개인차가 있을 수 있어요)",
+    metrics: [
+      { label: "안정성", ourValue: 78, baselineValue: 55 },
+      { label: "자극감", ourValue: 42, baselineValue: 60 },
+      { label: "사용감", ourValue: 72, baselineValue: 58 },
+    ],
+  },
+  {
+    type: "checklist",
+    slot: "checklist",
+    heading: "멀리 떨어져 있던 filler",
+    items: ["원래 chart↔spec 거리 5+"],
+  },
+  {
+    type: "spec_table",
+    slot: "spec_table",
+    heading: "제품 정보",
+    rows: [{ label: "용량", value: "50ml" }],
+  },
+  {
+    type: "cta_price",
+    slot: "cta_price",
+    price: 28900,
+    targetCustomer: "속건조 고민",
+    badges: ["무향", "데일리"],
+  },
+];
+
+const capture129Meta = capture65Meta;
+
+/** 131차 — review_highlight praises만 (concerns 없음, 회귀) */
+const capture131PraisesOnlySections: DetailSection[] = [
+  {
+    type: "hero",
+    slot: "hero",
+    headline: "속건조, 오늘부터 덜 신경 쓰세요",
+    subheadline: "히알루론 수분 크림",
+    imageIndex: 0,
+    badge: "무향",
+  },
+  {
+    type: "review_highlight",
+    slot: "review_highlight",
+    heading: "실제 구매자들이 자주 남긴 이야기",
+    praises: [
+      "끈적임 없이 흡수돼요",
+      "향이 없어서 데일리로 쓰기 좋아요",
+      "아침 메이크업 전에 부담이 적어요",
+    ],
+  },
+  {
+    type: "cta_price",
+    slot: "cta_price",
+    price: 28900,
+    targetCustomer: "속건조 고민",
+    badges: ["무향", "데일리"],
+  },
+];
+
+/** 131차 — praises + concerns (신규 블록) */
+const capture131WithConcernsSections: DetailSection[] = [
+  {
+    ...capture131PraisesOnlySections[0]!,
+  },
+  {
+    type: "review_highlight",
+    slot: "review_highlight",
+    heading: "실제 구매자들이 자주 남긴 이야기",
+    praises: [
+      "끈적임 없이 흡수돼요",
+      "향이 없어서 데일리로 쓰기 좋아요",
+      "아침 메이크업 전에 부담이 적어요",
+    ],
+    concerns: [
+      "용량이 조금 아쉽다는 의견이 있어요",
+      "겨울엔 보습이 부족하다는 후기도 있습니다",
+    ],
+  },
+  {
+    ...capture131PraisesOnlySections[2]!,
+  },
+];
+
+/** 131차 — 리뷰 섹션 없음 (미업로드 회귀: CTA만) */
+const capture131NoReviewSections: DetailSection[] = [
+  capture131PraisesOnlySections[0]!,
+  capture131PraisesOnlySections[2]!,
+];
+
+const capture131Meta = capture65Meta;
+
+/** 133차 — sourceReviewCount 캡션 */
+const capture133WithCountSections: DetailSection[] = [
+  {
+    type: "hero",
+    slot: "hero",
+    headline: "속건조, 오늘부터 덜 신경 쓰세요",
+    subheadline: "히알루론 수분 크림",
+    imageIndex: 0,
+    badge: "무향",
+  },
+  {
+    type: "review_highlight",
+    slot: "review_highlight",
+    heading: "실제 구매자들이 자주 남긴 이야기",
+    praises: ["끈적임 없이 흡수돼요", "무향이라 데일리로 쓰기 좋아요"],
+    concerns: ["용량이 조금 아쉽다는 의견이 있어요"],
+    sourceReviewCount: 6,
+  },
+  {
+    type: "cta_price",
+    slot: "cta_price",
+    price: 28900,
+    targetCustomer: "속건조 고민",
+    badges: ["무향"],
+  },
+];
+
+/** 135차 — praise/complaint 매칭 카운트 배지 (0건은 배지 숨김) */
+const capture135MatchBadgesSections: DetailSection[] = [
+  {
+    type: "hero",
+    slot: "hero",
+    headline: "속건조, 오늘부터 덜 신경 쓰세요",
+    subheadline: "히알루론 수분 크림",
+    imageIndex: 0,
+    badge: "무향",
+  },
+  {
+    type: "review_highlight",
+    slot: "review_highlight",
+    heading: "실제 구매자들이 자주 남긴 이야기",
+    praises: [
+      "끈적임 없이 흡수돼요",
+      "무향이라 데일리로 쓰기 좋아요",
+      "원문에 없는 장점 요약",
+    ],
+    concerns: ["용량이 조금 아쉽다는 의견이 있어요", "원문에 없는 불만"],
+    sourceReviewCount: 6,
+    praiseMatchCounts: [2, 1, 0],
+    complaintMatchCounts: [1, 0],
+  },
+  {
+    type: "cta_price",
+    slot: "cta_price",
+    price: 28900,
+    targetCustomer: "속건조 고민",
+    badges: ["무향"],
+  },
+];
+
+/** 137차 — 리뷰 축 measured comparison + evidenceQuotes */
+const capture137AxisMeasuredSections: DetailSection[] = [
+  {
+    type: "hero",
+    slot: "hero",
+    headline: "속건조, 오늘부터 덜 신경 쓰세요",
+    subheadline: "히알루론 수분 크림",
+    imageIndex: 0,
+    badge: "무향",
+  },
+  {
+    type: "comparison_chart",
+    slot: "comparison_chart",
+    heading: "실제 후기에서 자주 언급된 점",
+    ourLabel: "AURA LAB",
+    baselineLabel: "일반 제품",
+    unit: "%",
+    basis: "measured",
+    basisNote: "실제 업로드 리뷰 텍스트 기반 언급 비율(가정 기준선 50 대비)",
+    metrics: [
+      { label: "수분감", ourValue: 20, baselineValue: 50 },
+      { label: "흡수", ourValue: 20, baselineValue: 50 },
+      { label: "무향", ourValue: 20, baselineValue: 50 },
+    ],
+    evidenceQuotes: [
+      {
+        label: "수분감",
+        quotes: [
+          "수분감이 오래가요. 건조한 피부에 바르니 하루 종일 촉촉합니다.",
+          "수분감이 좋아요. 아침에도 당김이 덜합니다.",
+        ],
+      },
+      {
+        label: "흡수",
+        quotes: [
+          "흡수가 빠르고 끈적임이 거의 없어요. 아침 루틴에 좋아요.",
+          "흡수가 빨라서 화장 전에 쓰기 좋습니다.",
+        ],
+      },
+      {
+        label: "무향",
+        quotes: [
+          "무향이라 민감한 피부에도 자극 없이 사용 중입니다.",
+          "무향이라 데일리로 쓰기 편합니다.",
+        ],
+      },
+    ],
+  },
+  {
+    type: "cta_price",
+    slot: "cta_price",
+    price: 28900,
+    targetCustomer: "속건조 고민",
+    badges: ["무향"],
+  },
+];
+
+/** 137차 — 리뷰 없음 / self_assessed만 (근거 토글 없음) */
+const capture137NoReviewSections: DetailSection[] = [
+  {
+    type: "hero",
+    slot: "hero",
+    headline: "속건조, 오늘부터 덜 신경 쓰세요",
+    subheadline: "히알루론 수분 크림",
+    imageIndex: 0,
+  },
+  {
+    type: "cta_price",
+    slot: "cta_price",
+    price: 28900,
+    targetCustomer: "속건조 고민",
+    badges: [],
+  },
+];
+
+/** 133차 — 전자제품 spec_table KC 인증 있음 (enrich 후와 동일 형태) */
+const capture133ElectronicsCertSections: DetailSection[] = [
+  {
+    type: "hero",
+    slot: "hero",
+    headline: "먼지 걱정 없는 하루",
+    subheadline: "무선 청소기",
+    imageIndex: 0,
+  },
+  {
+    type: "spec_table",
+    slot: "spec_table",
+    heading: "상품 정보",
+    rows: [
+      { label: "브랜드", value: "AURA" },
+      { label: "제조사", value: "AURA" },
+      { label: "모델명", value: "VC-100" },
+      { label: "KC 인증", value: "KC인증 12345" },
+      { label: "정격전압", value: "21.6V" },
+      { label: "품질보증", value: "1년" },
+      { label: "제조국", value: "한국" },
+    ],
+  },
+];
+
+/** 133차 — KC 행 없음 */
+const capture133ElectronicsNoCertSections: DetailSection[] = [
+  {
+    type: "hero",
+    slot: "hero",
+    headline: "먼지 걱정 없는 하루",
+    subheadline: "무선 청소기",
+    imageIndex: 0,
+  },
+  {
+    type: "spec_table",
+    slot: "spec_table",
+    heading: "상품 정보",
+    rows: [
+      { label: "브랜드", value: "AURA" },
+      { label: "제조사", value: "AURA" },
+      { label: "모델명", value: "VC-100" },
+      { label: "정격전압", value: "21.6V" },
+      { label: "품질보증", value: "1년" },
+      { label: "제조국", value: "한국" },
+    ],
+  },
+];
+
+const capture133Meta = {
+  category: "전자제품",
+  brandName: "AURA",
+  productName: "무선 청소기",
+};
+
 /** 69차 — spec_table 3장 썸네일 + 배경 틴트 */
 const capture69SpecMultiSections: DetailSection[] = initialSections.map((section) =>
   section.type === "spec_table" && section.slot === "spec_table"
@@ -804,6 +1190,65 @@ function resolveCapturePreset(): CapturePreset | null {
   if (capture === "69-circle-solo") return { sections: capture69SoloSections, ...capture69SoloMeta };
   if (capture === "124-comparison") {
     return { sections: capture124ComparisonSections, ...capture124ComparisonMeta };
+  }
+  if (capture === "128-circle-then-chart") {
+    return { sections: capture128CircleThenChartSections, ...capture128Meta };
+  }
+  if (capture === "128-chart-then-circle") {
+    return { sections: capture128ChartThenCircleSections, ...capture128Meta };
+  }
+  if (capture === "128-non-adjacent") {
+    return { sections: capture128NonAdjacentSections, ...capture128Meta };
+  }
+  if (capture === "129-after-apply-far") {
+    return { sections: capture129AfterApplyFarSections, ...capture129Meta };
+  }
+  if (capture === "131-praises-only") {
+    return { sections: capture131PraisesOnlySections, ...capture131Meta };
+  }
+  if (capture === "131-with-concerns") {
+    return { sections: capture131WithConcernsSections, ...capture131Meta };
+  }
+  if (capture === "131-no-review") {
+    return { sections: capture131NoReviewSections, ...capture131Meta };
+  }
+  if (capture === "133-with-count") {
+    return {
+      sections: capture133WithCountSections,
+      category: "화장품/뷰티",
+      brandName: "AURA LAB",
+      productName: "히알루론 수분 크림",
+    };
+  }
+  if (capture === "135-match-badges") {
+    return {
+      sections: capture135MatchBadgesSections,
+      category: "화장품/뷰티",
+      brandName: "AURA LAB",
+      productName: "히알루론 수분 크림",
+    };
+  }
+  if (capture === "137-axis-measured") {
+    return {
+      sections: capture137AxisMeasuredSections,
+      category: "화장품/뷰티",
+      brandName: "AURA LAB",
+      productName: "히알루론 수분 크림",
+    };
+  }
+  if (capture === "137-no-review") {
+    return {
+      sections: capture137NoReviewSections,
+      category: "화장품/뷰티",
+      brandName: "AURA LAB",
+      productName: "히알루론 수분 크림",
+    };
+  }
+  if (capture === "133-electronics-cert") {
+    return { sections: capture133ElectronicsCertSections, ...capture133Meta };
+  }
+  if (capture === "133-electronics-nocert") {
+    return { sections: capture133ElectronicsNoCertSections, ...capture133Meta };
   }
   if (capture === "69-spec-multi") {
     return { sections: capture69SpecMultiSections, ...capture69SpecMultiMeta };

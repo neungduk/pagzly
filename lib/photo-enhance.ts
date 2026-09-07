@@ -37,6 +37,7 @@ import {
 } from "@/lib/photo-composite";
 import { isTestMode } from "@/lib/test-mode";
 import { logForceRegenerateStatus } from "@/lib/force-regenerate";
+import { addCostLogTally } from "@/lib/cost-log-tally";
 
 const CANVAS_SIZE = 1200;
 /** flux-fill / 마스크 생성 해상도 — CANVAS_SIZE와 맞춰 업스케일 없이 합성 (합성 티 완화). */
@@ -1480,12 +1481,14 @@ async function sharpenCutout(cutoutUrl: string): Promise<{ url: string; cost: nu
     console.log(
       `[cost] sharpenCutout: TEST_MODE — clarity-upscaler 생략 (cutout alpha=${origAlpha.toFixed(3)})`,
     );
+    addCostLogTally("sharpenCutout", 0);
     return { url: cutoutUrl, cost: REPLICATE_COST_USD.backgroundRemover };
   }
 
   console.log(
     `[cost] sharpenCutout: clarity-upscaler ON (TEST_MODE=false): $${REPLICATE_COST_USD.clarityUpscaler.toFixed(4)}`,
   );
+  addCostLogTally("sharpenCutout", REPLICATE_COST_USD.clarityUpscaler);
 
   try {
     const replicate = getReplicateClient();
@@ -1770,6 +1773,7 @@ export async function enhanceProductImage(
 
   const cost = removeCost;
   console.log(`[cost] enhanceProductImage rembg: $${cost.toFixed(5)}`);
+  addCostLogTally("enhanceProductImage rembg", cost);
 
   // 투명 거의 없음 = rembg 실패. 모서리/플레이트 = 원본 프레임 잔존.
   if (

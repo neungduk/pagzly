@@ -16,9 +16,6 @@ export const IMAGE_PRICING_CONFIG = PRICING_CONFIG;
 /** 페이지당 generation API call 횟수 상한 (라우터 budget) */
 export const DEFAULT_PAGE_GENERATION_BUDGET = 10;
 
-/** @deprecated ImageRouter는 더 이상 내부 retry하지 않음. Worker MAX_JOB_RETRIES 사용. */
-export const DEFAULT_ROUTER_RETRY_LIMIT = 2;
-
 export const DEFAULT_PROVIDER_TIMEOUT_MS = 120_000;
 
 export { DEFAULT_MAX_GENERATION_COST_USD };

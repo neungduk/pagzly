@@ -46,7 +46,22 @@ function withReviewSections(
 ): GenerateResponse | undefined {
   if (!generated?.sections) return generated;
   const praises = reviewInsights?.commonPraises ?? generated.reviewInsights?.commonPraises ?? [];
-  const sections = insertReviewHighlightSection(generated.sections, praises);
+  const complaints =
+    reviewInsights?.commonComplaints ?? generated.reviewInsights?.commonComplaints ?? [];
+  const sourceReviewCount =
+    reviewInsights?.reviewLineCount ?? generated.reviewInsights?.reviewLineCount;
+  const praiseMatchCounts =
+    reviewInsights?.praiseMatchCounts ?? generated.reviewInsights?.praiseMatchCounts;
+  const complaintMatchCounts =
+    reviewInsights?.complaintMatchCounts ?? generated.reviewInsights?.complaintMatchCounts;
+  const sections = insertReviewHighlightSection(
+    generated.sections,
+    praises,
+    complaints,
+    sourceReviewCount,
+    praiseMatchCounts,
+    complaintMatchCounts,
+  );
   if (sections === generated.sections) return generated;
   return { ...generated, sections };
 }
@@ -1109,7 +1124,19 @@ function CreateResultContent() {
           <aside className="sticky top-4 max-h-[calc(100vh-2rem)] space-y-4 overflow-y-auto">
             <GenerationPipelineSummaryCard summary={pipelineSummary} />
             <div className="rounded-2xl border-2 border-ink/15 bg-paper p-3 shadow-sm">
-              <p className="text-xs font-semibold text-ink">직접 편집</p>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-registration-red/10 text-registration-red">
+                  <svg
+                    className="h-3.5 w-3.5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M13.6 2.9a1.75 1.75 0 0 1 2.47 2.48l-8.7 8.7a1 1 0 0 1-.4.24l-3.2.9a.75.75 0 0 1-.92-.92l.9-3.2a1 1 0 0 1 .24-.4l8.6-8.8Z" />
+                  </svg>
+                </span>
+                <p className="text-xs font-semibold text-ink">직접 편집</p>
+              </div>
               <div className="mt-2 flex flex-wrap gap-2">
                 <button
                   type="button"

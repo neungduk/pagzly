@@ -65,7 +65,7 @@ export function buildIconModelInput(
     num_outputs: 1,
     aspect_ratio: aspectRatio,
     output_format: "png",
-    output_quality: 85,
+    output_quality: 95,
   };
 }
 
@@ -111,6 +111,9 @@ async function generateSingleConceptIcon(
   const iconShadow = hueShift(theme.deepAccent, hueOffset);
   const prompt = [
     "circular badge icon, flat minimal UI illustration",
+    "professional vector icon design, polished modern app icon quality",
+    "clean crisp linework, consistent stroke weight, balanced negative space",
+    "subtle soft shadow for gentle depth, refined finish, no visual clutter",
     brief.icon_style,
     `motif: ${motif}, concept for "${label.slice(0, 40)}"`,
     `${describeColorTone(iconAccent)} primary color, ${describeColorTone(iconShadow)} subtle shadow`,

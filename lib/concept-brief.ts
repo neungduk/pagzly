@@ -186,8 +186,8 @@ ${input.referenceAnalysis ? `
   "mood": "한국어 무드 한 줄 (예: 시원하고 맑은)",
   "backdrop_hint": "영문 — 촬영 용어로 조명/구도/질감을 구체적으로 (soft side lighting, shallow depth of field, water droplets on a surface 등). 추상어 moist/luxurious만 쓰지 말 것. 유리컵·유리병 등 액체가 담긴 용기(glass, cup, vessel, drinking glass, jar)는 절대 묘사하지 말 것. product 없음",
   "copy_tone": "한국어 — 카피라이터 톤 가이드",
-  "decor_prompt": "영문 — 물방울/미스트 등도 촬영 용어로 (no text, no product)",
-  "icon_style": "영문 — 원형 배지 아이콘 스타일 (flat, minimal, single motif)"
+  "decor_prompt": "영문 — 물방울/미스트 등도 촬영 용어로 (질감·빛 방향·선명도까지 구체적으로). no text, no product",
+  "icon_style": "영문 — 원형 배지 아이콘 스타일. flat, minimal, single motif에 더해 선 굵기(line weight)·그림자 유무·마감 디테일까지 구체적으로 (예: 'thin consistent 2px linework, soft inner shadow, matte finish, no gradient noise'). 카테고리 톤에 맞는 완성도 있는 디스크립터를 쓸 것"
 }
 
 카테고리에 맞는 전문 상세페이지 수준의 통일된 컨셉을 제안하세요.

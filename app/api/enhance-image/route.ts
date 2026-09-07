@@ -3,8 +3,15 @@ import { createClient } from "@/lib/supabase/server";
 import { enhanceProductImage } from "@/lib/photo-enhance";
 import type { ConceptBrief } from "@/lib/concept-brief";
 import { productImageProtectedUntil } from "@/lib/product-image-protection";
+import { logCostLogTallySummaries, resetCostLogTallies } from "@/lib/cost-log-tally";
 
 const STORAGE_BUCKET = "images";
+
+const COST_TALLY_SUMMARY_KEYS = [
+  "sharpenCutout",
+  "enhanceProductImage rembg",
+  "claude/productRegionDetect",
+] as const;
 
 export async function POST(request: Request) {
   try {
@@ -15,6 +22,30 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    }
+
+    const body = (await request.json()) as {
+      imageUrl?: string;
+      storagePath?: string;
+      backdropDataUrl?: string;
+      shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis;
+      conceptBrief?: ConceptBrief;
+      applyDecor?: boolean;
+      decorDataUrl?: string;
+      theme?: { accent: string; baseNeutral: string; deepAccent: string };
+      keepOriginal?: boolean;
+      pathSuffix?: string;
+      /** rembg 전 상품 영역 preCrop용 — 손·팔·배경 플레이트 제거에 필요 */
+      productName?: string;
+      backdropAlreadyComposited?: boolean;
+      /** 130차 — enhance 배치 종료 시 서버 [cost] 집계만 출력 (보정 없음) */
+      flushCostTalliesOnly?: boolean;
+    };
+
+    if (body.flushCostTalliesOnly) {
+      logCostLogTallySummaries([...COST_TALLY_SUMMARY_KEYS]);
+      resetCostLogTallies();
+      return NextResponse.json({ ok: true });
     }
 
     if (!process.env.REPLICATE_API_TOKEN) {
@@ -37,21 +68,7 @@ export async function POST(request: Request) {
       pathSuffix,
       productName,
       backdropAlreadyComposited,
-    } = (await request.json()) as {
-      imageUrl?: string;
-      storagePath?: string;
-      backdropDataUrl?: string;
-      shadowAnalysis?: import("@/lib/vision-utils").ShadowAnalysis;
-      conceptBrief?: ConceptBrief;
-      applyDecor?: boolean;
-      decorDataUrl?: string;
-      theme?: { accent: string; baseNeutral: string; deepAccent: string };
-      keepOriginal?: boolean;
-      pathSuffix?: string;
-      /** rembg 전 상품 영역 preCrop용 — 손·팔·배경 플레이트 제거에 필요 */
-      productName?: string;
-      backdropAlreadyComposited?: boolean;
-    };
+    } = body;
 
     if (!imageUrl || !storagePath || !backdropDataUrl) {
       return NextResponse.json(

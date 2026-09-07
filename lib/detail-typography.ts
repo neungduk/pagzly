@@ -72,13 +72,6 @@ export function displayHeadlineInlineCss(category: string): string {
   return `font-family:${s.fontFamily};font-weight:${s.fontWeight};letter-spacing:${s.letterSpacing}`;
 }
 
-/** @deprecated 카테고리 없는 기본 — buildDetailExportFontCss(category) 사용 */
-export const DETAIL_EXPORT_FONT_CSS = `
-  body{margin:0;background:#FAF8F3;color:#1B1B18;font-family:${DETAIL_FONT_STACK.sans};font-size:16px;line-height:1.8;-webkit-font-smoothing:antialiased}
-  h1,h2,h3{font-family:${DETAIL_FONT_STACK.sans};font-weight:700;letter-spacing:-0.02em}
-  .pagzly-display-headline{font-family:${DETAIL_FONT_STACK.serifHeadline};font-weight:700;letter-spacing:-0.02em}
-`;
-
 export function buildDetailExportFontCss(category: string): string {
   const display = displayHeadlineInlineCss(category);
   return `
