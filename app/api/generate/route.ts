@@ -103,6 +103,12 @@ const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
 const ICON_STORAGE_BUCKET = "images";
 
 /** base64 data URL → Supabase Storage 공개 URL (sessionStorage 용량 초과 방지) */
+/**
+ * 156차 — 업로드 실패 시 재시도 없이 바로 ""를 반환하던 것을 1회 재시도로 강화.
+ * 아이콘/일러스트 생성(AI 호출) 자체는 성공했는데 Storage 업로드만 일시적으로
+ * 실패해 결과가 통째로 비는 사례(155차 illustration_banner 1차 실패 추정 원인 중
+ * 하나)를 줄인다. upsert:true라 같은 path로 재시도해도 안전하다.
+ */
 async function uploadDataUrlAndGetPublicUrl(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
@@ -114,15 +120,24 @@ async function uploadDataUrlAndGetPublicUrl(
   if (!base64) return "";
   const buffer = Buffer.from(base64, "base64");
   const path = `${userId}/icons/${Date.now()}-${pathSuffix}.png`;
-  const { error } = await supabase.storage
-    .from(ICON_STORAGE_BUCKET)
-    .upload(path, buffer, { contentType: "image/png", upsert: true });
-  if (error) {
-    console.warn(`[generate] 아이콘 업로드 실패 (${pathSuffix})`, error);
-    return "";
+
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const { error } = await supabase.storage
+      .from(ICON_STORAGE_BUCKET)
+      .upload(path, buffer, { contentType: "image/png", upsert: true });
+    if (!error) {
+      const { data } = supabase.storage.from(ICON_STORAGE_BUCKET).getPublicUrl(path);
+      return data.publicUrl;
+    }
+    lastError = error;
+    if (attempt < 2) {
+      console.warn(`[generate] 아이콘 업로드 실패 (${pathSuffix}) — 재시도 ${attempt}/2`, error);
+      await new Promise((resolve) => setTimeout(resolve, 800));
+    }
   }
-  const { data } = supabase.storage.from(ICON_STORAGE_BUCKET).getPublicUrl(path);
-  return data.publicUrl;
+  console.warn(`[generate] 아이콘 업로드 실패 (${pathSuffix}) — 재시도 후에도 실패`, lastError);
+  return "";
 }
 
 export const AI_DISCLOSURE_BODY =
@@ -504,7 +519,7 @@ const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
   highlight_box: `{ type: "highlight_box", slot, heading, cards: [{title, body}] } — 정확히 3개(2~4개 허용) 카드로 핵심 효과/성분을 요약. 각 title은 6자 내외, body는 1~2문장. checklist와 겹치지 않게 서로 다른 효과/성분 축으로 구성. 가장 강조하고 싶은 내용을 가운데(2번째) 카드에 배치 — 서버가 가운데 카드를 자동으로 진하게 강조 처리함`,
   step_card: `{ type: "step_card", slot, heading, steps: [{title, body, imageIndex}] } — 사용법 3단계 권장. 각 단계에 실제 상품 사진 imageIndex를 배정(가능하면 서로 다른 사진), title은 6자 내외, body는 1문장. STEP 태그는 서버가 자동으로 붙이므로 title에 "STEP 01" 등을 직접 쓰지 말 것`,
   color_variation: `{ type: "color_variation", slot, heading, options: [{label, colorHex, imageIndex}] }`,
-  stat_infographic: `{ type: "stat_infographic", slot, heading, metrics: [{label, value, style: "bar"|"number"|"ring", percent?: 0-100, basis?: "measured"|"self_assessed"}] } — style:"bar"/"ring"은 percent 필수. bar 막대 강조 스타일(barAccent)은 서버가 자동 설정 — AI는 지정하지 말 것`,
+  stat_infographic: `{ type: "stat_infographic", slot, heading, metrics: [{label, value, style: "bar"|"number"|"ring", percent?: 0-100, basis?: "measured"|"self_assessed", sourceNote?}] } — style:"bar"/"ring"은 percent 필수. bar 막대 강조 스타일(barAccent)은 서버가 자동 설정 — AI는 지정하지 말 것. sourceNote는 basis:"measured"이고 입력에 시험기관/기간/n수 같은 구체적 출처가 있을 때만 한 줄로(없으면 비워둘 것)`,
   illustration_banner: `{ type: "illustration_banner", slot, heading?, body?, illustrationUrl: "" } — body는 분위기 1~2문장, illustrationUrl은 서버가 채우므로 빈 문자열`,
   faq: `{ type: "faq", slot, heading, items: [{question, answer}] } — 3~5개. 근거 없으면 슬롯 생략. 근거 없는 개별 질문은 답변을 "판매자에게 문의해주세요"`,
   target_persona: `{ type: "target_persona", slot, heading, personas[] } — 3~5개, 각 20자 내외. targetCustomer·keyFeatures 기반으로만`,
@@ -893,6 +908,10 @@ metrics 항목에 basis를 명시하세요: keyFeatures·ingredients·certificat
 self_assessed 값은 보수적으로(0%/100% 같은 극단값 금지) 작성하세요.
 stat_infographic의 style:"ring"은 style:"bar"와 동일하게 percent(0~100)가 필요하며, 원형
 게이지로 강조하고 싶은 1~3개 지표에만 쓰세요(한 섹션에 bar/ring/number를 섞어도 됩니다).
+basis:"measured"인 metric 중, 입력에 시험기관명·시험기간·표본수(n) 같은 구체적 출처 정보가
+있으면 sourceNote에 한 줄로 적으세요(예: "OO시험연구원, 2026.03, n=32"). 그런 구체적 출처가
+입력에 없으면 sourceNote는 반드시 비워두세요 — "자체 조사" 같은 얼버무린 문구나 지어낸 기관명을
+넣지 마세요.
 
 comparison_chart 슬롯이 있다면: baselineLabel은 반드시 "일반 제품", "업계 평균", "타 제품"
 중 하나만 쓰세요 — 특정 브랜드명이나 실제 경쟁사 이름은 절대 쓰지 마세요(서버가 최종적으로
@@ -1864,6 +1883,11 @@ export async function POST(request: Request) {
       const usageSection = savedCopy.sections.find((s) => s.type === "usage_steps");
       const specTableSection = savedCopy.sections.find((s) => s.type === "spec_table");
       const statSection = savedCopy.sections.find((s) => s.type === "stat_infographic");
+      // 147차 — seller_trust_evidence(135~137차, 리뷰 근거 단일 카드)는 렌더러에서
+      // 애초에 아이콘을 안 그리므로 제외하고, 일반 highlight_box(핵심 3축 등)만 대상.
+      const highlightBoxSection = savedCopy.sections.find(
+        (s) => s.type === "highlight_box" && s.slot !== "seller_trust_evidence",
+      );
       const checklistItems =
         checklistSection?.type === "checklist" ? checklistSection.items : [];
       const usageSteps =
@@ -1876,6 +1900,10 @@ export async function POST(request: Request) {
         statSection?.type === "stat_infographic"
           ? statSection.metrics.map((metric) => metric.label)
           : [];
+      const highlightBoxLabels =
+        highlightBoxSection?.type === "highlight_box"
+          ? highlightBoxSection.cards.map((card) => card.title)
+          : [];
 
       const iconResult = await generateConceptIcons(
         enrichedBody.conceptBrief,
@@ -1884,6 +1912,7 @@ export async function POST(request: Request) {
         usageSteps,
         specTableLabels,
         statLabels,
+        highlightBoxLabels,
       );
       conceptIcons = iconResult.icons;
       iconCost = iconResult.cost;

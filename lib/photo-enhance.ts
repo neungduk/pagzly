@@ -36,6 +36,7 @@ import {
   unifyCompositeGrain,
 } from "@/lib/photo-composite";
 import { isTestMode } from "@/lib/test-mode";
+import { isPremiumQualityMode } from "@/lib/premium-mode";
 import { logForceRegenerateStatus } from "@/lib/force-regenerate";
 import { addCostLogTally } from "@/lib/cost-log-tally";
 
@@ -155,13 +156,19 @@ export function getBackdropProvider(category?: string): BackdropProvider {
   return "flux";
 }
 
-/** Bria Background Replace 후보 수. `.env.local` BRIA_BACKDROP_CANDIDATES (기본 2, 1–3). */
+/**
+ * Bria Background Replace 후보 수. `.env.local` BRIA_BACKDROP_CANDIDATES (기본 2, 1–3).
+ * 145차 — PREMIUM_QUALITY_MODE=true면 상한 4까지 허용 (선택 UI인
+ * BackdropCandidatePicker는 후보 수와 무관하게 이미 동작 — grid-cols-7까지
+ * 대응돼 있어 추가 작업 없이 그대로 4장을 보여줄 수 있음).
+ */
 export function getBriaBackdropCandidateCount(): number {
   const raw = Number(process.env.BRIA_BACKDROP_CANDIDATES);
+  const cap = isPremiumQualityMode() ? 4 : 3;
   if (Number.isFinite(raw) && raw >= 1) {
-    return Math.min(3, Math.max(1, Math.round(raw)));
+    return Math.min(cap, Math.max(1, Math.round(raw)));
   }
-  return 2;
+  return isPremiumQualityMode() ? 4 : 2;
 }
 
 /**

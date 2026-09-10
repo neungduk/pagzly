@@ -1,5 +1,6 @@
 import type { ImageAspectRatio, ImageTaskType } from "@/lib/image-router/types";
 import { countLifestyleShotsToGenerate as countFromConfig } from "@/lib/lifestyle-shot-config";
+import { isPremiumQualityMode } from "@/lib/premium-mode";
 
 export type LifestyleShotPlan = {
   taskType: ImageTaskType;
@@ -8,9 +9,14 @@ export type LifestyleShotPlan = {
   label: string;
 };
 
-/** 스튜디오 누끼+배경 합성은 대표·제품컷만 — 나머지는 원본 또는 AI 일상샷 */
+/**
+ * 스튜디오 누끼+배경 합성은 대표·제품컷만 — 나머지는 원본 또는 AI 일상샷.
+ * 145차 — PREMIUM_QUALITY_MODE=true면 업로드 8장 이상일 때 4 → 8로 확장
+ * (144차 실측: +$0.087/건, idx4-7 passthrough 컷이 정리되어 밀도가 균일해짐).
+ * 업로드 5~7장 구간은 3으로 그대로 둔다 — 144차는 8장 케이스만 검증했다.
+ */
 export function computeStudioCompositeLimit(uploadCount: number): number {
-  if (uploadCount >= 8) return 4;
+  if (uploadCount >= 8) return isPremiumQualityMode() ? Math.min(uploadCount, 8) : 4;
   if (uploadCount >= 5) return 3;
   return uploadCount;
 }
