@@ -7,7 +7,7 @@
 
 | 항목 | 결과 |
 |------|------|
-| A 커밋·푸시 | **완료** — `origin/main` HEAD `8e9c22de3f5488d1a946e6d02d235e2e9f7c05a0` (+160 구현 커밋 별도) |
+| A 커밋·푸시 | **완료** — `origin/main` HEAD `4a06768` (156~160 일괄) |
 | B 인포 강화 | Noise/IP/각주/성분각주 **프리뷰·export 검증 완료**. `/api/generate` 실라이브는 **auth-state 만료로 차단** |
 | C 이미지 레버 | 144 수치 재인용 + 코드 대조. **추가 기본값 플립 없음** |
 | D 벤치마크 | 4축 비교·격차 분류 정리. 입력 기근 회피 시나리오 스크립트 준비 |
@@ -28,13 +28,12 @@
 
 - `npx tsc --noEmit` → **0**
 - `git push origin main` → `dccf361..8e9c22d`
-- 원격 HEAD: **`8e9c22de3f5488d1a946e6d02d235e2e9f7c05a0`**
-
-포함 파일 예: `NoiseComparisonDiagram`, `noise-comparison-diagram.ts`, `DetailSectionRenderer`, `export-detail-html`, `premium-mode.ts`, `concept-icons`/`illustration`, `section-templates`, `package-contents-diagram`, `detail-visual-rhythm`, `design-tokens` 등.
+- 원격 HEAD(1차): **`8e9c22de3f5488d1a946e6d02d235e2e9f7c05a0`**
+- 160 구현 커밋: **`4a06768`** (IP·성분각주·검증 산출물) — 푸시 후 최종 HEAD
 
 ### 2차 (160 본 라운드 구현)
 
-아래 “B 구현” 커밋 해시 참고 (푸시 시점에 갱신).
+`4a06768` — `feat: IP 방수 기준표·성분 컴플라이언스 각주 + 160차 검증 산출물`
 
 ---
 
