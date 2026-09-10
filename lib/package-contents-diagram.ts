@@ -1,22 +1,23 @@
 /**
  * 113차 — 전자제품 구성품 배치도 (심플 SVG 도형 + 라벨).
  * AI 아이콘 생성 없음. 구성품 목록이 파싱될 때만 렌더.
+ * 157차 — 화장품/뷰티의 기획·증정 세트 구성(package_contents 슬롯 재사용)도
+ * 같은 파서/컴포넌트로 처리하도록 접두어(사은품/증정/기획) 인식 추가.
  */
 export type PackageItem = { label: string };
 
 const PLACEHOLDER = /판매자\s*확인|문의|확인\s*필요|미정/;
 
 /**
- * "구성품: 본체, 케이블, 설명서" / bullet / comma 목록 파싱.
- * 2개 미만이면 null.
+ * "구성품: 본체, 케이블, 설명서" / "사은품: 토너 50ml, 마스크 1매" 같은
+ * 접두어 + bullet/comma 목록 파싱. 2개 미만이면 null.
  */
 export function parsePackageContentsList(
   raw: string | null | undefined,
 ): PackageItem[] | null {
   if (!raw?.trim()) return null;
   let text = raw.trim();
-  text = text.replace(/^구성품\s*[:：]?\s*/i, "");
-  text = text.replace(/^포함\s*[:：]?\s*/i, "");
+  text = text.replace(/^(구성품|포함|사은품|증정품?|기획\s*구성)\s*[:：]?\s*/i, "");
 
   const parts = text
     .split(/[,，、·/|;|\n•·]+/)

@@ -114,7 +114,15 @@ export function getSectionBackground(
   const deepAccentE = fashionMinimal ? 0.035 : 0.1;
 
   if (pattern === "C") {
-    return `linear-gradient(145deg, ${hexToRgba(theme.deepAccent, 0.93)} 0%, ${hexToRgba(theme.accent, 0.82)} 100%)`;
+    // 148차 — deepAccent를 그대로 쓰면 A/B/D/E와 같은 색상군의 "더 진한 버전"일 뿐이라 눈에
+    // 익어 후커블의 인증/임팩트 블록(HACCP 배지, 큰 숫자 통계) 같은 진짜 "정지 신호" 대비가
+    // 안 남는다는 실사 진단(147차 후속) 결과 반영. BRAND.ink를 큰 비중으로 섞어 실제 잉크에
+    // 가까운 다크 블록으로 만들되, accent 계열을 완전히 지우지 않아 브랜드 색과의 연결은
+    // 유지한다 — "accentColor/baseNeutral/deepAccent 3색만 순환" 원칙은 그대로, ink는 그
+    // 3색을 어둡게 눌러주는 혼합 재료일 뿐 새 색상을 도입하는 게 아니다.
+    const inkDeep = mixHex(theme.deepAccent, BRAND.ink, 0.6);
+    const inkAccent = mixHex(theme.accent, BRAND.ink, 0.42);
+    return `linear-gradient(145deg, ${hexToRgba(inkDeep, 0.97)} 0%, ${hexToRgba(inkAccent, 0.93)} 100%)`;
   }
   if (pattern === "A") {
     return `linear-gradient(168deg, ${theme.baseNeutral} 0%, ${hexToRgba(theme.accentSoft, accentSoftA)} 100%)`;
@@ -275,26 +283,96 @@ function tokenHueShift(hex: string, degrees: number): string {
 
 export type ThemeVariantKey = "base" | "warm" | "cool" | "bold";
 
-// 보조색 3개(warm/cool/bold) + base. 서로 최소 40도 이상 떨어뜨려 실제로
-// 다른 색상대로 보이게 하되, 완전 정반대색(180도)은 피해 상품 사진·다른
-// UI 색과 과하게 충돌하지 않도록 함. 사용자가 "보조색 3개 이상 (더
-// 화려하게)"를 선택해 정확히 3개로 구성.
-const THEME_VARIANT_HUE_OFFSET: Record<Exclude<ThemeVariantKey, "base">, number> = {
-  warm: 28,
-  cool: -34,
-  bold: 52,
-};
+// 149차 — "사진 톤이 파란색이면 페이지 전체가 다 파랗게만 나온다" 실사 신고 대응.
+// 기존에는 warm/cool/bold를 추출된 단일 hue에서 고정 각도(+28/-34/+52)만큼
+// "상대 회전"시켰다. 상품 사진의 스튜디오 배경이 이미 진하게 채도 높은
+// 파란색(실측 hue≈205~210°)일 때는 세 변형이 전부 195~262° 구간(청록~인디고)
+// 안에 갇혀 사실상 "다른 톤의 파랑"일 뿐이라 실제로는 시각적 변화가 거의 없었다
+// (색상 이름 기준: cyan-blue → blue → indigo, 전부 "파랑" 계열).
+//
+// 대신 warm/cool은 고정된 "절대 앵커 색상"(호박색/청록색)을 향해 끌어당기고,
+// bold는 base/warm/cool 세 색과 원형 색상환 거리가 최대가 되는 방향으로 계산해
+// 상품 hue가 무엇이든 최소 두 계열(따뜻한 계열/차가운 계열)이 실제로 갈라지도록
+// 보장한다. 상품이 이미 그 계열(예: 이미 주황)이면 해당 변형은 base와 거의
+// 같아지는데, 그건 원래 그 계열이 이미 확보돼 있다는 뜻이라 자연스럽다.
+const WARM_ANCHOR_HUE = 35; // 호박/골드 계열(BRAND.mustard와 같은 방향)
+const COOL_ANCHOR_HUE = 205; // 청록/블루 계열(BRAND.slateBlue와 같은 방향)
+const ANCHOR_PULL = 0.82; // 앵커 쪽으로 끌어당기는 비율(1=완전히 앵커 색상, 0=변화 없음)
+const BOLD_SWING_DEGREES = 140; // base/warm/cool과 확실히 다른 "세 번째 색상대"를 만들기 위한 회전폭
+
+/** hue A→B로 가는 "최단 방향" 각도차 (범위 (-180, 180]) */
+function circularHueDelta(fromHue: number, toHue: number): number {
+  return (((toHue - fromHue + 540) % 360) + 360) % 360 - 180;
+}
+
+function circularHueDistance(a: number, b: number): number {
+  return Math.abs(circularHueDelta(a, b));
+}
+
+function extractHueFromHex(hex: string): number {
+  const normalized = hex.replace("#", "");
+  const bigint = parseInt(normalized, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return tokenRgbToHsl(r, g, b).h;
+}
+
+function relativeLuminanceToken(hex: string): number {
+  const n = parseInt(hex.replace("#", ""), 16);
+  const channels = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+function contrastRatioToken(fg: string, bg: string): number {
+  const l1 = relativeLuminanceToken(fg);
+  const l2 = relativeLuminanceToken(bg);
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+// baseNeutral의 hue만 targetHue로 바꾸면서, ink 텍스트 대비 4.5:1을 계속
+// 만족하도록 필요하면 명도를 조금씩 올린다(색상-extract.ts의
+// ensureReadableBaseNeutral()과 동일한 안전장치를 sharp 의존성 없이 재구현).
+function ensureReadableNeutralHue(hex: string, targetHue: number): string {
+  const normalized = hex.replace("#", "");
+  const bigint = parseInt(normalized, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  const { s, l } = tokenRgbToHsl(r, g, b);
+  let light = l;
+  for (let i = 0; i < 12; i += 1) {
+    const [nr, ng, nb] = tokenHslToRgb(targetHue, s, light);
+    const candidate = tokenRgbToHex(nr, ng, nb);
+    if (contrastRatioToken(BRAND.ink, candidate) >= 4.5) return candidate;
+    light = Math.min(0.95, light + 0.02);
+  }
+  const [nr, ng, nb] = tokenHslToRgb(targetHue, s, 0.95);
+  return tokenRgbToHex(nr, ng, nb);
+}
 
 export type ExtendedTheme = Record<ThemeVariantKey, CategoryTheme>;
 
+// 149차: baseNeutral도 함께 회전시킨다. 기존엔 accent 계열만 회전하고
+// baseNeutral은 ...base로 그대로 복사돼, warm/cool/bold 어떤 변형이든
+// 배경 그라데이션의 절반(패턴 A/B/D/E 전부 baseNeutral을 포함)은 항상 같은
+// 추출 hue를 유지했다 — "포인트 색만 바뀌고 배경은 계속 파랗다"의 실제 원인.
 function hueShiftTheme(base: CategoryTheme, degrees: number): CategoryTheme {
   const deepShift = Math.round(degrees * 0.55);
+  const baseNeutralHue = extractHueFromHex(base.baseNeutral);
+  const shiftedNeutralHue = ((baseNeutralHue + degrees) % 360 + 360) % 360;
   return {
     ...base,
     accent: tokenHueShift(base.accent, degrees),
     accentSoft: tokenHueShift(base.accentSoft, degrees),
     accentText: tokenHueShift(base.accentText, degrees),
     deepAccent: tokenHueShift(base.deepAccent, deepShift),
+    baseNeutral: ensureReadableNeutralHue(base.baseNeutral, shiftedNeutralHue),
   };
 }
 
@@ -305,11 +383,36 @@ function hueShiftTheme(base: CategoryTheme, degrees: number): CategoryTheme {
  * getSectionTheme() 참고).
  */
 export function extendTheme(base: CategoryTheme): ExtendedTheme {
+  const referenceHue = extractHueFromHex(base.accent);
+
+  const warmDelta = circularHueDelta(referenceHue, WARM_ANCHOR_HUE) * ANCHOR_PULL;
+  const coolDelta = circularHueDelta(referenceHue, COOL_ANCHOR_HUE) * ANCHOR_PULL;
+  const warmHue = ((referenceHue + warmDelta) % 360 + 360) % 360;
+  const coolHue = ((referenceHue + coolDelta) % 360 + 360) % 360;
+
+  // bold: +140 / -140 두 후보 중, base·warm·cool 세 색 모두와 색상환 거리가
+  // 가장 먼(=가장 구별되는) 방향을 고른다. 안 그러면 base가 이미 warm 또는
+  // cool 쪽에 가까울 때 bold가 그 변형과 거의 겹쳐버린다.
+  const boldCandidates = [
+    ((referenceHue + BOLD_SWING_DEGREES) % 360 + 360) % 360,
+    ((referenceHue - BOLD_SWING_DEGREES) % 360 + 360) % 360,
+  ];
+  const scoreOf = (hue: number) =>
+    Math.min(
+      circularHueDistance(hue, referenceHue),
+      circularHueDistance(hue, warmHue),
+      circularHueDistance(hue, coolHue),
+    );
+  const boldHue = boldCandidates.reduce((best, candidate) =>
+    scoreOf(candidate) > scoreOf(best) ? candidate : best,
+  );
+  const boldDelta = circularHueDelta(referenceHue, boldHue);
+
   return {
     base,
-    warm: hueShiftTheme(base, THEME_VARIANT_HUE_OFFSET.warm),
-    cool: hueShiftTheme(base, THEME_VARIANT_HUE_OFFSET.cool),
-    bold: hueShiftTheme(base, THEME_VARIANT_HUE_OFFSET.bold),
+    warm: hueShiftTheme(base, warmDelta),
+    cool: hueShiftTheme(base, coolDelta),
+    bold: hueShiftTheme(base, boldDelta),
   };
 }
 
@@ -401,6 +504,18 @@ export const HERO_TRANSITION_CLIP_PATH =
 /** 위 클립과 짝을 이루는 음수 마진 — hero 하단 사진 위로 살짝 겹쳐 올라간다. */
 export const HERO_TRANSITION_OVERLAP_CLASS = "-mt-4 sm:-mt-6";
 
+/**
+ * 156차 — 154차가 "다음 라운드 후보"로 남겨둔 "섹션 전환부 다양성"(북엔드) 구현.
+ * 히어로 직후 대각선 컷(위)과 짝을 이루도록, 페이지를 마감하는 cta_price 밴드
+ * 상단에도 미세한 대각선 컷을 준다 — 방향을 반대로(좌상단을 아래로 44px 내림)
+ * 줘서 "열고 닫는" 북엔드 느낌을 만든다. 다이슨코리아 등 벤치마크(152차)에서
+ * 확인한 "페이지 시작/끝에 의도적인 각(角) 마감을 준다"는 패턴 참고.
+ */
+export const CTA_TRANSITION_CLIP_PATH =
+  "polygon(0 44px, 100% 0, 100% 100%, 0 100%)";
+/** 위 클립과 짝을 이루는 음수 마진 — CTA 밴드가 직전 섹션 위로 살짝 겹쳐 올라간다. */
+export const CTA_TRANSITION_OVERLAP_CLASS = "-mt-4 sm:-mt-6";
+
 /** 카테고리별 리듬 — 슬롯/3색은 유지하고 여백·그리드·CTA 모서리만 조절 */
 export type CategoryRhythm = {
   heroMinClass: string;
@@ -417,6 +532,8 @@ export type CategoryRhythm = {
   ctaPadClass: string;
   /** hero 바로 다음 섹션 1곳에만 적용하는 미세한 대각선 클립 (design-brief 제안 A) */
   heroTransitionClip: string;
+  /** 156차 — 마지막 cta_price 밴드 상단에만 적용하는 미세한 대각선 클립(북엔드 마감) */
+  ctaTransitionClip: string;
 };
 
 const DEFAULT_RHYTHM: CategoryRhythm = {
@@ -435,9 +552,78 @@ const DEFAULT_RHYTHM: CategoryRhythm = {
   trustPadClass: SECTION_BLOCK_PAD.trust,
   ctaPadClass: SECTION_BLOCK_PAD.cta,
   heroTransitionClip: HERO_TRANSITION_CLIP_PATH,
+  ctaTransitionClip: CTA_TRANSITION_CLIP_PATH,
 };
 
 export function getCategoryRhythm(category: string): CategoryRhythm {
+  // 150차 — 6개 카테고리 중 의류/패션·생활용품·전자제품 3개만 고유 리듬이 있고
+  // 화장품/뷰티·식품/건강기능식품·반려동물 3개는 전부 DEFAULT_RHYTHM으로 뭉뚱그려져
+  // 있었다(색상은 category-theme.ts에서 6개 다 구분되는데 레이아웃 리듬만 절반이
+  // 미구현). 후커블/실제 마켓 카테고리별 크롤링(claude/hookable_category_examples_
+  // 2026-09-09.md) 근거로 나머지 3개도 채운다.
+  if (category === "식품/건강기능식품") {
+    // 후커블 식품 예시(스키야키 밀키트): 히어로 대형 타이포 + 풀블리드 사진,
+    // 재료/비교 섹션이 사진 중심으로 여유 있게 배치됨 — 카드형 카테고리(전자제품)
+    // 보다 넉넉하고, 미니멀 카테고리(패션)보다 사진 프레임이 큼.
+    return {
+      ...DEFAULT_RHYTHM,
+      heroMinClass: "min-h-[86svh] sm:min-h-[780px]",
+      heroOverlayClass:
+        "absolute inset-0 z-20 flex flex-col items-center justify-end px-6 pb-20 text-center sm:px-10 sm:pb-32",
+      heroTitleExtra: "tracking-[-0.02em]",
+      checklistGridFour: "grid-cols-2 sm:grid-cols-4",
+      checklistGapClass: "gap-x-6 gap-y-10",
+      generousPadClass: "px-6 py-20 sm:px-10 sm:py-32",
+      pointTextPadClass: "px-6 pt-12 pb-16 sm:px-10 sm:pt-14 sm:pb-24",
+      trustPadClass: "px-6 py-16 sm:px-10 sm:py-24",
+      ctaPadClass: "px-6 py-24 sm:px-10 sm:py-36",
+      ctaButtonClass:
+        "inline-flex h-12 min-w-[13rem] items-center justify-center rounded-full px-10 text-sm font-semibold text-paper shadow-sm",
+      galleryGapClass: "gap-1",
+      galleryTitlePadClass: "px-6 pt-10 pb-0 text-center sm:px-10 sm:pt-12 sm:pb-0",
+    };
+  }
+  if (category === "화장품/뷰티") {
+    // 기존 색상(slateBlue, 클리니컬)에 맞춰 리듬도 더 타이트하고 정제된 쪽으로 —
+    // 식품/반려동물의 "넉넉하고 따뜻한" 톤과 대비되게 의도적으로 좁힌다.
+    return {
+      ...DEFAULT_RHYTHM,
+      heroMinClass: "min-h-[82svh] sm:min-h-[720px]",
+      heroTitleExtra: "tracking-[-0.03em]",
+      checklistGridFour: "grid-cols-4",
+      checklistGapClass: "gap-x-4 gap-y-8",
+      generousPadClass: "px-6 py-14 sm:px-10 sm:py-24",
+      pointTextPadClass: "px-6 pt-8 pb-12 sm:px-10 sm:pt-10 sm:pb-16",
+      trustPadClass: "px-6 py-14 sm:px-10 sm:py-20",
+      ctaPadClass: "px-6 py-20 sm:px-10 sm:py-32",
+      ctaButtonClass:
+        "inline-flex h-12 min-w-[11rem] items-center justify-center rounded-full px-8 text-sm font-semibold text-paper shadow-sm",
+      galleryGapClass: "gap-px",
+      galleryTitlePadClass: "px-6 pt-9 pb-0 text-center sm:px-10 sm:pt-11 sm:pb-0",
+    };
+  }
+  if (category === "반려동물") {
+    // 후커블엔 반려동물 카테고리 자체가 없고 실제 마켓 예시도 반려동물 실사가
+    // 전무한 저품질 페이지였음(149cha/hookable_category_examples 조사) — 벤치마크가
+    // 약한 카테고리라 오히려 기회다. 실제 반려동물 사진(라이프스타일컷)이 잘
+    // 드러나도록 사진 프레임을 넉넉하게, 톤은 딱딱하지 않게 둥근 형태 위주로.
+    return {
+      ...DEFAULT_RHYTHM,
+      heroMinClass: "min-h-[85svh] sm:min-h-[740px]",
+      heroOverlayClass:
+        "absolute inset-0 z-20 flex flex-col items-center justify-end px-7 pb-16 text-center sm:px-12 sm:pb-28",
+      checklistGridFour: "grid-cols-2 sm:grid-cols-4",
+      checklistGapClass: "gap-x-6 gap-y-10",
+      generousPadClass: "px-6 py-16 sm:px-10 sm:py-28",
+      pointTextPadClass: "px-6 pt-10 pb-16 sm:px-10 sm:pt-12 sm:pb-20",
+      trustPadClass: "px-6 py-16 sm:px-10 sm:py-24",
+      ctaPadClass: "px-6 py-24 sm:px-10 sm:py-36",
+      ctaButtonClass:
+        "inline-flex h-12 min-w-[13rem] items-center justify-center rounded-full px-10 text-sm font-semibold tracking-[0.02em] text-paper shadow-sm",
+      galleryGapClass: "gap-1",
+      galleryTitlePadClass: "px-6 pt-10 pb-0 text-center sm:px-10 sm:pt-12 sm:pb-0",
+    };
+  }
   if (category === "의류/패션") {
     return {
       ...DEFAULT_RHYTHM,
