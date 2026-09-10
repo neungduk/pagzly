@@ -1083,6 +1083,102 @@ const capture133Meta = {
   productName: "무선 청소기",
 };
 
+/** 160차 — 소음(dB) + 방수(IPX) 기준표 다이어그램 + 각주 중복 재사용 캡처 */
+const capture160NoiseIpSections: DetailSection[] = [
+  {
+    type: "hero",
+    slot: "hero",
+    headline: "도서관보다 조용한 공기",
+    subheadline: "AURA PURE Mini",
+    imageIndex: 0,
+    badge: "24dB",
+  },
+  {
+    type: "spec_table",
+    slot: "spec_table",
+    heading: "제품 정보",
+    rows: [
+      { label: "소음도", value: "24dB" },
+      { label: "방수등급", value: "IPX5" },
+      { label: "소비전력", value: "28W" },
+      { label: "필터", value: "H13 HEPA" },
+    ],
+  },
+  {
+    type: "stat_infographic",
+    slot: "stat_infographic",
+    heading: "임상으로 확인한 변화",
+    barAccent: "emphasis",
+    metrics: [
+      {
+        label: "유해균 감소",
+        value: "92%",
+        percent: 92,
+        style: "bar",
+        basis: "measured",
+        sourceNote: "한국화학융합시험연구원, 2025.11, n=48",
+      },
+      {
+        label: "냄새 개선",
+        value: "86%",
+        percent: 86,
+        style: "bar",
+        basis: "measured",
+        sourceNote: "한국화학융합시험연구원, 2025.11, n=48",
+      },
+      {
+        label: "만족도",
+        value: "94%",
+        percent: 94,
+        style: "bar",
+        basis: "measured",
+        sourceNote: "한국화학융합시험연구원, 2025.11, n=48",
+      },
+      {
+        label: "피부 자극 없음",
+        value: "100%",
+        percent: 100,
+        style: "bar",
+        basis: "measured",
+        sourceNote: "피부임상연구센터, 2026.01, n=32",
+      },
+    ],
+  },
+  {
+    type: "image_text",
+    slot: "ingredient_highlight",
+    heading: "나이아신아마이드 5%",
+    body: "피부 장벽을 케어하는 핵심 성분으로, 속당김을 덜 느끼게 돕는 가벼운 제형입니다.",
+    imageIndex: 1,
+    imagePosition: "left",
+  },
+  {
+    type: "cta_price",
+    slot: "cta_price",
+    price: 129000,
+    targetCustomer: "원룸·소형 공간",
+    badges: ["KC 인증"],
+  },
+];
+
+const capture160NoiseIpMeta = {
+  category: "전자제품",
+  brandName: "AURA AIR",
+  productName: "AURA PURE Mini",
+};
+
+const capture160FoodFootnoteMeta = {
+  category: "식품/건강기능식품",
+  brandName: "VITAL LAB",
+  productName: "프로바이오틱스 30억",
+};
+
+const capture160BeautyIngredientMeta = {
+  category: "화장품/뷰티",
+  brandName: "AURA LAB",
+  productName: "나이아신아마이드 세럼",
+};
+
 /** 69차 — spec_table 3장 썸네일 + 배경 틴트 */
 const capture69SpecMultiSections: DetailSection[] = initialSections.map((section) =>
   section.type === "spec_table" && section.slot === "spec_table"
@@ -1249,6 +1345,27 @@ function resolveCapturePreset(): CapturePreset | null {
   }
   if (capture === "133-electronics-nocert") {
     return { sections: capture133ElectronicsNoCertSections, ...capture133Meta };
+  }
+  if (capture === "160-noise-ip") {
+    return {
+      sections: capture160NoiseIpSections,
+      ...capture160NoiseIpMeta,
+      imageUrls: QA_FIXTURE_ELECTRONICS,
+    };
+  }
+  if (capture === "160-footnote-dedupe") {
+    return {
+      sections: capture160NoiseIpSections,
+      ...capture160FoodFootnoteMeta,
+      imageUrls: QA_FIXTURE_FOOD,
+    };
+  }
+  if (capture === "160-ingredient-note") {
+    return {
+      sections: capture160NoiseIpSections,
+      ...capture160BeautyIngredientMeta,
+      imageUrls: QA_FIXTURE_COSMETICS,
+    };
   }
   if (capture === "69-spec-multi") {
     return { sections: capture69SpecMultiSections, ...capture69SpecMultiMeta };

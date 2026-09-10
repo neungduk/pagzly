@@ -40,11 +40,15 @@ import {
 } from "@/lib/fashion-size-diagram";
 import { matchSizeComparisonRows } from "@/lib/size-comparison-diagram";
 import { matchNoiseComparisonRow } from "@/lib/noise-comparison-diagram";
+import { matchWaterproofIpRow } from "@/lib/waterproof-ip-diagram";
 import {
   buildVolumeComparisonEntries,
   matchProductVolumeMl,
 } from "@/lib/volume-comparison-diagram";
-import { isCosmeticsCategory } from "@/lib/cosmetics-compliance";
+import {
+  INGREDIENT_HIGHLIGHT_COMPLIANCE_NOTE,
+  isCosmeticsCategory,
+} from "@/lib/cosmetics-compliance";
 import { isFoodCategory } from "@/lib/food-compliance";
 import { prepareFoodRatioSlices } from "@/lib/food-ratio-diagram";
 import { preparePackageContentsItems } from "@/lib/package-contents-diagram";
@@ -65,6 +69,7 @@ import DetailScrollReveal from "@/components/DetailScrollReveal";
 import FashionSizeDiagram from "@/components/FashionSizeDiagram";
 import SizeComparisonDiagram from "@/components/SizeComparisonDiagram";
 import NoiseComparisonDiagram from "@/components/NoiseComparisonDiagram";
+import WaterproofIpDiagram from "@/components/WaterproofIpDiagram";
 import { headlineDisplayStyle } from "@/lib/detail-typography";
 import VolumeComparisonDiagram from "@/components/VolumeComparisonDiagram";
 import UsageOrderFlowDiagram from "@/components/UsageOrderFlowDiagram";
@@ -1776,6 +1781,11 @@ function renderSection(
                   onChange={(body) => edit?.onChange(index, { ...section, body })}
                   className={`mt-4 line-clamp-5 ${TYPO.body}`}
                 />
+                {section.slot === "ingredient_highlight" && isCosmeticsCategory(category) ? (
+                  <p className="mt-3 text-[11px] leading-relaxed opacity-55">
+                    {INGREDIENT_HIGHLIGHT_COMPLIANCE_NOTE}
+                  </p>
+                ) : null}
               </TextSectionPanel>
             </div>
           </div>
@@ -1824,6 +1834,11 @@ function renderSection(
       const noiseMatch =
         section.slot === "spec_table" && !isFashionCategory(category)
           ? matchNoiseComparisonRow(visibleRows)
+          : null;
+      // 160차 — IP/IPX 방수 등급도 공개 기준표 패턴으로 동일하게 처리.
+      const waterproofMatch =
+        section.slot === "spec_table" && !isFashionCategory(category)
+          ? matchWaterproofIpRow(visibleRows)
           : null;
       const specThumbUrls = (
         section.imageIndexes?.length
@@ -1913,9 +1928,21 @@ function renderSection(
               category={category}
             />
           ) : null}
+          {waterproofMatch ? (
+            <WaterproofIpDiagram
+              level={waterproofMatch.level}
+              valueLabel={waterproofMatch.value}
+              theme={theme}
+              category={category}
+            />
+          ) : null}
           <div
             className={`mx-auto max-w-xl overflow-hidden rounded-lg ${isShipping ? "border-2" : ""} ${
-              sizeDiagramMatches.length > 0 || showSizeComparison || showVolumeDiagram || noiseMatch
+              sizeDiagramMatches.length > 0 ||
+              showSizeComparison ||
+              showVolumeDiagram ||
+              noiseMatch ||
+              waterproofMatch
                 ? "mt-6"
                 : "mt-10"
             }`}

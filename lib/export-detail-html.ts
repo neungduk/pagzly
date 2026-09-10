@@ -30,6 +30,10 @@ import {
   matchNoiseComparisonRow,
 } from "@/lib/noise-comparison-diagram";
 import {
+  buildWaterproofIpDiagramSvg,
+  matchWaterproofIpRow,
+} from "@/lib/waterproof-ip-diagram";
+import {
   buildVolumeComparisonDiagramSvg,
   buildVolumeComparisonEntries,
   matchProductVolumeMl,
@@ -40,7 +44,10 @@ import {
   buildPackageContentsDiagramSvg,
   preparePackageContentsItems,
 } from "@/lib/package-contents-diagram";
-import { isCosmeticsCategory } from "@/lib/cosmetics-compliance";
+import {
+  INGREDIENT_HIGHLIGHT_COMPLIANCE_NOTE,
+  isCosmeticsCategory,
+} from "@/lib/cosmetics-compliance";
 import { isFoodCategory } from "@/lib/food-compliance";
 import { buildHeroBrandMarkHtml } from "@/lib/hero-brand-mark";
 import { buildQuickFactStripHtml, extractQuickFacts } from "@/lib/quick-fact-strip";
@@ -423,8 +430,18 @@ function sectionHtml(
             </div>
             <div style="flex:${columnRatio.text} 1 280px;order:${imageLeft ? 2 : 1}">
               <p style="font-size:11px;letter-spacing:.36em;color:${deep};margin:0 0 12px">${kicker}</p>
+              ${
+                section.slot === "ingredient_highlight"
+                  ? `<div style="width:56px;height:6px;background:${accent};margin:0 0 16px;border-radius:2px"></div>`
+                  : ""
+              }
               ${dh2(category, esc(section.heading), "font-size:1.75rem;margin:0")}
               <p style="line-height:1.75;font-size:15px;opacity:.85;margin-top:16px">${esc(section.body)}</p>
+              ${
+                section.slot === "ingredient_highlight" && isCosmeticsCategory(category)
+                  ? `<p style="margin-top:12px;font-size:11px;line-height:1.5;opacity:.55">${esc(INGREDIENT_HIGHLIGHT_COMPLIANCE_NOTE)}</p>`
+                  : ""
+              }
             </div>
           </div>
           ${pkgHtml}${foodHtml}
@@ -478,6 +495,19 @@ function sectionHtml(
             baseTheme.accentText,
           )
         : "";
+      // 160차 — IP/IPX 방수 등급 공개 기준표.
+      const waterproofMatch =
+        section.slot === "spec_table" && !isFashionCategory(category)
+          ? matchWaterproofIpRow(section.rows)
+          : null;
+      const waterproofHtml = waterproofMatch
+        ? buildWaterproofIpDiagramSvg(
+            waterproofMatch.level,
+            waterproofMatch.value,
+            baseTheme.accentText,
+            baseTheme.accentText,
+          )
+        : "";
       const diagramHtml =
         (sizeMatches.length > 0
           ? buildFashionSizeDiagramSvg(sizeMatches, deep, deep)
@@ -491,7 +521,9 @@ function sectionHtml(
                     baseTheme.accentText,
                     baseTheme.accentText,
                   )
-                : "") + noiseHtml;
+                : "") +
+        noiseHtml +
+        waterproofHtml;
       const specThumbUrls = (
         section.imageIndexes?.length
           ? section.imageIndexes

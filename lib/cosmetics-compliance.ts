@@ -9,6 +9,13 @@ export const COSMETICS_AI_PROMPT = `화장품 광고 문구 작성 시 식약처
 금지 표현 예시: 치료, 완치, 제거, 회복, 재생, 의학적으로 증명, 임상 실험,
 주름 제거, 미백 효과, 피부과 처방, 의사 추천, 아토피 치료, 여드름 치료`;
 
+/**
+ * 160차 — Behance/프리미엄 화장품 상세에서 흔한 "*원료적 특성에 한함" 식 컴플라이언스 각주.
+ * 수치를 지어내지 않고, ingredient_highlight 슬롯에만 고정 문구로 붙인다.
+ */
+export const INGREDIENT_HIGHLIGHT_COMPLIANCE_NOTE =
+  "*본 내용은 원료적 특성에 한하며, 개인차가 있을 수 있습니다.";
+
 type ReplacementRule = {
   pattern: RegExp;
   replacement: string;
