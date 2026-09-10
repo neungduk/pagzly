@@ -12,6 +12,7 @@ const SECTION_KICKERS: Partial<Record<DetailSection["type"], string>> = {
   spec_table: "INFO",
   stat_infographic: "DATA",
   comparison_chart: "COMPARE",
+  tradeoff_card: "FIT CHECK",
   faq: "FAQ",
   usage_steps: "GUIDE",
   caution: "NOTICE",

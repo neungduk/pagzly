@@ -1,0 +1,4 @@
+BEFORE (160): image_text body … 2~3문장
+AFTER  (161): image_text body … 2문장 상한
+ingredient_highlight / texture_feel / sourcing_story / material_feature: 2문장으로 정렬
+근거: draph.art 숏폼·미니멀 트렌드 + 기존 Pagzly 짧은 카피 규율 강화

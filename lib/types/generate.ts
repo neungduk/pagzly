@@ -256,8 +256,13 @@ export type ComparisonChartSection = {
   ourLabel: string;
   /** 서버가 화이트리스트로 강제 — "일반 제품" | "업계 평균" | "타 제품" 중 하나만 최종 허용. */
   baselineLabel: string;
-  /** 값 단위 표시. 기본 "%". */
+  /** 값 단위 표시. 기본 "%". checklist 스타일에서는 무시. */
   unit?: string;
+  /**
+   * 161차 — "bar"(기본, 수치 막대) | "checklist"(유무 ✓/✗ 그리드).
+   * checklist는 ourValue/baselineValue를 0=없음, 1 이상(권장 100)=있음으로 해석한다.
+   */
+  presentationStyle?: "bar" | "checklist";
   /** 2~4개 권장. */
   metrics: { label: string; ourValue: number; baselineValue: number }[];
   /** 이 차트 전체 수치의 출처. */
@@ -267,6 +272,20 @@ export type ComparisonChartSection = {
   basisNote?: string;
   /** 137차 — basis:"measured"이고 리뷰 근거가 있을 때만. 축별 실제 매칭 리뷰 원문(최대 2개), 지어내지 않음 */
   evidenceQuotes?: { label: string; quotes: string[] }[];
+};
+
+/**
+ * 161차 — 생활/리빙 "장단점 대조" 대신 완곡한 추천/참고 2열 카드.
+ * 판매자 입력에 추천 대상·유의사항이 있을 때만 채움(없으면 슬롯 생략).
+ */
+export type TradeoffCardSection = {
+  type: "tradeoff_card";
+  slot: string;
+  heading: string;
+  /** "이런 분께 추천" 열 — 1~4개, 각 1문장. */
+  recommendFor: string[];
+  /** "이런 점은 참고하세요" 열 — 1~4개, 깎아내리기 금지·사실 기반. */
+  considerIf: string[];
 };
 
 /**
@@ -517,6 +536,7 @@ export type DetailSection =
   | CtaPriceSection
   | ComparisonTableSection
   | ComparisonChartSection
+  | TradeoffCardSection
   | HighlightBoxSection
   | StepCardSection
   | ColorVariationSection

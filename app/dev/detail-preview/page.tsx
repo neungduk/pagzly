@@ -1367,6 +1367,71 @@ function resolveCapturePreset(): CapturePreset | null {
       imageUrls: QA_FIXTURE_COSMETICS,
     };
   }
+  if (capture === "161-checklist-tradeoff") {
+    return {
+      sections: [
+        {
+          type: "hero",
+          slot: "hero",
+          headline: "단단히, 오래",
+          subheadline: "PLAIN 매트리스",
+          imageIndex: 0,
+        },
+        {
+          type: "comparison_chart",
+          slot: "comparison_chart",
+          heading: "구성 비교",
+          ourLabel: "이 제품",
+          baselineLabel: "일반 제품",
+          presentationStyle: "checklist",
+          basis: "measured",
+          basisNote: "판매자 스펙 기준",
+          metrics: [
+            { label: "독립 스프링", ourValue: 100, baselineValue: 0 },
+            { label: "탈착 커버", ourValue: 100, baselineValue: 100 },
+            { label: "항균 처리", ourValue: 100, baselineValue: 0 },
+          ],
+        },
+        {
+          type: "comparison_chart",
+          slot: "comparison_chart",
+          heading: "하중·밀도",
+          ourLabel: "이 제품",
+          baselineLabel: "업계 평균",
+          presentationStyle: "bar",
+          unit: "%",
+          basis: "self_assessed",
+          metrics: [
+            { label: "지지감", ourValue: 78, baselineValue: 55 },
+            { label: "통기성", ourValue: 70, baselineValue: 48 },
+          ],
+        },
+        {
+          type: "tradeoff_card",
+          slot: "tradeoff_card",
+          heading: "이런 공간에 맞아요",
+          recommendFor: [
+            "원룸·투룸에 퀸 사이즈를 넣는 분",
+            "단단한 지지감을 선호하는 분",
+          ],
+          considerIf: [
+            "두께 22cm — 침대 프레임 높이를 먼저 확인해 주세요",
+            "체온감이 부담이면 통기 커버를 함께 검토하세요",
+          ],
+        },
+        {
+          type: "cta_price",
+          slot: "cta_price",
+          price: 390000,
+          badges: ["KC 인증"],
+        },
+      ] as DetailSection[],
+      category: "생활용품",
+      brandName: "PLAIN HOME",
+      productName: "PLAIN 매트리스 Q",
+      imageUrls: QA_FIXTURE_LIVING,
+    };
+  }
   if (capture === "69-spec-multi") {
     return { sections: capture69SpecMultiSections, ...capture69SpecMultiMeta };
   }

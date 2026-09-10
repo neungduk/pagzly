@@ -238,6 +238,12 @@ const FASHION: SlotDefinition[] = [
     note: "입력 데이터에 실제 수치 근거가 있을 때만 채움. 근거 없으면 생략. metrics 3~5개, style:\"bar\"+percent 또는 style:\"number\"",
   },
   {
+    slot: "comparison_chart",
+    type: "comparison_chart",
+    required: false,
+    note: "161차 — 패션: keyFeatures·certifications에 원단 혼용률·신축성 %·세탁 후 수축률·내구성 등 비교 가능한 수치가 있을 때만 채움. baselineLabel은 \"일반 제품\"|\"업계 평균\"|\"타 제품\"만(브랜드명 금지). 수치 크기 비교는 presentationStyle:\"bar\", 유무/포함(예: 기능성 원단·방수 코팅)은 \"checklist\". 근거·추정 둘 다 불가하면 슬롯 생략.",
+  },
+  {
     slot: "size_table",
     type: "spec_table",
     required: true,
@@ -682,6 +688,12 @@ const PET: SlotDefinition[] = [
     note: "입력에 실제 수치 근거가 있을 때만. 영양 % 날조 금지",
   },
   {
+    slot: "comparison_chart",
+    type: "comparison_chart",
+    required: false,
+    note: "161차 — 반려동물: keyFeatures·ingredients·certifications에 조단백질 %·동물성 성분 비율·신선육 포함 여부 등 실제 스펙이 있을 때만 채움. baselineLabel은 \"일반 제품\"|\"업계 평균\"|\"타 제품\"만 — 특정 경쟁 브랜드명 절대 금지. 함량·비율 수치 비교는 presentationStyle:\"bar\", 포함/미포함(신선육·분말 첨가 여부 등)은 \"checklist\". 근거 없으면 슬롯 생략. 영양 %·함량을 지어내지 말 것.",
+  },
+  {
     slot: "spec_table",
     type: "spec_table",
     required: true,
@@ -809,6 +821,18 @@ const HOME_FALLBACK: SlotDefinition[] = [
     note: "입력 데이터에 실제 수치 근거가 있을 때만 채움. 근거 없으면 생략. metrics 3~5개",
   },
   {
+    slot: "comparison_chart",
+    type: "comparison_chart",
+    required: false,
+    note: "161차 — 생활/리빙: keyFeatures·certifications에 소재별 내구성·하중(kg)·수명·밀도 등 비교 가능 스펙이 있을 때만 채움. baselineLabel은 \"일반 제품\"|\"업계 평균\"|\"타 제품\"만(브랜드명 금지). 수치 비교는 presentationStyle:\"bar\", 유무/포함(예: 항균 처리·탈착 커버)은 \"checklist\". 근거·추정 둘 다 불가하면 슬롯 생략.",
+  },
+  {
+    slot: "tradeoff_card",
+    type: "tradeoff_card",
+    required: false,
+    note: "161차 — 입력(keyFeatures·targetCustomer·wholesaleUrl)에 '이런 분께 추천'/'이런 경우엔 참고' 같은 사용 조건이 있을 때만 채움. recommendFor 1~4개(추천 대상), considerIf 1~4개(확인 후 구매 권장·사실 기반, 깎아내리기 금지). 없으면 슬롯 생략 — 없는 단점을 지어내지 말 것.",
+  },
+  {
     slot: "spec_table",
     type: "spec_table",
     required: true,
@@ -898,44 +922,40 @@ export function buildSectionLengthGuide(category: string): string {
   const common = `- hero headline: 한 줄, 공백 포함 22자 이내, 핵심 강점 1개만.
 - hero subheadline: 헤드라인을 보충하는 1문장. 상품명만 반복하지 말 것.
 - checklist items: 각 14자 내외.
-- image_text body (ingredient_highlight, texture_feel, detail_zoom, texture_closeup, feature_detail 등): 2~3문장, 짧은 문장 + 설명 문장을 교차. 가능하면 **고객 인용 → #해시태그 헤드라인 → 입력 근거 수치** 3단 흐름(근거 없으면 해당 단계 생략).
+- image_text body (ingredient_highlight, texture_feel, detail_zoom, texture_closeup, feature_detail 등): 2문장 상한(짧은 문장 + 설명 문장). 가능하면 **고객 인용 → #해시태그 헤드라인 → 입력 근거 수치** 3단 흐름(근거 없으면 해당 단계 생략).
 - feature_callout: layout 반드시 "callout". callout 12~18자(말풍선), heading 8자 내외, body 1~2문장.
 - step_card: 각 단계 title 6자 내외 + body 1문장. STEP 태그는 서버가 자동으로 붙이므로 title에 STEP 01 등을 쓰지 말 것.
 - highlight_box: 카드 3장, title 6자 내외 + body 1~2문장. checklist와 다른 축으로 구성하고, 가장 강조하고 싶은 내용을 2번째 카드에.
-- quick_points: layout 반드시 "compact". heading 8자 내외, body 1문장. compact layout은 사진이 작아지므로 텍스트도 짧게.`;
+- quick_points: layout 반드시 "compact". heading 8자 내외, body 1문장. compact layout은 사진이 작아지므로 텍스트도 짧게.
+- comparison_chart: 유무/포함 여부 축은 presentationStyle:"checklist"(있음=100, 없음=0), 수치 크기 비교는 "bar". baselineLabel 화이트리스트만.`;
 
   if (category === "화장품/뷰티") {
-    return `\n\n## 화장품 카피 길이·컨셉 정합\n${common}\n- ingredient_highlight body: 2~3문장.\n- texture_feel body: 2문장.\n- spec_table 값에 없는 % 수치를 만들지 말 것 (임상 막대용 가짜 데이터 금지).\n- 시각 컨셉과 모순 금지: 쿨링/진정이면 따뜻·온기·골드 카피 금지. 수분이면 오일리·번들 표현 금지. 클렌징이면 보습 도포를 주효능처럼 쓰지 말 것.\n- package_contents body: 입력에 기획/더블기획/1+1/증정/사은품/리필 같은 세트 구성 언급이 있을 때만 실제 포함 품목을 1~2문장으로. 그런 언급이 없으면 슬롯 자체를 생략(단품인데 사은품을 지어내지 말 것).`;
+    return `\n\n## 화장품 카피 길이·컨셉 정합\n${common}\n- ingredient_highlight body: 2문장.\n- texture_feel body: 2문장.\n- spec_table 값에 없는 % 수치를 만들지 말 것 (임상 막대용 가짜 데이터 금지).\n- 시각 컨셉과 모순 금지: 쿨링/진정이면 따뜻·온기·골드 카피 금지. 수분이면 오일리·번들 표현 금지. 클렌징이면 보습 도포를 주효능처럼 쓰지 말 것.\n- package_contents body: 입력에 기획/더블기획/1+1/증정/사은품/리필 같은 세트 구성 언급이 있을 때만 실제 포함 품목을 1~2문장으로. 그런 언급이 없으면 슬롯 자체를 생략(단품인데 사은품을 지어내지 말 것).`;
   }
 
   if (category === "의류/패션") {
-    return `\n\n## 패션/의류 카피 길이·컨셉 정합\n${common}\n- color_variation 옵션 label: 색상명 + 짧은 수식 (예: "차콜 그레이"), 4~8자.\n- coordination body: 코디 장면 묘사 1~2문장 (예: "데님과 매치하면 캐주얼하게, 슬랙스와 매치하면 포멀하게").\n- fabric_composition(spec_table): 소재/혼용율은 입력에 있는 값만 쓰고, 없으면 "판매자 확인 필요".\n- size_table: 호칭(S/M/L)만으로 cm을 지어내지 말 것. 실측이 입력에 없으면 "판매자 확인 필요".\n- fit_guide body: 핏 설명 2문장 이내 (예: "루즈핏이라 한 치수 크게 나옵니다. 편안한 착용감을 원하시면 정사이즈를 추천해요.").\n- package_contents body: 입력에 1+1/2+1/기획/증정/세트 같은 구성 언급이 있을 때만 실제 포함 품목을 1~2문장으로. 그런 언급이 없으면 슬롯 자체를 생략(단품인데 사은품을 지어내지 말 것).`;
+    return `\n\n## 패션/의류 카피 길이·컨셉 정합\n${common}\n- color_variation 옵션 label: 색상명 + 짧은 수식 (예: "차콜 그레이"), 4~8자.\n- coordination body: 코디 장면 묘사 1~2문장.\n- fabric_composition(spec_table): 소재/혼용율은 입력에 있는 값만 쓰고, 없으면 "판매자 확인 필요".\n- size_table: 호칭(S/M/L)만으로 cm을 지어내지 말 것. 실측이 입력에 없으면 "판매자 확인 필요".\n- fit_guide body: 핏 설명 2문장 이내.\n- comparison_chart: 신축성·수축률·혼용률 등 입력 수치가 있을 때만. 없으면 생략.\n- package_contents body: 입력에 1+1/2+1/기획/증정/세트 같은 구성 언급이 있을 때만 실제 포함 품목을 1~2문장으로. 그런 언급이 없으면 슬롯 자체를 생략.`;
   }
 
   if (category === "식품/건강기능식품") {
-    return `\n\n## 식품 카피 길이·컨셉 정합\n${common}\n- cooking_steps: 각 단계 title 6자 내외 + body 1문장.\n- sourcing_story body: 원산지/생산 배경 2~3문장, 과장 없이 사실 위주. **입력·고시에 없는 원산지 지어내기 금지.**\n- serving_suggestion body: 섭취/제공 장면 1~2문장.\n- storage_tip body: 보관 방법 1문장. **입력에 없으면 "판매자 확인 필요".**\n- nutrition_table / spec_table: 알레르기·원산지·보관은 입력·고시 근거만.\n- package_contents body: 입력에 기획/더블기획/1+1/증정/사은품/세트 같은 구성 언급이 있을 때만 실제 포함 품목을 1~2문장으로. 그런 언급이 없으면 슬롯 자체를 생략(단품인데 사은품을 지어내지 말 것).`;
+    return `\n\n## 식품 카피 길이·컨셉 정합\n${common}\n- cooking_steps: 각 단계 title 6자 내외 + body 1문장.\n- sourcing_story body: 원산지/생산 배경 2문장, 과장 없이 사실 위주. **입력·고시에 없는 원산지 지어내기 금지.**\n- serving_suggestion body: 섭취/제공 장면 1~2문장.\n- storage_tip body: 보관 방법 1문장. **입력에 없으면 "판매자 확인 필요".**\n- nutrition_table / spec_table: 알레르기·원산지·보관은 입력·고시 근거만.\n- package_contents body: 입력에 기획/더블기획/1+1/증정/사은품/세트 같은 구성 언급이 있을 때만 실제 포함 품목을 1~2문장으로. 그런 언급이 없으면 슬롯 자체를 생략.`;
   }
 
   if (category === "전자제품") {
-    return `\n\n## 전자/가전 카피 길이·컨셉 정합\n${common}\n- hero headline: 가능하면 "불편함(pain point) → 해결" 대비 구조로 쓸 것(예: "매일 반복되는 물걸레 청소, 이제 그만" 처럼 문제→해결 한 문장). 입력에 있는 기능/특징에서 자연스럽게 도출되는 불편함만 쓰고, 근거 없는 불편함을 지어내지 말 것 — 딱히 대응되는 불편함이 없으면 기존처럼 핵심 강점 1개만 써도 됨.\n- feature_detail body: 기능 1개당 2문장 이내. 헤드라인 숫자 훅은 입력에 있는 수치만.\n- package_contents body: 구성품 1~2문장, 없는 구성품 지어내지 말 것.\n- connectivity / install_scenario body: 호환·설치 정보는 입력 스펙만, 각 2문장 이내.\n- comparison_table: 없는 스펙·벤치마크 날조 금지.`;
+    return `\n\n## 전자/가전 카피 길이·컨셉 정합\n${common}\n- hero headline: 가능하면 불편함→해결 대비 구조. 근거 없는 불편함 지어내기 금지.\n- feature_detail body: 기능 1개당 2문장 이내.\n- package_contents body: 구성품 1~2문장, 없는 구성품 지어내지 말 것.\n- connectivity / install_scenario body: 호환·설치 정보는 입력 근거만, 각 2문장 이내.\n- comparison_table: 없는 스펙·벤치마크 날조 금지.`;
   }
 
   if (category === "생활용품") {
-    return `\n\n## 생활용품 카피 길이·컨셉 정합\n${common}\n- material_feature / material_detail body: 각 2문장 이내, 내구성 수치는 입력에 있을 때만.\n- usage_scenario / usage_scenario_extra body: 사용 장면 1~2문장, 한 섹션에 주장 하나.\n- care_tip body: 관리·세척 1문장.\n- package_contents body: 입력에 기획/1+1/증정/사은품/세트구성 같은 구성 언급이 있을 때만 실제 포함 품목을 1~2문장으로. 그런 언급이 없으면 슬롯 자체를 생략(단품인데 사은품을 지어내지 말 것).`;
+    return `\n\n## 생활용품 카피 길이·컨셉 정합\n${common}\n- material_feature / material_detail body: 각 2문장 이내, 내구성 수치는 입력에 있을 때만.\n- usage_scenario / usage_scenario_extra body: 사용 장면 1~2문장.\n- care_tip body: 관리·세척 1문장.\n- comparison_chart: 하중·수명·밀도 등 입력 근거가 있을 때만. 없으면 생략.\n- tradeoff_card: 입력에 추천 대상·유의사항이 있을 때만 recommendFor/considerIf 각 1~4문장. 없으면 생략. considerIf는 사실 기반·완곡 표현만(깎아내리기 금지).\n- package_contents body: 입력에 기획/1+1/증정/사은품/세트구성 같은 구성 언급이 있을 때만 실제 포함 품목을 1~2문장으로. 그런 언급이 없으면 슬롯 자체를 생략.`;
   }
 
   if (category === "반려동물") {
-    return `\n\n## 반려동물 카피 길이·컨셉 정합\n${common}\n- 보호자 관점(안전·성분·사용법) 중심. 질병 치료·예방·수명 연장 단정 금지.\n- material_feature body: 입력된 성분·원산지만 2~3문장.\n- usage_scenario / usage_scenario_extra body: 급여·사용 장면 1~2문장. 체중별 급여량은 입력 수치가 있을 때만.\n- care_tip body: 보관·취급 1문장.\n- spec_table: 없는 영양·함량 %를 만들지 말 것.\n- package_contents body: 입력에 기획/1+1/증정/사은품/세트 같은 구성 언급이 있을 때만 실제 포함 품목(간식·장난감 증정 등)을 1~2문장으로. 그런 언급이 없으면 슬롯 자체를 생략(단품인데 사은품을 지어내지 말 것).`;
+    return `\n\n## 반려동물 카피 길이·컨셉 정합\n${common}\n- 보호자 관점(안전·성분·사용법) 중심. 질병 치료·예방·수명 연장 단정 금지.\n- material_feature body: 입력된 성분·원산지만 2문장.\n- usage_scenario / usage_scenario_extra body: 급여·사용 장면 1~2문장.\n- care_tip body: 보관·취급 1문장.\n- spec_table: 없는 영양·함량 %를 만들지 말 것.\n- comparison_chart: 조단백질·동물성 비율 등 입력 근거가 있을 때만. 경쟁 브랜드명 금지. 없으면 생략.\n- package_contents body: 입력에 기획/1+1/증정/사은품/세트 같은 구성 언급이 있을 때만 실제 포함 품목을 1~2문장으로. 그런 언급이 없으면 슬롯 자체를 생략.`;
   }
 
   return `\n\n## 카피 길이·리듬 정합\n${common}`;
 }
 
-/**
- * 짧은 구성: required 슬롯 중 shortTier가 "extra"로 표시되지 않은 것만.
- * (shortTier 미지정 = core — 기존 동작과 동일)
- * repeatable은 minCount개 템플릿 행으로 펼침.
- */
 function applyShortTemplate(template: SlotDefinition[]): SlotDefinition[] {
   const result: SlotDefinition[] = [];
   for (const def of template) {

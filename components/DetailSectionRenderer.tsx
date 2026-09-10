@@ -17,6 +17,7 @@ import type {
   ImageTextSection,
 } from "@/lib/types/generate";
 import type { ConceptIconMap } from "@/lib/concept-icons";
+import { comparisonChecklistPresent } from "@/lib/comparison-chart-guard";
 import { resolveCompactImageShape } from "@/lib/compact-image-shape";
 import { buildSectionImageAlt } from "@/lib/detail-image-alt";
 import { extractTrustChips } from "@/lib/extract-trust-chips";
@@ -578,6 +579,49 @@ function ComparisonMetricRow({
   );
 }
 
+/** 161차 — ORIJEN형 유무 비교. 체크=accent, 엑스=baseNeutral 톤 (빨강/초록 금지). */
+function ComparisonChecklistRow({
+  label,
+  ourLabel,
+  baselineLabel,
+  ourValue,
+  baselineValue,
+  theme,
+}: {
+  label: string;
+  ourLabel: string;
+  baselineLabel: string;
+  ourValue: number;
+  baselineValue: number;
+  theme: CategoryTheme;
+}) {
+  const ourYes = comparisonChecklistPresent(ourValue);
+  const baseYes = comparisonChecklistPresent(baselineValue);
+  return (
+    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-4 gap-y-1 border-b border-ink/8 py-3 last:border-b-0">
+      <p className="text-sm font-medium text-ink/75">{label}</p>
+      <span className="flex flex-col items-center gap-1">
+        <span className="text-[10px] font-semibold tracking-wide" style={{ color: theme.deepAccent }}>
+          {ourLabel}
+        </span>
+        {ourYes ? (
+          <Check className="h-5 w-5" style={{ color: theme.accent }} strokeWidth={2.5} aria-label="있음" />
+        ) : (
+          <X className="h-5 w-5" style={{ color: theme.baseNeutral }} strokeWidth={2.5} aria-label="없음" />
+        )}
+      </span>
+      <span className="flex flex-col items-center gap-1">
+        <span className="text-[10px] text-ink/40">{baselineLabel}</span>
+        {baseYes ? (
+          <Check className="h-5 w-5 text-ink/35" strokeWidth={2.5} aria-label="있음" />
+        ) : (
+          <X className="h-5 w-5" style={{ color: theme.baseNeutral }} strokeWidth={2.5} aria-label="없음" />
+        )}
+      </span>
+    </div>
+  );
+}
+
 /** 공통 fill 애니메이션 — MetricBar / comparison 공용. PNG 캡처 전 freeze가 최종 width로 고정. */
 function MetricBarFill({ percent, color }: { percent: number; color: string }) {
   const fillRef = useRef<HTMLDivElement>(null);
@@ -1100,18 +1144,30 @@ function renderComparisonChartBody(params: {
         {section.heading}
       </h3>
       <div className="mx-auto mt-10 max-w-md space-y-8">
-        {section.metrics.map((metric, metricIndex) => (
-          <ComparisonMetricRow
-            key={`${metric.label}-${metricIndex}`}
-            label={metric.label}
-            ourLabel={section.ourLabel}
-            baselineLabel={section.baselineLabel}
-            ourValue={metric.ourValue}
-            baselineValue={metric.baselineValue}
-            unit={section.unit ?? "%"}
-            theme={theme}
-          />
-        ))}
+        {section.presentationStyle === "checklist"
+          ? section.metrics.map((metric, metricIndex) => (
+              <ComparisonChecklistRow
+                key={`${metric.label}-${metricIndex}`}
+                label={metric.label}
+                ourLabel={section.ourLabel}
+                baselineLabel={section.baselineLabel}
+                ourValue={metric.ourValue}
+                baselineValue={metric.baselineValue}
+                theme={theme}
+              />
+            ))
+          : section.metrics.map((metric, metricIndex) => (
+              <ComparisonMetricRow
+                key={`${metric.label}-${metricIndex}`}
+                label={metric.label}
+                ourLabel={section.ourLabel}
+                baselineLabel={section.baselineLabel}
+                ourValue={metric.ourValue}
+                baselineValue={metric.baselineValue}
+                unit={section.unit ?? "%"}
+                theme={theme}
+              />
+            ))}
       </div>
       {(section.basisNote || section.basis === "self_assessed") && (
         <p
@@ -2132,6 +2188,74 @@ function renderSection(
           {renderComparisonChartBody({ section, theme })}
         </section>
       );
+
+    case "tradeoff_card": {
+      const recommendFor = (Array.isArray(section.recommendFor) ? section.recommendFor : [])
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .slice(0, 4);
+      const considerIf = (Array.isArray(section.considerIf) ? section.considerIf : [])
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .slice(0, 4);
+      if (recommendFor.length === 0 && considerIf.length === 0) return null;
+      return (
+        <section
+          key={`tradeoff_card-${index}`}
+          className={getCategoryRhythm(category).generousPadClass}
+          style={textSectionStyle(theme, pattern, category)}
+          data-testid="tradeoff-card"
+        >
+          <p
+            className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`}
+            style={{ color: theme.deepAccent }}
+          >
+            FIT CHECK
+          </p>
+          <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}>
+            {section.heading}
+          </h3>
+          <div className="mx-auto mt-10 grid max-w-3xl gap-6 sm:grid-cols-2">
+            <div
+              className="rounded-2xl p-5 sm:p-6"
+              style={{ backgroundColor: hexToRgba(theme.accent, 0.1) }}
+            >
+              <p className="mb-4 text-xs font-semibold tracking-wide" style={{ color: theme.deepAccent }}>
+                이런 분께 추천
+              </p>
+              <ul className="space-y-3">
+                {recommendFor.map((item, i) => (
+                  <li key={i} className="flex gap-2 text-sm leading-relaxed text-ink/80">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: theme.accent }} aria-hidden />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div
+              className="rounded-2xl p-5 sm:p-6"
+              style={{ backgroundColor: hexToRgba(theme.baseNeutral, 0.35) }}
+            >
+              <p className="mb-4 text-xs font-semibold tracking-wide text-ink/55">
+                이런 점은 참고하세요
+              </p>
+              <ul className="space-y-3">
+                {considerIf.map((item, i) => (
+                  <li key={i} className="flex gap-2 text-sm leading-relaxed text-ink/70">
+                    <span
+                      className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: theme.baseNeutral }}
+                      aria-hidden
+                    />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+      );
+    }
 
     case "highlight_box": {
       const cards = (Array.isArray(section.cards) ? section.cards : [])

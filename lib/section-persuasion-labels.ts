@@ -12,6 +12,7 @@ export const SECTION_FRAMEWORK_LABEL: Partial<Record<DetailSection["type"], stri
   spec_table: "신뢰 정보",
   comparison_table: "스펙 비교",
   comparison_chart: "근거 비교",
+  tradeoff_card: "구매 판단",
   stat_infographic: "수치 근거",
   review_highlight: "사회적 증거",
   faq: "질문 대응",

@@ -33,6 +33,7 @@ import {
   buildWaterproofIpDiagramSvg,
   matchWaterproofIpRow,
 } from "@/lib/waterproof-ip-diagram";
+import { comparisonChecklistPresent } from "@/lib/comparison-chart-guard";
 import {
   buildVolumeComparisonDiagramSvg,
   buildVolumeComparisonEntries,
@@ -309,12 +310,25 @@ function sectionHtml(
           ${metricsHtml}
         </div>${footnotesHtml}</section>`;
     }
-    case "comparison_chart":
-      return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        <p style="text-align:center;color:${deep};font-size:11px;letter-spacing:.2em">COMPARE</p>
-        ${dh2(category, esc(section.heading), "text-align:center;font-size:1.5rem")}
-        <div style="max-width:420px;margin:32px auto 0;display:flex;flex-direction:column;gap:24px">
-          ${section.metrics
+    case "comparison_chart": {
+      const isChecklist = section.presentationStyle === "checklist";
+      const metricsHtml = isChecklist
+        ? section.metrics
+            .map((m) => {
+              const ourYes = comparisonChecklistPresent(m.ourValue);
+              const baseYes = comparisonChecklistPresent(m.baselineValue);
+              const mark = (yes: boolean, strong: boolean) =>
+                yes
+                  ? `<span style="color:${strong ? accent : "rgba(27,27,24,0.35)"};font-size:18px;font-weight:700" aria-label="있음">✓</span>`
+                  : `<span style="color:${theme.baseNeutral};font-size:18px;font-weight:700" aria-label="없음">✗</span>`;
+              return `<div style="display:grid;grid-template-columns:1fr auto auto;gap:16px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(27,27,24,0.08)">
+                <p style="margin:0;font-size:14px">${esc(m.label)}</p>
+                <div style="text-align:center"><p style="margin:0 0 4px;font-size:10px;font-weight:600;color:${deep}">${esc(section.ourLabel)}</p>${mark(ourYes, true)}</div>
+                <div style="text-align:center"><p style="margin:0 0 4px;font-size:10px;opacity:.4">${esc(section.baselineLabel)}</p>${mark(baseYes, false)}</div>
+              </div>`;
+            })
+            .join("")
+        : section.metrics
             .map((m) => {
               const max = Math.max(m.ourValue, m.baselineValue, 1);
               const ourP = (m.ourValue / max) * 100;
@@ -329,7 +343,12 @@ function sectionHtml(
                   <span style="width:48px;text-align:right;font-size:11px;opacity:.45">${m.baselineValue}${esc(unit)}</span></div>
               </div>`;
             })
-            .join("")}
+            .join("");
+      return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
+        <p style="text-align:center;color:${deep};font-size:11px;letter-spacing:.2em">COMPARE</p>
+        ${dh2(category, esc(section.heading), "text-align:center;font-size:1.5rem")}
+        <div style="max-width:420px;margin:32px auto 0;display:flex;flex-direction:column;gap:${isChecklist ? 0 : 24}px">
+          ${metricsHtml}
         </div>
         ${section.basisNote ? `<p style="text-align:center;font-size:11px;opacity:.4;margin-top:20px">${esc(section.basisNote)}</p>` : ""}
         ${
@@ -356,6 +375,32 @@ function sectionHtml(
             : ""
         }
       </section>`;
+    }
+    case "tradeoff_card": {
+      const recommendFor = (Array.isArray(section.recommendFor) ? section.recommendFor : [])
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .slice(0, 4);
+      const considerIf = (Array.isArray(section.considerIf) ? section.considerIf : [])
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .slice(0, 4);
+      if (recommendFor.length === 0 && considerIf.length === 0) return "";
+      return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
+        <p style="text-align:center;color:${deep};font-size:11px;letter-spacing:.2em">FIT CHECK</p>
+        ${dh2(category, esc(section.heading), "text-align:center;font-size:1.5rem")}
+        <div style="max-width:720px;margin:32px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <div style="border-radius:16px;padding:20px;background:${accent}1a">
+            <p style="margin:0 0 12px;font-size:11px;font-weight:600;letter-spacing:.08em;color:${deep}">이런 분께 추천</p>
+            ${recommendFor.map((item) => `<p style="margin:0 0 10px;font-size:14px;line-height:1.55">✓ ${esc(item)}</p>`).join("")}
+          </div>
+          <div style="border-radius:16px;padding:20px;background:${theme.baseNeutral}59">
+            <p style="margin:0 0 12px;font-size:11px;font-weight:600;letter-spacing:.08em;opacity:.55">이런 점은 참고하세요</p>
+            ${considerIf.map((item) => `<p style="margin:0 0 10px;font-size:14px;line-height:1.55;opacity:.8">· ${esc(item)}</p>`).join("")}
+          </div>
+        </div>
+      </section>`;
+    }
     case "image_text": {
       const src = imageUrls[section.imageIndex] ?? "";
       const alt = buildSectionImageAlt(productName, section.heading, section.slot);

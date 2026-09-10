@@ -13,6 +13,11 @@ function clampMetricValue(value: unknown): number {
   return Math.min(100, Math.max(0, n));
 }
 
+/** checklist: 0 = 없음(✗), 1 이상 = 있음(✓). 서버가 0 또는 100으로 정규화. */
+function clampChecklistFlag(value: unknown): number {
+  return clampMetricValue(value) > 0 ? 100 : 0;
+}
+
 /**
  * comparison_chart 섹션을 서버가 최종 검증·강제하는 함수.
  * - baselineLabel: 화이트리스트 밖이면 무조건 기본값으로 치환 (특정 브랜드명 노출 방지).
@@ -20,6 +25,7 @@ function clampMetricValue(value: unknown): number {
  * - basis가 self_assessed면 basisNote를 고정 디스클레이머로 강제 (AI가 뭘 보내든 덮어씀).
  * - ourValue/baselineValue: 0~100 사이로 클램프 (unit이 %가 아니어도 우선 이 범위로 통일 —
  *   19차 범위 밖 unit이 필요해지면 그때 확장).
+ * - 161차 presentationStyle:"checklist"면 값을 0/100 플래그로 정규화.
  */
 export function sanitizeComparisonChartSection(
   section: ComparisonChartSection,
@@ -36,15 +42,30 @@ export function sanitizeComparisonChartSection(
       ? SELF_ASSESSED_DISCLAIMER
       : section.basisNote?.trim() || "자체 테스트 결과";
 
+  const presentationStyle =
+    section.presentationStyle === "checklist" ? "checklist" : "bar";
+
   return {
     ...section,
     baselineLabel,
     basis,
     basisNote,
+    presentationStyle,
     metrics: section.metrics.slice(0, 4).map((metric) => ({
       ...metric,
-      ourValue: clampMetricValue(metric.ourValue),
-      baselineValue: clampMetricValue(metric.baselineValue),
+      ourValue:
+        presentationStyle === "checklist"
+          ? clampChecklistFlag(metric.ourValue)
+          : clampMetricValue(metric.ourValue),
+      baselineValue:
+        presentationStyle === "checklist"
+          ? clampChecklistFlag(metric.baselineValue)
+          : clampMetricValue(metric.baselineValue),
     })),
   };
+}
+
+/** checklist 렌더용 — ourValue/baselineValue > 0 이면 true */
+export function comparisonChecklistPresent(value: number): boolean {
+  return Number(value) > 0;
 }
