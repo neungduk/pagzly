@@ -3,6 +3,7 @@
 import PageStructureChat from "@/components/PageStructureChat";
 import { slotDisplayLabel } from "@/components/GeneratingOverlay";
 import { getSlotTemplate } from "@/lib/section-templates";
+import { getSectionFrameworkLabel } from "@/lib/section-persuasion-labels";
 import type { DetailSection } from "@/lib/types/generate";
 
 function slotNoteFor(category: string, slot: string): string {
@@ -79,6 +80,7 @@ export default function DetailStructureSidebar({
                 ? section.heading
                 : slotLabel;
           const active = selectedIndex === index;
+          const frameworkLabel = getSectionFrameworkLabel(section.type);
           return (
             <li
               key={`${section.type}-${section.slot}-${index}`}
@@ -104,7 +106,17 @@ export default function DetailStructureSidebar({
                   {index + 1}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-medium text-ink">{title}</p>
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <p className="min-w-0 truncate text-xs font-medium text-ink">{title}</p>
+                    {frameworkLabel ? (
+                      <span
+                        data-testid="section-framework-badge"
+                        className="shrink-0 rounded bg-slate-blue/10 px-1.5 py-0.5 text-[10px] font-medium leading-none text-slate-blue"
+                      >
+                        {frameworkLabel}
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="truncate text-[10px] text-ink/45">{slotLabel}</p>
                 </div>
               </button>

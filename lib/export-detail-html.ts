@@ -5,6 +5,7 @@ import { buildSeoTextBlockHtml } from "@/lib/detail-seo-text";
 import {
   formatSectionIndex,
   getSectionKicker,
+  resolveSplitFlexRatio,
   resolveSplitImageLeft,
   shouldUseEditorialBleed,
   shouldUseSplitLayout,
@@ -24,6 +25,10 @@ import {
   buildSizeComparisonDiagramSvg,
   matchSizeComparisonRows,
 } from "@/lib/size-comparison-diagram";
+import {
+  buildNoiseComparisonDiagramSvg,
+  matchNoiseComparisonRow,
+} from "@/lib/noise-comparison-diagram";
 import {
   buildVolumeComparisonDiagramSvg,
   buildVolumeComparisonEntries,
@@ -249,24 +254,54 @@ function sectionHtml(
             .join("")}
         </div>${flowHtml}</section>`;
     }
-    case "stat_infographic":
-      return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        ${dh2(category, esc(section.heading), "text-align:center;font-size:1.5rem")}
-        <div style="max-width:480px;margin:32px auto 0;display:flex;flex-direction:column;gap:20px">
-          ${section.metrics
-            .map((m) => {
-              const pct = Math.min(100, Math.max(0, m.percent ?? 0));
-              if (m.style === "number") {
-                return `<div style="text-align:center"><div style="font-size:2rem;font-weight:700;color:${deep}">${esc(m.value)}</div><div style="font-size:13px;opacity:.65">${esc(m.label)}</div></div>`;
-              }
-              const barColor = section.barAccent === "emphasis" ? deep : accent;
-              return `<div><div style="display:flex;justify-content:space-between;font-size:14px"><span>${esc(m.label)}</span><strong>${esc(m.value)}</strong></div>
+    case "stat_infographic": {
+      // 151차 — 각주(sourceNote)가 있는 measured metric에 순서대로 번호를 매겨
+      // 값 옆에 표시하고, 섹션 하단에 목록으로 모은다 (DetailSectionRenderer.tsx와 동일 원칙).
+      const footnotes: { number: number; text: string }[] = [];
+      // 158차 — 동일 출처(sourceNote 텍스트가 완전히 같음)는 각주 번호를 하나만 공유
+      // (DetailSectionRenderer.tsx와 동일 원칙 — 실사 디자이너 사례 대비 발견된 중복 격차).
+      const footnoteNumberByText = new Map<string, number>();
+      const footnoteMarkFor = (m: (typeof section.metrics)[number]) => {
+        const note = m.sourceNote?.trim();
+        if (m.basis !== "measured" || !note) return "";
+        let number = footnoteNumberByText.get(note);
+        if (number == null) {
+          number = footnotes.length + 1;
+          footnotes.push({ number, text: note });
+          footnoteNumberByText.set(note, number);
+        }
+        return `<sup style="margin-left:2px;font-size:0.6em;font-weight:600;color:${accent}">${number}</sup>`;
+      };
+      const metricsHtml = section.metrics
+        .map((m) => {
+          const pct = Math.min(100, Math.max(0, m.percent ?? 0));
+          if (m.style === "number") {
+            // 154차 — 라이브 렌더러와 동일하게 숫자를 "히어로 넘버"로 키움(2rem→3rem,
+            // 700→800, 라벨은 소문자 캡션에서 대문자 트래킹 라벨로).
+            return `<div style="text-align:center"><div style="font-size:3rem;font-weight:800;line-height:1;letter-spacing:-0.02em;color:${deep}">${esc(m.value)}${footnoteMarkFor(m)}</div><div style="margin-top:6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.55">${esc(m.label)}</div></div>`;
+          }
+          const barColor = section.barAccent === "emphasis" ? deep : accent;
+          return `<div><div style="display:flex;justify-content:space-between;align-items:baseline;font-size:14px"><span>${esc(m.label)}</span><strong style="font-size:1.5rem;font-weight:800;letter-spacing:-0.01em">${esc(m.value)}${footnoteMarkFor(m)}</strong></div>
                 <div style="height:${section.barAccent === "emphasis" ? 14 : 10}px;background:${barColor}29;border-radius:999px;margin-top:8px;overflow:hidden">
                   <div class="fill-bar" style="height:100%;width:${pct}%;background:${barColor};border-radius:999px"></div>
                 </div></div>`;
-            })
-            .join("")}
-        </div></section>`;
+        })
+        .join("");
+      const footnotesHtml =
+        footnotes.length > 0
+          ? `<div style="max-width:480px;margin:16px auto 0">${footnotes
+              .map(
+                (fn) =>
+                  `<p style="text-align:center;font-size:11px;line-height:1.6;opacity:.4;margin:0">${fn.number}. ${esc(fn.text)}</p>`,
+              )
+              .join("")}</div>`
+          : "";
+      return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
+        ${dh2(category, esc(section.heading), "text-align:center;font-size:1.5rem")}
+        <div style="max-width:480px;margin:32px auto 0;display:flex;flex-direction:column;gap:20px">
+          ${metricsHtml}
+        </div>${footnotesHtml}</section>`;
+    }
     case "comparison_chart":
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         <p style="text-align:center;color:${deep};font-size:11px;letter-spacing:.2em">COMPARE</p>
@@ -362,6 +397,7 @@ function sectionHtml(
       }
       if (shouldUseSplitLayout(section)) {
         const imageLeft = resolveSplitImageLeft(section, pointIndex);
+        const columnRatio = resolveSplitFlexRatio(pointIndex);
         const pointLabel =
           pointIndex != null ? `POINT ${String(pointIndex + 1).padStart(2, "0")}` : "";
         const kicker = getSectionKicker(section) ?? "FEATURE";
@@ -381,11 +417,11 @@ function sectionHtml(
           : "";
         return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
           <div style="display:flex;flex-wrap:wrap;gap:32px;max-width:960px;margin:0 auto;align-items:center">
-            <div style="flex:1 1 280px;order:${imageLeft ? 1 : 2};position:relative">
+            <div style="flex:${columnRatio.image} 1 280px;order:${imageLeft ? 1 : 2};position:relative">
               ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:16px;box-shadow:0 20px 56px ${hexToRgba(theme.deepAccent, 0.14)}"/>` : ""}
               ${pointLabel ? `<span style="position:absolute;left:16px;top:16px;background:${hexToRgba(deep, 0.9)};color:#FAF8F3;font-size:10px;font-weight:700;letter-spacing:.28em;padding:6px 12px;border-radius:999px">${pointLabel}</span>` : ""}
             </div>
-            <div style="flex:1 1 280px;order:${imageLeft ? 2 : 1}">
+            <div style="flex:${columnRatio.text} 1 280px;order:${imageLeft ? 2 : 1}">
               <p style="font-size:11px;letter-spacing:.36em;color:${deep};margin:0 0 12px">${kicker}</p>
               ${dh2(category, esc(section.heading), "font-size:1.75rem;margin:0")}
               <p style="line-height:1.75;font-size:15px;opacity:.85;margin-top:16px">${esc(section.body)}</p>
@@ -429,8 +465,21 @@ function sectionHtml(
       const foodHtml = foodSlices
         ? buildFoodRatioDiagramSvg(foodSlices, deep, "#1B1B18")
         : "";
+      // 158차 — 소음(dB) 스펙 행은 크기/용량과 별개 물성이라 다른 다이어그램과 함께 나와도 됨.
+      const noiseMatch =
+        section.slot === "spec_table" && !isFashionCategory(category)
+          ? matchNoiseComparisonRow(section.rows)
+          : null;
+      const noiseHtml = noiseMatch
+        ? buildNoiseComparisonDiagramSvg(
+            noiseMatch.db,
+            noiseMatch.value,
+            baseTheme.accentText,
+            baseTheme.accentText,
+          )
+        : "";
       const diagramHtml =
-        sizeMatches.length > 0
+        (sizeMatches.length > 0
           ? buildFashionSizeDiagramSvg(sizeMatches, deep, deep)
           : volumeHtml
             ? volumeHtml
@@ -442,7 +491,7 @@ function sectionHtml(
                     baseTheme.accentText,
                     baseTheme.accentText,
                   )
-                : "";
+                : "") + noiseHtml;
       const specThumbUrls = (
         section.imageIndexes?.length
           ? section.imageIndexes

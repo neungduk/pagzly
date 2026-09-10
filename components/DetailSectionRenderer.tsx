@@ -23,6 +23,7 @@ import { extractTrustChips } from "@/lib/extract-trust-chips";
 import {
   formatSectionIndex,
   getSectionKicker,
+  resolveSplitColumnRatio,
   resolveSplitImageLeft,
   shouldInsertBreather,
   shouldUseEditorialBleed,
@@ -38,6 +39,7 @@ import {
   matchSizeDiagramRows,
 } from "@/lib/fashion-size-diagram";
 import { matchSizeComparisonRows } from "@/lib/size-comparison-diagram";
+import { matchNoiseComparisonRow } from "@/lib/noise-comparison-diagram";
 import {
   buildVolumeComparisonEntries,
   matchProductVolumeMl,
@@ -62,6 +64,7 @@ import ColorVariationInteractive from "@/components/ColorVariationInteractive";
 import DetailScrollReveal from "@/components/DetailScrollReveal";
 import FashionSizeDiagram from "@/components/FashionSizeDiagram";
 import SizeComparisonDiagram from "@/components/SizeComparisonDiagram";
+import NoiseComparisonDiagram from "@/components/NoiseComparisonDiagram";
 import { headlineDisplayStyle } from "@/lib/detail-typography";
 import VolumeComparisonDiagram from "@/components/VolumeComparisonDiagram";
 import UsageOrderFlowDiagram from "@/components/UsageOrderFlowDiagram";
@@ -77,6 +80,7 @@ import {
   BRAND,
   SLOT_IMAGE_RATIO,
   HERO_TRANSITION_OVERLAP_CLASS,
+  CTA_TRANSITION_OVERLAP_CLASS,
   INFO_BADGE,
   INFO_TABLE,
   SECTION_BG_PATTERN_C_ALPHA,
@@ -211,19 +215,29 @@ function resolveImageRatioClass(section: { type: string; slot?: string }) {
   );
 }
 
-function ThemeIcon({ theme, inverted }: { theme: CategoryTheme; inverted?: boolean }) {
+function ThemeIcon({
+  theme,
+  inverted,
+  size = 22,
+}: {
+  theme: CategoryTheme;
+  inverted?: boolean;
+  size?: number;
+}) {
   const Icon = THEME_ICONS[theme.icon] ?? CheckCircle2;
   return (
     <Icon
       className="shrink-0"
-      size={22}
+      size={size}
       style={{ color: inverted ? BRAND.paper : theme.accent }}
       aria-hidden="true"
     />
   );
 }
 
-const CONCEPT_BADGE_SIZE_CLASS = { sm: "h-9 w-9", md: "h-12 w-12" } as const;
+// 147차 — 기존 sm/md(36px/48px)는 카드 안에서 존재감이 거의 없다는 실사용 피드백
+// (checklist 배지가 "점"처럼 보임) 반영. sm 44px/md 64px로 확대.
+const CONCEPT_BADGE_SIZE_CLASS = { sm: "h-11 w-11", md: "h-16 w-16" } as const;
 
 function ConceptBadgeIcon({
   src,
@@ -254,7 +268,7 @@ function ConceptBadgeIcon({
   if (fallbackIndex != null) {
     return (
       <span
-        className={`flex ${sizeClass} shrink-0 items-center justify-center rounded-full text-sm font-semibold text-paper`}
+        className={`flex ${sizeClass} shrink-0 items-center justify-center rounded-full ${size === "md" ? "text-lg" : "text-sm"} font-semibold text-paper`}
         style={{ backgroundColor: theme.accent }}
         aria-hidden="true"
       >
@@ -272,7 +286,7 @@ function ConceptBadgeIcon({
       }}
       aria-hidden="true"
     >
-      <ThemeIcon theme={theme} inverted={inverted} />
+      <ThemeIcon theme={theme} inverted={inverted} size={size === "md" ? 30 : 20} />
     </span>
   );
 }
@@ -1380,6 +1394,7 @@ function renderSection(
                 <ConceptBadgeIcon
                   src={conceptIcons?.checklist?.[itemIndex]}
                   theme={theme}
+                  fallbackIndex={itemIndex}
                   size={INFO_BADGE.defaultSize}
                   inverted={boldBlock}
                 />
@@ -1699,6 +1714,7 @@ function renderSection(
           : null;
       const imageLeft = resolveSplitImageLeft(section, pointIndex);
       const kicker = getSectionKicker(section);
+      const columnRatio = resolveSplitColumnRatio(pointIndex, imageLeft);
 
       return (
         <section
@@ -1707,7 +1723,7 @@ function renderSection(
           style={textSectionStyle(theme, pattern, category)}
         >
           <SectionBackdropAccent theme={theme} />
-          <div className="relative mx-auto grid max-w-5xl items-center gap-8 px-6 sm:grid-cols-2 sm:gap-10 sm:px-10">
+          <div className={`relative mx-auto grid max-w-5xl items-center gap-8 px-6 ${columnRatio} sm:gap-10 sm:px-10`}>
             <div className={imageLeft ? "order-1" : "order-1 sm:order-2"}>
               <div className="relative overflow-hidden rounded-2xl shadow-[0_20px_56px_-16px_rgba(27,27,24,0.22)]">
                 <SectionImage
@@ -1804,6 +1820,11 @@ function renderSection(
       // 화장품: 용량 다이어그램 우선. 용량 없고 cm만 있으면 기존 캔 비교.
       const showSizeComparison =
         sizeComparisonDims.length > 0 && !showVolumeDiagram;
+      // 158차 — 소음(dB) 스펙 행은 크기/용량과 별개 물성이라 함께 나와도 됨(카테고리 무관).
+      const noiseMatch =
+        section.slot === "spec_table" && !isFashionCategory(category)
+          ? matchNoiseComparisonRow(visibleRows)
+          : null;
       const specThumbUrls = (
         section.imageIndexes?.length
           ? section.imageIndexes
@@ -1884,9 +1905,17 @@ function renderSection(
               ) : null;
             })()
           ) : null}
+          {noiseMatch ? (
+            <NoiseComparisonDiagram
+              db={noiseMatch.db}
+              valueLabel={noiseMatch.value}
+              theme={theme}
+              category={category}
+            />
+          ) : null}
           <div
             className={`mx-auto max-w-xl overflow-hidden rounded-lg ${isShipping ? "border-2" : ""} ${
-              sizeDiagramMatches.length > 0 || showSizeComparison || showVolumeDiagram
+              sizeDiagramMatches.length > 0 || showSizeComparison || showVolumeDiagram || noiseMatch
                 ? "mt-6"
                 : "mt-10"
             }`}
@@ -1920,6 +1949,7 @@ function renderSection(
                         <ConceptBadgeIcon
                           src={conceptIcons?.specTable?.[rowIndex]}
                           theme={theme}
+                          fallbackIndex={rowIndex}
                           size={INFO_BADGE.compactSize}
                         />
                         <EditableText
@@ -2151,6 +2181,17 @@ function renderSection(
                   }}
                 >
                   {!isTrustEvidence ? (
+                    <div className="mx-auto">
+                      <ConceptBadgeIcon
+                        src={conceptIcons?.highlightBox?.[cardIndex]}
+                        theme={theme}
+                        fallbackIndex={cardIndex}
+                        size={INFO_BADGE.defaultSize}
+                        inverted={emphasized || boldBlock}
+                      />
+                    </div>
+                  ) : null}
+                  {!isTrustEvidence ? (
                     <span
                       className={`mx-auto ${TYPO.pointBadgePill}`}
                       style={{
@@ -2265,6 +2306,38 @@ function renderSection(
         ({ metric }) => metric.style !== "number" && metric.style !== "ring",
       );
       const hasSelfAssessed = section.metrics.some((m) => m.basis === "self_assessed");
+      // 151차 — 실제 쇼핑몰(다이슨 등) 조사에서 확인된 "수치 주장에 각주로 근거를
+      // 병기" 패턴. sourceNote가 있는 measured metric에만 순서대로 각주 번호를 매기고
+      // 섹션 하단에 목록으로 모은다. sourceNote 자체는 AI가 입력 근거 있을 때만 채움
+      // (route.ts 프롬프트 규율) — 렌더러는 표시만 담당.
+      const footnotes: { number: number; text: string }[] = [];
+      const footnoteNumberByMetricIndex = new Map<number, number>();
+      // 158차 — 동일 출처(sourceNote 텍스트가 완전히 같음, 예: 같은 임상시험의 지표
+      // 4개)는 실사 디자이너 사례(반려견 유산균 임상 결과 인포그래픽)처럼 각주 번호를
+      // 하나만 부여하고 공유한다. 이전엔 metric마다 무조건 새 번호를 매겨 동일 출처
+      // 설명이 하단에 중복 나열됐음.
+      const footnoteNumberByText = new Map<string, number>();
+      section.metrics.forEach((metric, metricIndex) => {
+        const note = metric.sourceNote?.trim();
+        if (metric.basis === "measured" && note) {
+          let number = footnoteNumberByText.get(note);
+          if (number == null) {
+            number = footnotes.length + 1;
+            footnotes.push({ number, text: note });
+            footnoteNumberByText.set(note, number);
+          }
+          footnoteNumberByMetricIndex.set(metricIndex, number);
+        }
+      });
+      const renderFootnoteMark = (metricIndex: number) => {
+        const number = footnoteNumberByMetricIndex.get(metricIndex);
+        if (!number) return null;
+        return (
+          <sup className="ml-0.5 text-[0.6em] font-semibold" style={{ color: theme.accent }}>
+            {number}
+          </sup>
+        );
+      };
       const numberGridCols =
         numberMetrics.length <= 1
           ? "max-w-xs grid-cols-1"
@@ -2299,13 +2372,18 @@ function renderSection(
                   key={`${metric.label}-${metricIndex}`}
                   theme={theme}
                   rotate={metricIndex % 2 === 0 ? -2 : 2}
-                  className="flex flex-col items-center gap-1.5 px-4 py-7 text-center"
+                  className="flex flex-col items-center gap-2 px-4 py-8 text-center"
                 >
                   <ConceptBadgeIcon
                     src={conceptIcons?.statInfographic?.[metricIndex]}
                     theme={theme}
+                    fallbackIndex={metricIndex}
                     size={INFO_BADGE.compactSize}
                   />
+                  {/* 154차 — 실사 디자이너 벤치마크(다이슨/애플류) 대비 수치 카드의 숫자가
+                      본문 제목(text-4xl)보다도 작아 "히어로 넘버"로서 시각적 임팩트가
+                      부족하다는 점을 발견. 라벨 대비 숫자의 스케일 대비를 크게 벌려
+                      숫자 자체가 그래픽 역할을 하도록(에디토리얼 스탯 카드 관례) 키움. */}
                   <div style={{ color: theme.deepAccent }}>
                     <EditableText
                       as="span"
@@ -2317,8 +2395,9 @@ function renderSection(
                         );
                         edit?.onChange(index, { ...section, metrics });
                       }}
-                      className="font-heading text-3xl font-bold tracking-tight sm:text-4xl"
+                      className="font-heading text-5xl font-black leading-none tracking-tighter tabular-nums sm:text-6xl"
                     />
+                    {renderFootnoteMark(metricIndex)}
                   </div>
                   <EditableText
                     as="span"
@@ -2330,7 +2409,7 @@ function renderSection(
                       );
                       edit?.onChange(index, { ...section, metrics });
                     }}
-                    className="text-xs font-medium text-ink/60 sm:text-sm"
+                    className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink/55 sm:text-xs"
                   />
                 </LayeredPanel>
               ))}
@@ -2345,18 +2424,22 @@ function renderSection(
                     key={`${metric.label}-${metricIndex}`}
                     className="flex flex-col items-center gap-2 text-center"
                   >
+                    {/* 154차 — 96px 고정 링 안에 text-xl 숫자는 "히어로 넘버"로 읽히기엔
+                        작았음. 링을 살짝 키우고(96→112) 숫자도 함께 키워 게이지 자체가
+                        숫자를 위한 무대가 되도록 조정. */}
                     <div className="relative flex items-center justify-center">
-                      <RadialGauge percent={percent} theme={theme} />
+                      <RadialGauge percent={percent} theme={theme} size={112} strokeWidth={10} />
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <span
-                          className="font-heading text-xl font-bold tracking-tight sm:text-2xl"
+                          className="font-heading text-2xl font-black leading-none tracking-tighter tabular-nums sm:text-3xl"
                           style={{ color: theme.deepAccent }}
                         >
                           {metric.value}
                         </span>
+                        {renderFootnoteMark(metricIndex)}
                       </div>
                     </div>
-                    <span className="text-xs font-medium text-ink/60 sm:text-sm">
+                    <span className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink/55 sm:text-xs">
                       {metric.label}
                     </span>
                   </div>
@@ -2375,6 +2458,7 @@ function renderSection(
                         <ConceptBadgeIcon
                           src={conceptIcons?.statInfographic?.[metricIndex]}
                           theme={theme}
+                          fallbackIndex={metricIndex}
                           size={INFO_BADGE.compactSize}
                         />
                         <EditableText
@@ -2400,8 +2484,9 @@ function renderSection(
                           );
                           edit?.onChange(index, { ...section, metrics });
                         }}
-                        className="font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl"
+                        className="font-heading text-3xl font-black leading-none tracking-tighter tabular-nums text-ink sm:text-4xl"
                       />
+                      {renderFootnoteMark(metricIndex)}
                     </div>
                     <MetricBar percent={percent} theme={theme} large emphasis={section.barAccent === "emphasis"} />
                   </div>
@@ -2413,6 +2498,15 @@ function renderSection(
             <p className="mx-auto mt-6 max-w-xl text-center text-xs text-ink/40">
               자체 평가 기준 (개인차가 있을 수 있어요)
             </p>
+          )}
+          {footnotes.length > 0 && (
+            <div className="mx-auto mt-4 max-w-xl space-y-0.5">
+              {footnotes.map((fn) => (
+                <p key={fn.number} className="text-center text-[11px] leading-relaxed text-ink/40">
+                  {fn.number}. {fn.text}
+                </p>
+              ))}
+            </div>
           )}
         </section>
       );
@@ -3199,8 +3293,11 @@ function renderSection(
       return (
         <section
           key={`cta_price-${index}`}
-          className={`pagzly-ink-cta pagzly-ink-shimmer sticky bottom-0 z-20 shadow-[0_-8px_24px_-8px_rgba(27,27,24,0.2)] ${getCategoryRhythm(category).ctaPadClass}`}
-          style={{ backgroundColor: getCtaBandBackground(theme) }}
+          className={`pagzly-ink-cta pagzly-ink-shimmer sticky bottom-0 z-20 shadow-[0_-8px_24px_-8px_rgba(27,27,24,0.2)] ${CTA_TRANSITION_OVERLAP_CLASS} ${getCategoryRhythm(category).ctaPadClass}`}
+          style={{
+            backgroundColor: getCtaBandBackground(theme),
+            clipPath: getCategoryRhythm(category).ctaTransitionClip,
+          }}
         >
           <div className={`${TEXT_COL_CLASS} relative z-10 space-y-5`}>
             <p className={TYPO.sectionLabel} style={{ color: theme.deepAccent }}>

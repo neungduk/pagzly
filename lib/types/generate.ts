@@ -324,6 +324,11 @@ export type StatInfographicSection = {
    * basis — 이 수치의 출처. "measured"(판매자 입력 실측) | "self_assessed"
    * (AI 자체 평가치, 실측 아님). style이 "bar"|"ring"일 때만 의미 있음.
    * 하나라도 self_assessed면 렌더러가 섹션 하단에 디스클레이머 캡션을 표시한다.
+   * sourceNote — 151차: 실제 유명 쇼핑몰(다이슨 등) 조사에서 확인된 "수치 주장에
+   * 각주로 근거를 병기" 패턴. basis:"measured"이고 입력에 시험기관/기간/n수 같은
+   * 구체적 출처가 있을 때만 채운다(예: "OO시험연구원, 2026.03, n=32"). 없으면 반드시
+   * 비워둔다 — 지어내기 금지. 채워진 metric마다 렌더러가 각주 번호를 붙이고, 섹션
+   * 하단에 각주 목록을 모아 보여준다.
    */
   metrics: {
     label: string;
@@ -331,6 +336,7 @@ export type StatInfographicSection = {
     percent?: number;
     style?: "bar" | "number" | "ring";
     basis?: "measured" | "self_assessed";
+    sourceNote?: string;
   }[];
   /**
    * style:"bar" 막대 강조 스타일. "emphasis"면 deepAccent 굵은 막대(PM 스타일).
