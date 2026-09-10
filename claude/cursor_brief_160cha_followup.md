@@ -4,9 +4,8 @@ Cursor 160차 실행 결과 요약. 상세는 `review/160cha-report.md`.
 
 ## A. Git
 
-- 푸시됨: `7ed6fb4`, `1d0f904`, `8e9c22d` → `origin/main`
-- HEAD(당시): `8e9c22de3f5488d1a946e6d02d235e2e9f7c05a0`
-- 160 구현(IP·성분각주·캡처)은 별도 커밋으로 추가 푸시
+- 푸시됨: `7ed6fb4` → `1d0f904` → `8e9c22d` → `4a06768` → `cf19c87`
+- **원격 HEAD:** `cf19c870f1fed370fdd1b963a480461537f2e790`
 
 ## B. Infographic
 
