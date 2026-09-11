@@ -41,6 +41,8 @@ import {
 } from "@/lib/fashion-size-diagram";
 import { matchSizeComparisonRows } from "@/lib/size-comparison-diagram";
 import { matchNoiseComparisonRow } from "@/lib/noise-comparison-diagram";
+import { matchWeightComparisonRow } from "@/lib/weight-comparison-diagram";
+import { matchPowerComparisonRow } from "@/lib/power-consumption-diagram";
 import { matchWaterproofIpRow } from "@/lib/waterproof-ip-diagram";
 import {
   buildVolumeComparisonEntries,
@@ -71,13 +73,15 @@ import FashionSizeDiagram from "@/components/FashionSizeDiagram";
 import SizeComparisonDiagram from "@/components/SizeComparisonDiagram";
 import NoiseComparisonDiagram from "@/components/NoiseComparisonDiagram";
 import WaterproofIpDiagram from "@/components/WaterproofIpDiagram";
+import WeightComparisonDiagram from "@/components/WeightComparisonDiagram";
+import PowerConsumptionDiagram from "@/components/PowerConsumptionDiagram";
 import { headlineDisplayStyle } from "@/lib/detail-typography";
 import VolumeComparisonDiagram from "@/components/VolumeComparisonDiagram";
 import UsageOrderFlowDiagram from "@/components/UsageOrderFlowDiagram";
 import FoodRatioDiagram from "@/components/FoodRatioDiagram";
 import PackageContentsDiagram from "@/components/PackageContentsDiagram";
 import AnnotatedImageOverlay from "@/components/AnnotatedImageOverlay";
-import QuickFactStrip from "@/components/QuickFactStrip";
+import SpecBentoGrid from "@/components/SpecBentoGrid";
 import SectionAnchorNav from "@/components/SectionAnchorNav";
 import SectionImage from "@/components/SectionImage";
 import { SellerImageMetaContext } from "@/components/SellerImageMetaContext";
@@ -1896,6 +1900,19 @@ function renderSection(
         section.slot === "spec_table" && !isFashionCategory(category)
           ? matchWaterproofIpRow(visibleRows)
           : null;
+      // 162차 — 무게(g/kg)도 같은 패턴으로 확장. 전자/식품/반려동물/생활용품 스펙에
+      // 가장 흔하지만 이 패턴이 없었음(신용카드·사과 등 체감 기준으로 비교).
+      const weightMatch =
+        section.slot === "spec_table" && !isFashionCategory(category)
+          ? matchWeightComparisonRow(visibleRows)
+          : null;
+      // 163차 — 소비전력(W)도 같은 패턴으로 확장. 전자/가전 스펙 표에 흔한 값인데도
+      // 비교 시각화가 없었음(크롤링 근거: 다나와 DPG 등에서 "일반 가전 대비 전력"
+      // 비교가 이미 널리 쓰이는 소비자 콘텐츠 포맷임을 확인).
+      const powerMatch =
+        section.slot === "spec_table" && !isFashionCategory(category)
+          ? matchPowerComparisonRow(visibleRows)
+          : null;
       const specThumbUrls = (
         section.imageIndexes?.length
           ? section.imageIndexes
@@ -1992,13 +2009,31 @@ function renderSection(
               category={category}
             />
           ) : null}
+          {weightMatch ? (
+            <WeightComparisonDiagram
+              g={weightMatch.g}
+              valueLabel={weightMatch.value}
+              theme={theme}
+              category={category}
+            />
+          ) : null}
+          {powerMatch ? (
+            <PowerConsumptionDiagram
+              w={powerMatch.w}
+              valueLabel={powerMatch.value}
+              theme={theme}
+              category={category}
+            />
+          ) : null}
           <div
             className={`mx-auto max-w-xl overflow-hidden rounded-lg ${isShipping ? "border-2" : ""} ${
               sizeDiagramMatches.length > 0 ||
               showSizeComparison ||
               showVolumeDiagram ||
               noiseMatch ||
-              waterproofMatch
+              waterproofMatch ||
+              weightMatch ||
+              powerMatch
                 ? "mt-6"
                 : "mt-10"
             }`}
@@ -3286,9 +3321,6 @@ function renderSection(
               </p>
               <p className={`mt-4 ${TYPO.keywordDisplay} text-paper`}>{categoryKeyword}</p>
             </div>
-            {quickFacts.length > 0 ? (
-              <QuickFactStrip facts={quickFacts} theme={theme} />
-            ) : null}
             <div
               className={getCategoryRhythm(category).trustPadClass}
               style={textSectionStyle(theme, pattern, category)}
@@ -3670,6 +3702,11 @@ export default function DetailSectionRenderer({
                   theme={getSectionTheme(extendedTheme, "checklist", 0)}
                   certTokens={certTokens}
                 />
+              ) : null}
+              {/* 165차 — "Bento 그리드 2.0" 스펙 하이라이트. 히어로 바로 아래 위치에
+                  카드형으로 핵심 스펙을 강조(기존 QuickFactStrip 평문 나열을 대체). */}
+              {quickFacts.length > 0 ? (
+                <SpecBentoGrid facts={quickFacts} theme={getSectionTheme(extendedTheme, "checklist", 0)} />
               ) : null}
               {content}
             </div>

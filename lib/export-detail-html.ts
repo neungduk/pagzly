@@ -33,6 +33,14 @@ import {
   buildWaterproofIpDiagramSvg,
   matchWaterproofIpRow,
 } from "@/lib/waterproof-ip-diagram";
+import {
+  buildWeightComparisonDiagramSvg,
+  matchWeightComparisonRow,
+} from "@/lib/weight-comparison-diagram";
+import {
+  buildPowerConsumptionDiagramSvg,
+  matchPowerComparisonRow,
+} from "@/lib/power-consumption-diagram";
 import { comparisonChecklistPresent } from "@/lib/comparison-chart-guard";
 import {
   buildVolumeComparisonDiagramSvg,
@@ -51,7 +59,8 @@ import {
 } from "@/lib/cosmetics-compliance";
 import { isFoodCategory } from "@/lib/food-compliance";
 import { buildHeroBrandMarkHtml } from "@/lib/hero-brand-mark";
-import { buildQuickFactStripHtml, extractQuickFacts } from "@/lib/quick-fact-strip";
+import { extractQuickFacts } from "@/lib/quick-fact-strip";
+import { buildSpecBentoGridHtml } from "@/lib/spec-bento-grid";
 import {
   buildAnchorNavHtml,
   buildSectionAnchorIdMap,
@@ -553,6 +562,32 @@ function sectionHtml(
             baseTheme.accentText,
           )
         : "";
+      // 162차 — 무게(g/kg) 공개 기준표. 소음/방수와 같은 패밀리, 카테고리 무관.
+      const weightMatch =
+        section.slot === "spec_table" && !isFashionCategory(category)
+          ? matchWeightComparisonRow(section.rows)
+          : null;
+      const weightHtml = weightMatch
+        ? buildWeightComparisonDiagramSvg(
+            weightMatch.g,
+            weightMatch.value,
+            baseTheme.accentText,
+            baseTheme.accentText,
+          )
+        : "";
+      // 163차 — 소비전력(W) 공개 기준표. 소음/방수/무게와 같은 패밀리, 카테고리 무관.
+      const powerMatch =
+        section.slot === "spec_table" && !isFashionCategory(category)
+          ? matchPowerComparisonRow(section.rows)
+          : null;
+      const powerHtml = powerMatch
+        ? buildPowerConsumptionDiagramSvg(
+            powerMatch.w,
+            powerMatch.value,
+            baseTheme.accentText,
+            baseTheme.accentText,
+          )
+        : "";
       const diagramHtml =
         (sizeMatches.length > 0
           ? buildFashionSizeDiagramSvg(sizeMatches, deep, deep)
@@ -568,7 +603,9 @@ function sectionHtml(
                   )
                 : "") +
         noiseHtml +
-        waterproofHtml;
+        waterproofHtml +
+        weightHtml +
+        powerHtml;
       const specThumbUrls = (
         section.imageIndexes?.length
           ? section.imageIndexes
@@ -650,13 +687,11 @@ function sectionHtml(
           ${dh2(category, esc(section.heading), "font-size:1.35rem;margin:0")}
           <p style="line-height:1.75;font-size:15px;opacity:.85;margin-top:16px;white-space:pre-line">${esc(section.body)}</p>${galleryHtml}`;
       if (hasBrandCard) {
-        const quickFactHtml = buildQuickFactStripHtml(quickFacts, theme);
         return `<section${sectionIdAttr} class="pagzly-brand-story">
         <div style="padding:64px 20px;text-align:center;background:${deep};color:#FAF8F3">
           <p style="font-family:${DETAIL_FONT_STACK.label};font-size:11px;letter-spacing:.32em;opacity:.75;margin:0">${esc(brandName!)}</p>
           <p style="font-size:clamp(2.25rem,11vw,4rem);font-weight:900;line-height:.92;letter-spacing:-.06em;text-transform:uppercase;margin:16px 0 0">${esc(categoryKeyword)}</p>
         </div>
-        ${quickFactHtml}
         <div style="${pad}${sectionInset}${bgCss}">
         ${textPanelWrap(theme, storyInner)}
         </div></section>`;
@@ -936,9 +971,13 @@ export function buildDetailPageHtml(opts: {
       opts.keyFeatures,
     );
     if (html) bodyParts.push(html);
-    if (section.type === "hero" && trustChips.length > 0) {
+    if (section.type === "hero") {
       const next = visibleSections[i + 1];
-      if (next) bodyParts.push(trustStripHtml(trustChips, opts.theme, certTokens));
+      if (next) {
+        if (trustChips.length > 0) bodyParts.push(trustStripHtml(trustChips, opts.theme, certTokens));
+        // 165차 — "Bento 그리드 2.0" 스펙 하이라이트. 히어로 바로 아래(라이브 렌더러와 동일 위치).
+        if (quickFacts.length > 0) bodyParts.push(buildSpecBentoGridHtml(quickFacts, opts.theme));
+      }
     }
   }
   const body = bodyParts.join("\n");

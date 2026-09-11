@@ -13,7 +13,12 @@ import {
   type HeldObjectPlacement,
   type HeldObjectRegion,
 } from "@/lib/detect-held-object-placement";
-import { buildProductShadowSvg } from "@/lib/photo-composite";
+import {
+  buildProductShadowSvg,
+  defringeCutoutEdges,
+  sampleBackdropAmbientColor,
+  tintedShadowColor,
+} from "@/lib/photo-composite";
 import {
   applyPhysicalScaleToPlacement,
 } from "@/lib/lifestyle-physical-scale";
@@ -666,9 +671,10 @@ function buildSceneShadowSvg(
   sceneH: number,
   placement: { left: number; top: number; width: number; height: number },
   shadow: ShadowAnalysis,
+  shadowTint?: { r: number; g: number; b: number },
 ): string {
   const canvasSize = Math.max(sceneW, sceneH);
-  return buildProductShadowSvg(canvasSize, placement, shadow).replace(
+  return buildProductShadowSvg(canvasSize, placement, shadow, shadowTint).replace(
     `width="${canvasSize}" height="${canvasSize}"`,
     `width="${sceneW}" height="${sceneH}"`,
   );
@@ -703,11 +709,22 @@ async function pasteCutoutOnScene(params: {
   const pasteTop = top + Math.round((targetH - cutH) / 2);
 
   const shadow = { ...DEFAULT_SHADOW };
+  // 162차 — 실제 사용자 라이프스타일 사진(sceneBuffer)의 주변색을 샘플해 순수 검정
+  // 대신 배경 색조를 옅게 유지한 그림자 색을 쓴다. 실사진이라 배경 합성보다도
+  // 이 매칭이 더 직접적으로 자연스러움에 기여한다.
+  let sceneShadowTint: { r: number; g: number; b: number } | undefined;
+  try {
+    const ambient = await sampleBackdropAmbientColor(sceneBuffer);
+    sceneShadowTint = tintedShadowColor(ambient);
+  } catch {
+    sceneShadowTint = undefined;
+  }
   const shadowSvg = buildSceneShadowSvg(
     sceneW,
     sceneH,
     { left: pasteLeft, top: pasteTop, width: cutW, height: cutH },
     shadow,
+    sceneShadowTint,
   );
   const shadowBuf = await sharp(Buffer.from(shadowSvg)).png().toBuffer();
 
@@ -875,7 +892,15 @@ export async function compositeProductOnLifestylePhoto(params: {
     if (!qaForceFallback) {
       try {
         const lifestyle = await fetchImageBuffer(lifestyleImageUrl);
-        const cutoutImage = await fetchImageBuffer(cutout.cutoutUrl);
+        let cutoutImage = await fetchImageBuffer(cutout.cutoutUrl);
+        // 165차 — 컷아웃 경계 색 번짐(fringe) 제거. 실사진 배경에 픽셀을 그대로
+        // 붙여넣는 경로라 AI 배경 합성보다도 번짐이 훨씬 눈에 잘 띈다.
+        try {
+          const defringed = await defringeCutoutEdges(cutoutImage.buffer);
+          cutoutImage = { ...cutoutImage, buffer: defringed };
+        } catch (error) {
+          console.warn("[lifestyle-composite] defringe 실패, 컷아웃 그대로 사용", error);
+        }
 
         const detection = await detectHandPlacementWithGraspRetry(lifestyle, cutoutImage);
         cost += detection.cost;

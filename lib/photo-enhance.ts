@@ -26,12 +26,16 @@ import {
   buildProductShadowSvg,
   buildSilhouetteShadowBuffer,
   buildSoftContactShadowSvg,
+  defringeCutoutEdges,
   featherCutout,
   matchCutoutWhiteBalance,
+  matchCutoutSharpness,
   measureCornerMeanAlpha,
   measureCutoutPlateRisk,
   measureTransparentRatio,
   purgeDarkPlateFringe,
+  sampleBackdropAmbientColor,
+  tintedShadowColor,
   trimCutoutToOpaqueBounds,
   unifyCompositeGrain,
 } from "@/lib/photo-composite";
@@ -1601,7 +1605,15 @@ export async function enhanceProductImage(
     // Bria 결과물에도 약한 접지 그림자 + 통일 그레인 (재컷아웃 없이)
     try {
       const shadow = shadowHint ?? { ...DEFAULT_SHADOW };
-      const contactSvg = buildSoftContactShadowSvg(CANVAS_SIZE, shadow);
+      // 162차 — 순수 검정 대신 배경 색조를 옅게 유지한 그림자 색.
+      let contactTint: { r: number; g: number; b: number } | undefined;
+      try {
+        const ambient = await sampleBackdropAmbientColor(finalBuffer);
+        contactTint = tintedShadowColor(ambient);
+      } catch {
+        contactTint = undefined;
+      }
+      const contactSvg = buildSoftContactShadowSvg(CANVAS_SIZE, shadow, contactTint);
       const contactBuf = await sharp(Buffer.from(contactSvg)).png().toBuffer();
       finalBuffer = await sharp(finalBuffer)
         .composite([{ input: contactBuf, blend: "multiply" }])
@@ -1699,6 +1711,13 @@ export async function enhanceProductImage(
     let buffer = Buffer.from(await cutoutResponse.arrayBuffer()) as Buffer;
     buffer = await trimCutoutToOpaqueBounds(buffer);
     buffer = await purgeDarkPlateFringe(buffer);
+    // 165차 — 경계 색 번짐(halo/fringe) 제거. 배경과 무관한 컷아웃 자체 결함이라
+    // 배경 합성 전, 여기서 한 번만 적용.
+    try {
+      buffer = await defringeCutoutEdges(buffer);
+    } catch (error) {
+      console.warn("[composite] defringe 실패, 컷아웃 그대로 사용", error);
+    }
     return { buffer, cost: sharpenCost };
   }
 
@@ -1908,12 +1927,23 @@ export async function enhanceProductImage(
   let cutoutForComposite: Buffer = cutoutResized;
   try {
     const feathered = await featherCutout(cutoutResized, CANVAS_SIZE);
-    cutoutForComposite = await matchCutoutWhiteBalance(feathered, backdropWithDecor);
+    const whiteBalanced = await matchCutoutWhiteBalance(feathered, backdropWithDecor);
+    // 164차 — 색상/명암 대비 매칭에 이어 선명도(포커스감)까지 배경과 매칭.
+    cutoutForComposite = await matchCutoutSharpness(whiteBalanced, backdropWithDecor);
     console.log(
-      `[composite] feather + WB/luminance match, lightFrom=${shadow.lightFrom} temp=${shadow.colorTemperature}`,
+      `[composite] feather + WB/luminance/contrast/sharpness match, lightFrom=${shadow.lightFrom} temp=${shadow.colorTemperature}`,
     );
   } catch (error) {
     console.warn("[composite] feather/WB 실패, 컷아웃 그대로 합성", error);
+  }
+
+  // 162차 — 배경 색조를 옅게 유지한 그림자 색(순수 검정 대신). 샘플 실패 시 기존처럼 검정 폴백.
+  let shadowTint: { r: number; g: number; b: number } | undefined;
+  try {
+    const ambient = await sampleBackdropAmbientColor(backdropWithDecor);
+    shadowTint = tintedShadowColor(ambient);
+  } catch {
+    shadowTint = undefined;
   }
 
   let shadowBuffer: Buffer;
@@ -1928,6 +1958,7 @@ export async function enhanceProductImage(
         height: targetH,
       },
       shadow,
+      shadowTint,
     );
     console.log("[composite] silhouette shadow 적용");
   } catch (error) {
@@ -1941,6 +1972,7 @@ export async function enhanceProductImage(
         height: targetH,
       },
       shadow,
+      shadowTint,
     );
     shadowBuffer = await sharp(Buffer.from(shadowSvg)).png().toBuffer();
   }

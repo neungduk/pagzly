@@ -8,8 +8,10 @@ import {
 } from "@/lib/copy-orchestrator/types";
 import {
   CopyValidationError,
+  detectAiTellOveruse,
   detectCopyHallucinations,
   detectGenericCliches,
+  detectSentenceLengthMonotony,
   parseJsonLoose,
   validateDetailPageCopy,
 } from "@/lib/copy-orchestrator/validate-copy";
@@ -61,7 +63,20 @@ export function buildStyleRubricBlock(): string {
 - 진부한 AI-카피 클리셰 금지 (표현만 바꿀 것, 사실 관계는 유지):
   "이제 고민은 그만", "당신을 위한 선택", "완벽한 선택", "새로운 시작", "여기 있습니다",
   "지금 바로 만나보세요", "당신의 피부를 위한", "더 이상 망설이지 마세요", "오늘부터 달라집니다",
-  "경험해보세요", "만나보세요"를 CTA/헤드라인에 남발하지 마세요.
+  "경험해보세요", "만나보세요"를 CTA/헤드라인뿐 아니라 본문(problemStatement·solutionStatement·
+  benefit·featureDescription·sections[].body·faq[].answer)에도 쓰지 마세요.
+- 163차 — "AI가 쓴 티"가 나는 접속어·형용사 남용 금지: "또한", "이처럼", "이러한", "이를 통해",
+  "따라서", "한편", "이를", "마침내" 같은 접속 부사를 문장 서두에 습관적으로 반복하지 마세요
+  (한 번 정도는 괜찮지만, 여러 섹션이 같은 접속어로 시작하면 기계적으로 보입니다). 문장은
+  접속어 없이 바로 이어지거나, 매번 다른 방식으로 연결하세요. "다양한", "중요한", "효과적인",
+  "기반으로", "관련된" 같은 두루뭉술한 형용사·표현도 반복해서 쓰지 말고, 대신 입력에 있는
+  구체적인 사실(성분명·수치·장면)로 바로 서술하세요.
+- 164차 — 문장 길이를 의식적으로 들쭉날쭉하게: problemStatement·solutionStatement·benefit·
+  featureDescription·sections[].body·faq[].answer 같은 본문에서, 문장 길이가 전부 비슷하면
+  기계적으로 읽힙니다("AI가 쓴 글이 어색한 이유는 문장 길이가 다 비슷해서다"). 아주 짧은
+  한 마디(예: "그게 다예요.")와 조금 긴 설명 문장을 의도적으로 섞어서, 사람이 숨 쉬듯 강약을
+  주며 쓴 것처럼 만드세요. 모든 문장을 비슷한 글자 수·비슷한 구조("~습니다"로만 끝나는 식)로
+  맞추지 마세요.
 - Claude가 준 copyTone 앵커(감각 어휘·장면)를 헤드라인·본문에 실제로 반영하세요.
 - ingredients/keyFeatures/certifications 중 "무첨가", "무향", "파라벤 프리", "알코올 프리",
   "free" 등 안전/제외 관련 표현이 입력에 literal하게 있으면, checklist 또는 feature_callout 중
@@ -209,11 +224,17 @@ export async function generateDetailCopyWithDeepSeek(
   let costAcc = 0;
   let clicheWarnings: string[] = [];
 
+  // 163차 — 마케팅 클리셰 + "AI 티" 접속어/형용사 남용을 함께 판단.
+  // 164차 — 문장 길이 균일성(리듬)도 같은 합산 게이트에 포함.
+  // 성격이 다른 문제라 별도 함수로 탐지하되, 재시도 여부는 합산 개수로 결정.
   const acceptOrThrowCliches = (candidate: DetailPageCopy) => {
-    const hits = detectGenericCliches(candidate);
+    const clicheHits = detectGenericCliches(candidate);
+    const aiTellHits = detectAiTellOveruse(candidate);
+    const monotonyHits = detectSentenceLengthMonotony(candidate);
+    const hits = [...clicheHits, ...aiTellHits, ...monotonyHits];
     if (hits.length >= 2) {
       throw new CopyValidationError([
-        `generic clichés (≥2): ${hits.join(" | ")}`,
+        `generic clichés / AI-tell overuse (≥2): ${hits.join(" | ")}`,
       ]);
     }
     return hits;
@@ -236,11 +257,15 @@ export async function generateDetailCopyWithDeepSeek(
     usage = second.usage;
     costAcc += calculateDeepSeekCost(usage);
     copy = validateDetailPageCopy(parseJsonLoose(rawText));
-    // 재시도 한도 소진 — 클리셰가 남아도 추가 호출 없이 경고만
-    clicheWarnings = detectGenericCliches(copy);
+    // 재시도 한도 소진 — 클리셰/AI-tell/문장 리듬 문제가 남아도 추가 호출 없이 경고만
+    clicheWarnings = [
+      ...detectGenericCliches(copy),
+      ...detectAiTellOveruse(copy),
+      ...detectSentenceLengthMonotony(copy),
+    ];
     if (clicheWarnings.length >= 2) {
       console.warn(
-        `[deepseek-copy] clichés remain after retry: ${clicheWarnings.join(" | ")}`,
+        `[deepseek-copy] clichés/AI-tell remain after retry: ${clicheWarnings.join(" | ")}`,
       );
     }
   }

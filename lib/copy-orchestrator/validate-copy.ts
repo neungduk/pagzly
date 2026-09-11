@@ -380,14 +380,36 @@ export const GENERIC_CLICHE_PATTERNS: Array<{ id: string; re: RegExp }> = [
   { id: "만나보세요", re: /만나보세요/ },
 ];
 
-export function detectGenericCliches(copy: DetailPageCopy): string[] {
+/**
+ * 163차 — 클리셰 탐지 범위를 헤드라인/CTA뿐 아니라 본문 필드까지 확장.
+ * 164차 — feature/socialProofPlaceholder까지 전 텍스트 필드로 커버리지 완성
+ * (socialProofPlaceholder는 실제로는 고정 플레이스홀더 문구지만, 한 곳도 빠짐없이
+ * 검사한다는 원칙을 위해 포함 — 클리셰 패턴에 걸릴 일은 거의 없어 안전).
+ */
+function allCopyTextFields(copy: DetailPageCopy): Array<{ label: string; text: string }> {
   const fields: Array<{ label: string; text: string }> = [
     { label: "mainHeadline", text: copy.mainHeadline ?? "" },
     { label: "subHeadline", text: copy.subHeadline ?? "" },
+    { label: "problemStatement", text: copy.problemStatement ?? "" },
+    { label: "solutionStatement", text: copy.solutionStatement ?? "" },
+    { label: "benefit", text: copy.benefit ?? "" },
+    { label: "feature", text: copy.feature ?? "" },
+    { label: "featureDescription", text: copy.featureDescription ?? "" },
+    { label: "socialProofPlaceholder", text: copy.socialProofPlaceholder ?? "" },
     { label: "cta", text: copy.cta ?? "" },
   ];
+  (copy.sections ?? []).forEach((s, i) => {
+    fields.push({ label: `sections[${i}].body`, text: s.body ?? "" });
+  });
+  (copy.faq ?? []).forEach((f, i) => {
+    fields.push({ label: `faq[${i}].answer`, text: f.answer ?? "" });
+  });
+  return fields;
+}
+
+export function detectGenericCliches(copy: DetailPageCopy): string[] {
   const hits: string[] = [];
-  for (const { label, text } of fields) {
+  for (const { label, text } of allCopyTextFields(copy)) {
     for (const { id, re } of GENERIC_CLICHE_PATTERNS) {
       if (re.test(text)) {
         hits.push(`${label}: ${id}`);
@@ -395,6 +417,130 @@ export function detectGenericCliches(copy: DetailPageCopy): string[] {
     }
   }
   return hits;
+}
+
+/**
+ * 163차 — "AI가 쓴 티"가 나는 접속어/두루뭉술 형용사 남용 탐지.
+ * 크롤링 근거: 한국어 AI 생성 텍스트의 대표적 특징으로 "또한/이처럼/이러한/따라서/
+ * 한편/이를 통해" 같은 접속 부사의 규칙적 반복, "다양한/중요한/효과적인/기반으로"
+ * 같은 두루뭉술한 형용사·표현이 꼽힘. 마케팅 클리셰("완벽한 선택" 등)와는 다른
+ * 축의 문제라 별도 함수로 관리 — 한 번 쓰였다고 문제는 아니고, 반복되거나 여러
+ * 섹션 서두에 습관적으로 등장할 때만 "티가 난다".
+ */
+const AI_TELL_CONNECTIVES = [
+  "또한",
+  "이처럼",
+  "이러한",
+  "이를 통해",
+  "따라서",
+  "한편",
+  "이를",
+  "마침내",
+];
+
+const AI_TELL_FILLER_WORDS = [
+  "다양한",
+  "중요한",
+  "효과적인",
+  "기반으로",
+  "관련된",
+];
+
+function countOccurrences(text: string, needle: string): number {
+  if (!text) return 0;
+  return text.split(needle).length - 1;
+}
+
+export function detectAiTellOveruse(copy: DetailPageCopy): string[] {
+  const fields = allCopyTextFields(copy);
+  const hits: string[] = [];
+
+  // 1. 전체 카피에서 접속어 총 등장 횟수 — 4회 이상이면 "규칙적 반복"으로 판단
+  for (const word of AI_TELL_CONNECTIVES) {
+    const total = fields.reduce((sum, f) => sum + countOccurrences(f.text, word), 0);
+    if (total >= 4) {
+      hits.push(`connective overuse: "${word}" x${total}`);
+    }
+  }
+
+  // 2. 서로 다른 섹션 2개 이상이 같은 접속어로 문장을 시작 — 습관적 패턴
+  const sectionBodies = (copy.sections ?? []).map((s) => s.body ?? "");
+  for (const word of AI_TELL_CONNECTIVES) {
+    const startCount = sectionBodies.filter((body) =>
+      new RegExp(`^\\s*${word}`).test(body),
+    ).length;
+    if (startCount >= 2) {
+      hits.push(`connective sentence-start pattern: "${word}" in ${startCount} sections`);
+    }
+  }
+
+  // 3. 두루뭉술한 형용사 총 등장 — 6회 이상이면 구체성 부재 신호
+  for (const word of AI_TELL_FILLER_WORDS) {
+    const total = fields.reduce((sum, f) => sum + countOccurrences(f.text, word), 0);
+    if (total >= 6) {
+      hits.push(`filler word overuse: "${word}" x${total}`);
+    }
+  }
+
+  return hits;
+}
+
+/**
+ * 164차 — 문장 길이 균일성(리듬) 탐지. 접속어/필러 단어(163차)와는 다른 축의
+ * "티" — 개별 단어가 아니라 문장 리듬의 문제.
+ * 크롤링 근거: 국내 AI 라이팅 실전 팁에서 "AI가 쓴 글이 어색한 이유는 문장 길이가
+ * 다 비슷해서다 — '문장 길이를 들쭉날쭉하게, 짧은 문장·긴 문장 섞어서 사람 호흡처럼
+ * 써달라'는 한 줄 프롬프트만으로 사람이 쓴 것 같다는 인상을 준다"는 지적(threads.com
+ * 국내 AI 라이팅 커뮤니티) — 문장 길이의 변동계수(CV=표준편차/평균)가 낮을수록
+ * (문장들이 다 비슷한 길이일수록) 기계적으로 읽힌다는 원리를 그대로 반영.
+ * 본문형 필드(문제/해결/베네핏/피처설명/섹션 본문/FAQ 답변)에서 실제로 마침표·
+ * 물음표·느낌표로 끊어지는 "진짜 문장"만 모아 계산 — 헤드라인처럼 원래 짧은 필드를
+ * 섞으면 "필드 타입 차이"와 "문장 리듬"이 뒤섞여 판단이 왜곡되므로 제외한다.
+ */
+const SENTENCE_MONOTONY_FIELD_PREFIXES = ["sections[", "faq["];
+const SENTENCE_MONOTONY_FIELD_LABELS = new Set([
+  "problemStatement",
+  "solutionStatement",
+  "benefit",
+  "featureDescription",
+]);
+
+function splitRealSentences(text: string): string[] {
+  const trimmed = (text ?? "").trim();
+  if (!trimmed) return [];
+  return trimmed
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 6);
+}
+
+export function detectSentenceLengthMonotony(copy: DetailPageCopy): string[] {
+  const fields = allCopyTextFields(copy);
+  const lengths: number[] = [];
+  for (const { label, text } of fields) {
+    const isBodyLike =
+      SENTENCE_MONOTONY_FIELD_LABELS.has(label) ||
+      SENTENCE_MONOTONY_FIELD_PREFIXES.some((p) => label.startsWith(p));
+    if (!isBodyLike) continue;
+    for (const sentence of splitRealSentences(text)) {
+      lengths.push(sentence.length);
+    }
+  }
+
+  // 표본이 너무 적으면(짧은 카피, 단문 위주) 판단을 보류 — 오탐 방지
+  if (lengths.length < 6) return [];
+
+  const mean = lengths.reduce((a, b) => a + b, 0) / lengths.length;
+  const variance =
+    lengths.reduce((sum, v) => sum + (v - mean) * (v - mean), 0) / lengths.length;
+  const cv = mean > 0 ? Math.sqrt(variance) / mean : 0;
+
+  if (cv < 0.18) {
+    return [
+      `sentence length monotony: n=${lengths.length}, mean=${mean.toFixed(1)}자, CV=${cv.toFixed(2)} (문장 길이를 더 들쭉날쭉하게)`,
+    ];
+  }
+  return [];
 }
 
 export const DETAIL_PAGE_COPY_JSON_SCHEMA = {
