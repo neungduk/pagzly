@@ -17,8 +17,10 @@
  * 영향받지 않는 것 (144차 권고에 따라 의도적으로 제외):
  * - spec_table 아이콘은 flux-schnell 유지 (144차: 스펙 13장 flux-dev 전환은
  *   체감 대비 원가만 큼)
- * - 배경 후보 수(BRIA_BACKDROP_CANDIDATES)는 변경하지 않음 — 코드 상한(3) 때문에
- *   env만으로는 4장을 못 만들고, 자동 선택 로직도 없어 후보 확장은 보류 상태
+ *
+ * 166차 결정 — 배경 후보 수(BRIA_BACKDROP_CANDIDATES):
+ * 프리미엄 ON일 때 기본 4 (코드 상한 4). 후보 다양성은 162~165 컷아웃 보정과
+ * 직교한다 — 보정은 선택된 배경의 합성 품질만 올리고, 선택지 폭은 후보 수가 담당.
  */
 export function isPremiumQualityMode(): boolean {
   return process.env.PREMIUM_QUALITY_MODE !== "false";

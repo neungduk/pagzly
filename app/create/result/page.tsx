@@ -1061,7 +1061,8 @@ function CreateResultContent() {
           {sparseImageWarning && (
             <div className="mt-4 rounded-lg border border-line bg-line/20 px-4 py-3 text-sm text-ink/75">
               사용 가능한 사진이 {uniqueProductImageCount}장뿐이라 일부 섹션에서 같은 사진이
-              반복됩니다. 사진을 추가하면 더 다양한 구성으로 만들 수 있어요.
+              반복됩니다. 전면·측면·디테일처럼 구도가 다른 사진을 더 올리면 갤러리·섹션
+              배치가 더 다양해집니다.
             </div>
           )}
 

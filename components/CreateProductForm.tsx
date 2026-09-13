@@ -800,7 +800,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
             <h2 className="font-heading text-lg font-bold text-ink">상품 사진</h2>
             <p className="mt-1 text-sm text-ink/60">
               JPG, PNG · 최소 {MIN_IMAGES}장 · 최대 {MAX_IMAGES}장 · AI가 서로 다른 사진 최소{" "}
-              {MIN_IMAGES}장을 상세페이지에 사용합니다
+              {MIN_IMAGES}장을 상세페이지에 사용합니다. 같은 각도만 올리면 갤러리가
+              단조로워지니, 전면·측면·디테일·사용 장면처럼 구도가 다른 컷을 섞어 주세요.
             </p>
             <p
               className="mt-2 text-sm leading-relaxed text-ink/70"

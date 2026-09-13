@@ -411,7 +411,7 @@ const FOOD: SlotDefinition[] = [
     slot: "comparison_chart",
     type: "comparison_chart",
     required: false,
-    note: "입력에 실측 근거가 있으면 basis:\"measured\", 없으면 basis:\"self_assessed\"로 채우되 baselineLabel은 \"일반 제품\"만 사용(특정 브랜드명 금지). 근거·추정 둘 다 불가하면 슬롯 생략.",
+    note: "166차 — 식품: keyFeatures·ingredients·certifications에 함량 %·당도·단백질·무첨가 여부 등 비교 가능 근거가 있으면 이 슬롯을 적극 채우세요(comparison_table과 별개). 실측이면 basis:\"measured\", 없으면 basis:\"self_assessed\"(수치 30~85·극단 금지). baselineLabel은 \"일반 제품\"|\"업계 평균\"|\"타 제품\"만(브랜드명 금지). 함량·%를 지어내지 말 것. 근거·추정 둘 다 불가하면 생략.",
   },
   {
     slot: "nutrition_table",
@@ -540,7 +540,7 @@ const ELECTRONICS: SlotDefinition[] = [
     slot: "comparison_chart",
     type: "comparison_chart",
     required: false,
-    note: "입력에 실측 근거가 있으면 basis:\"measured\", 없으면 basis:\"self_assessed\"로 채우되 baselineLabel은 \"일반 제품\"만 사용(특정 브랜드명 금지). 근거·추정 둘 다 불가하면 슬롯 생략.",
+    note: "166차 — 전자/가전: keyFeatures·certifications에 소음(dB)·배터리(h)·방수(IP)·감쇠량 등 비교 가능 수치가 있으면 comparison_chart를 적극 채우세요(comparison_table 스펙 표와 별개 — 둘 다 쓸 수 있음). 실측이면 basis:\"measured\", 없으면 basis:\"self_assessed\"(30~85·극단 금지). baselineLabel은 \"일반 제품\"|\"업계 평균\"|\"타 제품\"만(브랜드명 금지). 없는 벤치마크를 지어내지 말 것. 근거·추정 둘 다 불가하면 생략.",
   },
   {
     slot: "spec_table",
@@ -938,11 +938,11 @@ export function buildSectionLengthGuide(category: string): string {
   }
 
   if (category === "식품/건강기능식품") {
-    return `\n\n## 식품 카피 길이·컨셉 정합\n${common}\n- cooking_steps: 각 단계 title 6자 내외 + body 1문장.\n- sourcing_story body: 원산지/생산 배경 2문장, 과장 없이 사실 위주. **입력·고시에 없는 원산지 지어내기 금지.**\n- serving_suggestion body: 섭취/제공 장면 1~2문장.\n- storage_tip body: 보관 방법 1문장. **입력에 없으면 "판매자 확인 필요".**\n- nutrition_table / spec_table: 알레르기·원산지·보관은 입력·고시 근거만.\n- package_contents body: 입력에 기획/더블기획/1+1/증정/사은품/세트 같은 구성 언급이 있을 때만 실제 포함 품목을 1~2문장으로. 그런 언급이 없으면 슬롯 자체를 생략.`;
+    return `\n\n## 식품 카피 길이·컨셉 정합\n${common}\n- cooking_steps: 각 단계 title 6자 내외 + body 1문장.\n- sourcing_story body: 원산지/생산 배경 2문장, 과장 없이 사실 위주. **입력·고시에 없는 원산지 지어내기 금지.**\n- serving_suggestion body: 섭취/제공 장면 1~2문장.\n- storage_tip body: 보관 방법 1문장. **입력에 없으면 "판매자 확인 필요".**\n- nutrition_table / spec_table: 알레르기·원산지·보관은 입력·고시 근거만.\n- comparison_chart: 함량 %·단백질·무첨가 여부 등 입력 근거가 있으면 적극 채움(comparison_table과 별개). 없으면 생략. 함량 날조 금지.\n- package_contents body: 입력에 기획/더블기획/1+1/증정/사은품/세트 같은 구성 언급이 있을 때만 실제 포함 품목을 1~2문장으로. 그런 언급이 없으면 슬롯 자체를 생략.`;
   }
 
   if (category === "전자제품") {
-    return `\n\n## 전자/가전 카피 길이·컨셉 정합\n${common}\n- hero headline: 가능하면 불편함→해결 대비 구조. 근거 없는 불편함 지어내기 금지.\n- feature_detail body: 기능 1개당 2문장 이내.\n- package_contents body: 구성품 1~2문장, 없는 구성품 지어내지 말 것.\n- connectivity / install_scenario body: 호환·설치 정보는 입력 근거만, 각 2문장 이내.\n- comparison_table: 없는 스펙·벤치마크 날조 금지.`;
+    return `\n\n## 전자/가전 카피 길이·컨셉 정합\n${common}\n- hero headline: 가능하면 불편함→해결 대비 구조. 근거 없는 불편함 지어내기 금지.\n- feature_detail body: 기능 1개당 2문장 이내.\n- package_contents body: 구성품 1~2문장, 없는 구성품 지어내지 말 것.\n- connectivity / install_scenario body: 호환·설치 정보는 입력 근거만, 각 2문장 이내.\n- comparison_table: 없는 스펙·벤치마크 날조 금지.\n- comparison_chart: dB·배터리 h·IP 등 입력 수치가 있으면 일반 제품 대비 축으로 적극 채움(comparison_table과 별개). 없으면 생략.`;
   }
 
   if (category === "생활용품") {

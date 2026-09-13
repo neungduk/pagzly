@@ -926,6 +926,9 @@ comparison_chart 슬롯이 있다면: baselineLabel은 반드시 "일반 제품"
 입력에 근거도 없고 합리적으로 추정할 수도 없으면 comparison_chart 슬롯 전체를 생략하세요.
 화장품/뷰티이고 ingredients(전성분·주요 성분)가 입력에 있으면 comparison_chart를 생략하지 말고
 안정성·자극감·사용감 등 self_assessed 축으로라도 채워 주세요(수치 지어내기 금지·극단값 금지 규칙은 동일).
+식품이고 keyFeatures·ingredients에 함량 %·단백질·무첨가 등 비교 근거가 있으면 comparison_chart를 생략하지 마세요.
+전자제품이고 keyFeatures에 dB·배터리·IP 등 수치가 있으면 comparison_chart를 생략하지 마세요(comparison_table과 병행 가능).
+패션/반려동물/생활용품도 keyFeatures·certifications에 비교 가능 수치·유무 근거가 있으면 적극 채우세요.
 tradeoff_card 슬롯(생활/리빙)이 있다면: 입력에 추천 대상·유의사항이 있을 때만 recommendFor/
 considerIf를 각 1~4문장으로. considerIf는 완곡한 "참고하세요" 톤, 깎아내리기 금지. 없으면 생략.
 illustration_banner의 illustrationUrl은 항상 빈 문자열("")로 두세요 (서버가 생성).
