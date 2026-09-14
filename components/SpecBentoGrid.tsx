@@ -1,5 +1,5 @@
 import type { CategoryTheme } from "@/lib/category-theme";
-import { hexToRgba } from "@/lib/design-tokens";
+import { hexToRgba, RADIUS } from "@/lib/design-tokens";
 import type { QuickFact } from "@/lib/quick-fact-strip";
 
 type SpecBentoGridProps = {
@@ -24,13 +24,14 @@ export default function SpecBentoGrid({ facts, theme }: SpecBentoGridProps) {
           <div
             key={`${f.label}-${i}`}
             role="listitem"
-            className="flex min-h-[84px] flex-col justify-end rounded-2xl p-4"
+            className="flex min-h-[84px] flex-col justify-end p-4"
             style={
               isHero
-                ? { backgroundColor: theme.deepAccent }
+                ? { backgroundColor: theme.deepAccent, borderRadius: RADIUS.lg }
                 : {
                     backgroundColor: hexToRgba(theme.baseNeutral, 0.4),
                     border: `1px solid ${hexToRgba(theme.accent, 0.18)}`,
+                    borderRadius: RADIUS.lg,
                   }
             }
           >

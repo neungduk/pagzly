@@ -1,4 +1,8 @@
-/** 패션 size_table — 상의 실루엣 SVG 다이어그램 (55차) */
+/** 패션 size_table — 상의 실루엣 SVG 다이어그램 (55차)
+ * 175차 — 제목 옆 정적 Recraft 아이콘(실루엣·치수 화살표 로직 불변).
+ */
+
+import { diagramTitleWithIconHtml } from "@/lib/diagram-icons";
 
 export type SizeDiagramMatch = {
   key: "shoulder" | "chest" | "length" | "sleeve";
@@ -111,6 +115,7 @@ export function buildFashionSizeDiagramSvg(
     .join("");
 
   return `<div style="max-width:280px;margin:28px auto 0;text-align:center">
+    ${diagramTitleWithIconHtml("사이즈 실측", "fashion-shirt", labelColor)}
     <svg viewBox="0 0 220 300" width="220" height="300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="사이즈 실측 다이어그램">
       <path d="M72 64 L52 84 L36 78 L54 118 L54 258 L166 258 L166 118 L184 78 L168 62 L142 76 L110 68 L78 76 Z" fill="none" stroke="${strokeColor}" stroke-width="1.6" opacity="0.55"/>
       <path d="M52 84 L36 78 L28 72 L38 58 L54 64 Z" fill="none" stroke="${strokeColor}" stroke-width="1.2" opacity="0.4"/>

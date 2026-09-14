@@ -1039,6 +1039,14 @@ function CreateResultContent() {
               " 화장품/뷰티 카테고리 식약처 광고 기준이 적용되었습니다."}
           </p>
 
+          {(generated?.sections.length ?? 0) > 0 &&
+            (generated?.sections.length ?? 0) < 15 && (
+              <div className="mt-4 rounded-lg border border-line bg-line/20 px-4 py-3 text-sm text-ink/75">
+                성분·인증·리뷰 정보를 추가해 다시 생성하면 비교 차트·통계 등 섹션이 더 늘어나
+                상세페이지가 풍부해질 수 있어요. (같은 상품 테스트에서 약 10개 → 27개 섹션)
+              </div>
+            )}
+
           <GenerationCostStrip
             photoCostBreakdown={photoCostBreakdown}
             photoProcessingCost={data.photoProcessingCost}

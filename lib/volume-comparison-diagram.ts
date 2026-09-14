@@ -4,6 +4,7 @@
  */
 
 import { sanitizeText } from "@/lib/cosmetics-compliance";
+import { diagramTitleWithIconHtml } from "@/lib/diagram-icons";
 
 export type VolumeComparisonEntry = {
   label: string;
@@ -204,7 +205,7 @@ export function buildVolumeComparisonDiagramSvg(
   const width = startX * 2 + safe.length * bottleW + (safe.length - 1) * gap;
 
   return `<div style="max-width:360px;margin:28px auto 0;text-align:center" data-diagram="volume-comparison">
-    <p style="font-size:11px;letter-spacing:.12em;opacity:.65;margin:0 0 8px">용량 비교 (기준: 일반 ${REFERENCE_VOLUME_ML}mL)</p>
+    ${diagramTitleWithIconHtml(`용량 비교 (기준: 일반 ${REFERENCE_VOLUME_ML}mL)`, "volume-bottle", labelColor)}
     <svg viewBox="0 0 ${width} 190" width="100%" style="max-width:360px;height:auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="용량 비교 다이어그램">
       ${bottles.join("")}
     </svg>

@@ -3,7 +3,10 @@
  * 소음(dB)·용량(mL)·크기(cm)와 같은 "공개 기준표 + 판매자 실측값 + null 폴백" 패턴.
  * 기준점은 IEC 60529 물 침투 보호 등급의 통용 해석(IPX0~IPX8) — 상품별 조사 아님.
  * spec_table에 IP/IPX 값이 파싱될 때만 렌더, 없으면 완전히 생략.
+ * 174차 — 제목 옆 정적 Recraft 아이콘(좌표·눈금 로직 불변).
  */
+
+import { diagramTitleWithIconHtml } from "@/lib/diagram-icons";
 
 export type WaterproofReferencePoint = { label: string; level: number };
 
@@ -139,8 +142,9 @@ export function buildWaterproofIpDiagramSvg(
     })
     .join("");
 
+  // 174차 — 좌표/눈금 로직 불변. 제목 옆 장식 아이콘만 추가.
   return `<div style="margin:32px auto 0;max-width:340px;text-align:center">
-    <p style="font-size:11px;letter-spacing:.12em;opacity:.85;margin:0 0 8px;color:${labelColor}">방수 등급 비교</p>
+    ${diagramTitleWithIconHtml("방수 등급 비교", "waterproof-droplet", labelColor)}
     <svg viewBox="0 0 ${width} 130" width="${width}" height="130" role="img" aria-label="방수 등급 비교 다이어그램">
       <line x1="${trackX1}" y1="${trackY}" x2="${trackX2}" y2="${trackY}" stroke="${strokeColor}" stroke-width="1.2" opacity="0.32"/>
       ${refMarks}

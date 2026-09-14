@@ -74,6 +74,8 @@ import {
   getTextPanelSurface,
   hexToRgba,
   resolveSectionSurface,
+  ELEVATION,
+  RADIUS,
   type ExtendedTheme,
 } from "@/lib/design-tokens";
 import { buildProductJsonLd, serializeJsonLdScripts } from "@/lib/product-json-ld";
@@ -88,8 +90,8 @@ import type { DetailSection, GeneratedCopy } from "@/lib/types/generate";
 function textPanelWrap(theme: CategoryTheme, inner: string): string {
   const s = getTextPanelSurface(theme);
   return `<div style="position:relative;margin-top:-28px;max-width:640px;margin-left:auto;margin-right:auto">
-    <div style="position:absolute;left:0;top:20px;width:4px;height:56px;border-radius:999px;background:${theme.accent}"></div>
-    <div style="border:1px solid ${s.borderColor};border-radius:16px;padding:32px 28px;background:${s.background};box-shadow:${s.boxShadow}">
+    <div style="position:absolute;left:0;top:20px;width:4px;height:56px;border-radius:${RADIUS.pill}px;background:${theme.accent}"></div>
+    <div style="border:1px solid ${s.borderColor};border-radius:${RADIUS.lg}px;padding:32px 28px;background:${s.background};box-shadow:${s.boxShadow}">
       ${inner}
     </div>
   </div>`;
@@ -118,7 +120,7 @@ function trustStripHtml(chips: string[], theme: CategoryTheme, certTokens: strin
                 token.includes(c) ||
                 c.toLowerCase().includes(token.toLowerCase())),
           );
-          return `<span style="font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;background:${certHighlight ? accent + "38" : accent + "1f"};color:${certHighlight ? accent : theme.deepAccent};${certHighlight ? `box-shadow:inset 0 -2px 0 0 ${accent}` : ""}">${esc(c)}</span>`;
+          return `<span style="font-size:12px;font-weight:600;padding:6px 12px;border-radius:${RADIUS.pill}px;background:${certHighlight ? accent + "38" : accent + "1f"};color:${certHighlight ? accent : theme.deepAccent};${certHighlight ? `box-shadow:${ELEVATION.certUnderline(accent)}` : ""}">${esc(c)}</span>`;
         })
         .join("")}
     </div></div>`;
@@ -206,7 +208,7 @@ function sectionHtml(
       const bg = section.boldBlock ? deep : sectionBg;
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         <div style="text-align:center;max-width:640px;margin:0 auto 32px">
-          ${pointBadge ? `<span style="display:inline-block;font-family:${DETAIL_FONT_STACK.label};font-size:10px;font-weight:700;letter-spacing:.22em;border:1px solid ${section.boldBlock ? "rgba(250,248,243,.35)" : accent + "66"};border-radius:999px;padding:4px 12px;color:${section.boldBlock ? "#FAF8F3" : deep}">${pointBadge}</span>` : ""}
+          ${pointBadge ? `<span style="display:inline-block;font-family:${DETAIL_FONT_STACK.label};font-size:10px;font-weight:700;letter-spacing:.22em;border:1px solid ${section.boldBlock ? "rgba(250,248,243,.35)" : accent + "66"};border-radius:${RADIUS.pill}px;padding:4px 12px;color:${section.boldBlock ? "#FAF8F3" : deep}">${pointBadge}</span>` : ""}
           ${kicker ? `<span style="font-size:11px;letter-spacing:.36em;opacity:.75;margin-left:12px">${kicker}</span>` : ""}
           ${headingParts.keyword ? `<p style="font-size:clamp(2rem,10vw,3.5rem);font-weight:900;line-height:.92;letter-spacing:-.06em;margin:16px 0 0;text-transform:uppercase;color:${section.boldBlock ? "#FAF8F3" : deep}">${esc(headingParts.keyword)}</p>` : ""}
           ${dh2(category, esc(headingParts.remainder || section.heading), `font-size:${headingParts.keyword ? "1.35rem" : "1.75rem"};margin:16px 0 0;font-weight:${headingParts.keyword ? "600" : "700"}`)}
@@ -215,7 +217,7 @@ function sectionHtml(
           ${section.items
             .map(
               (item) =>
-                `<li style="text-align:center;font-size:14px;padding:20px 16px;border-radius:16px;border:1px solid ${section.boldBlock ? "rgba(250,248,243,.22)" : accent + "3d"};background:${section.boldBlock ? "rgba(250,248,243,.08)" : accent + "0f"}">${esc(item)}</li>`,
+                `<li style="text-align:center;font-size:14px;padding:20px 16px;border-radius:${RADIUS.lg}px;border:1px solid ${section.boldBlock ? "rgba(250,248,243,.22)" : accent + "3d"};background:${section.boldBlock ? "rgba(250,248,243,.08)" : accent + "0f"}">${esc(item)}</li>`,
             )
             .join("")}
         </ul></section>`;
@@ -229,7 +231,7 @@ function sectionHtml(
       const headingParts = parseMegaKeywordHeading(section.heading);
       const pointBadge = bodyIndex != null ? formatPointBadge(bodyIndex + 1) : "";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
-        ${pointBadge ? `<p style="text-align:center;margin:0 0 8px"><span style="display:inline-block;font-size:10px;font-weight:700;letter-spacing:.22em;border:1px solid ${accent}66;border-radius:999px;padding:4px 12px">${pointBadge}</span></p>` : ""}
+        ${pointBadge ? `<p style="text-align:center;margin:0 0 8px"><span style="display:inline-block;font-size:10px;font-weight:700;letter-spacing:.22em;border:1px solid ${accent}66;border-radius:${RADIUS.pill}px;padding:4px 12px">${pointBadge}</span></p>` : ""}
         ${headingParts.keyword ? `<p style="text-align:center;font-size:clamp(2rem,10vw,3.5rem);font-weight:900;line-height:.92;letter-spacing:-.06em;margin:0;text-transform:uppercase;color:${section.boldBlock ? "#FAF8F3" : deep}">${esc(headingParts.keyword)}</p>` : ""}
         <h2 style="text-align:center;font-size:${headingParts.keyword ? "1.25rem" : "1.5rem"};margin:12px 0 0">${esc(headingParts.remainder || section.heading)}</h2>
         <div style="display:grid;grid-template-columns:repeat(${Math.min(3, cards.length)},1fr);gap:12px;margin-top:32px">
@@ -237,8 +239,8 @@ function sectionHtml(
             .map((card, i) => {
               const em = i === center;
               const cardKeyword = parseMegaKeywordHeading(card.title);
-              return `<div class="${em ? "pulse-card" : ""}" style="border-radius:16px;padding:28px 20px;text-align:center;background:${em ? (section.boldBlock ? "#FAF8F3" : deep) : accent + "14"};color:${em ? (section.boldBlock ? deep : "#FAF8F3") : fg}">
-                <div style="font-size:10px;letter-spacing:.22em;opacity:.7;border:1px solid ${accent}55;border-radius:999px;display:inline-block;padding:4px 10px">${formatPointBadge(i + 1)}</div>
+              return `<div class="${em ? "pulse-card" : ""}" style="border-radius:${RADIUS.lg}px;padding:28px 20px;text-align:center;background:${em ? (section.boldBlock ? "#FAF8F3" : deep) : accent + "14"};color:${em ? (section.boldBlock ? deep : "#FAF8F3") : fg}">
+                <div style="font-size:10px;letter-spacing:.22em;opacity:.7;border:1px solid ${accent}55;border-radius:${RADIUS.pill}px;display:inline-block;padding:4px 10px">${formatPointBadge(i + 1)}</div>
                 ${cardKeyword.keyword ? `<p style="font-size:clamp(1.5rem,8vw,2.25rem);font-weight:900;line-height:.92;letter-spacing:-.05em;margin:12px 0 0;text-transform:uppercase">${esc(cardKeyword.keyword)}</p>` : ""}
                 <h3 style="margin:8px 0;font-size:${cardKeyword.keyword ? "14px" : "inherit"};font-weight:${cardKeyword.keyword ? "600" : "700"}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</h3>
                 <p style="margin:0;font-size:14px;opacity:.9">${esc(card.body)}</p>
@@ -263,9 +265,9 @@ function sectionHtml(
             .map((step, i) => {
               const src = imageUrls[step.imageIndex] ?? "";
               const alt = buildSectionImageAlt(productName, step.title, section.slot);
-              return `<div><div style="position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:#eee">
+              return `<div><div style="position:relative;aspect-ratio:1;border-radius:${RADIUS.md}px;overflow:hidden;background:#eee">
                 ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;height:100%;object-fit:cover"/>` : ""}
-                <span style="position:absolute;left:10px;top:10px;background:${deep};color:#FAF8F3;font-size:10px;padding:4px 10px;border-radius:999px;font-weight:700">STEP ${String(i + 1).padStart(2, "0")}</span>
+                <span style="position:absolute;left:10px;top:10px;background:${deep};color:#FAF8F3;font-size:10px;padding:4px 10px;border-radius:${RADIUS.pill}px;font-weight:700">STEP ${String(i + 1).padStart(2, "0")}</span>
               </div><h3 style="margin:12px 0 4px">${esc(step.title)}</h3><p style="margin:0;font-size:13px;opacity:.8">${esc(step.body)}</p></div>`;
             })
             .join("")}
@@ -299,8 +301,8 @@ function sectionHtml(
           }
           const barColor = section.barAccent === "emphasis" ? deep : accent;
           return `<div><div style="display:flex;justify-content:space-between;align-items:baseline;font-size:14px"><span>${esc(m.label)}</span><strong style="font-size:1.5rem;font-weight:800;letter-spacing:-0.01em">${esc(m.value)}${footnoteMarkFor(m)}</strong></div>
-                <div style="height:${section.barAccent === "emphasis" ? 14 : 10}px;background:${barColor}29;border-radius:999px;margin-top:8px;overflow:hidden">
-                  <div class="fill-bar" style="height:100%;width:${pct}%;background:${barColor};border-radius:999px"></div>
+                <div style="height:${section.barAccent === "emphasis" ? 14 : 10}px;background:${barColor}29;border-radius:${RADIUS.pill}px;margin-top:8px;overflow:hidden">
+                  <div class="fill-bar" style="height:100%;width:${pct}%;background:${barColor};border-radius:${RADIUS.pill}px"></div>
                 </div></div>`;
         })
         .join("");
@@ -345,10 +347,10 @@ function sectionHtml(
               const unit = section.unit ?? "%";
               return `<div><p style="font-size:14px;margin:0 0 8px">${esc(m.label)}</p>
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="width:72px;font-size:11px;color:${deep}">${esc(section.ourLabel)}</span>
-                  <div style="flex:1;height:10px;background:${accent}1f;border-radius:999px"><div class="fill-bar" style="height:100%;width:${ourP}%;background:${accent}"></div></div>
+                  <div style="flex:1;height:10px;background:${accent}1f;border-radius:${RADIUS.pill}px"><div class="fill-bar" style="height:100%;width:${ourP}%;background:${accent}"></div></div>
                   <span style="width:48px;text-align:right;font-size:11px">${m.ourValue}${esc(unit)}</span></div>
                 <div style="display:flex;align-items:center;gap:8px"><span style="width:72px;font-size:11px;opacity:.45">${esc(section.baselineLabel)}</span>
-                  <div style="flex:1;height:10px;background:#000014;border-radius:999px"><div class="fill-bar" style="height:100%;width:${baseP}%;background:#000040"></div></div>
+                  <div style="flex:1;height:10px;background:#000014;border-radius:${RADIUS.pill}px"><div class="fill-bar" style="height:100%;width:${baseP}%;background:#000040"></div></div>
                   <span style="width:48px;text-align:right;font-size:11px;opacity:.45">${m.baselineValue}${esc(unit)}</span></div>
               </div>`;
             })
@@ -363,7 +365,7 @@ function sectionHtml(
         ${
           Array.isArray(section.evidenceQuotes) &&
           section.evidenceQuotes.some((e) => e.quotes?.some((q) => Boolean(q?.trim())))
-            ? `<details style="max-width:420px;margin:28px auto 0;border:1px solid rgba(27,27,24,0.12);border-radius:12px;padding:12px 16px;background:rgba(250,248,243,0.85)">
+            ? `<details style="max-width:420px;margin:28px auto 0;border:1px solid rgba(27,27,24,0.12);border-radius:${RADIUS.md}px;padding:12px 16px;background:rgba(250,248,243,0.85)">
                 <summary style="cursor:pointer;text-align:center;font-size:12px;font-weight:600;opacity:.6">근거 보기</summary>
                 <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(27,27,24,0.1)">
                   ${section.evidenceQuotes
@@ -374,7 +376,7 @@ function sectionHtml(
                           .filter(Boolean)
                           .map(
                             (q) =>
-                              `<p style="text-align:center;font-size:13px;line-height:1.6;opacity:.55;margin:0 0 8px;padding:12px;border:1px solid rgba(27,27,24,0.08);border-radius:12px">&ldquo; ${esc(q)}</p>`,
+                              `<p style="text-align:center;font-size:13px;line-height:1.6;opacity:.55;margin:0 0 8px;padding:12px;border:1px solid rgba(27,27,24,0.08);border-radius:${RADIUS.md}px">&ldquo; ${esc(q)}</p>`,
                           )
                           .join("")}</div>`,
                     )
@@ -399,11 +401,11 @@ function sectionHtml(
         <p style="text-align:center;color:${deep};font-size:11px;letter-spacing:.2em">FIT CHECK</p>
         ${dh2(category, esc(section.heading), "text-align:center;font-size:1.5rem")}
         <div style="max-width:720px;margin:32px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:20px">
-          <div style="border-radius:16px;padding:20px;background:${accent}1a">
+          <div style="border-radius:${RADIUS.lg}px;padding:20px;background:${accent}1a">
             <p style="margin:0 0 12px;font-size:11px;font-weight:600;letter-spacing:.08em;color:${deep}">이런 분께 추천</p>
             ${recommendFor.map((item) => `<p style="margin:0 0 10px;font-size:14px;line-height:1.55">✓ ${esc(item)}</p>`).join("")}
           </div>
-          <div style="border-radius:16px;padding:20px;background:${theme.baseNeutral}59">
+          <div style="border-radius:${RADIUS.lg}px;padding:20px;background:${theme.baseNeutral}59">
             <p style="margin:0 0 12px;font-size:11px;font-weight:600;letter-spacing:.08em;opacity:.55">이런 점은 참고하세요</p>
             ${considerIf.map((item) => `<p style="margin:0 0 10px;font-size:14px;line-height:1.55;opacity:.8">· ${esc(item)}</p>`).join("")}
           </div>
@@ -424,13 +426,13 @@ function sectionHtml(
         section.circleSolo?.label?.trim();
       if (isCircleSolo) {
         const solo = section.circleSolo!;
-        return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}"><div style="text-align:center;max-width:280px;margin:0 auto"><img src="${esc(solo.imageUrl)}" alt="${esc(solo.label)}" style="width:120px;height:120px;border-radius:9999px;object-fit:cover;margin:0 auto;display:block;box-shadow:0 12px 32px -12px rgba(27,27,24,0.28)"/><p style="margin-top:12px;font-size:14px;font-weight:600;color:${deep}">${esc(solo.label)}</p></div></section>`;
+        return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}"><div style="text-align:center;max-width:280px;margin:0 auto"><img src="${esc(solo.imageUrl)}" alt="${esc(solo.label)}" style="width:120px;height:120px;border-radius:${RADIUS.pill}px;object-fit:cover;margin:0 auto;display:block;box-shadow:${ELEVATION.imageThumb}"/><p style="margin-top:12px;font-size:14px;font-weight:600;color:${deep}">${esc(solo.label)}</p></div></section>`;
       }
       if (isCirclePair) {
         const pairHtml = section.circlePair!
           .map(
             (item) =>
-              `<div style="flex:1;min-width:0;text-align:center"><img src="${esc(item.imageUrl)}" alt="${esc(item.label)}" style="width:96px;height:96px;border-radius:9999px;object-fit:cover;margin:0 auto;display:block;box-shadow:0 12px 32px -12px rgba(27,27,24,0.28)"/><p style="margin-top:12px;font-size:13px;font-weight:600;color:${deep}">${esc(item.label)}</p></div>`,
+              `<div style="flex:1;min-width:0;text-align:center"><img src="${esc(item.imageUrl)}" alt="${esc(item.label)}" style="width:96px;height:96px;border-radius:${RADIUS.pill}px;object-fit:cover;margin:0 auto;display:block;box-shadow:${ELEVATION.imageThumb}"/><p style="margin-top:12px;font-size:13px;font-weight:600;color:${deep}">${esc(item.label)}</p></div>`,
           )
           .join("");
         return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}"><div style="display:flex;justify-content:center;gap:32px;max-width:360px;margin:0 auto">${pairHtml}</div></section>`;
@@ -438,8 +440,8 @@ function sectionHtml(
       if (isCallout && section.callout) {
         return `<section${sectionIdAttr} class="pagzly-callout" style="${pad}${sectionInset}${bgCss}">
           <div style="position:relative;margin-bottom:20px">
-            ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px"/>` : ""}
-            <p style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:${deep};color:#FAF8F3;padding:10px 18px;border-radius:16px;font-size:14px;font-weight:600;text-align:center;max-width:85%">${esc(section.callout)}</p>
+            ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:${RADIUS.md}px"/>` : ""}
+            <p style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:${deep};color:#FAF8F3;padding:10px 18px;border-radius:${RADIUS.lg}px;font-size:14px;font-weight:600;text-align:center;max-width:85%">${esc(section.callout)}</p>
           </div>
           <h2 style="font-size:1.35rem">${esc(section.heading)}</h2>
           <p style="line-height:1.65;font-size:15px;opacity:.85">${esc(section.body)}</p>
@@ -479,14 +481,14 @@ function sectionHtml(
         return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
           <div style="display:flex;flex-wrap:wrap;gap:32px;max-width:960px;margin:0 auto;align-items:center">
             <div style="flex:${columnRatio.image} 1 280px;order:${imageLeft ? 1 : 2};position:relative">
-              ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:16px;box-shadow:0 20px 56px ${hexToRgba(theme.deepAccent, 0.14)}"/>` : ""}
-              ${pointLabel ? `<span style="position:absolute;left:16px;top:16px;background:${hexToRgba(deep, 0.9)};color:#FAF8F3;font-size:10px;font-weight:700;letter-spacing:.28em;padding:6px 12px;border-radius:999px">${pointLabel}</span>` : ""}
+              ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:${RADIUS.lg}px;box-shadow:${ELEVATION.imageLift(theme.deepAccent)}"/>` : ""}
+              ${pointLabel ? `<span style="position:absolute;left:16px;top:16px;background:${hexToRgba(deep, 0.9)};color:#FAF8F3;font-size:10px;font-weight:700;letter-spacing:.28em;padding:6px 12px;border-radius:${RADIUS.pill}px">${pointLabel}</span>` : ""}
             </div>
             <div style="flex:${columnRatio.text} 1 280px;order:${imageLeft ? 2 : 1}">
               <p style="font-size:11px;letter-spacing:.36em;color:${deep};margin:0 0 12px">${kicker}</p>
               ${
                 section.slot === "ingredient_highlight"
-                  ? `<div style="width:56px;height:6px;background:${accent};margin:0 0 16px;border-radius:2px"></div>`
+                  ? `<div style="width:56px;height:6px;background:${accent};margin:0 0 16px;border-radius:${RADIUS.hairline}px"></div>`
                   : ""
               }
               ${dh2(category, esc(section.heading), "font-size:1.75rem;margin:0")}
@@ -502,7 +504,7 @@ function sectionHtml(
         </section>`;
       }
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        ${src ? `<div style="padding:0 12px"><img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:16px;box-shadow:0 16px 48px ${hexToRgba(theme.deepAccent, 0.12)}"/></div>` : ""}
+        ${src ? `<div style="padding:0 12px"><img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:${RADIUS.lg}px;box-shadow:${ELEVATION.imageSoft(theme.deepAccent)}"/></div>` : ""}
         ${textPanelWrap(
           theme,
           `${dh2(category, esc(section.heading), "font-size:1.35rem;margin:0")}
@@ -620,7 +622,7 @@ function sectionHtml(
           ? `<div style="display:flex;justify-content:center;gap:${specThumbUrls.length > 1 ? 12 : 0}px;margin:32px auto 0;max-width:${specThumbUrls.length > 1 ? 320 : 140}px">${specThumbUrls
               .map(
                 (url, ti) =>
-                  `<img src="${esc(url)}" alt="${esc(buildSectionImageAlt(productName, specThumbUrls.length > 1 ? `${section.heading} ${ti + 1}` : section.heading, section.slot))}" style="width:${thumbSize}px;height:${thumbSize}px;object-fit:cover;border-radius:${thumbRadius}px;box-shadow:0 12px 32px -12px rgba(27,27,24,0.28);border:1px solid rgba(27,27,24,0.1)"/>`,
+                  `<img src="${esc(url)}" alt="${esc(buildSectionImageAlt(productName, specThumbUrls.length > 1 ? `${section.heading} ${ti + 1}` : section.heading, section.slot))}" style="width:${thumbSize}px;height:${thumbSize}px;object-fit:cover;border-radius:${thumbRadius}px;box-shadow:${ELEVATION.imageThumb};border:${ELEVATION.specThumbBorder}"/>`,
               )
               .join("")}</div>`
           : "";
@@ -632,7 +634,7 @@ function sectionHtml(
         .map((row, ri) => {
           const certHighlight = isCertificationHighlight(row.label, row.value, certTokens);
           const valueHtml = certHighlight
-            ? `<span style="display:inline-block;padding:2px 8px;border-radius:6px;color:${accent};background:${accent}24;box-shadow:inset 0 -2px 0 0 ${accent}8c">${esc(row.value)}</span>`
+            ? `<span style="display:inline-block;padding:2px 8px;border-radius:${RADIUS.sm}px;color:${accent};background:${accent}24;box-shadow:${ELEVATION.certUnderlineExportHex(accent + "8c")}">${esc(row.value)}</span>`
             : esc(row.value);
           return `<tr style="border-bottom:1px solid ${accent}33;background:${ri % 2 === 1 ? accent + "0d" : "transparent"}"><th style="text-align:left;padding:12px 16px;width:38%;opacity:.65;font-weight:500">${esc(row.label)}</th><td style="padding:12px 16px;font-weight:500">${valueHtml}</td></tr>`;
         })
@@ -646,7 +648,7 @@ function sectionHtml(
         ${diagramHtml}
         ${
           isShipping
-            ? `<div class="pagzly-shipping-table" style="max-width:560px;margin:${tableMargin} auto 0;border:2px solid ${accent}59;border-radius:12px;overflow:hidden;background:${sectionBg}80">${tableHtml}</div>`
+            ? `<div class="pagzly-shipping-table" style="max-width:560px;margin:${tableMargin} auto 0;border:2px solid ${accent}59;border-radius:${RADIUS.md}px;overflow:hidden;background:${sectionBg}80">${tableHtml}</div>`
             : `<div style="max-width:560px;margin:${tableMargin} auto 0">${tableHtml}</div>`
         }
       </section>`;
@@ -676,7 +678,7 @@ function sectionHtml(
           const src = imageUrls[idx] ?? "";
           if (!src) return "";
           const alt = buildSectionImageAlt(productName, section.heading, section.slot);
-          return `<img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:12px;display:block"/>`;
+          return `<img src="${esc(src)}" alt="${esc(alt)}" style="width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:${RADIUS.md}px;display:block"/>`;
         })
         .filter(Boolean);
       const galleryHtml =
@@ -704,7 +706,7 @@ function sectionHtml(
       return `<section${sectionIdAttr} class="pagzly-persona" style="${pad}${sectionInset}${bgCss}">
         ${dh2(category, esc(section.heading), "text-align:center;font-size:1.5rem")}
         <ul style="max-width:480px;margin:24px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px">
-          ${section.personas.map((p) => `<li style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;background:${sectionBg};box-shadow:inset 0 0 0 1px ${accent}33;font-size:14px;font-weight:500;color:${deep}">✓ ${esc(p)}</li>`).join("")}
+          ${section.personas.map((p) => `<li style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:${RADIUS.pill}px;background:${sectionBg};box-shadow:${ELEVATION.personaRingExportHex(accent + "33")};font-size:14px;font-weight:500;color:${deep}">✓ ${esc(p)}</li>`).join("")}
         </ul>
       </section>`;
     case "usage_steps": {
@@ -720,7 +722,7 @@ function sectionHtml(
     case "custom_gif":
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss};text-align:center">
         ${section.heading ? `<h2>${esc(section.heading)}</h2>` : ""}
-        <img src="${esc(section.gifUrl)}" alt="${esc(buildSectionImageAlt(productName, section.heading ?? "GIF", section.slot))}" style="max-width:100%;border-radius:12px"/>
+        <img src="${esc(section.gifUrl)}" alt="${esc(buildSectionImageAlt(productName, section.heading ?? "GIF", section.slot))}" style="max-width:100%;border-radius:${RADIUS.md}px"/>
       </section>`;
     case "cta_price":
       return `<section${sectionIdAttr} class="pagzly-cta" style="${pad}background:${deep};color:#FAF8F3;text-align:center">
@@ -737,7 +739,7 @@ function sectionHtml(
           ${section.items
             .map(
               (item) =>
-                `<div class="pagzly-faq-card" style="border:1px solid ${accent}38;border-radius:12px;padding:16px 20px;background:${sectionBg}73">
+                `<div class="pagzly-faq-card" style="border:1px solid ${accent}38;border-radius:${RADIUS.md}px;padding:16px 20px;background:${sectionBg}73">
             <p style="font-size:11px;letter-spacing:.15em;color:${accent};margin:0 0 6px">Q.</p>
             <p style="font-weight:700;font-size:15px;margin:0">${esc(item.question)}</p>
             <p style="font-size:11px;letter-spacing:.15em;color:${deep};margin:16px 0 6px">A.</p>
@@ -790,8 +792,8 @@ function sectionHtml(
       const swatches = section.options
         .map(
           (opt, i) =>
-            `<label for="${cvId}-${i}" style="display:inline-flex;align-items:center;gap:8px;margin:4px;padding:6px 12px;border:1px solid ${accent}44;border-radius:999px;font-size:14px;cursor:pointer">
-              <span style="width:16px;height:16px;border-radius:999px;background:${esc(opt.colorHex)};box-shadow:0 0 0 1px ${accent}44"></span>
+            `<label for="${cvId}-${i}" style="display:inline-flex;align-items:center;gap:8px;margin:4px;padding:6px 12px;border:1px solid ${accent}44;border-radius:${RADIUS.pill}px;font-size:14px;cursor:pointer">
+              <span style="width:16px;height:16px;border-radius:${RADIUS.pill}px;background:${esc(opt.colorHex)};box-shadow:${ELEVATION.swatchRing(accent + "44")}"></span>
               ${esc(opt.label)}
             </label>`,
         )
@@ -800,7 +802,7 @@ function sectionHtml(
         .map((opt, i) => {
           const optSrc = imageUrls[opt.imageIndex] ?? "";
           return optSrc
-            ? `<img class="${cvId}-img" data-cv="${i}" src="${esc(optSrc)}" alt="${esc(opt.label)}" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px"/>`
+            ? `<img class="${cvId}-img" data-cv="${i}" src="${esc(optSrc)}" alt="${esc(opt.label)}" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:${RADIUS.md}px"/>`
             : "";
         })
         .join("");
@@ -882,7 +884,7 @@ function sectionHtml(
           ${praiseItems
             .map(
               (item) =>
-                `<div style="border-radius:16px;padding:24px;border:1px solid ${accent}33;background:${accent}0d">
+                `<div style="border-radius:${RADIUS.lg}px;padding:24px;border:1px solid ${accent}33;background:${accent}0d">
                   <span style="font-size:2rem;color:${accent};line-height:1">&ldquo;</span>
                   <p style="margin:12px 0 0;font-size:14px;line-height:1.6;opacity:.85">${esc(item.text)}</p>
                   ${
@@ -1041,7 +1043,7 @@ ${jsonLd}
   @keyframes pulseCard{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
   .pulse-card{animation:pulseCard 2.4s ease-in-out infinite}
   @media (max-width:750px){
-    .pagzly-cta{position:sticky;bottom:0;z-index:20;box-shadow:0 -8px 24px rgba(27,27,24,.15)}
+    .pagzly-cta{position:sticky;bottom:0;z-index:20;box-shadow:${ELEVATION.ctaSticky}}
   }
   @media (prefers-reduced-motion:reduce){.fill-bar,.pulse-card{animation:none!important}}
 </style>

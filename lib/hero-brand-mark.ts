@@ -3,6 +3,8 @@
  * 심볼·엠블럼 AI 생성 금지. 로고 파일이 없으면 브랜드명 텍스트 조판만.
  */
 
+import { RADIUS } from "@/lib/design-tokens";
+
 export type HeroBrandMarkKind = "logo" | "wordmark" | "none";
 
 export type HeroBrandMarkScript = "latin" | "cjk" | "mixed";
@@ -95,7 +97,7 @@ export function heroWordmarkInlineStyle(script: HeroBrandMarkScript): string {
 
 /** export — 워드마크 로컬 스크림 (히어로 전체 그라디언트와 별개) */
 export function heroWordmarkWrapInlineStyle(): string {
-  return "position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:30;max-width:70%;display:flex;align-items:center;justify-content:center;padding:8px 16px;border-radius:9999px;background:rgba(0,0,0,0.45);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)";
+  return `position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:30;max-width:70%;display:flex;align-items:center;justify-content:center;padding:8px 16px;border-radius:${RADIUS.pill}px;background:rgba(0,0,0,0.45);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)`;
 }
 
 /** export HTML — 로고/워드마크 마크업 (없으면 빈 문자열) */

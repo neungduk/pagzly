@@ -4,6 +4,7 @@
  */
 
 import { sanitizeText } from "@/lib/cosmetics-compliance";
+import { diagramTitleWithIconHtml } from "@/lib/diagram-icons";
 
 const EFFICACY =
   /보습|속건|장벽|미백|주름|탄력|임상|개선|효과|치료|완치|처방|24\s*시간/i;
@@ -45,6 +46,7 @@ function truncateLabel(s: string, max = 28): string {
 /**
  * 원형 노드 + 화살표 흐름. 모바일 360px에서도 겹치지 않도록
  * 세로 스택(기본) SVG를 생성한다.
+ * 174차 — 제목 옆 정적 아이콘만 추가(노드 좌표·번호 로직 불변).
  */
 export function buildUsageOrderFlowSvg(
   steps: string[],
@@ -77,6 +79,7 @@ export function buildUsageOrderFlowSvg(
   });
 
   return `<div style="max-width:360px;margin:24px auto 0" data-diagram="usage-order-flow">
+    ${diagramTitleWithIconHtml("사용 순서", "usage-flow", labelColor)}
     <svg viewBox="0 0 ${width} ${height}" width="100%" style="max-width:360px;height:auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="사용 순서 다이어그램">
       <defs>
         <marker id="usage-arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">

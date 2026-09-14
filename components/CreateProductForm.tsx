@@ -1092,13 +1092,17 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
                 <label htmlFor="ingredients" className={labelClass}>
                   주요 성분 또는 소재
                 </label>
+                <p className="mt-1.5 text-xs leading-relaxed text-ink/45">
+                  성분·인증·리뷰를 함께 입력하면 비교 차트·통계 인포그래픽 같은 섹션이 추가돼
+                  상세페이지가 훨씬 풍부해져요. (같은 상품 테스트에서 약 10개 → 27개 섹션)
+                </p>
                 <input
                   id="ingredients"
                   type="text"
                   value={ingredients}
                   onChange={(e) => setIngredients(e.target.value)}
                   placeholder="예: 면 100%, 히알루론산"
-                  className={inputClass}
+                  className={`${inputClass} mt-2`}
                 />
               </div>
 
@@ -1310,7 +1314,10 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
                 <label htmlFor="reviewFile" className={labelClass}>
                   리뷰 파일 (선택)
                 </label>
-                <p className="mt-1 text-xs text-ink/40">엑셀(xlsx) 또는 txt · 최대 2MB</p>
+                <p className="mt-1 text-xs text-ink/40">
+                  엑셀(xlsx) 또는 txt · 최대 2MB. 실제 후기를 넣으면 리뷰 하이라이트 등 설득
+                  섹션이 더 풍부해질 수 있어요.
+                </p>
                 <div className="mt-2 flex flex-wrap items-center gap-3">
                   <button
                     type="button"

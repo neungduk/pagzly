@@ -105,13 +105,15 @@ export function getSectionBackground(
   category?: string,
 ): string {
   const fashionMinimal = category === "의류/패션";
-  const accentSoftA = fashionMinimal ? 0.21 : 0.42;
-  const accentB = fashionMinimal ? 0.05 : 0.1;
-  const accentSoftB = fashionMinimal ? 0.275 : 0.55;
-  const accentSoftD = fashionMinimal ? 0.39 : 0.78;
-  const accentD = fashionMinimal ? 0.07 : 0.14;
-  const accentE = fashionMinimal ? 0.04 : 0.12;
-  const deepAccentE = fashionMinimal ? 0.035 : 0.1;
+  // 169차 — A/B/D/E 대비 강화. 3색(accent/baseNeutral/deepAccent)만 사용, 패턴 C 미변경.
+  // 패션은 58차 미니멀 의도에 맞춰 강화 폭을 다른 카테고리보다 작게 유지.
+  const accentSoftA = fashionMinimal ? 0.24 : 0.48;
+  const accentB = fashionMinimal ? 0.1 : 0.24;
+  const accentSoftB = fashionMinimal ? 0.22 : 0.38;
+  const accentSoftD = fashionMinimal ? 0.48 : 0.88;
+  const accentD = fashionMinimal ? 0.12 : 0.3;
+  const accentE = fashionMinimal ? 0.08 : 0.22;
+  const deepAccentE = fashionMinimal ? 0.1 : 0.28;
 
   if (pattern === "C") {
     // 148차 — deepAccent를 그대로 쓰면 A/B/D/E와 같은 색상군의 "더 진한 버전"일 뿐이라 눈에
@@ -124,16 +126,20 @@ export function getSectionBackground(
     const inkAccent = mixHex(theme.accent, BRAND.ink, 0.42);
     return `linear-gradient(145deg, ${hexToRgba(inkDeep, 0.97)} 0%, ${hexToRgba(inkAccent, 0.93)} 100%)`;
   }
+  // A — 가장 밝은 "숨 고르기": baseNeutral → accentSoft
   if (pattern === "A") {
     return `linear-gradient(168deg, ${theme.baseNeutral} 0%, ${hexToRgba(theme.accentSoft, accentSoftA)} 100%)`;
   }
+  // B — accent 우세(짧은 앞단), 각도를 A와 벌림
   if (pattern === "B") {
-    return `linear-gradient(168deg, ${hexToRgba(theme.accent, accentB)} 0%, ${hexToRgba(theme.accentSoft, accentSoftB)} 52%, ${theme.baseNeutral} 100%)`;
+    return `linear-gradient(125deg, ${hexToRgba(theme.accent, accentB)} 0%, ${hexToRgba(theme.accentSoft, accentSoftB)} 38%, ${theme.baseNeutral} 100%)`;
   }
+  // D — accentSoft 우세 시작, B와 반대쪽 각도·늦은 정지점
   if (pattern === "D") {
-    return `linear-gradient(175deg, ${hexToRgba(theme.accentSoft, accentSoftD)} 0%, ${hexToRgba(theme.accent, accentD)} 45%, ${theme.baseNeutral} 100%)`;
+    return `linear-gradient(210deg, ${hexToRgba(theme.accentSoft, accentSoftD)} 0%, ${hexToRgba(theme.accent, accentD)} 58%, ${theme.baseNeutral} 100%)`;
   }
-  return `linear-gradient(180deg, ${theme.baseNeutral} 0%, ${hexToRgba(theme.accent, accentE)} 42%, ${hexToRgba(theme.deepAccent, deepAccentE)} 100%)`;
+  // E — deepAccent를 한 단계 더 써서 A/B/D보다 진한 앵커(패턴 C만큼은 아님)
+  return `linear-gradient(180deg, ${theme.baseNeutral} 0%, ${hexToRgba(theme.accent, accentE)} 36%, ${hexToRgba(theme.deepAccent, deepAccentE)} 100%)`;
 }
 
 /** 51차 — 카테고리별 은은한 SVG 반복 패턴 (AI 이미지 없음, opt-in) */
@@ -151,8 +157,11 @@ export function getCategoryPatternBackground(category?: string): string | undefi
   if (!category) return undefined;
   const svg = CATEGORY_PATTERN_SVG[category];
   if (!svg) return undefined;
-  // 단일 따옴표로 감싸 SVG 내부 xmlns="..." 와 충돌하지 않게 함 (119차 — 생활용품 키 추가와 함께 실제 페인트 확인)
-  return `url('data:image/svg+xml,${svg}')`;
+  // 170차 — encodeURIComponent로 data URI를 HTML style="..."·CSS url() 모두에 안전하게.
+  // 기존 SVG는 data URI용으로 %23(#)을 미리 넣어 둔 경우가 있어, 전체 encode 전에 #로
+  // 되돌린 뒤 encode한다(이중 인코딩 %2523 방지). 도안·투명도는 그대로.
+  const forEncode = svg.replace(/%23/gi, "#");
+  return `url('data:image/svg+xml,${encodeURIComponent(forEncode)}')`;
 }
 
 /** 그radient 위에 카테고리 패턴을 은은하게 합성 */
@@ -211,6 +220,112 @@ export function getTextPanelSurface(theme: CategoryTheme): {
     boxShadow: `0 12px 40px ${hexToRgba(theme.deepAccent, 0.08)}`,
   };
 }
+
+// ---------------------------------------------------------------------------
+// 1.4 179차 토큰화 → 180차 값 정리 (4단계 radius + live/export drift 통일).
+//     getSectionInsetShadow / getTextPanelSurface는 기존 함수 유지.
+// ---------------------------------------------------------------------------
+
+/**
+ * radius 4단계 (+ hairline).
+ * 180: bento(14)→lg(16), circle(9999)→pill(999), chip→sm, media→md, card→lg.
+ */
+export const RADIUS = {
+  hairline: 2,
+  sm: 6,
+  md: 12,
+  lg: 16,
+  pill: 999,
+} as const;
+
+/**
+ * 그림자/inset 규칙군 — live·export가 같은 상수를 참조.
+ * 180: imageLift/Soft·ctaSticky는 export 값을 단일 소스로 (live TW drift 제거).
+ */
+export const ELEVATION = {
+  /** 체크리스트 카드 outer (비 boldBlock) */
+  checklistCard: (deepAccent: string) =>
+    `0 10px 28px -14px ${hexToRgba(deepAccent, 0.14)}`,
+
+  /** 하이라이트 emphasis 카드 */
+  highlightEmphasis: "0 16px 40px -16px rgba(27,27,24,0.5)",
+
+  /** 바 fill glow (emphasis) */
+  barFillGlow: (deepAccent: string) => `0 2px 8px ${hexToRgba(deepAccent, 0.35)}`,
+
+  /** 칩/인증 — trust strip highlight underline */
+  certUnderline: (accent: string) => `inset 0 -2px 0 0 ${accent}`,
+
+  /** 스펙 테이블 인증 하이라이트 (live) */
+  certUnderlineSoft: (accent: string) =>
+    `inset 0 -2px 0 0 ${hexToRgba(accent, 0.55)}`,
+
+  /** 스펙 값 export — accent+8c 접미 문자열을 그대로 받음 */
+  certUnderlineExportHex: (accentWithAlphaSuffix: string) =>
+    `inset 0 -2px 0 0 ${accentWithAlphaSuffix}`,
+
+  /** 칩 기본 링 (live trust 비하이라이트) */
+  certRing: (accent: string) => `inset 0 0 0 1px ${hexToRgba(accent, 0.28)}`,
+
+  /** persona 칩 링 (live) */
+  personaRing: (accent: string) => `inset 0 0 0 1px ${hexToRgba(accent, 0.2)}`,
+
+  /** persona export — accent+33 접미 */
+  personaRingExportHex: (accentWithAlphaSuffix: string) =>
+    `inset 0 0 0 1px ${accentWithAlphaSuffix}`,
+
+  /** 컨셉 배지 outer ring */
+  badgeRing: (accentWithAlphaSuffix: string) => `0 0 0 1px ${accentWithAlphaSuffix}`,
+
+  /** 컬러 스와치 링 */
+  swatchRing: (accentWithAlphaSuffix: string) => `0 0 0 1px ${accentWithAlphaSuffix}`,
+
+  /** 이미지/썸네일 drop — live·export 공용 fixed ink */
+  imageThumb: "0 12px 32px -12px rgba(27,27,24,0.28)",
+
+  /**
+   * image_text lift — 180: export 기준 단일값 (구 live: -16px spread + ink@0.22).
+   * theme.deepAccent tint, spread 없음.
+   */
+  imageLift: (deepAccent: string) => `0 20px 56px ${hexToRgba(deepAccent, 0.14)}`,
+
+  /**
+   * image_text / callout soft — 180: export 기준 단일값
+   * (구 live: -12px spread + ink@0.18).
+   */
+  imageSoft: (deepAccent: string) => `0 16px 48px ${hexToRgba(deepAccent, 0.12)}`,
+
+  /** live spec 멀티 썸네일 */
+  specThumbMulti: "0 10px 28px -10px rgba(27,27,24,0.24)",
+
+  /**
+   * CTA sticky — 180: export 기준 단일값
+   * (구 live: 0 -8px 24px -8px rgba(27,27,24,0.2)).
+   */
+  ctaSticky: "0 -8px 24px rgba(27,27,24,.15)",
+
+  /** live CTA 버튼 */
+  ctaButton: "0 12px 28px -10px rgba(27,27,24,0.55)",
+
+  /** TW 클래스 — JIT용 리터럴 (값이 ELEVATION CSS와 대응). CTA는 export와 동일. */
+  twImageThumb: "shadow-[0_12px_32px_-12px_rgba(27,27,24,0.28)]",
+  twSpecThumbMulti: "shadow-[0_10px_28px_-10px_rgba(27,27,24,0.24)]",
+  twCtaSticky: "shadow-[0_-8px_24px_rgba(27,27,24,0.15)]",
+  twCtaButton: "shadow-[0_12px_28px_-10px_rgba(27,27,24,0.55)]",
+
+  /** 스펙 썸네일 border (export) */
+  specThumbBorder: "1px solid rgba(27,27,24,0.1)",
+
+  /** FAQ 카드 — shadow 없음, border만 */
+  faqBorder: (accentWithAlphaSuffix: string) => `1px solid ${accentWithAlphaSuffix}`,
+
+  /**
+   * pulse-card — globals.css에 동일 문자열이 남아 있음(CSS는 TS import 불가).
+   */
+  pulseCardRest: "0 10px 28px -12px rgba(27, 27, 24, 0.45)",
+  pulseCardKey0: "0 10px 28px -12px rgba(27, 27, 24, 0.4)",
+  pulseCardKey50: "0 18px 36px -14px rgba(27, 27, 24, 0.55)",
+} as const;
 
 // hero만 예외적으로 진→연 그라데이션 허용 (deepAccent → accent → transparent).
 export function getHeroGradient(theme: CategoryTheme): string {

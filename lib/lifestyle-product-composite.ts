@@ -680,7 +680,8 @@ function buildSceneShadowSvg(
   );
 }
 
-async function pasteCutoutOnScene(params: {
+/** 167차 — 회귀 검증용으로 export. 씬 밖으로 나가지 않도록 rotate→resize + 클램프. */
+export async function pasteCutoutOnScene(params: {
   sceneBuffer: Buffer;
   cutoutBuffer: Buffer;
   placement: HeldObjectPlacement;
@@ -695,18 +696,37 @@ async function pasteCutoutOnScene(params: {
   const left = Math.round(sceneW * (placement.xPct / 100));
   const top = Math.round(sceneH * (placement.yPct / 100));
 
-  const cutoutPrepared = await sharp(cutoutBuffer)
-    .resize(targetW, targetH, { fit: "inside", withoutEnlargement: false })
+  // 167차 — rotate는 캔버스를 확장하므로 resize→rotate면 cutW/cutH가 target를
+  // 넘겨 pasteLeft/Top이 음수·씬 초과가 된다. 회전 후 목표 박스에 다시 맞춘다.
+  const rotated = await sharp(cutoutBuffer)
     .rotate(placement.rotationDeg, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
     .png()
     .toBuffer();
 
-  const cutMeta = await sharp(cutoutPrepared).metadata();
-  const cutW = cutMeta.width ?? targetW;
-  const cutH = cutMeta.height ?? targetH;
+  let cutoutPrepared = await sharp(rotated)
+    .resize(targetW, targetH, { fit: "inside", withoutEnlargement: false })
+    .png()
+    .toBuffer();
 
-  const pasteLeft = left + Math.round((targetW - cutW) / 2);
-  const pasteTop = top + Math.round((targetH - cutH) / 2);
+  let cutMeta = await sharp(cutoutPrepared).metadata();
+  let cutW = cutMeta.width ?? targetW;
+  let cutH = cutMeta.height ?? targetH;
+
+  // 극단 placement로도 씬보다 크면 한 번 더 축소
+  if (cutW > sceneW || cutH > sceneH) {
+    cutoutPrepared = await sharp(cutoutPrepared)
+      .resize(sceneW, sceneH, { fit: "inside", withoutEnlargement: false })
+      .png()
+      .toBuffer();
+    cutMeta = await sharp(cutoutPrepared).metadata();
+    cutW = cutMeta.width ?? Math.min(targetW, sceneW);
+    cutH = cutMeta.height ?? Math.min(targetH, sceneH);
+  }
+
+  let pasteLeft = left + Math.round((targetW - cutW) / 2);
+  let pasteTop = top + Math.round((targetH - cutH) / 2);
+  pasteLeft = Math.max(0, Math.min(pasteLeft, Math.max(0, sceneW - cutW)));
+  pasteTop = Math.max(0, Math.min(pasteTop, Math.max(0, sceneH - cutH)));
 
   const shadow = { ...DEFAULT_SHADOW };
   // 162차 — 실제 사용자 라이프스타일 사진(sceneBuffer)의 주변색을 샘플해 순수 검정
@@ -885,6 +905,8 @@ export async function compositeProductOnLifestylePhoto(params: {
   }
 
   let cost = 0;
+  /** 167차 — paste/prep 실패 사유를 requirePixelPaste 폴백이 덮어쓰지 않도록 보존 */
+  let pixelPasteFailReason: string | undefined;
   try {
     const cutout = await removeProductBackground(productImageUrl);
     cost += cutout.cost;
@@ -1032,6 +1054,8 @@ export async function compositeProductOnLifestylePhoto(params: {
             };
           } catch (error) {
             const reason = error instanceof Error ? error.message : String(error);
+            // 167차 — sharp 캔버스 초과 등 실제 사유를 보존 (아래 requirePixelPaste가 덮지 않음)
+            pixelPasteFailReason = `canvas-overflow-or-sharp: ${reason}`;
             console.warn(`[lifestyle-composite] stage=direct-paste failed, reason=${reason}`);
           }
         } else {
@@ -1050,16 +1074,18 @@ export async function compositeProductOnLifestylePhoto(params: {
               method: "none",
             };
           }
+          pixelPasteFailReason = reason;
         }
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
         console.warn(`[lifestyle-composite] stage=direct-paste prep failed, reason=${reason}`);
+        pixelPasteFailReason = `direct-paste-prep-failed: ${reason}`;
         if (requirePixelPaste) {
           return {
             url: lifestyleImageUrl,
             cost,
             composited: false,
-            fallbackReason: reason,
+            fallbackReason: pixelPasteFailReason,
             method: "none",
           };
         }
@@ -1071,7 +1097,7 @@ export async function compositeProductOnLifestylePhoto(params: {
         url: lifestyleImageUrl,
         cost,
         composited: false,
-        fallbackReason: "require-pixel-paste-no-fallback",
+        fallbackReason: pixelPasteFailReason ?? "require-pixel-paste-no-fallback",
         method: "none",
       };
     }

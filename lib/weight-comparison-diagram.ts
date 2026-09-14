@@ -6,7 +6,10 @@
  * ·스마트폰·사과 같은 "체감 무게"를 나란히 놓는 방식은 실제 상세페이지에서 널리 쓰임).
  * 기준점은 상품별 조사가 아니라 널리 통용되는 일반 물건의 평균 무게를 고정값으로
  * 사용한다(지어내기 아님). spec_table에 실제 무게 값이 있을 때만 렌더, 없으면 생략.
+ * 175차 — 제목 옆 정적 Recraft 아이콘(좌표·눈금 로직 불변).
  */
+
+import { diagramTitleWithIconHtml } from "@/lib/diagram-icons";
 
 export type WeightReferencePoint = { label: string; g: number };
 
@@ -167,7 +170,7 @@ export function buildWeightComparisonDiagramSvg(
     productValueLabel.length > 16 ? `${productValueLabel.slice(0, 15)}…` : productValueLabel;
 
   return `<div style="max-width:340px;margin:28px auto 0;text-align:center">
-    <p style="font-size:11px;letter-spacing:.12em;opacity:.85;margin:0 0 12px;color:${labelColor}">무게 비교</p>
+    ${diagramTitleWithIconHtml("무게 비교", "weight-scale", labelColor)}
     <svg viewBox="0 0 ${width} 130" width="100%" style="max-width:340px;height:auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="무게 비교 다이어그램">
       <line x1="${trackX1}" y1="${trackY}" x2="${trackX2}" y2="${trackY}" stroke="${strokeColor}" stroke-width="1.2" opacity="0.32"/>
       ${refMarks}

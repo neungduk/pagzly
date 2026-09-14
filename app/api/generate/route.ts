@@ -516,7 +516,7 @@ const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
   cta_price: `{ type: "cta_price", slot, price, targetCustomer?, badges[]? }`,
   comparison_table: `{ type: "comparison_table", slot, heading, columns: [string,string], rows: [{label, values: [string,string]}] }`,
   comparison_chart: `{ type: "comparison_chart", slot, heading, ourLabel, baselineLabel, unit?: "%", presentationStyle?: "bar"|"checklist", metrics: [{label, ourValue: 0-100, baselineValue: 0-100}], basis: "measured"|"self_assessed", basisNote? } — "우리 제품 vs 비교대상" 비교. baselineLabel은 반드시 "일반 제품"|"업계 평균"|"타 제품" 중 하나만(특정 브랜드명·경쟁사명 절대 금지). metrics 2~4개. presentationStyle:"bar"(기본)=수치 막대, "checklist"=유무 ✓/✗(있음=100, 없음=0). 유무/포함 여부(신선육 포함·무첨가·코팅 유무 등)는 checklist, 수치 크기 비교는 bar. 실측 근거 있으면 basis:"measured"+basisNote, 없으면 "self_assessed"(bar일 때 30~85·극단 0/100 금지·our≤baseline×2). 근거·추정 불가하면 슬롯 생략`,
-  tradeoff_card: `{ type: "tradeoff_card", slot, heading, recommendFor: string[], considerIf: string[] } — 생활/리빙 전용. 입력에 추천 대상·유의사항이 있을 때만. recommendFor 1~4(이런 분께 추천), considerIf 1~4(이런 점은 참고하세요·완곡·사실 기반, 깎아내리기 금지). 없으면 슬롯 생략`,
+  tradeoff_card: `{ type: "tradeoff_card", slot, heading, recommendFor: string[], considerIf: string[] } — 전 카테고리. 입력에 추천 대상·유의사항·사용 조건이 있을 때만. recommendFor 1~4(이런 분께 추천), considerIf 1~4(이런 점은 참고하세요·완곡·사실 기반, 깎아내리기 금지). 없으면 슬롯 생략`,
   highlight_box: `{ type: "highlight_box", slot, heading, cards: [{title, body}] } — 정확히 3개(2~4개 허용) 카드로 핵심 효과/성분을 요약. 각 title은 6자 내외, body는 1~2문장. checklist와 겹치지 않게 서로 다른 효과/성분 축으로 구성. 가장 강조하고 싶은 내용을 가운데(2번째) 카드에 배치 — 서버가 가운데 카드를 자동으로 진하게 강조 처리함`,
   step_card: `{ type: "step_card", slot, heading, steps: [{title, body, imageIndex}] } — 사용법 3단계 권장. 각 단계에 실제 상품 사진 imageIndex를 배정(가능하면 서로 다른 사진), title은 6자 내외, body는 1문장. STEP 태그는 서버가 자동으로 붙이므로 title에 "STEP 01" 등을 직접 쓰지 말 것`,
   color_variation: `{ type: "color_variation", slot, heading, options: [{label, colorHex, imageIndex}] }`,
@@ -929,8 +929,10 @@ comparison_chart 슬롯이 있다면: baselineLabel은 반드시 "일반 제품"
 식품이고 keyFeatures·ingredients에 함량 %·단백질·무첨가 등 비교 근거가 있으면 comparison_chart를 생략하지 마세요.
 전자제품이고 keyFeatures에 dB·배터리·IP 등 수치가 있으면 comparison_chart를 생략하지 마세요(comparison_table과 병행 가능).
 패션/반려동물/생활용품도 keyFeatures·certifications에 비교 가능 수치·유무 근거가 있으면 적극 채우세요.
-tradeoff_card 슬롯(생활/리빙)이 있다면: 입력에 추천 대상·유의사항이 있을 때만 recommendFor/
+tradeoff_card 슬롯이 있다면: 입력에 추천 대상·유의사항·사용 조건이 있을 때만 recommendFor/
 considerIf를 각 1~4문장으로. considerIf는 완곡한 "참고하세요" 톤, 깎아내리기 금지. 없으면 생략.
+(화장품: 피부타입·자극도 / 패션: 핏·사이즈감 / 식품: 알레르기·보관 / 전자: 호환·설치 /
+반려동물: 연령·급여 조건 — 질병 치료·예방·수명 연장 단정 금지 / 생활: 사용 조건)
 illustration_banner의 illustrationUrl은 항상 빈 문자열("")로 두세요 (서버가 생성).
 illustration_banner의 body는 이 섹션 분위기를 설명하는 1~2문장 카피입니다 (image_text body와 비슷한 톤).
 quick_points 슬롯은 layout:"compact"로 2~4개 채우세요. heading 8자 내외, body 1문장, 사진은 작은 텍스처/디테일 컷.

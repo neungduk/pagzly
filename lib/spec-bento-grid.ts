@@ -14,6 +14,7 @@
  */
 
 import type { QuickFact } from "@/lib/quick-fact-strip";
+import { RADIUS } from "@/lib/design-tokens";
 
 export type SpecBentoTheme = {
   accent: string;
@@ -40,12 +41,12 @@ export function buildSpecBentoGridHtml(facts: QuickFact[], theme: SpecBentoTheme
   const cellsHtml = cells
     .map((f, i) => {
       if (i === 0) {
-        return `<div style="background:${theme.deepAccent};border-radius:14px;padding:18px 16px;min-height:84px;display:flex;flex-direction:column;justify-content:flex-end">
+        return `<div style="background:${theme.deepAccent};border-radius:${RADIUS.lg}px;padding:18px 16px;min-height:84px;display:flex;flex-direction:column;justify-content:flex-end">
           <p style="margin:0 0 6px;font-size:10px;letter-spacing:.14em;opacity:.72;color:${PAPER_TEXT}">${escapeXml(f.label)}</p>
           <p style="margin:0;font-size:19px;font-weight:800;line-height:1.15;color:${PAPER_TEXT}">${escapeXml(f.value)}</p>
         </div>`;
       }
-      return `<div style="background:${theme.baseNeutral}66;border:1px solid ${theme.accent}30;border-radius:14px;padding:16px;min-height:84px;display:flex;flex-direction:column;justify-content:flex-end">
+      return `<div style="background:${theme.baseNeutral}66;border:1px solid ${theme.accent}30;border-radius:${RADIUS.lg}px;padding:16px;min-height:84px;display:flex;flex-direction:column;justify-content:flex-end">
         <p style="margin:0 0 5px;font-size:9.5px;letter-spacing:.12em;opacity:.62;color:${theme.deepAccent}">${escapeXml(f.label)}</p>
         <p style="margin:0;font-size:15px;font-weight:700;color:${theme.deepAccent}">${escapeXml(f.value)}</p>
       </div>`;

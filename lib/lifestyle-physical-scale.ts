@@ -124,11 +124,32 @@ export function applyPhysicalScaleToPlacement(opts: {
   const cx = opts.placement.xPct + opts.placement.wPct / 2;
   const cy = opts.placement.yPct + opts.placement.hPct / 2;
 
+  // 167차 — Vision bbox보다 물리 스케일이 커지면 재중심 좌표가 프레임 밖으로
+  // 나갈 수 있음. isHeldObjectPlacementReasonable(최대 75%)에 맞춰 축소·클램프.
+  const MAX_FRAME_PCT = 75;
+  let nextW = wPct;
+  let nextH = hPct;
+  if (nextW > MAX_FRAME_PCT || nextH > MAX_FRAME_PCT) {
+    const shrink = Math.min(MAX_FRAME_PCT / nextW, MAX_FRAME_PCT / nextH);
+    nextW *= shrink;
+    nextH *= shrink;
+  }
+  if (nextW <= 0 || nextH <= 0 || nextW > 90 || nextH > 90) return null;
+
+  let xPct = cx - nextW / 2;
+  let yPct = cy - nextH / 2;
+  xPct = Math.max(0, Math.min(xPct, 100 - nextW));
+  yPct = Math.max(0, Math.min(yPct, 100 - nextH));
+
+  // 클램프 후에도 프레임을 벗어나면 폐기 (기존 실패 경로와 동일)
+  if (xPct < -2 || yPct < -2) return null;
+  if (xPct + nextW > 102 || yPct + nextH > 102) return null;
+
   return {
     ...opts.placement,
-    wPct,
-    hPct,
-    xPct: cx - wPct / 2,
-    yPct: cy - hPct / 2,
+    wPct: nextW,
+    hPct: nextH,
+    xPct,
+    yPct,
   };
 }

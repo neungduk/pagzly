@@ -168,10 +168,73 @@ function normalizeInsights(raw: unknown): {
   return { commonPraises: praises, commonComplaints: complaints, reviewAxes };
 }
 
+export type ExtractReviewInsightsOptions = {
+  /** 기본 0 — 사실 추출이라 창의성 불필요 (172차). 레거시 비교용으로만 올리세요. */
+  temperature?: number;
+  /** 리뷰 라인≥minLinesForRetry인데 praises가 비면 1회 재시도 (기본 true) */
+  retryEmptyPraises?: boolean;
+  minLinesForRetry?: number;
+};
+
+async function callDeepSeekReviewJson(
+  prompt: string,
+  temperature: number,
+): Promise<{
+  parsed: {
+    commonPraises: string[];
+    commonComplaints: string[];
+    reviewAxes: string[];
+  } | null;
+  cost: number;
+  ok: boolean;
+}> {
+  const response = await fetch(DEEPSEEK_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: DEEPSEEK_MODEL,
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+      temperature,
+    }),
+  });
+
+  const rawBody = await response.text();
+  if (!response.ok) {
+    console.warn("[review-insights] DeepSeek 오류:", rawBody.slice(0, 200));
+    return { parsed: null, cost: 0, ok: false };
+  }
+
+  const data = JSON.parse(rawBody) as {
+    choices?: { message?: { content?: string } }[];
+    usage?: unknown;
+  };
+  const cost = calculateDeepSeekCost(data.usage);
+  console.log(`[cost] extractReviewInsights: $${cost.toFixed(4)} (temp=${temperature})`);
+
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) return { parsed: null, cost, ok: true };
+
+  try {
+    return { parsed: normalizeInsights(JSON.parse(content)), cost, ok: true };
+  } catch {
+    console.warn("[review-insights] JSON parse 실패");
+    return { parsed: null, cost, ok: true };
+  }
+}
+
 export async function extractReviewInsights(
   fileBuffer: Buffer,
   fileType: "xlsx" | "txt",
-): Promise<ReviewInsights & { cost: number }> {
+  options: ExtractReviewInsightsOptions = {},
+): Promise<ReviewInsights & { cost: number; deepseekCalls?: number }> {
+  const temperature = options.temperature ?? 0;
+  const retryEmptyPraises = options.retryEmptyPraises ?? true;
+  const minLinesForRetry = options.minLinesForRetry ?? 3;
+
   const lines =
     fileType === "xlsx" ? extractLinesFromXlsx(fileBuffer) : extractLinesFromTxt(fileBuffer);
   const reviewLineCount = lines.length;
@@ -186,12 +249,12 @@ export async function extractReviewInsights(
   const rawText = lines.join("\n");
   if (!rawText.trim()) {
     console.warn("[review-insights] 리뷰 텍스트 없음");
-    return { ...empty, reviewLineCount: 0, cost: 0 };
+    return { ...empty, reviewLineCount: 0, cost: 0, deepseekCalls: 0 };
   }
 
   if (!process.env.DEEPSEEK_API_KEY) {
     console.warn("[review-insights] DEEPSEEK_API_KEY 없음 — 요약 생략");
-    return { ...empty, cost: 0 };
+    return { ...empty, cost: 0, deepseekCalls: 0 };
   }
 
   const sampled = sampleReviewText(rawText);
@@ -209,38 +272,34 @@ JSON만 반환:
 }`;
 
   try {
-    const response = await fetch(DEEPSEEK_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: DEEPSEEK_MODEL,
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-        temperature: 0.2,
-      }),
-    });
+    let deepseekCalls = 0;
+    let totalCost = 0;
 
-    const rawBody = await response.text();
-    if (!response.ok) {
-      console.warn("[review-insights] DeepSeek 오류:", rawBody.slice(0, 200));
-      return { ...empty, cost: 0 };
+    const first = await callDeepSeekReviewJson(prompt, temperature);
+    deepseekCalls += 1;
+    totalCost += first.cost;
+    let parsed = first.parsed;
+
+    // 172차 — 리뷰는 있는데 praises만 빈 샘플링 실패를 1회 재시도로 완화(지어내기 아님)
+    const shouldRetry =
+      retryEmptyPraises &&
+      reviewLineCount >= minLinesForRetry &&
+      (!parsed || parsed.commonPraises.length === 0);
+    if (shouldRetry) {
+      console.log(
+        `[review-insights] empty praises with reviewLineCount=${reviewLineCount} — retry once`,
+      );
+      const second = await callDeepSeekReviewJson(prompt, temperature);
+      deepseekCalls += 1;
+      totalCost += second.cost;
+      if (second.parsed && second.parsed.commonPraises.length > 0) {
+        parsed = second.parsed;
+      } else if (!parsed && second.parsed) {
+        parsed = second.parsed;
+      }
     }
 
-    const data = JSON.parse(rawBody) as {
-      choices?: { message?: { content?: string } }[];
-      usage?: unknown;
-    };
-    const cost = calculateDeepSeekCost(data.usage);
-    console.log(`[cost] extractReviewInsights: $${cost.toFixed(4)}`);
-
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) return { ...empty, cost };
-
-    const parsed = normalizeInsights(JSON.parse(content));
-    if (!parsed) return { ...empty, cost };
+    if (!parsed) return { ...empty, cost: totalCost, deepseekCalls };
 
     const praiseMatchCounts = parsed.commonPraises.map((p) => countLineMatches(lines, p));
     const complaintMatchCounts = parsed.commonComplaints.map((c) =>
@@ -249,7 +308,7 @@ JSON만 반환:
     const axisComparison = buildAxisComparison(lines, parsed.reviewAxes, reviewLineCount);
 
     console.log(
-      `[review-insights] praises=${parsed.commonPraises.length} complaints=${parsed.commonComplaints.length} reviewLineCount=${reviewLineCount} praiseMatches=[${praiseMatchCounts.join(",")}] complaintMatches=[${complaintMatchCounts.join(",")}] axes=${axisComparison.length}(${axisComparison.map((a) => a.label).join(",")})`,
+      `[review-insights] praises=${parsed.commonPraises.length} complaints=${parsed.commonComplaints.length} reviewLineCount=${reviewLineCount} praiseMatches=[${praiseMatchCounts.join(",")}] complaintMatches=[${complaintMatchCounts.join(",")}] axes=${axisComparison.length}(${axisComparison.map((a) => a.label).join(",")}) calls=${deepseekCalls}`,
     );
     return {
       commonPraises: parsed.commonPraises,
@@ -258,11 +317,12 @@ JSON만 반환:
       praiseMatchCounts,
       complaintMatchCounts,
       ...(axisComparison.length >= 2 ? { axisComparison } : {}),
-      cost,
+      cost: totalCost,
+      deepseekCalls,
     };
   } catch (error) {
     console.warn("[review-insights] 요약 실패", error);
-    return { ...empty, cost: 0 };
+    return { ...empty, cost: 0, deepseekCalls: 0 };
   }
 }
 

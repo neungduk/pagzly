@@ -1,9 +1,11 @@
 /**
  * 113차 — 전자제품 구성품 배치도 (심플 SVG 도형 + 라벨).
- * AI 아이콘 생성 없음. 구성품 목록이 파싱될 때만 렌더.
+ * 174차 — Recraft 정적 아이콘(런타임 API 없음). 구성품 목록이 파싱될 때만 렌더.
  * 157차 — 화장품/뷰티의 기획·증정 세트 구성(package_contents 슬롯 재사용)도
  * 같은 파서/컴포넌트로 처리하도록 접두어(사은품/증정/기획) 인식 추가.
  */
+import { diagramIconGroup, diagramTitleWithIconHtml } from "@/lib/diagram-icons";
+
 export type PackageItem = { label: string };
 
 const PLACEHOLDER = /판매자\s*확인|문의|확인\s*필요|미정/;
@@ -55,7 +57,7 @@ function escapeXml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-/** 2열 그리드 — 원형 + 라벨 */
+/** 2열 그리드 — 정적 박스 아이콘 + 라벨 (174차). 좌표·라벨 로직 동일. */
 export function buildPackageContentsDiagramSvg(
   items: PackageItem[],
   strokeColor: string,
@@ -77,16 +79,21 @@ export function buildPackageContentsDiagramSvg(
       const cx = 40 + col * cellW;
       const cy = 36 + row * cellH;
       const label = item.label.length > 14 ? `${item.label.slice(0, 13)}…` : item.label;
+      const iconId = i % 2 === 0 ? "package-box" : "package-kit";
+      const icon = diagramIconGroup(iconId, strokeColor, {
+        x: cx - 14,
+        y: cy - 14,
+        size: 28,
+      });
       return `
-      <circle cx="${cx}" cy="${cy}" r="16" fill="none" stroke="${strokeColor}" stroke-width="1.6" opacity="0.75"/>
-      <rect x="${cx - 10}" y="${cy - 10}" width="20" height="20" rx="3" fill="none" stroke="${strokeColor}" stroke-width="1.2" opacity="0.55"/>
+      ${icon}
       <text x="${cx + 28}" y="${cy + 5}" font-size="12" fill="${labelColor}">${escapeXml(label)}</text>
     `;
     })
     .join("");
 
   return `<div style="max-width:360px;margin:28px auto 0" data-diagram="package-contents">
-    <p style="font-size:11px;letter-spacing:.12em;opacity:.65;margin:0 0 8px;text-align:center">구성품</p>
+    ${diagramTitleWithIconHtml("구성품", "package-box", labelColor)}
     <svg viewBox="0 0 ${width} ${height}" width="100%" style="max-width:360px;height:auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="구성품 배치도">
       ${nodes}
     </svg>

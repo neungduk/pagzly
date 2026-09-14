@@ -1,4 +1,8 @@
-/** spec_table 크기 비교 다이어그램 — 57차 (패션 size_table과 분리) */
+/** spec_table 크기 비교 다이어그램 — 57차 (패션 size_table과 분리)
+ * 175차 — 제목 옆 정적 Recraft 아이콘(도형·치수 로직 불변).
+ */
+
+import { diagramTitleWithIconHtml } from "@/lib/diagram-icons";
 
 export type SizeComparisonDimension = {
   label: string;
@@ -163,7 +167,7 @@ export function buildSizeComparisonDiagramSvg(
   }
 
   return `<div style="max-width:340px;margin:28px auto 0;text-align:center">
-    <p style="font-size:11px;letter-spacing:.12em;opacity:.85;margin:0 0 8px;color:${labelColor}">크기 비교 (기준: ${REFERENCE_CAN.label})</p>
+    ${diagramTitleWithIconHtml(`크기 비교 (기준: ${REFERENCE_CAN.label})`, "size-ruler", labelColor)}
     <svg viewBox="0 0 340 200" width="340" height="200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="크기 비교 다이어그램">
       <text x="${canX + canW / 2}" y="24" text-anchor="middle" font-size="10" fill="${labelColor}" opacity="0.9">${REFERENCE_CAN.label}</text>
       <rect x="${canX}" y="${canY}" width="${canW}" height="${canH}" rx="${canW / 2}" fill="none" stroke="${strokeColor}" stroke-width="1.8" opacity="0.88"/>

@@ -9,7 +9,10 @@
  * 있는데도 비교 시각화가 전혀 없는 것이 전자/가전 카테고리의 구체적 공백이었음.
  * 기준점은 상품별 조사가 아니라 널리 알려진 일반 가전의 평균 소비전력을 고정값으로
  * 사용한다(지어내기 아님). spec_table에 실제 소비전력 값이 있을 때만 렌더, 없으면 생략.
+ * 175차 — 제목 옆 정적 Recraft 아이콘(좌표·눈금 로직 불변).
  */
+
+import { diagramTitleWithIconHtml } from "@/lib/diagram-icons";
 
 export type PowerReferencePoint = { label: string; w: number };
 
@@ -172,7 +175,7 @@ export function buildPowerConsumptionDiagramSvg(
     productValueLabel.length > 16 ? `${productValueLabel.slice(0, 15)}…` : productValueLabel;
 
   return `<div style="max-width:340px;margin:28px auto 0;text-align:center">
-    <p style="font-size:11px;letter-spacing:.12em;opacity:.85;margin:0 0 12px;color:${labelColor}">소비전력 비교</p>
+    ${diagramTitleWithIconHtml("소비전력 비교", "power-plug", labelColor)}
     <svg viewBox="0 0 ${width} 130" width="100%" style="max-width:340px;height:auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="소비전력 비교 다이어그램">
       <line x1="${trackX1}" y1="${trackY}" x2="${trackX2}" y2="${trackY}" stroke="${strokeColor}" stroke-width="1.2" opacity="0.32"/>
       ${refMarks}

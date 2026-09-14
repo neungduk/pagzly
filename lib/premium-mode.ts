@@ -11,8 +11,13 @@
  * true일 때 영향받는 것 (144차 "스마트 $0.50 레시피" 중 스펙 아이콘 전면 교체처럼
  * 체감 대비 원가만 큰 항목은 제외):
  * - illustration_banner: recraft-v3 → recraft-v4-svg
- * - checklist / usageSteps 아이콘: ICON_MODEL 기본값 → flux-dev
+ * - checklist / usageSteps / highlightBox 아이콘: ICON_MODEL 기본값 →
+ *   recraft-v4-svg (177차: flux-dev 대체 — 단색 실루엣+SVG tint)
  * - computeStudioCompositeLimit: 업로드 8장 이상일 때 4 → 8
+ *
+ * 티어와 무관(concept-icons 고정, 178차):
+ * - statInfographic 아이콘: 항상 recraft-v4-svg (실측 ≈3 metrics/페이지라
+ *   원가 증가분 작음 — 다이어그램·checklist 실루엣과 언어 통일)
  *
  * 영향받지 않는 것 (144차 권고에 따라 의도적으로 제외):
  * - spec_table 아이콘은 flux-schnell 유지 (144차: 스펙 13장 flux-dev 전환은

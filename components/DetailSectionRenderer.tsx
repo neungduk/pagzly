@@ -94,6 +94,7 @@ import {
   INFO_BADGE,
   INFO_TABLE,
   SECTION_BG_PATTERN_C_ALPHA,
+  ELEVATION,
   getCtaBandBackground,
   getCategoryRhythm,
   getComposedSectionBackgroundStyle,
@@ -270,7 +271,7 @@ function ConceptBadgeIcon({
         src={src}
         alt=""
         className={`${sizeClass} shrink-0 rounded-full object-cover ring-2 ring-white/80`}
-        style={{ boxShadow: `0 0 0 1px ${theme.accent}33` }}
+        style={{ boxShadow: ELEVATION.badgeRing(`${theme.accent}33`) }}
         aria-hidden="true"
       />
     );
@@ -442,7 +443,7 @@ function MetricBar({
         style={{
           width: `${percent}%`,
           backgroundColor: emphasis ? theme.deepAccent : theme.accent,
-          boxShadow: emphasis ? `0 2px 8px ${hexToRgba(theme.deepAccent, 0.35)}` : undefined,
+          boxShadow: emphasis ? ELEVATION.barFillGlow(theme.deepAccent) : undefined,
         }}
       />
     </div>
@@ -973,8 +974,8 @@ function TrustStrip({
                   : hexToRgba(theme.accent, 0.12),
                 color: certHighlight ? theme.accent : theme.deepAccent,
                 boxShadow: certHighlight
-                  ? `inset 0 -2px 0 0 ${theme.accent}`
-                  : `inset 0 0 0 1px ${hexToRgba(theme.accent, 0.28)}`,
+                  ? ELEVATION.certUnderline(theme.accent)
+                  : ELEVATION.certRing(theme.accent),
               }}
             >
               {chip}
@@ -1066,12 +1067,33 @@ function findCircleComparisonComboIndices(sections: DetailSection[]): Map<number
   return map;
 }
 
+/**
+ * 180 — TW 리터럴은 theme-independent 값만 (thumb/CTA).
+ * imageLift/Soft는 export와 동일하게 style boxShadow + theme tint.
+ */
+const TW_ELEVATION = {
+  specThumbMulti: "shadow-[0_10px_28px_-10px_rgba(27,27,24,0.24)]",
+  imageThumb: "shadow-[0_12px_32px_-12px_rgba(27,27,24,0.28)]",
+  /** export ctaSticky와 동일 (구 live: -8px spread + 0.2 alpha) */
+  ctaSticky: "shadow-[0_-8px_24px_rgba(27,27,24,0.15)]",
+  ctaButton: "shadow-[0_12px_28px_-10px_rgba(27,27,24,0.55)]",
+} as const;
+
+if (
+  TW_ELEVATION.specThumbMulti !== ELEVATION.twSpecThumbMulti ||
+  TW_ELEVATION.imageThumb !== ELEVATION.twImageThumb ||
+  TW_ELEVATION.ctaSticky !== ELEVATION.twCtaSticky ||
+  TW_ELEVATION.ctaButton !== ELEVATION.twCtaButton
+) {
+  throw new Error("[180] TW_ELEVATION drift from ELEVATION.tw* — keep literals identical");
+}
+
 const CIRCLE_COMBO_IMG_CLASS =
-  "h-20 w-20 rounded-full object-cover shadow-[0_12px_32px_-12px_rgba(27,27,24,0.28)] ring-1 ring-ink/10 sm:h-24 sm:w-24";
+  `h-20 w-20 rounded-full object-cover ${TW_ELEVATION.imageThumb} ring-1 ring-ink/10 sm:h-24 sm:w-24`;
 const CIRCLE_SOLO_IMG_CLASS =
-  "h-[7.5rem] w-[7.5rem] rounded-full object-cover shadow-[0_12px_32px_-12px_rgba(27,27,24,0.28)] ring-1 ring-ink/10 sm:h-[9.375rem] sm:w-[9.375rem]";
+  `h-[7.5rem] w-[7.5rem] rounded-full object-cover ${TW_ELEVATION.imageThumb} ring-1 ring-ink/10 sm:h-[9.375rem] sm:w-[9.375rem]`;
 const CIRCLE_PAIR_IMG_CLASS =
-  "h-24 w-24 rounded-full object-cover shadow-[0_12px_32px_-12px_rgba(27,27,24,0.28)] ring-1 ring-ink/10 sm:h-[7.5rem] sm:w-[7.5rem]";
+  `h-24 w-24 rounded-full object-cover ${TW_ELEVATION.imageThumb} ring-1 ring-ink/10 sm:h-[7.5rem] sm:w-[7.5rem]`;
 
 function renderIngredientCircleVisual(params: {
   section: ImageTextSection;
@@ -1453,7 +1475,7 @@ function renderSection(
                     : hexToRgba(theme.accent, 0.06),
                   boxShadow: boldBlock
                     ? undefined
-                    : `0 10px 28px -14px ${hexToRgba(theme.deepAccent, 0.14)}`,
+                    : ELEVATION.checklistCard(theme.deepAccent),
                 }}
               >
                 <ConceptBadgeIcon
@@ -1590,7 +1612,10 @@ function renderSection(
             <SectionBackdropAccent theme={theme} />
             <div className="relative mx-auto grid max-w-5xl items-center gap-8 px-6 sm:grid-cols-2 sm:gap-10 sm:px-10">
               <div className={imageLeft ? "order-1" : "order-1 sm:order-2"}>
-                <div className="relative overflow-hidden rounded-2xl shadow-[0_20px_56px_-16px_rgba(27,27,24,0.22)]">
+                <div
+                  className="relative overflow-hidden rounded-2xl"
+                  style={{ boxShadow: ELEVATION.imageLift(theme.deepAccent) }}
+                >
                   <SectionImage
                     src={src}
                     alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
@@ -1656,7 +1681,10 @@ function renderSection(
             style={textSectionStyle(theme, pattern, category)}
           >
             <div className="relative px-4 pt-4 sm:px-6 sm:pt-6">
-              <div className="overflow-hidden rounded-2xl shadow-[0_16px_48px_-12px_rgba(27,27,24,0.18)]">
+              <div
+                className="overflow-hidden rounded-2xl"
+                style={{ boxShadow: ELEVATION.imageSoft(theme.deepAccent) }}
+              >
                 <SectionImage
                   src={src}
                   alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
@@ -1790,7 +1818,10 @@ function renderSection(
           <SectionBackdropAccent theme={theme} />
           <div className={`relative mx-auto grid max-w-5xl items-center gap-8 px-6 ${columnRatio} sm:gap-10 sm:px-10`}>
             <div className={imageLeft ? "order-1" : "order-1 sm:order-2"}>
-              <div className="relative overflow-hidden rounded-2xl shadow-[0_20px_56px_-16px_rgba(27,27,24,0.22)]">
+              <div
+                className="relative overflow-hidden rounded-2xl"
+                style={{ boxShadow: ELEVATION.imageLift(theme.deepAccent) }}
+              >
                 <SectionImage
                   src={src}
                   alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
@@ -1965,8 +1996,8 @@ function renderSection(
                   )}
                   className={
                     specThumbUrls.length > 1
-                      ? "h-20 w-20 rounded-xl object-cover shadow-[0_10px_28px_-10px_rgba(27,27,24,0.24)] ring-1 ring-ink/10 sm:h-24 sm:w-24"
-                      : "mx-auto h-28 w-28 rounded-2xl object-cover shadow-[0_12px_32px_-12px_rgba(27,27,24,0.28)] ring-1 ring-ink/10 sm:h-32 sm:w-32"
+                      ? `h-20 w-20 rounded-xl object-cover ${TW_ELEVATION.specThumbMulti} ring-1 ring-ink/10 sm:h-24 sm:w-24`
+                      : `mx-auto h-28 w-28 rounded-2xl object-cover ${TW_ELEVATION.imageThumb} ring-1 ring-ink/10 sm:h-32 sm:w-32`
                   }
                 />
               ))}
@@ -2096,7 +2127,7 @@ function renderSection(
                           style={{
                             color: theme.accent,
                             backgroundColor: hexToRgba(theme.accent, 0.14),
-                            boxShadow: `inset 0 -2px 0 0 ${hexToRgba(theme.accent, 0.55)}`,
+                            boxShadow: ELEVATION.certUnderlineSoft(theme.accent),
                           }}
                         >
                           <EditableText
@@ -2362,7 +2393,7 @@ function renderSection(
                         ? `1px solid ${hexToRgba(BRAND.paper, 0.22)}`
                         : `1px solid ${hexToRgba(theme.accent, 0.18)}`,
                     boxShadow: emphasized
-                      ? "0 16px 40px -16px rgba(27,27,24,0.5)"
+                      ? ELEVATION.highlightEmphasis
                       : undefined,
                   }}
                 >
@@ -3447,7 +3478,7 @@ function renderSection(
                 style={{
                   backgroundColor: hexToRgba(theme.baseNeutral, 0.85),
                   color: theme.deepAccent,
-                  boxShadow: `inset 0 0 0 1px ${hexToRgba(theme.accent, 0.2)}`,
+                  boxShadow: ELEVATION.personaRing(theme.accent),
                 }}
               >
                 <CheckCircle2
@@ -3476,7 +3507,7 @@ function renderSection(
       return (
         <section
           key={`cta_price-${index}`}
-          className={`pagzly-ink-cta pagzly-ink-shimmer sticky bottom-0 z-20 shadow-[0_-8px_24px_-8px_rgba(27,27,24,0.2)] ${CTA_TRANSITION_OVERLAP_CLASS} ${getCategoryRhythm(category).ctaPadClass}`}
+          className={`pagzly-ink-cta pagzly-ink-shimmer sticky bottom-0 z-20 ${TW_ELEVATION.ctaSticky} ${CTA_TRANSITION_OVERLAP_CLASS} ${getCategoryRhythm(category).ctaPadClass}`}
           style={{
             backgroundColor: getCtaBandBackground(theme),
             clipPath: getCategoryRhythm(category).ctaTransitionClip,
@@ -3523,7 +3554,7 @@ function renderSection(
             )}
             <div className="pt-4">
               <span
-                className={`${getCategoryRhythm(category).ctaButtonClass} relative z-10 shadow-[0_12px_28px_-10px_rgba(27,27,24,0.55)]`}
+                className={`${getCategoryRhythm(category).ctaButtonClass} relative z-10 ${TW_ELEVATION.ctaButton}`}
                 style={{ backgroundColor: "#1B1B18", color: "#FAF8F3" }}
                 role="presentation"
               >

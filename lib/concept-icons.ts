@@ -1,8 +1,9 @@
 /**
- * 컨셉 브리프 기반 원형 배지 아이콘 — checklist / usage_steps / spec_table /
- * stat_infographic / highlight_box(147차)용. 기본 모델은 flux-schnell이며,
- * ICON_MODEL env로 seedream-3 / qwen-image / recraft-v3 A/B 테스트 가능
- * (BACKDROP_PROVIDER와 동일 패턴).
+ * 컨셉 브리프 기반 아이콘 — checklist / usage_steps / spec_table /
+ * stat_infographic / highlight_box(147차)용.
+ * 프리미엄 checklist·usage·highlight 및 전 티어 statInfographic은
+ * recraft-v4-svg 단색 실루엣(+tint). 기본 그 외는 flux-schnell.
+ * ICON_MODEL env로 기본 모델 A/B 가능(BACKDROP_PROVIDER와 동일 패턴).
  */
 
 import Replicate from "replicate";
@@ -12,6 +13,7 @@ import type { CategoryTheme } from "@/lib/category-theme";
 import type { ConceptBrief } from "@/lib/concept-brief";
 import { isTestMode } from "@/lib/test-mode";
 import { isPremiumQualityMode } from "@/lib/premium-mode";
+import { normalizeMonochromeSvg, tintMonochromeSvg } from "@/lib/monochrome-svg";
 
 export type IconModelKey =
   | "flux-schnell"
@@ -240,18 +242,34 @@ async function generateSingleConceptIcon(
   const motifLine = isRecraftModel(model)
     ? `motif: ${motif}, abstract centered symbol only`
     : `motif: ${motif}, concept for "${label.slice(0, 40)}"`;
-  const promptParts = [
-    "circular badge icon, flat minimal UI illustration",
-    "professional vector icon design, polished modern app icon quality",
-    "clean crisp linework, consistent stroke weight, balanced negative space",
-    "subtle soft shadow for gentle depth, refined finish, no visual clutter",
-    brief.icon_style,
-    motifLine,
-    `${describeColorTone(iconAccent)} primary color, ${describeColorTone(iconShadow)} subtle shadow`,
-    "soft round badge frame, centered symbol, no text, no letters, no watermark",
-    "white or very light background, ecommerce detail page icon",
-  ];
-  if (isRecraftModel(model)) {
+
+  // 177~178차 — recraft-v4-svg(checklist/usage/highlight 프리미엄 + statInfographic)
+  // 는 다이어그램과 같은 단색 실루엣 언어(배지 프레임·다색 금지).
+  const useDiagramSilhouette = model === "recraft-v4-svg";
+
+  const promptParts = useDiagramSilhouette
+    ? [
+        "minimal monochrome black silhouette icon",
+        "flat vector, centered, transparent background",
+        "no circular badge frame, no round seal, no ribbon banner, no glossy 3d",
+        "single solid black fill or thick black outline only",
+        "no gradients, no colors other than black, no drop shadow",
+        `simple clean symbol inspired by: ${brief.icon_style}`,
+        motifLine,
+        RECRAFT_NO_TYPOGRAPHY_CLAUSE,
+      ]
+    : [
+        "circular badge icon, flat minimal UI illustration",
+        "professional vector icon design, polished modern app icon quality",
+        "clean crisp linework, consistent stroke weight, balanced negative space",
+        "subtle soft shadow for gentle depth, refined finish, no visual clutter",
+        brief.icon_style,
+        motifLine,
+        `${describeColorTone(iconAccent)} primary color, ${describeColorTone(iconShadow)} subtle shadow`,
+        "soft round badge frame, centered symbol, no text, no letters, no watermark",
+        "white or very light background, ecommerce detail page icon",
+      ];
+  if (isRecraftModel(model) && !useDiagramSilhouette) {
     if (model !== "recraft-v3") {
       // v4/v4-svg에는 style 파라미터가 없어 outline 미학을 프롬프트로 명시 (143차)
       promptParts.push(
@@ -294,14 +312,31 @@ async function generateSingleConceptIcon(
     throw new Error(`아이콘 이미지 로드 실패: ${label}`);
   }
   const raw = Buffer.from(await response.arrayBuffer());
-  // recraft-v4-svg는 실제 SVG를 반환한다(143차 확인) — 렌더러는 PNG dataUrl만
-  // 다루므로 sharp로 래스터화한다. 다른 모델은 그대로 PNG.
+  // recraft-v4-svg는 실제 SVG를 반환한다(143차 확인).
+  // 177차 실루엣 경로: SVG → currentColor 정규화 → 3색 토큰 tint → PNG
+  // (렌더러는 PNG dataUrl만 다룸). 래스터만 오면 tint 불가 — 그대로 사용.
   const contentType = response.headers.get("content-type") ?? "";
   const looksSvg =
     model === "recraft-v4-svg" ||
     contentType.includes("svg") ||
     raw.slice(0, 200).toString("utf8").includes("<svg");
-  const pngBuffer = looksSvg ? await sharp(raw).png().toBuffer() : raw;
+
+  let pngBuffer: Buffer;
+  if (looksSvg && useDiagramSilhouette) {
+    const normalized = normalizeMonochromeSvg(raw.toString("utf8"));
+    const tinted = tintMonochromeSvg(normalized, theme.accent);
+    pngBuffer = await sharp(Buffer.from(tinted)).png().toBuffer();
+    console.log(`[concept-icons] silhouette tint applied color=${theme.accent}`);
+  } else if (looksSvg) {
+    pngBuffer = await sharp(raw).png().toBuffer();
+  } else {
+    if (useDiagramSilhouette) {
+      console.warn(
+        `[concept-icons] recraft-v4-svg expected SVG but got raster — tint skipped for "${label.slice(0, 24)}"`,
+      );
+    }
+    pngBuffer = raw;
+  }
   const dataUrl = `data:image/png;base64,${pngBuffer.toString("base64")}`;
   return { dataUrl, cost };
 }
@@ -366,22 +401,22 @@ type IconGroup = {
 };
 
 /**
- * 142차 선별 적용 + 145/146차 프리미엄 옵션(PREMIUM_QUALITY_MODE=true):
- * - statInfographic → 기본 recraft-v3, 프리미엄이면 recraft-v4 (146차: 동일가
- *   $0.04, 143차 실측상 디테일↑ — 145차 리포트의 "다음 후보" 항목을 적용)
- * - checklist / usageSteps / highlightBox → 프리미엄이면 flux-dev, 아니면
- *   ICON_MODEL(기본 flux-schnell). highlightBox는 147차 신규 — 기존엔 아이콘
- *   자체가 없어 텍스트만 있던 섹션이라 checklist와 동일한 대우로 맞춘다.
- * - specTable → 프리미엄이어도 flux-schnell 유지 (144차: 스펙 아이콘 다수 전환은
- *   체감 대비 원가만 커서 제외 권고)
+ * 142차 선별 적용 + 145/146차 프리미엄 + 177/178차 실루엣 통일:
+ * - statInfographic → recraft-v4-svg (178차: 프리미엄·기본 공통.
+ *   실측 metrics ≈3.1/페이지라 v3/v4 $0.04→v4-svg $0.08 증가분이 작음(+~$0.13).
+ *   useDiagramSilhouette로 checklist/다이어그램과 같은 단색 실루엣 언어)
+ * - checklist / usageSteps / highlightBox → 프리미엄이면 recraft-v4-svg
+ *   (177차: flux-dev 대체 — 단색 실루엣+SVG tint.
+ *   비프리미엄은 ICON_MODEL 기본 flux-schnell 유지 — 원가 충격 회피)
+ * - specTable → 프리미엄이어도 flux-schnell 유지 (144차)
  */
 function modelForIconGroup(key: keyof ConceptIconMap): IconModelKey {
-  if (key === "statInfographic") return isPremiumQualityMode() ? "recraft-v4" : "recraft-v3";
+  if (key === "statInfographic") return "recraft-v4-svg";
   if (
     isPremiumQualityMode() &&
     (key === "checklist" || key === "usageSteps" || key === "highlightBox")
   ) {
-    return "flux-dev";
+    return "recraft-v4-svg";
   }
   return getIconModel();
 }
@@ -439,9 +474,12 @@ export async function generateConceptIcons(
   }
 
   const defaultModel = getIconModel();
-  const statModelLog = isPremiumQualityMode() ? "recraft-v4 (premium)" : "recraft-v3";
+  const statModelLog = "recraft-v4-svg (silhouette)";
+  const slotModelLog = isPremiumQualityMode()
+    ? "recraft-v4-svg (premium silhouette)"
+    : defaultModel;
   console.log(
-    `[concept-icons] ICON_MODEL=${defaultModel} ($${ICON_COST_USD_BY_MODEL[defaultModel].toFixed(3)}/장) | 142 selective: statInfographic=${statModelLog}`,
+    `[concept-icons] ICON_MODEL=${defaultModel} ($${ICON_COST_USD_BY_MODEL[defaultModel].toFixed(3)}/장) | checklist/usage/highlight=${slotModelLog} | statInfographic=${statModelLog}`,
   );
 
   const perTypeCap = isTestMode() ? 1 : Infinity;

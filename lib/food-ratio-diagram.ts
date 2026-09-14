@@ -3,6 +3,7 @@
  * 입력에 name+percent가 있을 때만. 예시 수치 채우기 금지.
  */
 import { sanitizeText as sanitizeFoodText } from "@/lib/food-compliance";
+import { diagramTitleWithIconHtml } from "@/lib/diagram-icons";
 
 export type FoodRatioSlice = {
   label: string;
@@ -94,7 +95,7 @@ export function buildFoodRatioDiagramSvg(
     .join("");
 
   return `<div style="max-width:360px;margin:28px auto 0;text-align:center" data-diagram="food-ratio">
-    <p style="font-size:11px;letter-spacing:.12em;opacity:.65;margin:0 0 8px">원재료 구성 비율</p>
+    ${diagramTitleWithIconHtml("원재료 구성 비율", "food-bowl", labelColor)}
     <svg viewBox="0 0 360 200" width="100%" style="max-width:360px;height:auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="원재료 구성 비율">
       ${arcs.join("")}
       ${legend}
