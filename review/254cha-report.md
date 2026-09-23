@@ -46,7 +46,9 @@
 
 ## 3) Push
 
-`git push origin main` — 아래 재시도 결과.
+`git push origin main` → **성공** (`d0d1e50..0a140f5  main -> main`)
+
+`main` == `origin/main` @ `0a140f5`
 
 ---
 
