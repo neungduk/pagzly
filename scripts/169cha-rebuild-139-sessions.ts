@@ -172,6 +172,35 @@ function rebuild(id: string) {
   session.ingredients = p.ingredients;
   session.certifications = p.certifications;
   session.targetCustomer = p.targetCustomer;
+  // 186 — 뷰티 클론 잔여 카피/컨셉 필드 제거 (회귀 QA 오염 방지)
+  session.wholesaleUrl = null;
+  session.conceptBrief = {
+    theme: `${p.brandName} · ${p.productName}`,
+    motif_keywords: p.keyFeatures
+      .split(/[,，]/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, 4),
+    mood: "카테고리 네이티브",
+    backdrop_hint: "empty studio backdrop, soft light, no text, no logo",
+    copy_tone: "입력 스펙 사실 중심",
+    decor_prompt: "soft texture, neutral light, no text, no product logo",
+    icon_style: "minimal category badge icon",
+  };
+  const gen = generated as Record<string, unknown>;
+  gen.headlines = [
+    p.productName,
+    p.keyFeatures.split(/[,，]/)[0]?.trim() || p.brandName,
+    p.targetCustomer,
+  ].filter(Boolean);
+  gen.description = `${p.productName} — ${p.keyFeatures}`;
+  gen.features = p.keyFeatures
+    .split(/[,，]/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 5);
+  gen.howToUse = "판매자 안내에 따라 사용하세요.";
+  gen.caution = "개인차가 있을 수 있습니다. 판매자 안내를 확인해 주세요.";
   // 뷰티 클론 테마를 카테고리 네이티브 팔레트로 교체 (3색 토큰 유지)
   generated.theme = getCategoryTheme(cfg.themeCategory);
   generated.sections = insertEmptyCanvasSection(

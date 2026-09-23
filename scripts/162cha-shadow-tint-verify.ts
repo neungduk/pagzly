@@ -81,8 +81,8 @@ async function main() {
   })
     .png()
     .toBuffer();
-  const shadowBufDefault = await buildSilhouetteShadowBuffer(cutout, 400, placement, DEFAULT_SHADOW);
-  const shadowBufTinted = await buildSilhouetteShadowBuffer(cutout, 400, placement, DEFAULT_SHADOW, tintWarm);
+  const shadowBufDefault = await buildSilhouetteShadowBuffer(cutout, 400, 400, placement, DEFAULT_SHADOW);
+  const shadowBufTinted = await buildSilhouetteShadowBuffer(cutout, 400, 400, placement, DEFAULT_SHADOW, tintWarm);
   const rawDefault = await sharp(shadowBufDefault).removeAlpha().raw().toBuffer({ resolveWithObject: true });
   const rawTinted = await sharp(shadowBufTinted).removeAlpha().raw().toBuffer({ resolveWithObject: true });
   // 그림자가 실제로 칠해진 중심부 픽셀 비교 (알파가 있는 영역)

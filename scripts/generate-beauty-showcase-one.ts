@@ -144,7 +144,7 @@ async function main() {
   page.setDefaultTimeout(480_000);
 
   console.log("[2/5] /create 폼 (가상 상품 정보)…");
-  await page.goto(`${BASE_URL}/create`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE_URL}/create/detail`, { waitUntil: "networkidle" });
   await page.locator("select").first().selectOption({ label: PRODUCT.category });
   await page.setInputFiles('input[type="file"][accept*="image/jpeg"]', images);
   await page.fill("#productName", PRODUCT.productName);
