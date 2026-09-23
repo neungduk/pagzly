@@ -1,5 +1,13 @@
-import type { DetailSection, HighlightBoxSection, ReviewHighlightSection, CanvasSection, ComparisonChartSection } from "@/lib/types/generate";
+import type {
+  DetailSection,
+  HighlightBoxSection,
+  ReviewHighlightSection,
+  CanvasSection,
+  ComparisonChartSection,
+  BeforeAfterSection,
+} from "@/lib/types/generate";
 import type { ReviewAxisComparison } from "@/lib/review-insights";
+import { isBeforeAfterEligibleCategory } from "@/lib/before-after-eligibility";
 
 /** 판매자가 직접 입력한 판매·랭킹 근거 — AI 미생성, 입력 없으면 섹션 생략 */
 export function insertSellerTrustEvidence(
@@ -31,6 +39,10 @@ export function buildReviewHighlightSection(
   sourceReviewCount?: number,
   praiseMatchCounts?: number[],
   complaintMatchCounts?: number[],
+  petAgeWeightMentionCount?: number,
+  repurchaseMentionCount?: number,
+  sizeFitMentionCount?: number,
+  longTermUseMentionCount?: number,
 ): ReviewHighlightSection {
   const praisePairs = praises
     .map((text, i) => ({
@@ -50,6 +62,22 @@ export function buildReviewHighlightSection(
     typeof sourceReviewCount === "number" && sourceReviewCount > 0
       ? sourceReviewCount
       : undefined;
+  const petCount =
+    typeof petAgeWeightMentionCount === "number" && petAgeWeightMentionCount > 0
+      ? petAgeWeightMentionCount
+      : undefined;
+  const repurchaseCount =
+    typeof repurchaseMentionCount === "number" && repurchaseMentionCount > 0
+      ? repurchaseMentionCount
+      : undefined;
+  const sizeFitCount =
+    typeof sizeFitMentionCount === "number" && sizeFitMentionCount > 0
+      ? sizeFitMentionCount
+      : undefined;
+  const longTermUseCount =
+    typeof longTermUseMentionCount === "number" && longTermUseMentionCount > 0
+      ? longTermUseMentionCount
+      : undefined;
   return {
     type: "review_highlight",
     slot: "review_highlight",
@@ -67,6 +95,10 @@ export function buildReviewHighlightSection(
         }
       : {}),
     ...(count != null ? { sourceReviewCount: count } : {}),
+    ...(petCount != null ? { petAgeWeightMentionCount: petCount } : {}),
+    ...(repurchaseCount != null ? { repurchaseMentionCount: repurchaseCount } : {}),
+    ...(sizeFitCount != null ? { sizeFitMentionCount: sizeFitCount } : {}),
+    ...(longTermUseCount != null ? { longTermUseMentionCount: longTermUseCount } : {}),
   };
 }
 
@@ -82,6 +114,10 @@ export function insertReviewHighlightSection(
   sourceReviewCount?: number,
   praiseMatchCounts?: number[],
   complaintMatchCounts?: number[],
+  petAgeWeightMentionCount?: number,
+  repurchaseMentionCount?: number,
+  sizeFitMentionCount?: number,
+  longTermUseMentionCount?: number,
 ): DetailSection[] {
   const praisePairs = praises
     .map((text, i) => ({
@@ -109,6 +145,10 @@ export function insertReviewHighlightSection(
       sourceReviewCount,
       praiseMatchCounts != null ? praisePairs.map((p) => p.matchCount) : undefined,
       complaintMatchCounts,
+      petAgeWeightMentionCount,
+      repurchaseMentionCount,
+      sizeFitMentionCount,
+      longTermUseMentionCount,
     ),
     ...without.slice(insertAt),
   ];
@@ -188,4 +228,55 @@ export function insertEmptyCanvasSection(
   );
   const insertAt = anchorIdx >= 0 ? anchorIdx : sections.length;
   return [...sections.slice(0, insertAt), section, ...sections.slice(insertAt)];
+}
+
+/**
+ * 227차 — 판매자가 업로드한 Before/After 비교 사진 쌍을 서버가 그대로 조립.
+ * AI 미생성. 효능·효과 표시가 민감한 3개 카테고리(화장품/뷰티·반려동물·
+ * 식품/건강기능식품)는 pairs가 있어도 섹션을 만들지 않는다 — 클라이언트
+ * UI가 이미 그 카테고리에서 입력 자체를 숨기지만, 서버가 최종 방어선.
+ * 삽입 위치: review_highlight 바로 뒤(있으면 — 실제 후기와 나란히 노출),
+ * 없으면 ai_disclosure/cta_price 직전(review_highlight/axis-comparison과 동일 관례).
+ */
+export function insertBeforeAfterSection(
+  sections: DetailSection[],
+  pairs: { beforeUrl: string; afterUrl: string; caption?: string | null }[] | null | undefined,
+  category: string,
+): DetailSection[] {
+  if (!pairs || pairs.length === 0) return sections;
+  if (!isBeforeAfterEligibleCategory(category)) return sections;
+
+  const validPairs = pairs
+    .filter((p) => p.beforeUrl?.trim() && p.afterUrl?.trim())
+    .slice(0, 4);
+  if (validPairs.length === 0) return sections;
+
+  if (sections.some((s) => s.type === "before_after" || s.slot === "before_after")) {
+    return sections;
+  }
+
+  const section: BeforeAfterSection = {
+    type: "before_after",
+    slot: "before_after",
+    heading: "실제 사용 전후",
+    pairs: validPairs,
+  };
+
+  const without = sections.filter(
+    (s) => s.slot !== "before_after" && s.type !== "before_after",
+  );
+  const reviewHighlightIdx = without.findIndex(
+    (s) => s.type === "review_highlight" || s.slot === "review_highlight",
+  );
+  const anchorIdx = without.findIndex(
+    (s) => s.type === "ai_disclosure" || s.slot === "cta_price" || s.type === "cta_price",
+  );
+  const insertAt =
+    reviewHighlightIdx >= 0
+      ? reviewHighlightIdx + 1
+      : anchorIdx >= 0
+        ? anchorIdx
+        : without.length;
+
+  return [...without.slice(0, insertAt), section, ...without.slice(insertAt)];
 }

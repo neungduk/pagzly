@@ -29,6 +29,14 @@ export type ReviewInsightsInput = {
   commonComplaints: string[];
   /** 파싱된 리뷰 라인 수 (없으면 캡션 생략) */
   reviewLineCount?: number;
+  /** 192차 — 나이/체중 언급 라인 수(정규식) */
+  petAgeWeightMentionCount?: number;
+  /** 203차 — 재구매 의사 언급 라인 수(정규식) */
+  repurchaseMentionCount?: number;
+  /** 204차 — 사이즈/핏 언급 라인 수(정규식) */
+  sizeFitMentionCount?: number;
+  /** 205차 — 장기 사용 언급 라인 수(정규식) */
+  longTermUseMentionCount?: number;
   /** 135차 — praises와 동일 인덱스·길이 (키워드 매칭 건수) */
   praiseMatchCounts?: number[];
   /** 135차 — commonComplaints와 동일 인덱스·길이 */
@@ -137,6 +145,12 @@ export type ProductInput = {
    * 비어 있으면 섹션을 생성하지 않음 — AI가 임의 숫자·베스트셀러 문구를 만들지 않음.
    */
   sellerTrustEvidence?: string | null;
+  /**
+   * 227차 — 효과 비교 Before/After 사진 쌍(판매자 실사진만, AI 미생성).
+   * 화장품/뷰티·반려동물·식품/건강기능식품에서는 서버가 무시한다
+   * (입력해도 섹션이 생성되지 않음 — lib/before-after-eligibility.ts 참고).
+   */
+  beforeAfterPairs?: { beforeUrl: string; afterUrl: string; caption?: string | null }[] | null;
 };
 
 // slot: lib/section-templates.ts가 카테고리별로 고정한 슬롯 이름
@@ -370,8 +384,13 @@ export type IllustrationBannerSection = {
   heading?: string;
   /** 1~2문장 분위기/설득 카피 — 이미지 위 오버레이 */
   body?: string;
-  /** 서버가 generateIllustrationBanner() 후 채움. DeepSeek은 비워 둠 */
-  illustrationUrl: string;
+  /** 251차 — 배경으로 쓸 상품 사진의 인덱스. 신규 생성은 이 필드를 씀 */
+  imageIndex?: number;
+  /**
+   * 레거시 — 251차 이전에 생성된 상품은 AI 일러스트 URL이 남아있을 수 있음.
+   * 렌더러는 이 값이 있으면(구 데이터) 그대로 표시하고, 없으면 imageIndex로 렌더.
+   */
+  illustrationUrl?: string;
 };
 
 export type FaqSection = {
@@ -434,10 +453,35 @@ export type ReviewHighlightSection = {
   concerns?: string[];
   /** 분석에 쓴 리뷰 라인 수. 없으면 캡션 생략 */
   sourceReviewCount?: number;
+  /** 192차 — 반려동물 리뷰 원문에서 나이/체중 언급 라인 수(정규식, LLM 아님).
+   *  반려동물 카테고리이고 0보다 클 때만 캡션 노출. */
+  petAgeWeightMentionCount?: number;
+  /** 203차 — 식품 리뷰 원문에서 재구매 의사 언급 라인 수(정규식, LLM 아님).
+   *  식품 카테고리이고 0보다 클 때만 캡션 노출. */
+  repurchaseMentionCount?: number;
+  /** 204차 — 패션 리뷰 원문에서 사이즈/핏 언급 라인 수(정규식, LLM 아님).
+   *  패션 카테고리이고 0보다 클 때만 캡션 노출. */
+  sizeFitMentionCount?: number;
+  /** 205차 — 장기 사용 후기 언급 라인 수(정규식, LLM 아님).
+   *  화장품/뷰티·전자제품·생활용품 카테고리이고 0보다 클 때만 캡션 노출. */
+  longTermUseMentionCount?: number;
   /** 135차 — praises와 동일 인덱스 (매칭 0이면 렌더에서 배지 숨김) */
   praiseMatchCounts?: number[];
   /** 135차 — concerns와 동일 인덱스 */
   complaintMatchCounts?: number[];
+};
+
+/**
+ * 227차 — 판매자가 업로드한 실제 Before/After 비교 사진.
+ * review_highlight와 동일 원칙: AI는 이 섹션을 생성하지 않으며, 서버가 조립
+ * 단계에서 실입력값을 그대로 주입한다. caption도 사용자가 직접 입력한 값만
+ * 사용 — AI가 효과를 서술하는 문구를 새로 짓지 않는다.
+ */
+export type BeforeAfterSection = {
+  type: "before_after";
+  slot: string;
+  heading: string;
+  pairs: { beforeUrl: string; afterUrl: string; caption?: string | null }[];
 };
 
 export type CanvasElement =
@@ -548,6 +592,7 @@ export type DetailSection =
   | AiDisclosureSection
   | CustomGifSection
   | ReviewHighlightSection
+  | BeforeAfterSection
   | CanvasSection;
 
 export type GeneratedCopy = {

@@ -18,7 +18,9 @@ const ANCHOR_RULES: AnchorRule[] = [
   {
     id: "pagzly-info",
     label: "제품정보",
-    match: (s) => s.type === "spec_table" && s.slot === "spec_table",
+    match: (s) =>
+      s.type === "spec_table" &&
+      (s.slot === "spec_table" || s.slot === "nutrition_table"),
   },
   {
     id: "pagzly-size",

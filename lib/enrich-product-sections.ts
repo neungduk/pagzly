@@ -48,6 +48,7 @@ const SPEC_SKELETONS: Record<string, SkeletonRow[]> = {
     { label: "브랜드", match: /브랜드/ },
     { label: "제조사", match: /제조/ },
     { label: "모델명", match: /모델/ },
+    { label: "크기·용량·형태", match: /크기|용량|규격|사이즈|형태/ },
     { label: "KC 인증", match: /KC|인증/ },
     { label: "정격전압", match: /정격|전압|전력/ },
     { label: "품질보증", match: /품질|보증|A\/S/ },
@@ -76,7 +77,8 @@ const SPEC_SKELETONS: Record<string, SkeletonRow[]> = {
 
 const SHIPPING_SKELETON: SkeletonRow[] = [
   { label: "배송비", match: /배송비|배송 요금/ },
-  { label: "배송기간", match: /배송기간|출고|발송/ },
+  // 249차 — "배송 기간"(공백)도 흡수되도록 \s* 허용
+  { label: "배송기간", match: /배송\s*기간|출고|발송/ },
   { label: "교환·환불", match: /교환|환불|반품/ },
 ];
 
@@ -94,6 +96,7 @@ function resolveSkeletonValue(
     certifications?: string | null;
     ingredients?: string | null;
     price?: number;
+    productSizeHint?: string | null;
   },
 ): string {
   const found = existing.find((r) => rowMatches(r, skel));
@@ -101,6 +104,13 @@ function resolveSkeletonValue(
   if (trimmed && !trimmed.includes("판매자")) return trimmed;
 
   if (skel.label === "브랜드" && meta.brandName?.trim()) return meta.brandName.trim();
+
+  // 212차 — 용량/크기 계열 라벨은 판매자가 폼에 입력한 productSizeHint를 폴백으로 사용
+  const SIZE_HINT_LABELS = new Set(["용량", "내용량", "사이즈", "규격", "크기·용량·형태"]);
+  if (SIZE_HINT_LABELS.has(skel.label) && meta.productSizeHint?.trim()) {
+    return meta.productSizeHint.trim();
+  }
+
   if (skel.label === "주요 성분" && meta.ingredients?.trim()) {
     const ing = meta.ingredients.trim();
     return ing.length > 80 ? `${ing.slice(0, 77)}…` : ing;
@@ -116,7 +126,8 @@ function resolveSkeletonValue(
   return PLACEHOLDER;
 }
 
-function mergeSpecRows(
+/** @internal exported for 249cha verify */
+export function mergeSpecRows(
   existing: { label: string; value: string }[],
   skeleton: SkeletonRow[],
   meta: {
@@ -124,6 +135,7 @@ function mergeSpecRows(
     certifications?: string | null;
     ingredients?: string | null;
     price?: number;
+    productSizeHint?: string | null;
   },
 ): { label: string; value: string }[] {
   const merged: { label: string; value: string }[] = [];
@@ -142,14 +154,16 @@ function mergeSpecRows(
   }
 
   for (const row of existing) {
-    if (!merged.some((m) => m.label === row.label)) {
-      merged.push(row);
-    }
+    // 249차 — 스켈레톤 흡수와 동일하게 rowMatches로 판정. 정확 라벨 비교만 하면
+    // "배송 기간"/"교환·반품"처럼 정규식으로는 이미 흡수된 행이 다시 append되어 중복됨.
+    const alreadyCovered = skeleton.some((skel) => rowMatches(row, skel));
+    if (!alreadyCovered) merged.push(row);
   }
   return merged.slice(0, 10);
 }
 
-function enrichSpecTableSection(
+/** @internal exported for 249cha verify */
+export function enrichSpecTableSection(
   section: DetailSection & { type: "spec_table" },
   category: string,
   meta: {
@@ -157,6 +171,7 @@ function enrichSpecTableSection(
     certifications?: string | null;
     ingredients?: string | null;
     price?: number;
+    productSizeHint?: string | null;
   },
 ): DetailSection {
   const templateCat = resolveTemplateCategory(category);
@@ -185,6 +200,7 @@ export function enrichSectionsWithProductMetadata(
     ingredients?: string | null;
     price?: number;
     keyFeatures?: string | null;
+    productSizeHint?: string | null;
   },
 ): DetailSection[] {
   const certParts = parseCertificationTokens(meta.certifications);

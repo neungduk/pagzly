@@ -6,6 +6,26 @@ import {
   reviewCosmeticsCopy,
 } from "@/lib/cosmetics-compliance";
 import { FOOD_AI_PROMPT, FOOD_SLOT_FACT_PROMPT, isFoodCategory, reviewFoodCopy } from "@/lib/food-compliance";
+import {
+  ELECTRONICS_AI_PROMPT,
+  isElectronicsCategory,
+  reviewElectronicsCopy,
+} from "@/lib/electronics-compliance";
+import {
+  PET_AI_PROMPT,
+  isPetCategory,
+  reviewPetCopy,
+} from "@/lib/pet-compliance";
+import {
+  FASHION_AI_PROMPT,
+  isFashionCategory,
+  reviewFashionCopy,
+} from "@/lib/fashion-compliance";
+import {
+  LIVING_AI_PROMPT,
+  isLivingCategory,
+  reviewLivingCopy,
+} from "@/lib/living-compliance";
 import type {
   AiDisclosureSection,
   CtaPriceSection,
@@ -28,7 +48,7 @@ import {
 import { extractUrlSummary, extractCompetitorDifferentiation, type UrlSummaryResult } from "@/lib/url-crawler";
 import { buildQAFixPrompt, runDetailPageQA } from "@/lib/detail-page-qa";
 import { enrichSectionsWithProductMetadata } from "@/lib/enrich-product-sections";
-import { insertReviewHighlightSection, insertReviewAxisComparisonSection, insertSellerTrustEvidence } from "@/lib/section-inserts";
+import { insertReviewHighlightSection, insertReviewAxisComparisonSection, insertSellerTrustEvidence, insertBeforeAfterSection } from "@/lib/section-inserts";
 import {
   dropHollowHighlightBoxes,
   HIGHLIGHT_BOX_RETRY_APPENDIX,
@@ -40,8 +60,6 @@ import {
 } from "@/lib/designer-detail-patterns";
 import { formatConceptCopyBlock, generateConceptBrief } from "@/lib/concept-brief";
 import { generateConceptIcons, type ConceptIconMap } from "@/lib/concept-icons";
-import { generateIllustrationBanner } from "@/lib/concept-illustration";
-import { buildIllustrationBannerFallback } from "@/lib/illustration-banner-fallback";
 import { fetchFileBuffer } from "@/lib/fetch-file-buffer";
 import {
   analyzeReferenceImage,
@@ -521,13 +539,14 @@ const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
   step_card: `{ type: "step_card", slot, heading, steps: [{title, body, imageIndex}] } — 사용법 3단계 권장. 각 단계에 실제 상품 사진 imageIndex를 배정(가능하면 서로 다른 사진), title은 6자 내외, body는 1문장. STEP 태그는 서버가 자동으로 붙이므로 title에 "STEP 01" 등을 직접 쓰지 말 것`,
   color_variation: `{ type: "color_variation", slot, heading, options: [{label, colorHex, imageIndex}] }`,
   stat_infographic: `{ type: "stat_infographic", slot, heading, metrics: [{label, value, style: "bar"|"number"|"ring", percent?: 0-100, basis?: "measured"|"self_assessed", sourceNote?}] } — style:"bar"/"ring"은 percent 필수. bar 막대 강조 스타일(barAccent)은 서버가 자동 설정 — AI는 지정하지 말 것. sourceNote는 basis:"measured"이고 입력에 시험기관/기간/n수 같은 구체적 출처가 있을 때만 한 줄로(없으면 비워둘 것)`,
-  illustration_banner: `{ type: "illustration_banner", slot, heading?, body?, illustrationUrl: "" } — body는 분위기 1~2문장, illustrationUrl은 서버가 채우므로 빈 문자열`,
+  illustration_banner: `{ type: "illustration_banner", slot, heading?, body?, imageIndex? } — body는 분위기 1~2문장. 배경은 서버가 상품 사진을 imageIndex로 배정(illustrationUrl 쓰지 말 것)`,
   faq: `{ type: "faq", slot, heading, items: [{question, answer}] } — 3~5개. 근거 없으면 슬롯 생략. 근거 없는 개별 질문은 답변을 "판매자에게 문의해주세요"`,
   target_persona: `{ type: "target_persona", slot, heading, personas[] } — 3~5개, 각 20자 내외. targetCustomer·keyFeatures 기반으로만`,
   brand_story: `{ type: "brand_story", slot, heading, body } — brandName이 없으면 슬롯 전체 생략. 브랜드의 시작·철학·만드는 방식 중 하나를 골라 2~3문단으로 쓰되, 판매자 입력에 없는 창업연도·공장·수상 등 사실을 지어내지 말 것. 근거가 약하면 짧게`,
   ai_disclosure: `{ type: "ai_disclosure", slot: "ai_disclosure", heading, body } — 서버가 고정 문구로 덮어쓰므로 생략하거나 빈 값으로 둬도 됨`,
   custom_gif: `{ type: "custom_gif", slot: "custom_gif", heading?, gifUrl } — AI는 이 섹션을 생성하지 않음. 판매자가 GIF를 업로드했을 때 서버가 조립 단계에서 자동 삽입`,
   review_highlight: `{ type: "review_highlight", slot: "review_highlight", heading, praises: string[], concerns?: string[] } — AI는 이 섹션을 생성하지 않음. 판매자가 리뷰 파일을 업로드했을 때 실제 후기 요약(commonPraises/commonComplaints)으로 서버가 조립 단계에서 자동 삽입`,
+  before_after: `{ type: "before_after", slot: "before_after", heading, pairs: {beforeUrl,afterUrl,caption?}[] } — AI는 이 섹션을 생성하지 않음. 판매자가 효과 비교 사진을 업로드했고 카테고리가 허용 대상일 때만 서버가 조립 단계에서 자동 삽입`,
   canvas: `{ type: "canvas", slot, frameWidth, frameHeight, background?, elements[] } — AI는 이 섹션을 생성하지 않음. 판매자가 result 화면에서 수동 추가`,
 };
 
@@ -559,7 +578,7 @@ function getAidaPhase(def: SlotDefinition): string {
     case "target_persona":
       return "AIDA-I (Interest): 입력된 타겟·특징 기반으로 '이런 분께'를 짧게";
     case "illustration_banner":
-      return "AIDA-D (Desire): 컨셉 분위기를 시각적으로 강화하는 장식 (카피는 heading만, 이미지는 서버 생성)";
+      return "AIDA-D (Desire): 상품 사진 위 굵은 헤드라인으로 컨셉 분위기 강화 (카피만 작성, 사진은 서버 배정)";
     default:
       return "AIDA-D (Desire): 제품이 주는 구체적 이득·차별점·사용 장면";
   }
@@ -661,6 +680,10 @@ async function loadAuxiliaryInputs(body: ProductInput): Promise<{
         commonPraises: result.commonPraises,
         commonComplaints: result.commonComplaints,
         reviewLineCount: result.reviewLineCount,
+        petAgeWeightMentionCount: result.petAgeWeightMentionCount,
+        repurchaseMentionCount: result.repurchaseMentionCount,
+        sizeFitMentionCount: result.sizeFitMentionCount,
+        longTermUseMentionCount: result.longTermUseMentionCount,
         praiseMatchCounts: result.praiseMatchCounts,
         complaintMatchCounts: result.complaintMatchCounts,
         ...(result.axisComparison && result.axisComparison.length >= 2
@@ -748,6 +771,22 @@ async function generateCopyWithDeepSeek(
     : "";
   const foodGuide = isFood
     ? `\n\n## 식품 표시광고 기준 (필수)\n${FOOD_AI_PROMPT}\n\n${FOOD_SLOT_FACT_PROMPT}`
+    : "";
+  const isElectronics = isElectronicsCategory(productInfo.category);
+  const electronicsGuide = isElectronics
+    ? `\n\n## 전자제품 표시광고 기준 (필수)\n${ELECTRONICS_AI_PROMPT}`
+    : "";
+  const isPet = isPetCategory(productInfo.category);
+  const petGuide = isPet
+    ? `\n\n## 반려동물 표시광고 기준 (필수)\n${PET_AI_PROMPT}`
+    : "";
+  const isFashion = isFashionCategory(productInfo.category);
+  const fashionGuide = isFashion
+    ? `\n\n## 의류/패션 표시광고 기준 (필수)\n${FASHION_AI_PROMPT}`
+    : "";
+  const isLiving = isLivingCategory(productInfo.category);
+  const livingGuide = isLiving
+    ? `\n\n## 생활용품 표시광고 기준 (필수)\n${LIVING_AI_PROMPT}`
     : "";
 
   const length = productInfo.length === "short" ? "short" : "long";
@@ -933,7 +972,7 @@ tradeoff_card 슬롯이 있다면: 입력에 추천 대상·유의사항·사용
 considerIf를 각 1~4문장으로. considerIf는 완곡한 "참고하세요" 톤, 깎아내리기 금지. 없으면 생략.
 (화장품: 피부타입·자극도 / 패션: 핏·사이즈감 / 식품: 알레르기·보관 / 전자: 호환·설치 /
 반려동물: 연령·급여 조건 — 질병 치료·예방·수명 연장 단정 금지 / 생활: 사용 조건)
-illustration_banner의 illustrationUrl은 항상 빈 문자열("")로 두세요 (서버가 생성).
+illustration_banner는 heading·body만 채우세요. illustrationUrl은 쓰지 마세요(서버가 상품 사진을 imageIndex로 배정).
 illustration_banner의 body는 이 섹션 분위기를 설명하는 1~2문장 카피입니다 (image_text body와 비슷한 톤).
 quick_points 슬롯은 layout:"compact"로 2~4개 채우세요. heading 8자 내외, body 1문장, 사진은 작은 텍스처/디테일 컷.
 feature_callout 슬롯은 layout:"callout" + callout(12~18자 말풍선 강조) + heading 8자 내외 + body 1~2문장. 후기·인증 표현 금지.
@@ -956,7 +995,7 @@ shipping_info는 type:"spec_table"로 배송비/기간/교환·환불 행을 채
 }
 
 headlines/description/features/howToUse/caution은 목록·검색 화면에 쓰이는 요약용이니
-sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conceptBlock}${cosmeticsGuide}${foodGuide}${qaFixAppendix}`;
+sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conceptBlock}${cosmeticsGuide}${foodGuide}${electronicsGuide}${petGuide}${fashionGuide}${livingGuide}${qaFixAppendix}`;
 
   const response = await fetch(DEEPSEEK_URL, {
     method: "POST",
@@ -1109,7 +1148,10 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
       return { ...section, cards };
     }
     if (section.type === "illustration_banner") {
-      return { ...section, illustrationUrl: "" };
+      // 251차 — 신규는 imageIndex만(배정은 assignDistinctSectionImages). 빈 illustrationUrl 제거.
+      const { illustrationUrl: _drop, ...rest } = section;
+      void _drop;
+      return { ...rest, illustrationUrl: undefined };
     }
     if (section.type === "faq") {
       return {
@@ -1473,11 +1515,23 @@ export async function POST(request: Request) {
 
       const isCosmeticsCopy = isCosmeticsCategory(body.category);
       const isFoodCopy = isFoodCategory(body.category);
+      const isElectronicsCopy = isElectronicsCategory(body.category);
+      const isPetCopy = isPetCategory(body.category);
+      const isFashionCopy = isFashionCategory(body.category);
+      const isLivingCopy = isLivingCategory(body.category);
       const finalCopy = isCosmeticsCopy
         ? reviewCosmeticsCopy(copyToSave)
         : isFoodCopy
           ? reviewFoodCopy(copyToSave)
-          : null;
+          : isElectronicsCopy
+            ? reviewElectronicsCopy(copyToSave)
+            : isPetCopy
+              ? reviewPetCopy(copyToSave)
+              : isFashionCopy
+                ? reviewFashionCopy(copyToSave)
+                : isLivingCopy
+                  ? reviewLivingCopy(copyToSave)
+                  : null;
       savedCopy = finalCopy ? finalCopy.copy : copyToSave;
       mfdsReviewed = finalCopy?.mfdsReviewed ?? false;
       replacements = finalCopy?.replacements ?? [];
@@ -1631,6 +1685,24 @@ export async function POST(request: Request) {
     const reviewPraises = enrichedBody.reviewInsights?.commonPraises ?? [];
     const reviewComplaints = enrichedBody.reviewInsights?.commonComplaints ?? [];
     const reviewLineCount = enrichedBody.reviewInsights?.reviewLineCount;
+    const petAgeWeightMentionCount =
+      body.category === "반려동물"
+        ? enrichedBody.reviewInsights?.petAgeWeightMentionCount
+        : undefined;
+    const repurchaseMentionCount =
+      body.category === "식품/건강기능식품"
+        ? enrichedBody.reviewInsights?.repurchaseMentionCount
+        : undefined;
+    const sizeFitMentionCount =
+      body.category === "의류/패션"
+        ? enrichedBody.reviewInsights?.sizeFitMentionCount
+        : undefined;
+    const longTermUseMentionCount =
+      body.category === "화장품/뷰티" ||
+      body.category === "전자제품" ||
+      body.category === "생활용품"
+        ? enrichedBody.reviewInsights?.longTermUseMentionCount
+        : undefined;
     const praiseMatchCounts = enrichedBody.reviewInsights?.praiseMatchCounts;
     const complaintMatchCounts = enrichedBody.reviewInsights?.complaintMatchCounts;
     if (reviewPraises.length > 0) {
@@ -1641,6 +1713,10 @@ export async function POST(request: Request) {
         reviewLineCount,
         praiseMatchCounts,
         complaintMatchCounts,
+        petAgeWeightMentionCount,
+        repurchaseMentionCount,
+        sizeFitMentionCount,
+        longTermUseMentionCount,
       );
       console.log(
         `[review-highlight] 실제 후기 하이라이트 삽입 (praises=${reviewPraises.length} concerns=${reviewComplaints.filter(Boolean).length} sourceReviewCount=${reviewLineCount ?? 0}, AI 미생성)`,
@@ -1666,6 +1742,18 @@ export async function POST(request: Request) {
       }
     }
 
+    const beforeAfterLen = savedCopy.sections.length;
+    savedCopy.sections = insertBeforeAfterSection(
+      savedCopy.sections,
+      body.beforeAfterPairs,
+      body.category,
+    );
+    if (savedCopy.sections.length > beforeAfterLen) {
+      console.log(
+        `[before-after] 효과 비교 사진 삽입 (pairs=${body.beforeAfterPairs?.length ?? 0}, AI 미생성)`,
+      );
+    }
+
     savedCopy.sections = applyHeroBadge(savedCopy.sections);
     savedCopy.sections = enrichSectionsWithProductMetadata(savedCopy.sections, {
       certifications: enrichedBody.certifications ?? body.certifications,
@@ -1674,6 +1762,7 @@ export async function POST(request: Request) {
       ingredients: body.ingredients,
       price: body.price,
       keyFeatures: body.keyFeatures,
+      productSizeHint: body.productSizeHint,
     });
     savedCopy.sections = applyBoldBlock(savedCopy.sections);
     savedCopy.sections = applyDesignerLayoutRhythm(savedCopy.sections);
@@ -1887,17 +1976,17 @@ export async function POST(request: Request) {
       }
     }
 
-    // 컨셉 기반 원형 배지 아이콘 (checklist / usage_steps) + illustration_banner
+    // 컨셉 기반 원형 배지 아이콘 (checklist / usage_steps)
+    // 251차 — illustration_banner는 Replicate 생성 제거, assignDistinctSectionImages가 imageIndex 배정
     let conceptIcons = undefined;
     let iconCost = 0;
-    let illustrationCost = 0;
     const iconTheme = theme
       ? { accent: theme.accent, deepAccent: theme.deepAccent, baseNeutral: theme.baseNeutral }
       : getCategoryTheme(body.category);
 
     if (!enrichedBody.conceptBrief) {
       console.warn(
-        `[concept-illustration] conceptBrief 없음 — illustration_banner/아이콘 생략 product="${body.productName}"`,
+        `[concept-icons] conceptBrief 없음 — 아이콘 생략 product="${body.productName}"`,
       );
     } else {
       const checklistSection = savedCopy.sections.find((s) => s.type === "checklist");
@@ -1949,98 +2038,6 @@ export async function POST(request: Request) {
           );
         }
       }
-
-      const heroSection = savedCopy.sections.find((s) => s.type === "hero");
-      const heroImageIndex = heroSection?.type === "hero" ? heroSection.imageIndex : 0;
-      const fallbackProductUrl = imageUrls[heroImageIndex] ?? imageUrls[0] ?? null;
-
-      const bannerIndexes = savedCopy.sections
-        .map((section, index) => (section.type === "illustration_banner" ? index : -1))
-        .filter((index) => index >= 0);
-
-      let illustrationAttempted = 0;
-      let illustrationFluxOk = 0;
-      let illustrationFallbackOk = 0;
-      let illustrationFailed = 0;
-
-      for (let i = 0; i < bannerIndexes.length; i++) {
-        const sectionIndex = bannerIndexes[i];
-        const section = savedCopy.sections[sectionIndex];
-        if (section.type !== "illustration_banner") continue;
-        if (isTestMode() && i > 0) {
-          console.log("[concept-illustration] TEST_MODE — 추가 illustration_banner 생략");
-          break;
-        }
-        illustrationAttempted += 1;
-        let illustrationUrl = "";
-        try {
-          const { dataUrl, cost } = await generateIllustrationBanner(
-            enrichedBody.conceptBrief,
-            iconTheme,
-            section.heading,
-            section.body,
-          );
-          if (dataUrl) {
-            const uploadedUrl = await uploadDataUrlAndGetPublicUrl(
-              supabase,
-              user.id,
-              dataUrl,
-              `illustration-${sectionIndex}`,
-            );
-            if (uploadedUrl) {
-              illustrationUrl = uploadedUrl;
-              illustrationCost += cost;
-              illustrationFluxOk += 1;
-            }
-          } else {
-            console.warn(
-              `[concept-illustration] flux-schnell 빈 URL slot=${section.slot ?? "illustration_banner"} heading="${section.heading ?? ""}"`,
-            );
-          }
-        } catch (error) {
-          illustrationFailed += 1;
-          const message = error instanceof Error ? error.message : String(error);
-          const status = (error as { response?: { status?: number } }).response?.status;
-          console.warn(
-            `[concept-illustration] illustration_banner flux 실패 slot=${section.slot ?? "illustration_banner"} status=${status ?? "n/a"}: ${message}`,
-          );
-        }
-
-        if (!illustrationUrl) {
-          try {
-            const fallbackDataUrl = await buildIllustrationBannerFallback({
-              productImageUrl: fallbackProductUrl,
-              theme: iconTheme,
-              brief: enrichedBody.conceptBrief,
-            });
-            const uploadedFallback = await uploadDataUrlAndGetPublicUrl(
-              supabase,
-              user.id,
-              fallbackDataUrl,
-              `illustration-fallback-${sectionIndex}`,
-            );
-            illustrationUrl = uploadedFallback ?? fallbackDataUrl;
-            illustrationFallbackOk += 1;
-            console.log(
-              `[concept-illustration] 폴백 배경 적용 slot=${section.slot ?? "illustration_banner"} (${illustrationUrl.length} chars)`,
-            );
-          } catch (fallbackError) {
-            illustrationFailed += 1;
-            console.warn(
-              `[concept-illustration] 폴백 배경도 실패 slot=${section.slot ?? "illustration_banner"}`,
-              fallbackError,
-            );
-          }
-        }
-
-        if (illustrationUrl) {
-          savedCopy.sections[sectionIndex] = { ...section, illustrationUrl };
-        }
-      }
-
-      console.log(
-        `[concept-illustration] summary product="${body.productName}" attempted=${illustrationAttempted} fluxOk=${illustrationFluxOk} fallbackOk=${illustrationFallbackOk} failed=${illustrationFailed}`,
-      );
     }
 
     const visionRolesApplied = countVisionRolesApplied(
@@ -2055,7 +2052,7 @@ export async function POST(request: Request) {
         (body.photoCostBreakdown?.referenceAnalysis ?? 0) + referenceAnalysisCost,
       reviewInsights: (body.photoCostBreakdown?.reviewInsights ?? 0) + reviewInsightsCost,
       icons: iconCost,
-      illustrations: illustrationCost,
+      illustrations: body.photoCostBreakdown?.illustrations ?? 0,
       claude: claudeCost,
       effects: effectsCost,
       visionRolesApplied:
@@ -2068,7 +2065,6 @@ export async function POST(request: Request) {
       (body.photoProcessingCost ?? 0) +
       totalDeepSeekCost +
       iconCost +
-      illustrationCost +
       claudeCost +
       effectsCost +
       referenceAnalysisCost +
@@ -2084,7 +2080,6 @@ export async function POST(request: Request) {
         `decor=$${(photoCostBreakdown.decor ?? 0).toFixed(4)} ` +
         `effects=$${effectsCost.toFixed(4)} ` +
         `icons=$${iconCost.toFixed(4)} ` +
-        `illustrations=$${illustrationCost.toFixed(4)} ` +
         `claude=$${claudeCost.toFixed(4)} ` +
         `deepSeek=$${totalDeepSeekCost.toFixed(4)} ` +
         `total=$${generationCost.toFixed(4)}`,

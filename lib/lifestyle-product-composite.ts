@@ -15,17 +15,36 @@ import {
 } from "@/lib/detect-held-object-placement";
 import {
   buildProductShadowSvg,
+  buildSilhouetteShadowBuffer,
   defringeCutoutEdges,
+  featherCutout,
+  matchCutoutGrain,
+  matchCutoutSharpness,
+  matchCutoutWhiteBalance,
+  measureCornerMeanAlpha,
+  measureCutoutPlateRisk,
+  measureTransparentRatio,
+  purgeDarkPlateFringe,
   sampleBackdropAmbientColor,
   tintedShadowColor,
+  trimCutoutToOpaqueBounds,
 } from "@/lib/photo-composite";
 import {
   applyPhysicalScaleToPlacement,
 } from "@/lib/lifestyle-physical-scale";
-import { DEFAULT_SHADOW, type ShadowAnalysis } from "@/lib/vision-utils";
+import { preCropSourceToProduct, sharpenCutout, type PreCropOptions } from "@/lib/photo-enhance";
+import {
+  DEFAULT_SHADOW,
+  detectCutoutHasHandOrPerson,
+  type ShadowAnalysis,
+} from "@/lib/vision-utils";
 
 const NANO_BANANA_REF = "google/nano-banana" as const;
-const REPLICATE_COST_USD = { nanoBanana: 0.039, backgroundRemover: 0.00047 } as const;
+const REPLICATE_COST_USD = {
+  nanoBanana: 0.039,
+  backgroundRemover: 0.00047,
+  clarityUpscaler: 0.016,
+} as const;
 const DEFAULT_GRASP_OVERLAP_FRACTION = 0.4;
 const REFINE_CROP_PADDING_FRACTION = 0.8;
 const REFINE_CROP_MAX_SCENE_FRACTION = 0.45;
@@ -591,24 +610,183 @@ async function getBackgroundRemoverRef(): Promise<ModelRef> {
   return backgroundRemoverVersionRef;
 }
 
-async function removeProductBackground(productImageUrl: string): Promise<{ cutoutUrl: string; cost: number }> {
+type LifestyleCutoutAttempt = {
+  buffer: Buffer;
+  url: string;
+  transparentRatio: number;
+  cornerMaxAlpha: number;
+  plateRisk: Awaited<ReturnType<typeof measureCutoutPlateRisk>>;
+  handContaminated: boolean;
+};
+
+// hero(photo-enhance.ts)와 동일 임계값 — 두 파이프라인이 같은 rembg 모델을 쓰므로
+// 기준을 다르게 둘 이유가 없음.
+const LIFESTYLE_CUTOUT_CORNER_ALPHA_FAIL = 40;
+
+/** @internal exported for 240cha formula parity verify */
+export function scoreLifestyleCutout(attempt: {
+  handContaminated: boolean;
+  plateRisk: { risky: boolean; opaqueAreaRatio: number; softAlphaRatio: number };
+  transparentRatio: number;
+  cornerMaxAlpha: number;
+}): number {
+  if (attempt.handContaminated) return -1000;
+  if (attempt.plateRisk.risky) return -500;
+  if (attempt.transparentRatio < 0.05) return -400;
+  if (attempt.cornerMaxAlpha >= LIFESTYLE_CUTOUT_CORNER_ALPHA_FAIL) return -300;
+  return (
+    attempt.transparentRatio * 120 -
+    attempt.cornerMaxAlpha * 0.8 -
+    attempt.plateRisk.opaqueAreaRatio * 45 -
+    attempt.plateRisk.softAlphaRatio * 20
+  );
+}
+
+/** @internal exported for 240cha formula parity verify */
+export function isLifestyleCutoutAcceptable(attempt: {
+  transparentRatio: number;
+  cornerMaxAlpha: number;
+  plateRisk: { risky: boolean };
+  handContaminated: boolean;
+}): boolean {
+  return (
+    attempt.transparentRatio >= 0.05 &&
+    attempt.cornerMaxAlpha < LIFESTYLE_CUTOUT_CORNER_ALPHA_FAIL &&
+    !attempt.plateRisk.risky &&
+    !attempt.handContaminated
+  );
+}
+
+/**
+ * 240차 — hero(photo-enhance.ts)와 동일한 preCrop 3단계 재시도 + 4중 품질
+ * 스코어링(투명도/모서리알파/플레이트리스크/손-오염) + clarity-upscaler 화질보정.
+ * 235/238차가 확인한 "rembg 1회만·안전장치 전무" 격차를 hero급으로 맞춘다.
+ * 사용자 명시 허가(2026-09-23) — 판매자가 라이프스타일 합성을 쓸 때마다 유료 API
+ * 호출이 늘어나는 것을 감수하고 프로덕션 기본값으로 영구 적용.
+ */
+async function removeProductBackground(
+  productImageUrl: string,
+  productName: string,
+): Promise<{ cutoutUrl: string; cutoutBuffer: Buffer; acceptable: boolean; cost: number }> {
   const replicate = getReplicateClient();
   const modelRef = await getBackgroundRemoverRef();
-  let imageInput = productImageUrl;
-  if (!productImageUrl.startsWith("data:")) {
+
+  const cropAttempts: PreCropOptions[] = [
+    { pad: 0.04 },
+    { pad: 0.025, strict: true },
+    { pad: 0.012, strict: true, skipIfBoxAreaAbove: 0.95 },
+  ];
+
+  let totalCost = 0;
+  let best: LifestyleCutoutAttempt | null = null;
+
+  for (let i = 0; i < cropAttempts.length; i += 1) {
     try {
-      const { buffer } = await fetchImageBuffer(productImageUrl);
-      imageInput = bufferToDataUrl(buffer);
-    } catch {
-      // Replicate에 원본 URL 그대로 전달
+      // productImageUrl이 이미 data: URL이면(QA 스크립트 등) 크롭용 fetch가 실패할 수
+      // 있으니, preCrop은 hosted URL일 때만 시도하고 data: URL이면 원본 그대로 rembg에.
+      // (Node fetch는 data:를 지원하므로 시도하되, 실패 시 원본으로 폴백.)
+      let bgRemoveInput = productImageUrl;
+      if (!productImageUrl.startsWith("data:")) {
+        const cropped = await preCropSourceToProduct(
+          productImageUrl,
+          productName,
+          cropAttempts[i]!,
+        );
+        totalCost += cropped.cost;
+        bgRemoveInput = cropped.url;
+      } else {
+        // data: URL도 preCrop 가능하면 재시도 다양성 확보(실패 시 원본 유지)
+        try {
+          const cropped = await preCropSourceToProduct(
+            productImageUrl,
+            productName,
+            cropAttempts[i]!,
+          );
+          totalCost += cropped.cost;
+          bgRemoveInput = cropped.url;
+        } catch {
+          bgRemoveInput = productImageUrl;
+        }
+      }
+
+      let imageInput = bgRemoveInput;
+      if (!imageInput.startsWith("data:")) {
+        try {
+          const { buffer } = await fetchImageBuffer(imageInput);
+          imageInput = bufferToDataUrl(buffer);
+        } catch {
+          // Replicate에 원본 URL 그대로 전달
+        }
+      }
+
+      const output = await runReplicateWithRetry("851-labs/background-remover", () =>
+        replicate.run(modelRef, { input: { image: imageInput } }),
+      );
+      const rawCutoutUrl = extractFluxImageUrl(output);
+      if (!rawCutoutUrl) {
+        console.warn(`[lifestyle-composite] cutout attempt ${i}: rembg URL 없음`);
+        continue;
+      }
+
+      const { url: sharpenedUrl, cost: sharpenCost } = await sharpenCutout(rawCutoutUrl);
+      totalCost += sharpenCost;
+
+      const cutoutRes = await fetch(sharpenedUrl);
+      if (!cutoutRes.ok) continue;
+      let buffer = Buffer.from(await cutoutRes.arrayBuffer());
+      // 233차 — hero와 동일 순서(trim → 어두운 플레이트 제거)로, 스코어링 이전에 적용.
+      buffer = await trimCutoutToOpaqueBounds(buffer);
+      buffer = await purgeDarkPlateFringe(buffer);
+      try {
+        buffer = await defringeCutoutEdges(buffer);
+      } catch (error) {
+        console.warn("[lifestyle-composite] defringe 실패, 후처리 전 컷아웃 사용", error);
+      }
+
+      const transparentRatio = await measureTransparentRatio(buffer);
+      const corner = await measureCornerMeanAlpha(buffer);
+      const plateRisk = await measureCutoutPlateRisk(buffer);
+      const handCheck = await detectCutoutHasHandOrPerson(buffer);
+      totalCost += handCheck.cost;
+
+      const attempt: LifestyleCutoutAttempt = {
+        buffer,
+        url: sharpenedUrl,
+        transparentRatio,
+        cornerMaxAlpha: corner.maxMeanAlpha,
+        plateRisk,
+        handContaminated: handCheck.contaminated,
+      };
+      console.log(
+        `[lifestyle-cutout:${i}] transparent=${transparentRatio.toFixed(3)} ` +
+          `corner=${corner.maxMeanAlpha.toFixed(1)} plateRisk=${plateRisk.risky} ` +
+          `hand=${handCheck.contaminated}`,
+      );
+
+      if (!best || scoreLifestyleCutout(attempt) > scoreLifestyleCutout(best)) {
+        best = attempt;
+      }
+      if (isLifestyleCutoutAcceptable(attempt)) break;
+    } catch (err) {
+      console.warn(`[lifestyle-composite] cutout attempt ${i} failed`, err);
     }
   }
-  const output = await runReplicateWithRetry("851-labs/background-remover", () =>
-    replicate.run(modelRef, { input: { image: imageInput } }),
+
+  if (!best) {
+    throw new Error("상품 컷아웃을 받지 못했습니다.");
+  }
+
+  console.log(
+    `[lifestyle-cutout] best score=${scoreLifestyleCutout(best).toFixed(1)} ` +
+      `acceptable=${isLifestyleCutoutAcceptable(best)}`,
   );
-  const cutoutUrl = extractFluxImageUrl(output);
-  if (!cutoutUrl) throw new Error("상품 컷아웃 URL을 받지 못했습니다.");
-  return { cutoutUrl, cost: REPLICATE_COST_USD.backgroundRemover };
+
+  return {
+    cutoutUrl: best.url,
+    cutoutBuffer: best.buffer,
+    acceptable: isLifestyleCutoutAcceptable(best),
+    cost: totalCost,
+  };
 }
 
 function buildFallbackPrompt(category: string): string {
@@ -703,7 +881,7 @@ export async function pasteCutoutOnScene(params: {
     .png()
     .toBuffer();
 
-  let cutoutPrepared = await sharp(rotated)
+  let cutoutPrepared: Buffer = await sharp(rotated)
     .resize(targetW, targetH, { fit: "inside", withoutEnlargement: false })
     .png()
     .toBuffer();
@@ -723,6 +901,30 @@ export async function pasteCutoutOnScene(params: {
     cutH = cutMeta.height ?? Math.min(targetH, sceneH);
   }
 
+  // 235차 — hero 파이프라인(photo-enhance.ts)은 WB/선명도/그레인 매칭 전에 반드시
+  // featherCutout(알파 1px erode+블러)로 rembg의 날카로운 경계를 반투명하게 만드는데,
+  // 이 라이프스타일 경로는 이 단계가 아예 빠져 있어 실사진 배경 위에 날카로운 경계가
+  // 그대로 붙여넣어지고 있었음. canvasSize 인자는 buildSceneShadowSvg와 동일한 선례로
+  // Math.max(sceneW, sceneH) 사용(시그니처 변경 불필요, 스칼라 1개로만 쓰임).
+  try {
+    cutoutPrepared = await featherCutout(cutoutPrepared, Math.max(sceneW, sceneH));
+  } catch (error) {
+    console.warn("[lifestyle-composite] feather 실패, 컷아웃 그대로 사용", error);
+  }
+
+  // 211차 — 메인 히어로 경로(photo-enhance.ts)가 162/163/164/187차에 걸쳐 쌓은
+  // 컷아웃-배경 매칭 4축 중 그림자 색조(162차)만 이 파일에 배선돼 있었고 나머지
+  // 3축(화이트밸런스/선명도/그레인)은 누락돼 있었음 — 이번에 동일하게 보강.
+  // 세 함수 모두 (cutout, backdrop) => Promise<Buffer> 형태의 순수 함수이고,
+  // 배경이 이미 매끈하면 조용히 원본을 그대로 반환하는 스킵 로직이 내장돼 있어
+  // 안전합니다. backdrop 인자로는 sceneBuffer(실제 라이프스타일 사진)를 그대로 씁니다.
+  cutoutPrepared = await matchCutoutWhiteBalance(cutoutPrepared, sceneBuffer);
+  cutoutPrepared = await matchCutoutSharpness(cutoutPrepared, sceneBuffer);
+  cutoutPrepared = await matchCutoutGrain(cutoutPrepared, sceneBuffer);
+  cutMeta = await sharp(cutoutPrepared).metadata();
+  cutW = cutMeta.width ?? cutW;
+  cutH = cutMeta.height ?? cutH;
+
   let pasteLeft = left + Math.round((targetW - cutW) / 2);
   let pasteTop = top + Math.round((targetH - cutH) / 2);
   pasteLeft = Math.max(0, Math.min(pasteLeft, Math.max(0, sceneW - cutW)));
@@ -739,14 +941,32 @@ export async function pasteCutoutOnScene(params: {
   } catch {
     sceneShadowTint = undefined;
   }
-  const shadowSvg = buildSceneShadowSvg(
-    sceneW,
-    sceneH,
-    { left: pasteLeft, top: pasteTop, width: cutW, height: cutH },
-    shadow,
-    sceneShadowTint,
-  );
-  const shadowBuf = await sharp(Buffer.from(shadowSvg)).png().toBuffer();
+  // 234차 — hero 파이프라인은 실루엣 그림자를 기본으로 쓰고 타원(buildProductShadowSvg)은
+  // 실패 시 폴백으로만 쓰는데, 이 라이프스타일 경로는 반대로 타원만 썼음.
+  // buildSilhouetteShadowBuffer가 canvasWidth/canvasHeight를 받도록 일반화돼 있어
+  // 임의 종횡비 실사진 씬에도 그대로 쓸 수 있다. hero와 동일하게 실루엣 우선,
+  // 실패 시 기존 타원 폴백(buildSceneShadowSvg는 그대로 재사용).
+  let shadowBuf: Buffer;
+  try {
+    shadowBuf = await buildSilhouetteShadowBuffer(
+      cutoutPrepared,
+      sceneW,
+      sceneH,
+      { left: pasteLeft, top: pasteTop, width: cutW, height: cutH },
+      shadow,
+      sceneShadowTint,
+    );
+  } catch (error) {
+    console.warn("[lifestyle-composite] silhouette shadow 실패 — 타원 그림자로 폴백", error);
+    const shadowSvg = buildSceneShadowSvg(
+      sceneW,
+      sceneH,
+      { left: pasteLeft, top: pasteTop, width: cutW, height: cutH },
+      shadow,
+      sceneShadowTint,
+    );
+    shadowBuf = await sharp(Buffer.from(shadowSvg)).png().toBuffer();
+  }
 
   const withShadow = await sharp(sceneBuffer)
     .composite([{ input: shadowBuf, left: 0, top: 0, blend: "multiply" }])
@@ -881,6 +1101,7 @@ export async function compositeProductOnLifestylePhoto(params: {
     lifestyleImageUrl,
     productImageUrl,
     category,
+    productName,
     qaForceFallback,
     qaGraspRefineDiagnostics,
     productHeightCm,
@@ -908,21 +1129,24 @@ export async function compositeProductOnLifestylePhoto(params: {
   /** 167차 — paste/prep 실패 사유를 requirePixelPaste 폴백이 덮어쓰지 않도록 보존 */
   let pixelPasteFailReason: string | undefined;
   try {
-    const cutout = await removeProductBackground(productImageUrl);
+    const cutout = await removeProductBackground(productImageUrl, productName);
     cost += cutout.cost;
 
-    if (!qaForceFallback) {
+    if (!qaForceFallback && !cutout.acceptable) {
+      // 240차 — 재시도 3회 + 품질 게이트를 전부 통과 못한 컷아웃은 실제 인물 사진에
+      // 붙이지 않는다(생략이 오인보다 낫다 — package_contents/color_variation과 동일 결).
+      // requirePixelPaste가 아니면 아래 nano-banana 폴백으로 넘어간다(cutoutUrl 재사용).
+      pixelPasteFailReason = "cutout-quality-below-threshold";
+      console.warn("[lifestyle-composite] cutout quality below threshold after retries");
+    } else if (!qaForceFallback) {
       try {
         const lifestyle = await fetchImageBuffer(lifestyleImageUrl);
-        let cutoutImage = await fetchImageBuffer(cutout.cutoutUrl);
-        // 165차 — 컷아웃 경계 색 번짐(fringe) 제거. 실사진 배경에 픽셀을 그대로
-        // 붙여넣는 경로라 AI 배경 합성보다도 번짐이 훨씬 눈에 잘 띈다.
-        try {
-          const defringed = await defringeCutoutEdges(cutoutImage.buffer);
-          cutoutImage = { ...cutoutImage, buffer: defringed };
-        } catch (error) {
-          console.warn("[lifestyle-composite] defringe 실패, 컷아웃 그대로 사용", error);
-        }
+        // 240차 — trim/plate-fringe/defringe는 이제 removeProductBackground() 내부
+        // 재시도 루프 안에서(스코어링 이전에) 이미 적용됨. 여기서 다시 적용하지 않는다.
+        const cutoutImage: { buffer: Buffer; mediaType: "image/jpeg" | "image/png" } = {
+          buffer: cutout.cutoutBuffer,
+          mediaType: "image/png",
+        };
 
         const detection = await detectHandPlacementWithGraspRetry(lifestyle, cutoutImage);
         cost += detection.cost;

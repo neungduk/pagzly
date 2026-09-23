@@ -24,6 +24,14 @@ export type ReviewInsights = {
   commonComplaints: string[];
   /** 파싱된 리뷰 라인(또는 xlsx 유효 행) 수 — 의미적 비율이 아닌 순수 파싱 건수 */
   reviewLineCount: number;
+  /** 192차 — 나이/체중 언급 라인 수(정규식, LLM 아님). 의미적 비율이 아닌 순수 파싱 건수 */
+  petAgeWeightMentionCount: number;
+  /** 203차 — 재구매 의사 언급 라인 수(정규식, LLM 아님). 의미적 비율이 아닌 순수 파싱 건수 */
+  repurchaseMentionCount: number;
+  /** 204차 — 사이즈/핏 언급 라인 수(정규식, LLM 아님). 의미적 비율이 아닌 순수 파싱 건수 */
+  sizeFitMentionCount: number;
+  /** 205차 — 장기 사용 언급 라인 수(정규식, LLM 아님). 의미적 비율이 아닌 순수 파싱 건수 */
+  longTermUseMentionCount: number;
   /** 135차 — 각 praise가 원문 리뷰 몇 줄에서 매칭됐는지 (키워드 문자열 매칭, LLM 아님) */
   praiseMatchCounts: number[];
   /** 135차 — 각 complaint 동일 */
@@ -45,11 +53,70 @@ export function extractCoreKeywords(text: string): string[] {
   ).slice(0, 4);
 }
 
+export type HighlightSegment = { text: string; isKeyword: boolean };
+
+/** praise/complaint 텍스트를 extractCoreKeywords 기준으로 조각냄.
+ *  matchCount > 0 인 항목에서만 렌더러가 이 결과로 강조 표시를 만든다 —
+ *  실제 리뷰 원문과 매칭된 적 있는 문장에서만 사용해야 anti-fabrication 원칙과 충돌하지 않음.
+ *  키워드 자체는 extractCoreKeywords와 동일(문장을 쪼갠 것) — 새로 짓지 않음. */
+export function splitTextByKeywords(text: string): HighlightSegment[] {
+  const keywords = extractCoreKeywords(text);
+  if (keywords.length === 0) return [{ text, isKeyword: false }];
+  const sorted = [...keywords].sort((a, b) => b.length - a.length);
+  const escaped = sorted.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const pattern = new RegExp(`(${escaped.join("|")})`, "g");
+  return text
+    .split(pattern)
+    .filter((part) => part.length > 0)
+    .map((part) => ({ text: part, isKeyword: sorted.includes(part) }));
+}
+
 /** 원문 리뷰 라인 중 text의 핵심 키워드를 하나라도 포함하는 라인 수.
  *  LLM 호출 없음 — 순수 문자열 포함 검사라 과대 집계가 구조적으로 불가능
  *  (키워드가 원문에 없으면 0). 과소 집계는 될 수 있음(동의어 미매칭) — 그건 안전한 쪽 오차. */
 export function countLineMatches(lines: string[], text: string): number {
   return matchingLines(lines, text).length;
+}
+
+/** 192차 — 반려동물 리뷰 원문에서 나이/체중 언급 라인 수. LLM 호출 없음 —
+ *  countLineMatches와 동일하게 순수 정규식 매칭. 숫자 패턴이 뚜렷한 나이·체중만
+ *  다룬다(품종명은 자유 텍스트라 지어내기 위험 있어 제외 — anti-fabrication). */
+const PET_AGE_WEIGHT_PATTERN =
+  /\d+(\.\d+)?\s*(kg|킬로그램|킬로)|\d+\s*(개월|살|세)(?![0-9])/i;
+
+export function countPetAgeWeightMentions(lines: string[]): number {
+  return lines.filter((line) => PET_AGE_WEIGHT_PATTERN.test(line)).length;
+}
+
+/** 203차 — 식품 리뷰 원문에서 재구매 의사 언급 라인 수. LLM 호출 없음 —
+ *  countPetAgeWeightMentions과 동일하게 순수 정규식 매칭. 문맥 의존적인 애매한
+ *  표현("크다/작다"류)은 제외하고 명시적 재구매 어휘만 다룬다(anti-fabrication). */
+const REPURCHASE_PATTERN =
+  /재구매|재주문|또\s*(구매|구입|주문)|계속\s*(구매|구입)/;
+
+export function countRepurchaseMentions(lines: string[]): number {
+  return lines.filter((line) => REPURCHASE_PATTERN.test(line)).length;
+}
+
+/** 204차 — 패션 리뷰 원문에서 사이즈/핏 언급 라인 수. LLM 호출 없음 —
+ *  countRepurchaseMentions과 동일하게 순수 정규식 매칭. "사이즈" 키워드가 반드시
+ *  동반되는 명시적 표현만 다룬다 — 문맥 의존적인 "크다/작다" 단독 표현은 제외
+ *  (예: "가격이 크게 부담되진 않아요"류 오탐 방지, anti-fabrication). */
+const SIZE_FIT_PATTERN = /정사이즈|사이즈\s*(업|다운|크게|작게)/;
+
+export function countSizeFitMentions(lines: string[]): number {
+  return lines.filter((line) => SIZE_FIT_PATTERN.test(line)).length;
+}
+
+/** 205차 — 뷰티·전자·생활용품 리뷰 원문에서 장기 사용 언급 라인 수. LLM 호출 없음 —
+ *  countSizeFitMentions과 동일하게 순수 정규식 매칭. 숫자+기간 단위+사용 동사가 모두
+ *  붙어 있는 경우만 다룬다 — 한글 고유어 숫자("한 달째")는 의도적으로 제외(과소집계는
+ *  안전한 쪽 오차, anti-fabrication). */
+const LONG_TERM_USE_PATTERN =
+  /\d+\s*(일|주|개월|년)\s*째?\s*(사용|써|쓰고|쓴|사용중|사용해)/;
+
+export function countLongTermUseMentions(lines: string[]): number {
+  return lines.filter((line) => LONG_TERM_USE_PATTERN.test(line)).length;
 }
 
 /** countLineMatches와 동일 규칙으로 매칭된 원문 라인 목록 */
@@ -238,10 +305,18 @@ export async function extractReviewInsights(
   const lines =
     fileType === "xlsx" ? extractLinesFromXlsx(fileBuffer) : extractLinesFromTxt(fileBuffer);
   const reviewLineCount = lines.length;
+  const petAgeWeightMentionCount = countPetAgeWeightMentions(lines);
+  const repurchaseMentionCount = countRepurchaseMentions(lines);
+  const sizeFitMentionCount = countSizeFitMentions(lines);
+  const longTermUseMentionCount = countLongTermUseMentions(lines);
   const empty: ReviewInsights = {
     commonPraises: [],
     commonComplaints: [],
     reviewLineCount,
+    petAgeWeightMentionCount,
+    repurchaseMentionCount,
+    sizeFitMentionCount,
+    longTermUseMentionCount,
     praiseMatchCounts: [],
     complaintMatchCounts: [],
   };
@@ -249,7 +324,16 @@ export async function extractReviewInsights(
   const rawText = lines.join("\n");
   if (!rawText.trim()) {
     console.warn("[review-insights] 리뷰 텍스트 없음");
-    return { ...empty, reviewLineCount: 0, cost: 0, deepseekCalls: 0 };
+    return {
+      ...empty,
+      reviewLineCount: 0,
+      petAgeWeightMentionCount: 0,
+      repurchaseMentionCount: 0,
+      sizeFitMentionCount: 0,
+      longTermUseMentionCount: 0,
+      cost: 0,
+      deepseekCalls: 0,
+    };
   }
 
   if (!process.env.DEEPSEEK_API_KEY) {
@@ -314,6 +398,10 @@ JSON만 반환:
       commonPraises: parsed.commonPraises,
       commonComplaints: parsed.commonComplaints,
       reviewLineCount,
+      petAgeWeightMentionCount,
+      repurchaseMentionCount,
+      sizeFitMentionCount,
+      longTermUseMentionCount,
       praiseMatchCounts,
       complaintMatchCounts,
       ...(axisComparison.length >= 2 ? { axisComparison } : {}),

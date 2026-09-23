@@ -15,6 +15,8 @@ type SectionImageProps = {
   imageIndex?: number;
   /** true 강제 표시 / false 강제 숨김 / 미지정 시 context */
   showAiLifestyleBadge?: boolean;
+  /** 191차 — true면 즉시 로드(히어로 전용). 기본 false = lazy. */
+  priority?: boolean;
 };
 
 export default function SectionImage({
@@ -24,6 +26,7 @@ export default function SectionImage({
   fallbackSrc,
   imageIndex,
   showAiLifestyleBadge,
+  priority = false,
 }: SectionImageProps) {
   const [current, setCurrent] = useState(src);
   const meta = useSellerImageMeta();
@@ -50,6 +53,9 @@ export default function SectionImage({
       src={resolved}
       alt={alt}
       className={className}
+      loading={priority ? "eager" : "lazy"}
+      decoding="async"
+      {...(priority ? { fetchPriority: "high" as const } : {})}
       crossOrigin={
         resolved.startsWith("data:") || resolved.startsWith("blob:") ? undefined : "anonymous"
       }

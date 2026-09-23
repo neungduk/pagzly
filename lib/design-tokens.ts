@@ -122,8 +122,14 @@ export function getSectionBackground(
     // 가까운 다크 블록으로 만들되, accent 계열을 완전히 지우지 않아 브랜드 색과의 연결은
     // 유지한다 — "accentColor/baseNeutral/deepAccent 3색만 순환" 원칙은 그대로, ink는 그
     // 3색을 어둡게 눌러주는 혼합 재료일 뿐 새 색상을 도입하는 게 아니다.
-    const inkDeep = mixHex(theme.deepAccent, BRAND.ink, 0.6);
-    const inkAccent = mixHex(theme.accent, BRAND.ink, 0.42);
+    const inkDeep = ensureReadableOnPaper(
+      mixHex(theme.deepAccent, BRAND.ink, 0.6),
+      4.5,
+    );
+    const inkAccent = ensureReadableOnPaper(
+      mixHex(theme.accent, BRAND.ink, 0.42),
+      4.5,
+    );
     return `linear-gradient(145deg, ${hexToRgba(inkDeep, 0.97)} 0%, ${hexToRgba(inkAccent, 0.93)} 100%)`;
   }
   // A — 가장 밝은 "숨 고르기": baseNeutral → accentSoft
@@ -153,7 +159,18 @@ const CATEGORY_PATTERN_SVG: Partial<Record<string, string>> = {
   "생활용품": `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect x="10" y="12" width="16" height="16" rx="3" fill="%231B1B18" fill-opacity="0.05"/><rect x="48" y="18" width="12" height="12" rx="2.5" fill="%231B1B18" fill-opacity="0.04"/><rect x="22" y="48" width="20" height="14" rx="3" fill="%231B1B18" fill-opacity="0.045"/><rect x="54" y="52" width="10" height="10" rx="2" fill="%231B1B18" fill-opacity="0.04"/></svg>`,
 };
 
+/**
+ * 194차 — 사용자 피드백("물방울이 튀는 것 같다")으로 섹션 배경 장식 텍스처를 전체
+ * 비활성화. 51차 원래 설계도 "기본은 끄고 카테고리별 옵트인"이었는데 옵트인 스위치
+ * 없이 항상 켜진 채로 굳어져 있었던 것 — 이번에 원래 의도(기본 꺼짐)로 되돌린다.
+ * CATEGORY_PATTERN_SVG 데이터와 이 함수 로직은 지우지 않는다(다시 켜고 싶으면 이
+ * 상수 하나만 true로 되돌리면 됨 — 그라데이션 패턴 A/B/D/E는 이 플래그와 무관하게
+ * 그대로 유지된다, 사용자가 말한 "단색 배경"이 바로 그것).
+ */
+const CATEGORY_PATTERN_ENABLED = false;
+
 export function getCategoryPatternBackground(category?: string): string | undefined {
+  if (!CATEGORY_PATTERN_ENABLED) return undefined;
   if (!category) return undefined;
   const svg = CATEGORY_PATTERN_SVG[category];
   if (!svg) return undefined;
@@ -239,18 +256,109 @@ export const RADIUS = {
 } as const;
 
 /**
- * 그림자/inset 규칙군 — live·export가 같은 상수를 참조.
- * 180: imageLift/Soft·ctaSticky는 export 값을 단일 소스로 (live TW drift 제거).
+ * 184차 — 타입 스케일 축소 (값 병합은 시각 차이 ≈0만).
+ *
+ * 의미 단계(canonical): micro → label → caption → xs → sm → bodySm → body → bodyLg
+ *                       → checkMark → section* → price → display
+ * 역할 별칭은 동일 문자열을 가리킴 (diagramTitle=caption 등).
+ *
+ * | 토큰 | 값 | 비고 |
+ * | micro | 9px | 184: 9.5→9 (diagramTick 병합) |
+ * | label | 10px | diagramEmph 별칭 |
+ * | caption | 11px | diagramTitle 별칭 |
+ * | xs | 12px | diagramLabel 별칭 |
+ * | body | 15px | bentoValue 별칭 |
+ * | bodyLg | 16px | root 별칭 |
+ * | display | 3rem | heroDisplay·statNumber 별칭 |
+ * | section | 1.5rem | statBarValue 별칭 |
  */
+const FONT_SIZE_SCALE = {
+  micro: "9px",
+  label: "10px",
+  caption: "11px",
+  xs: "12px",
+  sm: "13px",
+  bodySm: "14px",
+  body: "15px",
+  bodyLg: "16px",
+  checkMark: "18px",
+  /** bento 강조 값 — checkMark(18)와 1px차, 위계 유지 */
+  bentoValueHero: "19px",
+  footnoteSup: "0.6em",
+  /** SEO h2 — rem 상속 의도, bodyLg(16px)와 병합하지 않음 */
+  seoH2: "1rem",
+  brandMono: "1.15rem",
+  sectionXs: "1.25rem",
+  sectionSm: "1.35rem",
+  section: "1.5rem",
+  sectionLg: "1.75rem",
+  sectionXl: "2rem",
+  price: "2.25rem",
+  /** hero·stat 공통 display */
+  display: "3rem",
+  keywordClamp: "clamp(2rem,10vw,3.5rem)",
+  keywordClampCard: "clamp(1.5rem,8vw,2.25rem)",
+  categoryKeyword: "clamp(2.25rem,11vw,4rem)",
+} as const;
+
+export const FONT_SIZE = {
+  ...FONT_SIZE_SCALE,
+  /** @deprecated 별칭 — FONT_SIZE.micro */
+  diagramTick: FONT_SIZE_SCALE.micro,
+  /** @deprecated 별칭 — FONT_SIZE.label */
+  diagramEmph: FONT_SIZE_SCALE.label,
+  /** @deprecated 별칭 — FONT_SIZE.caption */
+  diagramTitle: FONT_SIZE_SCALE.caption,
+  /** @deprecated 별칭 — FONT_SIZE.xs */
+  diagramLabel: FONT_SIZE_SCALE.xs,
+  /** @deprecated 별칭 — FONT_SIZE.body */
+  bentoValue: FONT_SIZE_SCALE.body,
+  /** @deprecated 별칭 — FONT_SIZE.bodyLg */
+  root: FONT_SIZE_SCALE.bodyLg,
+  /** @deprecated 별칭 — FONT_SIZE.section */
+  statBarValue: FONT_SIZE_SCALE.section,
+  /** @deprecated 별칭 — FONT_SIZE.display */
+  heroDisplay: FONT_SIZE_SCALE.display,
+  /** @deprecated 별칭 — FONT_SIZE.display */
+  statNumber: FONT_SIZE_SCALE.display,
+} as const;
+
+/**
+ * 그림자/inset 규칙군 — live·export가 같은 상수를 참조.
+ * 184: drop을 subtle/card/emphasis/sticky 4단계로 정리. 근접값만 병합.
+ * getSectionInsetShadow / getTextPanelSurface는 미포함(용도 분리).
+ *
+ * | 단계 | 값 | 흡수 |
+ * | subtle | 0 2px 8px accent@0.35 | barFillGlow |
+ * | card | 0 12px 32px -12px ink@0.28 | imageThumb ← specThumbMulti |
+ * | emphasis | 0 16px 40px -16px ink@0.5 | highlightEmphasis |
+ * | sticky | 0 -8px 24px ink@0.15 | ctaSticky |
+ */
+const ELEV_CARD = "0 12px 32px -12px rgba(27,27,24,0.28)";
+const ELEV_EMPHASIS = "0 16px 40px -16px rgba(27,27,24,0.5)";
+const ELEV_STICKY = "0 -8px 24px rgba(27,27,24,.15)";
+/** CTA 버튼 — emphasis와 blur/alpha 위계가 달라 병합하지 않음 */
+const ELEV_CTA_BUTTON = "0 12px 28px -10px rgba(27,27,24,0.55)";
+const ELEV_PULSE_REST = "0 10px 28px -12px rgba(27, 27, 24, 0.45)";
+
 export const ELEVATION = {
-  /** 체크리스트 카드 outer (비 boldBlock) */
+  /** 184 스케일 — subtle */
+  subtle: (deepAccent: string) => `0 2px 8px ${hexToRgba(deepAccent, 0.35)}`,
+  /** 184 스케일 — card */
+  card: ELEV_CARD,
+  /** 184 스케일 — emphasis */
+  emphasis: ELEV_EMPHASIS,
+  /** 184 스케일 — sticky */
+  sticky: ELEV_STICKY,
+
+  /** 체크리스트 카드 outer (accent tint — card와 색 채널이 달라 유지) */
   checklistCard: (deepAccent: string) =>
     `0 10px 28px -14px ${hexToRgba(deepAccent, 0.14)}`,
 
-  /** 하이라이트 emphasis 카드 */
-  highlightEmphasis: "0 16px 40px -16px rgba(27,27,24,0.5)",
+  /** @deprecated 별칭 — ELEVATION.emphasis */
+  highlightEmphasis: ELEV_EMPHASIS,
 
-  /** 바 fill glow (emphasis) */
+  /** @deprecated 별칭 — ELEVATION.subtle */
   barFillGlow: (deepAccent: string) => `0 2px 8px ${hexToRgba(deepAccent, 0.35)}`,
 
   /** 칩/인증 — trust strip highlight underline */
@@ -274,42 +382,44 @@ export const ELEVATION = {
   personaRingExportHex: (accentWithAlphaSuffix: string) =>
     `inset 0 0 0 1px ${accentWithAlphaSuffix}`,
 
-  /** 컨셉 배지 outer ring */
+  /** hairline outer ring (badge/swatch 공용) */
+  hairlineRing: (accentWithAlphaSuffix: string) => `0 0 0 1px ${accentWithAlphaSuffix}`,
+
+  /** @deprecated 별칭 — hairlineRing */
   badgeRing: (accentWithAlphaSuffix: string) => `0 0 0 1px ${accentWithAlphaSuffix}`,
 
-  /** 컬러 스와치 링 */
+  /** @deprecated 별칭 — hairlineRing */
   swatchRing: (accentWithAlphaSuffix: string) => `0 0 0 1px ${accentWithAlphaSuffix}`,
 
-  /** 이미지/썸네일 drop — live·export 공용 fixed ink */
-  imageThumb: "0 12px 32px -12px rgba(27,27,24,0.28)",
+  /** @deprecated 별칭 — ELEVATION.card */
+  imageThumb: ELEV_CARD,
 
   /**
-   * image_text lift — 180: export 기준 단일값 (구 live: -16px spread + ink@0.22).
-   * theme.deepAccent tint, spread 없음.
+   * image_text lift — soft와 blur 위계가 달라 병합하지 않음.
    */
   imageLift: (deepAccent: string) => `0 20px 56px ${hexToRgba(deepAccent, 0.14)}`,
 
   /**
-   * image_text / callout soft — 180: export 기준 단일값
-   * (구 live: -12px spread + ink@0.18).
+   * image_text / callout soft
    */
   imageSoft: (deepAccent: string) => `0 16px 48px ${hexToRgba(deepAccent, 0.12)}`,
 
-  /** live spec 멀티 썸네일 */
-  specThumbMulti: "0 10px 28px -10px rgba(27,27,24,0.24)",
-
   /**
-   * CTA sticky — 180: export 기준 단일값
-   * (구 live: 0 -8px 24px -8px rgba(27,27,24,0.2)).
+   * 184: specThumbMulti → card(imageThumb) 병합
+   * (구: 0 10px 28px -10px ink@0.24)
    */
-  ctaSticky: "0 -8px 24px rgba(27,27,24,.15)",
+  specThumbMulti: ELEV_CARD,
 
-  /** live CTA 버튼 */
-  ctaButton: "0 12px 28px -10px rgba(27,27,24,0.55)",
+  /** @deprecated 별칭 — ELEVATION.sticky */
+  ctaSticky: ELEV_STICKY,
 
-  /** TW 클래스 — JIT용 리터럴 (값이 ELEVATION CSS와 대응). CTA는 export와 동일. */
+  /** live CTA 버튼 — emphasis와 병합 안 함(위계) */
+  ctaButton: ELEV_CTA_BUTTON,
+
+  /** TW 클래스 — JIT용 리터럴 (값이 ELEVATION CSS와 대응). */
   twImageThumb: "shadow-[0_12px_32px_-12px_rgba(27,27,24,0.28)]",
-  twSpecThumbMulti: "shadow-[0_10px_28px_-10px_rgba(27,27,24,0.24)]",
+  /** 184: imageThumb와 동일 리터럴 */
+  twSpecThumbMulti: "shadow-[0_12px_32px_-12px_rgba(27,27,24,0.28)]",
   twCtaSticky: "shadow-[0_-8px_24px_rgba(27,27,24,0.15)]",
   twCtaButton: "shadow-[0_12px_28px_-10px_rgba(27,27,24,0.55)]",
 
@@ -321,15 +431,17 @@ export const ELEVATION = {
 
   /**
    * pulse-card — globals.css에 동일 문자열이 남아 있음(CSS는 TS import 불가).
+   * 184: Key0 → Rest 병합 (alpha 0.4→0.45, 시각 ≈0)
    */
-  pulseCardRest: "0 10px 28px -12px rgba(27, 27, 24, 0.45)",
-  pulseCardKey0: "0 10px 28px -12px rgba(27, 27, 24, 0.4)",
+  pulseCardRest: ELEV_PULSE_REST,
+  pulseCardKey0: ELEV_PULSE_REST,
   pulseCardKey50: "0 18px 36px -14px rgba(27, 27, 24, 0.55)",
 } as const;
 
 // hero만 예외적으로 진→연 그라데이션 허용 (deepAccent → accent → transparent).
+// 183차 — 후커블형 대형 타이포 오버레이 가독성: 하단 스크림을 더 진하게, 중단부터는 빠르게 투명.
 export function getHeroGradient(theme: CategoryTheme): string {
-  return `linear-gradient(0deg, ${hexToRgba(theme.deepAccent, 0.85)} 0%, ${hexToRgba(theme.accent, 0.45)} 55%, transparent 100%)`;
+  return `linear-gradient(0deg, ${hexToRgba(theme.deepAccent, 0.92)} 0%, ${hexToRgba(theme.accent, 0.55)} 42%, ${hexToRgba(theme.deepAccent, 0.12)} 72%, transparent 88%)`;
 }
 
 // ---------------------------------------------------------------------------
@@ -442,12 +554,56 @@ function relativeLuminanceToken(hex: string): number {
   return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
 }
 
-function contrastRatioToken(fg: string, bg: string): number {
+export function contrastRatioToken(fg: string, bg: string): number {
   const l1 = relativeLuminanceToken(fg);
   const l2 = relativeLuminanceToken(bg);
   const lighter = Math.max(l1, l2);
   const darker = Math.min(l1, l2);
   return (lighter + 0.05) / (darker + 0.05);
+}
+
+/**
+ * 188차 — BRAND.paper 텍스트가 올라갈 솔리드 배경의 명도만 낮춰 최소 대비를 맞춘다.
+ * hue·채도는 유지 (ensureReadableNeutralHue의 반대 방향). 3색 토큰에 새 색 추가 없음.
+ */
+export function ensureReadableOnPaper(bgHex: string, minRatio: number): string {
+  const normalized = bgHex.replace("#", "");
+  const bigint = parseInt(normalized, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  const { h, s, l } = tokenRgbToHsl(r, g, b);
+  let light = l;
+  for (let i = 0; i < 24; i += 1) {
+    const [nr, ng, nb] = tokenHslToRgb(h, s, light);
+    const candidate = tokenRgbToHex(nr, ng, nb);
+    if (contrastRatioToken(BRAND.paper, candidate) >= minRatio) return candidate;
+    light = Math.max(0.04, light - 0.025);
+  }
+  const [nr, ng, nb] = tokenHslToRgb(h, s, 0.04);
+  return tokenRgbToHex(nr, ng, nb);
+}
+
+/** 아이콘·배지 등 accent 솔리드 + paper 텍스트 (WCAG AA UI 3:1) */
+export function solidAccentOnPaper(theme: CategoryTheme): string {
+  return ensureReadableOnPaper(theme.accent, 3);
+}
+
+/** POINT/CTA/브랜드 블록 등 deepAccent 솔리드 + paper 텍스트 (WCAG AA UI 3:1) */
+export function solidDeepOnPaper(theme: CategoryTheme): string {
+  return ensureReadableOnPaper(theme.deepAccent, 3);
+}
+
+/**
+ * 189차 — 밝은 배경(paper·옅은 틴트) 위 텍스트 색.
+ * ensureReadableOnPaper 재사용. 기본 4.5(본문), 대형 제목은 minRatio=3 가능.
+ */
+export function readableTextAccent(theme: CategoryTheme, minRatio = 4.5): string {
+  return ensureReadableOnPaper(theme.accent, minRatio);
+}
+
+export function readableTextDeep(theme: CategoryTheme, minRatio = 4.5): string {
+  return ensureReadableOnPaper(theme.deepAccent, minRatio);
 }
 
 // baseNeutral의 hue만 targetHue로 바꾸면서, ink 텍스트 대비 4.5:1을 계속
@@ -660,7 +816,7 @@ const DEFAULT_RHYTHM: CategoryRhythm = {
   checklistGapClass: "gap-x-4 gap-y-8",
   ctaButtonClass:
     "inline-flex h-12 min-w-[11rem] items-center justify-center rounded-full px-8 text-sm font-semibold text-paper shadow-sm",
-  galleryGapClass: "gap-px",
+  galleryGapClass: "gap-2",
   galleryTitlePadClass: SECTION_BLOCK_PAD.galleryTitle,
   generousPadClass: SECTION_BLOCK_PAD.generous,
   pointTextPadClass: SECTION_BLOCK_PAD.pointText,
@@ -694,7 +850,7 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
       ctaPadClass: "px-6 py-24 sm:px-10 sm:py-36",
       ctaButtonClass:
         "inline-flex h-12 min-w-[13rem] items-center justify-center rounded-full px-10 text-sm font-semibold text-paper shadow-sm",
-      galleryGapClass: "gap-1",
+      galleryGapClass: "gap-2",
       galleryTitlePadClass: "px-6 pt-10 pb-0 text-center sm:px-10 sm:pt-12 sm:pb-0",
     };
   }
@@ -713,7 +869,7 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
       ctaPadClass: "px-6 py-20 sm:px-10 sm:py-32",
       ctaButtonClass:
         "inline-flex h-12 min-w-[11rem] items-center justify-center rounded-full px-8 text-sm font-semibold text-paper shadow-sm",
-      galleryGapClass: "gap-px",
+      galleryGapClass: "gap-2",
       galleryTitlePadClass: "px-6 pt-9 pb-0 text-center sm:px-10 sm:pt-11 sm:pb-0",
     };
   }
@@ -735,7 +891,7 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
       ctaPadClass: "px-6 py-24 sm:px-10 sm:py-36",
       ctaButtonClass:
         "inline-flex h-12 min-w-[13rem] items-center justify-center rounded-full px-10 text-sm font-semibold tracking-[0.02em] text-paper shadow-sm",
-      galleryGapClass: "gap-1",
+      galleryGapClass: "gap-2",
       galleryTitlePadClass: "px-6 pt-10 pb-0 text-center sm:px-10 sm:pt-12 sm:pb-0",
     };
   }
@@ -754,7 +910,7 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
       ctaPadClass: "px-6 py-24 sm:px-10 sm:py-36",
       ctaButtonClass:
         "inline-flex h-12 min-w-[12rem] items-center justify-center rounded-sm px-10 text-sm font-semibold tracking-[0.16em] text-paper",
-      galleryGapClass: "gap-0",
+      galleryGapClass: "gap-2",
       galleryTitlePadClass: "px-6 pt-8 pb-0 text-center sm:px-10 sm:pt-10 sm:pb-0",
     };
   }
@@ -787,7 +943,7 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
       ctaPadClass: "px-6 py-16 sm:px-10 sm:py-24",
       ctaButtonClass:
         "inline-flex h-11 min-w-[12rem] items-center justify-center rounded-none px-8 text-xs font-semibold uppercase tracking-[0.24em] text-paper",
-      galleryGapClass: "gap-0",
+      galleryGapClass: "gap-2",
     };
   }
   return {

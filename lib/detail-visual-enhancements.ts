@@ -30,7 +30,10 @@ export function parseMegaKeywordHeading(title: string): {
   }
 
   const first = trimmed.split(/\s+/)[0] ?? "";
-  if (first.length >= 2 && first.length <= 10) {
+  // 219차: 숫자가 섞인 토큰("210g/yd", "1단당" 등)은 줄바꿈 지점이 없어
+  // 초대형 keywordDisplay에서 카드 밖으로 흘러넘칠 수 있으므로 승격 제외.
+  const hasDigit = /[0-9]/.test(first);
+  if (first.length >= 2 && first.length <= 10 && !hasDigit) {
     return { keyword: first, remainder: trimmed.slice(first.length).trim() };
   }
 

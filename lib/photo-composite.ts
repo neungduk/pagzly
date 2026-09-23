@@ -364,6 +364,7 @@ function sampleCornerLuminanceStats(
  * mix는 제품 고유 색(화장품 색조 등)이 과하게 왜곡되지 않도록 상한을 둔다.
  * 163차 — 평균색/휘도 매칭에 더해 콘트라스트(명암 대비) 매칭을 추가.
  * 콘트라스트 보정은 색상 보정보다 티가 더 잘 나므로 mix·클램프 범위를 더 보수적으로 둔다.
+ * 218차 — 매칭 강도 보강, 상한 확대(216차 극단 색역 케이스 대응)
  */
 export async function matchCutoutWhiteBalance(
   cutout: Buffer,
@@ -405,23 +406,23 @@ export async function matchCutoutWhiteBalance(
   const src = { r: sr / sn, g: sg / sn, b: sb / sn };
   const srcLumMean = sLum / sn;
   const srcLumStd = Math.sqrt(Math.max(0, sLum2 / sn - srcLumMean * srcLumMean));
-  const colorMix = 0.22;
-  const lumMix = 0.14;
+  const colorMix = 0.38;
+  const lumMix = 0.24;
   const scaleR = 1 - colorMix + colorMix * (target.r / Math.max(src.r, 8));
   const scaleG = 1 - colorMix + colorMix * (target.g / Math.max(src.g, 8));
   const scaleB = 1 - colorMix + colorMix * (target.b / Math.max(src.b, 8));
   const lumScale =
     1 - lumMix + lumMix * (luminance(target) / Math.max(luminance(src), 8));
   // 채널 스케일 상한 — 색조가 과도하게 틀어지지 않게
-  const clampScale = (s: number) => Math.max(0.82, Math.min(1.18, s));
+  const clampScale = (s: number) => Math.max(0.65, Math.min(1.4, s));
 
   // 163차 — 콘트라스트(명암 대비) 스케일. srcLumStd가 너무 작으면(거의 단색 제품)
   // 비율이 불안정해지므로 임계값 미만이면 보정하지 않는다(스케일 1 고정).
-  const contrastMix = 0.16;
+  const contrastMix = 0.28;
   const rawContrastRatio =
     srcLumStd > 4 ? targetContrast.std / Math.max(srcLumStd, 4) : 1;
   const contrastScale = 1 - contrastMix + contrastMix * rawContrastRatio;
-  const clampContrast = (s: number) => Math.max(0.88, Math.min(1.15, s));
+  const clampContrast = (s: number) => Math.max(0.75, Math.min(1.3, s));
   const finalContrastScale = clampContrast(contrastScale);
 
   for (let i = 0; i < data.length; i += 4) {
@@ -528,7 +529,26 @@ export async function matchCutoutSharpness(
 
   const threshold = 0.55;
   const ratio = backdropSharpness / cutoutSharpness;
-  if (ratio >= threshold) return cutout; // 배경이 이미 충분히 선명 — 매칭 불필요
+
+  // 231차 — 반대 방향: 배경이 컷아웃보다 뚜렷하게 더 선명한 경우(예: 질감 있는 실사진 배경 vs
+  // 저해상도/업스케일된 상품 원본, 또는 featherCutout의 알파 블러가 내부 텍스처를 살짝 흐리게 한
+  // 경우), 컷아웃을 배경 쪽으로 살짝 선명화한다. 기존 블러 분기와 대칭이지만, 라벨 텍스트·각인
+  // 등 제품 디테일에 링잉/헤일로가 생기지 않도록 sigma 상한을 블러 분기보다도 더 보수적으로 둔다
+  // (unsharp mask는 sigma가 커질수록 아티팩트가 커지므로 "합성 티 제거"가 아니라 "과선명화"가
+  // 되기 쉽다 — 목적은 여전히 배경과의 위화감 제거이지 아트적 선명화가 아니다).
+  const upperThreshold = 1.8;
+  if (ratio > upperThreshold) {
+    const t2 = Math.min(1, (ratio - upperThreshold) / upperThreshold);
+    const sharpenSigma = 0.6 + t2 * 0.7; // 0.6~1.3
+    const rgb = await sharp(cutout)
+      .removeAlpha()
+      .sharpen({ sigma: sharpenSigma, m1: 0.4, m2: 0.4 })
+      .toBuffer();
+    const alphaBuf = await sharp(cutout).ensureAlpha().extractChannel(3).toBuffer();
+    return sharp(rgb).joinChannel(alphaBuf).png().toBuffer();
+  }
+
+  if (ratio >= threshold) return cutout; // 상/하한 사이 — 매칭 불필요(이미 비슷한 선명도)
 
   // ratio가 0(배경이 완전히 평탄)에 가까울수록 1.4에, threshold 바로 아래일수록 0.8에 가깝게.
   const t = Math.min(1, Math.max(0, (threshold - ratio) / threshold));
@@ -537,6 +557,95 @@ export async function matchCutoutSharpness(
   // 주의: ensureAlpha() 뒤에 removeAlpha()를 이어붙이면(sharp/libvips 실측 확인) 알파가
   // 파이프라인에 그대로 남는 경우가 있어, RGB만 뽑을 때는 removeAlpha()를 단독으로 쓴다.
   const rgb = await sharp(cutout).removeAlpha().blur(sigma).toBuffer();
+  const alphaBuf = await sharp(cutout).ensureAlpha().extractChannel(3).toBuffer();
+  return sharp(rgb).joinChannel(alphaBuf).png().toBuffer();
+}
+
+/**
+ * 원본과 약한 블러본의 절대차 평균 = 고주파 잔차(그레인/노이즈) 근사치.
+ * matchCutoutSharpness의 edgeIntensityAverage(방향성 엣지)와 달리, 국소 텍스처 잔차라
+ * 매끈한 그라디언트 배경에서는 거의 0에 수렴한다.
+ */
+function noiseLevelAverage(
+  gray: Uint8Array,
+  blurredGray: Uint8Array,
+  width: number,
+  height: number,
+  isSamplable: (i: number) => boolean,
+): number {
+  let sum = 0;
+  let n = 0;
+  for (let i = 0; i < width * height; i += 1) {
+    if (!isSamplable(i)) continue;
+    sum += Math.abs(gray[i]! - blurredGray[i]!);
+    n += 1;
+  }
+  return n > 0 ? sum / n : 0;
+}
+
+/**
+ * 187차 — 컷아웃과 배경의 그레인(노이즈) 레벨 매칭. 162(색상)/163(콘트라스트)/
+ * 164(선명도)에 이은 네 번째 매칭 축. `unifyCompositeGrain()`은 고정 강도(0.045)를
+ * 배경과 무관하게 전체 이미지에 오버레이하는데, 이 함수는 배경 자체가 원래 거친
+ * 질감(리넨/우드/콘크리트 등)일 때만, 그 정도에 비례해서만 컷아웃에 미세한 노이즈를
+ * 추가한다. 배경이 매끈하면(그라디언트/스튜디오 배경) 아무것도 하지 않는다.
+ * 218차 — 실사진 배경의 거친 그레인 대비를 더 잘 흡수하도록 상한을 unifyCompositeGrain
+ * 기준값(0.045)보다 높임 (알파 0.03~0.07).
+ *
+ * 실측 상수(sharp/libvips): 매끈 그라디언트 ≈ 0.3~1.5, 약한 텍스처 ≈ 2~4,
+ * feTurbulence 거친 배경 ≈ 5~12. skipThreshold=2.2 / span=6은 스켈레톤 기준이며
+ * verify 스크립트로 재확인.
+ */
+export async function matchCutoutGrain(
+  cutout: Buffer,
+  backdrop: Buffer,
+): Promise<Buffer> {
+  const bgResized = sharp(backdrop).resize(256, 256, { fit: "cover" }).grayscale();
+  const bgSharp = await bgResized.clone().raw().toBuffer({ resolveWithObject: true });
+  const bgBlur = await bgResized
+    .clone()
+    .blur(1.2)
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const backdropGrain = noiseLevelAverage(
+    bgSharp.data,
+    bgBlur.data,
+    bgSharp.info.width,
+    bgSharp.info.height,
+    () => true,
+  );
+
+  // 배경 자체가 사실상 매끈함(그라디언트/스튜디오) — 매칭 불필요, 즉시 스킵.
+  const skipThreshold = 2.2;
+  if (backdropGrain < skipThreshold) return cutout;
+
+  // 218차 — 그레인 정도에 비례해 알파를 0.03~0.07 사이에서만 스케일
+  // (unifyCompositeGrain 기준값 0.045보다 상한을 높여 거친 실사진 배경 대비를 더 흡수).
+  const t = Math.min(1, (backdropGrain - skipThreshold) / 6);
+  const alpha = 0.03 + t * 0.04;
+
+  const meta = await sharp(cutout).metadata();
+  const size = Math.max(meta.width ?? 1200, meta.height ?? 1200);
+  const noiseSvg = Buffer.from(
+    `<svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+      <filter id="n">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"/>
+        <feColorMatrix type="matrix" values="0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 ${alpha.toFixed(3)} 0"/>
+      </filter>
+      <rect width="100%" height="100%" filter="url(#n)"/>
+    </svg>`,
+  );
+  const noise = await sharp(noiseSvg)
+    .resize(meta.width ?? size, meta.height ?? size, { fit: "fill" })
+    .png()
+    .toBuffer();
+
+  // 알파 채널은 그대로 보존 — RGB에만 노이즈 오버레이.
+  // removeAlpha()는 단독으로 쓸 것(ensureAlpha().removeAlpha() 함정 주의).
+  const rgb = await sharp(cutout)
+    .removeAlpha()
+    .composite([{ input: noise, blend: "overlay" }])
+    .toBuffer();
   const alphaBuf = await sharp(cutout).ensureAlpha().extractChannel(3).toBuffer();
   return sharp(rgb).joinChannel(alphaBuf).png().toBuffer();
 }
@@ -603,10 +712,15 @@ function shadowOffsets(
 /**
  * 컷아웃 알파 마스크를 투영·블러한 실루엣 그림자.
  * 타원 블롭보다 제품 윤곽을 반영해 합성 티를 줄인다.
+ *
+ * 234차 — canvasSize(정사각형 전용) 대신 canvasWidth/canvasHeight로 분리해 임의
+ * 종횡비 캔버스(실사진 라이프스타일 씬 등)에도 쓸 수 있도록 일반화. 정사각형
+ * 호출부는 두 값에 같은 상수를 넘기면 기존과 완전히 동일하게 동작한다(회귀 없음).
  */
 export async function buildSilhouetteShadowBuffer(
   cutoutResized: Buffer,
-  canvasSize: number,
+  canvasWidth: number,
+  canvasHeight: number,
   placement: { left: number; top: number; width: number; height: number },
   shadow: ShadowAnalysis,
   shadowTint?: { r: number; g: number; b: number },
@@ -657,8 +771,8 @@ export async function buildSilhouetteShadowBuffer(
 
   const empty = await sharp({
     create: {
-      width: canvasSize,
-      height: canvasSize,
+      width: canvasWidth,
+      height: canvasHeight,
       channels: 4,
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     },

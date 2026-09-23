@@ -15,6 +15,7 @@ import {
   type ProductImageRole,
 } from "@/lib/image-roles";
 import { pickAutofillVisionIndices } from "@/lib/autofill-vision-pick";
+import { isBeforeAfterEligibleCategory } from "@/lib/before-after-eligibility";
 
 const CATEGORIES = [
   "의류/패션",
@@ -133,6 +134,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const [competitorUrl, setCompetitorUrl] = useState("");
   const [wholesaleUrl, setWholesaleUrl] = useState("");
   const [sellerTrustEvidence, setSellerTrustEvidence] = useState("");
+  type BeforeAfterInput = { before: File | null; after: File | null; caption: string };
+  const [beforeAfterInputs, setBeforeAfterInputs] = useState<BeforeAfterInput[]>([]);
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referencePreview, setReferencePreview] = useState<string | null>(null);
   const [logoImage, setLogoImage] = useState<File | null>(null);
@@ -555,6 +558,21 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         customGifUrl = await uploadAuxFile(customGif, "custom-gif");
       }
 
+      let beforeAfterPairs: { beforeUrl: string; afterUrl: string; caption: string | null }[] | null =
+        null;
+      if (isBeforeAfterEligibleCategory(category)) {
+        const validInputs = beforeAfterInputs.filter((p) => p.before && p.after);
+        if (validInputs.length > 0) {
+          beforeAfterPairs = await Promise.all(
+            validInputs.map(async (p) => ({
+              beforeUrl: await uploadAuxFile(p.before as File, "before-after-before"),
+              afterUrl: await uploadAuxFile(p.after as File, "before-after-after"),
+              caption: p.caption.trim() || null,
+            })),
+          );
+        }
+      }
+
       const parsedHeightCm = (() => {
         const raw = productHeightCm.trim().replace(/,/g, ".");
         if (!raw) return null;
@@ -590,6 +608,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         competitorUrl: competitorUrl.trim() || null,
         wholesaleUrl: wholesaleUrl.trim() || null,
         sellerTrustEvidence: sellerTrustEvidence.trim() || null,
+        beforeAfterPairs,
         referenceImageUrl,
         logoUrl,
         lifestyleImageUrl,
@@ -802,6 +821,13 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
               JPG, PNG · 최소 {MIN_IMAGES}장 · 최대 {MAX_IMAGES}장 · AI가 서로 다른 사진 최소{" "}
               {MIN_IMAGES}장을 상세페이지에 사용합니다. 같은 각도만 올리면 갤러리가
               단조로워지니, 전면·측면·디테일·사용 장면처럼 구도가 다른 컷을 섞어 주세요.
+            </p>
+            <p
+              className="mt-2 rounded-lg border border-mustard/35 bg-mustard/10 px-3 py-2 text-xs leading-relaxed text-ink/75"
+              data-testid="photo-same-product-nudge"
+            >
+              업로드한 사진이 모두 같은 상품인지 확인해 주세요. 다른 상품·스톡 이미지가
+              섞이면 상세페이지에 이질적인 컷이 그대로 들어갈 수 있습니다.
             </p>
             <p
               className="mt-2 text-sm leading-relaxed text-ink/70"
@@ -1471,6 +1497,89 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
                   만들지 않습니다.
                 </p>
               </div>
+
+              {isBeforeAfterEligibleCategory(category) ? (
+                <div>
+                  <label className={labelClass}>효과 비교 사진 (선택)</label>
+                  <p className="mt-1.5 text-xs text-ink/40">
+                    실제 사용 전/후 사진이 있다면 쌍으로 올려주세요. AI가 사진이나 효과 설명을
+                    새로 만들지 않으며, 업로드한 사진·캡션 그대로만 노출됩니다.
+                  </p>
+                  <div className="mt-3 space-y-3">
+                    {beforeAfterInputs.map((pair, i) => (
+                      <div
+                        key={i}
+                        className="flex flex-wrap items-center gap-2 rounded-lg border border-line p-3"
+                      >
+                        <label className="flex cursor-pointer flex-col items-center gap-1 rounded-md border border-dashed border-line px-3 py-2 text-xs text-ink/60 hover:border-registration-red/40">
+                          {pair.before ? pair.before.name.slice(0, 12) : "전(Before) 선택"}
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] ?? null;
+                              setBeforeAfterInputs((prev) =>
+                                prev.map((p, idx) => (idx === i ? { ...p, before: file } : p)),
+                              );
+                            }}
+                          />
+                        </label>
+                        <label className="flex cursor-pointer flex-col items-center gap-1 rounded-md border border-dashed border-line px-3 py-2 text-xs text-ink/60 hover:border-registration-red/40">
+                          {pair.after ? pair.after.name.slice(0, 12) : "후(After) 선택"}
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] ?? null;
+                              setBeforeAfterInputs((prev) =>
+                                prev.map((p, idx) => (idx === i ? { ...p, after: file } : p)),
+                              );
+                            }}
+                          />
+                        </label>
+                        <input
+                          type="text"
+                          value={pair.caption}
+                          onChange={(e) =>
+                            setBeforeAfterInputs((prev) =>
+                              prev.map((p, idx) =>
+                                idx === i ? { ...p, caption: e.target.value } : p,
+                              ),
+                            )
+                          }
+                          placeholder="캡션(선택, 예: 2주 사용 후)"
+                          className={`${inputClass} flex-1 basis-40`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setBeforeAfterInputs((prev) => prev.filter((_, idx) => idx !== i))
+                          }
+                          className="text-xs text-ink/40 hover:text-registration-red"
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    ))}
+                    {beforeAfterInputs.length < 4 ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setBeforeAfterInputs((prev) => [
+                            ...prev,
+                            { before: null, after: null, caption: "" },
+                          ])
+                        }
+                        className="text-xs font-medium text-registration-red hover:underline"
+                      >
+                        + 비교 사진 쌍 추가
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
 
               <div>
                 <label htmlFor="competitorUrl" className={labelClass}>

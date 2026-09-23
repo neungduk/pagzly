@@ -118,15 +118,22 @@ export function applyIngredientCircleVisual(
     return { sections: next, applied: true };
   }
 
-  const texSection = sections.find(
-    (s): s is ImageTextSection => s.type === "image_text" && s.slot === "texture_feel",
+  // 207차 — texture_feel은 선택 슬롯이라 자주 생략됨(section-templates.ts:69
+  // required:false). 예전엔 texture_feel이 없으면 circle-pair 전체를 스킵했는데,
+  // circle-solo(위 93~119번 줄)가 이미 쓰고 있는 `pickAlternateIndex`(34~56번 줄, texture_feel
+  // 이미지를 우선 시도하고 없으면 ingredient와 다른 첫 번째 이미지로 폴백하는 기존 함수)를
+  // 그대로 재사용하면 됨 — 신규 로직 없음. circlePair 렌더링은 라벨링된 원형 크롭일 뿐
+  // texture 전용 크롭이어야 한다는 전제가 없어서(DetailSectionRenderer.tsx/
+  // export-detail-html.ts 코드 확인 완료) 동일 폴백이 시각적으로 안전 — 148차부터
+  // 미해결이던 "성분 2개 이상인데도 원형 비주얼이 조용히 스킵되는" 후커블 격차를 여기서
+  // 해소.
+  const pairImageIndex = pickAlternateIndex(
+    sections,
+    ingSection.imageIndex,
+    imageUrls.length,
   );
-  if (!texSection) {
-    return { sections, applied: false };
-  }
-
-  const texUrl = imageUrls[texSection.imageIndex];
-  if (!texUrl || ingSection.imageIndex === texSection.imageIndex) {
+  const pairUrl = imageUrls[pairImageIndex];
+  if (!pairUrl || pairImageIndex === ingSection.imageIndex) {
     return { sections, applied: false };
   }
 
@@ -136,12 +143,13 @@ export function applyIngredientCircleVisual(
     layout: "circle-pair",
     heading: "",
     body: "",
-    // pair는 두 URL을 circlePair에 담고, imageIndex는 ingredient와 다른 texture 쪽을 쓴다
-    imageIndex: texSection.imageIndex,
+    // pair는 두 URL을 circlePair에 담고, imageIndex는 pickAlternateIndex가 고른 이미지를
+    // 쓴다(texture_feel이 있으면 그쪽 우선, 없으면 다른 상품 사진으로 폴백)
+    imageIndex: pairImageIndex,
     imagePosition: "left",
     circlePair: [
       { imageUrl: ingUrl, label: labels[0]! },
-      { imageUrl: texUrl, label: labels[1]! },
+      { imageUrl: pairUrl, label: labels[1]! },
     ],
   };
 
@@ -151,7 +159,7 @@ export function applyIngredientCircleVisual(
     ...sections.slice(insertIdx),
   ];
   console.log(
-    `[circle-pair] ${insertBefore} 직전 삽입 — "${labels[0]}" / "${labels[1]}" (img ${ingSection.imageIndex}, ${texSection.imageIndex})`,
+    `[circle-pair] ${insertBefore} 직전 삽입 — "${labels[0]}" / "${labels[1]}" (img ${ingSection.imageIndex}, ${pairImageIndex})`,
   );
   return { sections: next, applied: true };
 }

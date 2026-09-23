@@ -47,6 +47,7 @@ function resolveIndexPreferUnused(
 type Placement =
   | { kind: "hero" }
   | { kind: "image_text"; sectionIndex: number; prefer?: number; slot?: string }
+  | { kind: "illustration_banner"; sectionIndex: number; prefer?: number }
   | { kind: "gallery_cell"; sectionIndex: number; cell: number }
   | { kind: "step"; sectionIndex: number; stepIndex: number }
   | { kind: "color_option"; sectionIndex: number; optionIndex: number }
@@ -92,8 +93,12 @@ function collectUsedIndexes(sections: DetailSection[]): number[] {
   };
   for (const section of sections) {
     if (section.type === "image_text" && section.layout === "text_only") continue;
-    if (section.type === "hero" || section.type === "image_text") {
-      add(section.imageIndex);
+    if (
+      section.type === "hero" ||
+      section.type === "image_text" ||
+      section.type === "illustration_banner"
+    ) {
+      if (typeof section.imageIndex === "number") add(section.imageIndex);
     } else if (section.type === "gallery") {
       section.imageIndexes.forEach(add);
     } else if (section.type === "color_variation") {
@@ -113,7 +118,12 @@ export function countPlacements(sections: DetailSection[]): number {
   let n = 0;
   for (const section of sections) {
     if (section.type === "image_text" && section.layout === "text_only") continue;
-    if (section.type === "hero" || section.type === "image_text") n += 1;
+    if (
+      section.type === "hero" ||
+      section.type === "image_text" ||
+      section.type === "illustration_banner"
+    )
+      n += 1;
     else if (section.type === "gallery") n += Math.max(section.imageIndexes?.length ?? 0, 2);
     else if (section.type === "step_card") n += section.steps.length;
     else if (section.type === "color_variation") n += section.options.length;
@@ -134,6 +144,38 @@ export function shouldWarnSparseProductImages(
   return placementCount >= Math.max(8, uniqueImageCount * 4);
 }
 
+/**
+ * 243차 — role/lifestyle 후보 풀 안에서 카피 매칭 타이브레이커.
+ * 후보 0~1장·카피 없음·전부 0점이면 기존 first-index와 동일.
+ * @internal exported for verify
+ */
+export function pickBestIndexByCopy(params: {
+  candidates: number[];
+  fallback: number | undefined;
+  sectionText: string;
+  imageTags: string[][];
+  imageReasons: Array<string | undefined>;
+}): number | undefined {
+  const { candidates, fallback, sectionText, imageTags, imageReasons } = params;
+  if (candidates.length === 0) return fallback;
+  if (candidates.length === 1) return candidates[0];
+  if (!sectionText.trim()) return candidates[0];
+  let best = candidates[0]!;
+  let bestScore = -1;
+  for (const i of candidates) {
+    const s = scoreImageForCopy({
+      sectionText,
+      candidateTags: imageTags[i] ?? [],
+      candidateReason: imageReasons[i],
+    });
+    if (s > bestScore) {
+      bestScore = s;
+      best = i;
+    }
+  }
+  return bestScore > 0 ? best : candidates[0];
+}
+
 function preferForSlot(
   slot: string,
   category: string | undefined,
@@ -141,26 +183,42 @@ function preferForSlot(
   imageCount: number,
   lifestyleAiIndexes: number[],
   lifestyleCompositeIndexes: number[],
+  sectionText: string,
+  imageTags: string[][],
+  imageReasons: Array<string | undefined>,
 ): number | undefined {
+  // 243차 — role/lifestyle 후보가 2장 이상일 때만 카피 매칭 타이브레이커.
+  // 후보 0~1장·카피 없음·전부 0점이면 기존 first-index와 동일.
+  const bestByCopy = (
+    candidates: number[],
+    fallback: number | undefined,
+  ): number | undefined =>
+    pickBestIndexByCopy({
+      candidates,
+      fallback,
+      sectionText,
+      imageTags,
+      imageReasons,
+    });
+
   const rolePrefer = (role: ProductImageRole, fallback?: number) => {
-    const idx = firstIndexWithRole(roles, role);
-    if (idx !== undefined) return idx;
+    const candidates = indexesWithRole(roles, role);
+    if (candidates.length > 0) return bestByCopy(candidates, candidates[0]);
     return fallback !== undefined && fallback < imageCount ? fallback : undefined;
   };
 
   const preferLifestyleComposite = () => {
     if (lifestyleCompositeIndexes.length === 0) return undefined;
-    const pick =
-      lifestyleCompositeIndexes[Math.min(0, lifestyleCompositeIndexes.length - 1)];
-    return pick < imageCount ? pick : lifestyleCompositeIndexes[0];
+    const pool = lifestyleCompositeIndexes.filter((i) => i < imageCount);
+    const picked = bestByCopy(pool, lifestyleCompositeIndexes[0]);
+    return picked ?? lifestyleCompositeIndexes[0];
   };
 
   const preferLifestyleAi = () => {
     if (lifestyleAiIndexes.length === 0) return undefined;
-    const slotOffset =
-      slot === "usage_scenario_extra" || slot === "customer_scenario" ? 1 : 0;
-    const pick = lifestyleAiIndexes[Math.min(slotOffset, lifestyleAiIndexes.length - 1)];
-    return pick < imageCount ? pick : lifestyleAiIndexes[0];
+    const pool = lifestyleAiIndexes.filter((i) => i < imageCount);
+    const picked = bestByCopy(pool, lifestyleAiIndexes[0]);
+    return picked ?? lifestyleAiIndexes[0];
   };
 
   if (slot === "ingredient_highlight") {
@@ -250,7 +308,8 @@ function preferForSlot(
     slot === "customer_scenario" ||
     slot === "serving_suggestion" ||
     slot === "model_multicut" ||
-    slot === "install_scenario"
+    slot === "install_scenario" ||
+    slot === "illustration_banner"
   ) {
     return (
       preferLifestyleComposite() ??
@@ -408,38 +467,40 @@ export function assignDistinctSectionImages(
 
   // 1장뿐이면 인덱스 재배정 여지는 없지만, 연속 배치·로그는 남긴다.
   if (imageCount === 1) {
-    const mapped = sections.map((section) => {
-      if (section.type === "hero" || section.type === "image_text") {
-        return { ...section, imageIndex: 0 };
-      }
-      if (section.type === "gallery") {
-        return {
-          ...section,
-          imageIndexes: (section.imageIndexes?.length ? section.imageIndexes : [0, 0]).map(
-            () => 0,
-          ),
-        };
-      }
-      if (section.type === "step_card") {
-        return {
-          ...section,
-          steps: section.steps.map((step) => ({ ...step, imageIndex: 0 })),
-        };
-      }
-      if (section.type === "color_variation") {
-        return {
-          ...section,
-          options: section.options.map((option) => ({ ...option, imageIndex: 0 })),
-        };
-      }
-      if (section.type === "spec_table" && section.slot === "spec_table") {
-        return {
-          ...section,
-          imageIndexes: (section.imageIndexes ?? []).map(() => 0),
-        };
-      }
-      return section;
-    });
+    // 238차 — color_variation은 "옵션마다 다른 사진"이 슬롯의 존재 이유라, 사진이
+    // 1장뿐이면 전부 같은 사진을 강제 배정하는 대신 섹션 자체를 생략한다(다른
+    // 슬롯을 생략하는 기존 관례 — package_contents/stat_infographic 등 — 와 동일 결).
+    const mapped = sections
+      .filter((section) => section.type !== "color_variation")
+      .map((section) => {
+        if (section.type === "hero" || section.type === "image_text") {
+          return { ...section, imageIndex: 0 };
+        }
+        if (section.type === "illustration_banner") {
+          return { ...section, imageIndex: 0 };
+        }
+        if (section.type === "gallery") {
+          return {
+            ...section,
+            imageIndexes: (section.imageIndexes?.length ? section.imageIndexes : [0, 0]).map(
+              () => 0,
+            ),
+          };
+        }
+        if (section.type === "step_card") {
+          return {
+            ...section,
+            steps: section.steps.map((step) => ({ ...step, imageIndex: 0 })),
+          };
+        }
+        if (section.type === "spec_table" && section.slot === "spec_table") {
+          return {
+            ...section,
+            imageIndexes: (section.imageIndexes ?? []).map(() => 0),
+          };
+        }
+        return section;
+      });
     logAssignResult(mapped, imageCount);
     return mapped;
   }
@@ -668,6 +729,9 @@ export function assignDistinctSectionImages(
               imageCount,
               lifestyleAiIndexes,
               lifestyleCompositeIndexes,
+              sectionCopyText(section),
+              options?.imageTags ?? [],
+              options?.imageReasons ?? [],
             );
       // prefer 큐가 선점한 인덱스는 다른 슬롯이 가로채지 않음
       if (
@@ -678,6 +742,40 @@ export function assignDistinctSectionImages(
         prefer = undefined;
       }
       placements.push({ kind: "image_text", sectionIndex, prefer, slot: section.slot });
+    } else if (section.type === "illustration_banner") {
+      // 251차 — image_text와 동일급 풀블리드 1컷. 레거시 illustrationUrl이 있어도
+      // 신규 경로용 imageIndex를 배정해 두며, 렌더러는 illustrationUrl을 우선 표시.
+      const tags = options?.imageTags ?? [];
+      const reasons = options?.imageReasons ?? [];
+      const copy = sectionCopyText(section);
+      let prefer = preferForSlot(
+        section.slot,
+        category,
+        roles,
+        imageCount,
+        lifestyleAiIndexes,
+        lifestyleCompositeIndexes,
+        copy,
+        tags,
+        reasons,
+      );
+      if (prefer === undefined) {
+        prefer = pickBestIndexByCopy({
+          candidates: Array.from({ length: imageCount }, (_, i) => i),
+          fallback: undefined,
+          sectionText: copy,
+          imageTags: tags,
+          imageReasons: reasons,
+        });
+      }
+      if (
+        typeof prefer === "number" &&
+        reservedPreferIndexes.has(prefer) &&
+        preferAllocation.get(sectionIndex) !== prefer
+      ) {
+        prefer = undefined;
+      }
+      placements.push({ kind: "illustration_banner", sectionIndex, prefer });
     } else if (section.type === "gallery") {
       const wanted = Math.min(
         Math.max(section.imageIndexes?.length ?? 2, imageCount >= 7 ? 4 : imageCount >= 4 ? 3 : 2),
@@ -732,6 +830,16 @@ export function assignDistinctSectionImages(
       });
       imageTextUsed.add(idx);
       assigned.set(`it:${placement.sectionIndex}`, idx);
+      continue;
+    }
+    if (placement.kind === "illustration_banner") {
+      const idx = pick({
+        prefer: placement.prefer,
+        excludeHero: imageCount >= 3,
+        uniqueAmongImageText: true,
+      });
+      imageTextUsed.add(idx);
+      assigned.set(`ib:${placement.sectionIndex}`, idx);
       continue;
     }
     if (placement.kind === "gallery_cell") {
@@ -802,6 +910,12 @@ export function assignDistinctSectionImages(
       return {
         ...section,
         imageIndex: assigned.get(`it:${sectionIndex}`) ?? section.imageIndex,
+      };
+    }
+    if (section.type === "illustration_banner") {
+      return {
+        ...section,
+        imageIndex: assigned.get(`ib:${sectionIndex}`) ?? section.imageIndex ?? 0,
       };
     }
     if (section.type === "gallery") {
@@ -919,8 +1033,13 @@ export function countImageIndexFrequency(sections: DetailSection[]): Record<numb
   };
   for (const section of sections) {
     if (section.type === "image_text" && section.layout === "text_only") continue;
-    if (section.type === "hero" || section.type === "image_text") add(section.imageIndex);
-    else if (section.type === "gallery") section.imageIndexes.forEach(add);
+    if (
+      section.type === "hero" ||
+      section.type === "image_text" ||
+      section.type === "illustration_banner"
+    ) {
+      if (typeof section.imageIndex === "number") add(section.imageIndex);
+    } else if (section.type === "gallery") section.imageIndexes.forEach(add);
     else if (section.type === "step_card") section.steps.forEach((s) => add(s.imageIndex));
     else if (section.type === "color_variation") section.options.forEach((o) => add(o.imageIndex));
     else if (section.type === "spec_table" && section.slot === "spec_table") {

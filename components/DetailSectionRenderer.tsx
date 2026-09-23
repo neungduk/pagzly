@@ -18,8 +18,11 @@ import type {
 } from "@/lib/types/generate";
 import type { ConceptIconMap } from "@/lib/concept-icons";
 import { comparisonChecklistPresent } from "@/lib/comparison-chart-guard";
+import { classifyBoolishCell } from "@/lib/comparison-cell-classify";
 import { resolveCompactImageShape } from "@/lib/compact-image-shape";
+import { BEFORE_AFTER_COMPLIANCE_NOTE } from "@/lib/before-after-eligibility";
 import { buildSectionImageAlt } from "@/lib/detail-image-alt";
+import { splitTextByKeywords } from "@/lib/review-insights";
 import { extractTrustChips } from "@/lib/extract-trust-chips";
 import {
   formatSectionIndex,
@@ -28,6 +31,7 @@ import {
   resolveSplitImageLeft,
   shouldInsertBreather,
   shouldUseEditorialBleed,
+  shouldUseSplitLayout,
 } from "@/lib/detail-visual-rhythm";
 import {
   formatPointBadge,
@@ -56,6 +60,10 @@ import { isFoodCategory } from "@/lib/food-compliance";
 import { prepareFoodRatioSlices } from "@/lib/food-ratio-diagram";
 import { preparePackageContentsItems } from "@/lib/package-contents-diagram";
 import {
+  isIngredientRingCategory,
+  prepareIngredientRingLabels,
+} from "@/lib/ingredient-ring-diagram";
+import {
   heroWordmarkClassName,
   heroWordmarkWrapClassName,
   resolveHeroBrandMark,
@@ -80,6 +88,7 @@ import VolumeComparisonDiagram from "@/components/VolumeComparisonDiagram";
 import UsageOrderFlowDiagram from "@/components/UsageOrderFlowDiagram";
 import FoodRatioDiagram from "@/components/FoodRatioDiagram";
 import PackageContentsDiagram from "@/components/PackageContentsDiagram";
+import IngredientRingDiagram from "@/components/IngredientRingDiagram";
 import AnnotatedImageOverlay from "@/components/AnnotatedImageOverlay";
 import SpecBentoGrid from "@/components/SpecBentoGrid";
 import SectionAnchorNav from "@/components/SectionAnchorNav";
@@ -106,6 +115,10 @@ import {
   hexToRgba,
   extendTheme,
   getSectionTheme,
+  solidAccentOnPaper,
+  solidDeepOnPaper,
+  readableTextAccent,
+  readableTextDeep,
   type SectionColorPattern,
 } from "@/lib/design-tokens";
 
@@ -157,6 +170,8 @@ type DetailSectionRendererProps = {
   ingredients?: string | null;
   keyFeatures?: string | null;
   certifications?: string | null;
+  /** 186 — 패치 미리보기 대기 중인 표시 인덱스(visible sections) */
+  pendingHighlightIndex?: number | null;
 };
 
 const THEME_ICONS: Record<string, LucideIcon> = {
@@ -176,14 +191,35 @@ const BODY_CLAMP = "line-clamp-3";
 const BANNER_OVERLAY_CLASS =
   "absolute inset-0 z-20 flex flex-col items-center justify-center px-6 text-center sm:px-10";
 
+// 196차 — 195차가 재사용한 getHeroGradient(theme)는 브랜드색(accent/deepAccent) 기반이라
+// 히어로처럼 아주 큰 박스에서는 괜찮지만, 이 섹션의 짧은 aspect-[4/5] 박스에서는 브랜드색이
+// 사진 전체 톤을 오염시켰다(식품 스크린샷에서 탁한 초록빛, 패션은 사진이 거의 안 보일 정도).
+// 중립 검정(BRAND.ink) 기반으로 바꾸고, 박스 아래 55%에만 집중시켜 사진이 덜 가려지게 한다.
+function getEditorialBleedScrim(): string {
+  return `linear-gradient(0deg, ${hexToRgba(BRAND.ink, 0.82)} 0%, ${hexToRgba(BRAND.ink, 0.4)} 24%, ${hexToRgba(BRAND.ink, 0.08)} 42%, transparent 55%)`;
+}
+
+/** 197차 — custom_gif(aspect-video)용. 4:5보다 세로가 짧아 정지점을 더 안쪽으로 당김. */
+function getAspectVideoBleedScrim(): string {
+  return `linear-gradient(0deg, ${hexToRgba(BRAND.ink, 0.82)} 0%, ${hexToRgba(BRAND.ink, 0.4)} 20%, ${hexToRgba(BRAND.ink, 0.08)} 38%, transparent 50%)`;
+}
+
+// 195차 — 에디토리얼 풀블리드(image_text)용 오버레이. BANNER_OVERLAY_CLASS와 같은
+// 기법(이미지 위 absolute 텍스트)이지만, 히어로보다 훨씬 작은 aspect-[4/5] 박스에
+// 맞춰 하단 패딩을 줄인 버전.
+const EDITORIAL_BLEED_OVERLAY_CLASS =
+  "absolute inset-0 z-10 flex flex-col items-center justify-end px-6 pb-6 text-center sm:px-8 sm:pb-8";
+
 const TYPO = {
+  // 182: 스케일 숫자는 design-tokens FONT_SIZE와 대응 (JIT용 클래스 리터럴 유지)
   heroCategory:
     "mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.28em] text-white/80",
   heroTitle:
-    "pagzly-display-headline font-heading text-[2.75rem] font-bold leading-[1.05] tracking-[-0.03em] text-white sm:text-6xl",
+    "pagzly-display-headline font-heading text-[3rem] font-extrabold leading-[1.02] tracking-[-0.035em] text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)] sm:text-7xl",
   bannerTitle:
     "font-heading text-[1.65rem] font-bold leading-[1.15] tracking-[-0.03em] text-white sm:text-[1.85rem]",
-  heroSub: "mt-4 max-w-xl text-base font-normal leading-relaxed text-white/90 sm:text-lg",
+  heroSub:
+    "mt-4 max-w-xl text-base font-normal leading-relaxed text-white/95 drop-shadow-[0_1px_12px_rgba(0,0,0,0.35)] sm:text-lg",
   bannerSub:
     "mt-3 max-w-md text-sm font-normal leading-relaxed text-white/88 sm:text-base",
   compactTitle:
@@ -192,7 +228,7 @@ const TYPO = {
   sectionTitle:
     "pagzly-display-headline pagzly-ink-headline font-heading text-[2rem] font-bold leading-[1.2] tracking-[-0.03em] text-ink sm:text-[2.75rem]",
   keywordDisplay:
-    "font-heading text-[clamp(2.25rem,11vw,4.25rem)] font-black uppercase leading-[0.92] tracking-[-0.06em]",
+    "break-words font-heading text-[clamp(2.25rem,11vw,4.25rem)] font-black uppercase leading-[0.92] tracking-[-0.06em]",
   sectionSubtitle:
     "pagzly-ink-headline font-heading text-xl font-semibold leading-snug tracking-[-0.02em] text-ink sm:text-2xl",
   pointBadgePill:
@@ -240,7 +276,7 @@ function ThemeIcon({
     <Icon
       className="shrink-0"
       size={size}
-      style={{ color: inverted ? BRAND.paper : theme.accent }}
+      style={{ color: inverted ? BRAND.paper : readableTextAccent(theme) }}
       aria-hidden="true"
     />
   );
@@ -280,7 +316,7 @@ function ConceptBadgeIcon({
     return (
       <span
         className={`flex ${sizeClass} shrink-0 items-center justify-center rounded-full ${size === "md" ? "text-lg" : "text-sm"} font-semibold text-paper`}
-        style={{ backgroundColor: theme.accent }}
+        style={{ backgroundColor: solidAccentOnPaper(theme) }}
         aria-hidden="true"
       >
         {fallbackIndex + 1}
@@ -318,26 +354,6 @@ function isPlaceholderValue(value: string): boolean {
 }
 
 /** comparison_table 셀이 O/X·지원/미지원 류면 체크/엑스 마크로 표시 */
-function classifyBoolishCell(value: string): "yes" | "no" | null {
-  const t = value.trim().toLowerCase();
-  if (!t) return null;
-  if (
-    /^(o|ㅇ|예|있음|지원|가능|포함|✓|✔|yes|true|y)$/i.test(t) ||
-    t === "○" ||
-    t === "●"
-  ) {
-    return "yes";
-  }
-  if (
-    /^(x|ㄴ|아니오|없음|미지원|불가|미포함|✗|✘|no|false|n)$/i.test(t) ||
-    t === "×" ||
-    t === "✕"
-  ) {
-    return "no";
-  }
-  return null;
-}
-
 function ComparisonValueCell({
   value,
   emphasized,
@@ -355,7 +371,7 @@ function ComparisonValueCell({
         style={{ backgroundColor: hexToRgba(theme.accent, emphasized ? 0.2 : 0.12) }}
         aria-label={value}
       >
-        <Check size={16} strokeWidth={2.5} style={{ color: theme.deepAccent }} aria-hidden />
+        <Check size={16} strokeWidth={2.5} style={{ color: readableTextDeep(theme) }} aria-hidden />
       </span>
     );
   }
@@ -526,7 +542,8 @@ function RadialGauge({
   );
 }
 
-/** comparison_chart 한 지표(metric)의 "우리 vs 비교대상" 2단 바. */
+/** comparison_chart 한 지표(metric)의 "우리 vs 비교대상" 2단 바.
+ * 183차 — 3색 토큰만으로 our=채움·두꺼움 / baseline=테두리·얇음 대비. */
 function ComparisonMetricRow({
   label,
   ourLabel,
@@ -550,31 +567,46 @@ function ComparisonMetricRow({
   return (
     <div>
       <p className="mb-2 text-sm font-medium text-ink/70">{label}</p>
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-3">
+      <div className="space-y-2">
+        <div
+          className="flex items-center gap-3 rounded-xl px-3 py-2.5"
+          style={{ backgroundColor: hexToRgba(theme.accent, 0.14) }}
+        >
           <span
-            className="w-20 shrink-0 truncate text-xs font-semibold"
-            style={{ color: theme.deepAccent }}
+            className="w-20 shrink-0 truncate text-xs font-bold"
+            style={{ color: readableTextDeep(theme) }}
           >
             {ourLabel}
           </span>
           <div
-            className="h-2.5 flex-1 overflow-hidden rounded-full"
-            style={{ backgroundColor: hexToRgba(theme.accent, 0.12) }}
+            className="h-3.5 flex-1 overflow-hidden rounded-full"
+            style={{ backgroundColor: hexToRgba(theme.accent, 0.22) }}
           >
             <MetricBarFill percent={ourPercent} color={theme.accent} />
           </div>
-          <span className="w-14 shrink-0 text-right text-xs font-semibold text-ink">
+          <span
+            className="w-14 shrink-0 text-right text-xs font-bold"
+            style={{ color: readableTextDeep(theme) }}
+          >
             {ourValue}
             {unit}
           </span>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="w-20 shrink-0 truncate text-xs text-ink/45">{baselineLabel}</span>
-          <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-ink/8">
-            <MetricBarFill percent={basePercent} color="rgba(27,27,24,0.25)" />
+        <div
+          className="flex items-center gap-3 rounded-xl border px-3 py-2"
+          style={{ borderColor: hexToRgba(theme.baseNeutral, 0.95) }}
+        >
+          <span className="w-20 shrink-0 truncate text-xs text-ink/40">{baselineLabel}</span>
+          <div
+            className="h-1.5 flex-1 overflow-hidden rounded-full"
+            style={{ backgroundColor: hexToRgba(theme.baseNeutral, 0.55) }}
+          >
+            <MetricBarFill
+              percent={basePercent}
+              color={hexToRgba(theme.baseNeutral, 0.85)}
+            />
           </div>
-          <span className="w-14 shrink-0 text-right text-xs text-ink/45">
+          <span className="w-14 shrink-0 text-right text-xs text-ink/40">
             {baselineValue}
             {unit}
           </span>
@@ -584,7 +616,8 @@ function ComparisonMetricRow({
   );
 }
 
-/** 161차 — ORIJEN형 유무 비교. 체크=accent, 엑스=baseNeutral 톤 (빨강/초록 금지). */
+/** 161차 — ORIJEN형 유무 비교. 체크=accent, 엑스=baseNeutral 톤 (빨강/초록 금지).
+ * 183차 — our 열은 accent 채움 패널, baseline은 baseNeutral 테두리만. */
 function ComparisonChecklistRow({
   label,
   ourLabel,
@@ -603,24 +636,30 @@ function ComparisonChecklistRow({
   const ourYes = comparisonChecklistPresent(ourValue);
   const baseYes = comparisonChecklistPresent(baselineValue);
   return (
-    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-4 gap-y-1 border-b border-ink/8 py-3 last:border-b-0">
+    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-3 gap-y-1 border-b border-ink/8 py-3 last:border-b-0">
       <p className="text-sm font-medium text-ink/75">{label}</p>
-      <span className="flex flex-col items-center gap-1">
-        <span className="text-[10px] font-semibold tracking-wide" style={{ color: theme.deepAccent }}>
+      <span
+        className="flex min-w-[4.5rem] flex-col items-center gap-1 rounded-lg px-2.5 py-2"
+        style={{ backgroundColor: hexToRgba(theme.accent, 0.16) }}
+      >
+        <span className="text-[10px] font-bold tracking-wide" style={{ color: readableTextDeep(theme) }}>
           {ourLabel}
         </span>
         {ourYes ? (
-          <Check className="h-5 w-5" style={{ color: theme.accent }} strokeWidth={2.5} aria-label="있음" />
+          <Check className="h-5 w-5" style={{ color: readableTextAccent(theme) }} strokeWidth={2.75} aria-label="있음" />
         ) : (
           <X className="h-5 w-5" style={{ color: theme.baseNeutral }} strokeWidth={2.5} aria-label="없음" />
         )}
       </span>
-      <span className="flex flex-col items-center gap-1">
+      <span
+        className="flex min-w-[4.5rem] flex-col items-center gap-1 rounded-lg border px-2.5 py-2"
+        style={{ borderColor: hexToRgba(theme.baseNeutral, 0.9) }}
+      >
         <span className="text-[10px] text-ink/40">{baselineLabel}</span>
         {baseYes ? (
-          <Check className="h-5 w-5 text-ink/35" strokeWidth={2.5} aria-label="있음" />
+          <Check className="h-5 w-5 text-ink/30" strokeWidth={2} aria-label="있음" />
         ) : (
-          <X className="h-5 w-5" style={{ color: theme.baseNeutral }} strokeWidth={2.5} aria-label="없음" />
+          <X className="h-5 w-5" style={{ color: theme.baseNeutral }} strokeWidth={2} aria-label="없음" />
         )}
       </span>
     </div>
@@ -808,7 +847,7 @@ function SectionHeader({
               className={TYPO.pointBadgePill}
               style={{
                 borderColor: hexToRgba(accentColor, inverted ? 0.35 : 0.4),
-                color: inverted ? hexToRgba(BRAND.paper, 0.88) : theme.deepAccent,
+                color: inverted ? hexToRgba(BRAND.paper, 0.88) : readableTextDeep(theme),
               }}
             >
               {pointBadge}
@@ -831,7 +870,7 @@ function SectionHeader({
           {kicker ? (
             <p
               className={TYPO.sectionLabel}
-              style={{ color: inverted ? hexToRgba(BRAND.paper, 0.75) : theme.deepAccent }}
+              style={{ color: inverted ? hexToRgba(BRAND.paper, 0.75) : readableTextDeep(theme) }}
             >
               {kicker}
             </p>
@@ -841,7 +880,7 @@ function SectionHeader({
       {megaKeyword ? (
         <p
           className={`${TYPO.keywordDisplay} ${HEADLINE_CLAMP}`}
-          style={{ color: inverted ? BRAND.paper : theme.deepAccent }}
+          style={{ color: inverted ? BRAND.paper : readableTextDeep(theme) }}
         >
           {megaKeyword}
         </p>
@@ -951,7 +990,7 @@ function TrustStrip({
     >
       <p
         className={`mb-3 text-center ${TYPO.sectionLabel}`}
-        style={{ color: theme.deepAccent }}
+        style={{ color: readableTextDeep(theme) }}
       >
         혜택 · 신뢰
       </p>
@@ -1068,13 +1107,14 @@ function findCircleComparisonComboIndices(sections: DetailSection[]): Map<number
 }
 
 /**
- * 180 — TW 리터럴은 theme-independent 값만 (thumb/CTA).
+ * 180/184 — TW 리터럴은 theme-independent 값만 (thumb/CTA).
  * imageLift/Soft는 export와 동일하게 style boxShadow + theme tint.
+ * 184: specThumbMulti → card(=imageThumb) 동일 리터럴.
  */
 const TW_ELEVATION = {
-  specThumbMulti: "shadow-[0_10px_28px_-10px_rgba(27,27,24,0.24)]",
+  specThumbMulti: "shadow-[0_12px_32px_-12px_rgba(27,27,24,0.28)]",
   imageThumb: "shadow-[0_12px_32px_-12px_rgba(27,27,24,0.28)]",
-  /** export ctaSticky와 동일 (구 live: -8px spread + 0.2 alpha) */
+  /** export ctaSticky와 동일 */
   ctaSticky: "shadow-[0_-8px_24px_rgba(27,27,24,0.15)]",
   ctaButton: "shadow-[0_12px_28px_-10px_rgba(27,27,24,0.55)]",
 } as const;
@@ -1085,7 +1125,7 @@ if (
   TW_ELEVATION.ctaSticky !== ELEVATION.twCtaSticky ||
   TW_ELEVATION.ctaButton !== ELEVATION.twCtaButton
 ) {
-  throw new Error("[180] TW_ELEVATION drift from ELEVATION.tw* — keep literals identical");
+  throw new Error("[184] TW_ELEVATION drift from ELEVATION.tw* — keep literals identical");
 }
 
 const CIRCLE_COMBO_IMG_CLASS =
@@ -1115,7 +1155,7 @@ function renderIngredientCircleVisual(params: {
               className={compact ? CIRCLE_COMBO_IMG_CLASS : CIRCLE_SOLO_IMG_CLASS}
             />
           </div>
-          <p className={`text-center ${TYPO.compactTitle}`} style={{ color: theme.deepAccent }}>
+          <p className={`text-center ${TYPO.compactTitle}`} style={{ color: readableTextDeep(theme) }}>
             {solo.label}
           </p>
         </div>
@@ -1138,7 +1178,7 @@ function renderIngredientCircleVisual(params: {
                 className={compact ? CIRCLE_COMBO_IMG_CLASS : CIRCLE_PAIR_IMG_CLASS}
               />
             </div>
-            <p className={`text-center ${TYPO.compactTitle}`} style={{ color: theme.deepAccent }}>
+            <p className={`text-center ${TYPO.compactTitle}`} style={{ color: readableTextDeep(theme) }}>
               {item.label}
             </p>
           </div>
@@ -1162,7 +1202,7 @@ function renderComparisonChartBody(params: {
     <>
       <p
         className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`}
-        style={{ color: theme.deepAccent }}
+        style={{ color: readableTextDeep(theme) }}
       >
         COMPARE
       </p>
@@ -1323,6 +1363,7 @@ function renderSection(
               alt={imgAlt}
               fallbackSrc={heroFallback}
               className="pagzly-hero-photo absolute inset-0 h-full w-full object-cover"
+              priority
             />
             <div
               className="absolute inset-0"
@@ -1337,7 +1378,7 @@ function renderSection(
               <span
                 className="absolute left-0 top-5 z-20 pl-4 pr-5 py-2 text-xs font-bold tracking-wide text-paper shadow-md sm:top-7"
                 style={{
-                  backgroundColor: theme.deepAccent,
+                  backgroundColor: solidDeepOnPaper(theme),
                   clipPath: "polygon(0 0, 100% 0, calc(100% - 8px) 50%, 100% 100%, 0 100%)",
                 }}
               >
@@ -1514,7 +1555,7 @@ function renderSection(
             style={textSectionStyle(theme, pattern, category)}
           >
             <div className="mx-auto max-w-xl">
-              <h2 className={TYPO.sectionTitle} style={{ color: theme.deepAccent }}>
+              <h2 className={TYPO.sectionTitle} style={{ color: readableTextDeep(theme, 3) }}>
                 {section.heading}
               </h2>
               <p className={`mt-4 whitespace-pre-line ${TYPO.body}`} style={{ color: BRAND.ink }}>
@@ -1630,7 +1671,7 @@ function renderSection(
               </div>
               <div className={`${imageLeft ? "order-2" : "order-2 sm:order-1"} min-w-0`}>
                 <TextSectionPanel theme={theme}>
-                  <p className={`mb-4 ${TYPO.sectionLabel}`} style={{ color: theme.deepAccent }}>
+                  <p className={`mb-4 ${TYPO.sectionLabel}`} style={{ color: readableTextDeep(theme) }}>
                     FEATURE
                   </p>
                   <EditableText
@@ -1662,6 +1703,15 @@ function renderSection(
                     const slices = prepareFoodRatioSlices(ingredients, keyFeatures);
                     return slices ? (
                       <FoodRatioDiagram slices={slices} theme={theme} />
+                    ) : null;
+                  })()
+                ) : null}
+                {section.slot === "ingredient_highlight" &&
+                isIngredientRingCategory(category) ? (
+                  (() => {
+                    const ringLabels = prepareIngredientRingLabels(ingredients);
+                    return ringLabels ? (
+                      <IngredientRingDiagram labels={ringLabels} theme={theme} />
                     ) : null;
                   })()
                 ) : null}
@@ -1701,7 +1751,7 @@ function renderSection(
                   >
                     <div
                       className="relative rounded-2xl px-5 py-3 text-center text-sm font-semibold leading-snug text-paper shadow-lg sm:text-base"
-                      style={{ backgroundColor: theme.deepAccent }}
+                      style={{ backgroundColor: solidDeepOnPaper(theme) }}
                     >
                       <EditableText
                         as="span"
@@ -1713,7 +1763,7 @@ function renderSection(
                       />
                       <span
                         className="absolute -bottom-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45"
-                        style={{ backgroundColor: theme.deepAccent }}
+                        style={{ backgroundColor: solidDeepOnPaper(theme) }}
                         aria-hidden="true"
                       />
                     </div>
@@ -1723,7 +1773,7 @@ function renderSection(
             </div>
             <div className={`${getCategoryRhythm(category).pointTextPadClass} px-6 sm:px-10`}>
               <TextSectionPanel theme={theme} overlap>
-                <p className={`mb-4 ${TYPO.sectionLabel}`} style={{ color: theme.deepAccent }}>
+                <p className={`mb-4 ${TYPO.sectionLabel}`} style={{ color: readableTextDeep(theme) }}>
                   HIGHLIGHT
                 </p>
                 <EditableText
@@ -1768,35 +1818,39 @@ function renderSection(
                 onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
               />
               <div
-                className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3"
-                style={{
-                  background: `linear-gradient(0deg, ${hexToRgba(theme.deepAccent, 0.55)} 0%, transparent 100%)`,
-                }}
+                className="pointer-events-none absolute inset-0"
+                style={{ background: getEditorialBleedScrim() }}
                 aria-hidden="true"
               />
+              <div className={EDITORIAL_BLEED_OVERLAY_CLASS}>
+                {kicker ? <p className={TYPO.heroCategory}>{kicker}</p> : null}
+                <EditableText
+                  as="h3"
+                  enabled={edit?.enabled}
+                  value={section.heading}
+                  onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+                  className={`line-clamp-1 ${TYPO.bannerTitle} ${getCategoryRhythm(category).heroTitleExtra}`}
+                />
+              </div>
             </div>
             <div className={`${getCategoryRhythm(category).pointTextPadClass} mx-auto max-w-xl px-6 text-center sm:px-10`}>
-              {kicker ? (
-                <p className={`mb-3 ${TYPO.sectionLabel}`} style={{ color: theme.deepAccent }}>
-                  {kicker}
-                </p>
-              ) : null}
-              <EditableText
-                as="h3"
-                enabled={edit?.enabled}
-                value={section.heading}
-                onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-                className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
-              />
               <EditableText
                 as="p"
                 multiline
                 enabled={edit?.enabled}
                 value={section.body}
                 onChange={(body) => edit?.onChange(index, { ...section, body })}
-                className={`mt-4 line-clamp-4 ${TYPO.body}`}
+                className={`line-clamp-4 ${TYPO.body}`}
               />
             </div>
+            {section.slot === "material_feature" && isIngredientRingCategory(category) ? (
+              (() => {
+                const ringLabels = prepareIngredientRingLabels(ingredients);
+                return ringLabels ? (
+                  <IngredientRingDiagram labels={ringLabels} theme={theme} />
+                ) : null;
+              })()
+            ) : null}
           </section>
         );
       }
@@ -1834,7 +1888,7 @@ function renderSection(
                 {pointLabel ? (
                   <span
                     className="absolute left-4 top-4 rounded-full px-3 py-1 font-mono text-[10px] font-bold tracking-[0.28em] text-paper"
-                    style={{ backgroundColor: hexToRgba(theme.deepAccent, 0.9) }}
+                    style={{ backgroundColor: hexToRgba(solidDeepOnPaper(theme), 0.9) }}
                   >
                     {pointLabel}
                   </span>
@@ -1846,7 +1900,7 @@ function renderSection(
             >
               <TextSectionPanel theme={theme} align="left" flat>
                 {kicker ? (
-                  <p className={`mb-3 ${TYPO.sectionLabel}`} style={{ color: theme.deepAccent }}>
+                  <p className={`mb-3 ${TYPO.sectionLabel}`} style={{ color: readableTextDeep(theme) }}>
                     {kicker}
                   </p>
                 ) : null}
@@ -1862,7 +1916,14 @@ function renderSection(
                   enabled={edit?.enabled}
                   value={section.heading}
                   onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-                  className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
+                  // 219차: line-clamp-2→5. pagzly-ink-headline(display:inline-block)이
+                  // line-clamp의 -webkit-box를 덮어 줄 수 제한이 무력화되므로 ink 클래스 제외.
+                  // (TYPO.sectionTitle과 동일 타이포, ink 언더라인만 이 분기에서 빠짐)
+                  // 221차: break-words + ![overflow-wrap:anywhere] —
+                  // globals `.pagzly-display-headline`의 keep-all+overflow-wrap:break-word는
+                  // utility보다 특이도가 높아 break-words만으로는 무공백 긴 토큰이 안 접힘.
+                  // anywhere는 keep-all을 유지한 채 overflow 시에만 강제 줄바꿈.
+                  className={`break-words ![overflow-wrap:anywhere] line-clamp-5 pagzly-display-headline font-heading text-[2rem] font-bold leading-[1.2] tracking-[-0.03em] text-ink sm:text-[2.75rem]`}
                 />
                 <EditableText
                   as="p"
@@ -1870,7 +1931,7 @@ function renderSection(
                   enabled={edit?.enabled}
                   value={section.body}
                   onChange={(body) => edit?.onChange(index, { ...section, body })}
-                  className={`mt-4 line-clamp-5 ${TYPO.body}`}
+                  className={`mt-4 break-words line-clamp-7 ${TYPO.body}`}
                 />
                 {section.slot === "ingredient_highlight" && isCosmeticsCategory(category) ? (
                   <p className="mt-3 text-[11px] leading-relaxed opacity-55">
@@ -1893,6 +1954,15 @@ function renderSection(
               const slices = prepareFoodRatioSlices(ingredients, keyFeatures);
               return slices ? (
                 <FoodRatioDiagram slices={slices} theme={theme} />
+              ) : null;
+            })()
+          ) : null}
+          {section.slot === "ingredient_highlight" &&
+          isIngredientRingCategory(category) ? (
+            (() => {
+              const ringLabels = prepareIngredientRingLabels(ingredients);
+              return ringLabels ? (
+                <IngredientRingDiagram labels={ringLabels} theme={theme} />
               ) : null;
             })()
           ) : null}
@@ -1933,8 +2003,13 @@ function renderSection(
           : null;
       // 162차 — 무게(g/kg)도 같은 패턴으로 확장. 전자/식품/반려동물/생활용품 스펙에
       // 가장 흔하지만 이 패턴이 없었음(신용카드·사과 등 체감 기준으로 비교).
+      // 232차 — FOOD는 스펙성 슬롯 이름이 spec_table이 아니라 nutrition_table이라
+      // 위 조건이 한 번도 매칭되지 않았음(162차 주석이 명시한 "식품" 대상이 실제로는
+      // 도달 불가였던 구조적 누락). nutrition_table을 FOOD 한정으로 추가.
       const weightMatch =
-        section.slot === "spec_table" && !isFashionCategory(category)
+        (section.slot === "spec_table" ||
+          (isFoodCategory(category) && section.slot === "nutrition_table")) &&
+        !isFashionCategory(category)
           ? matchWeightComparisonRow(visibleRows)
           : null;
       // 163차 — 소비전력(W)도 같은 패턴으로 확장. 전자/가전 스펙 표에 흔한 값인데도
@@ -1966,7 +2041,7 @@ function renderSection(
         >
           <p
             className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`}
-            style={{ color: theme.deepAccent }}
+            style={{ color: readableTextDeep(theme) }}
           >
             INFO
           </p>
@@ -2015,14 +2090,6 @@ function renderSection(
               theme={theme}
               category={category}
             />
-          ) : null}
-          {isFoodCategory(category) ? (
-            (() => {
-              const slices = prepareFoodRatioSlices(ingredients, keyFeatures);
-              return slices ? (
-                <FoodRatioDiagram slices={slices} theme={theme} />
-              ) : null;
-            })()
           ) : null}
           {noiseMatch ? (
             <NoiseComparisonDiagram
@@ -2125,7 +2192,7 @@ function renderSection(
                         <span
                           className="inline-block rounded-md px-2 py-0.5"
                           style={{
-                            color: theme.accent,
+                            color: readableTextAccent(theme),
                             backgroundColor: hexToRgba(theme.accent, 0.14),
                             boxShadow: ELEVATION.certUnderlineSoft(theme.accent),
                           }}
@@ -2168,6 +2235,16 @@ function renderSection(
               </tbody>
             </table>
           </div>
+          {sizeDiagramMatches.length > 0 ? (
+            <div className="mx-auto mt-4 max-w-xl space-y-0.5">
+              <p className="text-center text-[11px] leading-relaxed text-ink/40">
+                * 사이즈는 측정 방법에 따라 1~3cm 오차가 발생할 수 있습니다.
+              </p>
+              <p className="text-center text-[11px] leading-relaxed text-ink/40">
+                * 사람마다 체형이 다르기 때문에 착용감이 조금씩 다를 수 있습니다.
+              </p>
+            </div>
+          ) : null}
         </section>
       );
     }
@@ -2181,7 +2258,7 @@ function renderSection(
         >
           <p
             className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`}
-            style={{ color: theme.deepAccent }}
+            style={{ color: readableTextDeep(theme) }}
           >
             COMPARE
           </p>
@@ -2199,7 +2276,7 @@ function renderSection(
                   <th
                     className="px-4 py-3 text-left font-semibold"
                     style={{
-                      color: theme.deepAccent,
+                      color: readableTextDeep(theme),
                       backgroundColor: hexToRgba(theme.accent, INFO_TABLE.oursHighlightAlpha),
                     }}
                   >
@@ -2274,7 +2351,7 @@ function renderSection(
         >
           <p
             className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`}
-            style={{ color: theme.deepAccent }}
+            style={{ color: readableTextDeep(theme) }}
           >
             FIT CHECK
           </p>
@@ -2286,13 +2363,13 @@ function renderSection(
               className="rounded-2xl p-5 sm:p-6"
               style={{ backgroundColor: hexToRgba(theme.accent, 0.1) }}
             >
-              <p className="mb-4 text-xs font-semibold tracking-wide" style={{ color: theme.deepAccent }}>
+              <p className="mb-4 text-xs font-semibold tracking-wide" style={{ color: readableTextDeep(theme) }}>
                 이런 분께 추천
               </p>
               <ul className="space-y-3">
                 {recommendFor.map((item, i) => (
                   <li key={i} className="flex gap-2 text-sm leading-relaxed text-ink/80">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: theme.accent }} aria-hidden />
+                    <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: readableTextAccent(theme) }} aria-hidden />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -2383,7 +2460,10 @@ function renderSection(
                   } ${isTrustEvidence ? "py-10 sm:py-14" : ""}`}
                   style={{
                     backgroundColor: emphasized
-                      ? hexToRgba(theme.deepAccent, boldBlock ? 1 : SECTION_BG_PATTERN_C_ALPHA)
+                      ? hexToRgba(
+                          solidDeepOnPaper(theme),
+                          boldBlock ? 1 : SECTION_BG_PATTERN_C_ALPHA,
+                        )
                       : boldBlock
                         ? hexToRgba(BRAND.paper, 0.12)
                         : hexToRgba(theme.accent, 0.08),
@@ -2436,7 +2516,7 @@ function renderSection(
                           ? { color: BRAND.paper }
                           : boldBlock
                             ? { color: BRAND.paper }
-                            : { color: theme.deepAccent }
+                            : { color: readableTextDeep(theme) }
                       }
                     >
                       {cardKeyword.keyword}
@@ -2550,7 +2630,7 @@ function renderSection(
         const number = footnoteNumberByMetricIndex.get(metricIndex);
         if (!number) return null;
         return (
-          <sup className="ml-0.5 text-[0.6em] font-semibold" style={{ color: theme.accent }}>
+          <sup className="ml-0.5 text-[0.6em] font-semibold" style={{ color: readableTextAccent(theme) }}>
             {number}
           </sup>
         );
@@ -2601,7 +2681,7 @@ function renderSection(
                       본문 제목(text-4xl)보다도 작아 "히어로 넘버"로서 시각적 임팩트가
                       부족하다는 점을 발견. 라벨 대비 숫자의 스케일 대비를 크게 벌려
                       숫자 자체가 그래픽 역할을 하도록(에디토리얼 스탯 카드 관례) 키움. */}
-                  <div style={{ color: theme.deepAccent }}>
+                  <div style={{ color: readableTextDeep(theme) }}>
                     <EditableText
                       as="span"
                       enabled={edit?.enabled}
@@ -2649,7 +2729,7 @@ function renderSection(
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <span
                           className="font-heading text-2xl font-black leading-none tracking-tighter tabular-nums sm:text-3xl"
-                          style={{ color: theme.deepAccent }}
+                          style={{ color: readableTextDeep(theme) }}
                         >
                           {metric.value}
                         </span>
@@ -2730,46 +2810,20 @@ function renderSection(
     }
 
     case "illustration_banner": {
-      const bgSrc = resolveImage(imageUrls, 0) || heroFallback;
+      const photoSrc = resolveImage(imageUrls, section.imageIndex ?? 0) || heroFallback;
+      const bgSrc = section.illustrationUrl || photoSrc;
       return (
         <section
           key={`illustration_banner-${index}`}
           className="relative aspect-video w-full overflow-hidden"
         >
-          {section.illustrationUrl ? (
+          {bgSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={section.illustrationUrl}
-              alt={section.heading ?? "컨셉 일러스트"}
+              src={bgSrc}
+              alt={section.heading ?? "컨셉 배너"}
               className="absolute inset-0 h-full w-full object-cover"
             />
-          ) : bgSrc ? (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={bgSrc}
-                alt=""
-                aria-hidden="true"
-                className="absolute inset-0 h-full w-full scale-110 object-cover opacity-55 blur-2xl"
-              />
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute -left-16 top-8 h-52 w-52 rounded-full blur-3xl"
-                style={{ backgroundColor: hexToRgba(theme.accent, 0.28) }}
-              />
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute -bottom-10 -right-10 h-64 w-64 rounded-full blur-3xl"
-                style={{ backgroundColor: hexToRgba(theme.deepAccent, 0.22) }}
-              />
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 opacity-30"
-                style={{
-                  backgroundImage: `repeating-linear-gradient(135deg, ${hexToRgba(theme.accent, 0.08)} 0px, ${hexToRgba(theme.accent, 0.08)} 1px, transparent 1px, transparent 14px)`,
-                }}
-              />
-            </>
           ) : (
             <div
               className="absolute inset-0"
@@ -2791,25 +2845,38 @@ function renderSection(
             aria-hidden="true"
           />
           <div className={BANNER_OVERLAY_CLASS}>
-            {(section.heading || edit?.enabled) && (
-              <EditableText
-                as="h2"
-                enabled={edit?.enabled}
-                value={section.heading ?? ""}
-                onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-                className={`${TYPO.bannerTitle} ${getCategoryRhythm(category).heroTitleExtra}`}
+            {/* 249차 — 텍스트 블록 전용 스크림. 실사진 밝기·복잡도에도 대비 보장. */}
+            <div className="relative max-w-md px-5 py-5 sm:max-w-lg sm:px-8 sm:py-6">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-[-10%] rounded-2xl sm:rounded-3xl"
+                style={{
+                  background: hexToRgba(BRAND.ink, 0.9),
+                  boxShadow: `0 8px 40px ${hexToRgba(BRAND.ink, 0.4)}`,
+                }}
               />
-            )}
-            {(section.body || edit?.enabled) && (
-              <EditableText
-                as="p"
-                multiline
-                enabled={edit?.enabled}
-                value={section.body ?? ""}
-                onChange={(body) => edit?.onChange(index, { ...section, body })}
-                className={TYPO.bannerSub}
-              />
-            )}
+              <div className="relative z-10 flex flex-col items-center">
+                {(section.heading || edit?.enabled) && (
+                  <EditableText
+                    as="h2"
+                    enabled={edit?.enabled}
+                    value={section.heading ?? ""}
+                    onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+                    className={`${TYPO.bannerTitle} ${HEADLINE_CLAMP} ${getCategoryRhythm(category).heroTitleExtra}`}
+                  />
+                )}
+                {(section.body || edit?.enabled) && (
+                  <EditableText
+                    as="p"
+                    multiline
+                    enabled={edit?.enabled}
+                    value={section.body ?? ""}
+                    onChange={(body) => edit?.onChange(index, { ...section, body })}
+                    className={`${TYPO.bannerSub} ${HEADLINE_CLAMP}`}
+                  />
+                )}
+              </div>
+            </div>
           </div>
         </section>
       );
@@ -2831,7 +2898,7 @@ function renderSection(
             <>
               <div
                 className="absolute inset-0"
-                style={{ background: getHeroGradient(theme) }}
+                style={{ background: getAspectVideoBleedScrim() }}
                 aria-hidden="true"
               />
               <div className={BANNER_OVERLAY_CLASS}>
@@ -2886,7 +2953,7 @@ function renderSection(
                 <div className="min-w-0 flex-1 pt-1 sm:flex-none sm:pt-0">
                   <p
                     className={`mb-1.5 ${TYPO.sectionLabel}`}
-                    style={{ color: theme.accent }}
+                    style={{ color: readableTextAccent(theme) }}
                   >
                     STEP {String(stepIndex + 1).padStart(2, "0")}
                   </p>
@@ -2927,7 +2994,7 @@ function renderSection(
           className={getCategoryRhythm(category).generousPadClass}
           style={textSectionStyle(theme, pattern, category)}
         >
-          <p className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`} style={{ color: theme.deepAccent }}>
+          <p className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`} style={{ color: readableTextDeep(theme) }}>
             HOW TO USE
           </p>
           <EditableText
@@ -2950,7 +3017,7 @@ function renderSection(
                     />
                     <span
                       className="absolute left-3 top-3 rounded-full px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-paper shadow-sm"
-                      style={{ backgroundColor: theme.deepAccent }}
+                      style={{ backgroundColor: solidDeepOnPaper(theme) }}
                     >
                       STEP {String(stepIndex + 1).padStart(2, "0")}
                     </span>
@@ -3024,7 +3091,7 @@ function renderSection(
           <div
             className={
               pairCompare
-                ? "grid grid-cols-2 gap-px"
+                ? "grid grid-cols-2 gap-2"
                 : section.imageIndexes.length <= 2
                   ? `grid grid-cols-1 ${getCategoryRhythm(category).galleryGapClass}`
                   : `grid grid-cols-2 ${getCategoryRhythm(category).galleryGapClass} sm:grid-cols-3`
@@ -3076,7 +3143,7 @@ function renderSection(
             <TextSectionPanel theme={theme}>
               <p
                 className={`mb-4 ${TYPO.sectionLabel}`}
-                style={{ color: theme.deepAccent }}
+                style={{ color: readableTextDeep(theme) }}
               >
                 NOTICE
               </p>
@@ -3085,7 +3152,7 @@ function renderSection(
                 enabled={edit?.enabled}
                 value={section.heading}
                 onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-                className={`${HEADLINE_CLAMP} font-heading text-lg font-bold tracking-[-0.02em] text-ink sm:text-xl`}
+                className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
               />
               <EditableText
                 as="p"
@@ -3146,6 +3213,42 @@ function renderSection(
               실제 리뷰 {section.sourceReviewCount}건 분석
             </p>
           ) : null}
+          {typeof section.petAgeWeightMentionCount === "number" &&
+          section.petAgeWeightMentionCount > 0 ? (
+            <p
+              data-testid="review-highlight-pet-signal"
+              className="mx-auto mt-1 max-w-xl text-center text-[11px] text-ink/40 sm:text-xs"
+            >
+              반려동물 나이·체중 언급 리뷰 {section.petAgeWeightMentionCount}건
+            </p>
+          ) : null}
+          {typeof section.repurchaseMentionCount === "number" &&
+          section.repurchaseMentionCount > 0 ? (
+            <p
+              data-testid="review-highlight-repurchase-signal"
+              className="mx-auto mt-1 max-w-xl text-center text-[11px] text-ink/40 sm:text-xs"
+            >
+              재구매 의사 언급 리뷰 {section.repurchaseMentionCount}건
+            </p>
+          ) : null}
+          {typeof section.sizeFitMentionCount === "number" &&
+          section.sizeFitMentionCount > 0 ? (
+            <p
+              data-testid="review-highlight-size-fit-signal"
+              className="mx-auto mt-1 max-w-xl text-center text-[11px] text-ink/40 sm:text-xs"
+            >
+              사이즈·핏 언급 리뷰 {section.sizeFitMentionCount}건
+            </p>
+          ) : null}
+          {typeof section.longTermUseMentionCount === "number" &&
+          section.longTermUseMentionCount > 0 ? (
+            <p
+              data-testid="review-highlight-long-term-use-signal"
+              className="mx-auto mt-1 max-w-xl text-center text-[11px] text-ink/40 sm:text-xs"
+            >
+              장기 사용 후기 {section.longTermUseMentionCount}건
+            </p>
+          ) : null}
           <p className="mx-auto mt-2 max-w-xl text-center text-xs text-ink/40">
             실제 구매자 리뷰에서 자주 나온 내용을 요약했습니다
           </p>
@@ -3159,23 +3262,46 @@ function renderSection(
               >
                 <span
                   className="font-heading text-3xl leading-none"
-                  style={{ color: theme.accent }}
+                  style={{ color: readableTextAccent(theme) }}
                   aria-hidden="true"
                 >
                   &ldquo;
                 </span>
-                <EditableText
-                  as="p"
-                  multiline
-                  enabled={edit?.enabled}
-                  value={item.text}
-                  onChange={(next) => {
-                    const nextPraises = [...section.praises];
-                    nextPraises[item.originalIndex] = next;
-                    edit?.onChange(index, { ...section, praises: nextPraises });
-                  }}
-                  className={`${TYPO.body} text-ink/80`}
-                />
+                {edit?.enabled ? (
+                  <EditableText
+                    as="p"
+                    multiline
+                    enabled={edit.enabled}
+                    value={item.text}
+                    onChange={(next) => {
+                      const nextPraises = [...section.praises];
+                      nextPraises[item.originalIndex] = next;
+                      edit?.onChange(index, { ...section, praises: nextPraises });
+                    }}
+                    className={`${TYPO.body} text-ink/80`}
+                  />
+                ) : (
+                  <p className={`${TYPO.body} text-ink/80`}>
+                    {item.matchCount > 0
+                      ? splitTextByKeywords(item.text).map((seg, segIdx) =>
+                          seg.isKeyword ? (
+                            <span
+                              key={segIdx}
+                              style={{
+                                backgroundColor: theme.accentSoft,
+                                borderRadius: 3,
+                                padding: "0 2px",
+                              }}
+                            >
+                              {seg.text}
+                            </span>
+                          ) : (
+                            <Fragment key={segIdx}>{seg.text}</Fragment>
+                          ),
+                        )
+                      : item.text}
+                  </p>
+                )}
                 {item.matchCount > 0 ? (
                   <p
                     data-testid="review-match-badge"
@@ -3198,18 +3324,41 @@ function renderSection(
               <ul className="mt-4 space-y-2.5">
                 {concernItems.map((item, concernIndex) => (
                   <li key={concernIndex}>
-                    <EditableText
-                      as="p"
-                      multiline
-                      enabled={edit?.enabled}
-                      value={item.text}
-                      onChange={(next) => {
-                        const nextConcerns = [...(section.concerns ?? [])];
-                        nextConcerns[item.originalIndex] = next;
-                        edit?.onChange(index, { ...section, concerns: nextConcerns });
-                      }}
-                      className="text-center text-[12px] leading-relaxed text-ink/50 sm:text-[13px]"
-                    />
+                    {edit?.enabled ? (
+                      <EditableText
+                        as="p"
+                        multiline
+                        enabled={edit.enabled}
+                        value={item.text}
+                        onChange={(next) => {
+                          const nextConcerns = [...(section.concerns ?? [])];
+                          nextConcerns[item.originalIndex] = next;
+                          edit?.onChange(index, { ...section, concerns: nextConcerns });
+                        }}
+                        className="text-center text-[12px] leading-relaxed text-ink/50 sm:text-[13px]"
+                      />
+                    ) : (
+                      <p className="text-center text-[12px] leading-relaxed text-ink/50 sm:text-[13px]">
+                        {item.matchCount > 0
+                          ? splitTextByKeywords(item.text).map((seg, segIdx) =>
+                              seg.isKeyword ? (
+                                <span
+                                  key={segIdx}
+                                  style={{
+                                    backgroundColor: theme.accentSoft,
+                                    borderRadius: 3,
+                                    padding: "0 2px",
+                                  }}
+                                >
+                                  {seg.text}
+                                </span>
+                              ) : (
+                                <Fragment key={segIdx}>{seg.text}</Fragment>
+                              ),
+                            )
+                          : item.text}
+                      </p>
+                    )}
                     {item.matchCount > 0 ? (
                       <p
                         data-testid="review-match-badge"
@@ -3227,6 +3376,73 @@ function renderSection(
       );
     }
 
+    case "before_after": {
+      if (!section.pairs || section.pairs.length === 0) return null;
+      return (
+        <section
+          key={`before_after-${index}`}
+          data-testid="before-after"
+          className={getCategoryRhythm(category).generousPadClass}
+          style={textSectionStyle(theme, pattern, category)}
+        >
+          <SectionAccentHairline theme={theme} />
+          <EditableText
+            as="h3"
+            enabled={edit?.enabled}
+            value={section.heading}
+            onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+          />
+          <div className="mx-auto mt-8 flex max-w-3xl flex-col gap-8">
+            {section.pairs.map((pair, i) => (
+              <div key={i}>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="relative overflow-hidden rounded-2xl">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={pair.beforeUrl}
+                      alt={`${section.heading} Before ${i + 1}`}
+                      loading="lazy"
+                      decoding="async"
+                      className="aspect-square w-full object-cover"
+                    />
+                    <span
+                      className="absolute left-4 top-4 rounded-full px-3 py-1 font-mono text-[10px] font-bold tracking-[0.28em] text-paper"
+                      style={{ backgroundColor: hexToRgba(solidDeepOnPaper(theme), 0.9) }}
+                    >
+                      BEFORE
+                    </span>
+                  </div>
+                  <div className="relative overflow-hidden rounded-2xl">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={pair.afterUrl}
+                      alt={`${section.heading} After ${i + 1}`}
+                      loading="lazy"
+                      decoding="async"
+                      className="aspect-square w-full object-cover"
+                    />
+                    <span
+                      className="absolute left-4 top-4 rounded-full px-3 py-1 font-mono text-[10px] font-bold tracking-[0.28em] text-paper"
+                      style={{ backgroundColor: hexToRgba(theme.accent, 0.9) }}
+                    >
+                      AFTER
+                    </span>
+                  </div>
+                </div>
+                {pair.caption ? (
+                  <p className="mt-2 text-center text-xs text-ink/60">{pair.caption}</p>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          <p className="mx-auto mt-6 max-w-xl text-center text-[11px] text-ink/40">
+            {BEFORE_AFTER_COMPLIANCE_NOTE}
+          </p>
+        </section>
+      );
+    }
+
     case "ai_disclosure":
       return (
         <section
@@ -3237,7 +3453,7 @@ function renderSection(
           <div className={TEXT_COL_CLASS}>
             <p
               className={`mb-4 ${TYPO.sectionLabel}`}
-              style={{ color: theme.deepAccent }}
+              style={{ color: readableTextDeep(theme) }}
             >
               AI DISCLOSURE
             </p>
@@ -3246,7 +3462,7 @@ function renderSection(
               enabled={edit?.enabled}
               value={section.heading}
               onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-              className={`${HEADLINE_CLAMP} font-heading text-lg font-bold tracking-[-0.02em] text-ink sm:text-xl`}
+              className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
             />
             <EditableText
               as="p"
@@ -3293,7 +3509,7 @@ function renderSection(
       const storyBodyClass = `mt-5 whitespace-pre-line ${TYPO.body}`;
       const storyText = (
         <>
-          <p className={`mb-4 ${TYPO.sectionLabel}`} style={{ color: theme.deepAccent }}>
+          <p className={`mb-4 ${TYPO.sectionLabel}`} style={{ color: readableTextDeep(theme) }}>
             STORY
           </p>
           <EditableText
@@ -3301,7 +3517,7 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${HEADLINE_CLAMP} font-heading text-lg font-bold tracking-[-0.02em] text-ink sm:text-xl`}
+            className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
           />
           <EditableText
             as="p"
@@ -3345,7 +3561,7 @@ function renderSection(
           <section key={`brand_story-${index}`} className="relative overflow-hidden">
             <div
               className="flex flex-col items-center justify-center px-6 py-16 text-center sm:px-10 sm:py-20"
-              style={{ backgroundColor: theme.deepAccent }}
+              style={{ backgroundColor: solidDeepOnPaper(theme) }}
             >
               <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.32em] text-paper/75">
                 {brandName}
@@ -3413,7 +3629,7 @@ function renderSection(
                   backgroundColor: hexToRgba(theme.baseNeutral, 0.45),
                 }}
               >
-                <p className={`${TYPO.sectionLabel} mb-2`} style={{ color: theme.accent }}>
+                <p className={`${TYPO.sectionLabel} mb-2`} style={{ color: readableTextAccent(theme) }}>
                   Q.
                 </p>
                 <EditableText
@@ -3430,7 +3646,7 @@ function renderSection(
                 />
                 <p
                   className={`${TYPO.sectionLabel} mb-2 mt-4`}
-                  style={{ color: theme.deepAccent }}
+                  style={{ color: readableTextDeep(theme) }}
                 >
                   A.
                 </p>
@@ -3477,13 +3693,13 @@ function renderSection(
                 className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium"
                 style={{
                   backgroundColor: hexToRgba(theme.baseNeutral, 0.85),
-                  color: theme.deepAccent,
+                  color: readableTextDeep(theme),
                   boxShadow: ELEVATION.personaRing(theme.accent),
                 }}
               >
                 <CheckCircle2
                   className="h-3.5 w-3.5 shrink-0"
-                  style={{ color: theme.accent }}
+                  style={{ color: readableTextAccent(theme) }}
                   aria-hidden="true"
                 />
                 <EditableText
@@ -3514,12 +3730,12 @@ function renderSection(
           }}
         >
           <div className={`${TEXT_COL_CLASS} relative z-10 space-y-5`}>
-            <p className={TYPO.sectionLabel} style={{ color: theme.deepAccent }}>
+            <p className={TYPO.sectionLabel} style={{ color: readableTextDeep(theme) }}>
               PRICE
             </p>
             <p
               className="pagzly-ink-headline font-heading text-[2.75rem] font-bold sm:text-5xl"
-              style={{ color: theme.accent, letterSpacing: "-0.04em" }}
+              style={{ color: readableTextAccent(theme, 3), letterSpacing: "-0.04em" }}
             >
               ₩{section.price.toLocaleString()}
             </p>
@@ -3528,7 +3744,7 @@ function renderSection(
                 className="inline-block rounded-full px-4 py-1.5 text-xs font-medium"
                 style={{
                   backgroundColor: hexToRgba(theme.accent, 0.14),
-                  color: theme.deepAccent,
+                  color: readableTextDeep(theme),
                 }}
               >
                 {section.targetCustomer}
@@ -3541,7 +3757,7 @@ function renderSection(
                     key={badge}
                     className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold tracking-wide"
                     style={{
-                      backgroundColor: theme.deepAccent,
+                      backgroundColor: solidDeepOnPaper(theme),
                       color: BRAND.paper,
                       clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%)",
                       paddingRight: "1.25rem",
@@ -3589,6 +3805,7 @@ export default function DetailSectionRenderer({
   ingredients,
   keyFeatures,
   certifications,
+  pendingHighlightIndex = null,
 }: DetailSectionRendererProps) {
   const baseTheme = themeOverride ?? getCategoryTheme(category);
   const extendedTheme = extendTheme(baseTheme);
@@ -3635,12 +3852,11 @@ export default function DetailSectionRenderer({
           return null;
         }
 
-        const isFullPoint =
-          section.type === "image_text" &&
-          section.layout !== "compact" &&
-          section.layout !== "callout" &&
-          section.slot !== "quick_points" &&
-          section.slot !== "feature_callout";
+        // 224차 — export(lib/export-detail-html.ts)와 동일하게 shouldUseSplitLayout()을
+        // 공유 재사용. 이전에는 이 조건을 직접 풀어써서 에디토리얼 블리드
+        // (shouldUseEditorialBleed) 섹션을 카운트에서 빼먹었고, 그 결과 라이브·export의
+        // POINT 번호·60:40 리듬·이미지 좌우가 에디토리얼 블리드 섹션 이후로 어긋났음.
+        const isFullPoint = shouldUseSplitLayout(section);
         const pointIndex = isFullPoint ? imageTextCount++ : undefined;
         const compactImageTextIndex =
           section.type === "image_text" && section.layout === "compact"
@@ -3764,7 +3980,14 @@ export default function DetailSectionRenderer({
               id={anchorId}
               data-section-index={index}
               data-section-slot={section.slot}
-              className={anchorId ? "relative scroll-mt-14" : "relative scroll-mt-14"}
+              data-pending-highlight={
+                pendingHighlightIndex === index ? "true" : undefined
+              }
+              className={
+                pendingHighlightIndex === index
+                  ? "relative scroll-mt-14 ring-2 ring-registration-red ring-offset-2 ring-offset-paper rounded-sm transition-[box-shadow] duration-200"
+                  : "relative scroll-mt-14"
+              }
             >
               {wrappedContent}
               {edit?.enabled && edit.onRequestAiPatch ? (

@@ -18,6 +18,13 @@ type SectionPatchChatProps = {
   loading?: boolean;
   selectedElementPath?: string | null;
   onClearElementPath?: () => void;
+  /** 185 — API 응답을 즉시 적용하지 않고 미리보기 */
+  pendingPatch?: { before: DetailSection; after: DetailSection } | null;
+  onApplyPending?: () => void;
+  onDiscardPending?: () => void;
+  canUndo?: boolean;
+  onUndo?: () => void;
+  appliedHistory?: { label: string; at: number }[];
 };
 
 function SparkleIcon({ className = "h-4 w-4" }: { className?: string }) {
@@ -87,6 +94,20 @@ function sectionLabel(section: DetailSection, _index: number): string {
   return section.slot;
 }
 
+function summarizeSectionDiff(before: DetailSection, after: DetailSection): string[] {
+  const lines: string[] = [];
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+  for (const key of keys) {
+    if (key === "type" || key === "slot" || key === "imageIndex" || key === "imageIndexes") {
+      continue;
+    }
+    const a = JSON.stringify((before as Record<string, unknown>)[key] ?? null);
+    const b = JSON.stringify((after as Record<string, unknown>)[key] ?? null);
+    if (a !== b) lines.push(key);
+  }
+  return lines.slice(0, 8);
+}
+
 export default function SectionPatchChat({
   sections,
   patchIndex,
@@ -98,13 +119,22 @@ export default function SectionPatchChat({
   loading,
   selectedElementPath,
   onClearElementPath,
+  pendingPatch,
+  onApplyPending,
+  onDiscardPending,
+  canUndo,
+  onUndo,
+  appliedHistory,
 }: SectionPatchChatProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const section = sections[patchIndex];
   const suggestions = getPatchSuggestions(section);
-  const showSuggestions = messages.length === 0 && !loading;
+  const showSuggestions = messages.length === 0 && !loading && !pendingPatch;
+  const diffKeys = pendingPatch
+    ? summarizeSectionDiff(pendingPatch.before, pendingPatch.after)
+    : [];
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -113,7 +143,7 @@ export default function SectionPatchChat({
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (!loading && instruction.trim()) onSubmit({ referenceImageDataUrl: previewUrl });
+      if (!loading && !pendingPatch && instruction.trim()) onSubmit({ referenceImageDataUrl: previewUrl });
     }
   }
 
@@ -196,6 +226,74 @@ export default function SectionPatchChat({
           ) : null}
         </div>
       ) : null}
+
+      {pendingPatch ? (
+        <div
+          className="space-y-2 rounded-xl border border-mustard/40 bg-mustard/10 p-3"
+          data-testid="patch-pending-preview"
+        >
+          <p className="text-xs font-semibold text-ink/80">적용 전 미리보기</p>
+          <p className="text-[11px] leading-relaxed text-ink/55">
+            {diffKeys.length > 0
+              ? `변경 필드: ${diffKeys.join(", ")}`
+              : "응답을 받았지만 눈에 띄는 필드 차이는 없습니다."}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              data-testid="patch-apply-pending"
+              onClick={onApplyPending}
+              className="rounded-full bg-registration-red px-3 py-1.5 text-xs font-semibold text-paper"
+            >
+              적용
+            </button>
+            <button
+              type="button"
+              data-testid="patch-discard-pending"
+              onClick={onDiscardPending}
+              className="rounded-full border border-line bg-paper px-3 py-1.5 text-xs font-medium text-ink/70"
+            >
+              버리기
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {(canUndo || (appliedHistory && appliedHistory.length > 0)) && (
+        <div
+          className="space-y-2 rounded-xl border border-line bg-line/10 p-3"
+          data-testid="patch-history-panel"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold text-ink/70">이번 세션 패치</p>
+            {canUndo && onUndo ? (
+              <button
+                type="button"
+                data-testid="patch-undo"
+                onClick={onUndo}
+                className="text-xs font-medium text-registration-red hover:underline"
+              >
+                마지막 적용 되돌리기
+              </button>
+            ) : null}
+          </div>
+          {appliedHistory && appliedHistory.length > 0 ? (
+            <ul className="max-h-24 space-y-1 overflow-y-auto text-[11px] text-ink/55">
+              {[...appliedHistory].reverse().map((item, i) => (
+                <li key={`${item.at}-${i}`}>
+                  {new Date(item.at).toLocaleTimeString("ko-KR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}{" "}
+                  · {item.label}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-[11px] text-ink/40">아직 적용한 패치가 없습니다.</p>
+          )}
+        </div>
+      )}
 
       <div
         ref={scrollRef}
@@ -299,7 +397,7 @@ export default function SectionPatchChat({
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          disabled={loading}
+          disabled={loading || Boolean(pendingPatch)}
           className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-line bg-white text-ink/60 hover:bg-line/30 disabled:opacity-40"
           title="레퍼런스 이미지 첨부"
           aria-label="레퍼런스 이미지 첨부"
@@ -315,12 +413,12 @@ export default function SectionPatchChat({
           value={instruction}
           onChange={(e) => onInstructionChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          disabled={loading}
+          disabled={loading || Boolean(pendingPatch)}
         />
         <button
           type="button"
           data-testid="patch-submit"
-          disabled={loading || !instruction.trim()}
+          disabled={loading || Boolean(pendingPatch) || !instruction.trim()}
           onClick={() => onSubmit({ referenceImageDataUrl: previewUrl })}
           className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-registration-red text-paper hover:bg-registration-red/85 disabled:opacity-40"
           aria-label="전송"

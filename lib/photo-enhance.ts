@@ -30,6 +30,7 @@ import {
   featherCutout,
   matchCutoutWhiteBalance,
   matchCutoutSharpness,
+  matchCutoutGrain,
   measureCornerMeanAlpha,
   measureCutoutPlateRisk,
   measureTransparentRatio,
@@ -806,7 +807,7 @@ export async function generateBackdrop(
  * 배경제거/Kontext/Bria 입력 전에 상품 bbox만 남기도록 크롭.
  * 라이프스타일 샷의 손·팔·원본 프레임이 합성으로 넘어가는 것을 줄인다.
  */
-type PreCropOptions = {
+export type PreCropOptions = {
   /** bbox 주변 패딩 비율 (기본 0.04) */
   pad?: number;
   /** box 면적이 이 비율 이상이면 크롭 스킵 (기본 0.88) */
@@ -815,7 +816,7 @@ type PreCropOptions = {
   strict?: boolean;
 };
 
-async function preCropSourceToProduct(
+export async function preCropSourceToProduct(
   sourceImageUrl: string,
   productName: string,
   options: PreCropOptions = {},
@@ -1480,7 +1481,7 @@ async function getBackgroundRemoverRef(replicate: Replicate): Promise<ModelRef> 
 // 배경 제거 직후, 배경 합성 이전에 clarity-upscaler로 화질(디테일/노이즈)을
 // 보정한다. 실패해도(타임아웃 포함) 전체 파이프라인을 막지 않도록 배경
 // 제거 결과(cutout)로 조용히 폴백한다.
-async function sharpenCutout(cutoutUrl: string): Promise<{ url: string; cost: number }> {
+export async function sharpenCutout(cutoutUrl: string): Promise<{ url: string; cost: number }> {
   const origRes = await fetch(cutoutUrl);
   if (!origRes.ok) {
     throw new Error("배경 제거 결과 이미지를 불러오지 못했습니다.");
@@ -1929,9 +1930,12 @@ export async function enhanceProductImage(
     const feathered = await featherCutout(cutoutResized, CANVAS_SIZE);
     const whiteBalanced = await matchCutoutWhiteBalance(feathered, backdropWithDecor);
     // 164차 — 색상/명암 대비 매칭에 이어 선명도(포커스감)까지 배경과 매칭.
-    cutoutForComposite = await matchCutoutSharpness(whiteBalanced, backdropWithDecor);
+    const sharpnessMatched = await matchCutoutSharpness(whiteBalanced, backdropWithDecor);
+    // 187차 — 배경 그레인(노이즈) 레벨에 맞춰 컷아웃에만 미세 노이즈(스킵 가능).
+    // unifyCompositeGrain은 합성 전체 이음매용으로 별도 유지.
+    cutoutForComposite = await matchCutoutGrain(sharpnessMatched, backdropWithDecor);
     console.log(
-      `[composite] feather + WB/luminance/contrast/sharpness match, lightFrom=${shadow.lightFrom} temp=${shadow.colorTemperature}`,
+      `[composite] feather + WB/luminance/contrast/sharpness/grain match, lightFrom=${shadow.lightFrom} temp=${shadow.colorTemperature}`,
     );
   } catch (error) {
     console.warn("[composite] feather/WB 실패, 컷아웃 그대로 합성", error);
@@ -1950,6 +1954,7 @@ export async function enhanceProductImage(
   try {
     shadowBuffer = await buildSilhouetteShadowBuffer(
       cutoutResized,
+      CANVAS_SIZE,
       CANVAS_SIZE,
       {
         left: placement.left,

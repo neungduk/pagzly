@@ -47,6 +47,12 @@ type DetailActionBarProps = {
   patchMessages?: PatchChatMessage[];
   selectedElementPath?: string | null;
   onClearElementPath?: () => void;
+  pendingPatch?: { before: DetailSection; after: DetailSection } | null;
+  onApplyPending?: () => void;
+  onDiscardPending?: () => void;
+  canUndo?: boolean;
+  onUndo?: () => void;
+  appliedHistory?: { label: string; at: number }[];
   onGifUploadClick?: () => void;
   category?: string;
   feedProductName?: string;
@@ -94,6 +100,12 @@ export default function DetailActionBar({
   patchMessages = [],
   selectedElementPath,
   onClearElementPath,
+  pendingPatch = null,
+  onApplyPending,
+  onDiscardPending,
+  canUndo = false,
+  onUndo,
+  appliedHistory = [],
   onGifUploadClick,
   category,
   feedProductName,
@@ -239,6 +251,12 @@ export default function DetailActionBar({
           loading={patchLoading}
           selectedElementPath={selectedElementPath}
           onClearElementPath={onClearElementPath}
+          pendingPatch={pendingPatch}
+          onApplyPending={onApplyPending}
+          onDiscardPending={onDiscardPending}
+          canUndo={canUndo}
+          onUndo={onUndo}
+          appliedHistory={appliedHistory}
         />
       )}
 

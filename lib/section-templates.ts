@@ -81,7 +81,7 @@ const BEAUTY: SlotDefinition[] = [
     slot: "illustration_banner",
     type: "illustration_banner",
     required: false,
-    note: "컨셉 장식 일러스트 배너 (16:9). heading+body가 이미지 위에 오버레이되므로 body도 함께 작성. illustrationUrl은 비워 둠",
+    note: "실사진 배경 컨셉 배너(16:9). heading+body 오버레이. 사진은 서버가 imageIndex로 배정(illustrationUrl 쓰지 말 것)",
   },
   {
     slot: "step_card",
@@ -292,7 +292,7 @@ const FASHION: SlotDefinition[] = [
     slot: "illustration_banner",
     type: "illustration_banner",
     required: false,
-    note: "컨셉 장식 일러스트 배너 (16:9). heading+body가 이미지 위에 오버레이되므로 body도 함께 작성. illustrationUrl은 비워 둠",
+    note: "실사진 배경 컨셉 배너(16:9). heading+body 오버레이. 사진은 서버가 imageIndex로 배정(illustrationUrl 쓰지 말 것)",
   },
   {
     slot: "care_info",
@@ -391,7 +391,7 @@ const FOOD: SlotDefinition[] = [
     slot: "illustration_banner",
     type: "illustration_banner",
     required: false,
-    note: "컨셉 장식 일러스트 배너 (16:9). heading+body가 이미지 위에 오버레이되므로 body도 함께 작성. illustrationUrl은 비워 둠",
+    note: "실사진 배경 컨셉 배너(16:9). heading+body 오버레이. 사진은 서버가 imageIndex로 배정(illustrationUrl 쓰지 말 것)",
   },
   {
     slot: "cooking_steps",
@@ -596,7 +596,7 @@ const ELECTRONICS: SlotDefinition[] = [
     slot: "illustration_banner",
     type: "illustration_banner",
     required: false,
-    note: "컨셉 장식 일러스트 배너 (16:9). heading+body가 이미지 위에 오버레이되므로 body도 함께 작성. illustrationUrl은 비워 둠",
+    note: "실사진 배경 컨셉 배너(16:9). heading+body 오버레이. 사진은 서버가 imageIndex로 배정(illustrationUrl 쓰지 말 것)",
   },
   {
     slot: "warranty_caution",
@@ -688,7 +688,7 @@ const PET: SlotDefinition[] = [
     slot: "illustration_banner",
     type: "illustration_banner",
     required: false,
-    note: "157차 — 다른 5개 카테고리엔 이미 있던 컨셉 장식 일러스트 배너(16:9)를 반려동물에도 추가. heading+body가 이미지 위에 오버레이되므로 body도 함께 작성. illustrationUrl은 비워 둠",
+    note: "실사진 배경 컨셉 배너(16:9). heading+body 오버레이. 사진은 서버가 imageIndex로 배정(illustrationUrl 쓰지 말 것)",
   },
   {
     slot: "gallery",
@@ -828,7 +828,7 @@ const HOME_FALLBACK: SlotDefinition[] = [
     slot: "illustration_banner",
     type: "illustration_banner",
     required: false,
-    note: "컨셉 장식 일러스트 배너 (16:9). heading+body가 이미지 위에 오버레이되므로 body도 함께 작성. illustrationUrl은 비워 둠",
+    note: "실사진 배경 컨셉 배너(16:9). heading+body 오버레이. 사진은 서버가 imageIndex로 배정(illustrationUrl 쓰지 말 것)",
   },
   {
     slot: "gallery",

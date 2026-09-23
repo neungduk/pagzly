@@ -2,6 +2,7 @@
  * 174차 — 다이어그램 정적 아이콘 헬퍼.
  * Recraft는 개발 시점 1회만; 런타임 호출 없음.
  */
+import { FONT_SIZE } from "@/lib/design-tokens";
 import {
   DIAGRAM_ICON_SVGS,
   type DiagramIconId,
@@ -64,5 +65,5 @@ export function diagramTitleWithIconHtml(
   color: string,
 ): string {
   const icon = diagramIconImgHtml(id, color, 22);
-  return `<p style="font-size:11px;letter-spacing:.12em;opacity:.85;margin:0 0 8px;color:${color};display:flex;align-items:center;justify-content:center;gap:8px">${icon}<span>${title}</span></p>`;
+  return `<p style="font-size:${FONT_SIZE.caption};letter-spacing:.12em;opacity:.85;margin:0 0 8px;color:${color};display:flex;align-items:center;justify-content:center;gap:8px">${icon}<span>${title}</span></p>`;
 }

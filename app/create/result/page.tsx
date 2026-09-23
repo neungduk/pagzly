@@ -24,6 +24,7 @@ import type { PatchChatMessage } from "@/lib/patch-section-suggestions";
 import { getCategoryTheme } from "@/lib/category-theme";
 import { resolveHeadlineFontKind } from "@/lib/detail-typography";
 import { buildDetailPageHtml } from "@/lib/export-detail-html";
+import { computeDemotedSectionIndexes } from "@/lib/section-display-budget";
 import { captureDetailToPng, captureDetailToPngBlob, downloadBlob, prepareCaptureRoot } from "@/lib/capture-detail-png";
 import { downloadPngSlicesZip } from "@/lib/split-detail-download";
 import { validateImageFile } from "@/lib/image-upload";
@@ -220,6 +221,15 @@ function CreateResultContent() {
   const [patchLoading, setPatchLoading] = useState(false);
   const [patchHistories, setPatchHistories] = useState<Record<number, PatchChatMessage[]>>({});
   const [selectedElementPath, setSelectedElementPath] = useState<string | null>(null);
+  /** 185 — API 응답 대기 적용 / undo (호출 횟수 불변) */
+  const [pendingPatch, setPendingPatch] = useState<{
+    index: number;
+    before: DetailSection;
+    after: DetailSection;
+  } | null>(null);
+  const [patchUndoStack, setPatchUndoStack] = useState<
+    { index: number; before: DetailSection; label: string; at: number }[]
+  >([]);
   const [feedOverrides, setFeedOverrides] = useState<Record<string, InstagramSlideOverride>>({});
   const [blogBlockOverrides, setBlogBlockOverrides] = useState<Record<string, BlogBlockOverride>>(
     {},
@@ -390,6 +400,13 @@ function CreateResultContent() {
 
   async function handlePatchSection(opts?: { referenceImageDataUrl?: string | null }) {
     if (!data?.generated) return;
+    if (pendingPatch) {
+      setToast({
+        tone: "info",
+        message: "대기 중인 패치를 먼저 적용하거나 버리세요.",
+      });
+      return;
+    }
     const instruction = patchInstruction.trim();
     if (!instruction) return;
     const section = data.generated.sections[patchIndex];
@@ -422,17 +439,19 @@ function CreateResultContent() {
         throw new Error(result.error ?? "섹션 수정에 실패했습니다.");
       }
       const patched = result.section as DetailSection;
-      const sections = data.generated.sections.map((item, i) =>
-        i === patchIndex ? patched : item,
-      );
-      persist({ ...data, generated: { ...data.generated, sections } });
+      // 185 — 즉시 persist 하지 않고 미리보기 대기
+      setPendingPatch({ index: patchIndex, before: section, after: patched });
       appendPatchMessages(patchIndex, [
         {
           role: "assistant",
-          text: "수정했어요. 미리보기에서 확인해 보세요.",
+          text: "초안을 만들었어요. 미리보기에서 확인한 뒤 적용하세요.",
           timestamp: Date.now(),
         },
       ]);
+      // 186 — 변경 예정 섹션으로 스크롤 (outline ring과 함께)
+      window.requestAnimationFrame(() => {
+        scrollToSection(patchIndex);
+      });
     } catch (err) {
       appendPatchMessages(patchIndex, [
         {
@@ -447,6 +466,40 @@ function CreateResultContent() {
     } finally {
       setPatchLoading(false);
     }
+  }
+
+  function applyPendingPatch() {
+    if (!data?.generated || !pendingPatch) return;
+    const { index, before, after } = pendingPatch;
+    const sections = data.generated.sections.map((item, i) => (i === index ? after : item));
+    const label =
+      ("heading" in after && after.heading) ||
+      ("headline" in after && after.headline) ||
+      after.slot;
+    setPatchUndoStack((prev) => [
+      ...prev,
+      { index, before, label: String(label), at: Date.now() },
+    ]);
+    persist({ ...data, generated: { ...data.generated, sections } });
+    setPendingPatch(null);
+    setToast({ tone: "ok", message: "패치를 적용했습니다." });
+  }
+
+  function discardPendingPatch() {
+    setPendingPatch(null);
+    setToast({ tone: "info", message: "대기 패치를 버렸습니다." });
+  }
+
+  function undoLastPatch() {
+    if (!data?.generated || patchUndoStack.length === 0) return;
+    const last = patchUndoStack[patchUndoStack.length - 1]!;
+    const sections = data.generated.sections.map((item, i) =>
+      i === last.index ? last.before : item,
+    );
+    persist({ ...data, generated: { ...data.generated, sections } });
+    setPatchUndoStack((prev) => prev.slice(0, -1));
+    setPatchIndex(last.index);
+    setToast({ tone: "ok", message: "마지막 패치를 되돌렸습니다." });
   }
 
   async function handleGifSelected(file: File | undefined) {
@@ -830,10 +883,18 @@ function CreateResultContent() {
     ? { ...categoryTheme, ...generated.theme }
     : categoryTheme;
   const hiddenSet = new Set(hiddenIndexes);
-  const visibleOriginalIndexes =
-    generated?.sections.map((_, i) => i).filter((i) => !hiddenSet.has(i)) ?? [];
-  const visibleSections =
+  const afterUserHidden =
     generated?.sections.filter((_, i) => !hiddenSet.has(i)) ?? [];
+  const afterUserHiddenIndexes =
+    generated?.sections.map((_, i) => i).filter((i) => !hiddenSet.has(i)) ?? [];
+  // 183차 — 저관여 카테고리 표시 예산 (세션 JSON 유지, 프리뷰·export 노출만)
+  const demotedRel = new Set(
+    computeDemotedSectionIndexes(data.category, afterUserHidden),
+  );
+  const visibleOriginalIndexes = afterUserHiddenIndexes.filter(
+    (_, rel) => !demotedRel.has(rel),
+  );
+  const visibleSections = afterUserHidden.filter((_, rel) => !demotedRel.has(rel));
   const previewCollapse = computePreviewCollapseEnd(visibleSections);
   const pipelineSummary = resolvePipelineSummary(data);
 
@@ -902,6 +963,11 @@ function CreateResultContent() {
           certifications={data.certifications}
           theme={theme}
           conceptIcons={generated?.conceptIcons}
+          pendingHighlightIndex={
+            pendingPatch
+              ? visibleOriginalIndexes.indexOf(pendingPatch.index)
+              : null
+          }
           previewCollapse={
             previewCollapse.hasMore
               ? {
@@ -945,6 +1011,15 @@ function CreateResultContent() {
           이 상세페이지는 AI가 자동 생성한 콘텐츠를 포함합니다. 게시 전 실제 상품 정보와 대조 확인해
           주세요.
         </p>
+        {data.imageUrls.length > 1 ? (
+          <p
+            className="border-t border-mustard/30 bg-mustard/10 px-6 py-2.5 text-center text-[11px] leading-relaxed text-ink/70"
+            data-testid="result-same-product-nudge"
+          >
+            업로드한 사진이 모두 같은 상품인지 다시 한번 확인해 주세요. 다른 상품 사진이
+            섞여 있으면 「원클릭 업로드」로 해당 컷만 교체할 수 있습니다.
+          </p>
+        ) : null}
       </div>
     ) : (
       <div className="rounded-2xl border border-line bg-paper p-6 text-sm text-ink/60 shadow-sm">
@@ -1184,6 +1259,19 @@ function CreateResultContent() {
                 loading={patchLoading}
                 selectedElementPath={selectedElementPath}
                 onClearElementPath={() => setSelectedElementPath(null)}
+                pendingPatch={
+                  pendingPatch && pendingPatch.index === patchIndex
+                    ? { before: pendingPatch.before, after: pendingPatch.after }
+                    : null
+                }
+                onApplyPending={applyPendingPatch}
+                onDiscardPending={discardPendingPatch}
+                canUndo={patchUndoStack.length > 0}
+                onUndo={undoLastPatch}
+                appliedHistory={patchUndoStack.map((item) => ({
+                  label: item.label,
+                  at: item.at,
+                }))}
               />
             </div>
             <DetailToolsAccordion
@@ -1353,6 +1441,19 @@ function CreateResultContent() {
               patchMessages={patchHistories[patchIndex] ?? []}
               selectedElementPath={selectedElementPath}
               onClearElementPath={() => setSelectedElementPath(null)}
+              pendingPatch={
+                pendingPatch && pendingPatch.index === patchIndex
+                  ? { before: pendingPatch.before, after: pendingPatch.after }
+                  : null
+              }
+              onApplyPending={applyPendingPatch}
+              onDiscardPending={discardPendingPatch}
+              canUndo={patchUndoStack.length > 0}
+              onUndo={undoLastPatch}
+              appliedHistory={patchUndoStack.map((item) => ({
+                label: item.label,
+                at: item.at,
+              }))}
               onGifUploadClick={() => gifInputRef.current?.click()}
               category={data.category}
               feedProductName={data.productName}
