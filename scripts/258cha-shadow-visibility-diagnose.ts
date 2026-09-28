@@ -7,6 +7,7 @@
  * 실행: npx tsx scripts/258cha-shadow-visibility-diagnose.ts [출력폴더명]
  * 산출: review/<출력폴더명> (기본 258cha-shadow-diagnosis)
  * 259차 — 출력 폴더 인자 + 그림자 알파 잘림 지표(maxAlphaStep, shadowAlphaMass) 추가.
+ * 260차 — composeLikeProd/lstar export (260cha-rim-highlight-qa-prototype.ts가 재사용).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -29,7 +30,7 @@ const ROOT = path.resolve(__dirname, "..");
 const OUT_DIR = path.join(ROOT, "review", process.argv[2] || "258cha-shadow-diagnosis");
 
 /** pasteCutoutOnScene()과 같은 순서·인자. withShadow만 분기. */
-async function composeLikeProd(sceneBuffer: Buffer, cutoutBuffer: Buffer, placement: HeldObjectPlacement) {
+export async function composeLikeProd(sceneBuffer: Buffer, cutoutBuffer: Buffer, placement: HeldObjectPlacement) {
   const sceneMeta = await sharp(sceneBuffer).metadata();
   const sceneW = sceneMeta.width ?? 1;
   const sceneH = sceneMeta.height ?? 1;
@@ -72,7 +73,7 @@ async function composeLikeProd(sceneBuffer: Buffer, cutoutBuffer: Buffer, placem
 }
 
 /** sRGB 8bit → CIE L* (D65, 휘도 기준). */
-function lstar(r: number, g: number, b: number) {
+export function lstar(r: number, g: number, b: number) {
   const lin = (c: number) => {
     const v = c / 255;
     return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
@@ -203,7 +204,9 @@ async function main() {
   console.log(`[258cha] shadow diagnosis done → ${path.relative(ROOT, OUT_DIR)}`);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}
