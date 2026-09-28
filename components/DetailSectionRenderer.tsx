@@ -17,7 +17,10 @@ import type {
   ImageTextSection,
 } from "@/lib/types/generate";
 import type { ConceptIconMap } from "@/lib/concept-icons";
-import { comparisonChecklistPresent } from "@/lib/comparison-chart-guard";
+import {
+  comparisonChecklistPresent,
+  SELF_ASSESSED_DISCLAIMER,
+} from "@/lib/comparison-chart-guard";
 import { classifyBoolishCell } from "@/lib/comparison-cell-classify";
 import { resolveCompactImageShape } from "@/lib/compact-image-shape";
 import { BEFORE_AFTER_COMPLIANCE_NOTE } from "@/lib/before-after-eligibility";
@@ -1244,9 +1247,7 @@ function renderComparisonChartBody(params: {
           }`}
         >
           {section.basisNote ||
-            (section.basis === "self_assessed"
-              ? "자체 평가 기준 (개인차가 있을 수 있어요)"
-              : "")}
+            (section.basis === "self_assessed" ? SELF_ASSESSED_DISCLAIMER : "")}
         </p>
       )}
       {evidence.length > 0 ? (

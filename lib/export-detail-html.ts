@@ -42,7 +42,10 @@ import {
   buildPowerConsumptionDiagramSvg,
   matchPowerComparisonRow,
 } from "@/lib/power-consumption-diagram";
-import { comparisonChecklistPresent } from "@/lib/comparison-chart-guard";
+import {
+  comparisonChecklistPresent,
+  SELF_ASSESSED_DISCLAIMER,
+} from "@/lib/comparison-chart-guard";
 import { classifyBoolishCell } from "@/lib/comparison-cell-classify";
 import {
   buildVolumeComparisonDiagramSvg,
@@ -410,13 +413,22 @@ function sectionHtml(
               </div>`;
             })
             .join("");
+      const selfAssessed = section.basis === "self_assessed";
+      const basisNote = section.basisNote || (selfAssessed ? SELF_ASSESSED_DISCLAIMER : "");
+      const basisNoteHtml = basisNote
+        ? `<p style="max-width:420px;margin:20px auto 0;text-align:center;font-size:${FONT_SIZE.caption};${
+            selfAssessed
+              ? `padding:8px 12px;border-radius:${RADIUS.md}px;background:rgba(27,27,24,0.05);font-weight:500;color:rgba(27,27,24,0.55)`
+              : "opacity:.4"
+          }">${esc(basisNote)}</p>`
+        : "";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         <p style="text-align:center;color:${deepText};font-size:${FONT_SIZE.caption};letter-spacing:.2em">COMPARE</p>
         ${dh2(category, esc(section.heading), `text-align:center;font-size:${FONT_SIZE.section}`)}
         <div style="max-width:420px;margin:32px auto 0;display:flex;flex-direction:column;gap:${isChecklist ? 0 : 24}px">
           ${metricsHtml}
         </div>
-        ${section.basisNote ? `<p style="text-align:center;font-size:${FONT_SIZE.caption};opacity:.4;margin-top:20px">${esc(section.basisNote)}</p>` : ""}
+        ${basisNoteHtml}
         ${
           Array.isArray(section.evidenceQuotes) &&
           section.evidenceQuotes.some((e) => e.quotes?.some((q) => Boolean(q?.trim())))

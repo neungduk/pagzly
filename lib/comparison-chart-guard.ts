@@ -5,7 +5,7 @@ export const COMPARISON_CHART_BASELINE_LABELS = ["일반 제품", "업계 평균
 
 const DEFAULT_BASELINE_LABEL: (typeof COMPARISON_CHART_BASELINE_LABELS)[number] = "일반 제품";
 
-const SELF_ASSESSED_DISCLAIMER = "자체 평가 기준 (개인차가 있을 수 있어요)";
+export const SELF_ASSESSED_DISCLAIMER = "자체 평가 기준 (개인차가 있을 수 있어요)";
 
 function clampMetricValue(value: unknown): number {
   const n = Number(value);
