@@ -96,6 +96,7 @@ import {
   ELEVATION,
   FONT_SIZE,
   RADIUS,
+  SECTION_BG_PATTERN_C_ALPHA,
   type ExtendedTheme,
 } from "@/lib/design-tokens";
 import { applySectionDisplayBudget } from "@/lib/section-display-budget";
@@ -261,17 +262,57 @@ function sectionHtml(
         </ul></section>`;
     }
     case "highlight_box": {
-      const cards = section.cards.slice(0, 4);
+      const isTrustEvidence = section.slot === "seller_trust_evidence";
+      const cards = isTrustEvidence
+        ? section.cards.filter((card) => (card.title ?? "").trim() || (card.body ?? "").trim()).slice(0, 4)
+        : section.cards.slice(0, 4);
       if (cards.length === 0) return "";
       const center = Math.floor((cards.length - 1) / 2);
       const bg = section.boldBlock ? deep : sectionBg;
       const fg = section.boldBlock ? "#FAF8F3" : "#1B1B18";
       const headingParts = parseMegaKeywordHeading(section.heading);
       const pointBadge = bodyIndex != null ? formatPointBadge(bodyIndex + 1) : "";
-      return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
-        ${pointBadge ? `<p style="text-align:center;margin:0 0 8px"><span style="display:inline-block;font-size:${FONT_SIZE.label};font-weight:700;letter-spacing:.22em;border:1px solid ${accent}66;border-radius:${RADIUS.pill}px;padding:4px 12px">${pointBadge}</span></p>` : ""}
+      const headerHtml = `${pointBadge ? `<p style="text-align:center;margin:0 0 8px"><span style="display:inline-block;font-size:${FONT_SIZE.label};font-weight:700;letter-spacing:.22em;border:1px solid ${accent}66;border-radius:${RADIUS.pill}px;padding:4px 12px">${pointBadge}</span></p>` : ""}
         ${headingParts.keyword ? `<p style="text-align:center;overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClamp};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:0;text-transform:uppercase;color:${section.boldBlock ? "#FAF8F3" : deep};${lineClamp(2)}">${esc(headingParts.keyword)}</p>` : ""}
-        ${dh2(category, esc(headingParts.remainder || section.heading), `text-align:center;font-size:${headingParts.keyword ? FONT_SIZE.sectionXs : FONT_SIZE.section};margin:12px 0 0`)}
+        ${dh2(category, esc(headingParts.remainder || section.heading), `text-align:center;font-size:${headingParts.keyword ? FONT_SIZE.sectionXs : FONT_SIZE.section};margin:12px 0 0`)}`;
+      if (isTrustEvidence) {
+        // 라이브 isTrustEvidence 분기: 1열 인용구 카드, 아이콘·번호 pill·카드 키워드 없음,
+        // 헤딩이 비면 헤더 블록 자체 생략. 카드 제목은 라이브와 같은 remainder 규칙.
+        const hasHeading = Boolean(section.heading?.trim());
+        return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
+        ${hasHeading ? headerHtml : ""}
+        <div style="display:grid;grid-template-columns:1fr;gap:16px;max-width:768px;margin:${hasHeading ? 32 : 0}px auto 0">
+          ${cards
+            .map((card, i) => {
+              const em = i === center;
+              const cardKeyword = parseMegaKeywordHeading(card.title);
+              const title = cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title;
+              const cardBg = em
+                ? section.boldBlock
+                  ? deepFill
+                  : hexToRgba(deepFill, SECTION_BG_PATTERN_C_ALPHA)
+                : section.boldBlock
+                  ? hexToRgba(BRAND.paper, 0.12)
+                  : hexToRgba(accent, 0.08);
+              const cardBorder = em
+                ? "none"
+                : `1px solid ${section.boldBlock ? hexToRgba(BRAND.paper, 0.22) : hexToRgba(accent, 0.18)}`;
+              const titleColor = em || section.boldBlock ? BRAND.paper : fg;
+              const bodyColor = em
+                ? hexToRgba(BRAND.paper, 0.9)
+                : section.boldBlock
+                  ? hexToRgba(BRAND.paper, 0.82)
+                  : hexToRgba(BRAND.ink, 0.68);
+              return `<div style="display:flex;flex-direction:column;gap:8px;border-radius:${RADIUS.lg}px;padding:40px 24px;text-align:center;background:${cardBg};border:${cardBorder};${em ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}">
+                <p style="margin:0;font-family:${DETAIL_FONT_STACK.heading};font-size:${FONT_SIZE.section};line-height:1.35;font-weight:700;letter-spacing:-0.03em;color:${titleColor}">${esc(title)}</p>
+                ${card.body ? `<p style="margin:0;font-size:${FONT_SIZE.bodySm};line-height:1.625;color:${bodyColor}">${esc(card.body)}</p>` : ""}
+              </div>`;
+            })
+            .join("")}
+        </div></section>`;
+      }
+      return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
+        ${headerHtml}
         <div style="display:grid;grid-template-columns:repeat(${Math.min(3, cards.length)},1fr);gap:12px;margin-top:32px">
           ${cards
             .map((card, i) => {
