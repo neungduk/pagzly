@@ -842,7 +842,7 @@ const HOME_FALLBACK: SlotDefinition[] = [
     slot: "step_card",
     type: "step_card",
     required: true,
-    note: "사용/관리 3단계. 각 단계에 실제 상품 사진(imageIndex) 배정, title 6자 내외 + body 1문장. STEP 태그는 렌더러가 자동 부착",
+    note: "사용/관리/조립 3단계 — 상품이 조립이 필요한 가구·구조물(선반·테이블·수납장 등)이면 조립 순서로, 그 외엔 사용/관리 순서로 채울 것. 입력에 없는 조립 방법을 지어내지 말고, 근거 없으면 일반적인 사용 흐름(개봉→배치→사용)으로 채움. 각 단계에 실제 상품 사진(imageIndex) 배정, title 6자 내외 + body 1문장. STEP 태그는 렌더러가 자동 부착",
   },
   {
     slot: "stat_infographic",
@@ -965,7 +965,7 @@ export function buildSectionLengthGuide(category: string): string {
   }
 
   if (category === "의류/패션") {
-    return `\n\n## 패션/의류 카피 길이·컨셉 정합\n${common}\n- color_variation 옵션 label: 색상명 + 짧은 수식 (예: "차콜 그레이"), 4~8자.\n- coordination body: 코디 장면 묘사 1~2문장.\n- fabric_composition(spec_table): 소재/혼용율은 입력에 있는 값만 쓰고, 없으면 "판매자 확인 필요".\n- size_table: 호칭(S/M/L)만으로 cm을 지어내지 말 것. 실측이 입력에 없으면 "판매자 확인 필요".\n- fit_guide body: 핏 설명 2문장 이내.\n- comparison_chart: 신축성·수축률·혼용률 등 입력 수치가 있을 때만. 없으면 생략.\n- stat_infographic: 혼용률·신축성 % 등 입력 수치가 있으면 적극 채움. 없으면 생략.\n- tradeoff_card: keyFeatures·targetCustomer에 핏/사이즈감·'추천'/'이런 분'/'확인 후 구매' 등 사용 조건이 있으면 recommendFor/considerIf 채움. 없으면 생략. considerIf는 사실 기반·완곡만(깎아내리기 금지).\n- package_contents body: 입력에 1+1/2+1/기획/증정/세트 같은 구성 언급이 있을 때만 실제 포함 품목을 1~2문장으로. 그런 언급이 없으면 슬롯 자체를 생략.`;
+    return `\n\n## 패션/의류 카피 길이·컨셉 정합\n${common}\n- color_variation 옵션 label: 색상명 + 짧은 수식 (예: "차콜 그레이"), 4~8자.\n- coordination body: 코디 장면 묘사 1~2문장.\n- fabric_composition(spec_table): 소재/혼용율은 입력에 있는 값만 쓰고, 없으면 "판매자 확인 필요".\n- size_table: 호칭(S/M/L)만으로 cm을 지어내지 말 것. 실측이 입력에 없으면 "판매자 확인 필요". 의류 종류에 맞는 실측 항목명을 쓸 것 — 상의/아우터: 어깨너비·가슴단면·총장·소매길이, 하의: 허리단면·엉덩이단면·총장·밑위, 원피스: 어깨너비·가슴단면·총장. 입력에 없는 항목은 행 자체를 생략(전부 지어내지 말 것).\n- fit_guide body: 핏 설명 2문장 이내.\n- comparison_chart: 신축성·수축률·혼용률 등 입력 수치가 있을 때만. 없으면 생략.\n- stat_infographic: 혼용률·신축성 % 등 입력 수치가 있으면 적극 채움. 없으면 생략.\n- tradeoff_card: keyFeatures·targetCustomer에 핏/사이즈감·'추천'/'이런 분'/'확인 후 구매' 등 사용 조건이 있으면 recommendFor/considerIf 채움. 없으면 생략. considerIf는 사실 기반·완곡만(깎아내리기 금지).\n- package_contents body: 입력에 1+1/2+1/기획/증정/세트 같은 구성 언급이 있을 때만 실제 포함 품목을 1~2문장으로. 그런 언급이 없으면 슬롯 자체를 생략.`;
   }
 
   if (category === "식품/건강기능식품") {
