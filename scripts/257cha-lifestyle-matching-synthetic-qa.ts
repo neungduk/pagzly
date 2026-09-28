@@ -5,8 +5,9 @@
  * 218 상수, 234 실루엣 그림자, 235 페더)의 결과를 본다. 비교용으로 같은 컷아웃·같은 좌표에
  * sharp().composite()만 쓴 raw 붙이기 버전도 만든다.
  *
- * 실행: npx tsx scripts/257cha-lifestyle-matching-synthetic-qa.ts
- * 산출: review/257cha-lifestyle-matching-qa/
+ * 실행: npx tsx scripts/257cha-lifestyle-matching-synthetic-qa.ts [출력폴더명]
+ * 산출: review/<출력폴더명> (기본 257cha-lifestyle-matching-qa)
+ * 258차 — 출력 폴더 인자 + 헬퍼 export (258cha-shadow-visibility-diagnose.ts가 재사용).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -15,11 +16,11 @@ import { pasteCutoutOnScene } from "../lib/lifestyle-product-composite";
 import type { HeldObjectPlacement } from "../lib/detect-held-object-placement";
 
 const ROOT = path.resolve(__dirname, "..");
-const OUT_DIR = path.join(ROOT, "review", "257cha-lifestyle-matching-qa");
+const OUT_DIR = path.join(ROOT, "review", process.argv[2] || "257cha-lifestyle-matching-qa");
 
 type KeyMode = "dark-bg" | "light-bg";
 
-type Pair = {
+export type Pair = {
   id: string;
   productPath: string;
   scenePath: string;
@@ -29,7 +30,7 @@ type Pair = {
   placement: HeldObjectPlacement;
 };
 
-const PAIRS: Pair[] = [
+export const PAIRS: Pair[] = [
   {
     id: "electronics-A",
     productPath: path.join(ROOT, "scripts", "test-assets", "전자제품", "02-pexels-33936400.jpeg"),
@@ -48,7 +49,7 @@ const PAIRS: Pair[] = [
  * 투명 여백은 alpha >= 128 픽셀의 bbox(+2% 패딩)로 잘라낸다 — 안 자르면 683x1024 캔버스 대부분이
  * 투명이라 placement 박스 안에서 상품이 아주 작게 들어감.
  */
-async function makeSyntheticCutout(
+export async function makeSyntheticCutout(
   input: Buffer,
   opts: { keyMode: KeyMode; lumLow: number; lumHigh: number },
 ): Promise<{ png: Buffer; stats: Record<string, number> }> {
@@ -229,7 +230,9 @@ async function main() {
   console.log(`\n[257cha] done → ${path.relative(ROOT, OUT_DIR)}`);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}
