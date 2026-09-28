@@ -12,6 +12,16 @@ import type { InstagramSlideOverride } from "@/lib/instagram-feed";
 import type { DetailSection } from "@/lib/types/generate";
 import { validateImageFile } from "@/lib/image-upload";
 import { resolveHeadlineFontKind } from "@/lib/detail-typography";
+import {
+  capture128ChartThenCircleSections,
+  capture128CircleThenChartSections,
+  capture128NonAdjacentSections,
+  capture255ClampSections,
+  capture255SelfAssessedSections,
+  capture255TextOnlySections,
+  capture255TrustEvidenceSections,
+  parityMeta,
+} from "./parity-fixtures";
 
 const initialImageUrls = [
   "/iteration-fixtures/01.jpg",
@@ -697,75 +707,6 @@ const capture124ComparisonSections: DetailSection[] = [
 
 const capture124ComparisonMeta = capture65Meta;
 
-/** 128차 — circle-pair 바로 다음 comparison_chart (병합 성공) */
-const capture128CircleThenChartSections: DetailSection[] = [
-  {
-    type: "hero",
-    slot: "hero",
-    headline: "성분과 비교가 한눈에",
-    subheadline: "히알루론 수분 크림",
-    imageIndex: 0,
-    badge: "무향",
-  },
-  {
-    type: "image_text",
-    slot: "ingredient_circle_pair",
-    layout: "circle-pair",
-    heading: "",
-    body: "",
-    imageIndex: 1,
-    imagePosition: "left",
-    circlePair: [
-      { imageUrl: "/iteration-fixtures/02.jpg", label: "히알루론산" },
-      { imageUrl: "/iteration-fixtures/03.jpg", label: "판테놀" },
-    ],
-  },
-  {
-    type: "comparison_chart",
-    slot: "comparison_chart",
-    heading: "일반 제품과 무엇이 다른가요",
-    ourLabel: "AURA LAB",
-    baselineLabel: "일반 제품",
-    unit: "%",
-    basis: "self_assessed",
-    basisNote: "자체 평가 기준 (개인차가 있을 수 있어요)",
-    metrics: [
-      { label: "안정성", ourValue: 78, baselineValue: 55 },
-      { label: "자극감", ourValue: 42, baselineValue: 60 },
-      { label: "사용감", ourValue: 72, baselineValue: 58 },
-    ],
-  },
-  {
-    type: "cta_price",
-    slot: "cta_price",
-    price: 28900,
-    targetCustomer: "속건조 고민",
-    badges: ["무향", "데일리"],
-  },
-];
-
-/** 128차 — comparison_chart 바로 다음 circle-pair (순서 반전 병합) */
-const capture128ChartThenCircleSections: DetailSection[] = [
-  capture128CircleThenChartSections[0]!,
-  capture128CircleThenChartSections[2]!,
-  capture128CircleThenChartSections[1]!,
-  capture128CircleThenChartSections[3]!,
-];
-
-/** 128차 — 인접하지 않음(사이에 checklist) → 병합 금지 */
-const capture128NonAdjacentSections: DetailSection[] = [
-  capture128CircleThenChartSections[0]!,
-  capture128CircleThenChartSections[1]!,
-  {
-    type: "checklist",
-    slot: "checklist",
-    heading: "사이에 낀 섹션",
-    items: ["병합되면 안 됩니다", "각자 독립 렌더"],
-  },
-  capture128CircleThenChartSections[2]!,
-  capture128CircleThenChartSections[3]!,
-];
-
 const capture128Meta = capture65Meta;
 
 /**
@@ -1434,6 +1375,14 @@ function resolveCapturePreset(): CapturePreset | null {
   }
   if (capture === "69-spec-multi") {
     return { sections: capture69SpecMultiSections, ...capture69SpecMultiMeta };
+  }
+  if (capture === "255-clamp") return { sections: capture255ClampSections, ...parityMeta };
+  if (capture === "255-text-only") return { sections: capture255TextOnlySections, ...parityMeta };
+  if (capture === "255-trust-evidence") {
+    return { sections: capture255TrustEvidenceSections, ...parityMeta };
+  }
+  if (capture === "255-self-assessed") {
+    return { sections: capture255SelfAssessedSections, ...parityMeta };
   }
   return null;
 }
