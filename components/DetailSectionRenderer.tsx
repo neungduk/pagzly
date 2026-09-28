@@ -2474,7 +2474,7 @@ function renderSection(
                   <EditableText
                     as="p"
                     enabled={edit?.enabled}
-                    value={cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title}
+                    value={cardKeyword.keyword && !isTrustEvidence ? cardKeyword.remainder || card.title : card.title}
                     onChange={(title) => {
                       const nextCards = [...section.cards];
                       nextCards[cardIndex] = { ...nextCards[cardIndex], title };

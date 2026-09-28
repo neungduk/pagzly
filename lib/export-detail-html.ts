@@ -393,12 +393,13 @@ function sectionHtml(
       const fg = section.boldBlock ? "#FAF8F3" : "#1B1B18";
       const headingParts = parseMegaKeywordHeading(section.heading);
       const pointBadge = bodyIndex != null ? formatPointBadge(bodyIndex + 1) : "";
-      const headerHtml = `${pointBadge ? `<p style="text-align:center;margin:0 0 8px"><span style="display:inline-block;font-size:${FONT_SIZE.label};font-weight:700;letter-spacing:.22em;border:1px solid ${accent}66;border-radius:${RADIUS.pill}px;padding:4px 12px">${pointBadge}</span></p>` : ""}
+      const kicker = getSectionKicker(section);
+      const headerHtml = `${pointBadge || kicker ? `<p style="text-align:center;margin:0 0 8px">${pointBadge ? `<span style="display:inline-block;font-size:${FONT_SIZE.label};font-weight:700;letter-spacing:.22em;border:1px solid ${accent}66;border-radius:${RADIUS.pill}px;padding:4px 12px">${pointBadge}</span>` : ""}${kicker ? `<span style="font-size:${FONT_SIZE.caption};letter-spacing:.36em;opacity:.75;margin-left:12px">${kicker}</span>` : ""}</p>` : ""}
         ${headingParts.keyword ? `<p style="text-align:center;overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClamp};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:0;text-transform:uppercase;color:${section.boldBlock ? "#FAF8F3" : deep};${lineClamp(2)}">${esc(headingParts.keyword)}</p>` : ""}
         ${dh2(category, esc(headingParts.remainder || section.heading), `text-align:center;font-size:${headingParts.keyword ? FONT_SIZE.sectionXs : FONT_SIZE.section};margin:12px 0 0`)}`;
       if (isTrustEvidence) {
         // 라이브 isTrustEvidence 분기: 1열 인용구 카드, 아이콘·번호 pill·카드 키워드 없음,
-        // 헤딩이 비면 헤더 블록 자체 생략. 카드 제목은 라이브와 같은 remainder 규칙.
+        // 헤딩이 비면 헤더 블록 자체 생략. 키워드 <p>가 없으므로 카드 제목은 원문 그대로.
         const hasHeading = Boolean(section.heading?.trim());
         return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${hasHeading ? headerHtml : ""}
@@ -406,8 +407,7 @@ function sectionHtml(
           ${cards
             .map((card, i) => {
               const em = i === center;
-              const cardKeyword = parseMegaKeywordHeading(card.title);
-              const title = cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title;
+              const title = card.title;
               const cardBg = em
                 ? section.boldBlock
                   ? deepFill
@@ -439,11 +439,27 @@ function sectionHtml(
             .map((card, i) => {
               const em = i === center;
               const cardKeyword = parseMegaKeywordHeading(card.title);
-              return `<div class="${em ? "pulse-card" : ""}" style="border-radius:${RADIUS.lg}px;padding:28px 20px;text-align:center;background:${em ? (section.boldBlock ? "#FAF8F3" : deepFill) : accent + "14"};color:${em ? (section.boldBlock ? deep : "#FAF8F3") : fg}">
+              const cardBg = em
+                ? section.boldBlock
+                  ? deepFill
+                  : hexToRgba(deepFill, SECTION_BG_PATTERN_C_ALPHA)
+                : section.boldBlock
+                  ? hexToRgba(BRAND.paper, 0.12)
+                  : hexToRgba(accent, 0.08);
+              const cardBorder = em
+                ? "none"
+                : `1px solid ${section.boldBlock ? hexToRgba(BRAND.paper, 0.22) : hexToRgba(accent, 0.18)}`;
+              const titleColor = em || section.boldBlock ? BRAND.paper : fg;
+              const bodyColor = em
+                ? hexToRgba(BRAND.paper, 0.9)
+                : section.boldBlock
+                  ? hexToRgba(BRAND.paper, 0.82)
+                  : hexToRgba(BRAND.ink, 0.68);
+              return `<div class="${em ? "pulse-card" : ""}" style="border-radius:${RADIUS.lg}px;padding:28px 20px;text-align:center;background:${cardBg};border:${cardBorder};${em ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}color:${titleColor}">
                 <div style="font-size:${FONT_SIZE.label};letter-spacing:.22em;opacity:.7;border:1px solid ${accent}55;border-radius:${RADIUS.pill}px;display:inline-block;padding:4px 10px">${formatPointBadge(i + 1)}</div>
                 ${cardKeyword.keyword ? `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClampCard};font-weight:900;line-height:.92;letter-spacing:-.05em;margin:12px 0 0;text-transform:uppercase">${esc(cardKeyword.keyword)}</p>` : ""}
-                <h3 style="margin:8px 0;font-size:${cardKeyword.keyword ? FONT_SIZE.bodySm : "inherit"};font-weight:${cardKeyword.keyword ? "600" : "700"}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</h3>
-                <p style="margin:0;font-size:${FONT_SIZE.bodySm};opacity:.9">${esc(card.body)}</p>
+                <h3 style="margin:8px 0;font-size:${cardKeyword.keyword ? FONT_SIZE.bodySm : "inherit"};font-weight:${cardKeyword.keyword ? "600" : "700"};color:${titleColor}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</h3>
+                <p style="margin:0;font-size:${FONT_SIZE.bodySm};color:${bodyColor}">${esc(card.body)}</p>
               </div>`;
             })
             .join("")}
@@ -592,13 +608,13 @@ function sectionHtml(
         section.circleSolo?.label?.trim();
       if (isCircleSolo) {
         const solo = section.circleSolo!;
-        return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}"><div style="text-align:center;max-width:280px;margin:0 auto"><img src="${esc(solo.imageUrl)}" alt="${esc(solo.label)}" loading="lazy" decoding="async" style="width:120px;height:120px;border-radius:${RADIUS.pill}px;object-fit:cover;margin:0 auto;display:block;box-shadow:${ELEVATION.imageThumb}"/><p style="margin-top:12px;font-size:${FONT_SIZE.bodySm};font-weight:600;color:${deepText}">${esc(solo.label)}</p></div></section>`;
+        return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}"><div style="text-align:center;max-width:280px;margin:0 auto"><img src="${esc(solo.imageUrl)}" alt="${esc(solo.label)}" loading="lazy" decoding="async" class="pagzly-circle-solo-img" style="border-radius:${RADIUS.pill}px;object-fit:cover;margin:0 auto;display:block;box-shadow:${ELEVATION.imageThumb}"/><p style="margin-top:12px;font-size:${FONT_SIZE.bodySm};font-weight:600;color:${deepText}">${esc(solo.label)}</p></div></section>`;
       }
       if (isCirclePair) {
         const pairHtml = section.circlePair!
           .map(
             (item) =>
-              `<div style="flex:1;min-width:0;text-align:center"><img src="${esc(item.imageUrl)}" alt="${esc(item.label)}" loading="lazy" decoding="async" style="width:96px;height:96px;border-radius:${RADIUS.pill}px;object-fit:cover;margin:0 auto;display:block;box-shadow:${ELEVATION.imageThumb}"/><p style="margin-top:12px;font-size:${FONT_SIZE.sm};font-weight:600;color:${deepText}">${esc(item.label)}</p></div>`,
+              `<div style="flex:1;min-width:0;text-align:center"><img src="${esc(item.imageUrl)}" alt="${esc(item.label)}" loading="lazy" decoding="async" class="pagzly-circle-pair-img" style="border-radius:${RADIUS.pill}px;object-fit:cover;margin:0 auto;display:block;box-shadow:${ELEVATION.imageThumb}"/><p style="margin-top:12px;font-size:${FONT_SIZE.sm};font-weight:600;color:${deepText}">${esc(item.label)}</p></div>`,
           )
           .join("");
         return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}"><div style="display:flex;justify-content:center;gap:32px;max-width:360px;margin:0 auto">${pairHtml}</div></section>`;
@@ -1438,6 +1454,12 @@ ${jsonLd}
   .ring-fill{animation:ringFill 1s cubic-bezier(.22,1,.36,1) both}
   @keyframes pulseCard{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
   .pulse-card{animation:pulseCard 2.4s ease-in-out infinite}
+  .pagzly-circle-solo-img{width:120px;height:120px}
+  .pagzly-circle-pair-img{width:96px;height:96px}
+  @media (min-width:640px){
+    .pagzly-circle-solo-img{width:150px;height:150px}
+    .pagzly-circle-pair-img{width:120px;height:120px}
+  }
   @media (max-width:750px){
     .pagzly-cta{position:sticky;bottom:0;z-index:20;box-shadow:${ELEVATION.ctaSticky}}
   }
