@@ -1239,8 +1239,13 @@ function sectionHtml(
       </section>`;
     }
     case "ai_disclosure":
-      return `<section${sectionIdAttr} style="padding:20px;background:#f5f3ee;font-size:${FONT_SIZE.xs};line-height:1.5;opacity:.75;text-align:center">
-        <strong>${esc(section.heading)}</strong> — ${esc(section.body)}
+      // 라이브와 같은 레이블·헤딩·본문 섹션. 본문은 마켓 업로드용 최종 고지라 줄 자르기 없이 전체 노출.
+      return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
+        <div style="max-width:36rem;margin:0 auto;text-align:center">
+          <p style="font-size:${FONT_SIZE.caption};font-weight:600;letter-spacing:.36em;color:${deepText};margin:0 0 16px">AI DISCLOSURE</p>
+          ${dh2(category, esc(section.heading), `font-size:${FONT_SIZE.section};margin:0`)}
+          <p style="font-size:${FONT_SIZE.body};line-height:1.9;color:${hexToRgba(BRAND.ink, 0.7)};margin:20px 0 0">${esc(section.body)}</p>
+        </div>
       </section>`;
     case "canvas":
       return renderCanvasSectionHtml(section, imageUrls, esc, anchorId);
