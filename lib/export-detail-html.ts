@@ -480,6 +480,16 @@ function sectionHtml(
       </section>`;
     }
     case "image_text": {
+      // text_only는 배정 단계가 사진을 뺀 섹션 — imageIndex는 원본 값이 남아 있어 아래 분기로
+      // 떨어지면 뺀 사진이 다시 붙는다.
+      if (section.layout === "text_only") {
+        return `<section${sectionIdAttr} style="padding:40px 24px;${sectionInset}${bgCss}">
+          <div style="max-width:576px;margin:0 auto;text-align:left">
+            ${dh2(category, esc(section.heading), `font-size:${FONT_SIZE.sectionXl};margin:0;line-height:1.2;color:${readableTextDeep(theme, 3)}`)}
+            <p style="margin:16px 0 0;white-space:pre-line;font-size:${FONT_SIZE.body};line-height:1.9;color:${BRAND.ink}">${esc(section.body)}</p>
+          </div>
+        </section>`;
+      }
       const src = imageUrls[section.imageIndex] ?? "";
       const alt = buildSectionImageAlt(productName, section.heading, section.slot);
       const isCallout = section.layout === "callout" || section.slot === "feature_callout";
