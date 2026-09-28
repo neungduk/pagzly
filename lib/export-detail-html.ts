@@ -165,6 +165,15 @@ function resolveExportImage(imageUrls: string[], index: number | undefined): str
   return "";
 }
 
+/**
+ * 라이브 line-clamp-N과 동일. 라이브에서 TYPO.sectionTitle(pagzly-ink-headline 포함) 헤딩은
+ * unlayered `.pagzly-ink-headline{display:inline-block}`이 Tailwind line-clamp의 -webkit-box를
+ * 이겨 실제로는 잘리지 않으므로, 그런 헤딩에는 넘기지 않는다.
+ */
+function lineClamp(lines: number): string {
+  return `display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:${lines};overflow:hidden`;
+}
+
 /** 섹션 디스플레이 헤드라인 (표·라벨 제외) */
 function dh2(category: string, escapedText: string, extraStyle: string): string {
   return `<h2 class="pagzly-display-headline" style="${displayHeadlineInlineCss(category)};${extraStyle}">${escapedText}</h2>`;
@@ -223,7 +232,7 @@ function sectionHtml(
         ${brandMarkHtml}
         <div style="position:absolute;inset:0;background:${getHeroGradient(baseTheme)};display:flex;align-items:flex-end;padding:48px 20px 40px">
           <div style="width:100%;text-align:center"><h1 class="pagzly-display-headline" style="color:#FAF8F3;font-size:${FONT_SIZE.heroDisplay};font-weight:800;letter-spacing:-0.035em;line-height:1.02;margin:0;text-shadow:0 2px 24px rgba(0,0,0,0.45);${displayHeadlineInlineCss(category)}">${esc(section.headline)}</h1>
-          ${section.subheadline ? `<p style="color:rgba(250,248,243,0.95);margin:12px auto 0;max-width:36rem;font-family:${DETAIL_FONT_STACK.sans};text-shadow:0 1px 12px rgba(0,0,0,0.35)">${esc(section.subheadline)}</p>` : ""}</div>
+          ${section.subheadline ? `<p style="color:rgba(250,248,243,0.95);margin:12px auto 0;max-width:36rem;font-family:${DETAIL_FONT_STACK.sans};text-shadow:0 1px 12px rgba(0,0,0,0.35);${lineClamp(2)}">${esc(section.subheadline)}</p>` : ""}</div>
         </div></section>`;
     }
     case "checklist": {
@@ -236,7 +245,7 @@ function sectionHtml(
         <div style="text-align:center;max-width:640px;margin:0 auto 32px">
           ${pointBadge ? `<span style="display:inline-block;font-family:${DETAIL_FONT_STACK.label};font-size:${FONT_SIZE.label};font-weight:700;letter-spacing:.22em;border:1px solid ${section.boldBlock ? "rgba(250,248,243,.35)" : accent + "66"};border-radius:${RADIUS.pill}px;padding:4px 12px;color:${section.boldBlock ? "#FAF8F3" : deep}">${pointBadge}</span>` : ""}
           ${kicker ? `<span style="font-size:${FONT_SIZE.caption};letter-spacing:.36em;opacity:.75;margin-left:12px">${kicker}</span>` : ""}
-          ${headingParts.keyword ? `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClamp};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:16px 0 0;text-transform:uppercase;color:${section.boldBlock ? "#FAF8F3" : deep}">${esc(headingParts.keyword)}</p>` : ""}
+          ${headingParts.keyword ? `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClamp};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:16px 0 0;text-transform:uppercase;color:${section.boldBlock ? "#FAF8F3" : deep};${lineClamp(2)}">${esc(headingParts.keyword)}</p>` : ""}
           ${dh2(category, esc(headingParts.remainder || section.heading), `font-size:${headingParts.keyword ? FONT_SIZE.sectionSm : FONT_SIZE.sectionLg};margin:16px 0 0;font-weight:${headingParts.keyword ? "600" : "700"}`)}
         </div>
         <ul style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;list-style:none;padding:0;margin:0">
@@ -258,7 +267,7 @@ function sectionHtml(
       const pointBadge = bodyIndex != null ? formatPointBadge(bodyIndex + 1) : "";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${pointBadge ? `<p style="text-align:center;margin:0 0 8px"><span style="display:inline-block;font-size:${FONT_SIZE.label};font-weight:700;letter-spacing:.22em;border:1px solid ${accent}66;border-radius:${RADIUS.pill}px;padding:4px 12px">${pointBadge}</span></p>` : ""}
-        ${headingParts.keyword ? `<p style="text-align:center;overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClamp};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:0;text-transform:uppercase;color:${section.boldBlock ? "#FAF8F3" : deep}">${esc(headingParts.keyword)}</p>` : ""}
+        ${headingParts.keyword ? `<p style="text-align:center;overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClamp};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:0;text-transform:uppercase;color:${section.boldBlock ? "#FAF8F3" : deep};${lineClamp(2)}">${esc(headingParts.keyword)}</p>` : ""}
         ${dh2(category, esc(headingParts.remainder || section.heading), `text-align:center;font-size:${headingParts.keyword ? FONT_SIZE.sectionXs : FONT_SIZE.section};margin:12px 0 0`)}
         <div style="display:grid;grid-template-columns:repeat(${Math.min(3, cards.length)},1fr);gap:12px;margin-top:32px">
           ${cards
@@ -512,7 +521,7 @@ function sectionHtml(
             <p style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:${deepFill};color:#FAF8F3;padding:10px 18px;border-radius:${RADIUS.lg}px;font-size:${FONT_SIZE.bodySm};font-weight:600;text-align:center;max-width:85%">${esc(section.callout)}</p>
           </div>
           ${dh2(category, esc(section.heading), `font-size:${FONT_SIZE.sectionSm};overflow-wrap:anywhere`)}
-          <p style="line-height:1.65;font-size:${FONT_SIZE.body};opacity:.85;overflow-wrap:anywhere">${esc(section.body)}</p>
+          <p style="line-height:1.65;font-size:${FONT_SIZE.body};opacity:.85;overflow-wrap:anywhere;${lineClamp(3)}">${esc(section.body)}</p>
         </section>`;
       }
       if (shouldUseEditorialBleed(section)) {
@@ -534,7 +543,7 @@ function sectionHtml(
             </div>
           </div>
           <div style="padding:24px 24px 48px;text-align:center;max-width:640px;margin:0 auto">
-            <p style="line-height:1.85;font-size:${FONT_SIZE.bodyLg};opacity:.85">${esc(section.body)}</p>
+            <p style="line-height:1.85;font-size:${FONT_SIZE.bodyLg};opacity:.85;${lineClamp(4)}">${esc(section.body)}</p>
             ${ringHtml}
           </div>
         </section>`;
@@ -597,8 +606,8 @@ function sectionHtml(
                   ? `<div style="width:56px;height:6px;background:${accent};margin:0 0 16px;border-radius:${RADIUS.hairline}px"></div>`
                   : ""
               }
-              ${dh2(category, esc(section.heading), `font-size:${FONT_SIZE.sectionLg};margin:0;overflow-wrap:anywhere`)}
-              <p style="line-height:1.75;font-size:${FONT_SIZE.body};opacity:.85;margin-top:16px;overflow-wrap:anywhere">${esc(section.body)}</p>
+              ${dh2(category, esc(section.heading), `font-size:${FONT_SIZE.sectionLg};margin:0;overflow-wrap:anywhere${isAnnotatedSection ? "" : `;${lineClamp(5)}`}`)}
+              <p style="line-height:1.75;font-size:${FONT_SIZE.body};opacity:.85;margin-top:16px;overflow-wrap:anywhere;${lineClamp(isAnnotatedSection ? 3 : 7)}">${esc(section.body)}</p>
               ${
                 section.slot === "ingredient_highlight" && isCosmeticsCategory(category)
                   ? `<p style="margin-top:12px;font-size:${FONT_SIZE.caption};line-height:1.5;opacity:.55">${esc(INGREDIENT_HIGHLIGHT_COMPLIANCE_NOTE)}</p>`
@@ -609,12 +618,13 @@ function sectionHtml(
           ${pkgHtml}${foodHtml}${ringHtml}
         </section>`;
       }
+      // 라이브에서 이 경로에 해당하는 섹션은 callout 분기(본문 3줄) 또는 split 분기(헤딩 5·본문 7줄)
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         ${src ? `<div style="padding:0 12px"><img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:${RADIUS.lg}px;box-shadow:${ELEVATION.imageSoft(theme.deepAccent)}"/></div>` : ""}
         ${textPanelWrap(
           theme,
-          `${dh2(category, esc(section.heading), `font-size:${FONT_SIZE.sectionSm};margin:0;overflow-wrap:anywhere`)}
-        <p style="line-height:1.65;font-size:${FONT_SIZE.body};opacity:.85;margin-top:16px;overflow-wrap:anywhere">${esc(section.body)}</p>`,
+          `${dh2(category, esc(section.heading), `font-size:${FONT_SIZE.sectionSm};margin:0;overflow-wrap:anywhere${isCallout ? "" : `;${lineClamp(5)}`}`)}
+        <p style="line-height:1.65;font-size:${FONT_SIZE.body};opacity:.85;margin-top:16px;overflow-wrap:anywhere;${lineClamp(isCallout ? 3 : 7)}">${esc(section.body)}</p>`,
         )}
       </section>`;
     }
@@ -875,7 +885,7 @@ function sectionHtml(
           theme,
           `<p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText};margin:0 0 12px">NOTICE</p>
         ${dh2(category, esc(section.heading), `font-size:${FONT_SIZE.section};margin:0`)}
-        <p style="font-size:${FONT_SIZE.bodySm};line-height:1.65;opacity:.8;margin-top:12px">${esc(section.body)}</p>`,
+        <p style="font-size:${FONT_SIZE.bodySm};line-height:1.65;opacity:.8;margin-top:12px;${lineClamp(3)}">${esc(section.body)}</p>`,
         )}
       </section>`;
     case "comparison_table": {
