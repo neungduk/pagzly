@@ -1505,17 +1505,16 @@ export async function sharpenCutout(cutoutUrl: string): Promise<{ url: string; c
 
   try {
     const replicate = getReplicateClient();
-    const output = await withTimeout(
-      replicate.run(
-        CLARITY_UPSCALER_REF,
-        {
+    const output = await runReplicateWithRetry("clarity-upscaler", () =>
+      withTimeout(
+        replicate.run(CLARITY_UPSCALER_REF, {
           input: { image: cutoutUrl },
           // flux-fill-dev와 동일한 이유로 poll 모드 강제 (조기 반환 방지).
           wait: { mode: "poll", interval: 1000 },
-        },
+        }),
+        90000,
+        "clarity-upscaler 화질 보정",
       ),
-      90000,
-      "clarity-upscaler 화질 보정",
     );
 
     const upscaledUrl = extractFluxImageUrl(output);
