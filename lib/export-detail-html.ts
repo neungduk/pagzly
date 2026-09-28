@@ -457,7 +457,7 @@ function sectionHtml(
                   : hexToRgba(BRAND.ink, 0.68);
               return `<div class="${em ? "pulse-card" : ""}" style="border-radius:${RADIUS.lg}px;padding:28px 20px;text-align:center;background:${cardBg};border:${cardBorder};${em ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}color:${titleColor}">
                 <div style="font-size:${FONT_SIZE.label};letter-spacing:.22em;opacity:.7;border:1px solid ${accent}55;border-radius:${RADIUS.pill}px;display:inline-block;padding:4px 10px">${formatPointBadge(i + 1)}</div>
-                ${cardKeyword.keyword ? `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClampCard};font-weight:900;line-height:.92;letter-spacing:-.05em;margin:12px 0 0;text-transform:uppercase">${esc(cardKeyword.keyword)}</p>` : ""}
+                ${cardKeyword.keyword ? `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClampCard};font-weight:900;line-height:.92;letter-spacing:-.05em;margin:12px 0 0;text-transform:uppercase;color:${em || section.boldBlock ? BRAND.paper : deepText}">${esc(cardKeyword.keyword)}</p>` : ""}
                 <h3 style="margin:8px 0;font-size:${cardKeyword.keyword ? FONT_SIZE.bodySm : "inherit"};font-weight:${cardKeyword.keyword ? "600" : "700"};color:${titleColor}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</h3>
                 <p style="margin:0;font-size:${FONT_SIZE.bodySm};color:${bodyColor}">${esc(card.body)}</p>
               </div>`;
