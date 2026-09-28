@@ -107,7 +107,16 @@ import {
   DETAIL_GOOGLE_FONTS_URL,
   displayHeadlineInlineCss,
 } from "@/lib/detail-typography";
-import type { DetailSection, GeneratedCopy } from "@/lib/types/generate";
+import {
+  findCircleComparisonComboIndices,
+  isCircleSoloSection,
+} from "@/lib/circle-comparison-combo";
+import type {
+  ComparisonChartSection,
+  DetailSection,
+  GeneratedCopy,
+  ImageTextSection,
+} from "@/lib/types/generate";
 
 function textPanelWrap(theme: CategoryTheme, inner: string): string {
   const s = getTextPanelSurface(theme);
@@ -181,6 +190,118 @@ function lineClamp(lines: number): string {
 /** 섹션 디스플레이 헤드라인 (표·라벨 제외) */
 function dh2(category: string, escapedText: string, extraStyle: string): string {
   return `<h2 class="pagzly-display-headline" style="${displayHeadlineInlineCss(category)};${extraStyle}">${escapedText}</h2>`;
+}
+
+/** comparison_chart 본문 — 단독 섹션과 circle 콤보 섹션 공용 (라이브 renderComparisonChartBody) */
+function comparisonChartBodyHtml(
+  section: ComparisonChartSection,
+  theme: CategoryTheme,
+  category: string,
+): string {
+  const accent = theme.accent;
+  const deepText = readableTextDeep(theme);
+  const isChecklist = section.presentationStyle === "checklist";
+  const metricsHtml = isChecklist
+    ? section.metrics
+        .map((m) => {
+          const ourYes = comparisonChecklistPresent(m.ourValue);
+          const baseYes = comparisonChecklistPresent(m.baselineValue);
+          const mark = (yes: boolean, strong: boolean) =>
+            yes
+              ? `<span style="color:${strong ? accent : "rgba(27,27,24,0.35)"};font-size:${FONT_SIZE.checkMark};font-weight:700" aria-label="있음">✓</span>`
+              : `<span style="color:${theme.baseNeutral};font-size:${FONT_SIZE.checkMark};font-weight:700" aria-label="없음">✗</span>`;
+          return `<div style="display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(27,27,24,0.08)">
+            <p style="margin:0;font-size:${FONT_SIZE.bodySm}">${esc(m.label)}</p>
+            <div style="text-align:center;min-width:4.5rem;padding:8px 10px;border-radius:${RADIUS.md}px;background:${hexToRgba(accent, 0.16)}"><p style="margin:0 0 4px;font-size:${FONT_SIZE.label};font-weight:700;color:${deepText}">${esc(section.ourLabel)}</p>${mark(ourYes, true)}</div>
+            <div style="text-align:center;min-width:4.5rem;padding:8px 10px;border-radius:${RADIUS.md}px;border:1px solid ${hexToRgba(theme.baseNeutral, 0.9)}"><p style="margin:0 0 4px;font-size:${FONT_SIZE.label};opacity:.4">${esc(section.baselineLabel)}</p>${mark(baseYes, false)}</div>
+          </div>`;
+        })
+        .join("")
+    : section.metrics
+        .map((m) => {
+          const max = Math.max(m.ourValue, m.baselineValue, 1);
+          const ourP = (m.ourValue / max) * 100;
+          const baseP = (m.baselineValue / max) * 100;
+          const unit = section.unit ?? "%";
+          return `<div><p style="font-size:${FONT_SIZE.bodySm};margin:0 0 8px">${esc(m.label)}</p>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:10px 12px;border-radius:${RADIUS.md}px;background:${hexToRgba(accent, 0.14)}"><span style="width:72px;font-size:${FONT_SIZE.caption};font-weight:700;color:${deepText}">${esc(section.ourLabel)}</span>
+              <div style="flex:1;height:14px;background:${hexToRgba(accent, 0.22)};border-radius:${RADIUS.pill}px"><div class="fill-bar" style="height:100%;width:${ourP}%;background:${accent};border-radius:${RADIUS.pill}px"></div></div>
+              <span style="width:48px;text-align:right;font-size:${FONT_SIZE.caption};font-weight:700;color:${deepText}">${m.ourValue}${esc(unit)}</span></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:${RADIUS.md}px;border:1px solid ${hexToRgba(theme.baseNeutral, 0.9)}"><span style="width:72px;font-size:${FONT_SIZE.caption};opacity:.4">${esc(section.baselineLabel)}</span>
+              <div style="flex:1;height:6px;background:${hexToRgba(theme.baseNeutral, 0.55)};border-radius:${RADIUS.pill}px"><div class="fill-bar" style="height:100%;width:${baseP}%;background:${hexToRgba(theme.baseNeutral, 0.85)};border-radius:${RADIUS.pill}px"></div></div>
+              <span style="width:48px;text-align:right;font-size:${FONT_SIZE.caption};opacity:.4">${m.baselineValue}${esc(unit)}</span></div>
+          </div>`;
+        })
+        .join("");
+  const selfAssessed = section.basis === "self_assessed";
+  const basisNote = section.basisNote || (selfAssessed ? SELF_ASSESSED_DISCLAIMER : "");
+  const basisNoteHtml = basisNote
+    ? `<p style="max-width:420px;margin:20px auto 0;text-align:center;font-size:${FONT_SIZE.caption};${
+        selfAssessed
+          ? `padding:8px 12px;border-radius:${RADIUS.md}px;background:rgba(27,27,24,0.05);font-weight:500;color:rgba(27,27,24,0.55)`
+          : "opacity:.4"
+      }">${esc(basisNote)}</p>`
+    : "";
+  return `
+        <p style="text-align:center;color:${deepText};font-size:${FONT_SIZE.caption};letter-spacing:.2em">COMPARE</p>
+        ${dh2(category, esc(section.heading), `text-align:center;font-size:${FONT_SIZE.section}`)}
+        <div style="max-width:420px;margin:32px auto 0;display:flex;flex-direction:column;gap:${isChecklist ? 0 : 24}px">
+          ${metricsHtml}
+        </div>
+        ${basisNoteHtml}
+        ${
+          Array.isArray(section.evidenceQuotes) &&
+          section.evidenceQuotes.some((e) => e.quotes?.some((q) => Boolean(q?.trim())))
+            ? `<details style="max-width:420px;margin:28px auto 0;border:1px solid rgba(27,27,24,0.12);border-radius:${RADIUS.md}px;padding:12px 16px;background:rgba(250,248,243,0.85)">
+                <summary style="cursor:pointer;text-align:center;font-size:${FONT_SIZE.xs};font-weight:600;opacity:.6">근거 보기</summary>
+                <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(27,27,24,0.1)">
+                  ${section.evidenceQuotes
+                    .filter((e) => e.quotes?.some((q) => Boolean(q?.trim())))
+                    .map(
+                      (e) =>
+                        `<div style="margin-bottom:16px"><p style="text-align:center;font-size:${FONT_SIZE.caption};font-weight:500;opacity:.45;margin:0 0 8px">${esc(e.label)}</p>${e.quotes
+                          .filter(Boolean)
+                          .map(
+                            (q) =>
+                              `<p style="text-align:center;font-size:${FONT_SIZE.sm};line-height:1.6;opacity:.55;margin:0 0 8px;padding:12px;border:1px solid rgba(27,27,24,0.08);border-radius:${RADIUS.md}px">&ldquo; ${esc(q)}</p>`,
+                          )
+                          .join("")}</div>`,
+                    )
+                    .join("")}
+                </div>
+              </details>`
+            : ""
+        }
+      `;
+}
+
+/** 라이브 renderCircleComparisonCombo — 인접 circle + comparison_chart를 한 <section>으로 */
+function circleComparisonComboHtml(params: {
+  circleSection: ImageTextSection;
+  chartSection: ComparisonChartSection;
+  theme: CategoryTheme;
+  category: string;
+  productName: string;
+  sectionStyle: string;
+  anchorId?: string;
+}): string {
+  const { circleSection, chartSection, theme, category, productName, sectionStyle, anchorId } =
+    params;
+  const deepText = readableTextDeep(theme);
+  const items =
+    isCircleSoloSection(circleSection) && circleSection.circleSolo
+      ? [circleSection.circleSolo]
+      : (circleSection.circlePair ?? []);
+  const circlesHtml = items
+    .map(
+      (item) =>
+        `<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:12px"><img src="${esc(item.imageUrl)}" alt="${esc(buildSectionImageAlt(productName, item.label, circleSection.slot))}" loading="lazy" decoding="async" style="width:96px;height:96px;border-radius:${RADIUS.pill}px;object-fit:cover;display:block;box-shadow:${ELEVATION.imageThumb},0 0 0 1px rgba(27,27,24,0.1)"/><p style="margin:0;text-align:center;font-family:${DETAIL_FONT_STACK.heading};font-size:${FONT_SIZE.bodyLg};font-weight:600;line-height:1.35;letter-spacing:-0.02em;color:${deepText}">${esc(item.label)}</p></div>`,
+    )
+    .join("");
+  return `<section${anchorId ? ` id="${anchorId}"` : ""} class="pagzly-circle-combo" style="${sectionStyle}">
+        <div style="margin-bottom:40px"><div style="display:flex;justify-content:center;align-items:flex-start;gap:32px;max-width:448px;margin:0 auto">${circlesHtml}</div></div>
+        ${comparisonChartBodyHtml(chartSection, theme, category)}
+      </section>`;
 }
 
 function sectionHtml(
@@ -420,81 +541,8 @@ function sectionHtml(
           ${metricsHtml}
         </div>${footnotesHtml}</section>`;
     }
-    case "comparison_chart": {
-      const isChecklist = section.presentationStyle === "checklist";
-      const metricsHtml = isChecklist
-        ? section.metrics
-            .map((m) => {
-              const ourYes = comparisonChecklistPresent(m.ourValue);
-              const baseYes = comparisonChecklistPresent(m.baselineValue);
-              const mark = (yes: boolean, strong: boolean) =>
-                yes
-                  ? `<span style="color:${strong ? accent : "rgba(27,27,24,0.35)"};font-size:${FONT_SIZE.checkMark};font-weight:700" aria-label="있음">✓</span>`
-                  : `<span style="color:${theme.baseNeutral};font-size:${FONT_SIZE.checkMark};font-weight:700" aria-label="없음">✗</span>`;
-              return `<div style="display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(27,27,24,0.08)">
-                <p style="margin:0;font-size:${FONT_SIZE.bodySm}">${esc(m.label)}</p>
-                <div style="text-align:center;min-width:4.5rem;padding:8px 10px;border-radius:${RADIUS.md}px;background:${hexToRgba(accent, 0.16)}"><p style="margin:0 0 4px;font-size:${FONT_SIZE.label};font-weight:700;color:${deepText}">${esc(section.ourLabel)}</p>${mark(ourYes, true)}</div>
-                <div style="text-align:center;min-width:4.5rem;padding:8px 10px;border-radius:${RADIUS.md}px;border:1px solid ${hexToRgba(theme.baseNeutral, 0.9)}"><p style="margin:0 0 4px;font-size:${FONT_SIZE.label};opacity:.4">${esc(section.baselineLabel)}</p>${mark(baseYes, false)}</div>
-              </div>`;
-            })
-            .join("")
-        : section.metrics
-            .map((m) => {
-              const max = Math.max(m.ourValue, m.baselineValue, 1);
-              const ourP = (m.ourValue / max) * 100;
-              const baseP = (m.baselineValue / max) * 100;
-              const unit = section.unit ?? "%";
-              return `<div><p style="font-size:${FONT_SIZE.bodySm};margin:0 0 8px">${esc(m.label)}</p>
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:10px 12px;border-radius:${RADIUS.md}px;background:${hexToRgba(accent, 0.14)}"><span style="width:72px;font-size:${FONT_SIZE.caption};font-weight:700;color:${deepText}">${esc(section.ourLabel)}</span>
-                  <div style="flex:1;height:14px;background:${hexToRgba(accent, 0.22)};border-radius:${RADIUS.pill}px"><div class="fill-bar" style="height:100%;width:${ourP}%;background:${accent};border-radius:${RADIUS.pill}px"></div></div>
-                  <span style="width:48px;text-align:right;font-size:${FONT_SIZE.caption};font-weight:700;color:${deepText}">${m.ourValue}${esc(unit)}</span></div>
-                <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:${RADIUS.md}px;border:1px solid ${hexToRgba(theme.baseNeutral, 0.9)}"><span style="width:72px;font-size:${FONT_SIZE.caption};opacity:.4">${esc(section.baselineLabel)}</span>
-                  <div style="flex:1;height:6px;background:${hexToRgba(theme.baseNeutral, 0.55)};border-radius:${RADIUS.pill}px"><div class="fill-bar" style="height:100%;width:${baseP}%;background:${hexToRgba(theme.baseNeutral, 0.85)};border-radius:${RADIUS.pill}px"></div></div>
-                  <span style="width:48px;text-align:right;font-size:${FONT_SIZE.caption};opacity:.4">${m.baselineValue}${esc(unit)}</span></div>
-              </div>`;
-            })
-            .join("");
-      const selfAssessed = section.basis === "self_assessed";
-      const basisNote = section.basisNote || (selfAssessed ? SELF_ASSESSED_DISCLAIMER : "");
-      const basisNoteHtml = basisNote
-        ? `<p style="max-width:420px;margin:20px auto 0;text-align:center;font-size:${FONT_SIZE.caption};${
-            selfAssessed
-              ? `padding:8px 12px;border-radius:${RADIUS.md}px;background:rgba(27,27,24,0.05);font-weight:500;color:rgba(27,27,24,0.55)`
-              : "opacity:.4"
-          }">${esc(basisNote)}</p>`
-        : "";
-      return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        <p style="text-align:center;color:${deepText};font-size:${FONT_SIZE.caption};letter-spacing:.2em">COMPARE</p>
-        ${dh2(category, esc(section.heading), `text-align:center;font-size:${FONT_SIZE.section}`)}
-        <div style="max-width:420px;margin:32px auto 0;display:flex;flex-direction:column;gap:${isChecklist ? 0 : 24}px">
-          ${metricsHtml}
-        </div>
-        ${basisNoteHtml}
-        ${
-          Array.isArray(section.evidenceQuotes) &&
-          section.evidenceQuotes.some((e) => e.quotes?.some((q) => Boolean(q?.trim())))
-            ? `<details style="max-width:420px;margin:28px auto 0;border:1px solid rgba(27,27,24,0.12);border-radius:${RADIUS.md}px;padding:12px 16px;background:rgba(250,248,243,0.85)">
-                <summary style="cursor:pointer;text-align:center;font-size:${FONT_SIZE.xs};font-weight:600;opacity:.6">근거 보기</summary>
-                <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(27,27,24,0.1)">
-                  ${section.evidenceQuotes
-                    .filter((e) => e.quotes?.some((q) => Boolean(q?.trim())))
-                    .map(
-                      (e) =>
-                        `<div style="margin-bottom:16px"><p style="text-align:center;font-size:${FONT_SIZE.caption};font-weight:500;opacity:.45;margin:0 0 8px">${esc(e.label)}</p>${e.quotes
-                          .filter(Boolean)
-                          .map(
-                            (q) =>
-                              `<p style="text-align:center;font-size:${FONT_SIZE.sm};line-height:1.6;opacity:.55;margin:0 0 8px;padding:12px;border:1px solid rgba(27,27,24,0.08);border-radius:${RADIUS.md}px">&ldquo; ${esc(q)}</p>`,
-                          )
-                          .join("")}</div>`,
-                    )
-                    .join("")}
-                </div>
-              </details>`
-            : ""
-        }
-      </section>`;
-    }
+    case "comparison_chart":
+      return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">${comparisonChartBodyHtml(section, theme, category)}</section>`;
     case "tradeoff_card": {
       const recommendFor = (Array.isArray(section.recommendFor) ? section.recommendFor : [])
         .map((t) => t.trim())
@@ -1231,6 +1279,14 @@ export function buildDetailPageHtml(opts: {
   const totalCompactImageTextCount = visibleSections.filter(
     (s) => s.type === "image_text" && s.layout === "compact",
   ).length;
+  // 라이브(DetailSectionRenderer 렌더 루프)와 동일: 쌍의 앞 인덱스에서 병합 렌더, 뒤 인덱스는
+  // 브리더·lastRenderedSection 갱신 없이 건너뜀. POINT 카운트는 건너뛰는 섹션도 포함.
+  const comboLeadToPair = new Map<number, { circleIdx: number; chartIdx: number }>();
+  const comboTrailIndices = new Set<number>();
+  for (const [circleIdx, chartIdx] of findCircleComparisonComboIndices(visibleSections)) {
+    comboLeadToPair.set(Math.min(circleIdx, chartIdx), { circleIdx, chartIdx });
+    comboTrailIndices.add(Math.max(circleIdx, chartIdx));
+  }
   for (let i = 0; i < visibleSections.length; i += 1) {
     const section = visibleSections[i]!;
     const isFullPoint = shouldUseSplitLayout(section);
@@ -1244,25 +1300,49 @@ export function buildDetailPageHtml(opts: {
             .slice(0, i)
             .filter((s) => s.type === "image_text" && s.layout === "compact").length
         : undefined;
-    const html = sectionHtml(
-      section,
-      opts.imageUrls,
-      opts.theme,
-      opts.productName,
-      opts.category,
-      pointIndex,
-      bodyIndex,
-      extended,
-      opts.brandName,
-      certTokens,
-      anchorIdMap.get(i),
-      quickFacts,
-      opts.logoUrl,
-      opts.ingredients,
-      opts.keyFeatures,
-      compactImageTextIndex,
-      totalCompactImageTextCount,
-    );
+    if (comboTrailIndices.has(i)) continue;
+    const comboPair = comboLeadToPair.get(i);
+    let html: string;
+    if (comboPair) {
+      const chartBodyIndex = visibleSections
+        .slice(0, comboPair.chartIdx)
+        .filter((s) => s.type !== "hero").length;
+      const surface = resolveSectionSurface(
+        extended,
+        "comparison_chart",
+        chartBodyIndex,
+        opts.category,
+      );
+      html = circleComparisonComboHtml({
+        circleSection: visibleSections[comboPair.circleIdx] as ImageTextSection,
+        chartSection: visibleSections[comboPair.chartIdx] as ComparisonChartSection,
+        theme: surface.theme,
+        category: opts.category,
+        productName: opts.productName,
+        sectionStyle: `padding:48px 20px;${surface.insetShadow ? `box-shadow:${surface.insetShadow};` : ""}${sectionBgStyle(surface.background, opts.category)}`,
+        anchorId: anchorIdMap.get(i),
+      });
+    } else {
+      html = sectionHtml(
+        section,
+        opts.imageUrls,
+        opts.theme,
+        opts.productName,
+        opts.category,
+        pointIndex,
+        bodyIndex,
+        extended,
+        opts.brandName,
+        certTokens,
+        anchorIdMap.get(i),
+        quickFacts,
+        opts.logoUrl,
+        opts.ingredients,
+        opts.keyFeatures,
+        compactImageTextIndex,
+        totalCompactImageTextCount,
+      );
+    }
     if (html) {
       // 231차 — 라이브(DetailSectionRenderer.tsx:3941~3944, SectionBreather)와 동일한 브리더.
       // export엔 이 로직이 아예 없어 마켓 최종 HTML에서 섹션 사이 시각적 호흡이 통째로 빠져
