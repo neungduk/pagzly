@@ -731,10 +731,18 @@ export async function buildSilhouetteShadowBuffer(
   const alpha = await sharp(cutoutResized).ensureAlpha().extractChannel(3).toBuffer();
   // 162차 — shadowTint가 있으면 순수 검정 대신 배경 색조를 옅게 유지한 그림자 색 사용.
   const tint = shadowTint ?? { r: 0, g: 0, b: 0 };
-  const blackRgb = await sharp({
+
+  const blurSigma = Math.max(6, Math.min(28, Math.min(w, h) * 0.055));
+  // 259차 — 컷아웃 크기 캔버스에서 블러하면 번짐이 가장자리에서 잘려 그림자가 사각형으로
+  // 끊긴다(호출부가 trimCutoutToOpaqueBounds로 6px만 남기고 잘라 넘김). 사방 3σ 투명 여백.
+  const pad = Math.ceil(blurSigma * 3);
+  const padW = w + pad * 2;
+  const padH = h + pad * 2;
+  // RGB는 여백까지 틴트 단색 — 알파 0 영역의 색이 블러로 번져 들어와도 색조가 유지됨.
+  const tintRgb = await sharp({
     create: {
-      width: w,
-      height: h,
+      width: padW,
+      height: padH,
       channels: 3,
       background: tint,
     },
@@ -747,14 +755,16 @@ export async function buildSilhouetteShadowBuffer(
   const { data: alphaRaw, info: aInfo } = await sharp(alpha)
     .raw()
     .toBuffer({ resolveWithObject: true });
-  const faded = Buffer.alloc(alphaRaw.length);
-  for (let i = 0; i < alphaRaw.length; i += 1) {
-    faded[i] = Math.round(alphaRaw[i] * opacity);
+  const faded = Buffer.alloc(padW * padH);
+  for (let y = 0; y < aInfo.height; y += 1) {
+    for (let x = 0; x < aInfo.width; x += 1) {
+      faded[(y + pad) * padW + x + pad] = Math.round(alphaRaw[y * aInfo.width + x] * opacity);
+    }
   }
-  const silhouette = await sharp(blackRgb)
+  const silhouette = await sharp(tintRgb)
     .joinChannel(
       await sharp(faded, {
-        raw: { width: aInfo.width, height: aInfo.height, channels: 1 },
+        raw: { width: padW, height: padH, channels: 1 },
       })
         .png()
         .toBuffer(),
@@ -762,12 +772,17 @@ export async function buildSilhouetteShadowBuffer(
     .png()
     .toBuffer();
 
-  const blurSigma = Math.max(6, Math.min(28, Math.min(w, h) * 0.055));
   const blurred = await sharp(silhouette).blur(blurSigma).png().toBuffer();
 
   const { ox, oy } = shadowOffsets(placement, shadow);
-  const left = Math.round(placement.left + ox);
-  const top = Math.round(placement.top + oy + h * 0.02);
+  const left = Math.round(placement.left + ox) - pad;
+  const top = Math.round(placement.top + oy + h * 0.02) - pad;
+
+  // sharp composite는 입력이 베이스보다 크면 예외를 던지므로 캔버스와 겹치는 부분만 잘라 붙인다.
+  const cropLeft = Math.max(0, -left);
+  const cropTop = Math.max(0, -top);
+  const cropRight = Math.min(padW, canvasWidth - left);
+  const cropBottom = Math.min(padH, canvasHeight - top);
 
   const empty = await sharp({
     create: {
@@ -780,8 +795,20 @@ export async function buildSilhouetteShadowBuffer(
     .png()
     .toBuffer();
 
+  if (cropRight <= cropLeft || cropBottom <= cropTop) return empty;
+
+  const visible = await sharp(blurred)
+    .extract({
+      left: cropLeft,
+      top: cropTop,
+      width: cropRight - cropLeft,
+      height: cropBottom - cropTop,
+    })
+    .png()
+    .toBuffer();
+
   return sharp(empty)
-    .composite([{ input: blurred, left, top }])
+    .composite([{ input: visible, left: left + cropLeft, top: top + cropTop }])
     .png()
     .toBuffer();
 }

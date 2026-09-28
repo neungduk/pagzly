@@ -4,8 +4,9 @@
  * "그림자 합성 유무"만 다른 두 장을 만든 뒤 그림자 영역 픽셀을 비교한다.
  * 재조립이 정확한지는 with-shadow 결과가 실제 pasteCutoutOnScene() 출력과 바이트 동일한지로 확인.
  *
- * 실행: npx tsx scripts/258cha-shadow-visibility-diagnose.ts
- * 산출: review/258cha-shadow-diagnosis/
+ * 실행: npx tsx scripts/258cha-shadow-visibility-diagnose.ts [출력폴더명]
+ * 산출: review/<출력폴더명> (기본 258cha-shadow-diagnosis)
+ * 259차 — 출력 폴더 인자 + 그림자 알파 잘림 지표(maxAlphaStep, shadowAlphaMass) 추가.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -25,7 +26,7 @@ import type { HeldObjectPlacement } from "../lib/detect-held-object-placement";
 import { PAIRS, makeSyntheticCutout } from "./257cha-lifestyle-matching-synthetic-qa";
 
 const ROOT = path.resolve(__dirname, "..");
-const OUT_DIR = path.join(ROOT, "review", "258cha-shadow-diagnosis");
+const OUT_DIR = path.join(ROOT, "review", process.argv[2] || "258cha-shadow-diagnosis");
 
 /** pasteCutoutOnScene()과 같은 순서·인자. withShadow만 분기. */
 async function composeLikeProd(sceneBuffer: Buffer, cutoutBuffer: Buffer, placement: HeldObjectPlacement) {
@@ -95,6 +96,17 @@ async function measure(c: Awaited<ReturnType<typeof composeLikeProd>>) {
   let over1 = 0;
   let over2 = 0;
   let sumShadowAlpha = 0;
+  // 잘림 지표: 블러된 그림자는 이웃 픽셀 간 알파 차이가 작아야 함. 사각형으로 잘리면 경계에서 큰 계단.
+  let maxAlphaStep = 0;
+  let shadowAlphaMass = 0;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const v = sh[y * W + x]!;
+      shadowAlphaMass += v / 255;
+      if (x + 1 < W) maxAlphaStep = Math.max(maxAlphaStep, Math.abs(v - sh[y * W + x + 1]!));
+      if (y + 1 < H) maxAlphaStep = Math.max(maxAlphaStep, Math.abs(v - sh[(y + 1) * W + x]!));
+    }
+  }
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const i = y * W + x;
@@ -118,6 +130,8 @@ async function measure(c: Awaited<ReturnType<typeof composeLikeProd>>) {
     }
   }
   return {
+    maxAlphaStep,
+    shadowAlphaMass: Math.round(shadowAlphaMass),
     shadowPixels: n,
     meanShadowAlpha: +(sumShadowAlpha / n).toFixed(3),
     meanSceneLum: +(sumLumBefore / n).toFixed(1),
