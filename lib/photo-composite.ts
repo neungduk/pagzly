@@ -813,6 +813,131 @@ export async function buildSilhouetteShadowBuffer(
     .toBuffer();
 }
 
+const RIM_BAND_PX = 3;
+const RIM_SOLID_ALPHA = 128;
+const RIM_NORMAL_BLUR_SIGMA = 2;
+const RIM_FACING_FULL_COS = 0.5;
+const RIM_LIFT = 50;
+const RIM_OPACITY = 0.2;
+const RIM_GATE_LUM = 60;
+const RIM_GATE_EXPAND = 0.5;
+
+/**
+ * 261차 — 어두운 씬 전용 광원 쪽 림 하이라이트 (260차 QA 프로토타입 이식, 기본 상수).
+ * 어두운 씬에서는 multiply 그림자가 더 어둡게 할 여지가 없어 안 보이므로(258차),
+ * 컷아웃 안쪽 둘레 중 광원(shadowOffsets 반대) 쪽 절반만 주변색 +50으로 살짝 밝힌다.
+ *
+ * composited = 그림자·컷아웃까지 붙인 결과. paste 박스를 사방 50% 확장한 영역의 원본 씬
+ * 평균 휘도가 60 이상이면 composited를 그대로 반환(바이트 동일).
+ *
+ * sharp composite의 blend:"screen"은 부분 알파에서 교과서 screen보다 훨씬 약하고(대략 α²)
+ * "lighten"은 거의 무변화라(260차 실측) 픽셀 루프로 out = b + α·s·(1 − b/255)를 직접 계산한다.
+ */
+export async function applyRimHighlight(
+  composited: Buffer,
+  cutoutPlaced: Buffer,
+  placement: { left: number; top: number; width: number; height: number },
+  shadow: ShadowAnalysis,
+  scene: Buffer,
+): Promise<Buffer> {
+  const { data: sceneRaw, info: sInfo } = await sharp(scene)
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const ex = Math.round(placement.width * RIM_GATE_EXPAND);
+  const ey = Math.round(placement.height * RIM_GATE_EXPAND);
+  const gx0 = Math.max(0, placement.left - ex);
+  const gy0 = Math.max(0, placement.top - ey);
+  const gx1 = Math.min(sInfo.width, placement.left + placement.width + ex);
+  const gy1 = Math.min(sInfo.height, placement.top + placement.height + ey);
+  let lumSum = 0;
+  let lumN = 0;
+  for (let y = gy0; y < gy1; y += 1) {
+    for (let x = gx0; x < gx1; x += 1) {
+      const p = (y * sInfo.width + x) * sInfo.channels;
+      lumSum += 0.299 * sceneRaw[p] + 0.587 * sceneRaw[p + 1] + 0.114 * sceneRaw[p + 2];
+      lumN += 1;
+    }
+  }
+  if (lumN === 0 || lumSum / lumN >= RIM_GATE_LUM) return composited;
+
+  const ambient = await sampleBackdropAmbientColor(scene);
+  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+  const color = [clamp(ambient.r + RIM_LIFT), clamp(ambient.g + RIM_LIFT), clamp(ambient.b + RIM_LIFT)];
+
+  const { ox, oy } = shadowOffsets(placement, shadow);
+  const lightLen = Math.hypot(ox, oy) || 1;
+  const lightX = -ox / lightLen;
+  const lightY = -oy / lightLen;
+
+  const { data: a, info: aInfo } = await sharp(cutoutPlaced)
+    .ensureAlpha()
+    .extractChannel(3)
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const w = aInfo.width;
+  const h = aInfo.height;
+  // 1채널 raw라도 blur() 뒤 raw는 3채널로 나오므로 채널 0만 뽑는다.
+  const blurred = await sharp(a, { raw: { width: w, height: h, channels: 1 } })
+    .blur(RIM_NORMAL_BLUR_SIGMA)
+    .extractChannel(0)
+    .raw()
+    .toBuffer();
+  if (blurred.length !== w * h) {
+    throw new Error(`[rim] blurred alpha size ${blurred.length} != ${w * h}`);
+  }
+
+  const layerAlpha = new Uint8Array(w * h);
+  const r = RIM_BAND_PX;
+  for (let y = 0; y < h; y += 1) {
+    for (let x = 0; x < w; x += 1) {
+      const i = y * w + x;
+      if (a[i] < RIM_SOLID_ALPHA) continue;
+      let edge = false;
+      for (let dy = -r; dy <= r && !edge; dy += 1) {
+        for (let dx = -r; dx <= r; dx += 1) {
+          if (dx * dx + dy * dy > r * r) continue;
+          const xx = x + dx;
+          const yy = y + dy;
+          if (xx < 0 || yy < 0 || xx >= w || yy >= h || a[yy * w + xx] < RIM_SOLID_ALPHA) {
+            edge = true;
+            break;
+          }
+        }
+      }
+      if (!edge) continue;
+      const gx = (blurred[y * w + Math.min(w - 1, x + 1)] - blurred[y * w + Math.max(0, x - 1)]) / 2;
+      const gy = (blurred[Math.min(h - 1, y + 1) * w + x] - blurred[Math.max(0, y - 1) * w + x]) / 2;
+      const glen = Math.hypot(gx, gy);
+      if (glen < 1e-3) continue;
+      const cos = (-gx / glen) * lightX + (-gy / glen) * lightY;
+      const weight = Math.max(0, Math.min(1, cos / RIM_FACING_FULL_COS));
+      if (weight <= 0) continue;
+      layerAlpha[i] = Math.round(255 * weight * RIM_OPACITY * (a[i] / 255));
+    }
+  }
+
+  const { data: base, info: bInfo } = await sharp(composited).raw().toBuffer({ resolveWithObject: true });
+  const out = Buffer.from(base);
+  const c = bInfo.channels;
+  const left = placement.left;
+  const top = placement.top;
+  for (let y = Math.max(0, top); y < Math.min(bInfo.height, top + h); y += 1) {
+    for (let x = Math.max(0, left); x < Math.min(bInfo.width, left + w); x += 1) {
+      const alpha = layerAlpha[(y - top) * w + (x - left)] / 255;
+      if (alpha === 0) continue;
+      const bi = (y * bInfo.width + x) * c;
+      for (let k = 0; k < 3; k += 1) {
+        const bv = base[bi + k];
+        out[bi + k] = Math.round(bv + alpha * color[k] * (1 - bv / 255));
+      }
+    }
+  }
+  return sharp(out, { raw: { width: bInfo.width, height: bInfo.height, channels: c } })
+    .png()
+    .toBuffer();
+}
+
 /** 폴백용 타원 그림자 SVG (실루엣 생성 실패 시). */
 export function buildProductShadowSvg(
   canvasSize: number,

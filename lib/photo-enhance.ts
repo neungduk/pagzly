@@ -23,6 +23,7 @@ import {
   type TextRegion,
 } from "@/lib/vision-utils";
 import {
+  applyRimHighlight,
   buildProductShadowSvg,
   buildSilhouetteShadowBuffer,
   buildSoftContactShadowSvg,
@@ -1989,6 +1990,25 @@ export async function enhanceProductImage(
     ])
     .png()
     .toBuffer();
+
+  // 261차 — 어두운 배경 전용 림 하이라이트. 라이프스타일 pasteCutoutOnScene()과 같은 함수·같은
+  // 순서(그림자 → 컷아웃 → 림). 밝은 배경은 게이트로 finalBuffer 그대로.
+  try {
+    finalBuffer = Buffer.from(await applyRimHighlight(
+      finalBuffer,
+      cutoutForComposite,
+      {
+        left: placement.left,
+        top: placement.top,
+        width: targetW,
+        height: targetH,
+      },
+      shadow,
+      backdropWithDecor,
+    ));
+  } catch (error) {
+    console.warn("[composite] rim highlight 실패 — 스킵", error);
+  }
 
   try {
     finalBuffer = Buffer.from(await unifyCompositeGrain(finalBuffer, CANVAS_SIZE));

@@ -14,6 +14,7 @@ import {
   type HeldObjectRegion,
 } from "@/lib/detect-held-object-placement";
 import {
+  applyRimHighlight,
   buildProductShadowSvg,
   buildSilhouetteShadowBuffer,
   defringeCutoutEdges,
@@ -973,10 +974,25 @@ export async function pasteCutoutOnScene(params: {
     .png()
     .toBuffer();
 
-  return sharp(withShadow)
+  const pasted = await sharp(withShadow)
     .composite([{ input: cutoutPrepared, left: pasteLeft, top: pasteTop }])
     .png()
     .toBuffer();
+
+  // 261차 — 어두운 씬 전용 림 하이라이트. hero(photo-enhance.ts)와 같은 함수·같은 순서
+  // (그림자 → 컷아웃 → 림). 밝은 씬은 게이트로 pasted 그대로.
+  try {
+    return await applyRimHighlight(
+      pasted,
+      cutoutPrepared,
+      { left: pasteLeft, top: pasteTop, width: cutW, height: cutH },
+      shadow,
+      sceneBuffer,
+    );
+  } catch (error) {
+    console.warn("[lifestyle-composite] rim highlight 실패 — 스킵", error);
+    return pasted;
+  }
 }
 
 /** 88~89차 — paste 완료 합성에서 grasp 지점 크롭만 nano-banana 국소 재생성 */
