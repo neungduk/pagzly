@@ -136,6 +136,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const [sellerTrustEvidence, setSellerTrustEvidence] = useState("");
   type BeforeAfterInput = { before: File | null; after: File | null; caption: string };
   const [beforeAfterInputs, setBeforeAfterInputs] = useState<BeforeAfterInput[]>([]);
+  type CertificateEvidenceInput = { file: File | null; caption: string };
+  const [certificateEvidenceInputs, setCertificateEvidenceInputs] = useState<CertificateEvidenceInput[]>([]);
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referencePreview, setReferencePreview] = useState<string | null>(null);
   const [logoImage, setLogoImage] = useState<File | null>(null);
@@ -573,6 +575,17 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         }
       }
 
+      let certificateEvidence: { imageUrl: string; caption: string | null }[] | null = null;
+      const validCertInputs = certificateEvidenceInputs.filter((c) => c.file);
+      if (validCertInputs.length > 0) {
+        certificateEvidence = await Promise.all(
+          validCertInputs.map(async (c) => ({
+            imageUrl: await uploadAuxFile(c.file as File, "certificate-evidence"),
+            caption: c.caption.trim() || null,
+          })),
+        );
+      }
+
       const parsedHeightCm = (() => {
         const raw = productHeightCm.trim().replace(/,/g, ".");
         if (!raw) return null;
@@ -609,6 +622,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         wholesaleUrl: wholesaleUrl.trim() || null,
         sellerTrustEvidence: sellerTrustEvidence.trim() || null,
         beforeAfterPairs,
+        certificateEvidence,
         referenceImageUrl,
         logoUrl,
         lifestyleImageUrl,
@@ -1580,6 +1594,70 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
                   </div>
                 </div>
               ) : null}
+
+              <div>
+                <label className={labelClass}>보유 인증·허가 서류 (선택)</label>
+                <p className="mt-1.5 text-xs text-ink/40">
+                  실제로 보유한 인증서·허가증·시험성적서 이미지가 있다면 올려주세요. AI가 인증
+                  내용을 새로 만들지 않으며, 업로드한 이미지·캡션 그대로만 노출됩니다.
+                </p>
+                <div className="mt-3 space-y-3">
+                  {certificateEvidenceInputs.map((cert, i) => (
+                    <div
+                      key={i}
+                      className="flex flex-wrap items-center gap-2 rounded-lg border border-line p-3"
+                    >
+                      <label className="flex cursor-pointer flex-col items-center gap-1 rounded-md border border-dashed border-line px-3 py-2 text-xs text-ink/60 hover:border-registration-red/40">
+                        {cert.file ? cert.file.name.slice(0, 12) : "서류 이미지 선택"}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] ?? null;
+                            setCertificateEvidenceInputs((prev) =>
+                              prev.map((c, idx) => (idx === i ? { ...c, file } : c)),
+                            );
+                          }}
+                        />
+                      </label>
+                      <input
+                        type="text"
+                        value={cert.caption}
+                        onChange={(e) =>
+                          setCertificateEvidenceInputs((prev) =>
+                            prev.map((c, idx) =>
+                              idx === i ? { ...c, caption: e.target.value } : c,
+                            ),
+                          )
+                        }
+                        placeholder="캡션(선택, 예: 배합사료제조업 등록증)"
+                        className={`${inputClass} flex-1 basis-40`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCertificateEvidenceInputs((prev) => prev.filter((_, idx) => idx !== i))
+                        }
+                        className="text-xs text-ink/40 hover:text-registration-red"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  ))}
+                  {certificateEvidenceInputs.length < 4 ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCertificateEvidenceInputs((prev) => [...prev, { file: null, caption: "" }])
+                      }
+                      className="text-xs font-medium text-registration-red hover:underline"
+                    >
+                      + 서류 이미지 추가
+                    </button>
+                  ) : null}
+                </div>
+              </div>
 
               <div>
                 <label htmlFor="competitorUrl" className={labelClass}>

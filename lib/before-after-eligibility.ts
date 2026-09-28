@@ -18,3 +18,7 @@ export function isBeforeAfterEligibleCategory(category: string): boolean {
 /** AI 미생성 고정 문구 — INGREDIENT_HIGHLIGHT_COMPLIANCE_NOTE(160차)와 동일 원칙 */
 export const BEFORE_AFTER_COMPLIANCE_NOTE =
   "*개인차가 있을 수 있으며, 사용 경험은 실제 구매자가 제공한 사진입니다.";
+
+/** AI 미생성 고정 문구 — BEFORE_AFTER_COMPLIANCE_NOTE(227차)와 동일 원칙 */
+export const CERTIFICATE_EVIDENCE_COMPLIANCE_NOTE =
+  "*이미지는 판매자가 직접 업로드한 서류이며, Pagzly는 진위를 별도로 검증하지 않습니다.";

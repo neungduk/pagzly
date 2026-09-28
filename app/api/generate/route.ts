@@ -48,7 +48,7 @@ import {
 import { extractUrlSummary, extractCompetitorDifferentiation, type UrlSummaryResult } from "@/lib/url-crawler";
 import { buildQAFixPrompt, runDetailPageQA } from "@/lib/detail-page-qa";
 import { enrichSectionsWithProductMetadata } from "@/lib/enrich-product-sections";
-import { insertReviewHighlightSection, insertReviewAxisComparisonSection, insertSellerTrustEvidence, insertBeforeAfterSection } from "@/lib/section-inserts";
+import { insertReviewHighlightSection, insertReviewAxisComparisonSection, insertSellerTrustEvidence, insertBeforeAfterSection, insertCertificateEvidenceSection } from "@/lib/section-inserts";
 import {
   dropHollowHighlightBoxes,
   HIGHLIGHT_BOX_RETRY_APPENDIX,
@@ -547,6 +547,7 @@ const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
   custom_gif: `{ type: "custom_gif", slot: "custom_gif", heading?, gifUrl } — AI는 이 섹션을 생성하지 않음. 판매자가 GIF를 업로드했을 때 서버가 조립 단계에서 자동 삽입`,
   review_highlight: `{ type: "review_highlight", slot: "review_highlight", heading, praises: string[], concerns?: string[] } — AI는 이 섹션을 생성하지 않음. 판매자가 리뷰 파일을 업로드했을 때 실제 후기 요약(commonPraises/commonComplaints)으로 서버가 조립 단계에서 자동 삽입`,
   before_after: `{ type: "before_after", slot: "before_after", heading, pairs: {beforeUrl,afterUrl,caption?}[] } — AI는 이 섹션을 생성하지 않음. 판매자가 효과 비교 사진을 업로드했고 카테고리가 허용 대상일 때만 서버가 조립 단계에서 자동 삽입`,
+  certificate_evidence: `{ type: "certificate_evidence", slot: "certificate_evidence", heading, certificates: {imageUrl,caption?}[] } — AI는 이 섹션을 생성하지 않음. 판매자가 보유 인증·허가 서류 이미지를 업로드했을 때 서버가 조립 단계에서 자동 삽입`,
   canvas: `{ type: "canvas", slot, frameWidth, frameHeight, background?, elements[] } — AI는 이 섹션을 생성하지 않음. 판매자가 result 화면에서 수동 추가`,
 };
 
@@ -1751,6 +1752,19 @@ export async function POST(request: Request) {
     if (savedCopy.sections.length > beforeAfterLen) {
       console.log(
         `[before-after] 효과 비교 사진 삽입 (pairs=${body.beforeAfterPairs?.length ?? 0}, AI 미생성)`,
+      );
+    }
+
+    // before_after 다음에 실행해야 함: 먼저 넣으면 review_highlight 뒤에 자리 잡은 뒤
+    // before_after가 review_highlight+1로 끼어들어 "인증 서류 → 실사용 사진" 순서가 뒤집힌다.
+    const certificateEvidenceLen = savedCopy.sections.length;
+    savedCopy.sections = insertCertificateEvidenceSection(
+      savedCopy.sections,
+      body.certificateEvidence,
+    );
+    if (savedCopy.sections.length > certificateEvidenceLen) {
+      console.log(
+        `[certificate-evidence] 인증·허가 서류 이미지 삽입 (count=${body.certificateEvidence?.length ?? 0}, AI 미생성)`,
       );
     }
 

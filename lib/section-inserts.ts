@@ -5,6 +5,7 @@ import type {
   CanvasSection,
   ComparisonChartSection,
   BeforeAfterSection,
+  CertificateEvidenceSection,
 } from "@/lib/types/generate";
 import type { ReviewAxisComparison } from "@/lib/review-insights";
 import { isBeforeAfterEligibleCategory } from "@/lib/before-after-eligibility";
@@ -277,6 +278,60 @@ export function insertBeforeAfterSection(
       : anchorIdx >= 0
         ? anchorIdx
         : without.length;
+
+  return [...without.slice(0, insertAt), section, ...without.slice(insertAt)];
+}
+
+/**
+ * 265차 — 판매자가 업로드한 실제 인증서·허가서류 이미지를 서버가 그대로 조립.
+ * AI 미생성. before_after와 달리 카테고리 배제 없음(공적 서류는 효능 주장이
+ * 아니라 사실 증빙이라 법적 민감도가 다름).
+ * 삽입 위치: before_after 섹션이 있으면 그 바로 앞(공적 증거 → 실사용 사진 순),
+ * 없으면 review_highlight 바로 뒤, 그것도 없으면 ai_disclosure/cta_price 직전
+ * (before_after의 3번째 폴백과 동일 관례).
+ */
+export function insertCertificateEvidenceSection(
+  sections: DetailSection[],
+  certificates: { imageUrl: string; caption?: string | null }[] | null | undefined,
+): DetailSection[] {
+  if (!certificates || certificates.length === 0) return sections;
+
+  const validCerts = certificates
+    .filter((c) => c.imageUrl?.trim())
+    .slice(0, 4);
+  if (validCerts.length === 0) return sections;
+
+  if (sections.some((s) => s.type === "certificate_evidence" || s.slot === "certificate_evidence")) {
+    return sections;
+  }
+
+  const section: CertificateEvidenceSection = {
+    type: "certificate_evidence",
+    slot: "certificate_evidence",
+    heading: "보유 인증·허가 서류",
+    certificates: validCerts,
+  };
+
+  const without = sections.filter(
+    (s) => s.slot !== "certificate_evidence" && s.type !== "certificate_evidence",
+  );
+  const beforeAfterIdx = without.findIndex(
+    (s) => s.type === "before_after" || s.slot === "before_after",
+  );
+  const reviewHighlightIdx = without.findIndex(
+    (s) => s.type === "review_highlight" || s.slot === "review_highlight",
+  );
+  const anchorIdx = without.findIndex(
+    (s) => s.type === "ai_disclosure" || s.slot === "cta_price" || s.type === "cta_price",
+  );
+  const insertAt =
+    beforeAfterIdx >= 0
+      ? beforeAfterIdx
+      : reviewHighlightIdx >= 0
+        ? reviewHighlightIdx + 1
+        : anchorIdx >= 0
+          ? anchorIdx
+          : without.length;
 
   return [...without.slice(0, insertAt), section, ...without.slice(insertAt)];
 }

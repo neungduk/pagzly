@@ -151,6 +151,11 @@ export type ProductInput = {
    * (입력해도 섹션이 생성되지 않음 — lib/before-after-eligibility.ts 참고).
    */
   beforeAfterPairs?: { beforeUrl: string; afterUrl: string; caption?: string | null }[] | null;
+  /**
+   * 265차 — 판매자가 보유한 실제 인증서·허가서류 이미지(AI 미생성, 전 카테고리).
+   * 최대 4장 — lib/section-inserts.ts insertCertificateEvidenceSection 참고.
+   */
+  certificateEvidence?: { imageUrl: string; caption?: string | null }[] | null;
 };
 
 // slot: lib/section-templates.ts가 카테고리별로 고정한 슬롯 이름
@@ -484,6 +489,20 @@ export type BeforeAfterSection = {
   pairs: { beforeUrl: string; afterUrl: string; caption?: string | null }[];
 };
 
+/**
+ * 265차 — 판매자가 업로드한 실제 인증서·허가서류(등록증, 시험성적서, KC 인증 등)
+ * 이미지를 그대로 조립. before_after와 동일 원칙: AI는 이 섹션을 생성하지 않으며,
+ * 서버가 조립 단계에서 실입력값을 그대로 주입한다. caption도 사용자가 직접 입력한
+ * 값만 사용 — AI가 인증 내용을 서술하는 문구를 새로 짓지 않는다.
+ * before_after와 달리 카테고리 배제가 없다(공적 서류는 효능 주장이 아니라 사실 증빙).
+ */
+export type CertificateEvidenceSection = {
+  type: "certificate_evidence";
+  slot: string;
+  heading: string;
+  certificates: { imageUrl: string; caption?: string | null }[];
+};
+
 export type CanvasElement =
   | {
       id: string;
@@ -593,6 +612,7 @@ export type DetailSection =
   | CustomGifSection
   | ReviewHighlightSection
   | BeforeAfterSection
+  | CertificateEvidenceSection
   | CanvasSection;
 
 export type GeneratedCopy = {

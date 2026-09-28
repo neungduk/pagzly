@@ -60,7 +60,10 @@ import {
 } from "@/lib/package-contents-diagram";
 import { buildAnnotatedImageOverlaySvg } from "@/lib/annotated-image-overlay-svg";
 import { resolveCompactImageShape } from "@/lib/compact-image-shape";
-import { BEFORE_AFTER_COMPLIANCE_NOTE } from "@/lib/before-after-eligibility";
+import {
+  BEFORE_AFTER_COMPLIANCE_NOTE,
+  CERTIFICATE_EVIDENCE_COMPLIANCE_NOTE,
+} from "@/lib/before-after-eligibility";
 import { splitTextByKeywords } from "@/lib/review-insights";
 import {
   buildIngredientRingDiagramSvg,
@@ -1236,6 +1239,25 @@ function sectionHtml(
         ${dh2(category, esc(section.heading), `text-align:center;font-size:${FONT_SIZE.section}`)}
         <div style="max-width:640px;margin:32px auto 0">${pairsHtml}</div>
         <p style="max-width:480px;margin:16px auto 0;text-align:center;font-size:${FONT_SIZE.caption};opacity:.4">${esc(BEFORE_AFTER_COMPLIANCE_NOTE)}</p>
+      </section>`;
+    }
+    case "certificate_evidence": {
+      if (!section.certificates || section.certificates.length === 0) return "";
+      // 서류 스캔본은 잘리면 글자가 사라지므로 object-fit:contain + 문서 비율 3:4 (라이브와 동일)
+      const certsHtml = section.certificates
+        .map(
+          (cert, i) => `<div>
+            <div style="overflow:hidden;border-radius:${RADIUS.lg}px;border:1px solid rgba(27,27,24,.12)">
+              <img src="${esc(cert.imageUrl)}" alt="${esc(section.heading)} ${i + 1}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:3/4;object-fit:contain;background:#FAF8F3;display:block"/>
+            </div>
+            ${cert.caption ? `<p style="margin:8px 0 0;text-align:center;font-size:${FONT_SIZE.xs};color:rgba(27,27,24,.6)">${esc(cert.caption)}</p>` : ""}
+          </div>`,
+        )
+        .join("");
+      return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
+        ${dh2(category, esc(section.heading), `text-align:center;font-size:${FONT_SIZE.section}`)}
+        <div style="max-width:640px;margin:32px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:16px">${certsHtml}</div>
+        <p style="max-width:480px;margin:24px auto 0;text-align:center;font-size:${FONT_SIZE.caption};opacity:.4">${esc(CERTIFICATE_EVIDENCE_COMPLIANCE_NOTE)}</p>
       </section>`;
     }
     case "ai_disclosure":

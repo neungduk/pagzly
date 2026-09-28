@@ -28,7 +28,10 @@ import {
 } from "@/lib/circle-comparison-combo";
 import { classifyBoolishCell } from "@/lib/comparison-cell-classify";
 import { resolveCompactImageShape } from "@/lib/compact-image-shape";
-import { BEFORE_AFTER_COMPLIANCE_NOTE } from "@/lib/before-after-eligibility";
+import {
+  BEFORE_AFTER_COMPLIANCE_NOTE,
+  CERTIFICATE_EVIDENCE_COMPLIANCE_NOTE,
+} from "@/lib/before-after-eligibility";
 import { buildSectionImageAlt } from "@/lib/detail-image-alt";
 import { splitTextByKeywords } from "@/lib/review-insights";
 import { extractTrustChips } from "@/lib/extract-trust-chips";
@@ -3387,6 +3390,50 @@ function renderSection(
           </div>
           <p className="mx-auto mt-6 max-w-xl text-center text-[11px] text-ink/40">
             {BEFORE_AFTER_COMPLIANCE_NOTE}
+          </p>
+        </section>
+      );
+    }
+
+    case "certificate_evidence": {
+      if (!section.certificates || section.certificates.length === 0) return null;
+      return (
+        <section
+          key={`certificate_evidence-${index}`}
+          data-testid="certificate-evidence"
+          className={getCategoryRhythm(category).generousPadClass}
+          style={textSectionStyle(theme, pattern, category)}
+        >
+          <SectionAccentHairline theme={theme} />
+          <EditableText
+            as="h3"
+            enabled={edit?.enabled}
+            value={section.heading}
+            onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+          />
+          <div className="mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-4">
+            {section.certificates.map((cert, i) => (
+              <div key={i}>
+                {/* 서류 스캔본은 잘리면 글자가 사라지므로 object-contain + 문서 비율 3:4 */}
+                <div className="overflow-hidden rounded-2xl border border-line">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={cert.imageUrl}
+                    alt={`${section.heading} ${i + 1}`}
+                    loading="lazy"
+                    decoding="async"
+                    className="aspect-[3/4] w-full bg-paper object-contain"
+                  />
+                </div>
+                {cert.caption ? (
+                  <p className="mt-2 text-center text-xs text-ink/60">{cert.caption}</p>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          <p className="mx-auto mt-6 max-w-xl text-center text-[11px] text-ink/40">
+            {CERTIFICATE_EVIDENCE_COMPLIANCE_NOTE}
           </p>
         </section>
       );
