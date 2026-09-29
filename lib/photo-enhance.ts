@@ -1527,7 +1527,10 @@ export async function sharpenCutout(cutoutUrl: string): Promise<{ url: string; c
         "[sharpenCutout] clarity-upscaler 결과 URL 없음, 보정 전 컷아웃 사용. output:",
         JSON.stringify(output),
       );
-      return { url: cutoutUrl, cost: REPLICATE_COST_USD.backgroundRemover };
+      return {
+        url: cutoutUrl,
+        cost: REPLICATE_COST_USD.backgroundRemover + REPLICATE_COST_USD.clarityUpscaler,
+      };
     }
 
     const upRes = await fetch(upscaledUrl);
@@ -1541,7 +1544,10 @@ export async function sharpenCutout(cutoutUrl: string): Promise<{ url: string; c
           "[sharpenCutout] FALLBACK: clarity-upscaler stripped alpha " +
             `(${origAlpha.toFixed(3)} → ${upAlpha.toFixed(3)}), pre-upscale cutout 사용`,
         );
-        return { url: cutoutUrl, cost: REPLICATE_COST_USD.backgroundRemover };
+        return {
+          url: cutoutUrl,
+          cost: REPLICATE_COST_USD.backgroundRemover + REPLICATE_COST_USD.clarityUpscaler,
+        };
       }
     }
 
