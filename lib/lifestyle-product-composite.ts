@@ -424,7 +424,13 @@ export async function verifyFeatherBlendRegion(
   return { maxChannelError, samplesChecked };
 }
 
-/** 89차 — not-overlapping-grasp-region일 때만 Vision 재호출 (최대 3회) */
+/** 89차 grasp-region, 273차 hand-region 거부 시 Vision 재호출 (사용자 승인 2026-09-29) */
+const HAND_PLACEMENT_RETRYABLE_REJECTS: ReadonlySet<string> = new Set([
+  "not-overlapping-grasp-region",
+  "not-overlapping-hand-region",
+]);
+
+/** 89차 — 겹침 거부(grasp/hand region)일 때만 Vision 재호출 (최대 3회) */
 export async function detectHandPlacementWithGraspRetry(
   lifestyle: { buffer: Buffer; mediaType: "image/jpeg" | "image/png" },
   cutout: { buffer: Buffer; mediaType: "image/jpeg" | "image/png" },
@@ -476,7 +482,7 @@ export async function detectHandPlacementWithGraspRetry(
       };
     }
 
-    if (result.rejectReason !== "not-overlapping-grasp-region") {
+    if (!result.rejectReason || !HAND_PLACEMENT_RETRYABLE_REJECTS.has(result.rejectReason)) {
       return {
         ...result,
         cost: totalCost,
@@ -485,11 +491,20 @@ export async function detectHandPlacementWithGraspRetry(
         viaEnsemble: false,
       };
     }
+
+    if (result.rejectReason === "not-overlapping-hand-region" && attempt < GRASP_VISION_MAX_ATTEMPTS) {
+      console.log(
+        `[hand-placement] retry (reason=not-overlapping-hand-region, attempt=${attempt + 1}/${GRASP_VISION_MAX_ATTEMPTS})`,
+      );
+    }
   }
 
+  // ensemble은 병합 grasp로 evaluateHandPlacementReliability를 다시 돌려 hand-region 겹침도 재검증한다
   const allGraspReject =
     attemptRecords.length === GRASP_VISION_MAX_ATTEMPTS &&
-    attemptRecords.every((a) => a.result.rejectReason === "not-overlapping-grasp-region");
+    attemptRecords.every(
+      (a) => a.result.rejectReason != null && HAND_PLACEMENT_RETRYABLE_REJECTS.has(a.result.rejectReason),
+    );
 
   if (allGraspReject && LIFESTYLE_GRASP_ENSEMBLE_ENABLED) {
     const ensemble = tryGraspEnsembleFromAttempts(attemptRecords);
