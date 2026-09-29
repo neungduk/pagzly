@@ -333,7 +333,7 @@ export async function generateConceptEffectGraphic(
     } catch (error) {
       lastError = error;
       const message = error instanceof Error ? error.message : String(error);
-      if (attempt === 0 && /unavailable|upstream/i.test(message)) {
+      if (attempt === 0 && /unavailable|upstream|429|rate.?limit|throttle/i.test(message)) {
         console.warn(`[effects] Replicate 일시 실패, 8초 후 1회만 재시도: ${spec.id}`);
         await new Promise((resolve) => setTimeout(resolve, 8000));
         continue;

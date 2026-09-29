@@ -392,19 +392,21 @@ export async function generateDecorativeGraphic(
   const cost = REPLICATE_COST_USD.fluxSchnell;
   console.log(`[cost] generateDecorativeGraphic (flux-schnell): $${cost.toFixed(4)}`);
 
-  const output = await withTimeout(
-    replicate.run(FLUX_SCHNELL_REF, {
-      input: {
-        prompt,
-        num_outputs: 1,
-        aspect_ratio: "1:1",
-        output_format: "png",
-        output_quality: 90,
-      },
-      wait: { mode: "poll", interval: 1000 },
-    }),
-    60000,
-    "flux-schnell 장식 그래픽",
+  const output = await runReplicateWithRetry("decorative-graphic", () =>
+    withTimeout(
+      replicate.run(FLUX_SCHNELL_REF, {
+        input: {
+          prompt,
+          num_outputs: 1,
+          aspect_ratio: "1:1",
+          output_format: "png",
+          output_quality: 90,
+        },
+        wait: { mode: "poll", interval: 1000 },
+      }),
+      60000,
+      "flux-schnell 장식 그래픽",
+    ),
   );
 
   const url = extractFluxImageUrl(output);
@@ -1362,19 +1364,21 @@ function getSectionBackdropPrompts(category: string): Record<SectionBackdropKind
 
 async function generateSchnellPng(prompt: string): Promise<string> {
   const replicate = getReplicateClient();
-  const output = await withTimeout(
-    replicate.run(FLUX_SCHNELL_REF, {
-      input: {
-        prompt,
-        num_outputs: 1,
-        aspect_ratio: "1:1",
-        output_format: "png",
-        output_quality: 90,
-      },
-      wait: { mode: "poll", interval: 1000 },
-    }),
-    90000,
-    "flux-schnell 섹션 배경",
+  const output = await runReplicateWithRetry("schnell-png", () =>
+    withTimeout(
+      replicate.run(FLUX_SCHNELL_REF, {
+        input: {
+          prompt,
+          num_outputs: 1,
+          aspect_ratio: "1:1",
+          output_format: "png",
+          output_quality: 90,
+        },
+        wait: { mode: "poll", interval: 1000 },
+      }),
+      90000,
+      "flux-schnell 섹션 배경",
+    ),
   );
   const url = extractFluxImageUrl(output);
   if (!url) {
