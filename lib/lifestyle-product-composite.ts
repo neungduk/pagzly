@@ -756,7 +756,7 @@ async function removeProductBackground(
 
       const cutoutRes = await fetch(sharpenedUrl);
       if (!cutoutRes.ok) continue;
-      let buffer = Buffer.from(await cutoutRes.arrayBuffer());
+      let buffer: Buffer = Buffer.from(await cutoutRes.arrayBuffer());
       // 233차 — hero와 동일 순서(trim → 어두운 플레이트 제거)로, 스코어링 이전에 적용.
       buffer = await trimCutoutToOpaqueBounds(buffer);
       buffer = await purgeDarkPlateFringe(buffer);
