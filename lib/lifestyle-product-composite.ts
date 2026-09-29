@@ -52,6 +52,13 @@ const REFINE_CROP_MAX_SCENE_FRACTION = 0.45;
 const REFINE_ASPECT_TOLERANCE = 0.05;
 const GRASP_VISION_MAX_ATTEMPTS = 3;
 const REFINE_FEATHER_FRACTION = 0.08;
+/**
+ * 275차 — 상품 가시성 게이트(최대 거리 441). 밝은 씬 WB 매칭만으로 정상 합성이 ~180까지
+ * 벌어지므로 명백한 경우(274차 흰 상품↔검은 영역 ~290)만 reject하도록 보수적으로.
+ */
+export const PRODUCT_VISIBILITY_RGB_THRESHOLD = 240;
+const PRODUCT_VISIBILITY_ALPHA_THRESHOLD = 32;
+const PRODUCT_VISIBILITY_MIN_SAMPLES = 50;
 /** 92차 — true grip +33%p 이득 vs rubbing 33% 오탐 회귀. 기본 off. 다시 켜려면 env로만. */
 const LIFESTYLE_GRASP_ENSEMBLE_ENABLED = process.env.LIFESTYLE_GRASP_ENSEMBLE_ENABLED === "true";
 
@@ -880,6 +887,15 @@ export async function pasteCutoutOnScene(params: {
   cutoutBuffer: Buffer;
   placement: HeldObjectPlacement;
 }): Promise<Buffer> {
+  return (await pasteCutoutOnSceneDetailed(params)).buffer;
+}
+
+/** 275차 — paste 결과 + 실제 붙은 위치(px)·최종 컷아웃. 상품 가시성 게이트가 마스크로 쓴다. */
+export async function pasteCutoutOnSceneDetailed(params: {
+  sceneBuffer: Buffer;
+  cutoutBuffer: Buffer;
+  placement: HeldObjectPlacement;
+}): Promise<{ buffer: Buffer; rect: CropRectPx; cutoutPrepared: Buffer }> {
   const { sceneBuffer, cutoutBuffer, placement } = params;
   const sceneMeta = await sharp(sceneBuffer).metadata();
   const sceneW = sceneMeta.width ?? 1;
@@ -994,19 +1010,142 @@ export async function pasteCutoutOnScene(params: {
     .png()
     .toBuffer();
 
+  const rect: CropRectPx = { left: pasteLeft, top: pasteTop, width: cutW, height: cutH };
   // 261차 — 어두운 씬 전용 림 하이라이트. hero(photo-enhance.ts)와 같은 함수·같은 순서
   // (그림자 → 컷아웃 → 림). 밝은 씬은 게이트로 pasted 그대로.
   try {
-    return await applyRimHighlight(
-      pasted,
-      cutoutPrepared,
-      { left: pasteLeft, top: pasteTop, width: cutW, height: cutH },
-      shadow,
-      sceneBuffer,
-    );
+    const buffer = await applyRimHighlight(pasted, cutoutPrepared, rect, shadow, sceneBuffer);
+    return { buffer, rect, cutoutPrepared };
   } catch (error) {
     console.warn("[lifestyle-composite] rim highlight 실패 — 스킵", error);
-    return pasted;
+    return { buffer: pasted, rect, cutoutPrepared };
+  }
+}
+
+/** 275차 — 컷아웃의 opaque 픽셀(alpha 임계값 이상) 평균 RGB. 상품 고유색 기준점. */
+export async function computeOpaqueMeanColor(
+  cutoutBuffer: Buffer,
+  alphaThreshold = PRODUCT_VISIBILITY_ALPHA_THRESHOLD,
+): Promise<{ r: number; g: number; b: number; sampleCount: number } | null> {
+  const { data, info } = await sharp(cutoutBuffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  let n = 0;
+  for (let i = 0; i < data.length; i += info.channels) {
+    if (data[i + 3]! >= alphaThreshold) {
+      r += data[i]!;
+      g += data[i + 1]!;
+      b += data[i + 2]!;
+      n += 1;
+    }
+  }
+  if (n === 0) return null;
+  return { r: r / n, g: g / n, b: b / n, sampleCount: n };
+}
+
+/**
+ * 275차 — 합성 버퍼의 영역(px) 평균 RGB. mask(영역과 같은 크기의 컷아웃)가 있으면
+ * mask alpha가 임계값 이상인 픽셀만 평균한다 — 얇은/성긴 상품은 bbox 대부분이 배경이라
+ * bbox 전체 평균은 상품이 멀쩡해도 배경색이 된다.
+ */
+export async function computeRegionMeanColor(
+  buffer: Buffer,
+  region: CropRectPx,
+  mask?: Buffer,
+  alphaThreshold = PRODUCT_VISIBILITY_ALPHA_THRESHOLD,
+): Promise<{ r: number; g: number; b: number; sampleCount: number } | null> {
+  const { data, info } = await sharp(buffer)
+    .extract(region)
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  let maskData: Buffer | null = null;
+  if (mask) {
+    const m = await sharp(mask)
+      .ensureAlpha()
+      .resize(region.width, region.height, { fit: "fill" })
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    maskData = m.data;
+  }
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  let n = 0;
+  const px = region.width * region.height;
+  for (let p = 0; p < px; p += 1) {
+    if (maskData && maskData[p * 4 + 3]! < alphaThreshold) continue;
+    const i = p * info.channels;
+    r += data[i]!;
+    g += data[i + 1]!;
+    b += data[i + 2]!;
+    n += 1;
+  }
+  if (n === 0) return null;
+  return { r: r / n, g: g / n, b: b / n, sampleCount: n };
+}
+
+export function rgbDistance(
+  a: { r: number; g: number; b: number },
+  b: { r: number; g: number; b: number },
+): number {
+  return Math.sqrt((a.r - b.r) ** 2 + (a.g - b.g) ** 2 + (a.b - b.b) ** 2);
+}
+
+/**
+ * 275차 — 최종 합성의 상품 위치에 상품 고유색이 실제로 남아 있는지(순수 색차, API 0).
+ * 기준색은 매칭(WB/그레인) 전 원본 컷아웃 — 매칭 후 컷아웃은 이미 씬 톤으로 끌려가 있어
+ * 기준이 될 수 없다. 영역색은 실제 붙은 컷아웃 알파를 마스크로 쓴다.
+ * 애매하면 통과: 샘플 부족·계산 실패는 pass. bbox 전체 평균은 로그용.
+ */
+export async function evaluateProductVisibility(params: {
+  finalBuffer: Buffer;
+  pasteRect: CropRectPx;
+  /** 매칭 전 원본 컷아웃 (기준색) */
+  cutoutReference: Buffer;
+  /** pasteCutoutOnSceneDetailed가 실제로 붙인 컷아웃 (마스크) */
+  cutoutPrepared: Buffer;
+  stage: "paste" | "refine";
+  threshold?: number;
+}): Promise<{ pass: boolean; rgbDelta: number | null; bboxDelta: number | null }> {
+  const {
+    finalBuffer,
+    pasteRect,
+    cutoutReference,
+    cutoutPrepared,
+    stage,
+    threshold = PRODUCT_VISIBILITY_RGB_THRESHOLD,
+  } = params;
+  const fmt = (c: { r: number; g: number; b: number } | null) =>
+    c ? `(${Math.round(c.r)},${Math.round(c.g)},${Math.round(c.b)})` : "n/a";
+  try {
+    const cutoutColor = await computeOpaqueMeanColor(cutoutReference);
+    const regionColor = await computeRegionMeanColor(finalBuffer, pasteRect, cutoutPrepared);
+    const bboxColor = await computeRegionMeanColor(finalBuffer, pasteRect);
+    const bboxDelta = cutoutColor && bboxColor ? rgbDistance(cutoutColor, bboxColor) : null;
+    if (
+      !cutoutColor ||
+      !regionColor ||
+      regionColor.sampleCount < PRODUCT_VISIBILITY_MIN_SAMPLES
+    ) {
+      console.log(
+        `[product-visibility-gate] stage=${stage} rgbDelta=n/a threshold=${threshold.toFixed(1)} ` +
+          `cutoutColor=${fmt(cutoutColor)} regionColor=${fmt(regionColor)} samples=${regionColor?.sampleCount ?? 0} → pass (insufficient-samples)`,
+      );
+      return { pass: true, rgbDelta: null, bboxDelta };
+    }
+    const rgbDelta = rgbDistance(cutoutColor, regionColor);
+    const pass = rgbDelta <= threshold;
+    console.log(
+      `[product-visibility-gate] stage=${stage} rgbDelta=${rgbDelta.toFixed(1)} threshold=${threshold.toFixed(1)} ` +
+        `cutoutColor=${fmt(cutoutColor)} regionColor=${fmt(regionColor)} samples=${regionColor.sampleCount} ` +
+        `bboxDelta=${bboxDelta?.toFixed(1) ?? "n/a"}(log-only) → ${pass ? "pass" : "reject"}`,
+    );
+    return { pass, rgbDelta, bboxDelta };
+  } catch (error) {
+    console.warn(`[product-visibility-gate] stage=${stage} 계산 실패 — pass`, error);
+    return { pass: true, rgbDelta: null, bboxDelta: null };
   }
 }
 
@@ -1219,11 +1358,12 @@ export async function compositeProductOnLifestylePhoto(params: {
           }
 
           try {
-            const pasted = await pasteCutoutOnScene({
+            const pasteResult = await pasteCutoutOnSceneDetailed({
               sceneBuffer: lifestyle.buffer,
               cutoutBuffer: cutoutImage.buffer,
               placement,
             });
+            const pasted = pasteResult.buffer;
 
             const matchedGrasp = findMatchingGraspRegion(
               placement,
@@ -1235,7 +1375,19 @@ export async function compositeProductOnLifestylePhoto(params: {
             let method: LifestyleCompositeResult["method"] = "pixel-paste";
             let graspRefineDiagnostics: GraspRefineDiagnostics | undefined;
 
-            if (matchedGrasp) {
+            // 275차 — geometry 판정만으로 성공 처리하지 않는다. 상품 위치에 상품색이 안 남아 있으면
+            // 폴백(requirePixelPaste면 composited:false)으로 넘긴다.
+            let visibilityRejectReason: string | undefined;
+            const pasteVisibility = await evaluateProductVisibility({
+              finalBuffer: pasted,
+              pasteRect: pasteResult.rect,
+              cutoutReference: cutoutImage.buffer,
+              cutoutPrepared: pasteResult.cutoutPrepared,
+              stage: "paste",
+            });
+            if (!pasteVisibility.pass) visibilityRejectReason = "product-not-visible-after-paste";
+
+            if (matchedGrasp && !visibilityRejectReason) {
               const sceneMeta = await sharp(pasted).metadata();
               const sceneW = sceneMeta.width ?? 1;
               const sceneH = sceneMeta.height ?? 1;
@@ -1256,6 +1408,14 @@ export async function compositeProductOnLifestylePhoto(params: {
               if (refine.refined) {
                 finalBuffer = refine.buffer;
                 method = "pixel-paste+grasp-refine";
+                const refineVisibility = await evaluateProductVisibility({
+                  finalBuffer,
+                  pasteRect: pasteResult.rect,
+                  cutoutReference: cutoutImage.buffer,
+                  cutoutPrepared: pasteResult.cutoutPrepared,
+                  stage: "refine",
+                });
+                if (!refineVisibility.pass) visibilityRejectReason = "product-not-visible-after-refine";
               }
 
               if (qaGraspRefineDiagnostics) {
@@ -1295,18 +1455,26 @@ export async function compositeProductOnLifestylePhoto(params: {
               }
             }
 
-            console.log(`[lifestyle-composite] stage=direct-paste success method=${method}`);
-            console.log(`[cost] lifestyle-composite (${method}): $${cost.toFixed(4)}`);
+            if (visibilityRejectReason) {
+              // requirePixelPaste면 아래 공통 분기가 이 사유로 composited:false 반환
+              pixelPasteFailReason = visibilityRejectReason;
+              console.warn(
+                `[lifestyle-composite] stage=direct-paste rejected, reason=${visibilityRejectReason} method=${method}`,
+              );
+            } else {
+              console.log(`[lifestyle-composite] stage=direct-paste success method=${method}`);
+              console.log(`[cost] lifestyle-composite (${method}): $${cost.toFixed(4)}`);
 
-            return {
-              url: bufferToDataUrl(finalBuffer),
-              cost,
-              composited: true,
-              method,
-              placementConfidence: detection.placement.confidence,
-              graspRefineDiagnostics,
-              qaPasteBeforeRefineUrl: qaGraspRefineDiagnostics ? bufferToDataUrl(pasted) : undefined,
-            };
+              return {
+                url: bufferToDataUrl(finalBuffer),
+                cost,
+                composited: true,
+                method,
+                placementConfidence: detection.placement.confidence,
+                graspRefineDiagnostics,
+                qaPasteBeforeRefineUrl: qaGraspRefineDiagnostics ? bufferToDataUrl(pasted) : undefined,
+              };
+            }
           } catch (error) {
             const reason = error instanceof Error ? error.message : String(error);
             // 167차 — sharp 캔버스 초과 등 실제 사유를 보존 (아래 requirePixelPaste가 덮지 않음)
