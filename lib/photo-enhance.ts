@@ -1502,6 +1502,20 @@ export async function sharpenCutout(cutoutUrl: string): Promise<{ url: string; c
     return { url: cutoutUrl, cost: REPLICATE_COST_USD.backgroundRemover };
   }
 
+  // 271차 — clarity-upscaler(philz1337x/clarity-upscaler)는 SD img2img 기반이라
+  // 구조적으로 알파 채널을 보존하지 못하고 항상 RGB만 반환한다(GitHub predict.py
+  // 대조 확인, 270차). 투명 컷아웃(이 함수의 유일한 실사용 케이스)에 호출하면
+  // 매번 알파가 사라져 기존 안전장치가 결과를 버리고 원본으로 폴백하는데, 호출
+  // 자체는 과금된다 — 즉 $0.016을 내고 항상 버려지는 결과를 사는 셈. 알파가
+  // 유의미하게 있는 입력이면 호출 자체를 생략한다(사용자 확인 후 결정, 2026-09-29).
+  if (origAlpha > 0.08) {
+    console.log(
+      `[cost] sharpenCutout: 투명 컷아웃(alpha=${origAlpha.toFixed(3)}) — clarity-upscaler ` +
+        `구조적 알파 미보존으로 호출 생략 ($0 대신 $${REPLICATE_COST_USD.clarityUpscaler.toFixed(4)} 절감)`,
+    );
+    return { url: cutoutUrl, cost: REPLICATE_COST_USD.backgroundRemover };
+  }
+
   console.log(
     `[cost] sharpenCutout: clarity-upscaler ON (TEST_MODE=false): $${REPLICATE_COST_USD.clarityUpscaler.toFixed(4)}`,
   );
