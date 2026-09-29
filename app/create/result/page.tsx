@@ -20,6 +20,7 @@ import type { InstagramSlideOverride } from "@/lib/instagram-feed";
 import { insertEmptyCanvasSection, insertReviewHighlightSection } from "@/lib/section-inserts";
 import { DRAFT_SESSION_KEY, RETRY_PHOTO_ONLY_KEY, SESSION_KEY } from "@/components/CreateProductForm";
 import type { CustomGifSection, DetailSection, GenerateResponse, PhotoCostBreakdown, ReviewInsightsInput } from "@/lib/types/generate";
+import { GENERATE_DELAYED_MESSAGE, readJsonResponse } from "@/lib/read-json-response";
 import type { PatchChatMessage } from "@/lib/patch-section-suggestions";
 import { getCategoryTheme } from "@/lib/category-theme";
 import { resolveHeadlineFontKind } from "@/lib/detail-typography";
@@ -660,7 +661,8 @@ function CreateResultContent() {
           productId: data.generated?.productId ?? null,
         }),
       });
-      const result = await response.json();
+      const result = await readJsonResponse<GenerateResponse & { error?: string }>(response);
+      if (!result) throw new Error(GENERATE_DELAYED_MESSAGE);
       if (!response.ok) {
         throw new Error(result.error ?? "AI 생성에 실패했습니다.");
       }

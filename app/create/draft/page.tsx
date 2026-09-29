@@ -24,7 +24,13 @@ import {
 } from "@/lib/photo-pipeline-client";
 import { getSectionAidaPhase } from "@/lib/section-aida";
 import { buildGenerationPipelineSummary } from "@/lib/generation-pipeline-summary";
-import type { DetailSection, GenerateResponse, PhotoCostBreakdown } from "@/lib/types/generate";
+import type {
+  DetailSection,
+  DraftGenerateResponse,
+  GenerateResponse,
+  PhotoCostBreakdown,
+} from "@/lib/types/generate";
+import { GENERATE_DELAYED_MESSAGE, readJsonResponse } from "@/lib/read-json-response";
 
 function sectionPreviewText(section: DetailSection): string {
   switch (section.type) {
@@ -193,7 +199,8 @@ export default function CreateDraftPage() {
           mode: "draft",
         }),
       });
-      const json = await res.json();
+      const json = await readJsonResponse<DraftGenerateResponse & { error?: string }>(res);
+      if (!json) throw new Error(GENERATE_DELAYED_MESSAGE);
       if (!res.ok) throw new Error(json.error ?? "재생성에 실패했습니다.");
 
       setOverlaySnap(true);
@@ -446,11 +453,14 @@ export default function CreateDraftPage() {
         draftToken: draftAfterEnhance.draftToken,
       }),
     });
-    const json = (await res.json()) as GenerateResponse & {
-      error?: string;
-      balance?: number;
-      required?: number;
-    };
+    const json = await readJsonResponse<
+      GenerateResponse & {
+        error?: string;
+        balance?: number;
+        required?: number;
+      }
+    >(res);
+    if (!json) throw new Error(GENERATE_DELAYED_MESSAGE);
     if (!res.ok) {
       if (res.status === 402 && json.error === "insufficient_credits") {
         const balance = json.balance ?? 0;

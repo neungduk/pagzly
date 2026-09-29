@@ -294,7 +294,8 @@ async function generateSingleConceptIcon(
         const retryable = isRetryableReplicateError(error);
         if (!retryable || attempt === 3) throw error;
         console.warn(`[concept-icons] ${model} ${status ?? "no-status"} — ${attempt}/3 재시도`);
-        await new Promise((resolve) => setTimeout(resolve, attempt * 2500));
+        // 병렬 호출이 같은 순간에 429를 받으면 재시도도 동시에 몰리므로 지터로 분산
+        await new Promise((resolve) => setTimeout(resolve, attempt * 2500 + Math.random() * 1500));
       }
     }
     throw lastError;
@@ -423,11 +424,13 @@ function modelForIconGroup(key: keyof ConceptIconMap): IconModelKey {
 
 // 동시 실행 개수 제한 — flux-schnell 호출을 한 번에 너무 많이 터뜨리면
 // Replicate rate limit에 걸릴 수 있어 배치 단위로 나눠 돈다.
-// recraft 계열(v3/v4/v4-svg)은 저크레딧 계정에서 burst=1로 조이므로 순차 실행.
+// recraft 계열(v3/v4/v4-svg)은 rate limit 여유를 위해 보수적으로 3.
+// (순차 1+11초 대기는 10장 기준 250초 안팎을 써서 Hobby 300초 함수 제한에 걸렸다)
 const CONCURRENCY = 6;
+const RECRAFT_CONCURRENCY = 3;
 
 function iconConcurrency(model: IconModelKey): number {
-  return isRecraftModel(model) ? 1 : CONCURRENCY;
+  return isRecraftModel(model) ? RECRAFT_CONCURRENCY : CONCURRENCY;
 }
 
 async function runInBatches<T, R>(
@@ -526,7 +529,7 @@ export async function generateConceptIcons(
     });
   }
 
-  // 모델별 분리 배치 — recraft(동시성1+11s)와 schnell(동시성6)을 섞지 않음
+  // 모델별 분리 배치 — 모델마다 동시성 한도가 달라 섞지 않되, 모델 그룹끼리는 동시에 실행
   const byModel = new Map<IconModelKey, FlatItem[]>();
   for (const item of flat) {
     const list = byModel.get(item.model) ?? [];
@@ -534,33 +537,38 @@ export async function generateConceptIcons(
     byModel.set(item.model, list);
   }
 
-  const settled: (FlatItem & { dataUrl: string; cost: number })[] = [];
-  for (const [model, items] of byModel) {
-    console.log(
-      `[concept-icons] batch model=${model} n=${items.length} concurrency=${iconConcurrency(model)}`,
-    );
-    const batchSettled = await runInBatches(
-      items,
-      async (item) => {
-        try {
-          const { dataUrl, cost } = await generateSingleConceptIconWithFallback(
-            item.label,
-            brief,
-            theme,
-            item.motifIndex,
-            item.hueOffset,
-            item.model,
-          );
-          return { ...item, dataUrl, cost };
-        } catch (error) {
-          console.warn(`[concept-icons] "${item.label}" (${item.model}) 생성 실패`, error);
-          return { ...item, dataUrl: "", cost: 0 };
-        }
-      },
-      iconConcurrency(model),
-    );
-    settled.push(...batchSettled);
-  }
+  const iconStartedAt = Date.now();
+  const perModelSettled = await Promise.all(
+    [...byModel].map(([model, items]) => {
+      console.log(
+        `[concept-icons] batch model=${model} n=${items.length} concurrency=${iconConcurrency(model)}`,
+      );
+      return runInBatches(
+        items,
+        async (item) => {
+          try {
+            const { dataUrl, cost } = await generateSingleConceptIconWithFallback(
+              item.label,
+              brief,
+              theme,
+              item.motifIndex,
+              item.hueOffset,
+              item.model,
+            );
+            return { ...item, dataUrl, cost };
+          } catch (error) {
+            console.warn(`[concept-icons] "${item.label}" (${item.model}) 생성 실패`, error);
+            return { ...item, dataUrl: "", cost: 0 };
+          }
+        },
+        iconConcurrency(model),
+      );
+    }),
+  );
+  const settled = perModelSettled.flat();
+  console.log(
+    `[concept-icons] all batches done in ${((Date.now() - iconStartedAt) / 1000).toFixed(1)}s`,
+  );
 
   const totalCost = settled.reduce((sum, r) => sum + r.cost, 0);
   const succeeded = settled.filter((r) => r.dataUrl).length;

@@ -1296,6 +1296,9 @@ function normalizeSectionsToTemplate(
   return ordered;
 }
 
+// Vercel Hobby(Fluid compute) 함수 시간 상한이 300초라 더 올릴 수 없다. Pro 전환 시 최대 800.
+export const maxDuration = 300;
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();

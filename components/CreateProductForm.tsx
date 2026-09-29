@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase";
 import { productImageProtectedUntil } from "@/lib/product-image-protection";
 import { countSlotSections, type SlotLength } from "@/lib/section-templates";
 import type { DraftGenerateResponse } from "@/lib/types/generate";
+import { GENERATE_DELAYED_MESSAGE, readJsonResponse } from "@/lib/read-json-response";
 import type { UploadedImage } from "@/lib/photo-pipeline-client";
 import { MAX_PRODUCT_IMAGES, MIN_AI_USED_IMAGES } from "@/lib/assign-section-images";
 import {
@@ -652,7 +653,10 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         body: JSON.stringify(payload),
       });
 
-      const generateResult = await generateResponse.json();
+      const generateResult = await readJsonResponse<DraftGenerateResponse & { error?: string }>(
+        generateResponse,
+      );
+      if (!generateResult) throw new Error(GENERATE_DELAYED_MESSAGE);
 
       if (!generateResponse.ok) {
         throw new Error(generateResult.error ?? "AI 생성에 실패했습니다.");
