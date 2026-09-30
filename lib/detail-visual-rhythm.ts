@@ -59,10 +59,13 @@ export function resolveSplitImageLeft(
  */
 export function resolveSplitColumnRatio(pointIndex: number | undefined, imageLeft: boolean): string {
   const cycle = (pointIndex ?? 0) % 3;
-  if (cycle === 0) return "sm:grid-cols-2"; // 기본 50/50 — 좌우 무관
+  // 렌더러 루트 container(`@container/pz`) 폭 기준 — 좁은 프리뷰 칼럼에서는 1단 유지
+  if (cycle === 0) return "@min-[640px]/pz:grid-cols-2"; // 기본 50/50 — 좌우 무관
   const imageGetsThreeFr = cycle === 1; // 1주기=이미지 60%, 2주기=이미지 40%(텍스트 60%)
   const firstTrackGetsThreeFr = imageLeft ? imageGetsThreeFr : !imageGetsThreeFr;
-  return firstTrackGetsThreeFr ? "sm:grid-cols-[3fr_2fr]" : "sm:grid-cols-[2fr_3fr]";
+  return firstTrackGetsThreeFr
+    ? "@min-[640px]/pz:grid-cols-[3fr_2fr]"
+    : "@min-[640px]/pz:grid-cols-[2fr_3fr]";
 }
 
 /**

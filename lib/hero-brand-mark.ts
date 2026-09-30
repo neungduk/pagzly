@@ -74,9 +74,9 @@ export function resolveHeroBrandMark(opts: {
 /** 미리보기용 Tailwind 클래스 (영문 vs 한글) */
 export function heroWordmarkClassName(script: HeroBrandMarkScript): string {
   if (script === "cjk" || script === "mixed") {
-    return "font-heading text-[1.35rem] font-semibold tracking-[-0.02em] text-white sm:text-[1.5rem]";
+    return "font-heading text-[1.35rem] font-semibold tracking-[-0.02em] text-white @min-[640px]/pz:text-[1.5rem]";
   }
-  return "font-mono text-[1.15rem] font-semibold lowercase tracking-[0.28em] text-white sm:text-[1.25rem]";
+  return "font-mono text-[1.15rem] font-semibold lowercase tracking-[0.28em] text-white @min-[640px]/pz:text-[1.25rem]";
 }
 
 /**
@@ -84,7 +84,7 @@ export function heroWordmarkClassName(script: HeroBrandMarkScript): string {
  * 97차 히어로 전체 그라디언트(하단→상단 fade)와 분리: 상단 밝은 사진에서도 대비 확보.
  */
 export function heroWordmarkWrapClassName(): string {
-  return "absolute left-1/2 top-5 z-30 max-w-[70%] -translate-x-1/2 rounded-full bg-black/45 px-4 py-2 backdrop-blur-[2px] sm:top-7";
+  return "absolute left-1/2 top-5 z-30 max-w-[70%] -translate-x-1/2 rounded-full bg-black/45 px-4 py-2 backdrop-blur-[2px] @min-[640px]/pz:top-7";
 }
 
 /** export HTML용 인라인 스타일 */

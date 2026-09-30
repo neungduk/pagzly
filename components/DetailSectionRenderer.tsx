@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import {
   Check,
   CheckCircle2,
@@ -94,7 +94,7 @@ import NoiseComparisonDiagram from "@/components/NoiseComparisonDiagram";
 import WaterproofIpDiagram from "@/components/WaterproofIpDiagram";
 import WeightComparisonDiagram from "@/components/WeightComparisonDiagram";
 import PowerConsumptionDiagram from "@/components/PowerConsumptionDiagram";
-import { headlineDisplayStyle } from "@/lib/detail-typography";
+import { headlineDisplayStyle, longestTokenEm } from "@/lib/detail-typography";
 import VolumeComparisonDiagram from "@/components/VolumeComparisonDiagram";
 import UsageOrderFlowDiagram from "@/components/UsageOrderFlowDiagram";
 import FoodRatioDiagram from "@/components/FoodRatioDiagram";
@@ -196,11 +196,8 @@ const THEME_ICONS: Record<string, LucideIcon> = {
 
 const TEXT_COL_CLASS = "mx-auto max-w-xl text-center";
 const TEXT_COL_LEFT_CLASS = "max-w-xl text-left";
-const HEADLINE_CLAMP = "line-clamp-2";
-const BODY_CLAMP = "line-clamp-3";
-
 const BANNER_OVERLAY_CLASS =
-  "absolute inset-0 z-20 flex flex-col items-center justify-center px-6 text-center sm:px-10";
+  "absolute inset-0 z-20 flex flex-col items-center justify-center px-6 text-center @min-[640px]/pz:px-10";
 
 // 196차 — 195차가 재사용한 getHeroGradient(theme)는 브랜드색(accent/deepAccent) 기반이라
 // 히어로처럼 아주 큰 박스에서는 괜찮지만, 이 섹션의 짧은 aspect-[4/5] 박스에서는 브랜드색이
@@ -219,37 +216,44 @@ function getAspectVideoBleedScrim(): string {
 // 기법(이미지 위 absolute 텍스트)이지만, 히어로보다 훨씬 작은 aspect-[4/5] 박스에
 // 맞춰 하단 패딩을 줄인 버전.
 const EDITORIAL_BLEED_OVERLAY_CLASS =
-  "absolute inset-0 z-10 flex flex-col items-center justify-end px-6 pb-6 text-center sm:px-8 sm:pb-8";
+  "absolute inset-0 z-10 flex flex-col items-center justify-end px-6 pb-6 text-center @min-[640px]/pz:px-8 @min-[640px]/pz:pb-8";
 
 const TYPO = {
   // 182: 스케일 숫자는 design-tokens FONT_SIZE와 대응 (JIT용 클래스 리터럴 유지)
   heroCategory:
     "mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.28em] text-white/80",
   heroTitle:
-    "pagzly-display-headline font-heading text-[3rem] font-extrabold leading-[1.02] tracking-[-0.035em] text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)] sm:text-7xl",
+    "pagzly-display-headline pz-fit font-heading [--pz-fs:3rem] font-extrabold leading-[1.02] tracking-[-0.035em] text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)] @min-[640px]/pz:[--pz-fs:4.5rem]",
   bannerTitle:
-    "font-heading text-[1.65rem] font-bold leading-[1.15] tracking-[-0.03em] text-white sm:text-[1.85rem]",
+    "font-heading text-[1.65rem] font-bold leading-[1.15] tracking-[-0.03em] text-white @min-[640px]/pz:text-[1.85rem]",
   heroSub:
-    "mt-4 max-w-xl text-base font-normal leading-relaxed text-white/95 drop-shadow-[0_1px_12px_rgba(0,0,0,0.35)] sm:text-lg",
+    "mt-4 max-w-xl text-base font-normal leading-relaxed text-white/95 drop-shadow-[0_1px_12px_rgba(0,0,0,0.35)] @min-[640px]/pz:text-lg",
   bannerSub:
-    "mt-3 max-w-md text-sm font-normal leading-relaxed text-white/88 sm:text-base",
+    "mt-3 max-w-md text-sm font-normal leading-relaxed text-white/88 @min-[640px]/pz:text-base",
   compactTitle:
-    "font-heading text-base font-semibold leading-snug tracking-[-0.02em] text-ink sm:text-lg",
+    "font-heading text-base font-semibold leading-snug tracking-[-0.02em] text-ink @min-[640px]/pz:text-lg",
   compactBody: "mt-1.5 text-sm font-normal leading-relaxed text-ink/75",
   sectionTitle:
-    "pagzly-display-headline pagzly-ink-headline font-heading text-[2rem] font-bold leading-[1.2] tracking-[-0.03em] text-ink sm:text-[2.75rem]",
+    "pagzly-display-headline pagzly-ink-headline pz-fit font-heading [--pz-fs:2rem] font-bold leading-[1.2] tracking-[-0.03em] text-ink @min-[640px]/pz:[--pz-fs:2.75rem]",
   keywordDisplay:
-    "break-words font-heading text-[clamp(2.25rem,11vw,4.25rem)] font-black uppercase leading-[0.92] tracking-[-0.06em]",
+    "pz-fit font-heading font-black uppercase leading-[0.92] tracking-[-0.06em]",
+  keywordDisplaySize: "[--pz-fs:clamp(2.25rem,11cqi,4.25rem)]",
   sectionSubtitle:
-    "pagzly-ink-headline font-heading text-xl font-semibold leading-snug tracking-[-0.02em] text-ink sm:text-2xl",
+    "pagzly-ink-headline pz-fit font-heading [--pz-fs:1.25rem] font-semibold leading-snug tracking-[-0.02em] text-ink @min-[640px]/pz:[--pz-fs:1.5rem]",
   pointBadgePill:
     "inline-block rounded-full border px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.22em]",
   sectionLabel: "font-mono text-[10px] font-semibold uppercase tracking-[0.32em]",
   pointLabel: "font-mono text-[10px] font-bold uppercase tracking-[0.34em]",
-  body: "text-[0.9375rem] font-normal leading-[1.9] text-ink/72 sm:text-base sm:leading-[1.85]",
-  checklistItem: "mt-2.5 text-xs font-medium leading-snug text-ink/82 sm:text-sm",
-  stepItem: "mt-2.5 max-w-[7.5rem] text-[11px] font-normal leading-relaxed text-ink/78 sm:max-w-sm sm:text-sm",
+  body: "text-[0.9375rem] font-normal leading-[1.9] text-ink/72 @min-[640px]/pz:text-base @min-[640px]/pz:leading-[1.85]",
+  checklistItem:
+    "mt-2.5 pz-fit [--pz-fs:0.75rem] font-medium leading-snug text-ink/82 @min-[640px]/pz:[--pz-fs:0.875rem]",
+  stepItem: "mt-2.5 max-w-[7.5rem] text-[11px] font-normal leading-relaxed text-ink/78 @min-[640px]/pz:max-w-sm @min-[640px]/pz:text-sm",
 } as const;
+
+/** `.pz-fit` 요소용 — 부모 칸(container)보다 긴 어절이면 글자를 줄인다. letterSpacingEm은 해당 tracking 값 */
+function fitTokenStyle(text: string | undefined, letterSpacingEm = 0): CSSProperties {
+  return { "--pz-fit-em": longestTokenEm(text ?? "", letterSpacingEm) } as CSSProperties;
+}
 
 function resolveImage(imageUrls: string[], index: number | undefined) {
   if (imageUrls.length === 0) return "";
@@ -401,12 +405,19 @@ function ComparisonValueCell({
   );
 }
 
-function checklistGridClass(itemCount: number, category: string): string {
+function checklistGridClass(items: string[], category: string): string {
+  const itemCount = items.length;
   if (itemCount === 3) return "grid-cols-3";
-  if (itemCount === 5) return "grid-cols-2 sm:grid-cols-5";
+  if (itemCount === 5) return "grid-cols-2 @min-[640px]/pz:grid-cols-5";
   if (itemCount === 2) return "grid-cols-2 max-w-md mx-auto";
-  if (itemCount === 4) return getCategoryRhythm(category).checklistGridFour;
-  return "grid-cols-2 sm:grid-cols-3";
+  if (itemCount === 4) {
+    // 모바일 4열 칸(안쪽 약 40px)에 긴 어절이 들어가면 읽을 수 없을 만큼 줄어드므로 좁을 땐 2열
+    const hasLongToken = items.some((item) => longestTokenEm(item) > 3.5);
+    return hasLongToken
+      ? "grid-cols-2 @min-[640px]/pz:grid-cols-4"
+      : getCategoryRhythm(category).checklistGridFour;
+  }
+  return "grid-cols-2 @min-[640px]/pz:grid-cols-3";
 }
 
 function parseMetricPercent(value: string): number | null {
@@ -584,7 +595,7 @@ function ComparisonMetricRow({
           style={{ backgroundColor: hexToRgba(theme.accent, 0.14) }}
         >
           <span
-            className="w-20 shrink-0 truncate text-xs font-bold"
+            className="w-20 shrink-0 text-xs font-bold leading-snug"
             style={{ color: readableTextDeep(theme) }}
           >
             {ourLabel}
@@ -607,7 +618,7 @@ function ComparisonMetricRow({
           className="flex items-center gap-3 rounded-xl border px-3 py-2"
           style={{ borderColor: hexToRgba(theme.baseNeutral, 0.95) }}
         >
-          <span className="w-20 shrink-0 truncate text-xs text-ink/40">{baselineLabel}</span>
+          <span className="w-20 shrink-0 text-xs leading-snug text-ink/40">{baselineLabel}</span>
           <div
             className="h-1.5 flex-1 overflow-hidden rounded-full"
             style={{ backgroundColor: hexToRgba(theme.baseNeutral, 0.55) }}
@@ -753,7 +764,7 @@ function TextSectionPanel({
   }
   const surface = getTextPanelSurface(theme);
   return (
-    <div className={`relative ${overlap ? "-mt-8 sm:-mt-10" : ""} ${className}`}>
+    <div className={`relative ${overlap ? "-mt-8 @min-[640px]/pz:-mt-10" : ""} ${className}`}>
       <div
         aria-hidden="true"
         className={`absolute top-5 z-10 h-14 w-1 rounded-full ${align === "left" ? "left-0" : "-left-0.5"}`}
@@ -765,7 +776,7 @@ function TextSectionPanel({
         style={{ backgroundColor: hexToRgba(theme.accent, 0.1) }}
       />
       <div
-        className="relative overflow-hidden rounded-2xl border px-6 py-8 sm:px-8 sm:py-10"
+        className="relative overflow-hidden rounded-2xl border px-6 py-8 @min-[640px]/pz:px-8 @min-[640px]/pz:py-10"
         style={{
           borderColor: surface.borderColor,
           background: surface.background,
@@ -850,7 +861,7 @@ function SectionHeader({
   const accentColor = inverted ? BRAND.paper : theme.accent;
 
   return (
-    <header className={`mb-8 ${wrapClass}`}>
+    <header className={`@container mb-8 w-full ${wrapClass}`}>
       {kicker || indexLabel || pointBadge ? (
         <div className={`mb-3 flex flex-wrap items-center gap-3 ${rowClass}`}>
           {pointBadge ? (
@@ -890,8 +901,11 @@ function SectionHeader({
       ) : null}
       {megaKeyword ? (
         <p
-          className={`${TYPO.keywordDisplay} ${HEADLINE_CLAMP}`}
-          style={{ color: inverted ? BRAND.paper : readableTextDeep(theme) }}
+          className={`${TYPO.keywordDisplay} ${TYPO.keywordDisplaySize}`}
+          style={{
+            color: inverted ? BRAND.paper : readableTextDeep(theme),
+            ...fitTokenStyle(megaKeyword, -0.06),
+          }}
         >
           {megaKeyword}
         </p>
@@ -901,8 +915,11 @@ function SectionHeader({
         enabled={edit?.enabled}
         value={title}
         onChange={onTitleChange ?? (() => {})}
-        className={`pagzly-ink-headline ${HEADLINE_CLAMP} ${megaKeyword ? TYPO.sectionSubtitle : TYPO.sectionTitle}`}
-        style={inverted ? { color: BRAND.paper } : undefined}
+        className={`pagzly-ink-headline ${megaKeyword ? TYPO.sectionSubtitle : TYPO.sectionTitle}`}
+        style={{
+          ...(inverted ? { color: BRAND.paper } : {}),
+          ...fitTokenStyle(title, megaKeyword ? -0.02 : -0.03),
+        }}
       />
     </header>
   );
@@ -960,7 +977,7 @@ function SectionAccentHairline({ theme }: { theme: CategoryTheme }) {
 
 function PreviewCollapseBar({ onExpand }: { onExpand: () => void }) {
   return (
-    <div className="relative border-t border-line bg-paper px-6 py-8 sm:px-10">
+    <div className="relative border-t border-line bg-paper px-6 py-8 @min-[640px]/pz:px-10">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 -top-16 h-16 bg-gradient-to-t from-paper to-transparent"
@@ -993,7 +1010,7 @@ function TrustStrip({
   if (chips.length === 0) return null;
   return (
     <div
-      className="border-b border-t px-6 py-4 sm:px-10"
+      className="border-b border-t px-6 py-4 @min-[640px]/pz:px-10"
       style={{
         borderColor: hexToRgba(theme.accent, 0.22),
         backgroundColor: hexToRgba(theme.baseNeutral, 0.65),
@@ -1083,11 +1100,11 @@ if (
 }
 
 const CIRCLE_COMBO_IMG_CLASS =
-  `h-20 w-20 rounded-full object-cover ${TW_ELEVATION.imageThumb} ring-1 ring-ink/10 sm:h-24 sm:w-24`;
+  `h-20 w-20 rounded-full object-cover ${TW_ELEVATION.imageThumb} ring-1 ring-ink/10 @min-[640px]/pz:h-24 @min-[640px]/pz:w-24`;
 const CIRCLE_SOLO_IMG_CLASS =
-  `h-[7.5rem] w-[7.5rem] rounded-full object-cover ${TW_ELEVATION.imageThumb} ring-1 ring-ink/10 sm:h-[9.375rem] sm:w-[9.375rem]`;
+  `h-[7.5rem] w-[7.5rem] rounded-full object-cover ${TW_ELEVATION.imageThumb} ring-1 ring-ink/10 @min-[640px]/pz:h-[9.375rem] @min-[640px]/pz:w-[9.375rem]`;
 const CIRCLE_PAIR_IMG_CLASS =
-  `h-24 w-24 rounded-full object-cover ${TW_ELEVATION.imageThumb} ring-1 ring-ink/10 sm:h-[7.5rem] sm:w-[7.5rem]`;
+  `h-24 w-24 rounded-full object-cover ${TW_ELEVATION.imageThumb} ring-1 ring-ink/10 @min-[640px]/pz:h-[7.5rem] @min-[640px]/pz:w-[7.5rem]`;
 
 function renderIngredientCircleVisual(params: {
   section: ImageTextSection;
@@ -1119,7 +1136,7 @@ function renderIngredientCircleVisual(params: {
   if (isCirclePairSection(section) && section.circlePair) {
     const [left, right] = section.circlePair;
     return (
-      <div className="mx-auto flex max-w-md items-start justify-center gap-8 sm:gap-12">
+      <div className="mx-auto flex max-w-md items-start justify-center gap-8 @min-[640px]/pz:gap-12">
         {[left, right].map((item, pairIndex) => (
           <div
             key={`${item.label}-${pairIndex}`}
@@ -1160,7 +1177,7 @@ function renderComparisonChartBody(params: {
       >
         COMPARE
       </p>
-      <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}>
+      <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}>
         {section.heading}
       </h3>
       <div className="mx-auto mt-10 max-w-md space-y-8">
@@ -1219,7 +1236,7 @@ function renderComparisonChartBody(params: {
                   {item.quotes.filter(Boolean).map((quote, qi) => (
                     <li
                       key={qi}
-                      className="rounded-xl border border-ink/10 bg-paper px-4 py-3 text-center text-[12px] leading-relaxed text-ink/55 sm:text-[13px]"
+                      className="rounded-xl border border-ink/10 bg-paper px-4 py-3 text-center text-[12px] leading-relaxed text-ink/55 @min-[640px]/pz:text-[13px]"
                     >
                       <span className="mr-1 font-heading text-lg leading-none text-ink/25" aria-hidden>
                         &ldquo;
@@ -1304,7 +1321,7 @@ function renderSection(
         <div key={`hero-wrap-${index}`} className="relative">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -right-10 -top-10 h-56 w-56 rounded-full blur-3xl sm:h-72 sm:w-72"
+            className="pointer-events-none absolute -right-10 -top-10 h-56 w-56 rounded-full blur-3xl @min-[640px]/pz:h-72 @min-[640px]/pz:w-72"
             style={{ backgroundColor: getDecorationColor(theme), zIndex: 0 }}
           />
           <section
@@ -1328,7 +1345,7 @@ function renderSection(
             />
             {section.badge ? (
               <span
-                className="absolute left-0 top-5 z-20 pl-4 pr-5 py-2 text-xs font-bold tracking-wide text-paper shadow-md sm:top-7"
+                className="absolute left-0 top-5 z-20 pl-4 pr-5 py-2 text-xs font-bold tracking-wide text-paper shadow-md @min-[640px]/pz:top-7"
                 style={{
                   backgroundColor: solidDeepOnPaper(theme),
                   clipPath: "polygon(0 0, 100% 0, calc(100% - 8px) 50%, 100% 100%, 0 100%)",
@@ -1339,7 +1356,7 @@ function renderSection(
             ) : null}
             {brandMark.kind === "logo" && logoUrl ? (
               <div
-                className="absolute left-1/2 top-5 z-30 flex max-w-[28%] -translate-x-1/2 items-center justify-center px-3 py-2 sm:top-7"
+                className="absolute left-1/2 top-5 z-30 flex max-w-[28%] -translate-x-1/2 items-center justify-center px-3 py-2 @min-[640px]/pz:top-7"
                 data-hero-brand-mark="logo"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1364,7 +1381,7 @@ function renderSection(
                 </p>
               </div>
             ) : null}
-            <div className={getCategoryRhythm(category).heroOverlayClass}>
+            <div className={`@container ${getCategoryRhythm(category).heroOverlayClass}`}>
               <p className={TYPO.heroCategory}>{category}</p>
               <EditableText
                 as="h2"
@@ -1373,8 +1390,14 @@ function renderSection(
                 onChange={(headline) =>
                   edit?.onChange(index, { ...section, headline })
                 }
-                className={`pagzly-ink-headline ${HEADLINE_CLAMP} ${TYPO.heroTitle} ${getCategoryRhythm(category).heroTitleExtra}`}
-                style={headlineDisplayStyle(category)}
+                className={`pagzly-ink-headline ${TYPO.heroTitle} ${getCategoryRhythm(category).heroTitleExtra}`}
+                style={{
+                  ...headlineDisplayStyle(category),
+                  ...fitTokenStyle(
+                    section.headline,
+                    parseFloat(headlineDisplayStyle(category).letterSpacing),
+                  ),
+                }}
                 {...elementSelectProps(edit, index, "headline")}
               />
               {(section.subheadline || edit?.enabled) ? (
@@ -1385,7 +1408,7 @@ function renderSection(
                   onChange={(subheadline) =>
                     edit?.onChange(index, { ...section, subheadline })
                   }
-                  className={`${HEADLINE_CLAMP} ${TYPO.heroSub}`}
+                  className={`${TYPO.heroSub}`}
                   {...elementSelectProps(edit, index, "subheadline")}
                 />
               ) : null}
@@ -1419,7 +1442,7 @@ function renderSection(
           key={`checklist-${index}`}
           className={`relative overflow-hidden ${
             compactFollow
-              ? "px-6 pb-10 pt-2 sm:px-10 sm:pb-14"
+              ? "px-6 pb-10 pt-2 @min-[640px]/pz:px-10 @min-[640px]/pz:pb-14"
               : getCategoryRhythm(category).generousPadClass
           }`}
           style={textSectionStyle(theme, checklistPattern, category)}
@@ -1444,7 +1467,7 @@ function renderSection(
                   enabled={edit?.enabled}
                   value={section.heading}
                   onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-                  className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
+                  className={`${TYPO.sectionTitle}`}
                   style={boldBlock ? { color: BRAND.paper } : undefined}
                 />
               </div>
@@ -1453,12 +1476,12 @@ function renderSection(
           <ul
             className={`relative ${compactFollow ? "mt-8" : "mt-10"} grid ${
               compactFollow ? "gap-x-3 gap-y-6" : getCategoryRhythm(category).checklistGapClass
-            } ${checklistGridClass(items.length, category)}`}
+            } ${checklistGridClass(items, category)}`}
           >
             {items.map((item, itemIndex) => (
               <li
                 key={`${itemIndex}-${item.slice(0, 12)}`}
-                className="flex flex-col items-center rounded-2xl border px-4 py-5 text-center transition-transform duration-300 hover:-translate-y-0.5"
+                className="@container flex flex-col items-center rounded-2xl border px-4 py-5 text-center transition-transform duration-300 hover:-translate-y-0.5"
                 style={{
                   borderColor: boldBlock
                     ? hexToRgba(BRAND.paper, 0.22)
@@ -1488,7 +1511,10 @@ function renderSection(
                     edit?.onChange(index, { ...section, items });
                   }}
                   className={TYPO.checklistItem}
-                  style={boldBlock ? { color: BRAND.paper } : undefined}
+                  style={{
+                    ...(boldBlock ? { color: BRAND.paper } : {}),
+                    ...fitTokenStyle(item),
+                  }}
                 />
               </li>
             ))}
@@ -1503,7 +1529,7 @@ function renderSection(
         return (
           <section
             key={`image_text-${index}`}
-            className="px-6 py-10 sm:px-10 sm:py-12"
+            className="px-6 py-10 @min-[640px]/pz:px-10 @min-[640px]/pz:py-12"
             style={textSectionStyle(theme, pattern, category)}
           >
             <div className="mx-auto max-w-xl">
@@ -1530,7 +1556,7 @@ function renderSection(
         return (
           <section
             key={`image_text-${index}`}
-            className="px-6 py-8 sm:px-10 sm:py-10"
+            className="px-6 py-8 @min-[640px]/pz:px-10 @min-[640px]/pz:py-10"
             style={textSectionStyle(theme, pattern, category)}
           >
             {renderIngredientCircleVisual({
@@ -1552,7 +1578,7 @@ function renderSection(
         return (
           <section
             key={`image_text-${index}`}
-            className="px-6 py-5 sm:px-10 sm:py-6"
+            className="px-6 py-5 @min-[640px]/pz:px-10 @min-[640px]/pz:py-6"
             style={textSectionStyle(theme, pattern, category)}
           >
             <div
@@ -1564,7 +1590,7 @@ function renderSection(
                 <SectionImage
                   src={src}
                   alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
-                  className={`h-24 w-24 object-cover sm:h-[7.5rem] sm:w-[7.5rem] ${thumbRadius}`}
+                  className={`h-24 w-24 object-cover @min-[640px]/pz:h-[7.5rem] @min-[640px]/pz:w-[7.5rem] ${thumbRadius}`}
                 />
                 <ImageReplaceHit
                   enabled={edit?.enabled}
@@ -1603,8 +1629,8 @@ function renderSection(
             style={textSectionStyle(theme, pattern, category)}
           >
             <SectionBackdropAccent theme={theme} />
-            <div className="relative mx-auto grid max-w-5xl items-center gap-8 px-6 sm:grid-cols-2 sm:gap-10 sm:px-10">
-              <div className={imageLeft ? "order-1" : "order-1 sm:order-2"}>
+            <div className="relative mx-auto grid max-w-5xl items-center gap-8 px-6 @min-[640px]/pz:grid-cols-2 @min-[640px]/pz:gap-10 @min-[640px]/pz:px-10">
+              <div className={imageLeft ? "order-1" : "order-1 @min-[640px]/pz:order-2"}>
                 <div
                   className="relative overflow-hidden rounded-2xl"
                   style={{ boxShadow: ELEVATION.imageLift(theme.deepAccent) }}
@@ -1621,7 +1647,7 @@ function renderSection(
                   />
                 </div>
               </div>
-              <div className={`${imageLeft ? "order-2" : "order-2 sm:order-1"} min-w-0`}>
+              <div className={`${imageLeft ? "order-2" : "order-2 @min-[640px]/pz:order-1"} min-w-0`}>
                 <TextSectionPanel theme={theme}>
                   <p className={`mb-4 ${TYPO.sectionLabel}`} style={{ color: readableTextDeep(theme) }}>
                     FEATURE
@@ -1631,7 +1657,7 @@ function renderSection(
                     enabled={edit?.enabled}
                     value={section.heading}
                     onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-                    className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
+                    className={`${TYPO.sectionTitle}`}
                   />
                   <EditableText
                     as="p"
@@ -1639,7 +1665,7 @@ function renderSection(
                     enabled={edit?.enabled}
                     value={section.body}
                     onChange={(body) => edit?.onChange(index, { ...section, body })}
-                    className={`mt-4 ${BODY_CLAMP} ${TYPO.body}`}
+                    className={`mt-4 ${TYPO.body}`}
                   />
                 </TextSectionPanel>
                 {section.slot === "package_contents" ? (
@@ -1679,10 +1705,10 @@ function renderSection(
         return (
           <section
             key={`image_text-${index}`}
-            className="pb-12 sm:pb-16"
+            className="pb-12 @min-[640px]/pz:pb-16"
             style={textSectionStyle(theme, pattern, category)}
           >
-            <div className="relative px-4 pt-4 sm:px-6 sm:pt-6">
+            <div className="relative px-4 pt-4 @min-[640px]/pz:px-6 @min-[640px]/pz:pt-6">
               <div
                 className="overflow-hidden rounded-2xl"
                 style={{ boxShadow: ELEVATION.imageSoft(theme.deepAccent) }}
@@ -1698,11 +1724,11 @@ function renderSection(
                 />
                 {bubbleText ? (
                   <div
-                    className="absolute bottom-6 left-1/2 z-10 max-w-[85%] -translate-x-1/2 sm:bottom-8"
+                    className="absolute bottom-6 left-1/2 z-10 max-w-[85%] -translate-x-1/2 @min-[640px]/pz:bottom-8"
                     aria-hidden={!edit?.enabled}
                   >
                     <div
-                      className="relative rounded-2xl px-5 py-3 text-center text-sm font-semibold leading-snug text-paper shadow-lg sm:text-base"
+                      className="relative rounded-2xl px-5 py-3 text-center text-sm font-semibold leading-snug text-paper shadow-lg @min-[640px]/pz:text-base"
                       style={{ backgroundColor: solidDeepOnPaper(theme) }}
                     >
                       <EditableText
@@ -1723,7 +1749,7 @@ function renderSection(
                 ) : null}
               </div>
             </div>
-            <div className={`${getCategoryRhythm(category).pointTextPadClass} px-6 sm:px-10`}>
+            <div className={`${getCategoryRhythm(category).pointTextPadClass} px-6 @min-[640px]/pz:px-10`}>
               <TextSectionPanel theme={theme} overlap>
                 <p className={`mb-4 ${TYPO.sectionLabel}`} style={{ color: readableTextDeep(theme) }}>
                   HIGHLIGHT
@@ -1733,7 +1759,7 @@ function renderSection(
                   enabled={edit?.enabled}
                   value={section.heading}
                   onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-                  className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
+                  className={`${TYPO.sectionTitle}`}
                 />
                 <EditableText
                   as="p"
@@ -1741,7 +1767,7 @@ function renderSection(
                   enabled={edit?.enabled}
                   value={section.body}
                   onChange={(body) => edit?.onChange(index, { ...section, body })}
-                  className={`mt-4 ${BODY_CLAMP} ${TYPO.body}`}
+                  className={`mt-4 ${TYPO.body}`}
                 />
               </TextSectionPanel>
             </div>
@@ -1781,18 +1807,18 @@ function renderSection(
                   enabled={edit?.enabled}
                   value={section.heading}
                   onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-                  className={`line-clamp-1 ${TYPO.bannerTitle} ${getCategoryRhythm(category).heroTitleExtra}`}
+                  className={`${TYPO.bannerTitle} ${getCategoryRhythm(category).heroTitleExtra}`}
                 />
               </div>
             </div>
-            <div className={`${getCategoryRhythm(category).pointTextPadClass} mx-auto max-w-xl px-6 text-center sm:px-10`}>
+            <div className={`${getCategoryRhythm(category).pointTextPadClass} mx-auto max-w-xl px-6 text-center @min-[640px]/pz:px-10`}>
               <EditableText
                 as="p"
                 multiline
                 enabled={edit?.enabled}
                 value={section.body}
                 onChange={(body) => edit?.onChange(index, { ...section, body })}
-                className={`line-clamp-4 ${TYPO.body}`}
+                className={TYPO.body}
               />
             </div>
             {section.slot === "material_feature" && isIngredientRingCategory(category) ? (
@@ -1822,8 +1848,8 @@ function renderSection(
           style={textSectionStyle(theme, pattern, category)}
         >
           <SectionBackdropAccent theme={theme} />
-          <div className={`relative mx-auto grid max-w-5xl items-center gap-8 px-6 ${columnRatio} sm:gap-10 sm:px-10`}>
-            <div className={imageLeft ? "order-1" : "order-1 sm:order-2"}>
+          <div className={`relative mx-auto grid max-w-5xl items-center gap-8 px-6 ${columnRatio} @min-[640px]/pz:gap-10 @min-[640px]/pz:px-10`}>
+            <div className={imageLeft ? "order-1" : "order-1 @min-[640px]/pz:order-2"}>
               <div
                 className="relative overflow-hidden rounded-2xl"
                 style={{ boxShadow: ELEVATION.imageLift(theme.deepAccent) }}
@@ -1848,9 +1874,9 @@ function renderSection(
               </div>
             </div>
             <div
-              className={`${imageLeft ? "order-2" : "order-2 sm:order-1"} flex flex-col justify-center`}
+              className={`${imageLeft ? "order-2" : "order-2 @min-[640px]/pz:order-1"} flex flex-col justify-center`}
             >
-              <TextSectionPanel theme={theme} align="left" flat>
+              <TextSectionPanel theme={theme} align="left" flat className="@container">
                 {kicker ? (
                   <p className={`mb-3 ${TYPO.sectionLabel}`} style={{ color: readableTextDeep(theme) }}>
                     {kicker}
@@ -1868,14 +1894,11 @@ function renderSection(
                   enabled={edit?.enabled}
                   value={section.heading}
                   onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-                  // 219차: line-clamp-2→5. pagzly-ink-headline(display:inline-block)이
-                  // line-clamp의 -webkit-box를 덮어 줄 수 제한이 무력화되므로 ink 클래스 제외.
-                  // (TYPO.sectionTitle과 동일 타이포, ink 언더라인만 이 분기에서 빠짐)
-                  // 221차: break-words + ![overflow-wrap:anywhere] —
-                  // globals `.pagzly-display-headline`의 keep-all+overflow-wrap:break-word는
-                  // utility보다 특이도가 높아 break-words만으로는 무공백 긴 토큰이 안 접힘.
-                  // anywhere는 keep-all을 유지한 채 overflow 시에만 강제 줄바꿈.
-                  className={`break-words ![overflow-wrap:anywhere] line-clamp-5 pagzly-display-headline font-heading text-[2rem] font-bold leading-[1.2] tracking-[-0.03em] text-ink sm:text-[2.75rem]`}
+                  // TYPO.sectionTitle과 동일 타이포, ink 언더라인만 이 분기에서 빠짐.
+                  // 221차: ![overflow-wrap:anywhere] — globals `.pagzly-display-headline`의
+                  // keep-all+overflow-wrap:break-word는 utility보다 특이도가 높아 무공백 긴 토큰이 안 접힘.
+                  className={`![overflow-wrap:anywhere] pagzly-display-headline pz-fit font-heading [--pz-fs:2rem] font-bold leading-[1.2] tracking-[-0.03em] text-ink @min-[640px]/pz:[--pz-fs:2.75rem]`}
+                  style={fitTokenStyle(section.heading, -0.03)}
                 />
                 <EditableText
                   as="p"
@@ -1883,7 +1906,7 @@ function renderSection(
                   enabled={edit?.enabled}
                   value={section.body}
                   onChange={(body) => edit?.onChange(index, { ...section, body })}
-                  className={`mt-4 break-words line-clamp-7 ${TYPO.body}`}
+                  className={`mt-4 ${TYPO.body}`}
                 />
                 {section.slot === "ingredient_highlight" && isCosmeticsCategory(category) ? (
                   <p className="mt-3 text-[11px] leading-relaxed opacity-55">
@@ -2002,11 +2025,11 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
           />
           {specThumbUrls.length > 0 ? (
             <div
-              className={`mx-auto mt-8 flex items-center justify-center gap-3 sm:gap-4 ${TEXT_COL_CLASS} ${
+              className={`mx-auto mt-8 flex items-center justify-center gap-3 @min-[640px]/pz:gap-4 ${TEXT_COL_CLASS} ${
                 specThumbUrls.length > 1 ? "max-w-md" : ""
               }`}
             >
@@ -2023,8 +2046,8 @@ function renderSection(
                   )}
                   className={
                     specThumbUrls.length > 1
-                      ? `h-20 w-20 rounded-xl object-cover ${TW_ELEVATION.specThumbMulti} ring-1 ring-ink/10 sm:h-24 sm:w-24`
-                      : `mx-auto h-28 w-28 rounded-2xl object-cover ${TW_ELEVATION.imageThumb} ring-1 ring-ink/10 sm:h-32 sm:w-32`
+                      ? `h-20 w-20 rounded-xl object-cover ${TW_ELEVATION.specThumbMulti} ring-1 ring-ink/10 @min-[640px]/pz:h-24 @min-[640px]/pz:w-24`
+                      : `mx-auto h-28 w-28 rounded-2xl object-cover ${TW_ELEVATION.imageThumb} ring-1 ring-ink/10 @min-[640px]/pz:h-32 @min-[640px]/pz:w-32`
                   }
                 />
               ))}
@@ -2214,7 +2237,7 @@ function renderSection(
           >
             COMPARE
           </p>
-          <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}>
+          <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}>
             {section.heading}
           </h3>
           <div className="mx-auto mt-10 max-w-xl overflow-x-auto overflow-hidden rounded-lg">
@@ -2307,12 +2330,12 @@ function renderSection(
           >
             FIT CHECK
           </p>
-          <h3 className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}>
+          <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}>
             {section.heading}
           </h3>
-          <div className="mx-auto mt-10 grid max-w-3xl gap-6 sm:grid-cols-2">
+          <div className="mx-auto mt-10 grid max-w-3xl gap-6 @min-[640px]/pz:grid-cols-2">
             <div
-              className="rounded-2xl p-5 sm:p-6"
+              className="rounded-2xl p-5 @min-[640px]/pz:p-6"
               style={{ backgroundColor: hexToRgba(theme.accent, 0.1) }}
             >
               <p className="mb-4 text-xs font-semibold tracking-wide" style={{ color: readableTextDeep(theme) }}>
@@ -2328,7 +2351,7 @@ function renderSection(
               </ul>
             </div>
             <div
-              className="rounded-2xl p-5 sm:p-6"
+              className="rounded-2xl p-5 @min-[640px]/pz:p-6"
               style={{ backgroundColor: hexToRgba(theme.baseNeutral, 0.35) }}
             >
               <p className="mb-4 text-xs font-semibold tracking-wide text-ink/55">
@@ -2371,10 +2394,10 @@ function renderSection(
       const gridCols = isTrustEvidence
         ? "max-w-3xl grid-cols-1"
         : cards.length <= 2
-          ? "max-w-xl grid-cols-1 sm:grid-cols-2"
+          ? "max-w-xl grid-cols-1 @min-[640px]/pz:grid-cols-2"
           : cards.length === 3
-            ? "max-w-4xl grid-cols-1 sm:grid-cols-3"
-            : "max-w-5xl grid-cols-2 sm:grid-cols-4";
+            ? "max-w-4xl grid-cols-1 @min-[640px]/pz:grid-cols-3"
+            : "max-w-5xl grid-cols-2 @min-[640px]/pz:grid-cols-4";
       return (
         <section
           key={`highlight_box-${index}`}
@@ -2405,11 +2428,11 @@ function renderSection(
                 <div
                   key={cardIndex}
                   data-preview-pulse={emphasized ? "true" : undefined}
-                  className={`flex flex-col gap-2 rounded-2xl px-6 py-8 text-center ${
+                  className={`@container flex flex-col gap-2 rounded-2xl px-6 py-8 text-center ${
                     emphasized && !isTrustEvidence
-                      ? "pagzly-pulse-card pagzly-ink-shimmer sm:-translate-y-2"
+                      ? "pagzly-pulse-card pagzly-ink-shimmer @min-[640px]/pz:-translate-y-2"
                       : ""
-                  } ${isTrustEvidence ? "py-10 sm:py-14" : ""}`}
+                  } ${isTrustEvidence ? "py-10 @min-[640px]/pz:py-14" : ""}`}
                   style={{
                     backgroundColor: emphasized
                       ? hexToRgba(
@@ -2462,14 +2485,11 @@ function renderSection(
                   ) : null}
                   {cardKeyword.keyword && !isTrustEvidence ? (
                     <p
-                      className={`${TYPO.keywordDisplay} text-[clamp(1.75rem,8vw,2.75rem)]`}
-                      style={
-                        emphasized
-                          ? { color: BRAND.paper }
-                          : boldBlock
-                            ? { color: BRAND.paper }
-                            : { color: readableTextDeep(theme) }
-                      }
+                      className={`${TYPO.keywordDisplay} [--pz-fs:clamp(1.75rem,8cqi,2.75rem)]`}
+                      style={{
+                        color: emphasized || boldBlock ? BRAND.paper : readableTextDeep(theme),
+                        ...fitTokenStyle(cardKeyword.keyword, -0.06),
+                      }}
                     >
                       {cardKeyword.keyword}
                     </p>
@@ -2485,7 +2505,7 @@ function renderSection(
                     }}
                     className={
                       isTrustEvidence
-                        ? "font-heading text-2xl font-bold tracking-[-0.03em] sm:text-4xl"
+                        ? "font-heading text-2xl font-bold tracking-[-0.03em] @min-[640px]/pz:text-4xl"
                         : cardKeyword.keyword
                           ? "font-heading text-base font-semibold tracking-[-0.02em]"
                           : "font-heading text-lg font-bold tracking-[-0.02em]"
@@ -2535,7 +2555,7 @@ function renderSection(
           padClass={getCategoryRhythm(category).generousPadClass}
           textSectionStyle={textSectionStyle(theme, pattern, category)}
           accentHairline={<SectionAccentHairline theme={theme} />}
-          titleClassName={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+          titleClassName={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
         />
       );
     }
@@ -2592,13 +2612,13 @@ function renderSection(
           ? "max-w-xs grid-cols-1"
           : numberMetrics.length === 2
             ? "max-w-md grid-cols-2"
-            : "max-w-2xl grid-cols-2 sm:grid-cols-3";
+            : "max-w-2xl grid-cols-2 @min-[640px]/pz:grid-cols-3";
       const ringGridCols =
         ringMetrics.length <= 1
           ? "max-w-xs grid-cols-1"
           : ringMetrics.length === 2
             ? "max-w-md grid-cols-2"
-            : "max-w-2xl grid-cols-2 sm:grid-cols-3";
+            : "max-w-2xl grid-cols-2 @min-[640px]/pz:grid-cols-3";
 
       return (
         <section
@@ -2612,7 +2632,7 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
           />
           {numberMetrics.length > 0 && (
             <div className={`mx-auto mt-10 grid gap-x-5 gap-y-6 ${numberGridCols}`}>
@@ -2633,18 +2653,19 @@ function renderSection(
                       본문 제목(text-4xl)보다도 작아 "히어로 넘버"로서 시각적 임팩트가
                       부족하다는 점을 발견. 라벨 대비 숫자의 스케일 대비를 크게 벌려
                       숫자 자체가 그래픽 역할을 하도록(에디토리얼 스탯 카드 관례) 키움. */}
-                  <div style={{ color: readableTextDeep(theme) }}>
+                  <div className="@container w-full" style={{ color: readableTextDeep(theme) }}>
                     <EditableText
                       as="span"
                       enabled={edit?.enabled}
                       value={metric.value}
+                      style={fitTokenStyle(metric.value, -0.05)}
                       onChange={(value) => {
                         const metrics = section.metrics.map((item, i) =>
                           i === metricIndex ? { ...item, value } : item,
                         );
                         edit?.onChange(index, { ...section, metrics });
                       }}
-                      className="font-heading text-5xl font-black leading-none tracking-tighter tabular-nums sm:text-6xl"
+                      className="pz-fit font-heading [--pz-fs:3rem] font-black leading-none tracking-tighter tabular-nums @min-[640px]/pz:[--pz-fs:3.75rem]"
                     />
                     {renderFootnoteMark(metricIndex)}
                   </div>
@@ -2658,7 +2679,7 @@ function renderSection(
                       );
                       edit?.onChange(index, { ...section, metrics });
                     }}
-                    className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink/55 sm:text-xs"
+                    className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink/55 @min-[640px]/pz:text-xs"
                   />
                 </LayeredPanel>
               ))}
@@ -2680,7 +2701,7 @@ function renderSection(
                       <RadialGauge percent={percent} theme={theme} size={112} strokeWidth={10} />
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <span
-                          className="font-heading text-2xl font-black leading-none tracking-tighter tabular-nums sm:text-3xl"
+                          className="font-heading text-2xl font-black leading-none tracking-tighter tabular-nums @min-[640px]/pz:text-3xl"
                           style={{ color: readableTextDeep(theme) }}
                         >
                           {metric.value}
@@ -2688,7 +2709,7 @@ function renderSection(
                         {renderFootnoteMark(metricIndex)}
                       </div>
                     </div>
-                    <span className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink/55 sm:text-xs">
+                    <span className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink/55 @min-[640px]/pz:text-xs">
                       {metric.label}
                     </span>
                   </div>
@@ -2720,7 +2741,7 @@ function renderSection(
                             );
                             edit?.onChange(index, { ...section, metrics });
                           }}
-                          className="text-sm font-medium text-ink/65 sm:text-base"
+                          className="text-sm font-medium text-ink/65 @min-[640px]/pz:text-base"
                         />
                       </div>
                       <EditableText
@@ -2733,7 +2754,7 @@ function renderSection(
                           );
                           edit?.onChange(index, { ...section, metrics });
                         }}
-                        className="font-heading text-3xl font-black leading-none tracking-tighter tabular-nums text-ink sm:text-4xl"
+                        className="font-heading text-3xl font-black leading-none tracking-tighter tabular-nums text-ink @min-[640px]/pz:text-4xl"
                       />
                       {renderFootnoteMark(metricIndex)}
                     </div>
@@ -2767,7 +2788,7 @@ function renderSection(
       return (
         <section
           key={`illustration_banner-${index}`}
-          className="relative aspect-video w-full overflow-hidden"
+          className="relative w-full overflow-hidden"
         >
           {bgSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -2796,12 +2817,13 @@ function renderSection(
             }}
             aria-hidden="true"
           />
-          <div className={BANNER_OVERLAY_CLASS}>
+          {/* 문구가 길면 16:9보다 커지도록 오버레이를 흐름 안에 두고 aspect-video는 최소 높이로만 쓴다 */}
+          <div className="relative z-20 flex aspect-video w-full flex-col items-center justify-center px-6 py-8 text-center @min-[640px]/pz:px-10">
             {/* 249차 — 텍스트 블록 전용 스크림. 실사진 밝기·복잡도에도 대비 보장. */}
-            <div className="relative max-w-md px-5 py-5 sm:max-w-lg sm:px-8 sm:py-6">
+            <div className="relative max-w-md px-5 py-5 @min-[640px]/pz:max-w-lg @min-[640px]/pz:px-8 @min-[640px]/pz:py-6">
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-[-10%] rounded-2xl sm:rounded-3xl"
+                className="pointer-events-none absolute inset-[-10%] rounded-2xl @min-[640px]/pz:rounded-3xl"
                 style={{
                   background: hexToRgba(BRAND.ink, 0.9),
                   boxShadow: `0 8px 40px ${hexToRgba(BRAND.ink, 0.4)}`,
@@ -2814,7 +2836,7 @@ function renderSection(
                     enabled={edit?.enabled}
                     value={section.heading ?? ""}
                     onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-                    className={`${TYPO.bannerTitle} ${HEADLINE_CLAMP} ${getCategoryRhythm(category).heroTitleExtra}`}
+                    className={`${TYPO.bannerTitle} ${getCategoryRhythm(category).heroTitleExtra}`}
                   />
                 )}
                 {(section.body || edit?.enabled) && (
@@ -2824,7 +2846,7 @@ function renderSection(
                     enabled={edit?.enabled}
                     value={section.body ?? ""}
                     onChange={(body) => edit?.onChange(index, { ...section, body })}
-                    className={`${TYPO.bannerSub} ${HEADLINE_CLAMP}`}
+                    className={TYPO.bannerSub}
                   />
                 )}
               </div>
@@ -2880,19 +2902,19 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
           />
-          <ol className="relative mx-auto mt-14 max-w-3xl flex flex-col gap-10 sm:flex-row sm:items-start sm:gap-4">
+          <ol className="relative mx-auto mt-14 max-w-3xl flex flex-col gap-10 @min-[640px]/pz:flex-row @min-[640px]/pz:items-start @min-[640px]/pz:gap-4">
             {/* 연결선: 모바일은 세로(뱃지 중심 x=24px), sm 이상은 가로(뱃지 중심 y=24px) */}
             <div
               aria-hidden="true"
-              className="absolute left-6 top-0 bottom-0 w-px sm:left-0 sm:right-0 sm:top-6 sm:bottom-auto sm:h-px sm:w-auto"
+              className="absolute left-6 top-0 bottom-0 w-px @min-[640px]/pz:left-0 @min-[640px]/pz:right-0 @min-[640px]/pz:top-6 @min-[640px]/pz:bottom-auto @min-[640px]/pz:h-px @min-[640px]/pz:w-auto"
               style={{ backgroundColor: hexToRgba(theme.accent, 0.25) }}
             />
             {section.steps.map((step, stepIndex) => (
               <li
                 key={stepIndex}
-                className="relative flex items-start gap-4 sm:flex-1 sm:flex-col sm:items-center sm:gap-3 sm:text-center"
+                className="relative flex items-start gap-4 @min-[640px]/pz:flex-1 @min-[640px]/pz:flex-col @min-[640px]/pz:items-center @min-[640px]/pz:gap-3 @min-[640px]/pz:text-center"
               >
                 <div className="relative z-10 shrink-0">
                   <ConceptBadgeIcon
@@ -2902,7 +2924,7 @@ function renderSection(
                     size={INFO_BADGE.defaultSize}
                   />
                 </div>
-                <div className="min-w-0 flex-1 pt-1 sm:flex-none sm:pt-0">
+                <div className="min-w-0 flex-1 pt-1 @min-[640px]/pz:flex-none @min-[640px]/pz:pt-0">
                   <p
                     className={`mb-1.5 ${TYPO.sectionLabel}`}
                     style={{ color: readableTextAccent(theme) }}
@@ -2954,9 +2976,9 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
           />
-          <div className="mx-auto mt-12 grid max-w-4xl grid-cols-1 gap-8 sm:grid-cols-3">
+          <div className="mx-auto mt-12 grid max-w-4xl grid-cols-1 gap-8 @min-[640px]/pz:grid-cols-3">
             {steps.map((step, stepIndex) => {
               const src = resolveImage(imageUrls, step.imageIndex);
               return (
@@ -2999,7 +3021,7 @@ function renderSection(
                       nextSteps[stepIndex] = { ...nextSteps[stepIndex], body };
                       edit?.onChange(index, { ...section, steps: nextSteps });
                     }}
-                    className="mt-1 text-[11px] leading-relaxed text-ink/80 sm:text-sm"
+                    className="mt-1 text-[11px] leading-relaxed text-ink/80 @min-[640px]/pz:text-sm"
                   />
                 </div>
               );
@@ -3037,7 +3059,7 @@ function renderSection(
               enabled={edit?.enabled}
               value={section.heading}
               onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-              className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+              className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
             />
           </div>
           <div
@@ -3046,7 +3068,7 @@ function renderSection(
                 ? "grid grid-cols-2 gap-2"
                 : section.imageIndexes.length <= 2
                   ? `grid grid-cols-1 ${getCategoryRhythm(category).galleryGapClass}`
-                  : `grid grid-cols-2 ${getCategoryRhythm(category).galleryGapClass} sm:grid-cols-3`
+                  : `grid grid-cols-2 ${getCategoryRhythm(category).galleryGapClass} @min-[640px]/pz:grid-cols-3`
             }
             style={{ backgroundColor: hexToRgba(theme.accent, 0.18) }}
           >
@@ -3104,7 +3126,7 @@ function renderSection(
                 enabled={edit?.enabled}
                 value={section.heading}
                 onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-                className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
+                className={`${TYPO.sectionTitle}`}
               />
               <EditableText
                 as="p"
@@ -3112,7 +3134,7 @@ function renderSection(
                 enabled={edit?.enabled}
                 value={section.body}
                 onChange={(body) => edit?.onChange(index, { ...section, body })}
-                className={`mt-5 ${BODY_CLAMP} ${TYPO.body}`}
+                className={`mt-5 ${TYPO.body}`}
               />
             </TextSectionPanel>
           </div>
@@ -3139,8 +3161,8 @@ function renderSection(
         praiseItems.length === 1
           ? "max-w-md grid-cols-1"
           : praiseItems.length === 2
-            ? "max-w-2xl grid-cols-1 sm:grid-cols-2"
-            : "max-w-4xl grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
+            ? "max-w-2xl grid-cols-1 @min-[640px]/pz:grid-cols-2"
+            : "max-w-4xl grid-cols-1 @min-[640px]/pz:grid-cols-2 @min-[1024px]/pz:grid-cols-3";
       return (
         <section
           key={`review_highlight-${index}`}
@@ -3154,13 +3176,13 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
           />
           {typeof section.sourceReviewCount === "number" &&
           section.sourceReviewCount > 0 ? (
             <p
               data-testid="review-highlight-count"
-              className="mx-auto mt-2 max-w-xl text-center text-[11px] text-ink/40 sm:text-xs"
+              className="mx-auto mt-2 max-w-xl text-center text-[11px] text-ink/40 @min-[640px]/pz:text-xs"
             >
               실제 리뷰 {section.sourceReviewCount}건 분석
             </p>
@@ -3169,7 +3191,7 @@ function renderSection(
           section.petAgeWeightMentionCount > 0 ? (
             <p
               data-testid="review-highlight-pet-signal"
-              className="mx-auto mt-1 max-w-xl text-center text-[11px] text-ink/40 sm:text-xs"
+              className="mx-auto mt-1 max-w-xl text-center text-[11px] text-ink/40 @min-[640px]/pz:text-xs"
             >
               반려동물 나이·체중 언급 리뷰 {section.petAgeWeightMentionCount}건
             </p>
@@ -3178,7 +3200,7 @@ function renderSection(
           section.repurchaseMentionCount > 0 ? (
             <p
               data-testid="review-highlight-repurchase-signal"
-              className="mx-auto mt-1 max-w-xl text-center text-[11px] text-ink/40 sm:text-xs"
+              className="mx-auto mt-1 max-w-xl text-center text-[11px] text-ink/40 @min-[640px]/pz:text-xs"
             >
               재구매 의사 언급 리뷰 {section.repurchaseMentionCount}건
             </p>
@@ -3187,7 +3209,7 @@ function renderSection(
           section.sizeFitMentionCount > 0 ? (
             <p
               data-testid="review-highlight-size-fit-signal"
-              className="mx-auto mt-1 max-w-xl text-center text-[11px] text-ink/40 sm:text-xs"
+              className="mx-auto mt-1 max-w-xl text-center text-[11px] text-ink/40 @min-[640px]/pz:text-xs"
             >
               사이즈·핏 언급 리뷰 {section.sizeFitMentionCount}건
             </p>
@@ -3196,7 +3218,7 @@ function renderSection(
           section.longTermUseMentionCount > 0 ? (
             <p
               data-testid="review-highlight-long-term-use-signal"
-              className="mx-auto mt-1 max-w-xl text-center text-[11px] text-ink/40 sm:text-xs"
+              className="mx-auto mt-1 max-w-xl text-center text-[11px] text-ink/40 @min-[640px]/pz:text-xs"
             >
               장기 사용 후기 {section.longTermUseMentionCount}건
             </p>
@@ -3257,7 +3279,7 @@ function renderSection(
                 {item.matchCount > 0 ? (
                   <p
                     data-testid="review-match-badge"
-                    className="text-[11px] text-ink/40 sm:text-xs"
+                    className="text-[11px] text-ink/40 @min-[640px]/pz:text-xs"
                   >
                     {item.matchCount}건 언급
                   </p>
@@ -3270,7 +3292,7 @@ function renderSection(
               data-testid="review-highlight-concerns"
               className="mx-auto mt-12 max-w-xl border-t border-ink/10 pt-8"
             >
-              <p className="text-center text-[11px] font-medium tracking-wide text-ink/45 sm:text-xs">
+              <p className="text-center text-[11px] font-medium tracking-wide text-ink/45 @min-[640px]/pz:text-xs">
                 실제 후기에 나온 아쉬운 점
               </p>
               <ul className="mt-4 space-y-2.5">
@@ -3287,10 +3309,10 @@ function renderSection(
                           nextConcerns[item.originalIndex] = next;
                           edit?.onChange(index, { ...section, concerns: nextConcerns });
                         }}
-                        className="text-center text-[12px] leading-relaxed text-ink/50 sm:text-[13px]"
+                        className="text-center text-[12px] leading-relaxed text-ink/50 @min-[640px]/pz:text-[13px]"
                       />
                     ) : (
-                      <p className="text-center text-[12px] leading-relaxed text-ink/50 sm:text-[13px]">
+                      <p className="text-center text-[12px] leading-relaxed text-ink/50 @min-[640px]/pz:text-[13px]">
                         {item.matchCount > 0
                           ? splitTextByKeywords(item.text).map((seg, segIdx) =>
                               seg.isKeyword ? (
@@ -3314,7 +3336,7 @@ function renderSection(
                     {item.matchCount > 0 ? (
                       <p
                         data-testid="review-match-badge"
-                        className="mt-1 text-center text-[11px] text-ink/40 sm:text-xs"
+                        className="mt-1 text-center text-[11px] text-ink/40 @min-[640px]/pz:text-xs"
                       >
                         {item.matchCount}건 언급
                       </p>
@@ -3343,7 +3365,7 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
           />
           <div className="mx-auto mt-8 flex max-w-3xl flex-col gap-8">
             {section.pairs.map((pair, i) => (
@@ -3410,7 +3432,7 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
           />
           <div className="mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-4">
             {section.certificates.map((cert, i) => (
@@ -3458,7 +3480,7 @@ function renderSection(
               enabled={edit?.enabled}
               value={section.heading}
               onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-              className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
+              className={`${TYPO.sectionTitle}`}
             />
             <EditableText
               as="p"
@@ -3466,7 +3488,7 @@ function renderSection(
               enabled={edit?.enabled}
               value={section.body}
               onChange={(body) => edit?.onChange(index, { ...section, body })}
-              className={`mt-5 ${BODY_CLAMP} ${TYPO.body} text-ink/70`}
+              className={`mt-5 ${TYPO.body} text-ink/70`}
             />
           </div>
         </section>
@@ -3513,7 +3535,7 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
+            className={`${TYPO.sectionTitle}`}
           />
           <EditableText
             as="p"
@@ -3556,13 +3578,18 @@ function renderSection(
         return (
           <section key={`brand_story-${index}`} className="relative overflow-hidden">
             <div
-              className="flex flex-col items-center justify-center px-6 py-16 text-center sm:px-10 sm:py-20"
+              className="@container flex flex-col items-center justify-center px-6 py-16 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:py-20"
               style={{ backgroundColor: solidDeepOnPaper(theme) }}
             >
               <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.32em] text-paper/75">
                 {brandName}
               </p>
-              <p className={`mt-4 ${TYPO.keywordDisplay} text-paper`}>{categoryKeyword}</p>
+              <p
+                className={`mt-4 ${TYPO.keywordDisplay} ${TYPO.keywordDisplaySize} text-paper`}
+                style={fitTokenStyle(categoryKeyword, -0.06)}
+              >
+                {categoryKeyword}
+              </p>
             </div>
             <div
               className={getCategoryRhythm(category).trustPadClass}
@@ -3613,7 +3640,7 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${HEADLINE_CLAMP} ${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
           />
           <div className="mx-auto mt-10 max-w-xl space-y-4 text-left">
             {section.items.map((item, itemIndex) => (
@@ -3679,7 +3706,7 @@ function renderSection(
               enabled={edit?.enabled}
               value={section.heading}
               onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-              className={`${HEADLINE_CLAMP} ${TYPO.sectionTitle}`}
+              className={`${TYPO.sectionTitle}`}
             />
           </div>
           <ul className="mx-auto mt-8 flex max-w-xl flex-col items-stretch gap-2.5">
@@ -3730,7 +3757,7 @@ function renderSection(
               PRICE
             </p>
             <p
-              className="pagzly-ink-headline font-heading text-[2.75rem] font-bold sm:text-5xl"
+              className="pagzly-ink-headline font-heading text-[2.75rem] font-bold @min-[640px]/pz:text-5xl"
               style={{ color: readableTextAccent(theme, 3), letterSpacing: "-0.04em" }}
             >
               ₩{section.price.toLocaleString()}
@@ -3835,7 +3862,9 @@ export default function DetailSectionRenderer({
         showBadges: sellerAiBadges === true,
       }}
     >
-    <div className="overflow-hidden scroll-smooth">
+    {/* 반응형은 뷰포트가 아니라 이 컨테이너(프리뷰 칼럼) 폭 기준 — 결과 페이지 데스크톱 3단 레이아웃에서
+        좁은 가운데 칼럼에 sm: 폰트·그리드가 켜져 글자가 음절 단위로 쪼개지던 문제 방지 */}
+    <div className="@container/pz overflow-hidden scroll-smooth">
       {sectionAnchors.length > 0 ? (
         <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} />
       ) : null}

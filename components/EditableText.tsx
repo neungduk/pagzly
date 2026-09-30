@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import { joinNumericSuffix } from "@/lib/detail-typography";
 
 type EditableTextProps = {
   value: string;
@@ -35,7 +36,7 @@ export default function EditableText({
     const Tag = as;
     return (
       <Tag className={className} style={style}>
-        {value}
+        {joinNumericSuffix(value)}
       </Tag>
     );
   }

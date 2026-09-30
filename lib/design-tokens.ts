@@ -750,12 +750,12 @@ export function getDecorationColor(theme: CategoryTheme): string {
 
 /** 렌더러 전용 — 레퍼런스급 여백 리듬(넉넉한 본문 / 타이트한 갤러리 헤더). */
 export const SECTION_BLOCK_PAD = {
-  generous: "px-6 py-16 sm:px-10 sm:py-28",
-  compact: "px-6 py-14 sm:px-10 sm:py-24",
-  pointText: "px-6 pt-10 pb-16 sm:px-10 sm:pt-12 sm:pb-24",
-  galleryTitle: "px-6 pt-9 pb-0 text-center sm:px-10 sm:pt-11 sm:pb-0",
-  cta: "px-6 py-24 sm:px-10 sm:py-36",
-  trust: "px-6 py-16 sm:px-10 sm:py-24",
+  generous: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-28",
+  compact: "px-6 py-14 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
+  pointText: "px-6 pt-10 pb-16 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-24",
+  galleryTitle: "px-6 pt-9 pb-0 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-11 @min-[640px]/pz:pb-0",
+  cta: "px-6 py-24 @min-[640px]/pz:px-10 @min-[640px]/pz:py-36",
+  trust: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
 } as const;
 
 /** CTA 마감 밴드 — deepAccent 3색 안에서만 (별도 네이비/신규 색 금지). */
@@ -773,7 +773,7 @@ export function getCtaBandBackground(theme: CategoryTheme): string {
 export const HERO_TRANSITION_CLIP_PATH =
   "polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - 44px))";
 /** 위 클립과 짝을 이루는 음수 마진 — hero 하단 사진 위로 살짝 겹쳐 올라간다. */
-export const HERO_TRANSITION_OVERLAP_CLASS = "-mt-4 sm:-mt-6";
+export const HERO_TRANSITION_OVERLAP_CLASS = "-mt-4 @min-[640px]/pz:-mt-6";
 
 /**
  * 156차 — 154차가 "다음 라운드 후보"로 남겨둔 "섹션 전환부 다양성"(북엔드) 구현.
@@ -785,7 +785,7 @@ export const HERO_TRANSITION_OVERLAP_CLASS = "-mt-4 sm:-mt-6";
 export const CTA_TRANSITION_CLIP_PATH =
   "polygon(0 44px, 100% 0, 100% 100%, 0 100%)";
 /** 위 클립과 짝을 이루는 음수 마진 — CTA 밴드가 직전 섹션 위로 살짝 겹쳐 올라간다. */
-export const CTA_TRANSITION_OVERLAP_CLASS = "-mt-4 sm:-mt-6";
+export const CTA_TRANSITION_OVERLAP_CLASS = "-mt-4 @min-[640px]/pz:-mt-6";
 
 /** 카테고리별 리듬 — 슬롯/3색은 유지하고 여백·그리드·CTA 모서리만 조절 */
 export type CategoryRhythm = {
@@ -808,9 +808,9 @@ export type CategoryRhythm = {
 };
 
 const DEFAULT_RHYTHM: CategoryRhythm = {
-  heroMinClass: "min-h-[85svh] sm:min-h-[760px]",
+  heroMinClass: "min-h-[85svh] @min-[640px]/pz:min-h-[760px]",
   heroOverlayClass:
-    "absolute inset-0 z-20 flex flex-col items-center justify-end px-6 pb-14 text-center sm:px-10 sm:pb-20",
+    "absolute inset-0 z-20 flex flex-col items-center justify-end px-6 pb-14 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pb-20",
   heroTitleExtra: "",
   checklistGridFour: "grid-cols-4",
   checklistGapClass: "gap-x-4 gap-y-8",
@@ -838,20 +838,20 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
     // 보다 넉넉하고, 미니멀 카테고리(패션)보다 사진 프레임이 큼.
     return {
       ...DEFAULT_RHYTHM,
-      heroMinClass: "min-h-[86svh] sm:min-h-[780px]",
+      heroMinClass: "min-h-[86svh] @min-[640px]/pz:min-h-[780px]",
       heroOverlayClass:
-        "absolute inset-0 z-20 flex flex-col items-center justify-end px-6 pb-20 text-center sm:px-10 sm:pb-32",
+        "absolute inset-0 z-20 flex flex-col items-center justify-end px-6 pb-20 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pb-32",
       heroTitleExtra: "tracking-[-0.02em]",
-      checklistGridFour: "grid-cols-2 sm:grid-cols-4",
+      checklistGridFour: "grid-cols-2 @min-[640px]/pz:grid-cols-4",
       checklistGapClass: "gap-x-6 gap-y-10",
-      generousPadClass: "px-6 py-20 sm:px-10 sm:py-32",
-      pointTextPadClass: "px-6 pt-12 pb-16 sm:px-10 sm:pt-14 sm:pb-24",
-      trustPadClass: "px-6 py-16 sm:px-10 sm:py-24",
-      ctaPadClass: "px-6 py-24 sm:px-10 sm:py-36",
+      generousPadClass: "px-6 py-20 @min-[640px]/pz:px-10 @min-[640px]/pz:py-32",
+      pointTextPadClass: "px-6 pt-12 pb-16 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-14 @min-[640px]/pz:pb-24",
+      trustPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
+      ctaPadClass: "px-6 py-24 @min-[640px]/pz:px-10 @min-[640px]/pz:py-36",
       ctaButtonClass:
         "inline-flex h-12 min-w-[13rem] items-center justify-center rounded-full px-10 text-sm font-semibold text-paper shadow-sm",
       galleryGapClass: "gap-2",
-      galleryTitlePadClass: "px-6 pt-10 pb-0 text-center sm:px-10 sm:pt-12 sm:pb-0",
+      galleryTitlePadClass: "px-6 pt-10 pb-0 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-0",
     };
   }
   if (category === "화장품/뷰티") {
@@ -859,18 +859,18 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
     // 식품/반려동물의 "넉넉하고 따뜻한" 톤과 대비되게 의도적으로 좁힌다.
     return {
       ...DEFAULT_RHYTHM,
-      heroMinClass: "min-h-[82svh] sm:min-h-[720px]",
+      heroMinClass: "min-h-[82svh] @min-[640px]/pz:min-h-[720px]",
       heroTitleExtra: "tracking-[-0.03em]",
       checklistGridFour: "grid-cols-4",
       checklistGapClass: "gap-x-4 gap-y-8",
-      generousPadClass: "px-6 py-14 sm:px-10 sm:py-24",
-      pointTextPadClass: "px-6 pt-8 pb-12 sm:px-10 sm:pt-10 sm:pb-16",
-      trustPadClass: "px-6 py-14 sm:px-10 sm:py-20",
-      ctaPadClass: "px-6 py-20 sm:px-10 sm:py-32",
+      generousPadClass: "px-6 py-14 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
+      pointTextPadClass: "px-6 pt-8 pb-12 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-10 @min-[640px]/pz:pb-16",
+      trustPadClass: "px-6 py-14 @min-[640px]/pz:px-10 @min-[640px]/pz:py-20",
+      ctaPadClass: "px-6 py-20 @min-[640px]/pz:px-10 @min-[640px]/pz:py-32",
       ctaButtonClass:
         "inline-flex h-12 min-w-[11rem] items-center justify-center rounded-full px-8 text-sm font-semibold text-paper shadow-sm",
       galleryGapClass: "gap-2",
-      galleryTitlePadClass: "px-6 pt-9 pb-0 text-center sm:px-10 sm:pt-11 sm:pb-0",
+      galleryTitlePadClass: "px-6 pt-9 pb-0 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-11 @min-[640px]/pz:pb-0",
     };
   }
   if (category === "반려동물") {
@@ -880,67 +880,67 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
     // 드러나도록 사진 프레임을 넉넉하게, 톤은 딱딱하지 않게 둥근 형태 위주로.
     return {
       ...DEFAULT_RHYTHM,
-      heroMinClass: "min-h-[85svh] sm:min-h-[740px]",
+      heroMinClass: "min-h-[85svh] @min-[640px]/pz:min-h-[740px]",
       heroOverlayClass:
-        "absolute inset-0 z-20 flex flex-col items-center justify-end px-7 pb-16 text-center sm:px-12 sm:pb-28",
-      checklistGridFour: "grid-cols-2 sm:grid-cols-4",
+        "absolute inset-0 z-20 flex flex-col items-center justify-end px-7 pb-16 text-center @min-[640px]/pz:px-12 @min-[640px]/pz:pb-28",
+      checklistGridFour: "grid-cols-2 @min-[640px]/pz:grid-cols-4",
       checklistGapClass: "gap-x-6 gap-y-10",
-      generousPadClass: "px-6 py-16 sm:px-10 sm:py-28",
-      pointTextPadClass: "px-6 pt-10 pb-16 sm:px-10 sm:pt-12 sm:pb-20",
-      trustPadClass: "px-6 py-16 sm:px-10 sm:py-24",
-      ctaPadClass: "px-6 py-24 sm:px-10 sm:py-36",
+      generousPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-28",
+      pointTextPadClass: "px-6 pt-10 pb-16 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-20",
+      trustPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
+      ctaPadClass: "px-6 py-24 @min-[640px]/pz:px-10 @min-[640px]/pz:py-36",
       ctaButtonClass:
         "inline-flex h-12 min-w-[13rem] items-center justify-center rounded-full px-10 text-sm font-semibold tracking-[0.02em] text-paper shadow-sm",
       galleryGapClass: "gap-2",
-      galleryTitlePadClass: "px-6 pt-10 pb-0 text-center sm:px-10 sm:pt-12 sm:pb-0",
+      galleryTitlePadClass: "px-6 pt-10 pb-0 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-0",
     };
   }
   if (category === "의류/패션") {
     return {
       ...DEFAULT_RHYTHM,
-      heroMinClass: "min-h-[84svh] sm:min-h-[760px]",
+      heroMinClass: "min-h-[84svh] @min-[640px]/pz:min-h-[760px]",
       heroOverlayClass:
-        "absolute inset-0 z-20 flex flex-col items-center justify-end px-10 pb-16 text-center sm:px-14 sm:pb-24",
+        "absolute inset-0 z-20 flex flex-col items-center justify-end px-10 pb-16 text-center @min-[640px]/pz:px-14 @min-[640px]/pz:pb-24",
       heroTitleExtra: "tracking-[-0.045em]",
-      generousPadClass: "px-6 py-16 sm:px-10 sm:py-28",
-      checklistGridFour: "grid-cols-2 sm:grid-cols-4",
+      generousPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-28",
+      checklistGridFour: "grid-cols-2 @min-[640px]/pz:grid-cols-4",
       checklistGapClass: "gap-x-5 gap-y-8",
-      pointTextPadClass: "px-8 pt-10 pb-16 sm:px-12 sm:pt-12 sm:pb-20",
-      trustPadClass: "px-6 py-12 sm:px-10 sm:py-16",
-      ctaPadClass: "px-6 py-24 sm:px-10 sm:py-36",
+      pointTextPadClass: "px-8 pt-10 pb-16 @min-[640px]/pz:px-12 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-20",
+      trustPadClass: "px-6 py-12 @min-[640px]/pz:px-10 @min-[640px]/pz:py-16",
+      ctaPadClass: "px-6 py-24 @min-[640px]/pz:px-10 @min-[640px]/pz:py-36",
       ctaButtonClass:
         "inline-flex h-12 min-w-[12rem] items-center justify-center rounded-sm px-10 text-sm font-semibold tracking-[0.16em] text-paper",
       galleryGapClass: "gap-2",
-      galleryTitlePadClass: "px-6 pt-8 pb-0 text-center sm:px-10 sm:pt-10 sm:pb-0",
+      galleryTitlePadClass: "px-6 pt-8 pb-0 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-10 @min-[640px]/pz:pb-0",
     };
   }
   if (category === "생활용품") {
     return {
       ...DEFAULT_RHYTHM,
       heroOverlayClass:
-        "absolute inset-0 z-20 flex flex-col items-center justify-end px-7 pb-20 text-center sm:px-12 sm:pb-32",
-      generousPadClass: "px-6 py-20 sm:px-10 sm:py-36",
-      checklistGridFour: "grid-cols-2 sm:grid-cols-4",
+        "absolute inset-0 z-20 flex flex-col items-center justify-end px-7 pb-20 text-center @min-[640px]/pz:px-12 @min-[640px]/pz:pb-32",
+      generousPadClass: "px-6 py-20 @min-[640px]/pz:px-10 @min-[640px]/pz:py-36",
+      checklistGridFour: "grid-cols-2 @min-[640px]/pz:grid-cols-4",
       checklistGapClass: "gap-x-6 gap-y-12",
-      pointTextPadClass: "px-6 pt-12 pb-16 sm:px-10 sm:pt-16 sm:pb-24",
-      trustPadClass: "px-6 py-16 sm:px-10 sm:py-24",
-      ctaPadClass: "px-6 py-24 sm:px-10 sm:py-36",
+      pointTextPadClass: "px-6 pt-12 pb-16 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-16 @min-[640px]/pz:pb-24",
+      trustPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
+      ctaPadClass: "px-6 py-24 @min-[640px]/pz:px-10 @min-[640px]/pz:py-36",
       ctaButtonClass:
         "inline-flex h-12 min-w-[13rem] items-center justify-center rounded-full px-10 text-sm font-semibold tracking-[0.04em] text-paper shadow-sm",
-      galleryTitlePadClass: "px-6 pt-10 pb-0 text-center sm:px-10 sm:pt-12 sm:pb-0",
+      galleryTitlePadClass: "px-6 pt-10 pb-0 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-0",
     };
   }
   if (category === "전자제품") {
     return {
       ...DEFAULT_RHYTHM,
-      heroMinClass: "min-h-[78svh] sm:min-h-[700px]",
+      heroMinClass: "min-h-[78svh] @min-[640px]/pz:min-h-[700px]",
       heroTitleExtra: "tracking-[-0.05em] tabular-nums",
-      generousPadClass: "px-6 py-16 sm:px-10 sm:py-28",
-      checklistGridFour: "grid-cols-2 sm:grid-cols-4",
+      generousPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-28",
+      checklistGridFour: "grid-cols-2 @min-[640px]/pz:grid-cols-4",
       checklistGapClass: "gap-x-5 gap-y-10",
-      pointTextPadClass: "px-6 pt-7 pb-11 sm:px-10 sm:pt-9 sm:pb-14",
-      trustPadClass: "px-6 py-14 sm:px-10 sm:py-20",
-      ctaPadClass: "px-6 py-16 sm:px-10 sm:py-24",
+      pointTextPadClass: "px-6 pt-7 pb-11 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-9 @min-[640px]/pz:pb-14",
+      trustPadClass: "px-6 py-14 @min-[640px]/pz:px-10 @min-[640px]/pz:py-20",
+      ctaPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
       ctaButtonClass:
         "inline-flex h-11 min-w-[12rem] items-center justify-center rounded-none px-8 text-xs font-semibold uppercase tracking-[0.24em] text-paper",
       galleryGapClass: "gap-2",
@@ -949,15 +949,15 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
   return {
     ...DEFAULT_RHYTHM,
     heroOverlayClass:
-        "absolute inset-0 z-20 flex flex-col items-center justify-end px-6 pb-16 text-center sm:px-10 sm:pb-28",
+        "absolute inset-0 z-20 flex flex-col items-center justify-end px-6 pb-16 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pb-28",
     checklistGapClass: "gap-x-5 gap-y-10",
-    generousPadClass: "px-6 py-16 sm:px-10 sm:py-28",
-    pointTextPadClass: "px-6 pt-8 pb-14 sm:px-10 sm:pt-10 sm:pb-20",
-    trustPadClass: "px-6 py-16 sm:px-10 sm:py-28",
-    ctaPadClass: "px-6 py-20 sm:px-10 sm:py-32",
+    generousPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-28",
+    pointTextPadClass: "px-6 pt-8 pb-14 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-10 @min-[640px]/pz:pb-20",
+    trustPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-28",
+    ctaPadClass: "px-6 py-20 @min-[640px]/pz:px-10 @min-[640px]/pz:py-32",
     ctaButtonClass:
         "inline-flex h-12 min-w-[13rem] items-center justify-center rounded-full px-10 text-sm font-semibold text-paper shadow-sm",
-    galleryTitlePadClass: "px-6 pt-10 pb-0 text-center sm:px-10 sm:pt-12 sm:pb-0",
+    galleryTitlePadClass: "px-6 pt-10 pb-0 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-0",
   };
 }
 

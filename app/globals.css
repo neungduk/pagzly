@@ -36,6 +36,18 @@ body {
   font-feature-settings: "kern" 1, "liga" 1;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* 한글을 어절 단위로만 줄바꿈하고, 칸보다 긴 한 어절만 넘칠 때 접는다 (export body와 동일) */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* 칸(가장 가까운 container)보다 긴 한 어절은 음절로 쪼개지 않고 글자 크기를 줄인다(가독 하한 11px).
+   --pz-fs: 기본 글자 크기, --pz-fit-em: 가장 긴 어절 폭(em, longestTokenEm). 미지정 시 --pz-fs 그대로 */
+.pz-fit {
+  font-size: max(
+    min(var(--pz-fs), 0.6875rem),
+    min(var(--pz-fs), calc(100cqi / var(--pz-fit-em, 0.01)))
+  );
 }
 
 [data-pagzly-preview] .font-heading {

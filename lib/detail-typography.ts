@@ -54,6 +54,37 @@ export function resolveHeadlineFontWeight(category: string): number {
   return resolveHeadlineFontKind(category) === "serif" ? 700 : 800;
 }
 
+/**
+ * Chrome은 word-break:keep-all에서도 "5%로"를 %와 한글 사이에서 끊는다(line-break 값 무관).
+ * 표시용 문자열에만 WORD JOINER(U+2060)를 넣어 한 어절로 묶는다 — 저장 값은 건드리지 않는다.
+ */
+export function joinNumericSuffix(text: string): string {
+  return text.replace(/([%％])(?=[가-힣])/g, "$1\u2060");
+}
+
+function glyphEm(ch: string): number {
+  if (ch === "\u2060") return 0;
+  if (/[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF\u3040-\u30FF\u4E00-\u9FFF]/.test(ch)) return 1;
+  if (/[A-Z%％#@&]/.test(ch)) return 0.72;
+  if (/[0-9]/.test(ch)) return 0.6;
+  if (/[a-z]/.test(ch)) return 0.55;
+  return 0.4;
+}
+
+/**
+ * 가장 긴 어절(공백 기준)의 대략 폭(em, 6% 여유 포함). `.pz-fit`의 `--pz-fit-em`으로 넘기면
+ * 칸(부모 container) 폭보다 긴 어절일 때만 글자 크기가 줄어든다.
+ */
+export function longestTokenEm(text: string, letterSpacingEm = 0): number {
+  let max = 0;
+  for (const token of text.split(/\s+/)) {
+    let width = 0;
+    for (const ch of token) width += glyphEm(ch) + (ch === "\u2060" ? 0 : letterSpacingEm);
+    max = Math.max(max, width);
+  }
+  return Math.max(0.01, Math.round(max * 1.06 * 100) / 100);
+}
+
 /** 미리보기·인라인용 */
 export function headlineDisplayStyle(category: string): {
   fontFamily: string;
@@ -76,7 +107,7 @@ export function displayHeadlineInlineCss(category: string): string {
 export function buildDetailExportFontCss(category: string): string {
   const display = displayHeadlineInlineCss(category);
   return `
-  body{margin:0;background:#FAF8F3;color:#1B1B18;font-family:${DETAIL_FONT_STACK.sans};font-size:${FONT_SIZE.bodyLg};line-height:1.8;-webkit-font-smoothing:antialiased}
+  body{margin:0;background:#FAF8F3;color:#1B1B18;font-family:${DETAIL_FONT_STACK.sans};font-size:${FONT_SIZE.bodyLg};line-height:1.8;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word}
   h1,h2,h3{font-family:${DETAIL_FONT_STACK.sans};font-weight:700;letter-spacing:-0.02em}
   .pagzly-display-headline{${display};word-break:keep-all;overflow-wrap:break-word}
 `;

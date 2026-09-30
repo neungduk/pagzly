@@ -10,6 +10,7 @@ import ToastBanner from "@/components/ToastBanner";
 import type { BlogBlockOverride, BlogPostGlobalOverride } from "@/lib/blog-post";
 import type { InstagramSlideOverride } from "@/lib/instagram-feed";
 import type { DetailSection } from "@/lib/types/generate";
+import type { ConceptIconMap } from "@/lib/concept-icons";
 import { validateImageFile } from "@/lib/image-upload";
 import { resolveHeadlineFontKind } from "@/lib/detail-typography";
 import {
@@ -1136,7 +1137,30 @@ type CapturePreset = {
   productName: string;
   /** 121차 — capture=58-* 전용 카테고리 이미지. 없으면 iteration-fixtures */
   imageUrls?: string[];
+  conceptIcons?: ConceptIconMap;
 };
+
+/** 281차 — capture=session: 저장된 실제 결과(sessionStorage)를 로그인 없이 재현 */
+const DEV_PREVIEW_SESSION_KEY = "pagzly-dev-preview-session";
+
+function readSessionPreset(): CapturePreset | null {
+  try {
+    const raw = window.sessionStorage.getItem(DEV_PREVIEW_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<CapturePreset>;
+    if (!Array.isArray(parsed.sections)) return null;
+    return {
+      sections: parsed.sections,
+      category: parsed.category ?? "화장품/뷰티",
+      brandName: parsed.brandName ?? "",
+      productName: parsed.productName ?? "",
+      imageUrls: parsed.imageUrls,
+      conceptIcons: parsed.conceptIcons,
+    };
+  } catch {
+    return null;
+  }
+}
 
 const QA_FIXTURE_COSMETICS = [
   "/qa-fixtures/cosmetics/01.jpg",
@@ -1214,6 +1238,7 @@ const CAPTURE58_PRESETS: Record<string, CapturePreset> = {
 function resolveCapturePreset(): CapturePreset | null {
   if (typeof window === "undefined") return null;
   const capture = new URLSearchParams(window.location.search).get("capture");
+  if (capture === "session") return readSessionPreset();
   if (capture === "1") return { sections: capture56Sections, ...capture56Meta };
   if (capture === "57-food") return { sections: capture57FoodSections, ...capture57FoodMeta };
   if (capture === "57-electronics") {
@@ -1583,6 +1608,7 @@ export default function DetailPreviewPage() {
             category={previewCategory}
             brandName={previewBrandName}
             productName={previewProductName}
+            conceptIcons={capturePreset?.conceptIcons}
             edit={{
               enabled: editMode,
               onChange: (displayIndex, section) => {
