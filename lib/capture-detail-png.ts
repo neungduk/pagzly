@@ -10,6 +10,8 @@ import { toPng } from "html-to-image";
 
 /** html-to-image / Chrome 실사용 한도보다 여유 */
 const MAX_CANVAS_EDGE = 14000;
+/** data URL 디코드는 수백 ms면 끝난다. 넘기면 그 이미지는 현재 상태로 캡처하고 진행 */
+const IMAGE_DECODE_TIMEOUT_MS = 15_000;
 
 type RestoreFn = () => void;
 
@@ -73,6 +75,14 @@ export async function prepareCaptureRoot(root: HTMLElement): Promise<RestoreFn> 
   });
 
   const imgs = Array.from(root.querySelectorAll("img"));
+  // 화면 밖 loading="lazy" 이미지는 src를 바꿔도 로드되지 않아 decode()가 영원히 끝나지 않는다(280차 재현)
+  imgs.forEach((img) => {
+    if (img.loading !== "lazy") return;
+    img.loading = "eager";
+    restores.push(() => {
+      img.loading = "lazy";
+    });
+  });
   await Promise.all(
     imgs.map(async (img) => {
       const original = img.currentSrc || img.src;
@@ -93,16 +103,18 @@ export async function prepareCaptureRoot(root: HTMLElement): Promise<RestoreFn> 
   );
 
   await Promise.all(
-    imgs.map(
-      (img) =>
+    imgs.map((img) =>
+      Promise.race([
         img.decode?.().catch(() => undefined) ??
-        new Promise<void>((resolve) => {
-          if (img.complete) resolve();
-          else {
-            img.onload = () => resolve();
-            img.onerror = () => resolve();
-          }
-        }),
+          new Promise<void>((resolve) => {
+            if (img.complete) resolve();
+            else {
+              img.onload = () => resolve();
+              img.onerror = () => resolve();
+            }
+          }),
+        new Promise<void>((resolve) => setTimeout(resolve, IMAGE_DECODE_TIMEOUT_MS)),
+      ]),
     ),
   );
 

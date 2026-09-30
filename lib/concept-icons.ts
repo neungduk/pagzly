@@ -223,6 +223,64 @@ function isRetryableReplicateError(error: unknown): boolean {
   return /timeout|timed out|network|fetch failed|socket hang up/i.test(message);
 }
 
+export const ICON_RETRY_MAX_ATTEMPTS = 3;
+const RECRAFT_429_BASE_MS = 5000;
+const RECRAFT_429_JITTER_MS = 2000;
+// 동시 2 × 5라운드에서 전부 429여도 아이콘 단계가 ~180초 안에 끝나도록 상한 (Hobby 300초)
+const RECRAFT_429_MAX_MS = 12_000;
+
+function retryAfterMs(error: unknown): number | null {
+  const headers = (error as { response?: { headers?: { get?: (k: string) => string | null } } })
+    ?.response?.headers;
+  const raw = typeof headers?.get === "function" ? headers.get("retry-after") : null;
+  if (!raw) return null;
+  const seconds = Number(raw);
+  return Number.isFinite(seconds) && seconds >= 0 ? seconds * 1000 : null;
+}
+
+/**
+ * recraft 429는 저크레딧 계정 burst=1 제한(과거 순차+11초 간격으로 회피)이라
+ * 짧은 백오프로는 같은 창 안에서 다시 거절된다. Replicate SDK 내부 429 재시도는
+ * 지연 계산 버그로 사실상 즉시 재요청이라 간격은 이 함수가 유일하게 만든다.
+ */
+export function iconRetryDelayMs(
+  model: IconModelKey,
+  attempt: number,
+  error: unknown,
+  random: () => number = Math.random,
+): number {
+  const status = (error as { response?: { status?: number } })?.response?.status;
+  if (isRecraftModel(model) && status === 429) {
+    const floor = attempt * RECRAFT_429_BASE_MS + random() * RECRAFT_429_JITTER_MS;
+    return Math.min(RECRAFT_429_MAX_MS, Math.max(floor, retryAfterMs(error) ?? 0));
+  }
+  // 병렬 호출이 같은 순간에 실패하면 재시도도 동시에 몰리므로 지터로 분산
+  return attempt * 2500 + random() * 1500;
+}
+
+export async function runIconPredictionWithRetry<T>(
+  model: IconModelKey,
+  call: () => Promise<T>,
+  sleep: (ms: number) => Promise<void> = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= ICON_RETRY_MAX_ATTEMPTS; attempt++) {
+    try {
+      return await call();
+    } catch (error) {
+      lastError = error;
+      const status = (error as { response?: { status?: number } }).response?.status;
+      if (!isRetryableReplicateError(error) || attempt === ICON_RETRY_MAX_ATTEMPTS) throw error;
+      const delay = iconRetryDelayMs(model, attempt, error);
+      console.warn(
+        `[concept-icons] ${model} ${status ?? "no-status"} — ${attempt}/${ICON_RETRY_MAX_ATTEMPTS} 재시도 (${(delay / 1000).toFixed(1)}s 후)`,
+      );
+      await sleep(delay);
+    }
+  }
+  throw lastError;
+}
+
 async function generateSingleConceptIcon(
   label: string,
   brief: ConceptBrief,
@@ -280,26 +338,12 @@ async function generateSingleConceptIcon(
   }
   const prompt = promptParts.join(", ");
 
-  const output = await (async () => {
-    let lastError: unknown;
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        return await replicate.run(modelRef, {
-          input: buildIconModelInput(model, prompt, "1:1"),
-          wait: { mode: "poll", interval: 1000 },
-        });
-      } catch (error) {
-        lastError = error;
-        const status = (error as { response?: { status?: number } }).response?.status;
-        const retryable = isRetryableReplicateError(error);
-        if (!retryable || attempt === 3) throw error;
-        console.warn(`[concept-icons] ${model} ${status ?? "no-status"} — ${attempt}/3 재시도`);
-        // 병렬 호출이 같은 순간에 429를 받으면 재시도도 동시에 몰리므로 지터로 분산
-        await new Promise((resolve) => setTimeout(resolve, attempt * 2500 + Math.random() * 1500));
-      }
-    }
-    throw lastError;
-  })();
+  const output = await runIconPredictionWithRetry(model, () =>
+    replicate.run(modelRef, {
+      input: buildIconModelInput(model, prompt, "1:1"),
+      wait: { mode: "poll", interval: 1000 },
+    }),
+  );
   // A/B 첫 호출 진단용 — 파라미터가 무시돼도 조용히 성공하는 모델이 있어 원본 확인
   console.log(`[concept-icons] model=${model} label="${label.slice(0, 24)}" output:`, output);
 
@@ -424,12 +468,12 @@ function modelForIconGroup(key: keyof ConceptIconMap): IconModelKey {
 
 // 동시 실행 개수 제한 — flux-schnell 호출을 한 번에 너무 많이 터뜨리면
 // Replicate rate limit에 걸릴 수 있어 배치 단위로 나눠 돈다.
-// recraft 계열(v3/v4/v4-svg)은 rate limit 여유를 위해 보수적으로 3.
-// (순차 1+11초 대기는 10장 기준 250초 안팎을 써서 Hobby 300초 함수 제한에 걸렸다)
+// recraft 계열(v3/v4/v4-svg): 순차 1+11초 대기는 10장 기준 250초 안팎을 써서
+// Hobby 300초 함수 제한에 걸렸고(278차), 3은 429 폴백이 10장 중 6장(279차)이라 2.
 const CONCURRENCY = 6;
-const RECRAFT_CONCURRENCY = 3;
+const RECRAFT_CONCURRENCY = 2;
 
-function iconConcurrency(model: IconModelKey): number {
+export function iconConcurrency(model: IconModelKey): number {
   return isRecraftModel(model) ? RECRAFT_CONCURRENCY : CONCURRENCY;
 }
 
