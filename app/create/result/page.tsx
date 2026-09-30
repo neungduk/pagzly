@@ -15,7 +15,12 @@ import BlogPostPanel from "@/components/BlogPostPanel";
 import InstagramFeedPanel from "@/components/InstagramFeedPanel";
 import ToastBanner from "@/components/ToastBanner";
 import type { BlogBlockOverride, BlogPostGlobalOverride } from "@/lib/blog-post";
-import { DOWNLOAD_PLATFORMS, getDownloadPlatform, type DownloadPlatformId } from "@/lib/download-platforms";
+import {
+  DOWNLOAD_PLATFORMS,
+  getDownloadPlatform,
+  imageDownloadMaxPartHeight,
+  type DownloadPlatformId,
+} from "@/lib/download-platforms";
 import type { InstagramSlideOverride } from "@/lib/instagram-feed";
 import { insertEmptyCanvasSection, insertReviewHighlightSection } from "@/lib/section-inserts";
 import { DRAFT_SESSION_KEY, RETRY_PHOTO_ONLY_KEY, SESSION_KEY } from "@/components/CreateProductForm";
@@ -720,7 +725,11 @@ function CreateResultContent() {
       await new Promise((r) => setTimeout(r, 80));
       restoreImages = await prepareCaptureRoot(captureRoot);
       const platform = getDownloadPlatform(downloadPlatform);
-      const parts = await captureDetailToPngBlobs(captureRoot, platform.width);
+      const parts = await captureDetailToPngBlobs(
+        captureRoot,
+        platform.width,
+        imageDownloadMaxPartHeight(platform.id),
+      );
       if (parts.length === 1) {
         await downloadBlob(parts[0]!, `${data.productName}-상세페이지-${platform.label}.png`);
         setToast({ tone: "ok", message: `${platform.label} 규격 PNG를 내려받았습니다.` });
