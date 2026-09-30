@@ -969,8 +969,29 @@ export const IMAGE_RATIO = {
   hero: "aspect-[4/5]",
   square: "aspect-square", // 1:1 (성분/기능, 디테일 확대, 갤러리 등)
   portrait3x4: "aspect-[3/4]", // 3:4 (라이프스타일/다각도 컷)
-  landscape4x5: "aspect-[4/5]", // 4:5 (실사용 장면, 코디 제안)
+  portrait4x5: "aspect-[4/5]", // 4:5 세로 (실사용 장면, 코디 제안)
 } as const;
+
+/** export 인라인 style용 — IMAGE_RATIO 클래스와 1:1 */
+const IMAGE_RATIO_CSS: Record<string, string> = {
+  [IMAGE_RATIO.square]: "1",
+  [IMAGE_RATIO.portrait3x4]: "3/4",
+  [IMAGE_RATIO.portrait4x5]: "4/5",
+};
+
+export function imageRatioCss(ratioClass: string): string {
+  return IMAGE_RATIO_CSS[ratioClass] ?? "1";
+}
+
+/**
+ * 285차 — 원본 사진이 1:1(보정컷)·3:4/2:3(라이프스타일컷)이라 가로 크롭은 제품이 잘려 쓰지 않는다.
+ * 정사각 슬롯의 2단 POINT 섹션만 짝수번째(POINT 02, 04…)를 세로 4:5로 교대해
+ * 좁은 칼럼(1단)에서 같은 정사각 이미지가 연속되는 것을 막는다. 주석 좌표가 있는 annotated 제외.
+ */
+export function resolvePointImageRatio(ratioClass: string, pointIndex?: number): string {
+  if (ratioClass !== IMAGE_RATIO.square || pointIndex == null) return ratioClass;
+  return pointIndex % 2 === 1 ? IMAGE_RATIO.portrait4x5 : ratioClass;
+}
 
 // 슬롯(논리 이름) → 이미지 비율. section-templates.ts의 슬롯 정의와 1:1로 대응.
 export const SLOT_IMAGE_RATIO: Record<string, string> = {
@@ -987,27 +1008,35 @@ export const SLOT_IMAGE_RATIO: Record<string, string> = {
   gallery: IMAGE_RATIO.portrait3x4,
   model_multicut: IMAGE_RATIO.portrait3x4,
   packaging: IMAGE_RATIO.portrait3x4,
-  usage_scenario: IMAGE_RATIO.landscape4x5,
-  coordination: IMAGE_RATIO.landscape4x5,
+  usage_scenario: IMAGE_RATIO.portrait4x5,
+  coordination: IMAGE_RATIO.portrait4x5,
   packaging_design: IMAGE_RATIO.square,
   how_it_works: IMAGE_RATIO.square,
   size_options: IMAGE_RATIO.square,
-  customer_scenario: IMAGE_RATIO.landscape4x5,
+  customer_scenario: IMAGE_RATIO.portrait4x5,
   fabric_composition: IMAGE_RATIO.square,
-  fit_guide: IMAGE_RATIO.landscape4x5,
-  seasonal_styling: IMAGE_RATIO.landscape4x5,
+  fit_guide: IMAGE_RATIO.portrait4x5,
+  seasonal_styling: IMAGE_RATIO.portrait4x5,
   sourcing_story: IMAGE_RATIO.square,
-  serving_suggestion: IMAGE_RATIO.landscape4x5,
+  serving_suggestion: IMAGE_RATIO.portrait4x5,
   storage_tip: IMAGE_RATIO.square,
   design_detail: IMAGE_RATIO.square,
   connectivity: IMAGE_RATIO.square,
-  install_scenario: IMAGE_RATIO.landscape4x5,
+  install_scenario: IMAGE_RATIO.portrait4x5,
   material_detail: IMAGE_RATIO.square,
-  usage_scenario_extra: IMAGE_RATIO.landscape4x5,
+  usage_scenario_extra: IMAGE_RATIO.portrait4x5,
   feature_callout: IMAGE_RATIO.square,
   step_card: IMAGE_RATIO.square,
   care_tip: IMAGE_RATIO.square,
 };
+
+export function resolveSlotImageRatio(section: { type: string; slot?: string }): string {
+  return (
+    (section.slot && SLOT_IMAGE_RATIO[section.slot]) ??
+    SLOT_IMAGE_RATIO[section.type] ??
+    IMAGE_RATIO.square
+  );
+}
 
 // ---------------------------------------------------------------------------
 // 6. 정보 섹션(표·체크리스트) — LACTO급 인포 폴리싱용 토큰.

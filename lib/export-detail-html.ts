@@ -100,6 +100,9 @@ import {
   FONT_SIZE,
   RADIUS,
   SECTION_BG_PATTERN_C_ALPHA,
+  imageRatioCss,
+  resolvePointImageRatio,
+  resolveSlotImageRatio,
   type ExtendedTheme,
 } from "@/lib/design-tokens";
 import { applySectionDisplayBudget } from "@/lib/section-display-budget";
@@ -639,7 +642,7 @@ function sectionHtml(
       if (isCallout && section.callout) {
         return `<section${sectionIdAttr} class="pagzly-callout" style="${pad}${sectionInset}${bgCss}">
           <div style="position:relative;margin-bottom:20px">
-            ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:${RADIUS.md}px"/>` : ""}
+            ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${imageRatioCss(resolveSlotImageRatio(section))};object-fit:cover;border-radius:${RADIUS.md}px"/>` : ""}
             <p style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:${deepFill};color:#FAF8F3;padding:10px 18px;border-radius:${RADIUS.lg}px;font-size:${FONT_SIZE.bodySm};font-weight:600;text-align:center;max-width:85%">${esc(section.callout)}</p>
           </div>
           ${dh2(category, esc(section.heading), `font-size:${FONT_SIZE.sectionSm};overflow-wrap:anywhere`)}
@@ -657,7 +660,7 @@ function sectionHtml(
           : "";
         return `<section${sectionIdAttr} class="pagzly-editorial" style="padding:0;background:${sectionBg}">
           <div style="position:relative">
-            ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:4/5;object-fit:cover;display:block"/>` : ""}
+            ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${imageRatioCss(resolveSlotImageRatio(section))};object-fit:cover;display:block"/>` : ""}
             <div style="position:absolute;inset:0;background:linear-gradient(0deg,${hexToRgba(BRAND.ink, 0.82)} 0%,${hexToRgba(BRAND.ink, 0.4)} 24%,${hexToRgba(BRAND.ink, 0.08)} 42%,transparent 55%)"></div>
             <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:24px 24px 28px;text-align:center">
               ${kicker ? `<p style="font-size:${FONT_SIZE.caption};letter-spacing:.36em;color:rgba(250,248,243,.85);margin:0 0 10px">${kicker}</p>` : ""}
@@ -693,6 +696,10 @@ function sectionHtml(
           ? buildAnnotatedImageOverlaySvg(section.annotations!, deep)
           : "";
         const kicker = getSectionKicker(section) ?? "FEATURE";
+        const slotRatio = resolveSlotImageRatio(section);
+        const splitAspect = imageRatioCss(
+          isAnnotatedSection ? slotRatio : resolvePointImageRatio(slotRatio, pointIndex),
+        );
         const pkgItems =
           section.slot === "package_contents"
             ? preparePackageContentsItems(section.body, keyFeatures)
@@ -717,7 +724,7 @@ function sectionHtml(
         return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
           <div style="display:flex;flex-wrap:wrap;gap:32px;max-width:960px;margin:0 auto;align-items:center">
             <div style="flex:${columnRatio.image} 1 280px;order:${imageLeft ? 1 : 2};position:relative">
-              ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:${RADIUS.lg}px;box-shadow:${ELEVATION.imageLift(theme.deepAccent)}"/>` : ""}
+              ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${splitAspect};object-fit:cover;border-radius:${RADIUS.lg}px;box-shadow:${ELEVATION.imageLift(theme.deepAccent)}"/>` : ""}
               ${annotationOverlayHtml}
               ${pointLabel ? `<span style="position:absolute;left:16px;top:16px;background:${hexToRgba(deepFill, 0.9)};color:#FAF8F3;font-size:${FONT_SIZE.label};font-weight:700;letter-spacing:.28em;padding:6px 12px;border-radius:${RADIUS.pill}px">${pointLabel}</span>` : ""}
             </div>
@@ -884,7 +891,7 @@ function sectionHtml(
           const valueHtml = certHighlight
             ? `<span style="display:inline-block;padding:2px 8px;border-radius:${RADIUS.sm}px;color:${accentText};background:${accent}24;box-shadow:${ELEVATION.certUnderlineExportHex(accent + "8c")}">${esc(row.value)}</span>`
             : esc(row.value);
-          return `<tr style="border-bottom:1px solid ${accent}33;background:${ri % 2 === 1 ? accent + "0d" : "transparent"}"><th style="text-align:left;padding:12px 16px;width:38%;opacity:.65;font-weight:500">${esc(row.label)}</th><td style="padding:12px 16px;font-weight:500">${valueHtml}</td></tr>`;
+          return `<tr style="border-bottom:1px solid ${accent}33;background:${ri % 2 === 1 ? accent + "0d" : "transparent"}"><th style="text-align:left;padding:12px 16px;width:38%;opacity:.55;font-weight:500;font-size:${FONT_SIZE.sm};letter-spacing:-0.01em">${esc(row.label)}</th><td style="padding:12px 16px;font-weight:500">${valueHtml}</td></tr>`;
         })
         .join("");
       const tableHtml = `<table style="width:100%;border-collapse:collapse;font-size:${FONT_SIZE.bodySm}"><tbody>${rowsHtml}</tbody></table>`;

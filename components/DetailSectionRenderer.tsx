@@ -109,6 +109,8 @@ import CanvasSectionRenderer from "@/components/CanvasSectionRenderer";
 import {
   BRAND,
   SLOT_IMAGE_RATIO,
+  resolvePointImageRatio,
+  resolveSlotImageRatio,
   HERO_TRANSITION_OVERLAP_CLASS,
   CTA_TRANSITION_OVERLAP_CLASS,
   INFO_BADGE,
@@ -242,7 +244,9 @@ const TYPO = {
     "pagzly-ink-headline pz-fit font-heading [--pz-fs:1.25rem] font-semibold leading-snug tracking-[-0.02em] text-ink @min-[640px]/pz:[--pz-fs:1.5rem]",
   pointBadgePill:
     "inline-block rounded-full border px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.22em]",
-  sectionLabel: "font-mono text-[10px] font-semibold uppercase tracking-[0.32em]",
+  sectionLabel: "font-mono text-[11px] font-semibold uppercase tracking-[0.32em]",
+  // 한글 행 라벨 — 넓은 자간/모노는 라틴 라벨에만
+  tableLabel: "text-[13px] font-medium leading-snug tracking-[-0.01em] text-ink/55",
   pointLabel: "font-mono text-[10px] font-bold uppercase tracking-[0.34em]",
   body: "text-[0.9375rem] font-normal leading-[1.9] text-ink/72 @min-[640px]/pz:text-base @min-[640px]/pz:leading-[1.85]",
   checklistItem:
@@ -270,11 +274,7 @@ function resolveImage(imageUrls: string[], index: number | undefined) {
 }
 
 function resolveImageRatioClass(section: { type: string; slot?: string }) {
-  return (
-    (section.slot && SLOT_IMAGE_RATIO[section.slot]) ??
-    SLOT_IMAGE_RATIO[section.type] ??
-    "aspect-square"
-  );
+  return resolveSlotImageRatio(section);
 }
 
 function ThemeIcon({
@@ -1840,6 +1840,7 @@ function renderSection(
       const imageLeft = resolveSplitImageLeft(section, pointIndex);
       const kicker = getSectionKicker(section);
       const columnRatio = resolveSplitColumnRatio(pointIndex, imageLeft);
+      const pointRatioClass = resolvePointImageRatio(ratioClass, pointIndex);
 
       return (
         <section
@@ -1857,7 +1858,7 @@ function renderSection(
                 <SectionImage
                   src={src}
                   alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
-                  className={`${ratioClass} w-full object-cover`}
+                  className={`${pointRatioClass} w-full object-cover`}
                 />
                 <ImageReplaceHit
                   enabled={edit?.enabled}
@@ -2135,7 +2136,7 @@ function renderSection(
                         : undefined,
                     }}
                   >
-                    <td className={`w-[38%] py-3.5 pr-4 ${TYPO.sectionLabel} text-ink/45`}>
+                    <td className={`w-[38%] py-3.5 pr-4 ${TYPO.tableLabel}`}>
                       <div className="flex items-center gap-2.5">
                         <ConceptBadgeIcon
                           src={conceptIcons?.specTable?.[rowIndex]}
