@@ -37,6 +37,7 @@ import type {
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getCompletionTokenCost } from "@/lib/cost/saas-pricing-config";
+import { chargeCompletionCredits } from "@/lib/cost/completion-charge";
 import { extractProductTheme } from "@/lib/color-extract";
 import {
   buildSectionLengthGuide,
@@ -1300,6 +1301,7 @@ function normalizeSectionsToTemplate(
 export const maxDuration = 300;
 
 export async function POST(request: Request) {
+  const requestStartedAt = Date.now();
   try {
     const supabase = await createClient();
     const {
@@ -2218,24 +2220,6 @@ export async function POST(request: Request) {
       );
     }
 
-    if (mode === "final") {
-      const tokenCost = getCompletionTokenCost(body.length);
-      const serviceClient = createServiceRoleClient();
-      const { error: deductError } = await serviceClient.rpc("deduct_credits", {
-        p_user_id: user.id,
-        p_amount: tokenCost,
-        p_reason: "completion",
-        p_reference_id: savedProduct.id,
-      });
-
-      if (deductError) {
-        console.error(
-          `[generate] deduct_credits failed for user=${user.id} product=${savedProduct.id}:`,
-          deductError,
-        );
-      }
-    }
-
     if (body.imagePaths?.length) {
       const { error: linkError } = await supabase
         .from("product_images")
@@ -2246,6 +2230,21 @@ export async function POST(request: Request) {
       if (linkError) {
         console.error("[generate] product_images link error", linkError);
       }
+    }
+
+    // 차감은 응답 직전의 마지막 await여야 한다(중간 실패·시간 초과 시 차감 자체가 일어나지 않도록).
+    if (mode === "final") {
+      await chargeCompletionCredits({
+        getRpc: () => {
+          const serviceClient = createServiceRoleClient();
+          return (fn, args) => serviceClient.rpc(fn, args);
+        },
+        userId: user.id,
+        amount: getCompletionTokenCost(body.length),
+        productId: savedProduct.id as string,
+        requestStartedAt,
+        maxDurationMs: maxDuration * 1000,
+      });
     }
 
     return NextResponse.json({
