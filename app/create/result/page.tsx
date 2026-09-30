@@ -26,8 +26,8 @@ import { getCategoryTheme } from "@/lib/category-theme";
 import { resolveHeadlineFontKind } from "@/lib/detail-typography";
 import { buildDetailPageHtml } from "@/lib/export-detail-html";
 import { computeDemotedSectionIndexes } from "@/lib/section-display-budget";
-import { captureDetailToPng, captureDetailToPngBlob, downloadBlob, prepareCaptureRoot } from "@/lib/capture-detail-png";
-import { downloadPngSlicesZip } from "@/lib/split-detail-download";
+import { captureDetailToPngBlobs, downloadBlob, prepareCaptureRoot } from "@/lib/capture-detail-png";
+import { DEFAULT_SLICE_HEIGHT_PX, downloadPngPartsZip } from "@/lib/split-detail-download";
 import { validateImageFile } from "@/lib/image-upload";
 import { computePreviewCollapseEnd } from "@/lib/detail-preview-collapse";
 import {
@@ -720,9 +720,22 @@ function CreateResultContent() {
       await new Promise((r) => setTimeout(r, 80));
       restoreImages = await prepareCaptureRoot(captureRoot);
       const platform = getDownloadPlatform(downloadPlatform);
-      const blob = await captureDetailToPngBlob(captureRoot, platform.width);
-      await downloadBlob(blob, `${data.productName}-상세페이지-${platform.label}.png`);
-      setToast({ tone: "ok", message: `${platform.label} 규격 PNG를 내려받았습니다.` });
+      const parts = await captureDetailToPngBlobs(captureRoot, platform.width);
+      if (parts.length === 1) {
+        await downloadBlob(parts[0]!, `${data.productName}-상세페이지-${platform.label}.png`);
+        setToast({ tone: "ok", message: `${platform.label} 규격 PNG를 내려받았습니다.` });
+      } else {
+        await downloadPngPartsZip({
+          parts,
+          baseName: `${data.productName}-상세페이지`,
+          platformLabel: platform.label,
+          zipName: `${data.productName}-상세페이지-${platform.label}.zip`,
+        });
+        setToast({
+          tone: "ok",
+          message: `페이지가 길어 ${platform.label} 규격(가로 ${platform.width}px) ${parts.length}장으로 나눠 ZIP으로 받았습니다.`,
+        });
+      }
     } catch (err) {
       console.error("[download]", err);
       setToast({
@@ -758,11 +771,12 @@ function CreateResultContent() {
       await new Promise((r) => setTimeout(r, 80));
       restoreImages = await prepareCaptureRoot(captureRoot);
       const platform = getDownloadPlatform(downloadPlatform);
-      const dataUrl = await captureDetailToPng(captureRoot, platform.width);
-      const sliceCount = await downloadPngSlicesZip({
-        dataUrl,
+      const parts = await captureDetailToPngBlobs(captureRoot, platform.width, DEFAULT_SLICE_HEIGHT_PX);
+      const sliceCount = await downloadPngPartsZip({
+        parts,
         baseName: data.productName,
         platformLabel: platform.label,
+        zipName: `${data.productName}-${platform.label}-분할.zip`,
       });
       setToast({
         tone: "ok",

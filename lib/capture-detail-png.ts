@@ -2,14 +2,15 @@
  * 상세페이지 PNG 캡처.
  * - 원격 이미지를 data URL로 인라인 (CORS → 하얀/빈 이미지 방지)
  * - scroll-reveal opacity:0 강제 해제
- * - 캔버스 한도 내로 pixelRatio 조정 (초장문 페이지에서 빈 PNG 방지)
+ * - 가로는 항상 마켓 목표 폭, 세로가 캔버스 한도를 넘으면 여러 장으로 분할 (초장문 페이지에서 빈 PNG 방지)
  * - Blob 다운로드 (긴 data URL 0바이트 방지)
  */
 
-import { toPng } from "html-to-image";
+import { toSvg } from "html-to-image";
 
-/** html-to-image / Chrome 실사용 한도보다 여유 */
-const MAX_CANVAS_EDGE = 14000;
+/** 한 장(캔버스)의 세로 상한 — Chrome 실사용 한도보다 여유 */
+export const MAX_CANVAS_EDGE = 14000;
+const CAPTURE_BACKGROUND = "#FAF8F3";
 /** data URL 디코드는 수백 ms면 끝난다. 넘기면 그 이미지는 현재 상태로 캡처하고 진행 */
 const IMAGE_DECODE_TIMEOUT_MS = 15_000;
 
@@ -155,56 +156,79 @@ export async function downloadBlob(blob: Blob, filename: string): Promise<void> 
   }
 }
 
-/**
- * 마켓 권장 가로에 최대한 맞춘 PNG Blob.
- * 세로가 너무 길면 pixelRatio를 낮춰 한 장에 들어가게 한다 (빈 PNG보다 낫다).
- */
-export async function captureDetailToPngBlob(
-  root: HTMLElement,
-  targetWidthPx: number,
-): Promise<Blob> {
-  const { width: elWidth, height: elHeight } = measureCaptureSize(root);
-
-  let pixelRatio = targetWidthPx / elWidth;
-  if (elHeight * pixelRatio > MAX_CANVAS_EDGE) {
-    pixelRatio = MAX_CANVAS_EDGE / elHeight;
-  }
-  if (elWidth * pixelRatio > MAX_CANVAS_EDGE) {
-    pixelRatio = MAX_CANVAS_EDGE / elWidth;
-  }
-  pixelRatio = Math.max(pixelRatio, 0.25);
-
-  const outWidth = Math.max(1, Math.round(elWidth * pixelRatio));
-  const outHeight = Math.max(1, Math.round(elHeight * pixelRatio));
-
-  console.log(
-    `[capture] css=${elWidth}x${elHeight} out=${outWidth}x${outHeight} pr=${pixelRatio.toFixed(3)} targetW=${targetWidthPx}`,
-  );
-
-  const dataUrl = await toPng(root, {
-    pixelRatio,
-    cacheBust: false,
-    skipAutoScale: true,
-    backgroundColor: "#FAF8F3",
-    width: elWidth,
-    height: elHeight,
-    canvasWidth: outWidth,
-    canvasHeight: outHeight,
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.decoding = "sync";
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("캡처 이미지를 불러오지 못했습니다."));
+    img.src = src;
   });
-
-  // data URL → Blob (긴 data URL로 <a download> 하면 0바이트 되는 브라우저 있음)
-  const res = await fetch(dataUrl);
-  const blob = await res.blob();
-  if (blob.size < 1000) {
-    throw new Error("캡처 결과가 비어 있습니다. 잠시 후 다시 시도해 주세요.");
-  }
-  return blob;
 }
 
-export async function captureDetailToPng(
+function canvasToPngBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob && blob.size >= 1000) resolve(blob);
+      else reject(new Error("캡처 결과가 비어 있습니다. 잠시 후 다시 시도해 주세요."));
+    }, "image/png");
+  });
+}
+
+/** 세로 구간(CSS px). 각 구간은 targetWidth 배율로 출력 시 maxPartHeightPx 이하 */
+export function planCaptureParts(
+  cssHeight: number,
+  scale: number,
+  maxPartHeightPx: number,
+): { y: number; h: number }[] {
+  const partCss = Math.max(1, Math.floor(maxPartHeightPx / scale));
+  const parts: { y: number; h: number }[] = [];
+  for (let y = 0; y < cssHeight; y += partCss) {
+    parts.push({ y, h: Math.min(partCss, cssHeight - y) });
+  }
+  return parts;
+}
+
+/**
+ * 마켓 권장 가로(targetWidthPx)를 항상 지킨 PNG 목록.
+ * 세로가 maxPartHeightPx를 넘으면 가로를 줄이지 않고 여러 장으로 나눈다.
+ * DOM 클론·이미지/폰트 임베드는 SVG 한 번으로 끝내고, 구간별로 캔버스에 잘라 그린다.
+ */
+export async function captureDetailToPngBlobs(
   root: HTMLElement,
   targetWidthPx: number,
-): Promise<string> {
-  const blob = await captureDetailToPngBlob(root, targetWidthPx);
-  return blobToDataUrl(blob);
+  maxPartHeightPx: number = MAX_CANVAS_EDGE,
+): Promise<Blob[]> {
+  const { width: elWidth, height: elHeight } = measureCaptureSize(root);
+  const scale = targetWidthPx / elWidth;
+  const parts = planCaptureParts(elHeight, scale, Math.min(maxPartHeightPx, MAX_CANVAS_EDGE));
+
+  console.log(
+    `[capture] css=${elWidth}x${elHeight} scale=${scale.toFixed(3)} targetW=${targetWidthPx} parts=${parts.length} ` +
+      `out=${parts.map((p) => `${targetWidthPx}x${Math.round(p.h * scale)}`).join(",")}`,
+  );
+
+  const svg = await toSvg(root, {
+    cacheBust: false,
+    backgroundColor: CAPTURE_BACKGROUND,
+    width: elWidth,
+    height: elHeight,
+  });
+  const img = await loadImage(svg);
+
+  const blobs: Blob[] = [];
+  for (const part of parts) {
+    const canvas = document.createElement("canvas");
+    canvas.width = targetWidthPx;
+    canvas.height = Math.max(1, Math.round(part.h * scale));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas를 사용할 수 없습니다.");
+    ctx.fillStyle = CAPTURE_BACKGROUND;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, part.y, elWidth, part.h, 0, 0, canvas.width, canvas.height);
+    blobs.push(await canvasToPngBlob(canvas));
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+  return blobs;
 }
