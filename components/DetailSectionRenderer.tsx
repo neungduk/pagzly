@@ -13,7 +13,11 @@ import {
 } from "lucide-react";
 import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import { parseStandalonePercent, splitStatValue, STAT_UNIT_EM } from "@/lib/stat-value";
-import { isPlaceholderValue } from "@/lib/spec-placeholder";
+import {
+  groupPendingSpecRows,
+  isPlaceholderValue,
+  PENDING_SPEC_ROW_LABEL,
+} from "@/lib/spec-placeholder";
 import type {
   ComparisonChartSection,
   DetailSection,
@@ -45,7 +49,6 @@ import {
   SUMMARY_ICON_PX,
 } from "@/lib/summary-line-icons";
 import {
-  formatSectionIndex,
   getSectionKicker,
   limitBoldBlocks,
   buildPointOrdinals,
@@ -156,7 +159,7 @@ import {
   TWO_TONE_LEAD_EM,
   splitTwoToneHeadline,
 } from "@/lib/designer-headline";
-import { splitBodyEmphasis } from "@/lib/body-emphasis";
+import { emphasisMarkerGradient, splitBodyEmphasis } from "@/lib/body-emphasis";
 
 export type SectionEditApi = {
   enabled: boolean;
@@ -352,8 +355,11 @@ function ConceptBadgeIcon({
       <img
         src={src}
         alt=""
-        className={`${sizeClass} shrink-0 rounded-full object-cover ring-2 ring-white/80`}
-        style={{ boxShadow: ELEVATION.badgeRing(`${theme.accent}33`) }}
+        className={`${sizeClass} shrink-0 rounded-full ring-2 ring-white/80 ${inverted ? "object-contain p-1.5" : "object-cover"}`}
+        style={{
+          boxShadow: ELEVATION.badgeRing(`${theme.accent}33`),
+          ...(inverted ? { backgroundColor: FLAT_PAPER } : {}),
+        }}
         aria-hidden="true"
       />
     );
@@ -857,6 +863,11 @@ function PointPill({
 }
 
 /** 작은 잉크 리드 + 큰 포인트색 핵심 문구. 편집 모드에서는 원문 한 줄 그대로 */
+/** 플랫 톤 일반 섹션 제목 — 투톤 제목의 메인색과 맞춘다 */
+function flatTitleColor(theme: CategoryTheme): CSSProperties | undefined {
+  return FLAT_SECTION_SURFACES ? { color: twoToneHeadlineColors(theme).main } : undefined;
+}
+
 function TwoToneTitle({
   theme,
   title,
@@ -1348,7 +1359,7 @@ function renderComparisonChartBody(params: {
       >
         COMPARE
       </p>
-      <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}>
+      <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}>
         {section.heading}
       </h3>
       <div className="mx-auto mt-10 max-w-md space-y-8">
@@ -1460,11 +1471,13 @@ function renderCircleComparisonCombo(params: {
 function EmphasizedBody({
   body,
   emphasis,
+  theme,
   edit,
   onChange,
 }: {
   body: string;
   emphasis?: string;
+  theme: CategoryTheme;
   edit?: SectionEditApi;
   onChange: (body: string) => void;
 }) {
@@ -1485,7 +1498,10 @@ function EmphasizedBody({
   return (
     <p className={TYPO.body} style={{ color: hexToRgba(BRAND.ink, 0.82) }}>
       {split.before}
-      <strong className="font-bold" style={{ color: BRAND.ink }}>
+      <strong
+        className="font-bold [box-decoration-break:clone]"
+        style={{ color: BRAND.ink, backgroundImage: emphasisMarkerGradient(theme.accent) }}
+      >
         {split.strong}
       </strong>
       {split.after}
@@ -1565,6 +1581,7 @@ function StackedImageTextSection({
         <EmphasizedBody
           body={section.body}
           emphasis={section.emphasis}
+          theme={theme}
           edit={edit}
           onChange={(body) => edit?.onChange(index, { ...section, body })}
         />
@@ -2094,6 +2111,7 @@ function renderSection(
                   <EmphasizedBody
                     body={section.body}
                     emphasis={section.emphasis}
+                    theme={theme}
                     edit={edit}
                     onChange={(body) => edit?.onChange(index, { ...section, body })}
                   />
@@ -2144,6 +2162,7 @@ function renderSection(
               <EmphasizedBody
                 body={section.body}
                 emphasis={section.emphasis}
+                theme={theme}
                 edit={edit}
                 onChange={(body) => edit?.onChange(index, { ...section, body })}
               />
@@ -2350,6 +2369,10 @@ function renderSection(
           : [resolveImage(imageUrls, 0) || heroFallback].filter(Boolean)
       ) as string[];
       const isMainSpecTable = section.slot === "spec_table";
+      const { shown: tableRows, pendingLabels } =
+        FLAT_SECTION_SURFACES && !isShipping && !edit?.enabled
+          ? groupPendingSpecRows(visibleRows)
+          : { shown: visibleRows, pendingLabels: [] as string[] };
       const specSectionStyle = isMainSpecTable && !FLAT_SECTION_SURFACES
         ? {
             ...textSectionStyle(theme, pattern, category),
@@ -2373,7 +2396,7 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}
           />
           {specThumbUrls.length > 0 ? (
             <div
@@ -2481,7 +2504,7 @@ function renderSection(
               }
             >
               <tbody>
-                {visibleRows.map((row) => {
+                {tableRows.map((row) => {
                   const rowIndex = section.rows.indexOf(row);
                   return (
                   <tr
@@ -2495,12 +2518,14 @@ function renderSection(
                   >
                     <td className={`w-[38%] py-3.5 pr-4 ${TYPO.tableLabel}`}>
                       <div className="flex items-center gap-2.5">
-                        <ConceptBadgeIcon
-                          src={conceptIcons?.specTable?.[rowIndex]}
-                          theme={theme}
-                          fallbackIndex={rowIndex}
-                          size={INFO_BADGE.compactSize}
-                        />
+                        {conceptIcons?.specTable?.[rowIndex] || !FLAT_SECTION_SURFACES ? (
+                          <ConceptBadgeIcon
+                            src={conceptIcons?.specTable?.[rowIndex]}
+                            theme={theme}
+                            fallbackIndex={rowIndex}
+                            size={INFO_BADGE.compactSize}
+                          />
+                        ) : null}
                         <EditableText
                           as="span"
                           enabled={edit?.enabled}
@@ -2565,6 +2590,14 @@ function renderSection(
                   </tr>
                   );
                 })}
+                {pendingLabels.length > 0 ? (
+                  <tr data-spec-pending>
+                    <td className={`w-[38%] py-3.5 pr-4 ${TYPO.tableLabel}`}>{PENDING_SPEC_ROW_LABEL}</td>
+                    <td className="py-3.5 text-[13px] leading-relaxed tracking-tight text-ink/45">
+                      {pendingLabels.join(" · ")}
+                    </td>
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </div>
@@ -2595,7 +2628,7 @@ function renderSection(
           >
             COMPARE
           </p>
-          <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}>
+          <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}>
             {section.heading}
           </h3>
           <div className="mx-auto mt-10 max-w-xl overflow-x-auto overflow-hidden rounded-lg">
@@ -2688,7 +2721,7 @@ function renderSection(
           >
             FIT CHECK
           </p>
-          <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}>
+          <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}>
             {section.heading}
           </h3>
           <div className="mx-auto mt-10 grid max-w-3xl gap-6 @min-[640px]/pz:grid-cols-2">
@@ -2785,6 +2818,7 @@ function renderSection(
           <div className={`relative mx-auto ${isTrustEvidence ? "mt-0" : "mt-10"} grid gap-4 ${gridCols}`}>
             {cards.map((card, cardIndex) => {
               const emphasized = cardIndex === centerIdx;
+              const lightEm = FLAT_SECTION_SURFACES && boldBlock && emphasized;
               const cardKeyword = parseMegaKeywordHeading(card.title);
               return (
                 <div
@@ -2796,7 +2830,9 @@ function renderSection(
                       : ""
                   } ${isTrustEvidence ? "py-10 @min-[640px]/pz:py-14" : ""}`}
                   style={{
-                    backgroundColor: emphasized
+                    backgroundColor: lightEm
+                      ? FLAT_PAPER
+                      : emphasized
                       ? hexToRgba(
                           solidDeepOnPaper(theme),
                           boldBlock ? 1 : SECTION_BG_PATTERN_C_ALPHA,
@@ -2824,7 +2860,7 @@ function renderSection(
                         theme={theme}
                         fallbackIndex={cardIndex}
                         size={INFO_BADGE.defaultSize}
-                        inverted={emphasized || boldBlock}
+                        inverted={(emphasized || boldBlock) && !lightEm}
                       />
                     </div>
                   ) : null}
@@ -2852,7 +2888,7 @@ function renderSection(
                     <p
                       className={`${TYPO.keywordDisplay} [--pz-fs:clamp(1.75rem,8cqi,2.75rem)]`}
                       style={{
-                        color: emphasized || boldBlock ? BRAND.paper : readableTextDeep(theme),
+                        color: (emphasized || boldBlock) && !lightEm ? BRAND.paper : readableTextDeep(theme),
                         ...fitTokenStyle(cardKeyword.keyword, -0.06),
                       }}
                     >
@@ -2876,7 +2912,7 @@ function renderSection(
                           ? "font-heading text-base font-semibold tracking-[-0.02em]"
                           : "font-heading text-lg font-bold tracking-[-0.02em]"
                     }
-                    style={emphasized ? { color: BRAND.paper } : boldBlock ? { color: BRAND.paper } : undefined}
+                    style={lightEm ? { color: BRAND.ink } : emphasized || boldBlock ? { color: BRAND.paper } : undefined}
                     {...elementSelectProps(edit, index, `cards[${cardIndex}].title`)}
                   />
                   ) : null}
@@ -2893,7 +2929,9 @@ function renderSection(
                       }}
                       className="text-sm leading-relaxed"
                       style={
-                        emphasized
+                        lightEm
+                          ? { color: hexToRgba(BRAND.ink, 0.68) }
+                          : emphasized
                           ? { color: hexToRgba(BRAND.paper, 0.9) }
                           : boldBlock
                             ? { color: hexToRgba(BRAND.paper, 0.82) }
@@ -2999,7 +3037,7 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}
           />
           {numberMetrics.length > 0 && (
             <div className={`mx-auto mt-10 grid gap-x-5 gap-y-6 ${numberGridCols}`}>
@@ -3264,7 +3302,7 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}
           />
           <ol className="relative mx-auto mt-14 max-w-3xl flex flex-col gap-10 @min-[640px]/pz:flex-row @min-[640px]/pz:items-start @min-[640px]/pz:gap-4">
             {/* 연결선: 모바일은 세로(뱃지 중심 x=24px), sm 이상은 가로(뱃지 중심 y=24px) */}
@@ -3338,7 +3376,7 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}
           />
           <div className="mx-auto mt-12 grid max-w-4xl grid-cols-1 gap-8 @min-[640px]/pz:grid-cols-3">
             {steps.map((step, stepIndex) => {
@@ -3421,7 +3459,7 @@ function renderSection(
               enabled={edit?.enabled}
               value={section.heading}
               onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-              className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+              className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}
             />
           </div>
           <div
@@ -3802,7 +3840,7 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}
           />
           <div className="mx-auto mt-8 flex max-w-3xl flex-col gap-8">
             {section.pairs.map((pair, i) => (
@@ -3869,7 +3907,7 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}
           />
           <div className="mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-4">
             {section.certificates.map((cert, i) => (
@@ -4176,7 +4214,7 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}
           />
           <div className="mx-auto mt-10 max-w-xl space-y-4 text-left">
             {section.items.map((item, itemIndex) => (
@@ -4309,18 +4347,25 @@ function renderSection(
       return (
         <section
           key={`cta_price-${index}`}
-          className={`pagzly-ink-cta pagzly-ink-shimmer sticky bottom-0 z-20 ${TW_ELEVATION.ctaSticky} ${CTA_TRANSITION_OVERLAP_CLASS} ${getCategoryRhythm(category).ctaPadClass}`}
-          style={{
-            backgroundColor: getCtaBandBackground(theme),
-            clipPath: getCategoryRhythm(category).ctaTransitionClip,
-          }}
+          className={`${FLAT_SECTION_SURFACES ? "relative" : "pagzly-ink-cta pagzly-ink-shimmer"} sticky bottom-0 z-20 ${TW_ELEVATION.ctaSticky} ${FLAT_SECTION_SURFACES ? "" : CTA_TRANSITION_OVERLAP_CLASS} ${getCategoryRhythm(category).ctaPadClass}`}
+          style={
+            FLAT_SECTION_SURFACES
+              ? {
+                  backgroundColor: flatAccentTint(theme),
+                  borderTop: `1px solid ${hexToRgba(theme.accent, 0.16)}`,
+                }
+              : {
+                  backgroundColor: getCtaBandBackground(theme),
+                  clipPath: getCategoryRhythm(category).ctaTransitionClip,
+                }
+          }
         >
           <div className={`${TEXT_COL_CLASS} relative z-10 space-y-5`}>
             <p className={TYPO.sectionKicker} style={{ color: readableTextDeep(theme) }}>
               PRICE
             </p>
             <p
-              className="pagzly-ink-headline font-heading text-[length:var(--pz-t-price-b)] font-bold leading-none @min-[640px]/pz:text-[length:var(--pz-t-price-w)]"
+              className={`${FLAT_SECTION_SURFACES ? "" : "pagzly-ink-headline"} font-heading text-[length:var(--pz-t-price-b)] font-bold leading-none @min-[640px]/pz:text-[length:var(--pz-t-price-w)]`}
               style={{ color: readableTextAccent(theme, 3), letterSpacing: "-0.04em" }}
             >
               ₩{section.price.toLocaleString()}
@@ -4341,13 +4386,21 @@ function renderSection(
                 {section.badges.map((badge) => (
                   <span
                     key={badge}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold tracking-wide"
-                    style={{
-                      backgroundColor: solidDeepOnPaper(theme),
-                      color: BRAND.paper,
-                      clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%)",
-                      paddingRight: "1.25rem",
-                    }}
+                    className={`inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold tracking-wide ${FLAT_SECTION_SURFACES ? "rounded-full border" : ""}`}
+                    style={
+                      FLAT_SECTION_SURFACES
+                        ? {
+                            backgroundColor: FLAT_PAPER,
+                            borderColor: hexToRgba(theme.accent, 0.3),
+                            color: readableTextDeep(theme),
+                          }
+                        : {
+                            backgroundColor: solidDeepOnPaper(theme),
+                            color: BRAND.paper,
+                            clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%)",
+                            paddingRight: "1.25rem",
+                          }
+                    }
                   >
                     {badge}
                   </span>

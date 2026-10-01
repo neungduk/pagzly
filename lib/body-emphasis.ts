@@ -12,6 +12,16 @@ const NUMERIC_PHRASE =
 
 export type BodyEmphasisSplit = { before: string; strong: string; after: string };
 
+/** 강조 구절 아래 40%만 포인트색으로 칠하는 형광펜 밑줄 (라이브·export 동일 값) */
+export function emphasisMarkerGradient(accentHex: string): string {
+  const hex = accentHex.replace("#", "");
+  const full = hex.length === 3 ? hex.split("").map((c) => c + c).join("") : hex;
+  const r = parseInt(full.slice(0, 2), 16);
+  const g = parseInt(full.slice(2, 4), 16);
+  const b = parseInt(full.slice(4, 6), 16);
+  return `linear-gradient(transparent 60%, rgba(${r}, ${g}, ${b}, 0.22) 60%)`;
+}
+
 export function splitBodyEmphasis(
   body: string | null | undefined,
   emphasis?: string | null,
