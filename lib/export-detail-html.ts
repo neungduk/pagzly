@@ -86,6 +86,12 @@ import {
 import { parseCertificationTokens } from "@/lib/enrich-product-sections";
 import { extractTrustChips } from "@/lib/extract-trust-chips";
 import {
+  pickSummaryIcon,
+  summaryGridColumns,
+  summaryIconSvg,
+  SUMMARY_ICON_PX,
+} from "@/lib/summary-line-icons";
+import {
   extendTheme,
   getCategoryPatternBackground,
   getHeroGradient,
@@ -150,14 +156,24 @@ function esc(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function trustStripHtml(chips: string[], theme: CategoryTheme, certTokens: string[] = []): string {
+/** hero-follow 래퍼 하단 대각선 클립 높이 */
+const HERO_FOLLOW_CLIP_PX = 44;
+
+function trustStripHtml(
+  chips: string[],
+  theme: CategoryTheme,
+  certTokens: string[] = [],
+  isLastInClip = false,
+): string {
   if (chips.length === 0) return "";
   const accent = theme.accent;
   const deepText = readableTextDeep(theme);
   const accentText = readableTextAccent(theme);
-  return `<div style="padding:16px 20px;border-top:1px solid ${accent}38;border-bottom:1px solid ${accent}38;background:${theme.baseNeutral}a6;text-align:center">
-    <p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText};margin:0 0 12px">혜택 · 신뢰</p>
-    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px">
+  const cols = summaryGridColumns(chips.length);
+  const padBottom = 24 + (isLastInClip ? HERO_FOLLOW_CLIP_PX : 0);
+  return `<div style="padding:24px 24px ${padBottom}px;border-top:1px solid ${accent}38;border-bottom:1px solid ${accent}38;background:${theme.baseNeutral}a6;text-align:center">
+    <p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText};margin:0 0 12px">한눈에 보기</p>
+    <div style="display:grid;grid-template-columns:repeat(${cols},minmax(0,1fr));column-gap:12px;row-gap:20px;max-width:560px;margin:0 auto">
       ${chips
         .map((c) => {
           const certHighlight = certTokens.some(
@@ -167,7 +183,8 @@ function trustStripHtml(chips: string[], theme: CategoryTheme, certTokens: strin
                 token.includes(c) ||
                 c.toLowerCase().includes(token.toLowerCase())),
           );
-          return `<span style="font-size:${FONT_SIZE.xs};font-weight:600;padding:6px 12px;border-radius:${RADIUS.pill}px;background:${certHighlight ? accent + "38" : accent + "1f"};color:${certHighlight ? accentText : deepText};${certHighlight ? `box-shadow:${ELEVATION.certUnderline(accent)}` : ""}">${esc(c)}</span>`;
+          const icon = summaryIconSvg(pickSummaryIcon(c), certHighlight ? accent : deepText, SUMMARY_ICON_PX);
+          return `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">${icon}<span style="font-size:14px;font-weight:600;line-height:1.375;word-break:keep-all;color:${certHighlight ? accentText : theme.deepAccent}">${esc(c)}</span></div>`;
         })
         .join("")}
     </div></div>`;
@@ -1460,14 +1477,17 @@ export function buildDetailPageHtml(opts: {
       const next = visibleSections[i + 1];
       if (next) {
         const heroFollowParts: string[] = [];
-        if (trustChips.length > 0) heroFollowParts.push(trustStripHtml(trustChips, opts.theme, certTokens));
         // 165차 — "Bento 그리드 2.0" 스펙 하이라이트. 히어로 바로 아래(라이브 렌더러와 동일 위치).
-        if (quickFacts.length > 0) heroFollowParts.push(buildSpecBentoGridHtml(quickFacts, opts.theme));
+        const bentoHtml = quickFacts.length > 0 ? buildSpecBentoGridHtml(quickFacts, opts.theme) : "";
+        if (trustChips.length > 0) {
+          heroFollowParts.push(trustStripHtml(trustChips, opts.theme, certTokens, !bentoHtml));
+        }
+        if (bentoHtml) heroFollowParts.push(bentoHtml);
         // 236차 — 라이브 hero-follow 북엔드 대각선 클립(trust+bento). 다음 섹션 본문까지
         // 같은 wrapper에 넣는 완전 동일 구조는 루프 회귀 위험으로 이번엔 제외.
         if (heroFollowParts.length > 0) {
           bodyParts.push(
-            `<div style="position:relative;z-index:1;clip-path:polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - 44px));margin-top:-16px">${heroFollowParts.join("\n")}</div>`,
+            `<div style="position:relative;z-index:1;clip-path:polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - ${HERO_FOLLOW_CLIP_PX}px));margin-top:-16px">${heroFollowParts.join("\n")}</div>`,
           );
         }
       }

@@ -39,6 +39,12 @@ import { buildSectionImageAlt } from "@/lib/detail-image-alt";
 import { splitTextByKeywords } from "@/lib/review-insights";
 import { extractTrustChips } from "@/lib/extract-trust-chips";
 import {
+  pickSummaryIcon,
+  summaryGridColumns,
+  summaryIconSvg,
+  SUMMARY_ICON_PX,
+} from "@/lib/summary-line-icons";
+import {
   formatSectionIndex,
   getSectionKicker,
   resolveSplitColumnRatio,
@@ -1022,7 +1028,7 @@ function TrustStrip({
   if (chips.length === 0) return null;
   return (
     <div
-      className="border-b border-t px-6 py-4 @min-[640px]/pz:px-10"
+      className="border-b border-t px-6 py-6 @min-[640px]/pz:px-10"
       style={{
         borderColor: hexToRgba(theme.accent, 0.22),
         backgroundColor: hexToRgba(theme.baseNeutral, 0.65),
@@ -1032,9 +1038,12 @@ function TrustStrip({
         className={`mb-3 text-center ${TYPO.sectionLabel}`}
         style={{ color: readableTextDeep(theme) }}
       >
-        혜택 · 신뢰
+        한눈에 보기
       </p>
-      <div className="flex flex-wrap items-center justify-center gap-2">
+      <div
+        className="mx-auto grid max-w-[560px] gap-x-3 gap-y-5"
+        style={{ gridTemplateColumns: `repeat(${summaryGridColumns(chips.length)}, minmax(0, 1fr))` }}
+      >
         {chips.map((chip) => {
           const certHighlight = certTokens.some(
             (token) =>
@@ -1043,22 +1052,22 @@ function TrustStrip({
                 token.includes(chip) ||
                 chip.toLowerCase().includes(token.toLowerCase())),
           );
+          const iconColor = certHighlight ? theme.accent : readableTextDeep(theme);
           return (
-            <span
-              key={chip}
-              className="rounded-full px-3 py-1.5 text-xs font-semibold tracking-wide"
-              style={{
-                backgroundColor: certHighlight
-                  ? hexToRgba(theme.accent, 0.22)
-                  : hexToRgba(theme.accent, 0.12),
-                color: certHighlight ? theme.accent : theme.deepAccent,
-                boxShadow: certHighlight
-                  ? ELEVATION.certUnderline(theme.accent)
-                  : ELEVATION.certRing(theme.accent),
-              }}
-            >
-              {chip}
-            </span>
+            <div key={chip} className="flex flex-col items-center gap-2 text-center">
+              <span
+                aria-hidden="true"
+                dangerouslySetInnerHTML={{
+                  __html: summaryIconSvg(pickSummaryIcon(chip), iconColor, SUMMARY_ICON_PX),
+                }}
+              />
+              <span
+                className="text-[14px] font-semibold leading-snug [word-break:keep-all]"
+                style={{ color: certHighlight ? theme.accent : theme.deepAccent }}
+              >
+                {chip}
+              </span>
+            </div>
           );
         })}
       </div>

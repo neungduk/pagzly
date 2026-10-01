@@ -5,8 +5,22 @@ import { resolveTemplateCategory } from "@/lib/section-templates";
 /** 인증 문자열을 배지/표 행에 쓸 토큰으로 분리 */
 export function parseCertificationTokens(raw: string | null | undefined): string[] {
   if (!raw?.trim()) return [];
-  return raw
-    .split(/[,/|·\n]/)
+  // "피부자극 테스트 완료(자체, n=32)"처럼 괄호 안 구분자는 나누지 않는다
+  const parts: string[] = [];
+  let depth = 0;
+  let cur = "";
+  for (const ch of raw) {
+    if ("([（".includes(ch)) depth += 1;
+    else if (")]）".includes(ch)) depth = Math.max(0, depth - 1);
+    if (depth === 0 && /[,/|·\n]/.test(ch)) {
+      parts.push(cur);
+      cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  parts.push(cur);
+  return parts
     .map((s) => s.trim())
     .filter((s) => s.length > 0 && s.length <= 40)
     .slice(0, 6);
