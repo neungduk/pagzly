@@ -13,6 +13,14 @@ export const MAX_CANVAS_EDGE = 14000;
 const CAPTURE_BACKGROUND = "#FAF8F3";
 /** data URL 디코드는 수백 ms면 끝난다. 넘기면 그 이미지는 현재 상태로 캡처하고 진행 */
 const IMAGE_DECODE_TIMEOUT_MS = 15_000;
+/**
+ * PNG는 화면 폭과 무관하게 이 CSS 폭으로 레이아웃한 뒤 마켓 폭으로 확대한다.
+ * 640 = 넓은 레이아웃(@min-[640px]/pz) 경계. 860 출력 시 1.34배 → 본문 약 23px · 섹션 타이틀 59px · 히어로 113px
+ * (286차 경쟁 중앙값 25 · 59 · 107). 미리보기 폭을 그대로 쓰면 창 크기에 따라 본문이 16~36px로 달라진다.
+ */
+export const CAPTURE_DESIGN_WIDTH_PX = 640;
+/** 폭 고정 후 ResizeObserver 기반 캔버스 섹션이 다시 측정·렌더할 시간 */
+const WIDTH_LOCK_SETTLE_MS = 150;
 
 type RestoreFn = () => void;
 
@@ -48,8 +56,31 @@ async function fetchAsDataUrl(src: string): Promise<string | null> {
   }
 }
 
-export async function prepareCaptureRoot(root: HTMLElement): Promise<RestoreFn> {
+export async function prepareCaptureRoot(
+  root: HTMLElement,
+  designWidthPx: number | null = CAPTURE_DESIGN_WIDTH_PX,
+): Promise<RestoreFn> {
   const restores: RestoreFn[] = [];
+
+  if (designWidthPx) {
+    // 테두리 안쪽(@container/pz)이 정확히 designWidthPx여야 넓은 레이아웃 경계를 넘는다
+    const lock: [string, string][] = [
+      ["box-sizing", "content-box"],
+      ["width", `${designWidthPx}px`],
+      ["min-width", `${designWidthPx}px`],
+      ["max-width", "none"],
+      ["margin-inline", "auto"],
+    ];
+    const prev = lock.map(([prop]) => [prop, root.style.getPropertyValue(prop), root.style.getPropertyPriority(prop)]);
+    for (const [prop, value] of lock) root.style.setProperty(prop, value, "important");
+    restores.push(() => {
+      for (const [prop, value, priority] of prev) {
+        if (value) root.style.setProperty(prop, value, priority);
+        else root.style.removeProperty(prop);
+      }
+    });
+    await new Promise((r) => setTimeout(r, WIDTH_LOCK_SETTLE_MS));
+  }
 
   root.querySelectorAll<HTMLElement>("[data-scroll-reveal]").forEach((el) => {
     const prevOpacity = el.style.opacity;
