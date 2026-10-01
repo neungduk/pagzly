@@ -89,7 +89,7 @@ import { parseCertificationTokens } from "@/lib/enrich-product-sections";
 import { extractTrustChips } from "@/lib/extract-trust-chips";
 import {
   pickSummaryIcon,
-  summaryGridColumns,
+  summaryChipWidth,
   summaryIconSvg,
   SUMMARY_ICON_PX,
 } from "@/lib/summary-line-icons";
@@ -190,11 +190,11 @@ function trustStripHtml(
   const accent = theme.accent;
   const deepText = readableTextDeep(theme);
   const accentText = readableTextAccent(theme);
-  const cols = summaryGridColumns(chips.length);
+  const chipWidth = summaryChipWidth(chips.length);
   const padBottom = 24 + (isLastInClip ? HERO_FOLLOW_CLIP_PX : 0);
   return `<div style="padding:24px 24px ${padBottom}px;border-top:1px solid ${accent}38;border-bottom:1px solid ${accent}38;background:${FLAT_SECTION_SURFACES ? flatAccentTint(theme) : `${theme.baseNeutral}a6`};text-align:center">
     <p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText};margin:0 0 12px">한눈에 보기</p>
-    <div style="display:grid;grid-template-columns:repeat(${cols},minmax(0,1fr));column-gap:12px;row-gap:20px;max-width:560px;margin:0 auto">
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;column-gap:12px;row-gap:20px;max-width:560px;margin:0 auto">
       ${chips
         .map((c) => {
           const certHighlight = certTokens.some(
@@ -205,7 +205,7 @@ function trustStripHtml(
                 c.toLowerCase().includes(token.toLowerCase())),
           );
           const icon = summaryIconSvg(pickSummaryIcon(c), certHighlight ? accent : deepText, SUMMARY_ICON_PX);
-          return `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">${icon}<span style="font-size:14px;font-weight:600;line-height:1.375;word-break:keep-all;color:${certHighlight ? accentText : theme.deepAccent}">${esc(c)}</span></div>`;
+          return `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;width:${chipWidth}">${icon}<span style="font-size:14px;font-weight:600;line-height:1.375;word-break:keep-all;color:${certHighlight ? accentText : theme.deepAccent}">${esc(c)}</span></div>`;
         })
         .join("")}
     </div></div>`;
@@ -623,7 +623,7 @@ function sectionHtml(
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         ${kickerHtml(`<p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">HOW TO USE</p>`)}
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:32px">
+        <div style="display:grid;grid-template-columns:repeat(${section.steps.length === 2 || section.steps.length === 4 ? 2 : 3},1fr);gap:20px;margin-top:32px">
           ${section.steps
             .map((step, i) => {
               const src = imageUrls[step.imageIndex] ?? "";
@@ -1126,17 +1126,20 @@ function sectionHtml(
       // 라이브와 같은 풀블리드 그리드: 뷰티 2장 이상 2열, 2장 이하 1열, 그 외 2열→넓은 칸 3열
       const pairCompare = category === "화장품/뷰티" && section.imageIndexes.length >= 2;
       const cols = pairCompare ? 2 : section.imageIndexes.length <= 2 ? 1 : 2;
-      const wideCols = !pairCompare && section.imageIndexes.length > 2;
+      const oddLead =
+        !pairCompare && section.imageIndexes.length >= 3 && section.imageIndexes.length % 2 === 1;
+      const wideCols = !pairCompare && section.imageIndexes.length % 6 === 0;
       const galleryAspect = imageRatioCss(resolveSlotImageRatio(section));
       return `<section${sectionIdAttr} class="pagzly-gallery" style="padding:40px 0 0;${sectionInset}${bgCss}">
-        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)};margin:0 24px 32px`)}
+        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)};margin:0 24px 32px${flatTitleColorCss(theme)}`)}
         <div${wideCols ? ` class="pagzly-gallery-grid3"` : ""} style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:8px;background:${accent}2e">
           ${section.imageIndexes
-            .map((idx) => {
+            .map((idx, pos) => {
               const src = imageUrls[idx] ?? "";
               const alt = buildSectionImageAlt(productName, `${section.heading} ${idx + 1}`, section.slot);
+              const lead = oddLead && pos === 0;
               return src
-                ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${galleryAspect};object-fit:cover;display:block"/>`
+                ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${lead ? "4/3" : galleryAspect};object-fit:cover;display:block${lead ? ";grid-column:1/-1" : ""}"/>`
                 : "";
             })
             .join("")}
@@ -1168,7 +1171,7 @@ function sectionHtml(
           <p class="pz-fit" style="font-family:${DETAIL_FONT_STACK.heading};${titleFitCss("section", brandName!, -0.03)};font-weight:800;line-height:1.05;letter-spacing:-0.03em;color:${readableTextAccent(theme, 3)};margin:12px 0 0">${esc(brandName!)}</p>
           <span aria-hidden="true" style="display:block;width:40px;height:3px;border-radius:${RADIUS.pill}px;background:${solidAccentOnPaper(theme)};margin:20px auto 0"></span>
         </div>
-        <div style="${pad}${sectionInset}${bgCss}">
+        <div style="${pad}${sectionInset}background:${FLAT_PAPER}">
         ${textPanelWrap(theme, storyInner)}
         </div></section>`;
       }

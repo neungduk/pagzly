@@ -125,7 +125,11 @@ export function extractBenefitKeywords(
     for (const { pattern, chip } of BENEFIT_PATTERNS) {
       if (pattern.test(src)) add(chip);
     }
-    const commaParts = src.split(/[,/|·\n]/).map((s) => s.trim()).filter((s) => s.length <= 16);
+    // 숫자 사이 쉼표(3,000원)는 천 단위 구분이라 자르지 않음
+    const commaParts = src
+      .split(/(?<!\d),|,(?!\d)|[/|·\n]/)
+      .map((s) => s.trim())
+      .filter((s) => s.length <= 16);
     for (const part of commaParts) {
       if (/^(무료배송|당일발송|새벽배송|무료교환|무향|유기농|친환경)$/i.test(part)) add(part);
       else if (/^KC\s?인증$/i.test(part)) add(part);

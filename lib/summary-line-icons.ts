@@ -67,3 +67,9 @@ export function summaryGridColumns(count: number): number {
   if (count === 4) return 2;
   return 3;
 }
+
+/** flex-wrap 칸 폭 — 마지막 줄이 덜 차면 가운데 정렬되도록 grid 대신 사용 (column-gap 12px 기준) */
+export function summaryChipWidth(count: number): string {
+  const cols = summaryGridColumns(count);
+  return `calc((100% - ${(cols - 1) * 12}px) / ${cols})`;
+}

@@ -147,7 +147,8 @@ export function buildSizeComparisonDiagramSvg(
 
   const canX = 52;
   const canY = 40 + (canH - canH) / 2;
-  const prodX = 200;
+  // 오른쪽 높이 라벨(prodX+prodW+22, 약 36px 폭)이 viewBox 340 안에 들어오도록
+  const prodX = Math.min(200, 340 - prodW - 62);
   const prodY = 40 + (canH - prodH) / 2;
 
   const arrows = [

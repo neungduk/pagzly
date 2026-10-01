@@ -141,19 +141,21 @@ export function buildWeightComparisonDiagramSvg(
   const refs = selectNearbyReferencePoints(productG);
   if (refs.length === 0) return "";
 
-  const allG = [...refs.map((r) => r.g), productG];
-  const min = Math.min(...allG);
-  const max = Math.max(...allG);
-  const pad = Math.max((max - min) * 0.22, Math.max(min * 0.08, 3));
-  const scaleMin = Math.max(0, min - pad);
+  // 기준점이 수십 g~수 kg로 벌어져 선형 눈금이면 작은 값 라벨끼리 겹침 → 로그 눈금
+  const allLog = [...refs.map((r) => r.g), productG].map((g) => Math.log10(Math.max(g, 1)));
+  const min = Math.min(...allLog);
+  const max = Math.max(...allLog);
+  const pad = Math.max((max - min) * 0.15, 0.1);
+  const scaleMin = min - pad;
   const scaleMax = max + pad;
 
   const width = 340;
   const trackX1 = 30;
   const trackX2 = width - 30;
-  const trackY = 96;
-  const span = Math.max(scaleMax - scaleMin, 1);
-  const toX = (g: number) => trackX1 + ((g - scaleMin) / span) * (trackX2 - trackX1);
+  const trackY = 34;
+  const span = Math.max(scaleMax - scaleMin, 0.01);
+  const toX = (g: number) =>
+    trackX1 + ((Math.log10(Math.max(g, 1)) - scaleMin) / span) * (trackX2 - trackX1);
 
   const refMarks = refs
     .map(
@@ -166,12 +168,17 @@ export function buildWeightComparisonDiagramSvg(
     .join("");
 
   const prodX = toX(productG);
-  const safeLabel =
-    productValueLabel.length > 16 ? `${productValueLabel.slice(0, 15)}…` : productValueLabel;
+  const sameAsTop =
+    productValueLabel.replace(/\s+/g, "").toLowerCase() === formatWeightLabel(productG).toLowerCase();
+  const safeLabel = sameAsTop
+    ? "이 제품"
+    : productValueLabel.length > 16
+      ? `${productValueLabel.slice(0, 15)}…`
+      : productValueLabel;
 
   return `<div style="max-width:340px;margin:28px auto 0;text-align:center">
     ${diagramTitleWithIconHtml("무게 비교", "weight-scale", labelColor)}
-    <svg viewBox="0 0 ${width} 130" width="100%" style="max-width:340px;height:auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="무게 비교 다이어그램">
+    <svg viewBox="0 0 ${width} 68" width="100%" style="max-width:340px;height:auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="무게 비교 다이어그램">
       <line x1="${trackX1}" y1="${trackY}" x2="${trackX2}" y2="${trackY}" stroke="${strokeColor}" stroke-width="1.2" opacity="0.32"/>
       ${refMarks}
       <circle cx="${prodX}" cy="${trackY}" r="5" fill="${strokeColor}"/>

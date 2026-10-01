@@ -44,7 +44,7 @@ import { splitTextByKeywords } from "@/lib/review-insights";
 import { extractTrustChips } from "@/lib/extract-trust-chips";
 import {
   pickSummaryIcon,
-  summaryGridColumns,
+  summaryChipWidth,
   summaryIconSvg,
   SUMMARY_ICON_PX,
 } from "@/lib/summary-line-icons";
@@ -1201,10 +1201,7 @@ function TrustStrip({
       >
         한눈에 보기
       </p>
-      <div
-        className="mx-auto grid max-w-[560px] gap-x-3 gap-y-5"
-        style={{ gridTemplateColumns: `repeat(${summaryGridColumns(chips.length)}, minmax(0, 1fr))` }}
-      >
+      <div className="mx-auto flex max-w-[560px] flex-wrap justify-center gap-x-3 gap-y-5">
         {chips.map((chip) => {
           const certHighlight = certTokens.some(
             (token) =>
@@ -1215,7 +1212,11 @@ function TrustStrip({
           );
           const iconColor = certHighlight ? theme.accent : readableTextDeep(theme);
           return (
-            <div key={chip} className="flex flex-col items-center gap-2 text-center">
+            <div
+              key={chip}
+              className="flex flex-col items-center gap-2 text-center"
+              style={{ width: summaryChipWidth(chips.length) }}
+            >
               <span
                 aria-hidden="true"
                 dangerouslySetInnerHTML={{
@@ -3378,7 +3379,13 @@ function renderSection(
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
             className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}
           />
-          <div className="mx-auto mt-12 grid max-w-4xl grid-cols-1 gap-8 @min-[640px]/pz:grid-cols-3">
+          <div
+            className={
+              steps.length === 2 || steps.length === 4
+                ? "mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-x-4 gap-y-8 @min-[640px]/pz:gap-8"
+                : "mx-auto mt-12 grid max-w-4xl grid-cols-1 gap-8 @min-[640px]/pz:grid-cols-3"
+            }
+          >
             {steps.map((step, stepIndex) => {
               const src = resolveImage(imageUrls, step.imageIndex);
               return (
@@ -3448,6 +3455,8 @@ function renderSection(
       const ratioClass = resolveImageRatioClass(section);
       const pairCompare =
         category === "화장품/뷰티" && section.imageIndexes.length >= 2;
+      const oddLead =
+        !pairCompare && section.imageIndexes.length >= 3 && section.imageIndexes.length % 2 === 1;
       return (
         <section
           key={`gallery-${index}`}
@@ -3468,7 +3477,9 @@ function renderSection(
                 ? "grid grid-cols-2 gap-2"
                 : section.imageIndexes.length <= 2
                   ? `grid grid-cols-1 ${getCategoryRhythm(category).galleryGapClass}`
-                  : `grid grid-cols-2 ${getCategoryRhythm(category).galleryGapClass} @min-[640px]/pz:grid-cols-3`
+                  : section.imageIndexes.length % 6 === 0
+                    ? `grid grid-cols-2 ${getCategoryRhythm(category).galleryGapClass} @min-[640px]/pz:grid-cols-3`
+                    : `grid grid-cols-2 ${getCategoryRhythm(category).galleryGapClass}`
             }
             style={{ backgroundColor: hexToRgba(theme.accent, 0.18) }}
           >
@@ -3481,11 +3492,14 @@ function renderSection(
                     ? "AFTER"
                     : null;
               return (
-                <div key={`${imageIndex}-${src}-${pairIndex}`} className="relative">
+                <div
+                  key={`${imageIndex}-${src}-${pairIndex}`}
+                  className={oddLead && pairIndex === 0 ? "relative col-span-2" : "relative"}
+                >
                   <SectionImage
                     src={src}
                     alt={buildSectionImageAlt(productName ?? "", `${section.heading} ${imageIndex + 1}`, section.slot)}
-                    className={`${ratioClass} w-full object-cover`}
+                    className={`${oddLead && pairIndex === 0 ? "aspect-[4/3]" : ratioClass} w-full object-cover`}
                   />
                   {pairLabel ? (
                     <span
@@ -4095,7 +4109,11 @@ function renderSection(
             )}
             <div
               className={getCategoryRhythm(category).trustPadClass}
-              style={textSectionStyle(theme, pattern, category)}
+              style={
+                FLAT_SECTION_SURFACES
+                  ? { ...textSectionStyle(theme, pattern, category), background: FLAT_PAPER }
+                  : textSectionStyle(theme, pattern, category)
+              }
             >
               <div className={TEXT_COL_CLASS}>
                 <TextSectionPanel theme={theme} overlap>
