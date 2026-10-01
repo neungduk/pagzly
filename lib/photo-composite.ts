@@ -225,6 +225,8 @@ export async function defringeCutoutEdges(cutout: Buffer, radius = 2): Promise<B
   return sharp(out, { raw: { width: w, height: h, channels: 4 } }).png().toBuffer();
 }
 
+const FEATHER_DECONTAM_RADIUS = 12;
+
 /**
  * 알파 1px erode + 블러. 블러 반경은 컷아웃 크기 대비 캔버스 비율로 정규화
  * (고정 2.4면 큰 제품은 페더가 약하고 작은 제품은 과해짐).
@@ -260,28 +262,58 @@ export async function featherCutout(
     }
   }
 
+  // 출력은 straight alpha라 RGB에 알파를 곱하면 가장자리가 두 번 어두워지고, 알파 블러가
+  // RGB=0인 투명 픽셀까지 번져 검은 테두리가 생긴다. 반투명·근접 투명 픽셀의 RGB를
+  // 가장 가까운 불투명 내부색으로 채운다(최대 FEATHER_DECONTAM_RADIUS px).
   const out = Buffer.from(data);
+  const source = new Int32Array(width * height).fill(-1);
+  let frontier: number[] = [];
   for (let i = 0; i < width * height; i += 1) {
-    const a = eroded[i];
-    out[i * channels + 3] = a;
-    if (a > 0 && a < 250) {
-      const t = a / 255;
-      out[i * channels] = Math.round(out[i * channels] * t);
-      out[i * channels + 1] = Math.round(out[i * channels + 1] * t);
-      out[i * channels + 2] = Math.round(out[i * channels + 2] * t);
+    if (alpha[i] >= 250) {
+      source[i] = i;
+      frontier.push(i);
     }
+  }
+  for (let step = 0; step < FEATHER_DECONTAM_RADIUS && frontier.length > 0; step += 1) {
+    const next: number[] = [];
+    for (const i of frontier) {
+      const x = i % width;
+      const y = (i - x) / width;
+      const neighbors = [
+        x + 1 < width ? i + 1 : -1,
+        x > 0 ? i - 1 : -1,
+        y + 1 < height ? i + width : -1,
+        y > 0 ? i - width : -1,
+      ];
+      for (const j of neighbors) {
+        if (j < 0 || source[j] >= 0) continue;
+        source[j] = source[i];
+        next.push(j);
+      }
+    }
+    frontier = next;
+  }
+  for (let i = 0; i < width * height; i += 1) {
+    const s = source[i];
+    if (alpha[i] >= 250 || s < 0) continue;
+    out[i * channels] = data[s * channels];
+    out[i * channels + 1] = data[s * channels + 1];
+    out[i * channels + 2] = data[s * channels + 2];
   }
 
   // 제품이 캔버스의 ~50% 스팬일 때 blur≈2.4 가 되도록 정규화
   const span = Math.max(width, height);
   const blurSigma = Math.max(1.2, Math.min(4.8, 2.4 * (span / (canvasSize * 0.5))));
 
-  const joined = await sharp(out, { raw: { width, height, channels } })
-    .png()
+  const blurredAlpha = await sharp(Buffer.from(eroded), { raw: { width, height, channels: 1 } })
+    .blur(blurSigma)
+    .extractChannel(0)
+    .raw()
     .toBuffer();
-  const blurredAlpha = await sharp(joined).extractChannel(3).blur(blurSigma).toBuffer();
-  const rgb = await sharp(joined).removeAlpha().toBuffer();
-  return sharp(rgb).joinChannel(blurredAlpha).png().toBuffer();
+  for (let i = 0; i < width * height; i += 1) {
+    out[i * channels + 3] = blurredAlpha[i];
+  }
+  return sharp(out, { raw: { width, height, channels } }).png().toBuffer();
 }
 
 function sampleCornerAverage(
@@ -725,10 +757,17 @@ export async function buildSilhouetteShadowBuffer(
   shadow: ShadowAnalysis,
   shadowTint?: { r: number; g: number; b: number },
 ): Promise<Buffer> {
-  const meta = await sharp(cutoutResized).metadata();
-  const w = meta.width ?? placement.width;
-  const h = meta.height ?? placement.height;
-  const alpha = await sharp(cutoutResized).ensureAlpha().extractChannel(3).toBuffer();
+  // 1채널 PNG를 다시 raw로 디코드하면 sRGB 3채널로 펼쳐져 실루엣이 세로로 늘어난 사각 번짐이 된다.
+  const { data: alphaRaw, info: aInfo } = await sharp(cutoutResized)
+    .ensureAlpha()
+    .extractChannel(3)
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  if (alphaRaw.length !== aInfo.width * aInfo.height) {
+    throw new Error("silhouette shadow: alpha channel size mismatch");
+  }
+  const w = aInfo.width;
+  const h = aInfo.height;
   // 162차 — shadowTint가 있으면 순수 검정 대신 배경 색조를 옅게 유지한 그림자 색 사용.
   const tint = shadowTint ?? { r: 0, g: 0, b: 0 };
 
@@ -751,10 +790,6 @@ export async function buildSilhouetteShadowBuffer(
     .toBuffer();
 
   const opacity = Math.min(0.38, Math.max(0.14, shadow.shadowIntensity + 0.08));
-  // 알파에 opacity 적용
-  const { data: alphaRaw, info: aInfo } = await sharp(alpha)
-    .raw()
-    .toBuffer({ resolveWithObject: true });
   const faded = Buffer.alloc(padW * padH);
   for (let y = 0; y < aInfo.height; y += 1) {
     for (let x = 0; x < aInfo.width; x += 1) {
