@@ -53,8 +53,8 @@ export async function composeLikeProd(sceneBuffer: Buffer, cutoutBuffer: Buffer,
     cutH = cm.height ?? Math.min(targetH, sceneH);
   }
   prepared = await featherCutout(prepared, Math.max(sceneW, sceneH));
-  prepared = await matchCutoutWhiteBalance(prepared, sceneBuffer);
-  prepared = await matchCutoutSharpness(prepared, sceneBuffer);
+  prepared = await matchCutoutWhiteBalance(prepared, sceneBuffer, { left, top, width: targetW, height: targetH });
+  prepared = await matchCutoutSharpness(prepared, sceneBuffer, { left, top, width: targetW, height: targetH });
   prepared = await matchCutoutGrain(prepared, sceneBuffer);
   cm = await sharp(prepared).metadata();
   cutW = cm.width ?? cutW;

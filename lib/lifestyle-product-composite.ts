@@ -55,8 +55,10 @@ const REFINE_FEATHER_FRACTION = 0.08;
 /**
  * 275차 — 상품 가시성 게이트(최대 거리 441). 밝은 씬 WB 매칭만으로 정상 합성이 ~180까지
  * 벌어지므로 명백한 경우(274차 흰 상품↔검은 영역 ~290)만 reject하도록 보수적으로.
+ * 287차 — WB가 색조만 옮기고 밝기를 ±15%로 묶으면서 정상 합성 최대 ~134, 274차 실패 재구성
+ * ~207로 둘 다 내려와 240→180 (정상 쪽 여유 +46, 실패 쪽 −27).
  */
-export const PRODUCT_VISIBILITY_RGB_THRESHOLD = 240;
+export const PRODUCT_VISIBILITY_RGB_THRESHOLD = 180;
 const PRODUCT_VISIBILITY_ALPHA_THRESHOLD = 32;
 const PRODUCT_VISIBILITY_MIN_SAMPLES = 50;
 /** 92차 — true grip +33%p 이득 vs rubbing 33% 오탐 회귀. 기본 off. 다시 켜려면 env로만. */
@@ -950,8 +952,9 @@ export async function pasteCutoutOnSceneDetailed(params: {
   // 세 함수 모두 (cutout, backdrop) => Promise<Buffer> 형태의 순수 함수이고,
   // 배경이 이미 매끈하면 조용히 원본을 그대로 반환하는 스킵 로직이 내장돼 있어
   // 안전합니다. backdrop 인자로는 sceneBuffer(실제 라이프스타일 사진)를 그대로 씁니다.
-  cutoutPrepared = await matchCutoutWhiteBalance(cutoutPrepared, sceneBuffer);
-  cutoutPrepared = await matchCutoutSharpness(cutoutPrepared, sceneBuffer);
+  const targetBox = { left, top, width: targetW, height: targetH };
+  cutoutPrepared = await matchCutoutWhiteBalance(cutoutPrepared, sceneBuffer, targetBox);
+  cutoutPrepared = await matchCutoutSharpness(cutoutPrepared, sceneBuffer, targetBox);
   cutoutPrepared = await matchCutoutGrain(cutoutPrepared, sceneBuffer);
   cutMeta = await sharp(cutoutPrepared).metadata();
   cutW = cutMeta.width ?? cutW;

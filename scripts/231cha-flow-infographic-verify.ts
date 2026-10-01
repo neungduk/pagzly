@@ -205,8 +205,17 @@ async function trackC(): Promise<void> {
   console.log("sharpen branch edges", beforeSoft.toFixed(3), "→", afterSoft.toFixed(3));
   assert(afterSoft > beforeSoft, "soft cutout vs sharp bg → edge intensity up");
 
-  // Blur branch regression: sharp cutout vs soft bg
-  const softBg = await sharp({
+  // Blur branch regression: sharp cutout vs soft (defocused, tonal) bg.
+  // 287 — 단색 면은 "초점 나감"이 아니라 평평한 면이라 블러하지 않는다(아래 flat 케이스).
+  const softBg = await sharp(
+    Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#dcdcdc"/><stop offset="1" stop-color="#6a6a6a"/></linearGradient></defs><rect width="256" height="256" fill="url(#g)"/></svg>`,
+    ),
+  )
+    .blur(6)
+    .png()
+    .toBuffer();
+  const flatBg = await sharp({
     create: { width: 256, height: 256, channels: 3, background: { r: 180, g: 180, b: 180 } },
   })
     .blur(20)
@@ -232,6 +241,8 @@ async function trackC(): Promise<void> {
   const afterSharp = await cutoutEdge(blurred);
   console.log("blur branch edges", beforeSharp.toFixed(3), "→", afterSharp.toFixed(3));
   assert(afterSharp < beforeSharp * 0.95, "sharp cutout vs soft bg → still blurs");
+  const flatOut = await matchCutoutSharpness(sharpCutout, flatBg);
+  assert(flatOut.equals(sharpCutout), "sharp cutout vs flat bg → unchanged (flat surface, not defocus)");
 
   // Mid-band: similar sharpness → identity
   const midBg = await sharp({

@@ -351,6 +351,57 @@ function luminance(c: { r: number; g: number; b: number }): number {
   return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
 }
 
+/** 배치 박스 둘레(장변 × 0.35) 링의 평균색·휘도 통계. 표본이 너무 적으면 null(코너 방식으로 폴백). */
+async function samplePlacementRing(
+  backdrop: Buffer,
+  placement: { left: number; top: number; width: number; height: number },
+): Promise<{ color: { r: number; g: number; b: number }; lum: { mean: number; std: number } } | null> {
+  const { data, info } = await sharp(backdrop)
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const w = info.width;
+  const h = info.height;
+  const ch = info.channels;
+  const margin = Math.round(Math.max(placement.width, placement.height) * 0.35);
+  const x0 = Math.max(0, placement.left - margin);
+  const y0 = Math.max(0, placement.top - margin);
+  const x1 = Math.min(w, placement.left + placement.width + margin);
+  const y1 = Math.min(h, placement.top + placement.height + margin);
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  let sum = 0;
+  let sumSq = 0;
+  let n = 0;
+  for (let y = y0; y < y1; y += 2) {
+    for (let x = x0; x < x1; x += 2) {
+      if (
+        x >= placement.left &&
+        x < placement.left + placement.width &&
+        y >= placement.top &&
+        y < placement.top + placement.height
+      ) {
+        continue;
+      }
+      const i = (y * w + x) * ch;
+      r += data[i];
+      g += data[i + 1];
+      b += data[i + 2];
+      const lum = luminance({ r: data[i], g: data[i + 1], b: data[i + 2] });
+      sum += lum;
+      sumSq += lum * lum;
+      n += 1;
+    }
+  }
+  if (n < 200) return null;
+  const mean = sum / n;
+  return {
+    color: { r: r / n, g: g / n, b: b / n },
+    lum: { mean, std: Math.sqrt(Math.max(0, sumSq / n - mean * mean)) },
+  };
+}
+
 /**
  * 163차 — 네 모서리 패치의 휘도 평균·표준편차(콘트라스트) 계산.
  * 크롤링 근거(Peachpit 합성 가이드): 색상만 맞추면 톤 범위(대비)가 다른 경우
@@ -401,19 +452,28 @@ function sampleCornerLuminanceStats(
 export async function matchCutoutWhiteBalance(
   cutout: Buffer,
   backdrop: Buffer,
+  placement?: { left: number; top: number; width: number; height: number },
 ): Promise<Buffer> {
-  const bg = await sharp(backdrop)
-    .resize(256, 256, { fit: "cover" })
-    .removeAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  const target = sampleCornerAverage(bg.data, bg.info.width, bg.info.height, bg.info.channels);
-  const targetContrast = sampleCornerLuminanceStats(
-    bg.data,
-    bg.info.width,
-    bg.info.height,
-    bg.info.channels,
-  );
+  let target: { r: number; g: number; b: number };
+  let targetContrast: { mean: number; std: number };
+  const ringSample = placement ? await samplePlacementRing(backdrop, placement) : null;
+  if (ringSample) {
+    target = ringSample.color;
+    targetContrast = ringSample.lum;
+  } else {
+    const bg = await sharp(backdrop)
+      .resize(256, 256, { fit: "cover" })
+      .removeAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    target = sampleCornerAverage(bg.data, bg.info.width, bg.info.height, bg.info.channels);
+    targetContrast = sampleCornerLuminanceStats(
+      bg.data,
+      bg.info.width,
+      bg.info.height,
+      bg.info.channels,
+    );
+  }
 
   const { data, info } = await sharp(cutout).ensureAlpha().raw().toBuffer({
     resolveWithObject: true,
@@ -440,11 +500,19 @@ export async function matchCutoutWhiteBalance(
   const srcLumStd = Math.sqrt(Math.max(0, sLum2 / sn - srcLumMean * srcLumMean));
   const colorMix = 0.38;
   const lumMix = 0.24;
-  const scaleR = 1 - colorMix + colorMix * (target.r / Math.max(src.r, 8));
-  const scaleG = 1 - colorMix + colorMix * (target.g / Math.max(src.g, 8));
-  const scaleB = 1 - colorMix + colorMix * (target.b / Math.max(src.b, 8));
-  const lumScale =
-    1 - lumMix + lumMix * (luminance(target) / Math.max(luminance(src), 8));
+  // 287 — 채널 게인은 색조(휘도로 정규화한 채널 비)만 옮긴다. 예전엔 절대값 비라 어두운 씬이면
+  // 색 보정만으로 제품이 최대 −25 L* 어두워졌다. 밝기는 lumScale 하나로만, ±15% 안에서.
+  const targetLum = Math.max(luminance(target), 8);
+  const srcLum = Math.max(luminance(src), 8);
+  const castGain = (t: number, s: number) =>
+    (Math.max(t, 1) / targetLum) / (Math.max(s, 1) / srcLum);
+  const scaleR = 1 - colorMix + colorMix * castGain(target.r, src.r);
+  const scaleG = 1 - colorMix + colorMix * castGain(target.g, src.g);
+  const scaleB = 1 - colorMix + colorMix * castGain(target.b, src.b);
+  const lumScale = Math.max(
+    0.85,
+    Math.min(1.15, 1 - lumMix + lumMix * (targetLum / srcLum)),
+  );
   // 채널 스케일 상한 — 색조가 과도하게 틀어지지 않게
   const clampScale = (s: number) => Math.max(0.65, Math.min(1.4, s));
 
@@ -454,7 +522,8 @@ export async function matchCutoutWhiteBalance(
   const rawContrastRatio =
     srcLumStd > 4 ? targetContrast.std / Math.max(srcLumStd, 4) : 1;
   const contrastScale = 1 - contrastMix + contrastMix * rawContrastRatio;
-  const clampContrast = (s: number) => Math.max(0.75, Math.min(1.3, s));
+  // 287 — 0.75~1.3 → 0.85~1.2. 바쁜 주변(선반·타일)의 큰 명암폭을 제품에 옮기면 라벨이 깨진다
+  const clampContrast = (s: number) => Math.max(0.85, Math.min(1.2, s));
   const finalContrastScale = clampContrast(contrastScale);
 
   for (let i = 0; i < data.length; i += 4) {
@@ -507,6 +576,41 @@ function edgeIntensityAverage(
   return n > 0 ? sum / n : 0;
 }
 
+/** 명암 표준편차가 이보다 낮으면 평평한 면(스튜디오 배경·깨끗한 바닥) */
+const SHARPNESS_FLAT_STD = 14;
+/** 주변에 이 세기 이상의 또렷한 엣지가 상위 1%라도 있으면 초점이 맞은 장면 */
+const SHARPNESS_CRISP_EDGE_P99 = 40;
+
+function ringFocusStats(
+  gray: Uint8Array | Buffer,
+  width: number,
+  height: number,
+  isSamplable: (i: number) => boolean,
+): { std: number; edgeP99: number } {
+  let sum = 0;
+  let sumSq = 0;
+  const edges: number[] = [];
+  for (let y = 1; y < height - 1; y += 2) {
+    for (let x = 1; x < width - 1; x += 2) {
+      const i = y * width + x;
+      if (!isSamplable(i)) continue;
+      sum += gray[i];
+      sumSq += gray[i] * gray[i];
+      const gx = gray[i + 1] - gray[i - 1];
+      const gy = gray[i + width] - gray[i - width];
+      edges.push(Math.sqrt(gx * gx + gy * gy));
+    }
+  }
+  const n = edges.length;
+  if (n === 0) return { std: 0, edgeP99: 0 };
+  const mean = sum / n;
+  edges.sort((a, b) => a - b);
+  return {
+    std: Math.sqrt(Math.max(0, sumSq / n - mean * mean)),
+    edgeP99: edges[Math.min(n - 1, Math.floor(n * 0.99))],
+  };
+}
+
 /**
  * 164차 — 컷아웃과 배경의 선명도(포커스감) 매칭.
  * 크롤링 근거(합성 가이드 websiteseostats.com): "배경이 소프트 포커스인데 피사체가
@@ -522,18 +626,35 @@ function edgeIntensityAverage(
 export async function matchCutoutSharpness(
   cutout: Buffer,
   backdrop: Buffer,
+  placement?: { left: number; top: number; width: number; height: number },
 ): Promise<Buffer> {
-  const bg = await sharp(backdrop)
-    .resize(256, 256, { fit: "cover" })
-    .grayscale()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  const backdropSharpness = edgeIntensityAverage(
-    bg.data,
-    bg.info.width,
-    bg.info.height,
-    () => true,
-  );
+  // 컷아웃은 이미 붙일 크기라, 배경도 원본 해상도에서 재야 같은 스케일이 된다(256 썸네일은
+  // 축소로 엣지가 뭉개져 배경이 늘 "부드럽게" 나와 제품을 흐리게 만들었음). placement가 있으면
+  // 그 주변 링(박스 장변 × 0.35)만 잰다 — 뒤쪽 아웃포커스 배경이 아니라 제품 바로 옆 기준.
+  const bg = await sharp(backdrop).grayscale().raw().toBuffer({ resolveWithObject: true });
+  const bw = bg.info.width;
+  const bh = bg.info.height;
+  let isRing: (i: number) => boolean = () => true;
+  if (placement) {
+    const margin = Math.round(Math.max(placement.width, placement.height) * 0.35);
+    const x0 = Math.max(0, placement.left - margin);
+    const y0 = Math.max(0, placement.top - margin);
+    const x1 = Math.min(bw, placement.left + placement.width + margin);
+    const y1 = Math.min(bh, placement.top + placement.height + margin);
+    isRing = (i) => {
+      const x = i % bw;
+      const y = (i - x) / bw;
+      if (x < x0 || x >= x1 || y < y0 || y >= y1) return false;
+      return (
+        x < placement.left ||
+        x >= placement.left + placement.width ||
+        y < placement.top ||
+        y >= placement.top + placement.height
+      );
+    };
+  }
+  const backdropSharpness = edgeIntensityAverage(bg.data, bw, bh, isRing);
+  const ringFocus = ringFocusStats(bg.data, bw, bh, isRing);
 
   const { data, info } = await sharp(cutout).ensureAlpha().raw().toBuffer({
     resolveWithObject: true,
@@ -571,7 +692,8 @@ export async function matchCutoutSharpness(
   const upperThreshold = 1.8;
   if (ratio > upperThreshold) {
     const t2 = Math.min(1, (ratio - upperThreshold) / upperThreshold);
-    const sharpenSigma = 0.6 + t2 * 0.7; // 0.6~1.3
+    // 287 — 상한 1.3→0.8. 질감 배경(타일 등)에서 라벨 링잉이 생기던 범위
+    const sharpenSigma = 0.6 + t2 * 0.2; // 0.6~0.8
     const rgb = await sharp(cutout)
       .removeAlpha()
       .sharpen({ sigma: sharpenSigma, m1: 0.4, m2: 0.4 })
@@ -581,6 +703,12 @@ export async function matchCutoutSharpness(
   }
 
   if (ratio >= threshold) return cutout; // 상/하한 사이 — 매칭 불필요(이미 비슷한 선명도)
+  // 평균 엣지가 약해도 (1) 명암 변화가 거의 없으면 평평한 면이고, (2) 또렷한 엣지가 조금이라도
+  // 있으면 초점이 맞은 장면이다 — 둘 다 흐리면 라벨 디테일만 잃는다. 초점이 나간 배경
+  // (명암은 있는데 또렷한 엣지가 없음)일 때만 블러.
+  if (ringFocus.std < SHARPNESS_FLAT_STD || ringFocus.edgeP99 >= SHARPNESS_CRISP_EDGE_P99) {
+    return cutout;
+  }
 
   // ratio가 0(배경이 완전히 평탄)에 가까울수록 1.4에, threshold 바로 아래일수록 0.8에 가깝게.
   const t = Math.min(1, Math.max(0, (threshold - ratio) / threshold));
