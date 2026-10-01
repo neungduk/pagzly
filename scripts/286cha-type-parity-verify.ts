@@ -113,6 +113,9 @@ function targetsFor(p: Payload): Target[] {
         out.push({ section: type, role: `stat-${m.style ?? "bar"}`, text: m.value });
       }
     }
+    if (typeof s.body === "string" && s.body.trim().length >= 12) {
+      out.push({ section: type, role: "body", text: s.body });
+    }
     if (type === "cta_price" && typeof s.price === "number") {
       out.push({ section: type, role: "price", text: s.price.toLocaleString("ko-KR") });
     }

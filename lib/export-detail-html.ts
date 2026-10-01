@@ -98,6 +98,7 @@ import {
   BRAND,
   ELEVATION,
   FONT_SIZE,
+  INFO_TABLE,
   RADIUS,
   SECTION_BG_PATTERN_C_ALPHA,
   imageRatioCss,
@@ -627,7 +628,7 @@ function sectionHtml(
         return `<section${sectionIdAttr} style="padding:40px 24px;${sectionInset}${bgCss}">
           <div style="max-width:576px;margin:0 auto;text-align:left">
             ${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)};margin:0;line-height:1.2;color:${readableTextDeep(theme, 3)}`)}
-            <p style="margin:16px 0 0;white-space:pre-line;font-size:${FONT_SIZE.body};line-height:1.9;color:${BRAND.ink}">${esc(section.body)}</p>
+            <p style="margin:16px 0 0;white-space:pre-line;font-size:${titleSizeCss("body")};line-height:1.9;color:${BRAND.ink}">${esc(section.body)}</p>
           </div>
         </section>`;
       }
@@ -684,7 +685,7 @@ function sectionHtml(
             <p style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:${deepFill};color:#FAF8F3;padding:10px 18px;border-radius:${RADIUS.lg}px;font-size:${FONT_SIZE.bodySm};font-weight:600;text-align:center;max-width:85%">${esc(section.callout)}</p>
           </div>
           ${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)}`)}
-          <p style="line-height:1.65;font-size:${FONT_SIZE.body};opacity:.85;overflow-wrap:anywhere">${esc(section.body)}</p>
+          <p style="line-height:1.65;font-size:${titleSizeCss("body")};opacity:.85;overflow-wrap:anywhere">${esc(section.body)}</p>
         </section>`;
       }
       if (shouldUseEditorialBleed(section)) {
@@ -706,7 +707,7 @@ function sectionHtml(
             </div>
           </div>
           <div style="padding:24px 24px 48px;text-align:center;max-width:640px;margin:0 auto">
-            <p style="line-height:1.85;font-size:${FONT_SIZE.bodyLg};opacity:.85">${esc(section.body)}</p>
+            <p style="line-height:1.85;font-size:${titleSizeCss("body")};opacity:.85">${esc(section.body)}</p>
             ${ringHtml}
           </div>
         </section>`;
@@ -774,7 +775,7 @@ function sectionHtml(
                   : ""
               }
               ${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
-              <p style="line-height:1.75;font-size:${FONT_SIZE.body};opacity:.85;margin-top:16px;overflow-wrap:anywhere">${esc(section.body)}</p>
+              <p style="line-height:1.75;font-size:${titleSizeCss("body")};opacity:.85;margin-top:16px;overflow-wrap:anywhere">${esc(section.body)}</p>
               ${
                 section.slot === "ingredient_highlight" && isCosmeticsCategory(category)
                   ? `<p style="margin-top:12px;font-size:${FONT_SIZE.caption};line-height:1.5;opacity:.55">${esc(INGREDIENT_HIGHLIGHT_COMPLIANCE_NOTE)}</p>`
@@ -791,7 +792,7 @@ function sectionHtml(
         ${textPanelWrap(
           theme,
           `${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
-        <p style="line-height:1.65;font-size:${FONT_SIZE.body};opacity:.85;margin-top:16px;overflow-wrap:anywhere">${esc(section.body)}</p>`,
+        <p style="line-height:1.65;font-size:${titleSizeCss("body")};opacity:.85;margin-top:16px;overflow-wrap:anywhere">${esc(section.body)}</p>`,
         )}
       </section>`;
     }
@@ -929,10 +930,15 @@ function sectionHtml(
           const valueHtml = certHighlight
             ? `<span style="display:inline-block;padding:2px 8px;border-radius:${RADIUS.sm}px;color:${accentText};background:${accent}24;box-shadow:${ELEVATION.certUnderlineExportHex(accent + "8c")}">${esc(row.value)}</span>`
             : esc(row.value);
-          return `<tr style="border-bottom:1px solid ${accent}33;background:${ri % 2 === 1 ? accent + "0d" : "transparent"}"><th style="text-align:left;padding:12px 16px;width:38%;opacity:.55;font-weight:500;font-size:${FONT_SIZE.sm};letter-spacing:-0.01em">${esc(row.label)}</th><td style="padding:12px 16px;letter-spacing:-0.025em;${isPlaceholderValue(row.value) ? "font-weight:400;color:rgba(27,27,24,.45)" : "font-weight:500"}">${valueHtml}</td></tr>`;
+          const rowRule =
+            ri === visibleRows.length - 1
+              ? "none"
+              : `1px solid ${isShipping ? `${accent}33` : hexToRgba(BRAND.ink, INFO_TABLE.specRuleInkAlpha)}`;
+          return `<tr style="border-bottom:${rowRule}"><th style="text-align:left;padding:12px 16px;width:38%;opacity:.55;font-weight:500;font-size:${FONT_SIZE.sm};letter-spacing:-0.01em">${esc(row.label)}</th><td style="padding:12px 16px;letter-spacing:-0.025em;${isPlaceholderValue(row.value) ? "font-weight:400;color:rgba(27,27,24,.45)" : "font-weight:500"}">${valueHtml}</td></tr>`;
         })
         .join("");
-      const tableHtml = `<table style="width:100%;border-collapse:collapse;font-size:${FONT_SIZE.bodySm}"><tbody>${rowsHtml}</tbody></table>`;
+      const specEdge = `1px solid ${hexToRgba(BRAND.ink, INFO_TABLE.specEdgeInkAlpha)}`;
+      const tableHtml = `<table style="width:100%;border-collapse:collapse;font-size:${FONT_SIZE.bodySm}${isShipping ? "" : `;border-top:${specEdge};border-bottom:${specEdge}`}"><tbody>${rowsHtml}</tbody></table>`;
       const tableMargin = diagramHtml ? "16px" : "24px";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${specTableBg}${bgCss}" class="${isShipping ? "pagzly-shipping" : ""}">
         <p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">INFO</p>
@@ -989,7 +995,7 @@ function sectionHtml(
           : "";
       const storyInner = `<p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText};margin:0 0 12px">STORY</p>
           ${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
-          <p style="line-height:1.75;font-size:${FONT_SIZE.body};opacity:.85;margin-top:16px;white-space:pre-line">${esc(section.body)}</p>${galleryHtml}`;
+          <p style="line-height:1.75;font-size:${titleSizeCss("body")};opacity:.85;margin-top:16px;white-space:pre-line">${esc(section.body)}</p>${galleryHtml}`;
       if (hasBrandCard) {
         return `<section${sectionIdAttr} class="pagzly-brand-story">
         <div style="padding:64px 20px;text-align:center;background:${deepFill};color:#FAF8F3">
@@ -1064,7 +1070,7 @@ function sectionHtml(
           theme,
           `<p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText};margin:0 0 12px">NOTICE</p>
         ${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
-        <p style="font-size:${FONT_SIZE.bodySm};line-height:1.65;opacity:.8;margin-top:12px">${esc(section.body)}</p>`,
+        <p style="font-size:${titleSizeCss("body")};line-height:1.65;opacity:.8;margin-top:12px">${esc(section.body)}</p>`,
         )}
       </section>`;
     case "comparison_table": {
@@ -1314,7 +1320,7 @@ function sectionHtml(
         <div style="max-width:36rem;margin:0 auto;text-align:center">
           <p style="font-size:${FONT_SIZE.caption};font-weight:600;letter-spacing:.36em;color:${deepText};margin:0 0 16px">AI DISCLOSURE</p>
           ${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
-          <p style="font-size:${FONT_SIZE.body};line-height:1.9;color:${hexToRgba(BRAND.ink, 0.7)};margin:20px 0 0">${esc(section.body)}</p>
+          <p style="font-size:${titleSizeCss("body")};line-height:1.9;color:${hexToRgba(BRAND.ink, 0.7)};margin:20px 0 0">${esc(section.body)}</p>
         </div>
       </section>`;
     case "canvas":
@@ -1326,7 +1332,7 @@ function sectionHtml(
       const body = "body" in fallback && typeof fallback.body === "string" ? fallback.body : "";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         ${heading ? dh2(category, esc(heading), `text-align:center;${titleFitCss("section", heading, -0.03)}`) : ""}
-        ${body ? `<p style="max-width:640px;margin:16px auto 0;line-height:1.6;font-size:${FONT_SIZE.body};opacity:.8">${esc(body)}</p>` : ""}
+        ${body ? `<p style="max-width:640px;margin:16px auto 0;line-height:1.6;font-size:${titleSizeCss("body")};opacity:.8">${esc(body)}</p>` : ""}
       </section>`;
     }
   }

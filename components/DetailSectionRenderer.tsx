@@ -253,7 +253,7 @@ const TYPO = {
   // 한글 행 라벨 — 넓은 자간/모노는 라틴 라벨에만
   tableLabel: "text-[13px] font-medium leading-snug tracking-[-0.01em] text-ink/55",
   pointLabel: "font-mono text-[10px] font-bold uppercase tracking-[0.34em]",
-  body: "text-[0.9375rem] font-normal leading-[1.9] text-ink/72 @min-[640px]/pz:text-base @min-[640px]/pz:leading-[1.85]",
+  body: "text-[length:var(--pz-t-body-b)] font-normal leading-[1.9] text-ink/72 @min-[640px]/pz:text-[length:var(--pz-t-body-w)] @min-[640px]/pz:leading-[1.85]",
   checklistItem:
     "mt-2.5 pz-fit [--pz-fs:0.75rem] font-medium leading-snug text-ink/82 @min-[640px]/pz:[--pz-fs:0.875rem]",
   stepItem: "mt-2.5 max-w-[7.5rem] text-[11px] font-normal leading-relaxed text-ink/78 @min-[640px]/pz:max-w-sm @min-[640px]/pz:text-sm",
@@ -2132,20 +2132,28 @@ function renderSection(
                 : undefined
             }
           >
-            <table className="w-full text-sm">
+            <table
+              className="w-full text-sm"
+              style={
+                isShipping
+                  ? undefined
+                  : {
+                      borderTop: `1px solid ${hexToRgba(BRAND.ink, INFO_TABLE.specEdgeInkAlpha)}`,
+                      borderBottom: `1px solid ${hexToRgba(BRAND.ink, INFO_TABLE.specEdgeInkAlpha)}`,
+                    }
+              }
+            >
               <tbody>
-                {visibleRows.map((row, visibleIndex) => {
+                {visibleRows.map((row) => {
                   const rowIndex = section.rows.indexOf(row);
-                  const striped = visibleIndex % 2 === 1;
                   return (
                   <tr
                     key={`${row.label}-${rowIndex}`}
                     className="border-b last:border-b-0"
                     style={{
-                      borderColor: hexToRgba(theme.accent, INFO_TABLE.rowBorderAlpha),
-                      backgroundColor: striped
-                        ? hexToRgba(theme.accent, INFO_TABLE.stripeAlpha)
-                        : undefined,
+                      borderColor: isShipping
+                        ? hexToRgba(theme.accent, INFO_TABLE.rowBorderAlpha)
+                        : hexToRgba(BRAND.ink, INFO_TABLE.specRuleInkAlpha),
                     }}
                   >
                     <td className={`w-[38%] py-3.5 pr-4 ${TYPO.tableLabel}`}>

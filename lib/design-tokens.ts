@@ -330,7 +330,9 @@ export const FONT_SIZE = {
  * (업로드 폭 750~860px이 wide 구간이고, style 블록을 지우는 에디터에서도 크기가 유지되도록).
  */
 export const TITLE_SCALE = {
-  hero: { base: "3rem", wide: "4.5rem" },
+  // 287: 히어로 wide 72→84px(750 폭의 11.2%, 경쟁 중앙값 11.6%), 본문 wide 16→17px
+  hero: { base: "3rem", wide: "5.25rem" },
+  body: { base: "0.9375rem", wide: "1.0625rem" },
   section: { base: "2rem", wide: "2.75rem" },
   subtitle: { base: "1.25rem", wide: "1.5rem" },
   banner: { base: "1.65rem", wide: "1.85rem" },
@@ -1094,6 +1096,9 @@ export const INFO_TABLE = {
   rowBorderAlpha: 0.2,
   /** 교차 음영(짝수 행) accent 알파 */
   stripeAlpha: 0.07,
+  /** 스펙표 — 줄무늬 없이 가로 룰만. 행 사이는 옅은 잉크, 표 위·아래만 진하게 */
+  specRuleInkAlpha: 0.1,
+  specEdgeInkAlpha: 0.55,
   /** 헤더 배경 accent 알파 */
   headerBgAlpha: 0.1,
   /** 우리 제품 열 강조 배경 */
