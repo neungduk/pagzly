@@ -98,10 +98,12 @@ import {
   getTextPanelSurface,
   hexToRgba,
   resolveSectionSurface,
+  solidAccentOnPaper,
   solidDeepOnPaper,
   readableTextAccent,
   readableTextDeep,
   BRAND,
+  FLAT_SECTION_SURFACES,
   ELEVATION,
   FONT_SIZE,
   INFO_TABLE,
@@ -116,6 +118,12 @@ import {
   type TitleScaleKey,
 } from "@/lib/design-tokens";
 import { applySectionDisplayBudget } from "@/lib/section-display-budget";
+import {
+  POINT_PILL,
+  TWO_TONE_LEAD_EM,
+  pointPillLabel,
+  splitTwoToneHeadline,
+} from "@/lib/designer-headline";
 import { buildProductJsonLd, serializeJsonLdScripts } from "@/lib/product-json-ld";
 import {
   buildDetailExportFontCss,
@@ -139,6 +147,9 @@ import type {
 } from "@/lib/types/generate";
 
 function textPanelWrap(theme: CategoryTheme, inner: string): string {
+  if (FLAT_SECTION_SURFACES) {
+    return `<div style="max-width:640px;margin:0 auto">${inner}</div>`;
+  }
   const s = getTextPanelSurface(theme);
   return `<div style="position:relative;margin-top:-28px;max-width:640px;margin-left:auto;margin-right:auto">
     <div style="position:absolute;left:0;top:20px;width:4px;height:56px;border-radius:${RADIUS.pill}px;background:${theme.accent}"></div>
@@ -215,6 +226,64 @@ function dh2(category: string, escapedText: string, extraStyle: string): string 
   return `<h2 class="pagzly-display-headline${fit}" style="${displayHeadlineInlineCss(category)};${extraStyle}">${escapedText}</h2>`;
 }
 
+/** 라이브 TwoToneTitle과 같은 구조 — 작은 잉크 리드 + 큰 포인트색 핵심 문구 */
+function twoToneDh2(
+  category: string,
+  theme: CategoryTheme,
+  text: string,
+  extraStyle: string,
+  opts: { inverted?: boolean; plain?: boolean } = {},
+): string {
+  if (!FLAT_SECTION_SURFACES) return dh2(category, esc(text), extraStyle);
+  const parts = opts.plain ? { lead: null, main: text } : splitTwoToneHeadline(text);
+  const mainColor = opts.inverted ? BRAND.paper : opts.plain ? BRAND.ink : readableTextAccent(theme, 3);
+  const leadColor = opts.inverted ? hexToRgba(BRAND.paper, 0.86) : BRAND.ink;
+  const lead = parts.lead
+    ? `<span style="display:block;font-size:${TWO_TONE_LEAD_EM}em;font-weight:500;letter-spacing:-0.02em;margin-bottom:.3em;color:${leadColor}">${esc(parts.lead)}</span>`
+    : "";
+  return dh2(category, `${lead}<span style="display:block;color:${mainColor}">${esc(parts.main)}</span>`, extraStyle);
+}
+
+/** 라이브 PointPill과 같은 채운 알약 */
+function pointPillHtml(label: string, theme: CategoryTheme, inverted = false): string {
+  return `<span style="display:inline-block;border-radius:${RADIUS.pill}px;font-family:${DETAIL_FONT_STACK.sans};font-size:${POINT_PILL.fontPx}px;font-weight:700;line-height:1;letter-spacing:${POINT_PILL.letterSpacingEm}em;padding:${POINT_PILL.padY}px ${POINT_PILL.padX}px;background:${inverted ? BRAND.paper : solidAccentOnPaper(theme)};color:${inverted ? solidDeepOnPaper(theme) : BRAND.paper}">${esc(label)}</span>`;
+}
+
+/** 라이브 SectionHeader 평면 분기와 같은 구조: POINT 알약 → (키워드) → 2톤 제목 */
+function flatSectionHeaderHtml(
+  category: string,
+  theme: CategoryTheme,
+  heading: string,
+  pointBadge: string,
+  inverted: boolean,
+  marginBottomPx = 40,
+  allowKeyword = true,
+): string {
+  const parts = allowKeyword
+    ? parseMegaKeywordHeading(heading)
+    : { keyword: null, remainder: heading };
+  const title = parts.remainder || heading;
+  const pill = pointBadge
+    ? `<div style="margin:0 0 20px">${pointPillHtml(pointBadge, theme, inverted)}</div>`
+    : "";
+  const keyword = parts.keyword
+    ? `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClamp};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:0;text-transform:uppercase;color:${inverted ? BRAND.paper : readableTextAccent(theme, 3)}">${esc(parts.keyword)}</p>`
+    : "";
+  const titleHtml = twoToneDh2(
+    category,
+    theme,
+    title,
+    `${titleFitCss(parts.keyword ? "subtitle" : "section", title, parts.keyword ? -0.02 : -0.03)};margin:0;font-weight:${parts.keyword ? "600" : "700"}`,
+    { inverted, plain: Boolean(parts.keyword) },
+  );
+  return `<div style="text-align:center;max-width:576px;margin:0 auto ${marginBottomPx}px">${pill}${keyword}${titleHtml}</div>`;
+}
+
+/** 제목 위 영문 머리말 — 평면 톤에서는 생략 */
+function kickerHtml(html: string): string {
+  return FLAT_SECTION_SURFACES ? "" : html;
+}
+
 /** 라이브 STAT_LABEL_CLASS와 같은 수치 라벨 */
 const STAT_LABEL_CSS = `font-size:${FONT_SIZE.sm};font-weight:500;line-height:1.375;letter-spacing:-0.01em;color:rgba(27,27,24,.6)`;
 
@@ -282,7 +351,7 @@ function comparisonChartBodyHtml(
       }">${esc(basisNote)}</p>`
     : "";
   return `
-        <p style="text-align:center;color:${deepText};font-size:${FONT_SIZE.caption};letter-spacing:.2em">COMPARE</p>
+        ${kickerHtml(`<p style="text-align:center;color:${deepText};font-size:${FONT_SIZE.caption};letter-spacing:.2em">COMPARE</p>`)}
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}`)}
         <div style="max-width:420px;margin:32px auto 0;display:flex;flex-direction:column;gap:${isChecklist ? 0 : 24}px">
           ${metricsHtml}
@@ -405,13 +474,16 @@ function sectionHtml(
       const headingParts = parseMegaKeywordHeading(section.heading);
       const pointBadge = bodyIndex != null ? formatPointBadge(bodyIndex + 1) : "";
       const bg = section.boldBlock ? deep : sectionBg;
-      return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
-        <div style="text-align:center;max-width:640px;margin:0 auto 32px">
+      const checklistHead = FLAT_SECTION_SURFACES
+        ? flatSectionHeaderHtml(category, theme, section.heading, pointBadge, Boolean(section.boldBlock))
+        : `<div style="text-align:center;max-width:640px;margin:0 auto 32px">
           ${pointBadge ? `<span style="display:inline-block;font-family:${DETAIL_FONT_STACK.label};font-size:${FONT_SIZE.label};font-weight:700;letter-spacing:.22em;border:1px solid ${section.boldBlock ? "rgba(250,248,243,.35)" : accent + "66"};border-radius:${RADIUS.pill}px;padding:4px 12px;color:${section.boldBlock ? "#FAF8F3" : deep}">${pointBadge}</span>` : ""}
           ${kicker ? `<span style="font-size:${FONT_SIZE.caption};letter-spacing:.36em;opacity:.75;margin-left:12px">${kicker}</span>` : ""}
           ${headingParts.keyword ? `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClamp};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:16px 0 0;text-transform:uppercase;color:${section.boldBlock ? "#FAF8F3" : deep}">${esc(headingParts.keyword)}</p>` : ""}
           ${dh2(category, esc(headingParts.remainder || section.heading), `${titleFitCss(headingParts.keyword ? "subtitle" : "section", headingParts.remainder || section.heading, headingParts.keyword ? -0.02 : -0.03)};margin:16px 0 0;font-weight:${headingParts.keyword ? "600" : "700"}`)}
-        </div>
+        </div>`;
+      return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
+        ${checklistHead}
         <ul style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;list-style:none;padding:0;margin:0">
           ${section.items
             .map(
@@ -433,7 +505,9 @@ function sectionHtml(
       const headingParts = parseMegaKeywordHeading(section.heading);
       const pointBadge = bodyIndex != null ? formatPointBadge(bodyIndex + 1) : "";
       const kicker = getSectionKicker(section);
-      const headerHtml = `${pointBadge || kicker ? `<p style="text-align:center;margin:0 0 8px">${pointBadge ? `<span style="display:inline-block;font-size:${FONT_SIZE.label};font-weight:700;letter-spacing:.22em;border:1px solid ${accent}66;border-radius:${RADIUS.pill}px;padding:4px 12px">${pointBadge}</span>` : ""}${kicker ? `<span style="font-size:${FONT_SIZE.caption};letter-spacing:.36em;opacity:.75;margin-left:12px">${kicker}</span>` : ""}</p>` : ""}
+      const headerHtml = FLAT_SECTION_SURFACES
+        ? flatSectionHeaderHtml(category, theme, section.heading, pointBadge, Boolean(section.boldBlock), 0)
+        : `${pointBadge || kicker ? `<p style="text-align:center;margin:0 0 8px">${pointBadge ? `<span style="display:inline-block;font-size:${FONT_SIZE.label};font-weight:700;letter-spacing:.22em;border:1px solid ${accent}66;border-radius:${RADIUS.pill}px;padding:4px 12px">${pointBadge}</span>` : ""}${kicker ? `<span style="font-size:${FONT_SIZE.caption};letter-spacing:.36em;opacity:.75;margin-left:12px">${kicker}</span>` : ""}</p>` : ""}
         ${headingParts.keyword ? `<p style="text-align:center;overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClamp};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:0;text-transform:uppercase;color:${section.boldBlock ? "#FAF8F3" : deep}">${esc(headingParts.keyword)}</p>` : ""}
         ${dh2(category, esc(headingParts.remainder || section.heading), `text-align:center;${titleFitCss(headingParts.keyword ? "subtitle" : "section", headingParts.remainder || section.heading, headingParts.keyword ? -0.02 : -0.03)};margin:12px 0 0`)}`;
       if (isTrustEvidence) {
@@ -513,7 +587,7 @@ function sectionHtml(
           )
         : "";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        <p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">HOW TO USE</p>
+        ${kickerHtml(`<p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">HOW TO USE</p>`)}
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}`)}
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:32px">
           ${section.steps
@@ -624,7 +698,7 @@ function sectionHtml(
         .slice(0, 4);
       if (recommendFor.length === 0 && considerIf.length === 0) return "";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        <p style="text-align:center;color:${deepText};font-size:${FONT_SIZE.caption};letter-spacing:.2em">FIT CHECK</p>
+        ${kickerHtml(`<p style="text-align:center;color:${deepText};font-size:${FONT_SIZE.caption};letter-spacing:.2em">FIT CHECK</p>`)}
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}`)}
         <div style="max-width:720px;margin:32px auto 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px">
           <div style="border-radius:${RADIUS.lg}px;padding:20px;background:${accent}1a">
@@ -692,6 +766,18 @@ function sectionHtml(
               <h3 style="margin:0;font-family:${DETAIL_FONT_STACK.heading};font-size:${titleSizeCss("compact")};font-weight:600;line-height:1.35;letter-spacing:-0.02em;color:#1B1B18;overflow-wrap:anywhere">${esc(section.heading)}</h3>
               <p style="margin:6px 0 0;font-family:${DETAIL_FONT_STACK.sans};font-size:${FONT_SIZE.bodySm};font-weight:400;line-height:1.6;color:rgba(27,27,24,.75);overflow-wrap:anywhere">${esc(section.body)}</p>
             </div>
+          </div>
+        </section>`;
+      }
+      if (isCallout && section.callout && FLAT_SECTION_SURFACES) {
+        return `<section${sectionIdAttr} class="pagzly-callout" style="padding:0 0 64px;${sectionInset}${bgCss}">
+          <div style="position:relative">
+            ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${imageRatioCss(resolveSlotImageRatio(section))};object-fit:cover;display:block"/>` : ""}
+            <p style="position:absolute;bottom:32px;left:50%;transform:translateX(-50%);background:${deepFill};color:#FAF8F3;padding:12px 20px;border-radius:${RADIUS.lg}px;font-size:${FONT_SIZE.body};font-weight:600;text-align:center;max-width:85%;margin:0">${esc(section.callout)}</p>
+          </div>
+          <div style="max-width:576px;margin:0 auto;padding:48px 40px 0;text-align:center">
+            ${twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
+            <p style="margin:16px 0 0;line-height:1.85;font-size:${titleSizeCss("body")};opacity:.85;overflow-wrap:anywhere">${esc(section.body)}</p>
           </div>
         </section>`;
       }
@@ -777,6 +863,25 @@ function sectionHtml(
         const ringHtml = ringLabels
           ? buildIngredientRingDiagramSvg(ringLabels, deep, "#1B1B18")
           : "";
+        if (FLAT_SECTION_SURFACES) {
+          const pill = pointIndex != null && !isAnnotatedSection ? pointPillLabel(pointIndex) : "";
+          const compliance =
+            section.slot === "ingredient_highlight" && isCosmeticsCategory(category)
+              ? `<p style="margin-top:12px;font-size:${FONT_SIZE.caption};line-height:1.6;opacity:.55">${esc(INGREDIENT_HIGHLIGHT_COMPLIANCE_NOTE)}</p>`
+              : "";
+          return `<section${sectionIdAttr} class="pagzly-stacked" style="padding:80px 0;${sectionInset}${bgCss}">
+          <div style="padding:0 40px">${flatSectionHeaderHtml(category, theme, section.heading, pill, false, 40, false)}</div>
+          <div style="position:relative">
+            ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${splitAspect};object-fit:cover;display:block"/>` : ""}
+            ${annotationOverlayHtml}
+          </div>
+          <div style="max-width:576px;margin:0 auto;padding:48px 40px 0;text-align:center">
+            <p style="margin:0;line-height:1.85;font-size:${titleSizeCss("body")};color:${hexToRgba(BRAND.ink, 0.82)};overflow-wrap:anywhere">${esc(section.body)}</p>
+            ${compliance}
+          </div>
+          ${pkgHtml}${foodHtml}${ringHtml}
+        </section>`;
+        }
         return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
           <div style="display:flex;flex-wrap:wrap;gap:32px;max-width:960px;margin:0 auto;align-items:center">
             <div style="flex:${columnRatio.image} 1 280px;order:${imageLeft ? 1 : 2};position:relative">
@@ -958,7 +1063,7 @@ function sectionHtml(
       const tableHtml = `<table style="width:100%;border-collapse:collapse;font-size:${FONT_SIZE.bodySm}${isShipping ? "" : `;border-top:${specEdge};border-bottom:${specEdge}`}"><tbody>${rowsHtml}</tbody></table>`;
       const tableMargin = diagramHtml ? "16px" : "24px";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${specTableBg}${bgCss}" class="${isShipping ? "pagzly-shipping" : ""}">
-        <p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">INFO</p>
+        ${kickerHtml(`<p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">INFO</p>`)}
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}`)}
         ${thumbHtml}
         ${diagramHtml}
@@ -1010,8 +1115,8 @@ function sectionHtml(
         storyImgs.length > 0
           ? `<div style="margin-top:28px;display:grid;grid-template-columns:repeat(${Math.min(storyImgs.length, 2)},1fr);gap:12px">${storyImgs.join("")}</div>`
           : "";
-      const storyInner = `<p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText};margin:0 0 12px">STORY</p>
-          ${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
+      const storyInner = `${kickerHtml(`<p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText};margin:0 0 12px">STORY</p>`)}
+          ${twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
           <p style="line-height:1.75;font-size:${titleSizeCss("body")};opacity:.85;margin-top:16px;white-space:pre-line">${esc(section.body)}</p>${galleryHtml}`;
       if (hasBrandCard) {
         return `<section${sectionIdAttr} class="pagzly-brand-story">
@@ -1059,7 +1164,7 @@ function sectionHtml(
       </section>`;
     case "cta_price":
       return `<section${sectionIdAttr} class="pagzly-cta" style="${pad}background:${deepFill};color:#FAF8F3;text-align:center;clip-path:polygon(0 44px, 100% 0, 100% 100%, 0 100%);margin-top:-16px">
-        <p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;opacity:.8">PRICE</p>
+        ${kickerHtml(`<p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;opacity:.8">PRICE</p>`)}
         <p style="font-size:${titleSizeCss("price")};font-weight:700;line-height:1;margin:8px 0 0">₩${section.price.toLocaleString("ko-KR")}</p>
         ${section.targetCustomer ? `<p style="opacity:.85;margin-top:8px">${esc(section.targetCustomer)}</p>` : ""}
         ${section.badges?.length ? `<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:16px">${section.badges.map((b) => `<span style="background:#FAF8F3;color:${deepText};padding:6px 12px;font-size:${FONT_SIZE.xs};font-weight:600">${esc(b)}</span>`).join("")}</div>` : ""}
@@ -1085,7 +1190,7 @@ function sectionHtml(
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         ${textPanelWrap(
           theme,
-          `<p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText};margin:0 0 12px">NOTICE</p>
+          `${kickerHtml(`<p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText};margin:0 0 12px">NOTICE</p>`)}
         ${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
         <p style="font-size:${titleSizeCss("body")};line-height:1.65;opacity:.8;margin-top:12px">${esc(section.body)}</p>`,
         )}
@@ -1104,7 +1209,7 @@ function sectionHtml(
         return esc(value);
       };
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        <p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">COMPARE</p>
+        ${kickerHtml(`<p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">COMPARE</p>`)}
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}`)}
         <table style="width:100%;max-width:560px;margin:24px auto 0;border-collapse:collapse;font-size:${FONT_SIZE.bodySm}">
           <thead><tr style="background:${accent}1a">
@@ -1335,7 +1440,7 @@ function sectionHtml(
       // 라이브와 같은 레이블·헤딩·본문 섹션. 본문은 마켓 업로드용 최종 고지라 줄 자르기 없이 전체 노출.
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         <div style="max-width:36rem;margin:0 auto;text-align:center">
-          <p style="font-size:${FONT_SIZE.caption};font-weight:600;letter-spacing:.36em;color:${deepText};margin:0 0 16px">AI DISCLOSURE</p>
+          ${kickerHtml(`<p style="font-size:${FONT_SIZE.caption};font-weight:600;letter-spacing:.36em;color:${deepText};margin:0 0 16px">AI DISCLOSURE</p>`)}
           ${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
           <p style="font-size:${titleSizeCss("body")};line-height:1.9;color:${hexToRgba(BRAND.ink, 0.7)};margin:20px 0 0">${esc(section.body)}</p>
         </div>

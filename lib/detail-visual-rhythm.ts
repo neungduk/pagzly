@@ -1,5 +1,6 @@
 import type { DetailSection } from "@/lib/types/generate";
 import { shouldUseEditorialBleed } from "@/lib/designer-detail-patterns";
+import { FLAT_SECTION_SURFACES } from "@/lib/design-tokens";
 
 const SECTION_KICKERS: Partial<Record<DetailSection["type"], string>> = {
   checklist: "OVERVIEW",
@@ -19,7 +20,7 @@ const SECTION_KICKERS: Partial<Record<DetailSection["type"], string>> = {
 };
 
 export function getSectionKicker(section: DetailSection): string | null {
-  if (section.type === "hero") return null;
+  if (section.type === "hero" || FLAT_SECTION_SURFACES) return null;
   const slotLabel = section.slot
     ? section.slot.replace(/_/g, " ").toUpperCase()
     : null;
@@ -107,6 +108,7 @@ export function shouldInsertBreather(
   prev: DetailSection | undefined,
   current: DetailSection,
 ): boolean {
+  if (FLAT_SECTION_SURFACES) return false;
   if (!prev || prev.type === "hero" || current.type === "hero") return false;
 
   const breaksAfter = new Set<DetailSection["type"]>([

@@ -142,8 +142,15 @@ import {
   readableTextAccent,
   readableTextDeep,
   titleScaleVars,
+  FLAT_SECTION_SURFACES,
   type SectionColorPattern,
 } from "@/lib/design-tokens";
+import {
+  POINT_PILL,
+  TWO_TONE_LEAD_EM,
+  pointPillLabel,
+  splitTwoToneHeadline,
+} from "@/lib/designer-headline";
 
 export type SectionEditApi = {
   enabled: boolean;
@@ -247,7 +254,7 @@ const TYPO = {
     "font-heading text-[length:var(--pz-t-compact-b)] font-semibold leading-snug tracking-[-0.02em] text-ink @min-[640px]/pz:text-[length:var(--pz-t-compact-w)]",
   compactBody: "mt-1.5 text-sm font-normal leading-relaxed text-ink/75",
   sectionTitle:
-    "pagzly-display-headline pagzly-ink-headline pz-fit font-heading [--pz-fs:var(--pz-t-section-b)] font-bold leading-[1.2] tracking-[-0.03em] text-ink @min-[640px]/pz:[--pz-fs:var(--pz-t-section-w)]",
+    "pagzly-display-headline pz-fit font-heading [--pz-fs:var(--pz-t-section-b)] font-bold leading-[1.2] tracking-[-0.03em] text-ink @min-[640px]/pz:[--pz-fs:var(--pz-t-section-w)]",
   keywordDisplay:
     "pz-fit font-heading font-black uppercase leading-[0.92] tracking-[-0.06em]",
   keywordDisplaySize: "[--pz-fs:clamp(2.25rem,11cqi,4.25rem)]",
@@ -256,6 +263,10 @@ const TYPO = {
   pointBadgePill:
     "inline-block rounded-full border px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.22em]",
   sectionLabel: "font-mono text-[11px] font-semibold uppercase tracking-[0.32em]",
+  /** 제목 위 영문 머리말 — 평면 톤에서는 숨김(POINT 알약·2톤 제목이 대신함) */
+  sectionKicker: FLAT_SECTION_SURFACES
+    ? "hidden"
+    : "font-mono text-[11px] font-semibold uppercase tracking-[0.32em]",
   // 한글 행 라벨 — 넓은 자간/모노는 라틴 라벨에만
   tableLabel: "text-[13px] font-medium leading-snug tracking-[-0.01em] text-ink/55",
   pointLabel: "font-mono text-[10px] font-bold uppercase tracking-[0.34em]",
@@ -777,7 +788,7 @@ function TextSectionPanel({
   flat?: boolean;
 }) {
   const textAlign = align === "left" ? "text-left" : "text-center";
-  if (flat) {
+  if (flat || FLAT_SECTION_SURFACES) {
     return <div className={`relative ${textAlign} ${className}`}>{children}</div>;
   }
   const surface = getTextPanelSurface(theme);
@@ -814,7 +825,88 @@ function TextSectionPanel({
   );
 }
 
+function PointPill({
+  theme,
+  label,
+  inverted,
+}: {
+  theme: CategoryTheme;
+  label: string;
+  inverted?: boolean;
+}) {
+  return (
+    <span
+      className="inline-block rounded-full font-sans font-bold leading-none"
+      style={{
+        fontSize: POINT_PILL.fontPx,
+        padding: `${POINT_PILL.padY}px ${POINT_PILL.padX}px`,
+        letterSpacing: `${POINT_PILL.letterSpacingEm}em`,
+        backgroundColor: inverted ? BRAND.paper : solidAccentOnPaper(theme),
+        color: inverted ? solidDeepOnPaper(theme) : BRAND.paper,
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
+/** 작은 잉크 리드 + 큰 포인트색 핵심 문구. 편집 모드에서는 원문 한 줄 그대로 */
+function TwoToneTitle({
+  theme,
+  title,
+  className,
+  letterSpacingEm,
+  inverted,
+  plain = false,
+  edit,
+  onChange,
+}: {
+  theme: CategoryTheme;
+  title: string;
+  className: string;
+  letterSpacingEm: number;
+  inverted?: boolean;
+  plain?: boolean;
+  edit?: SectionEditApi;
+  onChange?: (title: string) => void;
+}) {
+  const fit = fitTokenStyle(title, letterSpacingEm);
+  if (edit?.enabled) {
+    return (
+      <EditableText
+        as="h3"
+        enabled
+        value={title}
+        onChange={onChange ?? (() => {})}
+        className={className}
+        style={{ ...(inverted ? { color: BRAND.paper } : {}), ...fit }}
+      />
+    );
+  }
+  const parts = plain ? { lead: null, main: title } : splitTwoToneHeadline(title);
+  const mainColor = inverted ? BRAND.paper : plain ? BRAND.ink : readableTextAccent(theme, 3);
+  return (
+    <h3 className={className} style={fit}>
+      {parts.lead ? (
+        <span
+          className="mb-[0.3em] block font-medium tracking-[-0.02em]"
+          style={{
+            fontSize: `${TWO_TONE_LEAD_EM}em`,
+            color: inverted ? hexToRgba(BRAND.paper, 0.86) : BRAND.ink,
+          }}
+        >
+          {parts.lead}
+        </span>
+      ) : null}
+      <span className="block" style={{ color: mainColor }}>
+        {parts.main}
+      </span>
+    </h3>
+  );
+}
+
 function SectionBackdropAccent({ theme }: { theme: CategoryTheme }) {
+  if (FLAT_SECTION_SURFACES) return null;
   return (
     <>
       <div
@@ -877,6 +969,39 @@ function SectionHeader({
   const wrapClass = align === "left" ? TEXT_COL_LEFT_CLASS : TEXT_COL_CLASS;
   const rowClass = align === "left" ? "justify-start" : "justify-center";
   const accentColor = inverted ? BRAND.paper : theme.accent;
+
+  if (FLAT_SECTION_SURFACES) {
+    return (
+      <header className={`@container mb-10 w-full ${wrapClass}`}>
+        {pointBadge ? (
+          <div className={`mb-5 flex ${rowClass}`}>
+            <PointPill theme={theme} label={pointBadge} inverted={inverted} />
+          </div>
+        ) : null}
+        {megaKeyword ? (
+          <p
+            className={`${TYPO.keywordDisplay} ${TYPO.keywordDisplaySize}`}
+            style={{
+              color: inverted ? BRAND.paper : readableTextAccent(theme, 3),
+              ...fitTokenStyle(megaKeyword, -0.06),
+            }}
+          >
+            {megaKeyword}
+          </p>
+        ) : null}
+        <TwoToneTitle
+          theme={theme}
+          title={title}
+          className={megaKeyword ? TYPO.sectionSubtitle : TYPO.sectionTitle}
+          letterSpacingEm={megaKeyword ? -0.02 : -0.03}
+          inverted={inverted}
+          plain={Boolean(megaKeyword)}
+          edit={edit}
+          onChange={onTitleChange}
+        />
+      </header>
+    );
+  }
 
   return (
     <header className={`@container mb-8 w-full ${wrapClass}`}>
@@ -959,6 +1084,16 @@ function LayeredPanel({
   className?: string;
   children: ReactNode;
 }) {
+  if (FLAT_SECTION_SURFACES) {
+    return (
+      <div
+        className={`relative rounded-xl border ${className}`}
+        style={{ backgroundColor: BRAND.paper, borderColor: hexToRgba(theme.accent, 0.16) }}
+      >
+        {children}
+      </div>
+    );
+  }
   return (
     <div className="relative">
       <div
@@ -1193,7 +1328,7 @@ function renderComparisonChartBody(params: {
   return (
     <>
       <p
-        className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`}
+        className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionKicker}`}
         style={{ color: readableTextDeep(theme) }}
       >
         COMPARE
@@ -1302,6 +1437,97 @@ function renderCircleComparisonCombo(params: {
         })}
       </div>
       {renderComparisonChartBody({ section: chartSection, theme })}
+    </section>
+  );
+}
+
+/** 290차 — 가운데 정렬 제목 → 전체 폭 사진(모서리 없음) → 가운데 본문. 좌우 2단 대신 */
+function StackedImageTextSection({
+  section,
+  src,
+  ratioClass,
+  pointBadge,
+  annotated = false,
+  theme,
+  pattern,
+  category,
+  index,
+  edit,
+  productName,
+  ingredients,
+  keyFeatures,
+}: {
+  section: Extract<DetailSection, { type: "image_text" }>;
+  src: string;
+  ratioClass: string;
+  pointBadge: string | null;
+  annotated?: boolean;
+  theme: CategoryTheme;
+  pattern: SectionColorPattern;
+  category: string;
+  index: number;
+  edit?: SectionEditApi;
+  productName?: string;
+  ingredients?: string | null;
+  keyFeatures?: string | null;
+}) {
+  const pkgItems =
+    section.slot === "package_contents" ? preparePackageContentsItems(section.body, keyFeatures) : null;
+  const foodSlices =
+    isFoodCategory(category) && section.slot === "sourcing_story"
+      ? prepareFoodRatioSlices(ingredients, keyFeatures)
+      : null;
+  const ringLabels =
+    section.slot === "ingredient_highlight" && isIngredientRingCategory(category)
+      ? prepareIngredientRingLabels(ingredients)
+      : null;
+  return (
+    <section
+      className="relative overflow-hidden py-16 @min-[640px]/pz:py-20"
+      style={textSectionStyle(theme, pattern, category)}
+    >
+      <div className="px-6 @min-[640px]/pz:px-10">
+        <SectionHeader
+          theme={theme}
+          title={section.heading}
+          pointBadge={pointBadge}
+          edit={edit}
+          onTitleChange={(heading) => edit?.onChange(index, { ...section, heading })}
+        />
+      </div>
+      <div className="relative">
+        <SectionImage
+          src={src}
+          alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
+          className={`${ratioClass} w-full object-cover`}
+        />
+        {annotated && section.annotations ? (
+          <AnnotatedImageOverlay annotations={section.annotations} theme={theme} />
+        ) : null}
+        <ImageReplaceHit
+          enabled={edit?.enabled}
+          onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
+        />
+      </div>
+      <div className="mx-auto max-w-xl px-6 pt-10 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12">
+        <EditableText
+          as="p"
+          multiline
+          enabled={edit?.enabled}
+          value={section.body}
+          onChange={(body) => edit?.onChange(index, { ...section, body })}
+          className={TYPO.body}
+          style={{ color: hexToRgba(BRAND.ink, 0.82) }}
+        />
+        {section.slot === "ingredient_highlight" && isCosmeticsCategory(category) ? (
+          <p className="mt-3 text-[11px] leading-relaxed opacity-55">
+            {INGREDIENT_HIGHLIGHT_COMPLIANCE_NOTE}
+          </p>
+        ) : null}
+      </div>
+      {pkgItems ? <PackageContentsDiagram items={pkgItems} theme={theme} /> : null}
+      {foodSlices ? <FoodRatioDiagram slices={foodSlices} theme={theme} /> : null}
+      {ringLabels ? <IngredientRingDiagram labels={ringLabels} theme={theme} /> : null}
     </section>
   );
 }
@@ -1640,6 +1866,27 @@ function renderSection(
         );
       }
 
+      if (isAnnotated && FLAT_SECTION_SURFACES) {
+        return (
+          <StackedImageTextSection
+            key={`image_text-${index}`}
+            section={section}
+            src={src}
+            ratioClass={resolveImageRatioClass(section)}
+            pointBadge={null}
+            annotated
+            theme={theme}
+            pattern={pattern}
+            category={category}
+            index={index}
+            edit={edit}
+            productName={productName}
+            ingredients={ingredients}
+            keyFeatures={keyFeatures}
+          />
+        );
+      }
+
       if (isAnnotated) {
         const ratioClass = resolveImageRatioClass(section);
         const imageLeft = resolveSplitImageLeft(section, pointIndex);
@@ -1729,10 +1976,16 @@ function renderSection(
             className="pb-12 @min-[640px]/pz:pb-16"
             style={textSectionStyle(theme, pattern, category)}
           >
-            <div className="relative px-4 pt-4 @min-[640px]/pz:px-6 @min-[640px]/pz:pt-6">
+            <div
+              className={
+                FLAT_SECTION_SURFACES
+                  ? "relative"
+                  : "relative px-4 pt-4 @min-[640px]/pz:px-6 @min-[640px]/pz:pt-6"
+              }
+            >
               <div
-                className="overflow-hidden rounded-2xl"
-                style={{ boxShadow: ELEVATION.imageSoft(theme.deepAccent) }}
+                className={FLAT_SECTION_SURFACES ? "relative overflow-hidden" : "overflow-hidden rounded-2xl"}
+                style={FLAT_SECTION_SURFACES ? undefined : { boxShadow: ELEVATION.imageSoft(theme.deepAccent) }}
               >
                 <SectionImage
                   src={src}
@@ -1772,15 +2025,18 @@ function renderSection(
             </div>
             <div className={`${getCategoryRhythm(category).pointTextPadClass} px-6 @min-[640px]/pz:px-10`}>
               <TextSectionPanel theme={theme} overlap>
-                <p className={`mb-4 ${TYPO.sectionLabel}`} style={{ color: readableTextDeep(theme) }}>
-                  HIGHLIGHT
-                </p>
-                <EditableText
-                  as="h3"
-                  enabled={edit?.enabled}
-                  value={section.heading}
+                {FLAT_SECTION_SURFACES ? null : (
+                  <p className={`mb-4 ${TYPO.sectionLabel}`} style={{ color: readableTextDeep(theme) }}>
+                    HIGHLIGHT
+                  </p>
+                )}
+                <TwoToneTitle
+                  theme={theme}
+                  title={section.heading}
+                  className={TYPO.sectionTitle}
+                  letterSpacingEm={-0.03}
+                  edit={edit}
                   onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-                  className={`${TYPO.sectionTitle}`}
                 />
                 <EditableText
                   as="p"
@@ -1862,6 +2118,26 @@ function renderSection(
       const kicker = getSectionKicker(section);
       const columnRatio = resolveSplitColumnRatio(pointIndex, imageLeft);
       const pointRatioClass = resolvePointImageRatio(ratioClass, pointIndex);
+
+      if (FLAT_SECTION_SURFACES) {
+        return (
+          <StackedImageTextSection
+            key={`image_text-${index}`}
+            section={section}
+            src={src}
+            ratioClass={pointRatioClass}
+            pointBadge={pointIndex != null ? pointPillLabel(pointIndex) : null}
+            theme={theme}
+            pattern={pattern}
+            category={category}
+            index={index}
+            edit={edit}
+            productName={productName}
+            ingredients={ingredients}
+            keyFeatures={keyFeatures}
+          />
+        );
+      }
 
       return (
         <section
@@ -2037,7 +2313,7 @@ function renderSection(
           style={specSectionStyle}
         >
           <p
-            className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`}
+            className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionKicker}`}
             style={{ color: readableTextDeep(theme) }}
           >
             INFO
@@ -2262,7 +2538,7 @@ function renderSection(
           style={textSectionStyle(theme, pattern, category)}
         >
           <p
-            className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`}
+            className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionKicker}`}
             style={{ color: readableTextDeep(theme) }}
           >
             COMPARE
@@ -2355,7 +2631,7 @@ function renderSection(
           data-testid="tradeoff-card"
         >
           <p
-            className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`}
+            className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionKicker}`}
             style={{ color: readableTextDeep(theme) }}
           >
             FIT CHECK
@@ -2989,7 +3265,7 @@ function renderSection(
           className={getCategoryRhythm(category).generousPadClass}
           style={textSectionStyle(theme, pattern, category)}
         >
-          <p className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionLabel}`} style={{ color: readableTextDeep(theme) }}>
+          <p className={`mb-4 ${TEXT_COL_CLASS} ${TYPO.sectionKicker}`} style={{ color: readableTextDeep(theme) }}>
             HOW TO USE
           </p>
           <EditableText
@@ -3137,7 +3413,7 @@ function renderSection(
           <div className={TEXT_COL_CLASS}>
             <TextSectionPanel theme={theme}>
               <p
-                className={`mb-4 ${TYPO.sectionLabel}`}
+                className={`mb-4 ${TYPO.sectionKicker}`}
                 style={{ color: readableTextDeep(theme) }}
               >
                 NOTICE
@@ -3491,7 +3767,7 @@ function renderSection(
         >
           <div className={TEXT_COL_CLASS}>
             <p
-              className={`mb-4 ${TYPO.sectionLabel}`}
+              className={`mb-4 ${TYPO.sectionKicker}`}
               style={{ color: readableTextDeep(theme) }}
             >
               AI DISCLOSURE
@@ -3548,15 +3824,16 @@ function renderSection(
       const storyBodyClass = `mt-5 whitespace-pre-line ${TYPO.body}`;
       const storyText = (
         <>
-          <p className={`mb-4 ${TYPO.sectionLabel}`} style={{ color: readableTextDeep(theme) }}>
+          <p className={`mb-4 ${TYPO.sectionKicker}`} style={{ color: readableTextDeep(theme) }}>
             STORY
           </p>
-          <EditableText
-            as="h3"
-            enabled={edit?.enabled}
-            value={section.heading}
+          <TwoToneTitle
+            theme={theme}
+            title={section.heading}
+            className={TYPO.sectionTitle}
+            letterSpacingEm={-0.03}
+            edit={edit}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${TYPO.sectionTitle}`}
           />
           <EditableText
             as="p"
@@ -3774,7 +4051,7 @@ function renderSection(
           }}
         >
           <div className={`${TEXT_COL_CLASS} relative z-10 space-y-5`}>
-            <p className={TYPO.sectionLabel} style={{ color: readableTextDeep(theme) }}>
+            <p className={TYPO.sectionKicker} style={{ color: readableTextDeep(theme) }}>
               PRICE
             </p>
             <p

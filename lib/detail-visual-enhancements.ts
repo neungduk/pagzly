@@ -41,7 +41,7 @@ export function parseMegaKeywordHeading(title: string): {
 }
 
 export function formatPointBadge(indexOneBased: number): string {
-  return `POINT.${indexOneBased}`;
+  return `POINT ${indexOneBased}`;
 }
 
 export function isCertificationHighlight(

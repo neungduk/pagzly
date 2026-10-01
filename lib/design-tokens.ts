@@ -130,22 +130,36 @@ export function getSectionBackground(
       mixHex(theme.accent, BRAND.ink, 0.42),
       4.5,
     );
+    if (FLAT_SECTION_SURFACES) return inkDeep;
     return `linear-gradient(145deg, ${hexToRgba(inkDeep, 0.97)} 0%, ${hexToRgba(inkAccent, 0.93)} 100%)`;
   }
-  // A — 가장 밝은 "숨 고르기": baseNeutral → accentSoft
-  if (pattern === "A") {
-    return `linear-gradient(168deg, ${theme.baseNeutral} 0%, ${hexToRgba(theme.accentSoft, accentSoftA)} 100%)`;
+  if (!FLAT_SECTION_SURFACES) {
+    if (pattern === "A") {
+      return `linear-gradient(168deg, ${theme.baseNeutral} 0%, ${hexToRgba(theme.accentSoft, accentSoftA)} 100%)`;
+    }
+    if (pattern === "B") {
+      return `linear-gradient(125deg, ${hexToRgba(theme.accent, accentB)} 0%, ${hexToRgba(theme.accentSoft, accentSoftB)} 38%, ${theme.baseNeutral} 100%)`;
+    }
+    if (pattern === "D") {
+      return `linear-gradient(210deg, ${hexToRgba(theme.accentSoft, accentSoftD)} 0%, ${hexToRgba(theme.accent, accentD)} 58%, ${theme.baseNeutral} 100%)`;
+    }
+    return `linear-gradient(180deg, ${theme.baseNeutral} 0%, ${hexToRgba(theme.accent, accentE)} 36%, ${hexToRgba(theme.deepAccent, deepAccentE)} 100%)`;
   }
-  // B — accent 우세(짧은 앞단), 각도를 A와 벌림
-  if (pattern === "B") {
-    return `linear-gradient(125deg, ${hexToRgba(theme.accent, accentB)} 0%, ${hexToRgba(theme.accentSoft, accentSoftB)} 38%, ${theme.baseNeutral} 100%)`;
-  }
-  // D — accentSoft 우세 시작, B와 반대쪽 각도·늦은 정지점
-  if (pattern === "D") {
-    return `linear-gradient(210deg, ${hexToRgba(theme.accentSoft, accentSoftD)} 0%, ${hexToRgba(theme.accent, accentD)} 58%, ${theme.baseNeutral} 100%)`;
-  }
-  // E — deepAccent를 한 단계 더 써서 A/B/D보다 진한 앵커(패턴 C만큼은 아님)
-  return `linear-gradient(180deg, ${theme.baseNeutral} 0%, ${hexToRgba(theme.accent, accentE)} 36%, ${hexToRgba(theme.deepAccent, deepAccentE)} 100%)`;
+  // 290차 — 흰 바탕 ↔ 포인트색 옅은 틴트 단색 교대 (그라데이션·질감 없음)
+  if (pattern === "A" || pattern === "D") return FLAT_PAPER;
+  return flatAccentTint(theme, pattern === "B" ? 1 : 0.6, fashionMinimal);
+}
+
+/**
+ * 290차 — 디자이너 톤: 섹션 면은 단색. 경쟁 AI·디자이너 결과물 공통(흰 바탕과 포인트색 옅은 틴트만 교대,
+ * 카드 그림자·유리 패널 없음). false로 되돌리면 169차 그라데이션 면.
+ */
+export const FLAT_SECTION_SURFACES = true;
+export const FLAT_PAPER = "#FFFFFF";
+
+/** 흰 바탕에 포인트색을 7%(패션 4%) 섞은 단색 틴트 */
+export function flatAccentTint(theme: CategoryTheme, strength = 1, fashionMinimal = false): string {
+  return mixHex(FLAT_PAPER, theme.accent, (fashionMinimal ? 0.04 : 0.07) * strength);
 }
 
 /** 51차 — 카테고리별 은은한 SVG 반복 패턴 (AI 이미지 없음, opt-in) */
@@ -215,6 +229,7 @@ export function getSectionInsetShadow(
   const accentLineA = fashionMinimal ? 0.07 : 0.14;
   const deepLineE = fashionMinimal ? 0.05 : 0.1;
 
+  if (FLAT_SECTION_SURFACES) return undefined;
   if (pattern === "C") return undefined;
   if (pattern === "B" || pattern === "D") {
     return `inset 0 3px 0 ${hexToRgba(theme.accent, accentLine)}`;
@@ -231,6 +246,9 @@ export function getTextPanelSurface(theme: CategoryTheme): {
   borderColor: string;
   boxShadow: string;
 } {
+  if (FLAT_SECTION_SURFACES) {
+    return { background: FLAT_PAPER, borderColor: hexToRgba(theme.accent, 0.14), boxShadow: "none" };
+  }
   return {
     background: `linear-gradient(148deg, ${hexToRgba(BRAND.paper, 0.97)} 0%, ${hexToRgba(theme.accentSoft, 0.5)} 58%, ${hexToRgba(theme.accent, 0.1)} 100%)`,
     borderColor: hexToRgba(theme.accent, 0.2),
@@ -332,7 +350,8 @@ export const FONT_SIZE = {
 export const TITLE_SCALE = {
   // 287: 히어로 wide 72→84px(750 폭의 11.2%, 경쟁 중앙값 11.6%), 본문 wide 16→17px
   hero: { base: "3rem", wide: "5.25rem" },
-  body: { base: "0.9375rem", wide: "1.0625rem" },
+  // 290: 본문 wide 17→19px (경쟁 750폭 본문 26px ≒ 640폭 22px, 행 길이 유지 위해 19)
+  body: { base: "1rem", wide: "1.1875rem" },
   section: { base: "2rem", wide: "2.75rem" },
   subtitle: { base: "1.25rem", wide: "1.5rem" },
   banner: { base: "1.65rem", wide: "1.85rem" },
@@ -382,7 +401,9 @@ export function titleScaleExportCss(): string {
  * | emphasis | 0 16px 40px -16px ink@0.5 | highlightEmphasis |
  * | sticky | 0 -8px 24px ink@0.15 | ctaSticky |
  */
-const ELEV_CARD = "0 12px 32px -12px rgba(27,27,24,0.28)";
+const ELEV_CARD = FLAT_SECTION_SURFACES
+  ? "0 1px 3px rgba(27,27,24,0.08)"
+  : "0 12px 32px -12px rgba(27,27,24,0.28)";
 const ELEV_EMPHASIS = "0 16px 40px -16px rgba(27,27,24,0.5)";
 const ELEV_STICKY = "0 -8px 24px rgba(27,27,24,.15)";
 /** CTA 버튼 — emphasis와 blur/alpha 위계가 달라 병합하지 않음 */
@@ -401,7 +422,7 @@ export const ELEVATION = {
 
   /** 체크리스트 카드 outer (accent tint — card와 색 채널이 달라 유지) */
   checklistCard: (deepAccent: string) =>
-    `0 10px 28px -14px ${hexToRgba(deepAccent, 0.14)}`,
+    FLAT_SECTION_SURFACES ? "none" : `0 10px 28px -14px ${hexToRgba(deepAccent, 0.14)}`,
 
   /** @deprecated 별칭 — ELEVATION.emphasis */
   highlightEmphasis: ELEV_EMPHASIS,
@@ -445,12 +466,14 @@ export const ELEVATION = {
   /**
    * image_text lift — soft와 blur 위계가 달라 병합하지 않음.
    */
-  imageLift: (deepAccent: string) => `0 20px 56px ${hexToRgba(deepAccent, 0.14)}`,
+  imageLift: (deepAccent: string) =>
+    FLAT_SECTION_SURFACES ? "none" : `0 20px 56px ${hexToRgba(deepAccent, 0.14)}`,
 
   /**
    * image_text / callout soft
    */
-  imageSoft: (deepAccent: string) => `0 16px 48px ${hexToRgba(deepAccent, 0.12)}`,
+  imageSoft: (deepAccent: string) =>
+    FLAT_SECTION_SURFACES ? "none" : `0 16px 48px ${hexToRgba(deepAccent, 0.12)}`,
 
   /**
    * 184: specThumbMulti → card(imageThumb) 병합
@@ -739,7 +762,11 @@ export function extendTheme(base: CategoryTheme): ExtendedTheme {
 // 전체에서 신뢰감 있게 일관된 색이어야 하는 지점)는 보조색 순환에서 제외하고
 // 항상 base 팔레트를 쓴다.
 const THEME_VARIANT_LOCKED_SECTION_TYPES = new Set(["hero", "cta_price"]);
-const THEME_VARIANT_CYCLE: ThemeVariantKey[] = ["base", "warm", "cool", "bold", "warm", "cool"];
+/**
+ * 290차 — 디자이너 상세페이지는 브랜드 포인트색 1개로 끝까지 간다(섹션마다 색상환을 돌리지 않음).
+ * 보조 팔레트(warm/cool/bold)는 남겨 두되 본문 순환에서는 base만 쓴다.
+ */
+const THEME_VARIANT_CYCLE: ThemeVariantKey[] = ["base"];
 
 /**
  * bodyIndex(0-based, hero 제외 본문 섹션 순번 — getSectionPattern()이 쓰는
