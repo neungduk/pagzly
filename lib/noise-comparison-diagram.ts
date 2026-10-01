@@ -125,7 +125,7 @@ export function buildNoiseComparisonDiagramSvg(
   const width = 340;
   const trackX1 = 30;
   const trackX2 = width - 30;
-  const trackY = 96;
+  const trackY = 34;
   const span = Math.max(scaleMax - scaleMin, 1);
   const toX = (db: number) => trackX1 + ((db - scaleMin) / span) * (trackX2 - trackX1);
 
@@ -145,7 +145,7 @@ export function buildNoiseComparisonDiagramSvg(
 
   return `<div style="max-width:340px;margin:28px auto 0;text-align:center">
     ${diagramTitleWithIconHtml("소음 비교", "noise-speaker", labelColor)}
-    <svg viewBox="0 0 ${width} 130" width="100%" style="max-width:340px;height:auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="소음 비교 다이어그램">
+    <svg viewBox="0 0 ${width} 68" width="100%" style="max-width:340px;height:auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="소음 비교 다이어그램">
       <line x1="${trackX1}" y1="${trackY}" x2="${trackX2}" y2="${trackY}" stroke="${strokeColor}" stroke-width="1.2" opacity="0.32"/>
       ${refMarks}
       <circle cx="${prodX}" cy="${trackY}" r="5" fill="${strokeColor}"/>

@@ -124,7 +124,7 @@ export function buildWaterproofIpDiagramSvg(
   const width = 340;
   const trackX1 = 30;
   const trackX2 = width - 30;
-  const trackY = 96;
+  const trackY = 34;
   const span = Math.max(scaleMax - scaleMin, 1);
   const toX = (v: number) => trackX1 + ((v - scaleMin) / span) * (trackX2 - trackX1);
   const prodX = toX(level);
@@ -145,7 +145,7 @@ export function buildWaterproofIpDiagramSvg(
   // 174차 — 좌표/눈금 로직 불변. 제목 옆 장식 아이콘만 추가.
   return `<div style="margin:32px auto 0;max-width:340px;text-align:center">
     ${diagramTitleWithIconHtml("방수 등급 비교", "waterproof-droplet", labelColor)}
-    <svg viewBox="0 0 ${width} 130" width="${width}" height="130" role="img" aria-label="방수 등급 비교 다이어그램">
+    <svg viewBox="0 0 ${width} 68" width="${width}" height="68" role="img" aria-label="방수 등급 비교 다이어그램">
       <line x1="${trackX1}" y1="${trackY}" x2="${trackX2}" y2="${trackY}" stroke="${strokeColor}" stroke-width="1.2" opacity="0.32"/>
       ${refMarks}
       <circle cx="${prodX}" cy="${trackY}" r="5" fill="${strokeColor}"/>
