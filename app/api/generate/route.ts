@@ -55,6 +55,7 @@ import {
   HIGHLIGHT_BOX_RETRY_APPENDIX,
   missingRequiredHighlightBox,
 } from "@/lib/highlight-box-guard";
+import { enforceSplitZigzag } from "@/lib/detail-visual-rhythm";
 import {
   applyDesignerLayoutRhythm,
   buildDesignerPatternGuide,
@@ -1543,7 +1544,7 @@ export async function POST(request: Request) {
       replacements = finalCopy?.replacements ?? [];
       savedCopy = {
         ...savedCopy,
-        sections: dropHollowHighlightBoxes(ensureAiDisclosure(savedCopy.sections)),
+        sections: enforceSplitZigzag(dropHollowHighlightBoxes(ensureAiDisclosure(savedCopy.sections))),
       };
 
       if (mode === "draft") {
@@ -2127,6 +2128,7 @@ export async function POST(request: Request) {
       const hasAiLifestyle = hasAiLifestyleOrigin(imageOrigins);
       savedCopy.sections = ensureAiDisclosure(savedCopy.sections, { hasAiLifestyle });
     }
+    savedCopy.sections = enforceSplitZigzag(savedCopy.sections);
 
     const { data: savedProduct, error: insertError } = body.productId
       ? await supabase

@@ -324,6 +324,52 @@ export const FONT_SIZE = {
 } as const;
 
 /**
+ * 286차 — 라이브·export 공용 2단 제목 스케일. base는 칸 폭 640px 미만, wide는 640px 이상.
+ * 라이브는 루트 `@container/pz`에 `--pz-t-{key}-b/-w`로 주입하고 TYPO는 var()만 참조한다.
+ * export는 `--pz-t-{key}`를 :root·@media(min-width:640px)로 선언하고, 인라인 fallback은 wide
+ * (업로드 폭 750~860px이 wide 구간이고, style 블록을 지우는 에디터에서도 크기가 유지되도록).
+ */
+export const TITLE_SCALE = {
+  hero: { base: "3rem", wide: "4.5rem" },
+  section: { base: "2rem", wide: "2.75rem" },
+  subtitle: { base: "1.25rem", wide: "1.5rem" },
+  banner: { base: "1.65rem", wide: "1.85rem" },
+  compact: { base: "1rem", wide: "1.125rem" },
+  price: { base: "2.75rem", wide: "3rem" },
+  statNumber: { base: "3rem", wide: "3.75rem" },
+  statRing: { base: "1.5rem", wide: "1.875rem" },
+  statBar: { base: "1.875rem", wide: "2.25rem" },
+} as const;
+
+export type TitleScaleKey = keyof typeof TITLE_SCALE;
+
+export const TITLE_SCALE_WIDE_MIN_PX = 640;
+
+const TITLE_SCALE_KEYS = Object.keys(TITLE_SCALE) as TitleScaleKey[];
+
+/** 라이브 루트 style — TYPO의 `var(--pz-t-{key}-b|w)` 원천 */
+export function titleScaleVars(): Record<string, string> {
+  const vars: Record<string, string> = {};
+  for (const key of TITLE_SCALE_KEYS) {
+    vars[`--pz-t-${key}-b`] = TITLE_SCALE[key].base;
+    vars[`--pz-t-${key}-w`] = TITLE_SCALE[key].wide;
+  }
+  return vars;
+}
+
+/** export 인라인 font-size 값 */
+export function titleSizeCss(key: TitleScaleKey): string {
+  return `var(--pz-t-${key},${TITLE_SCALE[key].wide})`;
+}
+
+/** export `<style>` — 뷰포트 640px 기준 base/wide 전환 */
+export function titleScaleExportCss(): string {
+  const decl = (tier: "base" | "wide") =>
+    TITLE_SCALE_KEYS.map((key) => `--pz-t-${key}:${TITLE_SCALE[key][tier]}`).join(";");
+  return `:root{${decl("base")}}@media (min-width:${TITLE_SCALE_WIDE_MIN_PX}px){:root{${decl("wide")}}}`;
+}
+
+/**
  * 그림자/inset 규칙군 — live·export가 같은 상수를 참조.
  * 184: drop을 subtle/card/emphasis/sticky 4단계로 정리. 근접값만 병합.
  * getSectionInsetShadow / getTextPanelSurface는 미포함(용도 분리).

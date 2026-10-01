@@ -88,6 +88,19 @@ export function shouldUseSplitLayout(section: DetailSection): boolean {
   return true;
 }
 
+/**
+ * AI 스키마가 imagePosition을 항상 채워 resolveSplitImageLeft의 순번 교대가 무력화된다.
+ * split 섹션 순번(라이브·export pointIndex와 같은 카운트)대로 left/right를 덮어써 지그재그를 보장한다.
+ */
+export function enforceSplitZigzag(sections: DetailSection[]): DetailSection[] {
+  let point = 0;
+  return sections.map((section) => {
+    if (section.type !== "image_text" || !shouldUseSplitLayout(section)) return section;
+    const imagePosition: "left" | "right" = point++ % 2 === 0 ? "left" : "right";
+    return section.imagePosition === imagePosition ? section : { ...section, imagePosition };
+  });
+}
+
 export { shouldUseEditorialBleed, EDITORIAL_BLEED_SLOTS } from "@/lib/designer-detail-patterns";
 
 export function shouldInsertBreather(

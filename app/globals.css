@@ -50,9 +50,18 @@ body {
   );
 }
 
-[data-pagzly-preview] .font-heading {
-  font-family: var(--font-heading);
-  letter-spacing: -0.025em;
+/* 기본 자간만 — base 레이어라서 tracking-* 유틸리티가 있으면 그쪽이 이긴다 */
+@layer base {
+  [data-pagzly-preview] .font-heading {
+    font-family: var(--font-heading);
+    letter-spacing: -0.025em;
+  }
+
+  [data-pagzly-preview] .font-mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.18em;
+  }
 }
 
 /* 117차 — 히어로·섹션 타이틀 전용 (본문/라벨/표 제외) */
@@ -70,12 +79,6 @@ body {
   font-weight: 800;
   word-break: keep-all;
   overflow-wrap: break-word;
-}
-
-[data-pagzly-preview] .font-mono {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.18em;
 }
 
 @media (prefers-reduced-motion: reduce) {

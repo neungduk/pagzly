@@ -103,7 +103,10 @@ import {
   imageRatioCss,
   resolvePointImageRatio,
   resolveSlotImageRatio,
+  titleScaleExportCss,
+  titleSizeCss,
   type ExtendedTheme,
+  type TitleScaleKey,
 } from "@/lib/design-tokens";
 import { applySectionDisplayBudget } from "@/lib/section-display-budget";
 import { buildProductJsonLd, serializeJsonLdScripts } from "@/lib/product-json-ld";
@@ -113,7 +116,10 @@ import {
   DETAIL_FONT_STACK,
   DETAIL_GOOGLE_FONTS_URL,
   displayHeadlineInlineCss,
+  longestTokenEm,
 } from "@/lib/detail-typography";
+import { splitStatValue, STAT_UNIT_EM } from "@/lib/stat-value";
+import { isPlaceholderValue } from "@/lib/spec-placeholder";
 import {
   findCircleComparisonComboIndices,
   isCircleSoloSection,
@@ -187,7 +193,24 @@ function resolveExportImage(imageUrls: string[], index: number | undefined): str
 
 /** 섹션 디스플레이 헤드라인 (표·라벨 제외) */
 function dh2(category: string, escapedText: string, extraStyle: string): string {
-  return `<h2 class="pagzly-display-headline" style="${displayHeadlineInlineCss(category)};${extraStyle}">${escapedText}</h2>`;
+  const fit = extraStyle.includes("--pz-fs:") ? " pz-fit" : "";
+  return `<h2 class="pagzly-display-headline${fit}" style="${displayHeadlineInlineCss(category)};${extraStyle}">${escapedText}</h2>`;
+}
+
+/** 라이브 STAT_LABEL_CLASS와 같은 수치 라벨 */
+const STAT_LABEL_CSS = `font-size:${FONT_SIZE.sm};font-weight:500;line-height:1.375;letter-spacing:-0.01em;color:rgba(27,27,24,.6)`;
+
+/** 라이브 StatValue와 같은 숫자/작은 단위 */
+function statValueHtml(value: string): string {
+  const split = splitStatValue(value);
+  if (!split) return esc(value);
+  return `${esc(split.num)}<span style="margin-left:.06em;font-size:${STAT_UNIT_EM}em;font-weight:700;letter-spacing:0">${esc(split.unit)}</span>`;
+}
+
+/** 라이브 TYPO 제목과 같은 TITLE_SCALE 크기 + 긴 어절 축소(.pz-fit) — rawText는 이스케이프 전 원문 */
+function titleFitCss(key: TitleScaleKey, rawText: string | undefined, letterSpacingEm: number): string {
+  const size = titleSizeCss(key);
+  return `--pz-fs:${size};--pz-fit-em:${longestTokenEm(rawText ?? "", letterSpacingEm)};font-size:${size}`;
 }
 
 /** comparison_chart 본문 — 단독 섹션과 circle 콤보 섹션 공용 (라이브 renderComparisonChartBody) */
@@ -221,13 +244,13 @@ function comparisonChartBodyHtml(
           const ourP = (m.ourValue / max) * 100;
           const baseP = (m.baselineValue / max) * 100;
           const unit = section.unit ?? "%";
-          return `<div><p style="font-size:${FONT_SIZE.bodySm};margin:0 0 8px">${esc(m.label)}</p>
+          return `<div><p style="font-size:${FONT_SIZE.body};font-weight:600;line-height:1.375;color:rgba(27,27,24,.8);margin:0 0 10px">${esc(m.label)}</p>
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:10px 12px;border-radius:${RADIUS.md}px;background:${hexToRgba(accent, 0.14)}"><span style="width:72px;font-size:${FONT_SIZE.caption};font-weight:700;color:${deepText}">${esc(section.ourLabel)}</span>
               <div style="flex:1;height:14px;background:${hexToRgba(accent, 0.22)};border-radius:${RADIUS.pill}px"><div class="fill-bar" style="height:100%;width:${ourP}%;background:${accent};border-radius:${RADIUS.pill}px"></div></div>
-              <span style="width:48px;text-align:right;font-size:${FONT_SIZE.caption};font-weight:700;color:${deepText}">${m.ourValue}${esc(unit)}</span></div>
-            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:${RADIUS.md}px;border:1px solid ${hexToRgba(theme.baseNeutral, 0.9)}"><span style="width:72px;font-size:${FONT_SIZE.caption};opacity:.4">${esc(section.baselineLabel)}</span>
-              <div style="flex:1;height:6px;background:${hexToRgba(theme.baseNeutral, 0.55)};border-radius:${RADIUS.pill}px"><div class="fill-bar" style="height:100%;width:${baseP}%;background:${hexToRgba(theme.baseNeutral, 0.85)};border-radius:${RADIUS.pill}px"></div></div>
-              <span style="width:48px;text-align:right;font-size:${FONT_SIZE.caption};opacity:.4">${m.baselineValue}${esc(unit)}</span></div>
+              <span style="width:64px;text-align:right;font-family:${DETAIL_FONT_STACK.heading};font-size:${FONT_SIZE.bodyLg};font-weight:900;line-height:1;font-variant-numeric:tabular-nums;color:${deepText}">${m.ourValue}<span style="margin-left:2px;font-size:${FONT_SIZE.caption};font-weight:700">${esc(unit)}</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:${RADIUS.md}px;border:1px solid ${hexToRgba(theme.baseNeutral, 0.9)}"><span style="width:72px;font-size:${FONT_SIZE.caption};color:rgba(27,27,24,.55)">${esc(section.baselineLabel)}</span>
+              <div style="flex:1;height:8px;background:${hexToRgba(BRAND.ink, 0.08)};border-radius:${RADIUS.pill}px"><div class="fill-bar" style="height:100%;width:${baseP}%;background:${hexToRgba(BRAND.ink, 0.32)};border-radius:${RADIUS.pill}px"></div></div>
+              <span style="width:64px;text-align:right;font-size:${FONT_SIZE.sm};font-variant-numeric:tabular-nums;color:rgba(27,27,24,.55)">${m.baselineValue}${esc(unit)}</span></div>
           </div>`;
         })
         .join("");
@@ -242,7 +265,7 @@ function comparisonChartBodyHtml(
     : "";
   return `
         <p style="text-align:center;color:${deepText};font-size:${FONT_SIZE.caption};letter-spacing:.2em">COMPARE</p>
-        ${dh2(category, esc(section.heading), `text-align:center;font-size:${FONT_SIZE.section}`)}
+        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}`)}
         <div style="max-width:420px;margin:32px auto 0;display:flex;flex-direction:column;gap:${isChecklist ? 0 : 24}px">
           ${metricsHtml}
         </div>
@@ -354,7 +377,7 @@ function sectionHtml(
         ${section.badge ? `<span style="position:absolute;left:0;top:20px;background:${deepFill};color:#FAF8F3;padding:8px 16px;font-size:${FONT_SIZE.xs};font-weight:700">${esc(section.badge)}</span>` : ""}
         ${brandMarkHtml}
         <div style="position:absolute;inset:0;background:${getHeroGradient(baseTheme)};display:flex;align-items:flex-end;padding:48px 20px 40px">
-          <div style="width:100%;text-align:center"><h1 class="pagzly-display-headline" style="color:#FAF8F3;font-size:${FONT_SIZE.heroDisplay};font-weight:800;letter-spacing:-0.035em;line-height:1.02;margin:0;text-shadow:0 2px 24px rgba(0,0,0,0.45);${displayHeadlineInlineCss(category)}">${esc(section.headline)}</h1>
+          <div style="width:100%;text-align:center"><h1 class="pagzly-display-headline pz-fit" style="color:#FAF8F3;${titleFitCss("hero", section.headline, -0.035)};font-weight:800;letter-spacing:-0.035em;line-height:1.02;margin:0;text-shadow:0 2px 24px rgba(0,0,0,0.45);${displayHeadlineInlineCss(category)}">${esc(section.headline)}</h1>
           ${section.subheadline ? `<p style="color:rgba(250,248,243,0.95);margin:12px auto 0;max-width:36rem;font-family:${DETAIL_FONT_STACK.sans};text-shadow:0 1px 12px rgba(0,0,0,0.35)">${esc(section.subheadline)}</p>` : ""}</div>
         </div></section>`;
     }
@@ -369,7 +392,7 @@ function sectionHtml(
           ${pointBadge ? `<span style="display:inline-block;font-family:${DETAIL_FONT_STACK.label};font-size:${FONT_SIZE.label};font-weight:700;letter-spacing:.22em;border:1px solid ${section.boldBlock ? "rgba(250,248,243,.35)" : accent + "66"};border-radius:${RADIUS.pill}px;padding:4px 12px;color:${section.boldBlock ? "#FAF8F3" : deep}">${pointBadge}</span>` : ""}
           ${kicker ? `<span style="font-size:${FONT_SIZE.caption};letter-spacing:.36em;opacity:.75;margin-left:12px">${kicker}</span>` : ""}
           ${headingParts.keyword ? `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClamp};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:16px 0 0;text-transform:uppercase;color:${section.boldBlock ? "#FAF8F3" : deep}">${esc(headingParts.keyword)}</p>` : ""}
-          ${dh2(category, esc(headingParts.remainder || section.heading), `font-size:${headingParts.keyword ? FONT_SIZE.sectionSm : FONT_SIZE.sectionLg};margin:16px 0 0;font-weight:${headingParts.keyword ? "600" : "700"}`)}
+          ${dh2(category, esc(headingParts.remainder || section.heading), `${titleFitCss(headingParts.keyword ? "subtitle" : "section", headingParts.remainder || section.heading, headingParts.keyword ? -0.02 : -0.03)};margin:16px 0 0;font-weight:${headingParts.keyword ? "600" : "700"}`)}
         </div>
         <ul style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;list-style:none;padding:0;margin:0">
           ${section.items
@@ -394,7 +417,7 @@ function sectionHtml(
       const kicker = getSectionKicker(section);
       const headerHtml = `${pointBadge || kicker ? `<p style="text-align:center;margin:0 0 8px">${pointBadge ? `<span style="display:inline-block;font-size:${FONT_SIZE.label};font-weight:700;letter-spacing:.22em;border:1px solid ${accent}66;border-radius:${RADIUS.pill}px;padding:4px 12px">${pointBadge}</span>` : ""}${kicker ? `<span style="font-size:${FONT_SIZE.caption};letter-spacing:.36em;opacity:.75;margin-left:12px">${kicker}</span>` : ""}</p>` : ""}
         ${headingParts.keyword ? `<p style="text-align:center;overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClamp};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:0;text-transform:uppercase;color:${section.boldBlock ? "#FAF8F3" : deep}">${esc(headingParts.keyword)}</p>` : ""}
-        ${dh2(category, esc(headingParts.remainder || section.heading), `text-align:center;font-size:${headingParts.keyword ? FONT_SIZE.sectionXs : FONT_SIZE.section};margin:12px 0 0`)}`;
+        ${dh2(category, esc(headingParts.remainder || section.heading), `text-align:center;${titleFitCss(headingParts.keyword ? "subtitle" : "section", headingParts.remainder || section.heading, headingParts.keyword ? -0.02 : -0.03)};margin:12px 0 0`)}`;
       if (isTrustEvidence) {
         // 라이브 isTrustEvidence 분기: 1열 인용구 카드, 아이콘·번호 pill·카드 키워드 없음,
         // 헤딩이 비면 헤더 블록 자체 생략. 키워드 <p>가 없으므로 카드 제목은 원문 그대로.
@@ -473,7 +496,7 @@ function sectionHtml(
         : "";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         <p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">HOW TO USE</p>
-        ${dh2(category, esc(section.heading), `text-align:center;font-size:${FONT_SIZE.section}`)}
+        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}`)}
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:32px">
           ${section.steps
             .map((step, i) => {
@@ -503,15 +526,16 @@ function sectionHtml(
           footnotes.push({ number, text: note });
           footnoteNumberByText.set(note, number);
         }
-        return `<sup style="margin-left:2px;font-size:${FONT_SIZE.footnoteSup};font-weight:600;color:${accentText}">${number}</sup>`;
+        return `<sup style="margin-left:2px;font-size:${FONT_SIZE.label};font-weight:600;letter-spacing:0;color:${accentText}">${number}</sup>`;
       };
-      const metricsHtml = section.metrics
-        .map((m) => {
+      // 각주 번호는 라이브처럼 원래 metric 순서로 먼저 매긴다(아래 렌더는 스타일별로 묶음)
+      section.metrics.forEach((m) => footnoteMarkFor(m));
+      const metricHtml = (m: (typeof section.metrics)[number]) => {
           const pct = Math.min(100, Math.max(0, m.percent ?? 0));
           if (m.style === "number") {
             // 154차 — 라이브 렌더러와 동일하게 숫자를 "히어로 넘버"로 키움(2rem→3rem,
             // 700→800, 라벨은 소문자 캡션에서 대문자 트래킹 라벨로).
-            return `<div style="text-align:center"><div style="font-size:${FONT_SIZE.statNumber};font-weight:800;line-height:1;letter-spacing:-0.02em;color:${deepText}">${esc(m.value)}${footnoteMarkFor(m)}</div><div style="margin-top:6px;font-size:${FONT_SIZE.caption};font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.55">${esc(m.label)}</div></div>`;
+            return `<div style="text-align:center;container-type:inline-size;padding:32px 16px;border-radius:${RADIUS.lg}px;background:rgba(250,248,243,.78);box-shadow:${ELEVATION.imageThumb}"><div class="pz-fit" style="${titleFitCss("statNumber", m.value, -0.05)};font-weight:800;line-height:1;letter-spacing:-0.02em;color:${deepText}">${statValueHtml(m.value)}${footnoteMarkFor(m)}</div><div style="margin-top:6px;${STAT_LABEL_CSS}">${esc(m.label)}</div></div>`;
           }
           if (m.style === "ring") {
             // 241차 — 라이브 RadialGauge(size=112, strokeWidth=10)와 동일 기하로
@@ -528,18 +552,34 @@ function sectionHtml(
                     <circle cx="${size / 2}" cy="${size / 2}" r="${radius}" fill="none" stroke="${hexToRgba(accent, 0.16)}" stroke-width="${strokeWidth}"/>
                     <circle class="ring-fill" cx="${size / 2}" cy="${size / 2}" r="${radius}" fill="none" stroke="${deep}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" style="--ring-empty:${circumference};--ring-offset:${offset}"/>
                   </svg>
-                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:${FONT_SIZE.section};font-weight:800;letter-spacing:-0.01em;color:${deepText}">${esc(m.value)}${footnoteMarkFor(m)}</div>
+                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:${titleSizeCss("statRing")};font-weight:800;letter-spacing:-0.01em;color:${deepText}">${statValueHtml(m.value)}${footnoteMarkFor(m)}</div>
                 </div>
-                <span style="font-size:${FONT_SIZE.caption};font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.55">${esc(m.label)}</span>
+                <span style="${STAT_LABEL_CSS}">${esc(m.label)}</span>
               </div>`;
           }
           const barColor = section.barAccent === "emphasis" ? deep : accent;
-          return `<div><div style="display:flex;justify-content:space-between;align-items:baseline;font-size:${FONT_SIZE.bodySm}"><span>${esc(m.label)}</span><strong style="font-size:${FONT_SIZE.section};font-weight:800;letter-spacing:-0.01em">${esc(m.value)}${footnoteMarkFor(m)}</strong></div>
+          return `<div><div style="display:flex;justify-content:space-between;align-items:baseline;font-size:${FONT_SIZE.bodySm}"><span>${esc(m.label)}</span><strong style="font-size:${titleSizeCss("statBar")};font-weight:800;line-height:1;letter-spacing:-0.01em">${statValueHtml(m.value)}${footnoteMarkFor(m)}</strong></div>
                 <div style="height:${section.barAccent === "emphasis" ? 14 : 10}px;background:${barColor}29;border-radius:${RADIUS.pill}px;margin-top:8px;overflow:hidden">
                   <div class="fill-bar" style="height:100%;width:${pct}%;background:${barColor};border-radius:${RADIUS.pill}px"></div>
                 </div></div>`;
-        })
-        .join("");
+      };
+      // 라이브와 같은 배치: 숫자 카드 그리드 → 링 그리드 → 막대 목록
+      const numberMetrics = section.metrics.filter((m) => m.style === "number");
+      const ringMetrics = section.metrics.filter((m) => m.style === "ring");
+      const barMetrics = section.metrics.filter((m) => m.style !== "number" && m.style !== "ring");
+      const statGrid = (items: typeof section.metrics, gap: string) => {
+        if (items.length === 0) return "";
+        const n = items.length;
+        const cols = n <= 1 ? "max-width:320px;grid-template-columns:1fr" : n === 2 ? "max-width:448px;grid-template-columns:repeat(2,1fr)" : "max-width:672px;grid-template-columns:repeat(2,1fr)";
+        return `<div${n >= 3 ? ` class="pagzly-stat-grid3"` : ""} style="display:grid;${cols};gap:${gap};margin:40px auto 0">${items.map(metricHtml).join("")}</div>`;
+      };
+      const metricsHtml = [
+        statGrid(numberMetrics, "24px 20px"),
+        statGrid(ringMetrics, "32px 20px"),
+        barMetrics.length > 0
+          ? `<div style="max-width:576px;margin:40px auto 0;display:flex;flex-direction:column;gap:28px">${barMetrics.map(metricHtml).join("")}</div>`
+          : "",
+      ].join("");
       const footnotesHtml =
         footnotes.length > 0
           ? `<div style="max-width:480px;margin:16px auto 0">${footnotes
@@ -550,10 +590,8 @@ function sectionHtml(
               .join("")}</div>`
           : "";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        ${dh2(category, esc(section.heading), `text-align:center;font-size:${FONT_SIZE.section}`)}
-        <div style="max-width:480px;margin:32px auto 0;display:flex;flex-direction:column;gap:20px">
-          ${metricsHtml}
-        </div>${footnotesHtml}</section>`;
+        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}`)}
+        ${metricsHtml}${footnotesHtml}</section>`;
     }
     case "comparison_chart":
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">${comparisonChartBodyHtml(section, theme, category)}</section>`;
@@ -569,15 +607,15 @@ function sectionHtml(
       if (recommendFor.length === 0 && considerIf.length === 0) return "";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         <p style="text-align:center;color:${deepText};font-size:${FONT_SIZE.caption};letter-spacing:.2em">FIT CHECK</p>
-        ${dh2(category, esc(section.heading), `text-align:center;font-size:${FONT_SIZE.section}`)}
-        <div style="max-width:720px;margin:32px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}`)}
+        <div style="max-width:720px;margin:32px auto 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px">
           <div style="border-radius:${RADIUS.lg}px;padding:20px;background:${accent}1a">
-            <p style="margin:0 0 12px;font-size:${FONT_SIZE.caption};font-weight:600;letter-spacing:.08em;color:${deepText}">이런 분께 추천</p>
-            ${recommendFor.map((item) => `<p style="margin:0 0 10px;font-size:${FONT_SIZE.bodySm};line-height:1.55">✓ ${esc(item)}</p>`).join("")}
+            <p style="margin:0 0 14px;font-size:${FONT_SIZE.sm};font-weight:600;letter-spacing:-0.01em;color:${deepText}">이런 분께 추천</p>
+            ${recommendFor.map((item) => `<p style="display:flex;gap:8px;margin:0 0 12px;font-size:${FONT_SIZE.bodySm};line-height:1.6;color:rgba(27,27,24,.8)"><span aria-hidden="true" style="flex-shrink:0;width:16px;text-align:center;font-weight:700;color:${accentText}">✓</span><span>${esc(item)}</span></p>`).join("")}
           </div>
           <div style="border-radius:${RADIUS.lg}px;padding:20px;background:${theme.baseNeutral}59">
-            <p style="margin:0 0 12px;font-size:${FONT_SIZE.caption};font-weight:600;letter-spacing:.08em;opacity:.55">이런 점은 참고하세요</p>
-            ${considerIf.map((item) => `<p style="margin:0 0 10px;font-size:${FONT_SIZE.bodySm};line-height:1.55;opacity:.8">· ${esc(item)}</p>`).join("")}
+            <p style="margin:0 0 14px;font-size:${FONT_SIZE.sm};font-weight:600;letter-spacing:-0.01em;color:rgba(27,27,24,.6)">이런 점은 참고하세요</p>
+            ${considerIf.map((item) => `<p style="display:flex;gap:8px;margin:0 0 12px;font-size:${FONT_SIZE.bodySm};line-height:1.6;color:rgba(27,27,24,.7)"><span aria-hidden="true" style="flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-top:2px;border:1.5px solid rgba(27,27,24,.45);border-radius:50%;font-size:10px;font-weight:700;line-height:1;color:rgba(27,27,24,.55)">i</span><span>${esc(item)}</span></p>`).join("")}
           </div>
         </div>
       </section>`;
@@ -588,7 +626,7 @@ function sectionHtml(
       if (section.layout === "text_only") {
         return `<section${sectionIdAttr} style="padding:40px 24px;${sectionInset}${bgCss}">
           <div style="max-width:576px;margin:0 auto;text-align:left">
-            ${dh2(category, esc(section.heading), `font-size:${FONT_SIZE.sectionXl};margin:0;line-height:1.2;color:${readableTextDeep(theme, 3)}`)}
+            ${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)};margin:0;line-height:1.2;color:${readableTextDeep(theme, 3)}`)}
             <p style="margin:16px 0 0;white-space:pre-line;font-size:${FONT_SIZE.body};line-height:1.9;color:${BRAND.ink}">${esc(section.body)}</p>
           </div>
         </section>`;
@@ -633,7 +671,7 @@ function sectionHtml(
               ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:120px;height:120px;object-fit:cover;border-radius:${thumbRadius}px"/>` : ""}
             </div>
             <div style="min-width:0;flex:1;text-align:${imageFirst ? "left" : "right"}">
-              <h3 style="margin:0;font-family:${DETAIL_FONT_STACK.heading};font-size:${FONT_SIZE.bodyLg};font-weight:600;line-height:1.35;letter-spacing:-0.02em;color:#1B1B18;overflow-wrap:anywhere">${esc(section.heading)}</h3>
+              <h3 style="margin:0;font-family:${DETAIL_FONT_STACK.heading};font-size:${titleSizeCss("compact")};font-weight:600;line-height:1.35;letter-spacing:-0.02em;color:#1B1B18;overflow-wrap:anywhere">${esc(section.heading)}</h3>
               <p style="margin:6px 0 0;font-family:${DETAIL_FONT_STACK.sans};font-size:${FONT_SIZE.bodySm};font-weight:400;line-height:1.6;color:rgba(27,27,24,.75);overflow-wrap:anywhere">${esc(section.body)}</p>
             </div>
           </div>
@@ -645,7 +683,7 @@ function sectionHtml(
             ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${imageRatioCss(resolveSlotImageRatio(section))};object-fit:cover;border-radius:${RADIUS.md}px"/>` : ""}
             <p style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:${deepFill};color:#FAF8F3;padding:10px 18px;border-radius:${RADIUS.lg}px;font-size:${FONT_SIZE.bodySm};font-weight:600;text-align:center;max-width:85%">${esc(section.callout)}</p>
           </div>
-          ${dh2(category, esc(section.heading), `font-size:${FONT_SIZE.sectionSm};overflow-wrap:anywhere`)}
+          ${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)}`)}
           <p style="line-height:1.65;font-size:${FONT_SIZE.body};opacity:.85;overflow-wrap:anywhere">${esc(section.body)}</p>
         </section>`;
       }
@@ -664,7 +702,7 @@ function sectionHtml(
             <div style="position:absolute;inset:0;background:linear-gradient(0deg,${hexToRgba(BRAND.ink, 0.82)} 0%,${hexToRgba(BRAND.ink, 0.4)} 24%,${hexToRgba(BRAND.ink, 0.08)} 42%,transparent 55%)"></div>
             <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:24px 24px 28px;text-align:center">
               ${kicker ? `<p style="font-size:${FONT_SIZE.caption};letter-spacing:.36em;color:rgba(250,248,243,.85);margin:0 0 10px">${kicker}</p>` : ""}
-              ${dh2(category, esc(section.heading), `font-size:${FONT_SIZE.sectionXl};margin:0;line-height:1.2;color:#FAF8F3;text-shadow:0 2px 20px rgba(0,0,0,.4);max-width:100%`)}
+              ${dh2(category, esc(section.heading), `font-size:${titleSizeCss("banner")};margin:0;line-height:1.15;color:#FAF8F3;text-shadow:0 2px 20px rgba(0,0,0,.4);max-width:100%`)}
             </div>
           </div>
           <div style="padding:24px 24px 48px;text-align:center;max-width:640px;margin:0 auto">
@@ -728,14 +766,14 @@ function sectionHtml(
               ${annotationOverlayHtml}
               ${pointLabel ? `<span style="position:absolute;left:16px;top:16px;background:${hexToRgba(deepFill, 0.9)};color:#FAF8F3;font-size:${FONT_SIZE.label};font-weight:700;letter-spacing:.28em;padding:6px 12px;border-radius:${RADIUS.pill}px">${pointLabel}</span>` : ""}
             </div>
-            <div style="flex:${columnRatio.text} 1 280px;order:${imageLeft ? 2 : 1}">
+            <div style="flex:${columnRatio.text} 1 280px;order:${imageLeft ? 2 : 1};container-type:inline-size">
               <p style="font-size:${FONT_SIZE.caption};letter-spacing:.36em;color:${deepText};margin:0 0 12px">${kicker}</p>
               ${
                 section.slot === "ingredient_highlight"
                   ? `<div style="width:56px;height:6px;background:${accent};margin:0 0 16px;border-radius:${RADIUS.hairline}px"></div>`
                   : ""
               }
-              ${dh2(category, esc(section.heading), `font-size:${FONT_SIZE.sectionLg};margin:0;overflow-wrap:anywhere`)}
+              ${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
               <p style="line-height:1.75;font-size:${FONT_SIZE.body};opacity:.85;margin-top:16px;overflow-wrap:anywhere">${esc(section.body)}</p>
               ${
                 section.slot === "ingredient_highlight" && isCosmeticsCategory(category)
@@ -752,7 +790,7 @@ function sectionHtml(
         ${src ? `<div style="padding:0 12px"><img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:${RADIUS.lg}px;box-shadow:${ELEVATION.imageSoft(theme.deepAccent)}"/></div>` : ""}
         ${textPanelWrap(
           theme,
-          `${dh2(category, esc(section.heading), `font-size:${FONT_SIZE.sectionSm};margin:0;overflow-wrap:anywhere`)}
+          `${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
         <p style="line-height:1.65;font-size:${FONT_SIZE.body};opacity:.85;margin-top:16px;overflow-wrap:anywhere">${esc(section.body)}</p>`,
         )}
       </section>`;
@@ -891,14 +929,14 @@ function sectionHtml(
           const valueHtml = certHighlight
             ? `<span style="display:inline-block;padding:2px 8px;border-radius:${RADIUS.sm}px;color:${accentText};background:${accent}24;box-shadow:${ELEVATION.certUnderlineExportHex(accent + "8c")}">${esc(row.value)}</span>`
             : esc(row.value);
-          return `<tr style="border-bottom:1px solid ${accent}33;background:${ri % 2 === 1 ? accent + "0d" : "transparent"}"><th style="text-align:left;padding:12px 16px;width:38%;opacity:.55;font-weight:500;font-size:${FONT_SIZE.sm};letter-spacing:-0.01em">${esc(row.label)}</th><td style="padding:12px 16px;font-weight:500">${valueHtml}</td></tr>`;
+          return `<tr style="border-bottom:1px solid ${accent}33;background:${ri % 2 === 1 ? accent + "0d" : "transparent"}"><th style="text-align:left;padding:12px 16px;width:38%;opacity:.55;font-weight:500;font-size:${FONT_SIZE.sm};letter-spacing:-0.01em">${esc(row.label)}</th><td style="padding:12px 16px;letter-spacing:-0.025em;${isPlaceholderValue(row.value) ? "font-weight:400;color:rgba(27,27,24,.45)" : "font-weight:500"}">${valueHtml}</td></tr>`;
         })
         .join("");
       const tableHtml = `<table style="width:100%;border-collapse:collapse;font-size:${FONT_SIZE.bodySm}"><tbody>${rowsHtml}</tbody></table>`;
       const tableMargin = diagramHtml ? "16px" : "24px";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${specTableBg}${bgCss}" class="${isShipping ? "pagzly-shipping" : ""}">
         <p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">INFO</p>
-        ${dh2(category, esc(section.heading), `text-align:center;font-size:${FONT_SIZE.section}`)}
+        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}`)}
         ${thumbHtml}
         ${diagramHtml}
         ${
@@ -914,16 +952,20 @@ function sectionHtml(
       </section>`;
     }
     case "gallery": {
-      const cols = section.imageIndexes.length <= 2 ? 1 : section.imageIndexes.length <= 4 ? 2 : 3;
-      return `<section${sectionIdAttr} class="pagzly-gallery" style="${pad}${sectionInset}${bgCss}">
-        ${dh2(category, esc(section.heading), `text-align:center;font-size:${FONT_SIZE.section};margin-bottom:24px`)}
-        <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:8px;background:${accent}2e">
+      // 라이브와 같은 풀블리드 그리드: 뷰티 2장 이상 2열, 2장 이하 1열, 그 외 2열→넓은 칸 3열
+      const pairCompare = category === "화장품/뷰티" && section.imageIndexes.length >= 2;
+      const cols = pairCompare ? 2 : section.imageIndexes.length <= 2 ? 1 : 2;
+      const wideCols = !pairCompare && section.imageIndexes.length > 2;
+      const galleryAspect = imageRatioCss(resolveSlotImageRatio(section));
+      return `<section${sectionIdAttr} class="pagzly-gallery" style="padding:40px 0 0;${sectionInset}${bgCss}">
+        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)};margin:0 24px 32px`)}
+        <div${wideCols ? ` class="pagzly-gallery-grid3"` : ""} style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:8px;background:${accent}2e">
           ${section.imageIndexes
             .map((idx) => {
               const src = imageUrls[idx] ?? "";
               const alt = buildSectionImageAlt(productName, `${section.heading} ${idx + 1}`, section.slot);
               return src
-                ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:3/4;object-fit:cover;display:block"/>`
+                ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${galleryAspect};object-fit:cover;display:block"/>`
                 : "";
             })
             .join("")}
@@ -946,7 +988,7 @@ function sectionHtml(
           ? `<div style="margin-top:28px;display:grid;grid-template-columns:repeat(${Math.min(storyImgs.length, 2)},1fr);gap:12px">${storyImgs.join("")}</div>`
           : "";
       const storyInner = `<p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText};margin:0 0 12px">STORY</p>
-          ${dh2(category, esc(section.heading), `font-size:${FONT_SIZE.section};margin:0`)}
+          ${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
           <p style="line-height:1.75;font-size:${FONT_SIZE.body};opacity:.85;margin-top:16px;white-space:pre-line">${esc(section.body)}</p>${galleryHtml}`;
       if (hasBrandCard) {
         return `<section${sectionIdAttr} class="pagzly-brand-story">
@@ -964,7 +1006,7 @@ function sectionHtml(
     }
     case "target_persona":
       return `<section${sectionIdAttr} class="pagzly-persona" style="${pad}${sectionInset}${bgCss}">
-        ${dh2(category, esc(section.heading), `text-align:center;font-size:${FONT_SIZE.section}`)}
+        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}`)}
         <ul style="max-width:480px;margin:24px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px">
           ${section.personas.map((p) => `<li style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:${RADIUS.pill}px;background:${sectionBg};box-shadow:${ELEVATION.personaRingExportHex(accent + "33")};font-size:${FONT_SIZE.bodySm};font-weight:500;color:${deepText}">✓ ${esc(p)}</li>`).join("")}
         </ul>
@@ -974,27 +1016,35 @@ function sectionHtml(
         ? buildUsageOrderFlowSvg(section.steps, deep, "#1B1B18")
         : "";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        ${dh2(category, esc(section.heading), `text-align:center;font-size:${FONT_SIZE.section}`)}
+        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}`)}
         <ol style="max-width:640px;margin:32px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:16px">
           ${section.steps.map((s, i) => `<li><span style="color:${accentText};font-size:${FONT_SIZE.caption};font-weight:700">STEP ${String(i + 1).padStart(2, "0")}</span><div style="font-size:${FONT_SIZE.body};margin-top:4px">${esc(s)}</div></li>`).join("")}
         </ol>${flowHtml}</section>`;
     }
     case "custom_gif":
-      return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss};text-align:center">
-        ${section.heading ? `<h2>${esc(section.heading)}</h2>` : ""}
-        <img src="${esc(section.gifUrl)}" alt="${esc(buildSectionImageAlt(productName, section.heading ?? "GIF", section.slot))}" loading="lazy" decoding="async" style="max-width:100%;border-radius:${RADIUS.md}px"/>
+      // 라이브와 같은 16:9 풀블리드 + 하단 스크림 + 배너 제목
+      return `<section${sectionIdAttr} class="pagzly-custom-gif" style="position:relative;overflow:hidden;aspect-ratio:16/9;width:100%;padding:0">
+        <img src="${esc(section.gifUrl)}" alt="${esc(buildSectionImageAlt(productName, section.heading ?? "GIF", section.slot))}" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block"/>
+        ${
+          section.heading
+            ? `<div style="position:absolute;inset:0;background:linear-gradient(0deg,${hexToRgba(BRAND.ink, 0.82)} 0%,${hexToRgba(BRAND.ink, 0.4)} 20%,${hexToRgba(BRAND.ink, 0.08)} 38%,transparent 50%)"></div>
+        <div style="position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 24px;text-align:center">
+          ${dh2(category, esc(section.heading), `font-size:${titleSizeCss("banner")};margin:0;line-height:1.15;color:#FAF8F3`)}
+        </div>`
+            : ""
+        }
       </section>`;
     case "cta_price":
       return `<section${sectionIdAttr} class="pagzly-cta" style="${pad}background:${deepFill};color:#FAF8F3;text-align:center;clip-path:polygon(0 44px, 100% 0, 100% 100%, 0 100%);margin-top:-16px">
         <p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;opacity:.8">PRICE</p>
-        <p style="font-size:${FONT_SIZE.price};font-weight:700;margin:8px 0 0">₩${section.price.toLocaleString("ko-KR")}</p>
+        <p style="font-size:${titleSizeCss("price")};font-weight:700;line-height:1;margin:8px 0 0">₩${section.price.toLocaleString("ko-KR")}</p>
         ${section.targetCustomer ? `<p style="opacity:.85;margin-top:8px">${esc(section.targetCustomer)}</p>` : ""}
         ${section.badges?.length ? `<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:16px">${section.badges.map((b) => `<span style="background:#FAF8F3;color:${deepText};padding:6px 12px;font-size:${FONT_SIZE.xs};font-weight:600">${esc(b)}</span>`).join("")}</div>` : ""}
         <p style="margin-top:20px;font-size:${FONT_SIZE.sm};opacity:.7">배송·교환·환불은 판매자 정책을 확인해 주세요.</p>
       </section>`;
     case "faq":
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        ${dh2(category, esc(section.heading), `text-align:center;font-size:${FONT_SIZE.section}`)}
+        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}`)}
         <div style="max-width:640px;margin:24px auto 0;display:flex;flex-direction:column;gap:16px">
           ${section.items
             .map(
@@ -1013,7 +1063,7 @@ function sectionHtml(
         ${textPanelWrap(
           theme,
           `<p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText};margin:0 0 12px">NOTICE</p>
-        ${dh2(category, esc(section.heading), `font-size:${FONT_SIZE.section};margin:0`)}
+        ${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
         <p style="font-size:${FONT_SIZE.bodySm};line-height:1.65;opacity:.8;margin-top:12px">${esc(section.body)}</p>`,
         )}
       </section>`;
@@ -1032,7 +1082,7 @@ function sectionHtml(
       };
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         <p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">COMPARE</p>
-        ${dh2(category, esc(section.heading), `text-align:center;font-size:${FONT_SIZE.section}`)}
+        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}`)}
         <table style="width:100%;max-width:560px;margin:24px auto 0;border-collapse:collapse;font-size:${FONT_SIZE.bodySm}">
           <thead><tr style="background:${accent}1a">
             <th style="padding:12px;text-align:left"></th>
@@ -1075,7 +1125,7 @@ function sectionHtml(
         .map((opt, i) => {
           const optSrc = imageUrls[opt.imageIndex] ?? "";
           return optSrc
-            ? `<img class="${cvId}-img" data-cv="${i}" src="${esc(optSrc)}" alt="${esc(opt.label)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:${RADIUS.md}px"/>`
+            ? `<img class="${cvId}-img" data-cv="${i}" src="${esc(optSrc)}" alt="${esc(opt.label)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${imageRatioCss(resolveSlotImageRatio(section))};object-fit:cover"/>`
             : "";
         })
         .join("");
@@ -1097,9 +1147,9 @@ function sectionHtml(
           ${selectors}
         </style>
         ${inputs}
-        ${dh2(category, esc(section.heading), `text-align:center;font-size:${FONT_SIZE.section}`)}
-        <div class="${cvId}-swatches" style="text-align:center;margin:32px auto 0">${swatches}</div>
-        <div class="${cvId}-stage" style="margin:24px auto 0;max-width:360px">${images}</div>
+        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}`)}
+        <div class="${cvId}-swatches" style="text-align:center;margin:48px auto 0">${swatches}</div>
+        <div class="${cvId}-stage" style="margin:32px auto 0;max-width:384px">${images}</div>
       </section>`;
     }
     case "illustration_banner": {
@@ -1192,7 +1242,7 @@ function sectionHtml(
             </div>`
           : "";
       return `<section${sectionIdAttr} class="pagzly-review-highlight" style="${pad}${sectionInset}${bgCss}">
-        ${dh2(category, esc(section.heading), `text-align:center;font-size:${FONT_SIZE.section};margin:0`)}
+        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)};margin:0`)}
         ${countCaption}${petCaption}${repurchaseCaption}${sizeFitCaption}${longTermUseCaption}
         <p style="text-align:center;font-size:${FONT_SIZE.xs};opacity:.45;margin:8px 0 0">실제 구매자 리뷰에서 자주 나온 내용을 요약했습니다</p>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;max-width:680px;margin:32px auto 0">
@@ -1234,7 +1284,7 @@ function sectionHtml(
         )
         .join("");
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        ${dh2(category, esc(section.heading), `text-align:center;font-size:${FONT_SIZE.section}`)}
+        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}`)}
         <div style="max-width:640px;margin:32px auto 0">${pairsHtml}</div>
         <p style="max-width:480px;margin:16px auto 0;text-align:center;font-size:${FONT_SIZE.caption};opacity:.4">${esc(BEFORE_AFTER_COMPLIANCE_NOTE)}</p>
       </section>`;
@@ -1253,7 +1303,7 @@ function sectionHtml(
         )
         .join("");
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        ${dh2(category, esc(section.heading), `text-align:center;font-size:${FONT_SIZE.section}`)}
+        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}`)}
         <div style="max-width:640px;margin:32px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:16px">${certsHtml}</div>
         <p style="max-width:480px;margin:24px auto 0;text-align:center;font-size:${FONT_SIZE.caption};opacity:.4">${esc(CERTIFICATE_EVIDENCE_COMPLIANCE_NOTE)}</p>
       </section>`;
@@ -1263,7 +1313,7 @@ function sectionHtml(
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         <div style="max-width:36rem;margin:0 auto;text-align:center">
           <p style="font-size:${FONT_SIZE.caption};font-weight:600;letter-spacing:.36em;color:${deepText};margin:0 0 16px">AI DISCLOSURE</p>
-          ${dh2(category, esc(section.heading), `font-size:${FONT_SIZE.section};margin:0`)}
+          ${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
           <p style="font-size:${FONT_SIZE.body};line-height:1.9;color:${hexToRgba(BRAND.ink, 0.7)};margin:20px 0 0">${esc(section.body)}</p>
         </div>
       </section>`;
@@ -1275,7 +1325,7 @@ function sectionHtml(
         "heading" in fallback && typeof fallback.heading === "string" ? fallback.heading : "";
       const body = "body" in fallback && typeof fallback.body === "string" ? fallback.body : "";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        ${heading ? dh2(category, esc(heading), `text-align:center;font-size:${FONT_SIZE.section}`) : ""}
+        ${heading ? dh2(category, esc(heading), `text-align:center;${titleFitCss("section", heading, -0.03)}`) : ""}
         ${body ? `<p style="max-width:640px;margin:16px auto 0;line-height:1.6;font-size:${FONT_SIZE.body};opacity:.8">${esc(body)}</p>` : ""}
       </section>`;
     }
@@ -1468,7 +1518,10 @@ ${jsonLd}
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   ${buildDetailExportFontCss(opts.category)}
-  .pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3}
+  .pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size}
+  ${titleScaleExportCss()}
+  @media (min-width:640px){.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}}
+  .pagzly-wrap .pz-fit{font-size:max(min(var(--pz-fs),0.6875rem),min(var(--pz-fs),calc(100cqi / var(--pz-fit-em,0.01))))!important}
   .pagzly-anchor-nav a{scroll-margin-top:52px}
   .pagzly-seo-text{padding:20px;font-size:${FONT_SIZE.bodySm};line-height:1.65;border-bottom:1px solid #DAD5C9}
   .pagzly-seo-text h2{font-size:${FONT_SIZE.seoH2};margin:16px 0 8px}

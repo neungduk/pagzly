@@ -3,6 +3,7 @@ import {
   Check,
   CheckCircle2,
   Cpu,
+  Info,
   Leaf,
   PawPrint,
   Shirt,
@@ -11,6 +12,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
+import { parseStandalonePercent, splitStatValue, STAT_UNIT_EM } from "@/lib/stat-value";
+import { isPlaceholderValue } from "@/lib/spec-placeholder";
 import type {
   ComparisonChartSection,
   DetailSection,
@@ -132,6 +135,7 @@ import {
   solidDeepOnPaper,
   readableTextAccent,
   readableTextDeep,
+  titleScaleVars,
   type SectionColorPattern,
 } from "@/lib/design-tokens";
 
@@ -222,26 +226,27 @@ const EDITORIAL_BLEED_OVERLAY_CLASS =
 
 const TYPO = {
   // 182: 스케일 숫자는 design-tokens FONT_SIZE와 대응 (JIT용 클래스 리터럴 유지)
+  // 286: 제목 크기는 TITLE_SCALE → 루트 style의 --pz-t-{key}-b|w (export와 같은 원천)
   heroCategory:
     "mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.28em] text-white/80",
   heroTitle:
-    "pagzly-display-headline pz-fit font-heading [--pz-fs:3rem] font-extrabold leading-[1.02] tracking-[-0.035em] text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)] @min-[640px]/pz:[--pz-fs:4.5rem]",
+    "pagzly-display-headline pz-fit font-heading [--pz-fs:var(--pz-t-hero-b)] font-extrabold leading-[1.02] tracking-[-0.035em] text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)] @min-[640px]/pz:[--pz-fs:var(--pz-t-hero-w)]",
   bannerTitle:
-    "font-heading text-[1.65rem] font-bold leading-[1.15] tracking-[-0.03em] text-white @min-[640px]/pz:text-[1.85rem]",
+    "font-heading text-[length:var(--pz-t-banner-b)] font-bold leading-[1.15] tracking-[-0.03em] text-white @min-[640px]/pz:text-[length:var(--pz-t-banner-w)]",
   heroSub:
     "mt-4 max-w-xl text-base font-normal leading-relaxed text-white/95 drop-shadow-[0_1px_12px_rgba(0,0,0,0.35)] @min-[640px]/pz:text-lg",
   bannerSub:
     "mt-3 max-w-md text-sm font-normal leading-relaxed text-white/88 @min-[640px]/pz:text-base",
   compactTitle:
-    "font-heading text-base font-semibold leading-snug tracking-[-0.02em] text-ink @min-[640px]/pz:text-lg",
+    "font-heading text-[length:var(--pz-t-compact-b)] font-semibold leading-snug tracking-[-0.02em] text-ink @min-[640px]/pz:text-[length:var(--pz-t-compact-w)]",
   compactBody: "mt-1.5 text-sm font-normal leading-relaxed text-ink/75",
   sectionTitle:
-    "pagzly-display-headline pagzly-ink-headline pz-fit font-heading [--pz-fs:2rem] font-bold leading-[1.2] tracking-[-0.03em] text-ink @min-[640px]/pz:[--pz-fs:2.75rem]",
+    "pagzly-display-headline pagzly-ink-headline pz-fit font-heading [--pz-fs:var(--pz-t-section-b)] font-bold leading-[1.2] tracking-[-0.03em] text-ink @min-[640px]/pz:[--pz-fs:var(--pz-t-section-w)]",
   keywordDisplay:
     "pz-fit font-heading font-black uppercase leading-[0.92] tracking-[-0.06em]",
   keywordDisplaySize: "[--pz-fs:clamp(2.25rem,11cqi,4.25rem)]",
   sectionSubtitle:
-    "pagzly-ink-headline pz-fit font-heading [--pz-fs:1.25rem] font-semibold leading-snug tracking-[-0.02em] text-ink @min-[640px]/pz:[--pz-fs:1.5rem]",
+    "pagzly-ink-headline pz-fit font-heading [--pz-fs:var(--pz-t-subtitle-b)] font-semibold leading-snug tracking-[-0.02em] text-ink @min-[640px]/pz:[--pz-fs:var(--pz-t-subtitle-w)]",
   pointBadgePill:
     "inline-block rounded-full border px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.22em]",
   sectionLabel: "font-mono text-[11px] font-semibold uppercase tracking-[0.32em]",
@@ -253,6 +258,9 @@ const TYPO = {
     "mt-2.5 pz-fit [--pz-fs:0.75rem] font-medium leading-snug text-ink/82 @min-[640px]/pz:[--pz-fs:0.875rem]",
   stepItem: "mt-2.5 max-w-[7.5rem] text-[11px] font-normal leading-relaxed text-ink/78 @min-[640px]/pz:max-w-sm @min-[640px]/pz:text-sm",
 } as const;
+
+/** 수치 카드·링 라벨 — 한글 라벨이라 대문자·넓은 자간 없이 표 라벨(13px)과 같은 단 */
+const STAT_LABEL_CLASS = "text-[13px] font-medium leading-snug tracking-[-0.01em] text-ink/60";
 
 /** `.pz-fit` 요소용 — 부모 칸(container)보다 긴 어절이면 글자를 줄인다. letterSpacingEm은 해당 tracking 값 */
 function fitTokenStyle(text: string | undefined, letterSpacingEm = 0): CSSProperties {
@@ -353,21 +361,6 @@ function ConceptBadgeIcon({
   );
 }
 
-// spec_table 값이 근거 없음을 나타내는 안내 문구인지 판단 — 완성된 페이지에는
-// 이런 문구가 그대로 노출되지 않도록 렌더링 단계에서 걸러낸다.
-const PLACEHOLDER_VALUE_PATTERNS = [
-  "판매자 확인 필요",
-  "판매자에게 문의",
-  "판매자 정책을 확인",
-  "확인 필요",
-];
-
-function isPlaceholderValue(value: string): boolean {
-  const trimmed = value.trim();
-  if (!trimmed) return true;
-  return PLACEHOLDER_VALUE_PATTERNS.some((pattern) => trimmed.includes(pattern));
-}
-
 /** comparison_table 셀이 O/X·지원/미지원 류면 체크/엑스 마크로 표시 */
 function ComparisonValueCell({
   value,
@@ -420,12 +413,34 @@ function checklistGridClass(items: string[], category: string): string {
   return "grid-cols-2 @min-[640px]/pz:grid-cols-3";
 }
 
-function parseMetricPercent(value: string): number | null {
-  const match = value.match(/(\d+(?:\.\d+)?)\s*%/);
-  if (!match) return null;
-  const n = Number(match[1]);
-  if (!Number.isFinite(n) || n < 0 || n > 100) return null;
-  return n;
+/** 숫자는 크게, 단위는 STAT_UNIT_EM으로 작게. 편집 중에는 원문 한 덩어리로 편집 */
+function StatValue({
+  value,
+  className,
+  style,
+  editEnabled,
+  onChange,
+}: {
+  value: string;
+  className: string;
+  style?: CSSProperties;
+  editEnabled?: boolean;
+  onChange?: (value: string) => void;
+}) {
+  const split = editEnabled ? null : splitStatValue(value);
+  if (!split) {
+    return (
+      <EditableText as="span" enabled={editEnabled} value={value} style={style} onChange={onChange ?? (() => {})} className={className} />
+    );
+  }
+  return (
+    <span className={className} style={style}>
+      {split.num}
+      <span className="ml-[0.06em] font-bold tracking-normal" style={{ fontSize: `${STAT_UNIT_EM}em` }}>
+        {split.unit}
+      </span>
+    </span>
+  );
 }
 
 function MetricBar({
@@ -588,7 +603,7 @@ function ComparisonMetricRow({
   const basePercent = Math.min(100, (baselineValue / max) * 100);
   return (
     <div>
-      <p className="mb-2 text-sm font-medium text-ink/70">{label}</p>
+      <p className="mb-2.5 text-[15px] font-semibold leading-snug text-ink/80">{label}</p>
       <div className="space-y-2">
         <div
           className="flex items-center gap-3 rounded-xl px-3 py-2.5"
@@ -607,28 +622,25 @@ function ComparisonMetricRow({
             <MetricBarFill percent={ourPercent} color={theme.accent} />
           </div>
           <span
-            className="w-14 shrink-0 text-right text-xs font-bold"
+            className="w-16 shrink-0 text-right font-heading text-base font-black leading-none tabular-nums"
             style={{ color: readableTextDeep(theme) }}
           >
             {ourValue}
-            {unit}
+            <span className="ml-0.5 text-[11px] font-bold">{unit}</span>
           </span>
         </div>
         <div
           className="flex items-center gap-3 rounded-xl border px-3 py-2"
           style={{ borderColor: hexToRgba(theme.baseNeutral, 0.95) }}
         >
-          <span className="w-20 shrink-0 text-xs leading-snug text-ink/40">{baselineLabel}</span>
+          <span className="w-20 shrink-0 text-xs leading-snug text-ink/55">{baselineLabel}</span>
           <div
-            className="h-1.5 flex-1 overflow-hidden rounded-full"
-            style={{ backgroundColor: hexToRgba(theme.baseNeutral, 0.55) }}
+            className="h-2 flex-1 overflow-hidden rounded-full"
+            style={{ backgroundColor: hexToRgba(BRAND.ink, 0.08) }}
           >
-            <MetricBarFill
-              percent={basePercent}
-              color={hexToRgba(theme.baseNeutral, 0.85)}
-            />
+            <MetricBarFill percent={basePercent} color={hexToRgba(BRAND.ink, 0.32)} />
           </div>
-          <span className="w-14 shrink-0 text-right text-xs text-ink/40">
+          <span className="w-16 shrink-0 text-right text-[13px] tabular-nums text-ink/55">
             {baselineValue}
             {unit}
           </span>
@@ -1898,7 +1910,7 @@ function renderSection(
                   // TYPO.sectionTitle과 동일 타이포, ink 언더라인만 이 분기에서 빠짐.
                   // 221차: ![overflow-wrap:anywhere] — globals `.pagzly-display-headline`의
                   // keep-all+overflow-wrap:break-word는 utility보다 특이도가 높아 무공백 긴 토큰이 안 접힘.
-                  className={`![overflow-wrap:anywhere] pagzly-display-headline pz-fit font-heading [--pz-fs:2rem] font-bold leading-[1.2] tracking-[-0.03em] text-ink @min-[640px]/pz:[--pz-fs:2.75rem]`}
+                  className={`![overflow-wrap:anywhere] pagzly-display-headline pz-fit font-heading [--pz-fs:var(--pz-t-section-b)] font-bold leading-[1.2] tracking-[-0.03em] text-ink @min-[640px]/pz:[--pz-fs:var(--pz-t-section-w)]`}
                   style={fitTokenStyle(section.heading, -0.03)}
                 />
                 <EditableText
@@ -2199,7 +2211,7 @@ function renderSection(
                         />
                       )}
                       {(() => {
-                        const percent = parseMetricPercent(row.value);
+                        const percent = parseStandalonePercent(row.value);
                         return percent != null ? (
                           <MetricBar percent={percent} theme={theme} />
                         ) : null;
@@ -2339,7 +2351,7 @@ function renderSection(
               className="rounded-2xl p-5 @min-[640px]/pz:p-6"
               style={{ backgroundColor: hexToRgba(theme.accent, 0.1) }}
             >
-              <p className="mb-4 text-xs font-semibold tracking-wide" style={{ color: readableTextDeep(theme) }}>
+              <p className="mb-4 text-[13px] font-semibold tracking-[-0.01em]" style={{ color: readableTextDeep(theme) }}>
                 이런 분께 추천
               </p>
               <ul className="space-y-3">
@@ -2355,17 +2367,13 @@ function renderSection(
               className="rounded-2xl p-5 @min-[640px]/pz:p-6"
               style={{ backgroundColor: hexToRgba(theme.baseNeutral, 0.35) }}
             >
-              <p className="mb-4 text-xs font-semibold tracking-wide text-ink/55">
+              <p className="mb-4 text-[13px] font-semibold tracking-[-0.01em] text-ink/60">
                 이런 점은 참고하세요
               </p>
               <ul className="space-y-3">
                 {considerIf.map((item, i) => (
                   <li key={i} className="flex gap-2 text-sm leading-relaxed text-ink/70">
-                    <span
-                      className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: theme.baseNeutral }}
-                      aria-hidden
-                    />
+                    <Info className="mt-0.5 h-4 w-4 shrink-0 text-ink/45" aria-hidden />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -2655,9 +2663,8 @@ function renderSection(
                       부족하다는 점을 발견. 라벨 대비 숫자의 스케일 대비를 크게 벌려
                       숫자 자체가 그래픽 역할을 하도록(에디토리얼 스탯 카드 관례) 키움. */}
                   <div className="@container w-full" style={{ color: readableTextDeep(theme) }}>
-                    <EditableText
-                      as="span"
-                      enabled={edit?.enabled}
+                    <StatValue
+                      editEnabled={edit?.enabled}
                       value={metric.value}
                       style={fitTokenStyle(metric.value, -0.05)}
                       onChange={(value) => {
@@ -2666,7 +2673,7 @@ function renderSection(
                         );
                         edit?.onChange(index, { ...section, metrics });
                       }}
-                      className="pz-fit font-heading [--pz-fs:3rem] font-black leading-none tracking-tighter tabular-nums @min-[640px]/pz:[--pz-fs:3.75rem]"
+                      className="pz-fit font-heading [--pz-fs:var(--pz-t-statNumber-b)] font-black leading-none tracking-tighter tabular-nums @min-[640px]/pz:[--pz-fs:var(--pz-t-statNumber-w)]"
                     />
                     {renderFootnoteMark(metricIndex)}
                   </div>
@@ -2680,7 +2687,7 @@ function renderSection(
                       );
                       edit?.onChange(index, { ...section, metrics });
                     }}
-                    className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink/55 @min-[640px]/pz:text-xs"
+                    className={`mt-0.5 ${STAT_LABEL_CLASS}`}
                   />
                 </LayeredPanel>
               ))}
@@ -2701,18 +2708,15 @@ function renderSection(
                     <div className="relative flex items-center justify-center">
                       <RadialGauge percent={percent} theme={theme} size={112} strokeWidth={10} />
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span
-                          className="font-heading text-2xl font-black leading-none tracking-tighter tabular-nums @min-[640px]/pz:text-3xl"
+                        <StatValue
+                          value={metric.value}
+                          className="font-heading text-[length:var(--pz-t-statRing-b)] font-black leading-none tracking-tighter tabular-nums @min-[640px]/pz:text-[length:var(--pz-t-statRing-w)]"
                           style={{ color: readableTextDeep(theme) }}
-                        >
-                          {metric.value}
-                        </span>
+                        />
                         {renderFootnoteMark(metricIndex)}
                       </div>
                     </div>
-                    <span className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink/55 @min-[640px]/pz:text-xs">
-                      {metric.label}
-                    </span>
+                    <span className={`mt-0.5 ${STAT_LABEL_CLASS}`}>{metric.label}</span>
                   </div>
                 );
               })}
@@ -2745,9 +2749,8 @@ function renderSection(
                           className="text-sm font-medium text-ink/65 @min-[640px]/pz:text-base"
                         />
                       </div>
-                      <EditableText
-                        as="span"
-                        enabled={edit?.enabled}
+                      <StatValue
+                        editEnabled={edit?.enabled}
                         value={metric.value}
                         onChange={(value) => {
                           const metrics = section.metrics.map((item, i) =>
@@ -2755,7 +2758,7 @@ function renderSection(
                           );
                           edit?.onChange(index, { ...section, metrics });
                         }}
-                        className="font-heading text-3xl font-black leading-none tracking-tighter tabular-nums text-ink @min-[640px]/pz:text-4xl"
+                        className="font-heading text-[length:var(--pz-t-statBar-b)] font-black leading-none tracking-tighter tabular-nums text-ink @min-[640px]/pz:text-[length:var(--pz-t-statBar-w)]"
                       />
                       {renderFootnoteMark(metricIndex)}
                     </div>
@@ -3758,7 +3761,7 @@ function renderSection(
               PRICE
             </p>
             <p
-              className="pagzly-ink-headline font-heading text-[2.75rem] font-bold @min-[640px]/pz:text-5xl"
+              className="pagzly-ink-headline font-heading text-[length:var(--pz-t-price-b)] font-bold leading-none @min-[640px]/pz:text-[length:var(--pz-t-price-w)]"
               style={{ color: readableTextAccent(theme, 3), letterSpacing: "-0.04em" }}
             >
               ₩{section.price.toLocaleString()}
@@ -3839,8 +3842,10 @@ export default function DetailSectionRenderer({
   const sectionAnchors = buildSectionAnchors(sections);
   const anchorIdMap = buildSectionAnchorIdMap(sections);
   let imageTextCount = 0;
-  let lastRenderedSection: DetailSection | undefined;
-  let lastRenderedWasHero = false;
+  const renderTrack: { lastSection: DetailSection | undefined; lastWasHero: boolean } = {
+    lastSection: undefined,
+    lastWasHero: false,
+  };
   const totalCompactImageTextCount = countCompactImageTextSections(sections);
   const circleChartCombos = findCircleComparisonComboIndices(sections);
   const comboLeadToPair = new Map<
@@ -3865,7 +3870,7 @@ export default function DetailSectionRenderer({
     >
     {/* 반응형은 뷰포트가 아니라 이 컨테이너(프리뷰 칼럼) 폭 기준 — 결과 페이지 데스크톱 3단 레이아웃에서
         좁은 가운데 칼럼에 sm: 폰트·그리드가 켜져 글자가 음절 단위로 쪼개지던 문제 방지 */}
-    <div className="@container/pz overflow-hidden scroll-smooth">
+    <div className="@container/pz overflow-hidden scroll-smooth" style={titleScaleVars() as CSSProperties}>
       {sectionAnchors.length > 0 ? (
         <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} />
       ) : null}
@@ -3954,13 +3959,13 @@ export default function DetailSectionRenderer({
         if (!content) {
           return null;
         }
-        const isHeroFollow = lastRenderedWasHero;
+        const isHeroFollow = renderTrack.lastWasHero;
         const breather =
-          shouldInsertBreather(lastRenderedSection, section) && section.type !== "hero" ? (
+          shouldInsertBreather(renderTrack.lastSection, section) && section.type !== "hero" ? (
             <SectionBreather key={`breather-${index}`} theme={sectionTheme} />
           ) : null;
-        lastRenderedSection = section;
-        lastRenderedWasHero = section.type === "hero";
+        renderTrack.lastSection = section;
+        renderTrack.lastWasHero = section.type === "hero";
         // hero 바로 다음 섹션 1곳에만: 미세한 대각선 클립(제안 A) + 강한 진입 모션(제안 C).
         // 나머지 섹션은 전부 기존 직사각형·절제된 페이드를 그대로 유지한다.
         const wrappedContent =
