@@ -14,7 +14,15 @@
  */
 
 import type { QuickFact } from "@/lib/quick-fact-strip";
-import { FONT_SIZE, RADIUS } from "@/lib/design-tokens";
+import {
+  BRAND,
+  ensureReadableOnPaper,
+  FLAT_PAPER,
+  FLAT_SECTION_SURFACES,
+  FONT_SIZE,
+  hexToRgba,
+  RADIUS,
+} from "@/lib/design-tokens";
 
 export type SpecBentoTheme = {
   accent: string;
@@ -40,6 +48,13 @@ export function buildSpecBentoGridHtml(facts: QuickFact[], theme: SpecBentoTheme
 
   const cellsHtml = cells
     .map((f, i) => {
+      if (FLAT_SECTION_SURFACES) {
+        const lead = i === 0;
+        return `<div style="background:${FLAT_PAPER};border:1px solid ${hexToRgba(theme.accent, 0.16)};border-radius:${RADIUS.lg}px;padding:16px;min-height:84px;display:flex;flex-direction:column;justify-content:flex-end">
+        <p style="margin:0 0 6px;font-size:${FONT_SIZE.micro};letter-spacing:.12em;color:${hexToRgba(BRAND.ink, 0.55)}">${escapeXml(f.label)}</p>
+        <p style="margin:0;font-size:${lead ? "17px" : FONT_SIZE.body};font-weight:700;line-height:1.375;color:${lead ? ensureReadableOnPaper(theme.accent, 3) : theme.deepAccent}">${escapeXml(f.value)}</p>
+      </div>`;
+      }
       if (i === 0) {
         return `<div style="background:${theme.deepAccent};border-radius:${RADIUS.lg}px;padding:18px 16px;min-height:84px;display:flex;flex-direction:column;justify-content:flex-end">
           <p style="margin:0 0 6px;font-size:${FONT_SIZE.label};letter-spacing:.14em;opacity:.72;color:${PAPER_TEXT}">${escapeXml(f.label)}</p>

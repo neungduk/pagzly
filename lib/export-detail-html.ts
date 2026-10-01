@@ -3,6 +3,7 @@ import { renderCanvasSectionHtml } from "@/lib/canvas-section-export-html";
 import { buildSectionImageAlt } from "@/lib/detail-image-alt";
 import { buildSeoTextBlockHtml } from "@/lib/detail-seo-text";
 import {
+  buildPointOrdinals,
   formatSectionIndex,
   getSectionKicker,
   limitBoldBlocks,
@@ -16,6 +17,7 @@ import {
   formatPointBadge,
   getCategoryTitleKeyword,
   isCertificationHighlight,
+  isShortSectionHeading,
   parseMegaKeywordHeading,
 } from "@/lib/detail-visual-enhancements";
 import {
@@ -117,6 +119,7 @@ import {
   titleSizeCss,
   twoToneHeadlineColors,
   FLAT_PAPER,
+  flatAccentTint,
   type ExtendedTheme,
   type TitleScaleKey,
 } from "@/lib/design-tokens";
@@ -125,7 +128,6 @@ import { splitBodyEmphasis } from "@/lib/body-emphasis";
 import {
   POINT_PILL,
   TWO_TONE_LEAD_EM,
-  pointPillLabel,
   splitTwoToneHeadline,
 } from "@/lib/designer-headline";
 import { buildProductJsonLd, serializeJsonLdScripts } from "@/lib/product-json-ld";
@@ -172,7 +174,7 @@ function esc(s: string): string {
 }
 
 /** hero-follow 래퍼 하단 대각선 클립 높이 */
-const HERO_FOLLOW_CLIP_PX = 44;
+const HERO_FOLLOW_CLIP_PX = FLAT_SECTION_SURFACES ? 0 : 44;
 
 function trustStripHtml(
   chips: string[],
@@ -186,7 +188,7 @@ function trustStripHtml(
   const accentText = readableTextAccent(theme);
   const cols = summaryGridColumns(chips.length);
   const padBottom = 24 + (isLastInClip ? HERO_FOLLOW_CLIP_PX : 0);
-  return `<div style="padding:24px 24px ${padBottom}px;border-top:1px solid ${accent}38;border-bottom:1px solid ${accent}38;background:${theme.baseNeutral}a6;text-align:center">
+  return `<div style="padding:24px 24px ${padBottom}px;border-top:1px solid ${accent}38;border-bottom:1px solid ${accent}38;background:${FLAT_SECTION_SURFACES ? flatAccentTint(theme) : `${theme.baseNeutral}a6`};text-align:center">
     <p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText};margin:0 0 12px">한눈에 보기</p>
     <div style="display:grid;grid-template-columns:repeat(${cols},minmax(0,1fr));column-gap:12px;row-gap:20px;max-width:560px;margin:0 auto">
       ${chips
@@ -264,7 +266,7 @@ function flatSectionHeaderHtml(
   marginBottomPx = 40,
   allowKeyword = true,
 ): string {
-  const parts = allowKeyword
+  const parts = allowKeyword && !isShortSectionHeading(heading)
     ? parseMegaKeywordHeading(heading)
     : { keyword: null, remainder: heading };
   const title = parts.remainder || heading;
@@ -442,6 +444,7 @@ function sectionHtml(
   keyFeatures?: string | null,
   compactImageTextIndex?: number,
   totalCompactImageTextCount?: number,
+  pointOrdinal?: number,
 ): string {
   const sectionIdAttr = anchorId ? ` id="${anchorId}"` : "";
   const pad = "padding:48px 20px;";
@@ -500,7 +503,7 @@ function sectionHtml(
           ${section.items
             .map(
               (item) =>
-                `<li style="text-align:center;font-size:${FONT_SIZE.bodySm};padding:20px 16px;border-radius:${RADIUS.lg}px;border:1px solid ${section.boldBlock ? "rgba(250,248,243,.22)" : accent + "3d"};background:${section.boldBlock ? "rgba(250,248,243,.08)" : accent + "0f"}">${esc(item)}</li>`,
+                `<li style="text-align:center;font-size:${FONT_SIZE.bodySm};padding:20px 16px;border-radius:${RADIUS.lg}px;border:1px solid ${section.boldBlock ? "rgba(250,248,243,.22)" : FLAT_SECTION_SURFACES ? hexToRgba(accent, 0.16) : accent + "3d"};background:${section.boldBlock ? "rgba(250,248,243,.08)" : FLAT_SECTION_SURFACES ? FLAT_PAPER : accent + "0f"}">${esc(item)}</li>`,
             )
             .join("")}
         </ul></section>`;
@@ -539,17 +542,19 @@ function sectionHtml(
                   : hexToRgba(deepFill, SECTION_BG_PATTERN_C_ALPHA)
                 : section.boldBlock
                   ? hexToRgba(BRAND.paper, 0.12)
-                  : hexToRgba(accent, 0.08);
+                  : FLAT_SECTION_SURFACES
+                    ? FLAT_PAPER
+                    : hexToRgba(accent, 0.08);
               const cardBorder = em
                 ? "none"
-                : `1px solid ${section.boldBlock ? hexToRgba(BRAND.paper, 0.22) : hexToRgba(accent, 0.18)}`;
+                : `1px solid ${section.boldBlock ? hexToRgba(BRAND.paper, 0.22) : hexToRgba(accent, FLAT_SECTION_SURFACES ? 0.16 : 0.18)}`;
               const titleColor = em || section.boldBlock ? BRAND.paper : fg;
               const bodyColor = em
                 ? hexToRgba(BRAND.paper, 0.9)
                 : section.boldBlock
                   ? hexToRgba(BRAND.paper, 0.82)
                   : hexToRgba(BRAND.ink, 0.68);
-              return `<div style="display:flex;flex-direction:column;gap:8px;border-radius:${RADIUS.lg}px;padding:40px 24px;text-align:center;background:${cardBg};border:${cardBorder};${em ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}">
+              return `<div style="display:flex;flex-direction:column;gap:8px;border-radius:${RADIUS.lg}px;padding:40px 24px;text-align:center;background:${cardBg};border:${cardBorder};${em && !FLAT_SECTION_SURFACES ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}">
                 <p style="margin:0;font-family:${DETAIL_FONT_STACK.heading};font-size:${FONT_SIZE.section};line-height:1.35;font-weight:700;letter-spacing:-0.03em;color:${titleColor}">${esc(title)}</p>
                 ${card.body ? `<p style="margin:0;font-size:${FONT_SIZE.bodySm};line-height:1.625;color:${bodyColor}">${esc(card.body)}</p>` : ""}
               </div>`;
@@ -570,20 +575,23 @@ function sectionHtml(
                   : hexToRgba(deepFill, SECTION_BG_PATTERN_C_ALPHA)
                 : section.boldBlock
                   ? hexToRgba(BRAND.paper, 0.12)
-                  : hexToRgba(accent, 0.08);
+                  : FLAT_SECTION_SURFACES
+                    ? FLAT_PAPER
+                    : hexToRgba(accent, 0.08);
               const cardBorder = em
                 ? "none"
-                : `1px solid ${section.boldBlock ? hexToRgba(BRAND.paper, 0.22) : hexToRgba(accent, 0.18)}`;
+                : `1px solid ${section.boldBlock ? hexToRgba(BRAND.paper, 0.22) : hexToRgba(accent, FLAT_SECTION_SURFACES ? 0.16 : 0.18)}`;
               const titleColor = em || section.boldBlock ? BRAND.paper : fg;
               const bodyColor = em
                 ? hexToRgba(BRAND.paper, 0.9)
                 : section.boldBlock
                   ? hexToRgba(BRAND.paper, 0.82)
                   : hexToRgba(BRAND.ink, 0.68);
-              return `<div class="${em ? "pulse-card" : ""}" style="border-radius:${RADIUS.lg}px;padding:28px 20px;text-align:center;background:${cardBg};border:${cardBorder};${em ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}color:${titleColor}">
-                <div style="font-size:${FONT_SIZE.label};letter-spacing:.22em;opacity:.7;border:1px solid ${accent}55;border-radius:${RADIUS.pill}px;display:inline-block;padding:4px 10px">${formatPointBadge(i + 1)}</div>
-                ${cardKeyword.keyword ? `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClampCard};font-weight:900;line-height:.92;letter-spacing:-.05em;margin:12px 0 0;text-transform:uppercase;color:${em || section.boldBlock ? BRAND.paper : deepText}">${esc(cardKeyword.keyword)}</p>` : ""}
-                <h3 style="margin:8px 0;font-size:${cardKeyword.keyword ? FONT_SIZE.bodySm : "inherit"};font-weight:${cardKeyword.keyword ? "600" : "700"};color:${titleColor}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</h3>
+              const showTitle = !cardKeyword.keyword || Boolean(cardKeyword.remainder);
+              return `<div class="${em ? "pulse-card" : ""}" style="border-radius:${RADIUS.lg}px;padding:28px 20px;text-align:center;background:${cardBg};border:${cardBorder};${em && !FLAT_SECTION_SURFACES ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}color:${titleColor}">
+                ${FLAT_SECTION_SURFACES ? "" : `<div style="font-size:${FONT_SIZE.label};letter-spacing:.22em;opacity:.7;border:1px solid ${accent}55;border-radius:${RADIUS.pill}px;display:inline-block;padding:4px 10px">${formatPointBadge(i + 1)}</div>`}
+                ${cardKeyword.keyword ? `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClampCard};font-weight:900;line-height:.92;letter-spacing:-.05em;margin:${FLAT_SECTION_SURFACES ? 0 : 12}px 0 ${showTitle ? 0 : 8}px;text-transform:uppercase;color:${em || section.boldBlock ? BRAND.paper : deepText}">${esc(cardKeyword.keyword)}</p>` : ""}
+                ${showTitle ? `<h3 style="margin:8px 0;font-size:${cardKeyword.keyword ? FONT_SIZE.bodySm : "inherit"};font-weight:${cardKeyword.keyword ? "600" : "700"};color:${titleColor}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</h3>` : ""}
                 <p style="margin:0;font-size:${FONT_SIZE.bodySm};color:${bodyColor}">${esc(card.body)}</p>
               </div>`;
             })
@@ -639,7 +647,7 @@ function sectionHtml(
           if (m.style === "number") {
             // 154차 — 라이브 렌더러와 동일하게 숫자를 "히어로 넘버"로 키움(2rem→3rem,
             // 700→800, 라벨은 소문자 캡션에서 대문자 트래킹 라벨로).
-            return `<div style="text-align:center;container-type:inline-size;padding:32px 16px;border-radius:${RADIUS.lg}px;background:rgba(250,248,243,.78);box-shadow:${ELEVATION.imageThumb}"><div class="pz-fit" style="${titleFitCss("statNumber", m.value, -0.05)};font-weight:800;line-height:1;letter-spacing:-0.02em;color:${deepText}">${statValueHtml(m.value)}${footnoteMarkFor(m)}</div><div style="margin-top:6px;${STAT_LABEL_CSS}">${esc(m.label)}</div></div>`;
+            return `<div style="text-align:center;container-type:inline-size;padding:32px 16px;border-radius:${RADIUS.lg}px;${FLAT_SECTION_SURFACES ? `background:${FLAT_PAPER};border:1px solid ${hexToRgba(accent, 0.16)}` : `background:rgba(250,248,243,.78);box-shadow:${ELEVATION.imageThumb}`}"><div class="pz-fit" style="${titleFitCss("statNumber", m.value, -0.05)};font-weight:800;line-height:1;letter-spacing:-0.02em;color:${deepText}">${statValueHtml(m.value)}${footnoteMarkFor(m)}</div><div style="margin-top:6px;${STAT_LABEL_CSS}">${esc(m.label)}</div></div>`;
           }
           if (m.style === "ring") {
             // 241차 — 라이브 RadialGauge(size=112, strokeWidth=10)와 동일 기하로
@@ -713,11 +721,11 @@ function sectionHtml(
         ${kickerHtml(`<p style="text-align:center;color:${deepText};font-size:${FONT_SIZE.caption};letter-spacing:.2em">FIT CHECK</p>`)}
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}`)}
         <div style="max-width:720px;margin:32px auto 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px">
-          <div style="border-radius:${RADIUS.lg}px;padding:20px;background:${accent}1a">
+          <div style="border-radius:${RADIUS.lg}px;padding:20px;${FLAT_SECTION_SURFACES ? `background:${FLAT_PAPER};border:1px solid ${hexToRgba(accent, 0.24)}` : `background:${accent}1a`}">
             <p style="margin:0 0 14px;font-size:${FONT_SIZE.sm};font-weight:600;letter-spacing:-0.01em;color:${deepText}">이런 분께 추천</p>
             ${recommendFor.map((item) => `<p style="display:flex;gap:8px;margin:0 0 12px;font-size:${FONT_SIZE.bodySm};line-height:1.6;color:rgba(27,27,24,.8)"><span aria-hidden="true" style="flex-shrink:0;width:16px;text-align:center;font-weight:700;color:${accentText}">✓</span><span>${esc(item)}</span></p>`).join("")}
           </div>
-          <div style="border-radius:${RADIUS.lg}px;padding:20px;background:${theme.baseNeutral}59">
+          <div style="border-radius:${RADIUS.lg}px;padding:20px;${FLAT_SECTION_SURFACES ? `background:${FLAT_PAPER};border:1px solid ${hexToRgba(BRAND.ink, 0.1)}` : `background:${theme.baseNeutral}59`}">
             <p style="margin:0 0 14px;font-size:${FONT_SIZE.sm};font-weight:600;letter-spacing:-0.01em;color:rgba(27,27,24,.6)">이런 점은 참고하세요</p>
             ${considerIf.map((item) => `<p style="display:flex;gap:8px;margin:0 0 12px;font-size:${FONT_SIZE.bodySm};line-height:1.6;color:rgba(27,27,24,.7)"><span aria-hidden="true" style="flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-top:2px;border:1.5px solid rgba(27,27,24,.45);border-radius:50%;font-size:10px;font-weight:700;line-height:1;color:rgba(27,27,24,.55)">i</span><span>${esc(item)}</span></p>`).join("")}
           </div>
@@ -876,7 +884,7 @@ function sectionHtml(
           ? buildIngredientRingDiagramSvg(ringLabels, deep, "#1B1B18")
           : "";
         if (FLAT_SECTION_SURFACES) {
-          const pill = pointIndex != null && !isAnnotatedSection ? pointPillLabel(pointIndex) : "";
+          const pill = pointOrdinal != null && !isAnnotatedSection ? formatPointBadge(pointOrdinal) : "";
           const compliance =
             section.slot === "ingredient_highlight" && isCosmeticsCategory(category)
               ? `<p style="margin-top:12px;font-size:${FONT_SIZE.caption};line-height:1.6;opacity:.55">${esc(INGREDIENT_HIGHLIGHT_COMPLIANCE_NOTE)}</p>`
@@ -1055,7 +1063,7 @@ function sectionHtml(
               .join("")}</div>`
           : "";
       const specTableBg =
-        section.slot === "spec_table"
+        section.slot === "spec_table" && !FLAT_SECTION_SURFACES
           ? `background:${hexToRgba(theme.baseNeutral, 0.06)};`
           : "";
       const rowsHtml = visibleRows
@@ -1081,7 +1089,9 @@ function sectionHtml(
         ${diagramHtml}
         ${
           isShipping
-            ? `<div class="pagzly-shipping-table" style="max-width:560px;margin:${tableMargin} auto 0;border:2px solid ${accent}59;border-radius:${RADIUS.md}px;overflow:hidden;background:${sectionBg}80">${tableHtml}</div>`
+            ? FLAT_SECTION_SURFACES
+              ? `<div class="pagzly-shipping-table" style="max-width:560px;margin:${tableMargin} auto 0;border:1px solid ${hexToRgba(accent, 0.2)};border-radius:12px;overflow:hidden;background:${FLAT_PAPER}">${tableHtml}</div>`
+              : `<div class="pagzly-shipping-table" style="max-width:560px;margin:${tableMargin} auto 0;border:2px solid ${accent}59;border-radius:${RADIUS.md}px;overflow:hidden;background:${sectionBg}80">${tableHtml}</div>`
             : `<div style="max-width:560px;margin:${tableMargin} auto 0">${tableHtml}</div>`
         }
         ${
@@ -1130,6 +1140,17 @@ function sectionHtml(
       const storyInner = `${kickerHtml(`<p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText};margin:0 0 12px">STORY</p>`)}
           ${twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
           <p style="line-height:1.75;font-size:${titleSizeCss("body")};opacity:.85;margin-top:16px;white-space:pre-line">${esc(section.body)}</p>${galleryHtml}`;
+      if (hasBrandCard && FLAT_SECTION_SURFACES) {
+        return `<section${sectionIdAttr} class="pagzly-brand-story">
+        <div data-brand-signature style="padding:64px 40px;text-align:center;background:${flatAccentTint(theme)}">
+          <p style="font-family:${DETAIL_FONT_STACK.label};font-size:${FONT_SIZE.caption};font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:${deepText};margin:0">${esc(categoryKeyword)}</p>
+          <p class="pz-fit" style="font-family:${DETAIL_FONT_STACK.heading};${titleFitCss("section", brandName!, -0.03)};font-weight:800;line-height:1.05;letter-spacing:-0.03em;color:${readableTextAccent(theme, 3)};margin:12px 0 0">${esc(brandName!)}</p>
+          <span aria-hidden="true" style="display:block;width:40px;height:3px;border-radius:${RADIUS.pill}px;background:${solidAccentOnPaper(theme)};margin:20px auto 0"></span>
+        </div>
+        <div style="${pad}${sectionInset}${bgCss}">
+        ${textPanelWrap(theme, storyInner)}
+        </div></section>`;
+      }
       if (hasBrandCard) {
         return `<section${sectionIdAttr} class="pagzly-brand-story">
         <div style="padding:64px 20px;text-align:center;background:${deepFill};color:#FAF8F3">
@@ -1145,6 +1166,15 @@ function sectionHtml(
       </section>`;
     }
     case "target_persona":
+      if (FLAT_SECTION_SURFACES) {
+        const check = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${BRAND.paper}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>`;
+        return `<section${sectionIdAttr} class="pagzly-persona" style="${pad}${sectionInset}${bgCss}">
+        <div style="text-align:center;max-width:576px;margin:0 auto">${twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}</div>
+        <ul style="max-width:576px;margin:32px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px">
+          ${section.personas.map((p) => `<li style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-radius:${RADIUS.lg}px;border:1px solid ${hexToRgba(theme.accent, 0.16)};background:${FLAT_PAPER};font-size:16px;font-weight:500;line-height:1.375;color:${BRAND.ink}"><span style="display:flex;flex-shrink:0;align-items:center;justify-content:center;width:24px;height:24px;border-radius:9999px;background:${solidAccentOnPaper(theme)}">${check}</span><span style="min-width:0;flex:1;text-align:left">${esc(p)}</span></li>`).join("")}
+        </ul>
+      </section>`;
+      }
       return `<section${sectionIdAttr} class="pagzly-persona" style="${pad}${sectionInset}${bgCss}">
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}`)}
         <ul style="max-width:480px;margin:24px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px">
@@ -1183,6 +1213,22 @@ function sectionHtml(
         <p style="margin-top:20px;font-size:${FONT_SIZE.sm};opacity:.7">배송·교환·환불은 판매자 정책을 확인해 주세요.</p>
       </section>`;
     case "faq":
+      if (FLAT_SECTION_SURFACES) {
+        const line = hexToRgba(BRAND.ink, 0.12);
+        const circle = "display:flex;flex-shrink:0;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9999px;font-size:13px;font-weight:700;line-height:1";
+        return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
+        <div style="text-align:center;max-width:576px;margin:0 auto">${twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}</div>
+        <div data-faq-list style="max-width:576px;margin:40px auto 0;border-top:1px solid ${line};text-align:left">
+          ${section.items
+            .map(
+              (item) => `<div class="pagzly-faq-card" style="border-bottom:1px solid ${line};padding:24px 0">
+            <div style="display:flex;align-items:flex-start;gap:12px"><span aria-hidden="true" style="${circle};background:${solidAccentOnPaper(theme)};color:${BRAND.paper}">Q</span><p style="min-width:0;flex:1;margin:0;padding-top:2px;font-family:${DETAIL_FONT_STACK.heading};font-size:17px;font-weight:700;line-height:1.375;letter-spacing:-0.02em;color:${BRAND.ink}">${esc(item.question)}</p></div>
+            <div style="display:flex;align-items:flex-start;gap:12px;margin-top:12px"><span aria-hidden="true" style="${circle};border:1px solid ${hexToRgba(theme.accent, 0.4)};color:${deepText}">A</span><p style="min-width:0;flex:1;margin:0;font-size:${titleSizeCss("body")};line-height:1.85;color:rgba(27,27,24,.72)">${esc(item.answer)}</p></div>
+          </div>`,
+            )
+            .join("")}
+        </div></section>`;
+      }
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}`)}
         <div style="max-width:640px;margin:24px auto 0;display:flex;flex-direction:column;gap:16px">
@@ -1358,7 +1404,9 @@ function sectionHtml(
           ? splitTextByKeywords(text)
               .map((seg) =>
                 seg.isKeyword
-                  ? `<span style="background:${theme.accentSoft};border-radius:3px;padding:0 2px">${esc(seg.text)}</span>`
+                  ? FLAT_SECTION_SURFACES
+                    ? `<span style="font-weight:600;color:rgba(27,27,24,.75)">${esc(seg.text)}</span>`
+                    : `<span style="background:${theme.accentSoft};border-radius:3px;padding:0 2px">${esc(seg.text)}</span>`
                   : esc(seg.text),
               )
               .join("")
@@ -1538,6 +1586,7 @@ export function buildDetailPageHtml(opts: {
 
   const bodyParts: string[] = [];
   let imageTextCount = 0;
+  const pointOrdinals = buildPointOrdinals(visibleSections);
   let lastRenderedSection: DetailSection | undefined; // 231차 — shouldInsertBreather 추적용
   const totalCompactImageTextCount = visibleSections.filter(
     (s) => s.type === "image_text" && s.layout === "compact",
@@ -1604,6 +1653,7 @@ export function buildDetailPageHtml(opts: {
         opts.keyFeatures,
         compactImageTextIndex,
         totalCompactImageTextCount,
+        pointOrdinals[i],
       );
     }
     if (html) {
@@ -1636,7 +1686,7 @@ export function buildDetailPageHtml(opts: {
         // 같은 wrapper에 넣는 완전 동일 구조는 루프 회귀 위험으로 이번엔 제외.
         if (heroFollowParts.length > 0) {
           bodyParts.push(
-            `<div style="position:relative;z-index:1;clip-path:polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - ${HERO_FOLLOW_CLIP_PX}px));margin-top:-16px">${heroFollowParts.join("\n")}</div>`,
+            `<div style="position:relative;z-index:1;${HERO_FOLLOW_CLIP_PX > 0 ? `clip-path:polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - ${HERO_FOLLOW_CLIP_PX}px));` : `background:${FLAT_PAPER};`}margin-top:-16px">${heroFollowParts.join("\n")}</div>`,
           );
         }
       }

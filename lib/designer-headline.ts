@@ -30,7 +30,3 @@ export const POINT_PILL = {
   padX: 18,
   letterSpacingEm: 0.04,
 } as const;
-
-export function pointPillLabel(indexZeroBased: number): string {
-  return `POINT ${indexZeroBased + 1}`;
-}

@@ -102,6 +102,30 @@ export function enforceSplitZigzag(sections: DetailSection[]): DetailSection[] {
   });
 }
 
+function showsPointBadge(section: DetailSection): boolean {
+  if (section.type === "checklist") return section.compactFollow !== true;
+  if (section.type === "highlight_box") {
+    return section.slot !== "seller_trust_evidence" || Boolean(section.heading?.trim());
+  }
+  if (section.type === "image_text") {
+    const annotated =
+      section.layout === "annotated" &&
+      Array.isArray(section.annotations) &&
+      section.annotations.length > 0;
+    return shouldUseSplitLayout(section) && !annotated;
+  }
+  return false;
+}
+
+/**
+ * POINT 배지를 실제로 다는 섹션(checklist·highlight_box·split image_text)만 1부터 연속 번호.
+ * 라이브·export가 같은 번호를 쓰도록 양쪽에서 공유한다.
+ */
+export function buildPointOrdinals(sections: DetailSection[]): (number | undefined)[] {
+  let ordinal = 0;
+  return sections.map((section) => (showsPointBadge(section) ? ++ordinal : undefined));
+}
+
 export { shouldUseEditorialBleed, EDITORIAL_BLEED_SLOTS } from "@/lib/designer-detail-patterns";
 
 /**

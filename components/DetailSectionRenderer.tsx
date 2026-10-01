@@ -48,6 +48,7 @@ import {
   formatSectionIndex,
   getSectionKicker,
   limitBoldBlocks,
+  buildPointOrdinals,
   resolveSplitColumnRatio,
   resolveSplitImageLeft,
   shouldInsertBreather,
@@ -59,6 +60,7 @@ import {
   getCategoryTitleKeyword,
   isCertificationHighlight,
   parseMegaKeywordHeading,
+  isShortSectionHeading,
 } from "@/lib/detail-visual-enhancements";
 import {
   isFashionCategory,
@@ -145,13 +147,13 @@ import {
   titleScaleVars,
   FLAT_PAPER,
   FLAT_SECTION_SURFACES,
+  flatAccentTint,
   twoToneHeadlineColors,
   type SectionColorPattern,
 } from "@/lib/design-tokens";
 import {
   POINT_PILL,
   TWO_TONE_LEAD_EM,
-  pointPillLabel,
   splitTwoToneHeadline,
 } from "@/lib/designer-headline";
 import { splitBodyEmphasis } from "@/lib/body-emphasis";
@@ -976,6 +978,11 @@ function SectionHeader({
   const accentColor = inverted ? BRAND.paper : theme.accent;
 
   if (FLAT_SECTION_SURFACES) {
+    const mergeKeyword = Boolean(megaKeyword) && isShortSectionHeading(`${megaKeyword}${title}`);
+    if (mergeKeyword) {
+      title = `${megaKeyword} ${title}`;
+      megaKeyword = null;
+    }
     return (
       <header className={`@container mb-10 w-full ${wrapClass}`}>
         {pointBadge ? (
@@ -1093,7 +1100,7 @@ function LayeredPanel({
     return (
       <div
         className={`relative rounded-xl border ${className}`}
-        style={{ backgroundColor: BRAND.paper, borderColor: hexToRgba(theme.accent, 0.16) }}
+        style={{ backgroundColor: FLAT_PAPER, borderColor: hexToRgba(theme.accent, 0.16) }}
       >
         {children}
       </div>
@@ -1172,7 +1179,9 @@ function TrustStrip({
       className="border-b border-t px-6 py-6 @min-[640px]/pz:px-10"
       style={{
         borderColor: hexToRgba(theme.accent, 0.22),
-        backgroundColor: hexToRgba(theme.baseNeutral, 0.65),
+        backgroundColor: FLAT_SECTION_SURFACES
+          ? flatAccentTint(theme)
+          : hexToRgba(theme.baseNeutral, 0.65),
       }}
     >
       <p
@@ -1593,6 +1602,7 @@ function renderSection(
   logoUrl?: string | null,
   ingredients?: string | null,
   keyFeatures?: string | null,
+  pointOrdinal?: number,
 ) {
   const heroFallback = imageUrls[0] ?? "";
   switch (section.type) {
@@ -1741,7 +1751,7 @@ function renderSection(
                 theme={theme}
                 title={headingParts.remainder || section.heading}
                 kicker={getSectionKicker(section)}
-                pointBadge={bodyIndex != null ? formatPointBadge(bodyIndex + 1) : null}
+                pointBadge={pointOrdinal != null ? formatPointBadge(pointOrdinal) : null}
                 megaKeyword={headingParts.keyword}
                 inverted={boldBlock}
                 edit={edit}
@@ -1772,10 +1782,12 @@ function renderSection(
                 style={{
                   borderColor: boldBlock
                     ? hexToRgba(BRAND.paper, 0.22)
-                    : hexToRgba(theme.accent, 0.24),
+                    : hexToRgba(theme.accent, FLAT_SECTION_SURFACES ? 0.16 : 0.24),
                   backgroundColor: boldBlock
                     ? hexToRgba(BRAND.paper, 0.08)
-                    : hexToRgba(theme.accent, 0.06),
+                    : FLAT_SECTION_SURFACES
+                      ? FLAT_PAPER
+                      : hexToRgba(theme.accent, 0.06),
                   boxShadow: boldBlock
                     ? undefined
                     : ELEVATION.checklistCard(theme.deepAccent),
@@ -2164,7 +2176,7 @@ function renderSection(
             section={section}
             src={src}
             ratioClass={pointRatioClass}
-            pointBadge={pointIndex != null ? pointPillLabel(pointIndex) : null}
+            pointBadge={pointOrdinal != null ? formatPointBadge(pointOrdinal) : null}
             theme={theme}
             pattern={pattern}
             category={category}
@@ -2338,7 +2350,7 @@ function renderSection(
           : [resolveImage(imageUrls, 0) || heroFallback].filter(Boolean)
       ) as string[];
       const isMainSpecTable = section.slot === "spec_table";
-      const specSectionStyle = isMainSpecTable
+      const specSectionStyle = isMainSpecTable && !FLAT_SECTION_SURFACES
         ? {
             ...textSectionStyle(theme, pattern, category),
             backgroundColor: hexToRgba(theme.baseNeutral, 0.06),
@@ -2435,7 +2447,7 @@ function renderSection(
             />
           ) : null}
           <div
-            className={`mx-auto max-w-xl overflow-hidden rounded-lg ${isShipping ? "border-2" : ""} ${
+            className={`mx-auto max-w-xl overflow-hidden ${FLAT_SECTION_SURFACES ? "rounded-xl" : "rounded-lg"} ${isShipping ? (FLAT_SECTION_SURFACES ? "border" : "border-2") : ""} ${
               sizeDiagramMatches.length > 0 ||
               showSizeComparison ||
               showVolumeDiagram ||
@@ -2448,10 +2460,12 @@ function renderSection(
             }`}
             style={
               isShipping
-                ? {
-                    borderColor: hexToRgba(theme.accent, 0.35),
-                    backgroundColor: hexToRgba(theme.baseNeutral, 0.5),
-                  }
+                ? FLAT_SECTION_SURFACES
+                  ? { borderColor: hexToRgba(theme.accent, 0.2), backgroundColor: FLAT_PAPER }
+                  : {
+                      borderColor: hexToRgba(theme.accent, 0.35),
+                      backgroundColor: hexToRgba(theme.baseNeutral, 0.5),
+                    }
                 : undefined
             }
           >
@@ -2679,8 +2693,12 @@ function renderSection(
           </h3>
           <div className="mx-auto mt-10 grid max-w-3xl gap-6 @min-[640px]/pz:grid-cols-2">
             <div
-              className="rounded-2xl p-5 @min-[640px]/pz:p-6"
-              style={{ backgroundColor: hexToRgba(theme.accent, 0.1) }}
+              className={`rounded-2xl p-5 @min-[640px]/pz:p-6 ${FLAT_SECTION_SURFACES ? "border" : ""}`}
+              style={
+                FLAT_SECTION_SURFACES
+                  ? { backgroundColor: FLAT_PAPER, borderColor: hexToRgba(theme.accent, 0.24) }
+                  : { backgroundColor: hexToRgba(theme.accent, 0.1) }
+              }
             >
               <p className="mb-4 text-[13px] font-semibold tracking-[-0.01em]" style={{ color: readableTextDeep(theme) }}>
                 이런 분께 추천
@@ -2695,8 +2713,12 @@ function renderSection(
               </ul>
             </div>
             <div
-              className="rounded-2xl p-5 @min-[640px]/pz:p-6"
-              style={{ backgroundColor: hexToRgba(theme.baseNeutral, 0.35) }}
+              className={`rounded-2xl p-5 @min-[640px]/pz:p-6 ${FLAT_SECTION_SURFACES ? "border" : ""}`}
+              style={
+                FLAT_SECTION_SURFACES
+                  ? { backgroundColor: FLAT_PAPER, borderColor: hexToRgba(BRAND.ink, 0.1) }
+                  : { backgroundColor: hexToRgba(theme.baseNeutral, 0.35) }
+              }
             >
               <p className="mb-4 text-[13px] font-semibold tracking-[-0.01em] text-ink/60">
                 이런 점은 참고하세요
@@ -2752,7 +2774,7 @@ function renderSection(
                 theme={theme}
                 title={headingParts.remainder || section.heading}
                 kicker={getSectionKicker(section)}
-                pointBadge={bodyIndex != null ? formatPointBadge(bodyIndex + 1) : null}
+                pointBadge={pointOrdinal != null ? formatPointBadge(pointOrdinal) : null}
                 megaKeyword={headingParts.keyword}
                 inverted={boldBlock}
                 edit={edit}
@@ -2781,15 +2803,18 @@ function renderSection(
                         )
                       : boldBlock
                         ? hexToRgba(BRAND.paper, 0.12)
-                        : hexToRgba(theme.accent, 0.08),
+                        : FLAT_SECTION_SURFACES
+                          ? FLAT_PAPER
+                          : hexToRgba(theme.accent, 0.08),
                     border: emphasized
                       ? "none"
                       : boldBlock
                         ? `1px solid ${hexToRgba(BRAND.paper, 0.22)}`
-                        : `1px solid ${hexToRgba(theme.accent, 0.18)}`,
-                    boxShadow: emphasized
-                      ? ELEVATION.highlightEmphasis
-                      : undefined,
+                        : `1px solid ${hexToRgba(theme.accent, FLAT_SECTION_SURFACES ? 0.16 : 0.18)}`,
+                    boxShadow:
+                      emphasized && !FLAT_SECTION_SURFACES
+                        ? ELEVATION.highlightEmphasis
+                        : undefined,
                   }}
                 >
                   {!isTrustEvidence ? (
@@ -2803,7 +2828,7 @@ function renderSection(
                       />
                     </div>
                   ) : null}
-                  {!isTrustEvidence ? (
+                  {!isTrustEvidence && !FLAT_SECTION_SURFACES ? (
                     <span
                       className={`mx-auto ${TYPO.pointBadgePill}`}
                       style={{
@@ -2834,6 +2859,7 @@ function renderSection(
                       {cardKeyword.keyword}
                     </p>
                   ) : null}
+                  {isTrustEvidence || !cardKeyword.keyword || cardKeyword.remainder || edit?.enabled ? (
                   <EditableText
                     as="p"
                     enabled={edit?.enabled}
@@ -2853,6 +2879,7 @@ function renderSection(
                     style={emphasized ? { color: BRAND.paper } : boldBlock ? { color: BRAND.paper } : undefined}
                     {...elementSelectProps(edit, index, `cards[${cardIndex}].title`)}
                   />
+                  ) : null}
                   {card.body ? (
                     <EditableText
                       as="p"
@@ -3723,11 +3750,16 @@ function renderSection(
                               seg.isKeyword ? (
                                 <span
                                   key={segIdx}
-                                  style={{
-                                    backgroundColor: theme.accentSoft,
-                                    borderRadius: 3,
-                                    padding: "0 2px",
-                                  }}
+                                  className={FLAT_SECTION_SURFACES ? "font-semibold text-ink/75" : undefined}
+                                  style={
+                                    FLAT_SECTION_SURFACES
+                                      ? undefined
+                                      : {
+                                          backgroundColor: theme.accentSoft,
+                                          borderRadius: 3,
+                                          padding: "0 2px",
+                                        }
+                                  }
                                 >
                                   {seg.text}
                                 </span>
@@ -3983,6 +4015,31 @@ function renderSection(
       if (hasBrandCard) {
         return (
           <section key={`brand_story-${index}`} className="relative overflow-hidden">
+            {FLAT_SECTION_SURFACES ? (
+              <div
+                className="@container flex flex-col items-center justify-center px-6 py-14 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:py-16"
+                style={{ backgroundColor: flatAccentTint(theme) }}
+                data-brand-signature
+              >
+                <p
+                  className="font-mono text-[11px] font-semibold uppercase tracking-[0.32em]"
+                  style={{ color: readableTextDeep(theme) }}
+                >
+                  {categoryKeyword}
+                </p>
+                <p
+                  className="pz-fit mt-3 font-heading font-extrabold leading-[1.05] tracking-[-0.03em] [--pz-fs:var(--pz-t-section-b)] @min-[640px]/pz:[--pz-fs:var(--pz-t-section-w)]"
+                  style={{ color: readableTextAccent(theme, 3), ...fitTokenStyle(brandName ?? "", -0.03) }}
+                >
+                  {brandName}
+                </p>
+                <span
+                  aria-hidden="true"
+                  className="mt-5 block h-[3px] w-10 rounded-full"
+                  style={{ backgroundColor: solidAccentOnPaper(theme) }}
+                />
+              </div>
+            ) : (
             <div
               className="@container flex flex-col items-center justify-center px-6 py-16 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:py-20"
               style={{ backgroundColor: solidDeepOnPaper(theme) }}
@@ -3997,6 +4054,7 @@ function renderSection(
                 {categoryKeyword}
               </p>
             </div>
+            )}
             <div
               className={getCategoryRhythm(category).trustPadClass}
               style={textSectionStyle(theme, pattern, category)}
@@ -4041,6 +4099,78 @@ function renderSection(
           className={getCategoryRhythm(category).trustPadClass}
           style={textSectionStyle(theme, pattern, category)}
         >
+          {FLAT_SECTION_SURFACES ? (
+            <>
+              <div className={TEXT_COL_CLASS}>
+                <TwoToneTitle
+                  theme={theme}
+                  title={section.heading}
+                  className={TYPO.sectionTitle}
+                  letterSpacingEm={-0.03}
+                  edit={edit}
+                  onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+                />
+              </div>
+              <div
+                className="mx-auto mt-10 max-w-xl border-t text-left"
+                style={{ borderColor: hexToRgba(BRAND.ink, 0.12) }}
+                data-faq-list
+              >
+                {section.items.map((item, itemIndex) => (
+                  <div
+                    key={`${itemIndex}-${item.question.slice(0, 12)}`}
+                    className="border-b py-6"
+                    style={{ borderColor: hexToRgba(BRAND.ink, 0.12) }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span
+                        aria-hidden="true"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] font-bold leading-none"
+                        style={{ backgroundColor: solidAccentOnPaper(theme), color: BRAND.paper }}
+                      >
+                        Q
+                      </span>
+                      <EditableText
+                        as="p"
+                        enabled={edit?.enabled}
+                        value={item.question}
+                        onChange={(question) => {
+                          const items = section.items.map((entry, i) =>
+                            i === itemIndex ? { ...entry, question } : entry,
+                          );
+                          edit?.onChange(index, { ...section, items });
+                        }}
+                        className="min-w-0 flex-1 pt-0.5 font-heading text-[17px] font-bold leading-snug tracking-[-0.02em] text-ink"
+                      />
+                    </div>
+                    <div className="mt-3 flex items-start gap-3">
+                      <span
+                        aria-hidden="true"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[13px] font-bold leading-none"
+                        style={{ borderColor: hexToRgba(theme.accent, 0.4), color: readableTextDeep(theme) }}
+                      >
+                        A
+                      </span>
+                      <EditableText
+                        as="p"
+                        multiline
+                        enabled={edit?.enabled}
+                        value={item.answer}
+                        onChange={(answer) => {
+                          const items = section.items.map((entry, i) =>
+                            i === itemIndex ? { ...entry, answer } : entry,
+                          );
+                          edit?.onChange(index, { ...section, items });
+                        }}
+                        className={`min-w-0 flex-1 ${TYPO.body}`}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+          <>
           <EditableText
             as="h3"
             enabled={edit?.enabled}
@@ -4095,6 +4225,8 @@ function renderSection(
               </div>
             ))}
           </div>
+          </>
+          )}
         </section>
       );
 
@@ -4107,30 +4239,55 @@ function renderSection(
         >
           <div className={TEXT_COL_CLASS}>
             <SectionAccentHairline theme={theme} />
-            <EditableText
-              as="h3"
-              enabled={edit?.enabled}
-              value={section.heading}
+            <TwoToneTitle
+              theme={theme}
+              title={section.heading}
+              className={TYPO.sectionTitle}
+              letterSpacingEm={-0.03}
+              edit={edit}
               onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-              className={`${TYPO.sectionTitle}`}
             />
           </div>
-          <ul className="mx-auto mt-8 flex max-w-xl flex-col items-stretch gap-2.5">
+          <ul
+            className={`mx-auto mt-8 flex max-w-xl flex-col items-stretch ${FLAT_SECTION_SURFACES ? "gap-3" : "gap-2.5"}`}
+          >
             {section.personas.map((persona, personaIndex) => (
               <li
                 key={`${personaIndex}-${persona.slice(0, 12)}`}
-                className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium"
-                style={{
-                  backgroundColor: hexToRgba(theme.baseNeutral, 0.85),
-                  color: readableTextDeep(theme),
-                  boxShadow: ELEVATION.personaRing(theme.accent),
-                }}
+                className={
+                  FLAT_SECTION_SURFACES
+                    ? "flex items-center gap-3 rounded-xl border px-5 py-4 text-[16px] font-medium leading-snug"
+                    : "inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium"
+                }
+                style={
+                  FLAT_SECTION_SURFACES
+                    ? {
+                        backgroundColor: FLAT_PAPER,
+                        borderColor: hexToRgba(theme.accent, 0.16),
+                        color: BRAND.ink,
+                      }
+                    : {
+                        backgroundColor: hexToRgba(theme.baseNeutral, 0.85),
+                        color: readableTextDeep(theme),
+                        boxShadow: ELEVATION.personaRing(theme.accent),
+                      }
+                }
               >
-                <CheckCircle2
-                  className="h-3.5 w-3.5 shrink-0"
-                  style={{ color: readableTextAccent(theme) }}
-                  aria-hidden="true"
-                />
+                {FLAT_SECTION_SURFACES ? (
+                  <span
+                    aria-hidden="true"
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                    style={{ backgroundColor: solidAccentOnPaper(theme) }}
+                  >
+                    <Check className="h-3.5 w-3.5" strokeWidth={3} style={{ color: BRAND.paper }} />
+                  </span>
+                ) : (
+                  <CheckCircle2
+                    className="h-3.5 w-3.5 shrink-0"
+                    style={{ color: readableTextAccent(theme) }}
+                    aria-hidden="true"
+                  />
+                )}
                 <EditableText
                   as="span"
                   enabled={edit?.enabled}
@@ -4237,6 +4394,7 @@ export default function DetailSectionRenderer({
   pendingHighlightIndex = null,
 }: DetailSectionRendererProps) {
   const sections = limitBoldBlocks(rawSections);
+  const pointOrdinals = buildPointOrdinals(sections);
   const baseTheme = themeOverride ?? getCategoryTheme(category);
   const extendedTheme = extendTheme(baseTheme);
   const trustChips = extractTrustChips(sections);
@@ -4357,6 +4515,7 @@ export default function DetailSectionRenderer({
             logoUrl,
             ingredients,
             keyFeatures,
+            pointOrdinals[index],
           );
         }
         if (!content) {
@@ -4375,7 +4534,11 @@ export default function DetailSectionRenderer({
           isHeroFollow && content ? (
             <div
               className={`relative z-10 ${HERO_TRANSITION_OVERLAP_CLASS}`}
-              style={{ clipPath: getCategoryRhythm(category).heroTransitionClip }}
+              style={
+                FLAT_SECTION_SURFACES
+                  ? { backgroundColor: FLAT_PAPER }
+                  : { clipPath: getCategoryRhythm(category).heroTransitionClip }
+              }
             >
               {trustChips.length > 0 ? (
                 <TrustStrip

@@ -3,6 +3,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { FLAT_SECTION_SURFACES } from "@/lib/design-tokens";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -93,7 +94,7 @@ export default function DetailScrollReveal({
     <div ref={ref} data-scroll-reveal className={`relative ${className}`}>
       {showInkFx ? (
         <>
-          <span className="pagzly-ink-rail" aria-hidden="true" />
+          {FLAT_SECTION_SURFACES ? null : <span className="pagzly-ink-rail" aria-hidden="true" />}
           <span className="pagzly-ink-wipe" aria-hidden="true" />
         </>
       ) : null}

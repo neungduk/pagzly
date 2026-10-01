@@ -1,6 +1,13 @@
 import type { CSSProperties } from "react";
 import type { CategoryTheme } from "@/lib/category-theme";
-import { hexToRgba, RADIUS } from "@/lib/design-tokens";
+import {
+  BRAND,
+  FLAT_PAPER,
+  FLAT_SECTION_SURFACES,
+  hexToRgba,
+  RADIUS,
+  readableTextAccent,
+} from "@/lib/design-tokens";
 import { longestTokenEm } from "@/lib/detail-typography";
 import type { QuickFact } from "@/lib/quick-fact-strip";
 
@@ -21,6 +28,34 @@ export default function SpecBentoGrid({ facts, theme }: SpecBentoGridProps) {
       aria-label="핵심 스펙 요약"
     >
       {cells.map((f, i) => {
+        if (FLAT_SECTION_SURFACES) {
+          const lead = i === 0;
+          return (
+            <div
+              key={`${f.label}-${i}`}
+              role="listitem"
+              className="@container flex min-h-[84px] flex-col justify-end p-4"
+              style={{
+                backgroundColor: FLAT_PAPER,
+                border: `1px solid ${hexToRgba(theme.accent, 0.16)}`,
+                borderRadius: RADIUS.lg,
+              }}
+            >
+              <p className="mb-1.5 text-[10px] tracking-wide" style={{ color: hexToRgba(BRAND.ink, 0.55) }}>
+                {f.label}
+              </p>
+              <p
+                className={`pz-fit leading-snug font-bold ${lead ? "[--pz-fs:17px]" : "[--pz-fs:15px]"}`}
+                style={{
+                  color: lead ? readableTextAccent(theme, 3) : theme.deepAccent,
+                  "--pz-fit-em": longestTokenEm(f.value),
+                } as CSSProperties}
+              >
+                {f.value}
+              </p>
+            </div>
+          );
+        }
         const isHero = i === 0;
         return (
           <div
