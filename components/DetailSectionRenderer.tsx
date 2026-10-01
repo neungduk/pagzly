@@ -2519,7 +2519,8 @@ function renderSection(
                   >
                     <td className={`w-[38%] py-3.5 pr-4 ${TYPO.tableLabel}`}>
                       <div className="flex items-center gap-2.5">
-                        {conceptIcons?.specTable?.[rowIndex] || !FLAT_SECTION_SURFACES ? (
+                        {!FLAT_SECTION_SURFACES ||
+                        (conceptIcons?.specTable?.[rowIndex] && !isShipping) ? (
                           <ConceptBadgeIcon
                             src={conceptIcons?.specTable?.[rowIndex]}
                             theme={theme}
