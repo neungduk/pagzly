@@ -206,6 +206,8 @@ export type ImageTextSection = {
   imageShape?: "square" | "circle";
   /** layout:"callout"일 때 사진 위 말풍선에 표시할 짧은 강조 문구 (12~18자 권장) */
   callout?: string;
+  /** 본문에 글자 그대로 있는 핵심 구절 1개 — 굵게 표시. 본문에 없으면 무시 (lib/body-emphasis.ts) */
+  emphasis?: string;
   /** layout:"annotated"일 때 부품/기능 주석 (전자제품 등) */
   annotations?: { label: string; xPct: number; yPct: number }[];
   /** layout:"circle-pair"일 때 원형 크롭 2개 + 라벨 (정확히 2개) */

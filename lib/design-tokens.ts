@@ -677,6 +677,23 @@ export function readableTextDeep(theme: CategoryTheme, minRatio = 4.5): string {
   return ensureReadableOnPaper(theme.deepAccent, minRatio);
 }
 
+/** 핵심 문구 색이 잉크와 이 대비 미만이면(어두운·무채색 accent) 2톤이 안 보인다 */
+const TWO_TONE_MIN_SEPARATION = 1.8;
+
+/**
+ * 2톤 제목 색 — 리드(작은 줄)·핵심 문구(큰 줄). accent가 잉크에 가까우면 리드를 회색 잉크로
+ * 낮춰 위계를 유지한다(새 색 추가 없이 잉크 투명도만 사용).
+ */
+export function twoToneHeadlineColors(
+  theme: CategoryTheme,
+  inverted = false,
+): { lead: string; main: string } {
+  if (inverted) return { lead: hexToRgba(BRAND.paper, 0.86), main: BRAND.paper };
+  const main = readableTextAccent(theme, 3);
+  const weak = contrastRatioToken(main, BRAND.ink) < TWO_TONE_MIN_SEPARATION;
+  return { lead: weak ? hexToRgba(BRAND.ink, 0.6) : BRAND.ink, main };
+}
+
 // baseNeutral의 hue만 targetHue로 바꾸면서, ink 텍스트 대비 4.5:1을 계속
 // 만족하도록 필요하면 명도를 조금씩 올린다(색상-extract.ts의
 // ensureReadableBaseNeutral()과 동일한 안전장치를 sharp 의존성 없이 재구현).

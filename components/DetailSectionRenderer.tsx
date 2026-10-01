@@ -47,6 +47,7 @@ import {
 import {
   formatSectionIndex,
   getSectionKicker,
+  limitBoldBlocks,
   resolveSplitColumnRatio,
   resolveSplitImageLeft,
   shouldInsertBreather,
@@ -142,7 +143,9 @@ import {
   readableTextAccent,
   readableTextDeep,
   titleScaleVars,
+  FLAT_PAPER,
   FLAT_SECTION_SURFACES,
+  twoToneHeadlineColors,
   type SectionColorPattern,
 } from "@/lib/design-tokens";
 import {
@@ -151,6 +154,7 @@ import {
   pointPillLabel,
   splitTwoToneHeadline,
 } from "@/lib/designer-headline";
+import { splitBodyEmphasis } from "@/lib/body-emphasis";
 
 export type SectionEditApi = {
   enabled: boolean;
@@ -884,7 +888,8 @@ function TwoToneTitle({
     );
   }
   const parts = plain ? { lead: null, main: title } : splitTwoToneHeadline(title);
-  const mainColor = inverted ? BRAND.paper : plain ? BRAND.ink : readableTextAccent(theme, 3);
+  const tones = twoToneHeadlineColors(theme, inverted);
+  const mainColor = plain && !inverted ? BRAND.ink : tones.main;
   return (
     <h3 className={className} style={fit}>
       {parts.lead ? (
@@ -892,7 +897,7 @@ function TwoToneTitle({
           className="mb-[0.3em] block font-medium tracking-[-0.02em]"
           style={{
             fontSize: `${TWO_TONE_LEAD_EM}em`,
-            color: inverted ? hexToRgba(BRAND.paper, 0.86) : BRAND.ink,
+            color: tones.lead,
           }}
         >
           {parts.lead}
@@ -1119,6 +1124,7 @@ function LayeredPanel({
 }
 
 function SectionAccentHairline({ theme }: { theme: CategoryTheme }) {
+  if (FLAT_SECTION_SURFACES) return null;
   return (
     <div
       className="mx-auto mb-6 h-px w-12"
@@ -1441,6 +1447,43 @@ function renderCircleComparisonCombo(params: {
   );
 }
 
+/** 본문 + 핵심 구절 굵게. 편집 모드에서는 원문 그대로 */
+function EmphasizedBody({
+  body,
+  emphasis,
+  edit,
+  onChange,
+}: {
+  body: string;
+  emphasis?: string;
+  edit?: SectionEditApi;
+  onChange: (body: string) => void;
+}) {
+  const split = edit?.enabled ? null : splitBodyEmphasis(body, emphasis);
+  if (!split) {
+    return (
+      <EditableText
+        as="p"
+        multiline
+        enabled={edit?.enabled}
+        value={body}
+        onChange={onChange}
+        className={TYPO.body}
+        style={{ color: hexToRgba(BRAND.ink, 0.82) }}
+      />
+    );
+  }
+  return (
+    <p className={TYPO.body} style={{ color: hexToRgba(BRAND.ink, 0.82) }}>
+      {split.before}
+      <strong className="font-bold" style={{ color: BRAND.ink }}>
+        {split.strong}
+      </strong>
+      {split.after}
+    </p>
+  );
+}
+
 /** 290차 — 가운데 정렬 제목 → 전체 폭 사진(모서리 없음) → 가운데 본문. 좌우 2단 대신 */
 function StackedImageTextSection({
   section,
@@ -1510,14 +1553,11 @@ function StackedImageTextSection({
         />
       </div>
       <div className="mx-auto max-w-xl px-6 pt-10 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12">
-        <EditableText
-          as="p"
-          multiline
-          enabled={edit?.enabled}
-          value={section.body}
+        <EmphasizedBody
+          body={section.body}
+          emphasis={section.emphasis}
+          edit={edit}
           onChange={(body) => edit?.onChange(index, { ...section, body })}
-          className={TYPO.body}
-          style={{ color: hexToRgba(BRAND.ink, 0.82) }}
         />
         {section.slot === "ingredient_highlight" && isCosmeticsCategory(category) ? (
           <p className="mt-3 text-[11px] leading-relaxed opacity-55">
@@ -2038,14 +2078,14 @@ function renderSection(
                   edit={edit}
                   onChange={(heading) => edit?.onChange(index, { ...section, heading })}
                 />
-                <EditableText
-                  as="p"
-                  multiline
-                  enabled={edit?.enabled}
-                  value={section.body}
-                  onChange={(body) => edit?.onChange(index, { ...section, body })}
-                  className={`mt-4 ${TYPO.body}`}
-                />
+                <div className="mt-4">
+                  <EmphasizedBody
+                    body={section.body}
+                    emphasis={section.emphasis}
+                    edit={edit}
+                    onChange={(body) => edit?.onChange(index, { ...section, body })}
+                  />
+                </div>
               </TextSectionPanel>
             </div>
           </section>
@@ -2089,13 +2129,11 @@ function renderSection(
               </div>
             </div>
             <div className={`${getCategoryRhythm(category).pointTextPadClass} mx-auto max-w-xl px-6 text-center @min-[640px]/pz:px-10`}>
-              <EditableText
-                as="p"
-                multiline
-                enabled={edit?.enabled}
-                value={section.body}
+              <EmphasizedBody
+                body={section.body}
+                emphasis={section.emphasis}
+                edit={edit}
                 onChange={(body) => edit?.onChange(index, { ...section, body })}
-                className={TYPO.body}
               />
             </div>
             {section.slot === "material_feature" && isIngredientRingCategory(category) ? (
@@ -3468,13 +3506,16 @@ function renderSection(
           style={textSectionStyle(theme, pattern, category)}
         >
           <SectionAccentHairline theme={theme} />
-          <EditableText
-            as="h3"
-            enabled={edit?.enabled}
-            value={section.heading}
-            onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
-          />
+          <div className={TEXT_COL_CLASS}>
+            <TwoToneTitle
+              theme={theme}
+              title={section.heading}
+              className={TYPO.sectionTitle}
+              letterSpacingEm={-0.03}
+              edit={edit}
+              onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+            />
+          </div>
           {typeof section.sourceReviewCount === "number" &&
           section.sourceReviewCount > 0 ? (
             <p
@@ -3523,6 +3564,72 @@ function renderSection(
           <p className="mx-auto mt-2 max-w-xl text-center text-xs text-ink/40">
             실제 구매자 리뷰에서 자주 나온 내용을 요약했습니다
           </p>
+          {FLAT_SECTION_SURFACES ? (
+            <ul className="mx-auto mt-10 flex max-w-xl flex-col gap-3">
+              {praiseItems.map((item, praiseIndex) => (
+                <li
+                  key={praiseIndex}
+                  data-testid="review-card"
+                  className="flex items-start gap-4 rounded-xl border px-5 py-5 text-left"
+                  style={{ backgroundColor: FLAT_PAPER, borderColor: hexToRgba(theme.accent, 0.16) }}
+                >
+                  <span
+                    className="shrink-0 font-heading text-[2.25rem] font-bold leading-[0.8]"
+                    style={{ color: solidAccentOnPaper(theme) }}
+                    aria-hidden="true"
+                  >
+                    &ldquo;
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    {edit?.enabled ? (
+                      <EditableText
+                        as="p"
+                        multiline
+                        enabled={edit.enabled}
+                        value={item.text}
+                        onChange={(next) => {
+                          const nextPraises = [...section.praises];
+                          nextPraises[item.originalIndex] = next;
+                          edit?.onChange(index, { ...section, praises: nextPraises });
+                        }}
+                        className={`${TYPO.body} text-ink/80`}
+                      />
+                    ) : (
+                      <p className={`${TYPO.body} text-ink/80`}>
+                        {item.matchCount > 0
+                          ? splitTextByKeywords(item.text).map((seg, segIdx) =>
+                              seg.isKeyword ? (
+                                <strong
+                                  key={segIdx}
+                                  className="font-bold"
+                                  style={{ color: readableTextAccent(theme) }}
+                                >
+                                  {seg.text}
+                                </strong>
+                              ) : (
+                                <Fragment key={segIdx}>{seg.text}</Fragment>
+                              ),
+                            )
+                          : item.text}
+                      </p>
+                    )}
+                    {item.matchCount > 0 ? (
+                      <span
+                        data-testid="review-match-badge"
+                        className="mt-2 inline-block rounded-full px-2.5 py-1 text-[12px] font-semibold leading-none"
+                        style={{
+                          backgroundColor: hexToRgba(theme.accent, 0.12),
+                          color: readableTextDeep(theme),
+                        }}
+                      >
+                        {item.matchCount}건 언급
+                      </span>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
           <div className={`mx-auto mt-10 grid gap-x-5 gap-y-6 ${gridCols}`}>
             {praiseItems.map((item, praiseIndex) => (
               <LayeredPanel
@@ -3584,6 +3691,7 @@ function renderSection(
               </LayeredPanel>
             ))}
           </div>
+          )}
           {concernItems.length > 0 ? (
             <div
               data-testid="review-highlight-concerns"
@@ -4111,7 +4219,7 @@ function renderSection(
 }
 
 export default function DetailSectionRenderer({
-  sections,
+  sections: rawSections,
   imageUrls,
   imageOrigins,
   sellerAiBadges = false,
@@ -4128,6 +4236,7 @@ export default function DetailSectionRenderer({
   certifications,
   pendingHighlightIndex = null,
 }: DetailSectionRendererProps) {
+  const sections = limitBoldBlocks(rawSections);
   const baseTheme = themeOverride ?? getCategoryTheme(category);
   const extendedTheme = extendTheme(baseTheme);
   const trustChips = extractTrustChips(sections);

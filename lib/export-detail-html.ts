@@ -5,6 +5,7 @@ import { buildSeoTextBlockHtml } from "@/lib/detail-seo-text";
 import {
   formatSectionIndex,
   getSectionKicker,
+  limitBoldBlocks,
   resolveSplitFlexRatio,
   resolveSplitImageLeft,
   shouldInsertBreather,
@@ -114,10 +115,13 @@ import {
   resolveSlotImageRatio,
   titleScaleExportCss,
   titleSizeCss,
+  twoToneHeadlineColors,
+  FLAT_PAPER,
   type ExtendedTheme,
   type TitleScaleKey,
 } from "@/lib/design-tokens";
 import { applySectionDisplayBudget } from "@/lib/section-display-budget";
+import { splitBodyEmphasis } from "@/lib/body-emphasis";
 import {
   POINT_PILL,
   TWO_TONE_LEAD_EM,
@@ -236,8 +240,9 @@ function twoToneDh2(
 ): string {
   if (!FLAT_SECTION_SURFACES) return dh2(category, esc(text), extraStyle);
   const parts = opts.plain ? { lead: null, main: text } : splitTwoToneHeadline(text);
-  const mainColor = opts.inverted ? BRAND.paper : opts.plain ? BRAND.ink : readableTextAccent(theme, 3);
-  const leadColor = opts.inverted ? hexToRgba(BRAND.paper, 0.86) : BRAND.ink;
+  const tones = twoToneHeadlineColors(theme, opts.inverted);
+  const mainColor = opts.plain && !opts.inverted ? BRAND.ink : tones.main;
+  const leadColor = tones.lead;
   const lead = parts.lead
     ? `<span style="display:block;font-size:${TWO_TONE_LEAD_EM}em;font-weight:500;letter-spacing:-0.02em;margin-bottom:.3em;color:${leadColor}">${esc(parts.lead)}</span>`
     : "";
@@ -277,6 +282,13 @@ function flatSectionHeaderHtml(
     { inverted, plain: Boolean(parts.keyword) },
   );
   return `<div style="text-align:center;max-width:576px;margin:0 auto ${marginBottomPx}px">${pill}${keyword}${titleHtml}</div>`;
+}
+
+/** 라이브 EmphasizedBody와 같은 규칙 — 핵심 구절 1개만 굵게 */
+function emphasizedBodyHtml(body: string, emphasis?: string): string {
+  const split = splitBodyEmphasis(body, emphasis);
+  if (!split) return esc(body);
+  return `${esc(split.before)}<strong style="font-weight:700;color:${BRAND.ink}">${esc(split.strong)}</strong>${esc(split.after)}`;
 }
 
 /** 제목 위 영문 머리말 — 평면 톤에서는 생략 */
@@ -777,7 +789,7 @@ function sectionHtml(
           </div>
           <div style="max-width:576px;margin:0 auto;padding:48px 40px 0;text-align:center">
             ${twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
-            <p style="margin:16px 0 0;line-height:1.85;font-size:${titleSizeCss("body")};opacity:.85;overflow-wrap:anywhere">${esc(section.body)}</p>
+            <div style="margin:16px 0 0"><p style="margin:0;line-height:1.85;font-size:${titleSizeCss("body")};color:${hexToRgba(BRAND.ink, 0.82)};overflow-wrap:anywhere">${emphasizedBodyHtml(section.body, section.emphasis)}</p></div>
           </div>
         </section>`;
       }
@@ -810,7 +822,7 @@ function sectionHtml(
             </div>
           </div>
           <div style="padding:24px 24px 48px;text-align:center;max-width:640px;margin:0 auto">
-            <p style="line-height:1.85;font-size:${titleSizeCss("body")};opacity:.85">${esc(section.body)}</p>
+            <p style="line-height:1.85;font-size:${titleSizeCss("body")};color:${hexToRgba(BRAND.ink, 0.82)}">${emphasizedBodyHtml(section.body, section.emphasis)}</p>
             ${ringHtml}
           </div>
         </section>`;
@@ -876,7 +888,7 @@ function sectionHtml(
             ${annotationOverlayHtml}
           </div>
           <div style="max-width:576px;margin:0 auto;padding:48px 40px 0;text-align:center">
-            <p style="margin:0;line-height:1.85;font-size:${titleSizeCss("body")};color:${hexToRgba(BRAND.ink, 0.82)};overflow-wrap:anywhere">${esc(section.body)}</p>
+            <p style="margin:0;line-height:1.85;font-size:${titleSizeCss("body")};color:${hexToRgba(BRAND.ink, 0.82)};overflow-wrap:anywhere">${emphasizedBodyHtml(section.body, section.emphasis)}</p>
             ${compliance}
           </div>
           ${pkgHtml}${foodHtml}${ringHtml}
@@ -1369,6 +1381,36 @@ function sectionHtml(
               </ul>
             </div>`
           : "";
+      if (FLAT_SECTION_SURFACES) {
+        const praiseTextHtml = (text: string, matchCount: number): string =>
+          matchCount > 0
+            ? splitTextByKeywords(text)
+                .map((seg) =>
+                  seg.isKeyword
+                    ? `<strong style="font-weight:700;color:${readableTextAccent(theme)}">${esc(seg.text)}</strong>`
+                    : esc(seg.text),
+                )
+                .join("")
+            : esc(text);
+        const cards = praiseItems
+          .map(
+            (item) => `<li class="pagzly-review-card" style="display:flex;align-items:flex-start;gap:16px;border-radius:${RADIUS.lg}px;border:1px solid ${hexToRgba(theme.accent, 0.16)};background:${FLAT_PAPER};padding:20px;text-align:left">
+              <span aria-hidden="true" style="flex-shrink:0;font-family:${DETAIL_FONT_STACK.heading};font-size:2.25rem;font-weight:700;line-height:.8;color:${solidAccentOnPaper(theme)}">&ldquo;</span>
+              <div style="min-width:0;flex:1">
+                <p style="margin:0;font-size:${titleSizeCss("body")};line-height:1.85;color:rgba(27,27,24,.8)">${praiseTextHtml(item.text, item.matchCount)}</p>
+                ${item.matchCount > 0 ? `<span style="display:inline-block;margin-top:8px;border-radius:${RADIUS.pill}px;padding:4px 10px;font-size:12px;font-weight:600;line-height:1;background:${hexToRgba(theme.accent, 0.12)};color:${deepText}">${item.matchCount}건 언급</span>` : ""}
+              </div>
+            </li>`,
+          )
+          .join("");
+        return `<section${sectionIdAttr} class="pagzly-review-highlight" style="${pad}${sectionInset}${bgCss}">
+        <div style="text-align:center;max-width:576px;margin:0 auto">${twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}</div>
+        ${countCaption}${petCaption}${repurchaseCaption}${sizeFitCaption}${longTermUseCaption}
+        <p style="text-align:center;font-size:${FONT_SIZE.xs};opacity:.45;margin:8px 0 0">실제 구매자 리뷰에서 자주 나온 내용을 요약했습니다</p>
+        <ul style="list-style:none;padding:0;max-width:576px;margin:40px auto 0;display:flex;flex-direction:column;gap:12px">${cards}</ul>
+        ${concernsBlock}
+      </section>`;
+      }
       return `<section${sectionIdAttr} class="pagzly-review-highlight" style="${pad}${sectionInset}${bgCss}">
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)};margin:0`)}
         ${countCaption}${petCaption}${repurchaseCaption}${sizeFitCaption}${longTermUseCaption}
@@ -1482,7 +1524,9 @@ export function buildDetailPageHtml(opts: {
   const hidden = new Set(opts.hiddenIndexes ?? []);
   // 183차 — 저관여(생활/펫) 표시 예산: 세션 데이터는 유지하고 export 노출만 축소
   const afterUserHidden = opts.sections.filter((_, i) => !hidden.has(i));
-  const visibleSections = applySectionDisplayBudget(opts.category, afterUserHidden);
+  const visibleSections = limitBoldBlocks(
+    applySectionDisplayBudget(opts.category, afterUserHidden),
+  );
   const trustChips = extractTrustChips(visibleSections);
   const extended = extendTheme(opts.theme);
 

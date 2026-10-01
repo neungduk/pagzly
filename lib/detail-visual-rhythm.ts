@@ -104,6 +104,33 @@ export function enforceSplitZigzag(sections: DetailSection[]): DetailSection[] {
 
 export { shouldUseEditorialBleed, EDITORIAL_BLEED_SLOTS } from "@/lib/designer-detail-patterns";
 
+/**
+ * 어두운 강조 면(패턴 C)은 페이지당 1개 — 첫 highlight_box 우선, 없으면 첫 비압축 checklist.
+ * 판매자 판매 근거 카드(seller_trust_evidence)는 별도 규칙이라 세지 않는다. 인덱스는 보존(map).
+ */
+export function limitBoldBlocks(sections: DetailSection[]): DetailSection[] {
+  const counts = (s: DetailSection) =>
+    (s.type === "highlight_box" && s.slot !== "seller_trust_evidence") ||
+    (s.type === "checklist" && !s.compactFollow);
+  const highlightIdx = sections.findIndex(
+    (s) => s.type === "highlight_box" && counts(s) && s.boldBlock === true,
+  );
+  const keep =
+    highlightIdx >= 0
+      ? highlightIdx
+      : sections.findIndex((s) => s.type === "checklist" && counts(s) && s.boldBlock === true);
+  let changed = false;
+  const out = sections.map((s, i) => {
+    if (i === keep || !counts(s)) return s;
+    if ((s.type === "highlight_box" || s.type === "checklist") && s.boldBlock) {
+      changed = true;
+      return { ...s, boldBlock: false };
+    }
+    return s;
+  });
+  return changed ? out : sections;
+}
+
 export function shouldInsertBreather(
   prev: DetailSection | undefined,
   current: DetailSection,

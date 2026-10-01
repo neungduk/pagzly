@@ -55,7 +55,7 @@ import {
   HIGHLIGHT_BOX_RETRY_APPENDIX,
   missingRequiredHighlightBox,
 } from "@/lib/highlight-box-guard";
-import { enforceSplitZigzag } from "@/lib/detail-visual-rhythm";
+import { enforceSplitZigzag, limitBoldBlocks } from "@/lib/detail-visual-rhythm";
 import {
   applyDesignerLayoutRhythm,
   buildDesignerPatternGuide,
@@ -528,7 +528,7 @@ tags: 짧은 키워드 2~4개 (예 ["질감","클로즈업"])
 const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
   hero: `{ type: "hero", slot, headline, subheadline?, imageIndex }`,
   checklist: `{ type: "checklist", slot, heading, items[], compactFollow?: boolean } — gallery/image_text 직후 checklist일 때만 true`,
-  image_text: `{ type: "image_text", slot, heading, body, imageIndex, imagePosition: "left"|"right", layout?: "full"|"compact"|"callout", callout?: string } — quick_points는 layout:"compact" 필수. feature_callout 슬롯은 layout:"callout" 필수 + callout(12~18자 말풍선 문구)`,
+  image_text: `{ type: "image_text", slot, heading, body, imageIndex, imagePosition: "left"|"right", layout?: "full"|"compact"|"callout", callout?: string, emphasis?: string } — emphasis는 body 안에 글자 그대로 있는 핵심 구절 1개(4~20자, 새 표현 금지). quick_points는 layout:"compact" 필수. feature_callout 슬롯은 layout:"callout" 필수 + callout(12~18자 말풍선 문구)`,
   spec_table: `{ type: "spec_table", slot, heading, rows: [{label, value}] }`,
   usage_steps: `{ type: "usage_steps", slot, heading, steps[] }`,
   gallery: `{ type: "gallery", slot, heading, imageIndexes[] }`,
@@ -1784,7 +1784,7 @@ export async function POST(request: Request) {
       keyFeatures: body.keyFeatures,
       productSizeHint: body.productSizeHint,
     });
-    savedCopy.sections = applyBoldBlock(savedCopy.sections);
+    savedCopy.sections = limitBoldBlocks(applyBoldBlock(savedCopy.sections));
     savedCopy.sections = applyDesignerLayoutRhythm(savedCopy.sections);
     savedCopy.sections = applyStatBarAccent(savedCopy.sections);
     {
