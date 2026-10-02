@@ -2420,7 +2420,9 @@ function renderSection(
           ? section.imageIndexes
               .map((idx) => resolveImage(imageUrls, idx))
               .filter((url): url is string => Boolean(url))
-          : [resolveImage(imageUrls, 0) || heroFallback].filter(Boolean)
+          : FLAT_SECTION_SURFACES
+            ? []
+            : [resolveImage(imageUrls, 0) || heroFallback].filter(Boolean)
       ) as string[];
       const isMainSpecTable = section.slot === "spec_table";
       const { shown: tableRows, pendingLabels } =
@@ -2570,7 +2572,7 @@ function renderSection(
                         : hexToRgba(BRAND.ink, INFO_TABLE.specRuleInkAlpha),
                     }}
                   >
-                    <td className={`w-[38%] py-3.5 pr-4 ${TYPO.tableLabel}`}>
+                    <td className={`w-[38%] py-3.5 pr-4 ${isShipping ? "pl-4" : ""} ${TYPO.tableLabel}`}>
                       <div className="flex items-center gap-2.5">
                         {!FLAT_SECTION_SURFACES ||
                         (conceptIcons?.specTable?.[rowIndex] && !isShipping) ? (
@@ -2595,7 +2597,7 @@ function renderSection(
                       </div>
                     </td>
                     <td
-                      className={`py-3.5 tracking-tight ${
+                      className={`py-3.5 tracking-tight ${isShipping ? "pr-4" : ""} ${
                         isPlaceholderValue(row.value)
                           ? "font-normal text-ink/45"
                           : "font-medium text-ink"
@@ -3103,12 +3105,14 @@ function renderSection(
                   rotate={metricIndex % 2 === 0 ? -2 : 2}
                   className="flex flex-col items-center gap-2 px-4 py-8 text-center"
                 >
-                  <ConceptBadgeIcon
-                    src={conceptIcons?.statInfographic?.[metricIndex]}
-                    theme={theme}
-                    fallbackIndex={metricIndex}
-                    size={INFO_BADGE.compactSize}
-                  />
+                  {(!FLAT_SECTION_SURFACES || conceptIcons?.statInfographic?.[metricIndex]) && (
+                    <ConceptBadgeIcon
+                      src={conceptIcons?.statInfographic?.[metricIndex]}
+                      theme={theme}
+                      fallbackIndex={metricIndex}
+                      size={INFO_BADGE.compactSize}
+                    />
+                  )}
                   {/* 154차 — 실사 디자이너 벤치마크(다이슨/애플류) 대비 수치 카드의 숫자가
                       본문 제목(text-4xl)보다도 작아 "히어로 넘버"로서 시각적 임팩트가
                       부족하다는 점을 발견. 라벨 대비 숫자의 스케일 대비를 크게 벌려
@@ -3181,12 +3185,14 @@ function renderSection(
                   <div key={`${metric.label}-${metricIndex}`}>
                     <div className="flex items-baseline justify-between gap-4">
                       <div className="flex items-center gap-2.5">
-                        <ConceptBadgeIcon
-                          src={conceptIcons?.statInfographic?.[metricIndex]}
-                          theme={theme}
-                          fallbackIndex={metricIndex}
-                          size={INFO_BADGE.compactSize}
-                        />
+                        {(!FLAT_SECTION_SURFACES || conceptIcons?.statInfographic?.[metricIndex]) && (
+                          <ConceptBadgeIcon
+                            src={conceptIcons?.statInfographic?.[metricIndex]}
+                            theme={theme}
+                            fallbackIndex={metricIndex}
+                            size={INFO_BADGE.compactSize}
+                          />
+                        )}
                         <EditableText
                           as="span"
                           enabled={edit?.enabled}

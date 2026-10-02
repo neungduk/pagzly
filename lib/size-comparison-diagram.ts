@@ -172,13 +172,22 @@ export function buildSizeComparisonDiagramSvg(
     );
   }
 
+  const r = (n: number) => Math.round(n * 10) / 10;
+  const lidInset = canW * 0.09;
+  const baseInset = canW * 0.07;
+  const lidY = canY + canH * 0.07;
+  const baseY = canY + canH * 0.94;
+  const canPath = `M${r(canX + lidInset)} ${r(canY)} H${r(canX + canW - lidInset)} L${r(canX + canW)} ${r(lidY)} V${r(baseY)} L${r(canX + canW - baseInset)} ${r(canY + canH)} H${r(canX + baseInset)} L${r(canX)} ${r(baseY)} V${r(lidY)} Z`;
+
   return `<div style="max-width:340px;margin:28px auto 0;text-align:center">
     ${diagramTitleWithIconHtml(`크기 비교 (기준: ${REFERENCE_CAN.label})`, "size-ruler", labelColor)}
     <svg viewBox="0 0 340 ${svgH}" width="340" height="${svgH}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="크기 비교 다이어그램">
-      <text x="${canX + canW / 2}" y="24" text-anchor="middle" font-size="10" fill="${labelColor}" opacity="0.9">${REFERENCE_CAN.label}</text>
-      <rect x="${canX}" y="${canY}" width="${canW}" height="${canH}" rx="${canW / 2}" fill="none" stroke="${strokeColor}" stroke-width="1.8" opacity="0.88"/>
-      <text x="${prodX + prodW / 2}" y="24" text-anchor="middle" font-size="10" fill="${labelColor}" opacity="0.9">제품</text>
-      <rect x="${prodX}" y="${prodY}" width="${prodW}" height="${prodH}" rx="6" fill="none" stroke="${strokeColor}" stroke-width="1.8" opacity="1"/>
+      <text x="${canX + canW / 2}" y="24" text-anchor="middle" font-size="10" fill="${labelColor}" opacity="0.7">${REFERENCE_CAN.label}</text>
+      <path d="${canPath}" fill="none" stroke="${strokeColor}" stroke-width="1.6" stroke-linejoin="round" opacity="0.55"/>
+      <line x1="${r(canX)}" y1="${r(lidY)}" x2="${r(canX + canW)}" y2="${r(lidY)}" stroke="${strokeColor}" stroke-width="1" opacity="0.35"/>
+      <line x1="${r(canX)}" y1="${r(baseY)}" x2="${r(canX + canW)}" y2="${r(baseY)}" stroke="${strokeColor}" stroke-width="1" opacity="0.35"/>
+      <text x="${prodX + prodW / 2}" y="24" text-anchor="middle" font-size="10" font-weight="700" fill="${labelColor}">이 제품</text>
+      <rect x="${prodX}" y="${prodY}" width="${prodW}" height="${prodH}" rx="6" fill="${strokeColor}" fill-opacity="0.08" stroke="${strokeColor}" stroke-width="1.8"/>
       ${arrows.join("")}
     </svg>
   </div>`;
