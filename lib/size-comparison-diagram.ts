@@ -139,17 +139,22 @@ export function buildSizeComparisonDiagramSvg(
   const productH = heightDim.cm;
   const productW = widthDim?.kind === "diameter" ? widthDim.cm : (widthDim?.cm ?? productH * 0.55);
 
-  const scale = 9;
+  // 캔·제품을 같은 배율로 그려야 비교가 성립 — 제품이 칸을 넘으면 배율을 함께 줄이고,
+  // 캔이 30px 미만으로 작아질 만큼 차이가 크면(리드줄 150cm 등) 비교 의미가 없어 생략
+  const scale = Math.min(9, 148 / productH, 130 / productW);
   const canH = REFERENCE_CAN.heightCm * scale;
   const canW = REFERENCE_CAN.diameterCm * scale;
-  const prodH = Math.min(productH * scale, canH * 1.35);
-  const prodW = Math.min(productW * scale, canW * 2.2);
+  if (canH < 30) return "";
+  const prodH = productH * scale;
+  const prodW = productW * scale;
+  const areaH = Math.max(canH, prodH);
 
   const canX = 52;
-  const canY = 40 + (canH - canH) / 2;
+  const canY = 40 + (areaH - canH) / 2;
   // 오른쪽 높이 라벨(prodX+prodW+22, 약 36px 폭)이 viewBox 340 안에 들어오도록
   const prodX = Math.min(200, 340 - prodW - 62);
-  const prodY = 40 + (canH - prodH) / 2;
+  const prodY = 40 + (areaH - prodH) / 2;
+  const svgH = Math.ceil(40 + areaH + 34);
 
   const arrows = [
     `${capLine(canX - 14, canY, canX - 14, canY + canH, strokeColor)}
@@ -169,7 +174,7 @@ export function buildSizeComparisonDiagramSvg(
 
   return `<div style="max-width:340px;margin:28px auto 0;text-align:center">
     ${diagramTitleWithIconHtml(`크기 비교 (기준: ${REFERENCE_CAN.label})`, "size-ruler", labelColor)}
-    <svg viewBox="0 0 340 200" width="340" height="200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="크기 비교 다이어그램">
+    <svg viewBox="0 0 340 ${svgH}" width="340" height="${svgH}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="크기 비교 다이어그램">
       <text x="${canX + canW / 2}" y="24" text-anchor="middle" font-size="10" fill="${labelColor}" opacity="0.9">${REFERENCE_CAN.label}</text>
       <rect x="${canX}" y="${canY}" width="${canW}" height="${canH}" rx="${canW / 2}" fill="none" stroke="${strokeColor}" stroke-width="1.8" opacity="0.88"/>
       <text x="${prodX + prodW / 2}" y="24" text-anchor="middle" font-size="10" fill="${labelColor}" opacity="0.9">제품</text>

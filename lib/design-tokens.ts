@@ -845,7 +845,7 @@ export const SECTION_BLOCK_PAD = {
   generous: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-28",
   compact: "px-6 py-14 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
   pointText: "px-6 pt-10 pb-16 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-24",
-  galleryTitle: "px-6 pt-9 pb-0 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-11 @min-[640px]/pz:pb-0",
+  galleryTitle: "px-6 pt-9 pb-8 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-11 @min-[640px]/pz:pb-8",
   cta: "px-6 py-24 @min-[640px]/pz:px-10 @min-[640px]/pz:py-36",
   trust: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
 } as const;
@@ -943,7 +943,7 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
       ctaButtonClass:
         "inline-flex h-12 min-w-[13rem] items-center justify-center rounded-full px-10 text-sm font-semibold text-paper shadow-sm",
       galleryGapClass: "gap-2",
-      galleryTitlePadClass: "px-6 pt-10 pb-0 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-0",
+      galleryTitlePadClass: "px-6 pt-10 pb-8 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-8",
     };
   }
   if (category === "화장품/뷰티") {
@@ -962,7 +962,7 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
       ctaButtonClass:
         "inline-flex h-12 min-w-[11rem] items-center justify-center rounded-full px-8 text-sm font-semibold text-paper shadow-sm",
       galleryGapClass: "gap-2",
-      galleryTitlePadClass: "px-6 pt-9 pb-0 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-11 @min-[640px]/pz:pb-0",
+      galleryTitlePadClass: "px-6 pt-9 pb-8 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-11 @min-[640px]/pz:pb-8",
     };
   }
   if (category === "반려동물") {
@@ -984,7 +984,7 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
       ctaButtonClass:
         "inline-flex h-12 min-w-[13rem] items-center justify-center rounded-full px-10 text-sm font-semibold tracking-[0.02em] text-paper shadow-sm",
       galleryGapClass: "gap-2",
-      galleryTitlePadClass: "px-6 pt-10 pb-0 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-0",
+      galleryTitlePadClass: "px-6 pt-10 pb-8 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-8",
     };
   }
   if (category === "의류/패션") {
@@ -1003,7 +1003,7 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
       ctaButtonClass:
         "inline-flex h-12 min-w-[12rem] items-center justify-center rounded-sm px-10 text-sm font-semibold tracking-[0.16em] text-paper",
       galleryGapClass: "gap-2",
-      galleryTitlePadClass: "px-6 pt-8 pb-0 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-10 @min-[640px]/pz:pb-0",
+      galleryTitlePadClass: "px-6 pt-8 pb-8 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-10 @min-[640px]/pz:pb-8",
     };
   }
   if (category === "생활용품") {
@@ -1019,7 +1019,7 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
       ctaPadClass: "px-6 py-24 @min-[640px]/pz:px-10 @min-[640px]/pz:py-36",
       ctaButtonClass:
         "inline-flex h-12 min-w-[13rem] items-center justify-center rounded-full px-10 text-sm font-semibold tracking-[0.04em] text-paper shadow-sm",
-      galleryTitlePadClass: "px-6 pt-10 pb-0 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-0",
+      galleryTitlePadClass: "px-6 pt-10 pb-8 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-8",
     };
   }
   if (category === "전자제품") {
@@ -1049,7 +1049,7 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
     ctaPadClass: "px-6 py-20 @min-[640px]/pz:px-10 @min-[640px]/pz:py-32",
     ctaButtonClass:
         "inline-flex h-12 min-w-[13rem] items-center justify-center rounded-full px-10 text-sm font-semibold text-paper shadow-sm",
-    galleryTitlePadClass: "px-6 pt-10 pb-0 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-0",
+    galleryTitlePadClass: "px-6 pt-10 pb-8 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-8",
   };
 }
 

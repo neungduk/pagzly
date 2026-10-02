@@ -45,6 +45,7 @@ import { extractTrustChips } from "@/lib/extract-trust-chips";
 import {
   pickSummaryIcon,
   summaryChipWidth,
+  summaryGridColumns,
   summaryIconSvg,
   SUMMARY_ICON_PX,
 } from "@/lib/summary-line-icons";
@@ -281,7 +282,7 @@ const TYPO = {
   pointLabel: "font-mono text-[10px] font-bold uppercase tracking-[0.34em]",
   body: "text-[length:var(--pz-t-body-b)] font-normal leading-[1.9] text-ink/72 @min-[640px]/pz:text-[length:var(--pz-t-body-w)] @min-[640px]/pz:leading-[1.85]",
   checklistItem:
-    "mt-2.5 pz-fit [--pz-fs:0.75rem] font-medium leading-snug text-ink/82 @min-[640px]/pz:[--pz-fs:0.875rem]",
+    "mt-2.5 pz-fit [--pz-fs:0.875rem] font-semibold leading-snug text-ink/85 [word-break:keep-all]",
   stepItem: "mt-2.5 max-w-[7.5rem] text-[11px] font-normal leading-relaxed text-ink/78 @min-[640px]/pz:max-w-sm @min-[640px]/pz:text-sm",
 } as const;
 
@@ -367,8 +368,12 @@ function ConceptBadgeIcon({
   if (fallbackIndex != null) {
     return (
       <span
-        className={`flex ${sizeClass} shrink-0 items-center justify-center rounded-full ${size === "md" ? "text-lg" : "text-sm"} font-semibold text-paper`}
-        style={{ backgroundColor: solidAccentOnPaper(theme) }}
+        className={`flex ${sizeClass} shrink-0 items-center justify-center rounded-full ${size === "md" ? "text-lg" : "text-sm"} font-semibold ${FLAT_SECTION_SURFACES && !inverted ? "" : "text-paper"}`}
+        style={
+          FLAT_SECTION_SURFACES && !inverted
+            ? { backgroundColor: hexToRgba(theme.accent, 0.12), color: readableTextDeep(theme) }
+            : { backgroundColor: solidAccentOnPaper(theme) }
+        }
         aria-hidden="true"
       >
         {fallbackIndex + 1}
@@ -1202,7 +1207,7 @@ function TrustStrip({
         한눈에 보기
       </p>
       <div className="mx-auto flex max-w-[560px] flex-wrap justify-center gap-x-3 gap-y-5">
-        {chips.map((chip) => {
+        {chips.map((chip, chipIndex) => {
           const certHighlight = certTokens.some(
             (token) =>
               token.length >= 2 &&
@@ -1211,12 +1216,21 @@ function TrustStrip({
                 chip.toLowerCase().includes(token.toLowerCase())),
           );
           const iconColor = certHighlight ? theme.accent : readableTextDeep(theme);
+          const divider =
+            FLAT_SECTION_SURFACES && chipIndex % summaryGridColumns(chips.length) !== 0;
           return (
             <div
               key={chip}
-              className="flex flex-col items-center gap-2 text-center"
+              className="relative flex flex-col items-center gap-2 text-center"
               style={{ width: summaryChipWidth(chips.length) }}
             >
+              {divider ? (
+                <span
+                  aria-hidden="true"
+                  className="absolute -left-1.5 bottom-1 top-1 w-px"
+                  style={{ backgroundColor: hexToRgba(theme.accent, 0.22) }}
+                />
+              ) : null}
               <span
                 aria-hidden="true"
                 dangerouslySetInnerHTML={{
@@ -1811,13 +1825,22 @@ function renderSection(
                     : ELEVATION.checklistCard(theme.deepAccent),
                 }}
               >
-                <ConceptBadgeIcon
-                  src={conceptIcons?.checklist?.[itemIndex]}
-                  theme={theme}
-                  fallbackIndex={itemIndex}
-                  size={INFO_BADGE.defaultSize}
-                  inverted={boldBlock}
-                />
+                {FLAT_SECTION_SURFACES && !conceptIcons?.checklist?.[itemIndex] ? (
+                  <span
+                    aria-hidden="true"
+                    dangerouslySetInnerHTML={{
+                      __html: summaryIconSvg("check", boldBlock ? BRAND.paper : readableTextDeep(theme), 26),
+                    }}
+                  />
+                ) : (
+                  <ConceptBadgeIcon
+                    src={conceptIcons?.checklist?.[itemIndex]}
+                    theme={theme}
+                    fallbackIndex={itemIndex}
+                    size={INFO_BADGE.defaultSize}
+                    inverted={boldBlock}
+                  />
+                )}
                 <EditableText
                   as="span"
                   enabled={edit?.enabled}
@@ -1886,22 +1909,37 @@ function renderSection(
       }
 
       if (isCompact) {
-        const imageFirst = section.imagePosition !== "right";
-        const shape =
-          compactImageTextIndex != null && totalCompactImageTextCount != null
+        const imageFirst = FLAT_SECTION_SURFACES || section.imagePosition !== "right";
+        const shape = FLAT_SECTION_SURFACES
+          ? (section.imageShape ?? "square")
+          : compactImageTextIndex != null && totalCompactImageTextCount != null
             ? resolveCompactImageShape(section, compactImageTextIndex, totalCompactImageTextCount)
             : resolveCompactImageShape(section, 0, 1);
         const thumbRadius = shape === "circle" ? "rounded-full" : "rounded-xl";
+        const compactDivider =
+          FLAT_SECTION_SURFACES &&
+          compactImageTextIndex != null &&
+          totalCompactImageTextCount != null &&
+          compactImageTextIndex < totalCompactImageTextCount - 1;
         return (
           <section
             key={`image_text-${index}`}
-            className="px-6 py-5 @min-[640px]/pz:px-10 @min-[640px]/pz:py-6"
-            style={textSectionStyle(theme, pattern, category)}
+            className={
+              FLAT_SECTION_SURFACES
+                ? "px-6 @min-[640px]/pz:px-10"
+                : "px-6 py-5 @min-[640px]/pz:px-10 @min-[640px]/pz:py-6"
+            }
+            style={
+              FLAT_SECTION_SURFACES
+                ? { backgroundColor: FLAT_PAPER }
+                : textSectionStyle(theme, pattern, category)
+            }
           >
             <div
               className={`mx-auto flex max-w-xl items-center gap-4 ${
                 imageFirst ? "flex-row" : "flex-row-reverse"
-              }`}
+              } ${FLAT_SECTION_SURFACES ? "py-5 @min-[640px]/pz:py-6" : ""} ${compactDivider ? "border-b" : ""}`}
+              style={compactDivider ? { borderColor: hexToRgba(BRAND.ink, 0.08) } : undefined}
             >
               <div className="relative shrink-0">
                 <SectionImage
@@ -3384,13 +3422,21 @@ function renderSection(
             className={
               steps.length === 2 || steps.length === 4
                 ? "mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-x-4 gap-y-8 @min-[640px]/pz:gap-8"
-                : "mx-auto mt-12 grid max-w-4xl grid-cols-1 gap-8 @min-[640px]/pz:grid-cols-3"
+                : "mx-auto mt-10 grid max-w-4xl grid-cols-1 gap-5 @min-[640px]/pz:mt-12 @min-[640px]/pz:grid-cols-3 @min-[640px]/pz:gap-8"
             }
           >
             {steps.map((step, stepIndex) => {
               const src = resolveImage(imageUrls, step.imageIndex);
+              const rowMode = steps.length !== 2 && steps.length !== 4;
               return (
-                <div key={stepIndex} className="flex flex-col">
+                <div
+                  key={stepIndex}
+                  className={
+                    rowMode
+                      ? "grid grid-cols-[40%_1fr] items-center gap-4 @min-[640px]/pz:flex @min-[640px]/pz:flex-col @min-[640px]/pz:items-stretch @min-[640px]/pz:gap-0"
+                      : "flex flex-col"
+                  }
+                >
                   <div className={`relative overflow-hidden rounded-xl ${ratioClass}`}>
                     <SectionImage
                       src={src}
@@ -3398,7 +3444,11 @@ function renderSection(
                       className="h-full w-full object-cover"
                     />
                     <span
-                      className="absolute left-3 top-3 rounded-full px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-paper shadow-sm"
+                      className={`absolute rounded-full font-bold uppercase text-paper shadow-sm ${
+                        rowMode
+                          ? "left-2 top-2 px-2.5 py-1 text-[10px] tracking-[0.18em] @min-[640px]/pz:left-3 @min-[640px]/pz:top-3 @min-[640px]/pz:px-3.5 @min-[640px]/pz:py-1.5 @min-[640px]/pz:text-[11px] @min-[640px]/pz:tracking-[0.24em]"
+                          : "left-3 top-3 px-3.5 py-1.5 text-[11px] tracking-[0.24em]"
+                      }`}
                       style={{ backgroundColor: solidDeepOnPaper(theme) }}
                     >
                       STEP {String(stepIndex + 1).padStart(2, "0")}
@@ -3408,34 +3458,36 @@ function renderSection(
                       onReplace={() => edit?.onReplaceImage?.(step.imageIndex)}
                     />
                   </div>
-                  <EditableText
-                    as="p"
-                    enabled={edit?.enabled}
-                    value={step.title}
-                    onChange={(title) => {
-                      const nextSteps = [...section.steps];
-                      nextSteps[stepIndex] = { ...nextSteps[stepIndex], title };
-                      edit?.onChange(index, { ...section, steps: nextSteps });
-                    }}
-                    className="mt-3 font-heading text-base font-bold tracking-[-0.02em] text-ink"
-                  />
-                  <EditableText
-                    as="p"
-                    multiline
-                    enabled={edit?.enabled}
-                    value={step.body}
-                    onChange={(body) => {
-                      const nextSteps = [...section.steps];
-                      nextSteps[stepIndex] = { ...nextSteps[stepIndex], body };
-                      edit?.onChange(index, { ...section, steps: nextSteps });
-                    }}
-                    className="mt-1 text-[11px] leading-relaxed text-ink/80 @min-[640px]/pz:text-sm"
-                  />
+                  <div className="min-w-0">
+                    <EditableText
+                      as="p"
+                      enabled={edit?.enabled}
+                      value={step.title}
+                      onChange={(title) => {
+                        const nextSteps = [...section.steps];
+                        nextSteps[stepIndex] = { ...nextSteps[stepIndex], title };
+                        edit?.onChange(index, { ...section, steps: nextSteps });
+                      }}
+                      className={`${rowMode ? "mt-0 @min-[640px]/pz:mt-3" : "mt-3"} font-heading text-base font-bold tracking-[-0.02em] text-ink`}
+                    />
+                    <EditableText
+                      as="p"
+                      multiline
+                      enabled={edit?.enabled}
+                      value={step.body}
+                      onChange={(body) => {
+                        const nextSteps = [...section.steps];
+                        nextSteps[stepIndex] = { ...nextSteps[stepIndex], body };
+                        edit?.onChange(index, { ...section, steps: nextSteps });
+                      }}
+                      className="mt-1 text-[13px] leading-relaxed text-ink/80 [word-break:keep-all] @min-[640px]/pz:text-sm"
+                    />
+                  </div>
                 </div>
               );
             })}
           </div>
-          {isCosmeticsCategory(category) ? (
+          {isCosmeticsCategory(category) && !FLAT_SECTION_SURFACES ? (
             <UsageOrderFlowDiagram
               steps={steps.map((s) => s.title).filter(Boolean)}
               theme={theme}
@@ -3486,12 +3538,6 @@ function renderSection(
           >
             {section.imageIndexes.map((imageIndex, pairIndex) => {
               const src = resolveImage(imageUrls, imageIndex);
-              const pairLabel =
-                pairCompare && pairIndex === 0
-                  ? "BEFORE"
-                  : pairCompare && pairIndex === 1
-                    ? "AFTER"
-                    : null;
               return (
                 <div
                   key={`${imageIndex}-${src}-${pairIndex}`}
@@ -3502,13 +3548,6 @@ function renderSection(
                     alt={buildSectionImageAlt(productName ?? "", `${section.heading} ${imageIndex + 1}`, section.slot)}
                     className={`${oddLead && pairIndex === 0 ? "aspect-[4/3]" : ratioClass} w-full object-cover`}
                   />
-                  {pairLabel ? (
-                    <span
-                      className={`absolute left-3 top-3 ${TYPO.sectionLabel} text-white`}
-                    >
-                      {pairLabel}
-                    </span>
-                  ) : null}
                   <ImageReplaceHit
                     enabled={edit?.enabled}
                     onReplace={() => edit?.onReplaceImage?.(imageIndex)}

@@ -90,6 +90,7 @@ import { extractTrustChips } from "@/lib/extract-trust-chips";
 import {
   pickSummaryIcon,
   summaryChipWidth,
+  summaryGridColumns,
   summaryIconSvg,
   SUMMARY_ICON_PX,
 } from "@/lib/summary-line-icons";
@@ -196,7 +197,7 @@ function trustStripHtml(
     <p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText};margin:0 0 12px">한눈에 보기</p>
     <div style="display:flex;flex-wrap:wrap;justify-content:center;column-gap:12px;row-gap:20px;max-width:560px;margin:0 auto">
       ${chips
-        .map((c) => {
+        .map((c, i) => {
           const certHighlight = certTokens.some(
             (token) =>
               token.length >= 2 &&
@@ -205,7 +206,11 @@ function trustStripHtml(
                 c.toLowerCase().includes(token.toLowerCase())),
           );
           const icon = summaryIconSvg(pickSummaryIcon(c), certHighlight ? accent : deepText, SUMMARY_ICON_PX);
-          return `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;width:${chipWidth}">${icon}<span style="font-size:14px;font-weight:600;line-height:1.375;word-break:keep-all;color:${certHighlight ? accentText : theme.deepAccent}">${esc(c)}</span></div>`;
+          const divider =
+            FLAT_SECTION_SURFACES && i % summaryGridColumns(chips.length) !== 0
+              ? `<span aria-hidden="true" style="position:absolute;left:-6px;top:4px;bottom:4px;width:1px;background:${hexToRgba(accent, 0.22)}"></span>`
+              : "";
+          return `<div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;width:${chipWidth}">${divider}${icon}<span style="font-size:14px;font-weight:600;line-height:1.375;word-break:keep-all;color:${certHighlight ? accentText : theme.deepAccent}">${esc(c)}</span></div>`;
         })
         .join("")}
     </div></div>`;
@@ -512,7 +517,7 @@ function sectionHtml(
           ${section.items
             .map(
               (item) =>
-                `<li style="text-align:center;font-size:${FONT_SIZE.bodySm};padding:20px 16px;border-radius:${RADIUS.lg}px;border:1px solid ${section.boldBlock ? "rgba(250,248,243,.22)" : FLAT_SECTION_SURFACES ? hexToRgba(accent, 0.16) : accent + "3d"};background:${section.boldBlock ? "rgba(250,248,243,.08)" : FLAT_SECTION_SURFACES ? FLAT_PAPER : accent + "0f"}">${esc(item)}</li>`,
+                `<li style="text-align:center;font-size:${FONT_SIZE.bodySm};padding:20px 16px;border-radius:${RADIUS.lg}px;border:1px solid ${section.boldBlock ? "rgba(250,248,243,.22)" : FLAT_SECTION_SURFACES ? hexToRgba(accent, 0.16) : accent + "3d"};background:${section.boldBlock ? "rgba(250,248,243,.08)" : FLAT_SECTION_SURFACES ? FLAT_PAPER : accent + "0f"}${FLAT_SECTION_SURFACES ? ";font-weight:600;word-break:keep-all" : ""}">${FLAT_SECTION_SURFACES ? `<span aria-hidden="true" style="display:flex;justify-content:center;margin-bottom:10px">${summaryIconSvg("check", section.boldBlock ? BRAND.paper : deepText, 26)}</span>` : ""}${esc(item)}</li>`,
             )
             .join("")}
         </ul></section>`;
@@ -613,7 +618,7 @@ function sectionHtml(
         </div></section>`;
     }
     case "step_card": {
-      const flowHtml = isCosmeticsCategory(category)
+      const flowHtml = isCosmeticsCategory(category) && !FLAT_SECTION_SURFACES
         ? buildUsageOrderFlowSvg(
             section.steps.map((s) => s.title).filter(Boolean),
             deep,
@@ -785,14 +790,23 @@ function sectionHtml(
       // 분기로 떨어져 라이브와 완전히 다른 레이아웃(전체폭 정사각 이미지)으로 나오던 문제.
       // 라이브(DetailSectionRenderer.tsx:1609~1660)와 동일하게 작은 썸네일 + 한 줄 텍스트로 복원.
       if (section.layout === "compact") {
-        const imageFirst = section.imagePosition !== "right";
-        const shape =
-          compactImageTextIndex != null && totalCompactImageTextCount != null
+        const imageFirst = FLAT_SECTION_SURFACES || section.imagePosition !== "right";
+        const shape = FLAT_SECTION_SURFACES
+          ? (section.imageShape ?? "square")
+          : compactImageTextIndex != null && totalCompactImageTextCount != null
             ? resolveCompactImageShape(section, compactImageTextIndex, totalCompactImageTextCount)
             : resolveCompactImageShape(section, 0, 1);
         const thumbRadius = shape === "circle" ? RADIUS.pill : RADIUS.md;
-        return `<section${sectionIdAttr} style="padding:20px 24px;${sectionInset}${bgCss}">
-          <div style="max-width:576px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-direction:${imageFirst ? "row" : "row-reverse"}">
+        const compactDivider =
+          FLAT_SECTION_SURFACES &&
+          compactImageTextIndex != null &&
+          totalCompactImageTextCount != null &&
+          compactImageTextIndex < totalCompactImageTextCount - 1;
+        const sectionStyle = FLAT_SECTION_SURFACES
+          ? `padding:0 24px;${sectionInset}background:${FLAT_PAPER}`
+          : `padding:20px 24px;${sectionInset}${bgCss}`;
+        return `<section${sectionIdAttr} style="${sectionStyle}">
+          <div style="max-width:576px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-direction:${imageFirst ? "row" : "row-reverse"}${FLAT_SECTION_SURFACES ? ";padding:20px 0" : ""}${compactDivider ? `;border-bottom:1px solid ${hexToRgba(BRAND.ink, 0.08)}` : ""}">
             <div style="flex-shrink:0">
               ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:120px;height:120px;object-fit:cover;border-radius:${thumbRadius}px"/>` : ""}
             </div>

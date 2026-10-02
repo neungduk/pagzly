@@ -34,7 +34,7 @@ export default function SpecBentoGrid({ facts, theme }: SpecBentoGridProps) {
             <div
               key={`${f.label}-${i}`}
               role="listitem"
-              className="@container flex min-h-[84px] flex-col justify-end p-4"
+              className="@container flex min-h-[84px] flex-col justify-start p-4"
               style={{
                 backgroundColor: FLAT_PAPER,
                 border: `1px solid ${hexToRgba(theme.accent, 0.16)}`,
