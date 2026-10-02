@@ -2919,7 +2919,8 @@ function renderSection(
                         : undefined,
                   }}
                 >
-                  {!isTrustEvidence ? (
+                  {!isTrustEvidence &&
+                  (!FLAT_SECTION_SURFACES || conceptIcons?.highlightBox?.[cardIndex]) ? (
                     <div className="mx-auto">
                       <ConceptBadgeIcon
                         src={conceptIcons?.highlightBox?.[cardIndex]}
