@@ -146,6 +146,7 @@ import {
 import { splitStatValue, STAT_UNIT_EM } from "@/lib/stat-value";
 import {
   groupPendingSpecRows,
+  isPlaceholderAnswer,
   isPlaceholderValue,
   PENDING_SPEC_ROW_LABEL,
 } from "@/lib/spec-placeholder";
@@ -1286,6 +1287,11 @@ function sectionHtml(
         <div style="text-align:center;max-width:576px;margin:0 auto">${twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}</div>
         <div data-faq-list style="max-width:576px;margin:40px auto 0;border-top:1px solid ${line};text-align:left">
           ${section.items
+            .filter(
+              (item) =>
+                !isPlaceholderAnswer(item.answer) ||
+                section.items.every((other) => isPlaceholderAnswer(other.answer)),
+            )
             .map(
               (item) => `<div class="pagzly-faq-card" style="border-bottom:1px solid ${line};padding:24px 0">
             <div style="display:flex;align-items:flex-start;gap:12px"><span aria-hidden="true" style="${circle};background:${solidAccentOnPaper(theme)};color:${BRAND.paper}">Q</span><p style="min-width:0;flex:1;margin:0;padding-top:2px;font-family:${DETAIL_FONT_STACK.heading};font-size:17px;font-weight:700;line-height:1.375;letter-spacing:-0.02em;color:${BRAND.ink}">${esc(item.question)}</p></div>

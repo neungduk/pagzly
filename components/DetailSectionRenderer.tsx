@@ -15,6 +15,7 @@ import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import { parseStandalonePercent, splitStatValue, STAT_UNIT_EM } from "@/lib/stat-value";
 import {
   groupPendingSpecRows,
+  isPlaceholderAnswer,
   isPlaceholderValue,
   PENDING_SPEC_ROW_LABEL,
 } from "@/lib/spec-placeholder";
@@ -2580,8 +2581,7 @@ function renderSection(
                   >
                     <td className={`w-[38%] py-3.5 pr-4 ${isShipping ? "pl-4" : ""} ${TYPO.tableLabel}`}>
                       <div className="flex items-center gap-2.5">
-                        {!FLAT_SECTION_SURFACES ||
-                        (conceptIcons?.specTable?.[rowIndex] && !isShipping) ? (
+                        {!FLAT_SECTION_SURFACES ? (
                           <ConceptBadgeIcon
                             src={conceptIcons?.specTable?.[rowIndex]}
                             theme={theme}
@@ -4244,6 +4244,9 @@ function renderSection(
                 data-faq-list
               >
                 {section.items.map((item, itemIndex) => (
+                  !edit?.enabled &&
+                  isPlaceholderAnswer(item.answer) &&
+                  section.items.some((other) => !isPlaceholderAnswer(other.answer)) ? null : (
                   <div
                     key={`${itemIndex}-${item.question.slice(0, 12)}`}
                     className="border-b py-6"
@@ -4293,6 +4296,7 @@ function renderSection(
                       />
                     </div>
                   </div>
+                  )
                 ))}
               </div>
             </>

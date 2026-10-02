@@ -12,6 +12,12 @@ export function isPlaceholderValue(value: string): boolean {
   return PLACEHOLDER_VALUE_PATTERNS.some((pattern) => trimmed.includes(pattern));
 }
 
+/** "판매자에게 문의해주세요." 처럼 안내 문구만 있는 짧은 FAQ 답변 — 긴 답변 속 안내 문장은 해당 안 됨 */
+export function isPlaceholderAnswer(answer: string): boolean {
+  const trimmed = answer.trim();
+  return trimmed.length <= 30 && isPlaceholderValue(trimmed);
+}
+
 /**
  * 안내 문구 행이 2개 이상이면 표에서 빼고 라벨만 한 줄("확인 필요 항목")로 모은다.
  * 행을 숨기지 않고 라벨을 남겨 판매자가 채울 항목을 계속 볼 수 있게 한다.
