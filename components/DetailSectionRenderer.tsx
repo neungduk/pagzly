@@ -1687,7 +1687,7 @@ function renderSection(
               enabled={edit?.enabled}
               onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
             />
-            {section.badge ? (
+            {section.badge && !FLAT_SECTION_SURFACES ? (
               <span
                 className="absolute left-0 top-5 z-20 pl-4 pr-5 py-2 text-xs font-bold tracking-wide text-paper shadow-md @min-[640px]/pz:top-7"
                 style={{
@@ -1726,7 +1726,13 @@ function renderSection(
               </div>
             ) : null}
             <div className={`@container ${getCategoryRhythm(category).heroOverlayClass}`}>
-              <p className={TYPO.heroCategory}>{category}</p>
+              {!FLAT_SECTION_SURFACES ? (
+                <p className={TYPO.heroCategory}>{category}</p>
+              ) : section.badge ? (
+                <span className="mb-4 inline-block rounded-full border border-white/55 px-3.5 py-1 text-xs font-bold tracking-wide text-white">
+                  {section.badge}
+                </span>
+              ) : null}
               <EditableText
                 as="h2"
                 enabled={edit?.enabled}
@@ -1734,7 +1740,7 @@ function renderSection(
                 onChange={(headline) =>
                   edit?.onChange(index, { ...section, headline })
                 }
-                className={`pagzly-ink-headline ${TYPO.heroTitle} ${getCategoryRhythm(category).heroTitleExtra}`}
+                className={`${FLAT_SECTION_SURFACES ? "" : "pagzly-ink-headline"} ${TYPO.heroTitle} ${getCategoryRhythm(category).heroTitleExtra}`}
                 style={{
                   ...headlineDisplayStyle(category),
                   ...fitTokenStyle(
@@ -4447,6 +4453,11 @@ function renderSection(
             <p className={TYPO.sectionKicker} style={{ color: readableTextDeep(theme) }}>
               PRICE
             </p>
+            {FLAT_SECTION_SURFACES && productName?.trim() ? (
+              <p className="font-heading text-[15px] font-bold leading-snug tracking-tight text-ink/80 [word-break:keep-all]">
+                {productName.trim()}
+              </p>
+            ) : null}
             <p
               className={`${FLAT_SECTION_SURFACES ? "" : "pagzly-ink-headline"} font-heading text-[length:var(--pz-t-price-b)] font-bold leading-none @min-[640px]/pz:text-[length:var(--pz-t-price-w)]`}
               style={{ color: readableTextAccent(theme, 3), letterSpacing: "-0.04em" }}
