@@ -35,6 +35,7 @@ import {
 } from "@/lib/circle-comparison-combo";
 import { classifyBoolishCell } from "@/lib/comparison-cell-classify";
 import { resolveCompactImageShape } from "@/lib/compact-image-shape";
+import { ingredientVennHtml } from "@/lib/ingredient-venn";
 import {
   BEFORE_AFTER_COMPLIANCE_NOTE,
   CERTIFICATE_EVIDENCE_COMPLIANCE_NOTE,
@@ -52,6 +53,7 @@ import {
 import {
   getSectionKicker,
   limitBoldBlocks,
+  restoreHashtagHeadingUnits,
   buildPointOrdinals,
   resolveSplitColumnRatio,
   resolveSplitImageLeft,
@@ -64,6 +66,7 @@ import {
   getCategoryTitleKeyword,
   isCertificationHighlight,
   parseMegaKeywordHeading,
+  isConcentrationMetricLabel,
   isShortSectionHeading,
 } from "@/lib/detail-visual-enhancements";
 import {
@@ -1311,6 +1314,18 @@ function renderIngredientCircleVisual(params: {
   compact?: boolean;
 }): ReactNode {
   const { section, productName, theme, compact = false } = params;
+  if (FLAT_SECTION_SURFACES) {
+    const labels =
+      isCircleSoloSection(section) && section.circleSolo
+        ? [section.circleSolo.label]
+        : isCirclePairSection(section) && section.circlePair
+          ? section.circlePair.map((p) => p.label)
+          : [];
+    const html = ingredientVennHtml(labels, readableTextDeep(theme), "inherit");
+    return html ? (
+      <div className="font-heading" dangerouslySetInnerHTML={{ __html: html }} />
+    ) : null;
+  }
   if (isCircleSoloSection(section) && section.circleSolo) {
     const solo = section.circleSolo;
     return (
@@ -3198,7 +3213,11 @@ function renderSection(
                       />
                       {renderFootnoteMark(metricIndex)}
                     </div>
-                    <MetricBar percent={percent} theme={theme} large emphasis={section.barAccent === "emphasis"} />
+                    {FLAT_SECTION_SURFACES && isConcentrationMetricLabel(metric.label) ? (
+                      <div className="mt-3 h-px" style={{ backgroundColor: hexToRgba(theme.accent, 0.2) }} />
+                    ) : (
+                      <MetricBar percent={percent} theme={theme} large emphasis={section.barAccent === "emphasis"} />
+                    )}
                   </div>
                 );
               })}
@@ -4504,7 +4523,7 @@ export default function DetailSectionRenderer({
   certifications,
   pendingHighlightIndex = null,
 }: DetailSectionRendererProps) {
-  const sections = limitBoldBlocks(rawSections);
+  const sections = restoreHashtagHeadingUnits(limitBoldBlocks(rawSections));
   const pointOrdinals = buildPointOrdinals(sections);
   const baseTheme = themeOverride ?? getCategoryTheme(category);
   const extendedTheme = extendTheme(baseTheme);

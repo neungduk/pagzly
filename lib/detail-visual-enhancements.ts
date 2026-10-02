@@ -34,6 +34,11 @@ export function isShortSectionHeading(heading: string): boolean {
   return heading.replace(/\s/g, "").length <= 8;
 }
 
+/** 배합 농도·함량 % — 만점 대비 점수가 아니라 막대로 그리면 "낮은 점수"처럼 읽힘 */
+export function isConcentrationMetricLabel(label: string): boolean {
+  return /배합|함량|농도|함유/.test(label);
+}
+
 /** heading에서 초대형 키워드(영문 압축) + 나머지 분리 */
 export function parseMegaKeywordHeading(title: string): {
   keyword: string | null;

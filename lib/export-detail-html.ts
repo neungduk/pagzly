@@ -7,6 +7,7 @@ import {
   getSectionKicker,
   limitBoldBlocks,
   resolveSplitFlexRatio,
+  restoreHashtagHeadingUnits,
   resolveSplitImageLeft,
   shouldInsertBreather,
   shouldUseEditorialBleed,
@@ -16,6 +17,7 @@ import {
   formatPointBadge,
   getCategoryTitleKeyword,
   isCertificationHighlight,
+  isConcentrationMetricLabel,
   isShortSectionHeading,
   parseMegaKeywordHeading,
 } from "@/lib/detail-visual-enhancements";
@@ -62,6 +64,7 @@ import {
 } from "@/lib/package-contents-diagram";
 import { buildAnnotatedImageOverlaySvg } from "@/lib/annotated-image-overlay-svg";
 import { resolveCompactImageShape } from "@/lib/compact-image-shape";
+import { ingredientVennHtml } from "@/lib/ingredient-venn";
 import {
   BEFORE_AFTER_COMPLIANCE_NOTE,
   CERTIFICATE_EVIDENCE_COMPLIANCE_NOTE,
@@ -428,7 +431,13 @@ function circleComparisonComboHtml(params: {
     isCircleSoloSection(circleSection) && circleSection.circleSolo
       ? [circleSection.circleSolo]
       : (circleSection.circlePair ?? []);
-  const circlesHtml = items
+  const circlesHtml = FLAT_SECTION_SURFACES
+    ? ingredientVennHtml(
+        items.map((item) => item.label),
+        deepText,
+        DETAIL_FONT_STACK.heading,
+      )
+    : items
     .map(
       (item) =>
         `<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:12px"><img src="${esc(item.imageUrl)}" alt="${esc(buildSectionImageAlt(productName, item.label, circleSection.slot))}" loading="lazy" decoding="async" style="width:96px;height:96px;border-radius:${RADIUS.pill}px;object-fit:cover;display:block;box-shadow:${ELEVATION.imageThumb},0 0 0 1px rgba(27,27,24,0.1)"/><p style="margin:0;text-align:center;font-family:${DETAIL_FONT_STACK.heading};font-size:${FONT_SIZE.bodyLg};font-weight:600;line-height:1.35;letter-spacing:-0.02em;color:${deepText}">${esc(item.label)}</p></div>`,
@@ -690,9 +699,13 @@ function sectionHtml(
           }
           const barColor = section.barAccent === "emphasis" ? deep : accent;
           return `<div><div style="display:flex;justify-content:space-between;align-items:baseline;font-size:${FONT_SIZE.bodySm}"><span>${esc(m.label)}</span><strong style="font-size:${titleSizeCss("statBar")};font-weight:800;line-height:1;letter-spacing:-0.01em">${statValueHtml(m.value)}${footnoteMarkFor(m)}</strong></div>
-                <div style="height:${section.barAccent === "emphasis" ? 14 : 10}px;background:${barColor}29;border-radius:${RADIUS.pill}px;margin-top:8px;overflow:hidden">
+                ${
+                  FLAT_SECTION_SURFACES && isConcentrationMetricLabel(m.label)
+                    ? `<div style="height:1px;background:${hexToRgba(accent, 0.2)};margin-top:12px"></div>`
+                    : `<div style="height:${section.barAccent === "emphasis" ? 14 : 10}px;background:${barColor}29;border-radius:${RADIUS.pill}px;margin-top:8px;overflow:hidden">
                   <div class="fill-bar" style="height:100%;width:${pct}%;background:${barColor};border-radius:${RADIUS.pill}px"></div>
-                </div></div>`;
+                </div>`
+                }</div>`;
       };
       // 라이브와 같은 배치: 숫자 카드 그리드 → 링 그리드 → 막대 목록
       const numberMetrics = section.metrics.filter((m) => m.style === "number");
@@ -773,6 +786,12 @@ function sectionHtml(
         section.layout === "circle-solo" &&
         section.circleSolo?.imageUrl?.trim() &&
         section.circleSolo?.label?.trim();
+      if (FLAT_SECTION_SURFACES && (isCircleSolo || isCirclePair)) {
+        const labels = isCircleSolo
+          ? [section.circleSolo!.label]
+          : section.circlePair!.map((p) => p.label);
+        return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">${ingredientVennHtml(labels, deepText, DETAIL_FONT_STACK.heading)}</section>`;
+      }
       if (isCircleSolo) {
         const solo = section.circleSolo!;
         return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}"><div style="text-align:center;max-width:280px;margin:0 auto"><img src="${esc(solo.imageUrl)}" alt="${esc(solo.label)}" loading="lazy" decoding="async" class="pagzly-circle-solo-img" style="border-radius:${RADIUS.pill}px;object-fit:cover;margin:0 auto;display:block;box-shadow:${ELEVATION.imageThumb}"/><p style="margin-top:12px;font-size:${FONT_SIZE.bodySm};font-weight:600;color:${deepText}">${esc(solo.label)}</p></div></section>`;
@@ -1618,8 +1637,8 @@ export function buildDetailPageHtml(opts: {
   const hidden = new Set(opts.hiddenIndexes ?? []);
   // 183차 — 저관여(생활/펫) 표시 예산: 세션 데이터는 유지하고 export 노출만 축소
   const afterUserHidden = opts.sections.filter((_, i) => !hidden.has(i));
-  const visibleSections = limitBoldBlocks(
-    applySectionDisplayBudget(opts.category, afterUserHidden),
+  const visibleSections = restoreHashtagHeadingUnits(
+    limitBoldBlocks(applySectionDisplayBudget(opts.category, afterUserHidden)),
   );
   const trustChips = extractTrustChips(visibleSections);
   const extended = extendTheme(opts.theme);

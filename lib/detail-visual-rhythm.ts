@@ -155,6 +155,33 @@ export function limitBoldBlocks(sections: DetailSection[]): DetailSection[] {
   return changed ? out : sections;
 }
 
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** "#나이아신아마이드5" 처럼 해시태그 헤드라인이 숫자로 끝나면 본문의 같은 수치 단위(5%)를 되살린다. */
+export function restoreHashtagHeadingUnit(heading: string, body: string | undefined): string {
+  const m = heading.match(/^#(\S*?)(\d+(?:\.\d+)?)$/);
+  if (!m || !body) return heading;
+  const word = m[1].replace(/[^\p{L}\p{N}]/gu, "");
+  const pattern = new RegExp(
+    `${word ? `${escapeRegExp(word)}\\s*` : ""}${escapeRegExp(m[2])}\\s*(%|mg|ml|mL|g|ppm|배)`,
+  );
+  const unit = body.match(pattern)?.[1];
+  return unit ? `${heading}${unit}` : heading;
+}
+
+export function restoreHashtagHeadingUnits(sections: DetailSection[]): DetailSection[] {
+  let changed = false;
+  const out = sections.map((s) => {
+    if (!("heading" in s) || typeof s.heading !== "string" || !s.heading.startsWith("#")) return s;
+    const body = "body" in s && typeof s.body === "string" ? s.body : undefined;
+    const next = restoreHashtagHeadingUnit(s.heading, body);
+    if (next === s.heading) return s;
+    changed = true;
+    return { ...s, heading: next } as DetailSection;
+  });
+  return changed ? out : sections;
+}
+
 export function shouldInsertBreather(
   prev: DetailSection | undefined,
   current: DetailSection,
