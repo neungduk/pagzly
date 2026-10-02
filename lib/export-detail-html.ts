@@ -154,6 +154,7 @@ import {
 import { splitStatValue, STAT_UNIT_EM } from "@/lib/stat-value";
 import {
   groupPendingSpecRows,
+  isEmptySizeOptions,
   isPlaceholderAnswer,
   isPlaceholderValue,
   PENDING_SPEC_ROW_LABEL,
@@ -841,6 +842,7 @@ function sectionHtml(
       </section>`;
     }
     case "image_text": {
+      if (FLAT_SECTION_SURFACES && isEmptySizeOptions(section)) return "";
       // text_only는 배정 단계가 사진을 뺀 섹션 — imageIndex는 원본 값이 남아 있어 아래 분기로
       // 떨어지면 뺀 사진이 다시 붙는다.
       if (section.layout === "text_only") {

@@ -183,8 +183,8 @@ export function restoreHashtagHeadingUnits(sections: DetailSection[]): DetailSec
 }
 
 /**
- * 같은 페이지에 target_persona(이런 분께)가 이미 있으면 tradeoff_card의 "이런 분께 추천" 열은
- * 같은 대상을 한 번 더 나열하는 중복 — 참고 열만 남긴다(참고 열이 비면 그대로 둔다).
+ * tradeoff_card 중복 정리 — target_persona(이런 분께)가 있으면 "이런 분께 추천" 열을 비우고,
+ * "참고하세요" 항목 중 caution 본문에 이미 있는 문장은 뺀다. 둘 다 비면 카드가 렌더되지 않는다.
  */
 export function dropDuplicateRecommendColumn(sections: DetailSection[]): DetailSection[] {
   const hasPersona = sections.some(
@@ -192,17 +192,41 @@ export function dropDuplicateRecommendColumn(sections: DetailSection[]): DetailS
       s.type === "target_persona" &&
       (Array.isArray(s.personas) ? s.personas.filter((p) => p.trim()).length : 0) >= 2,
   );
-  if (!hasPersona) return sections;
+  const cautionText = sections
+    .filter((s): s is Extract<DetailSection, { type: "caution" }> => s.type === "caution")
+    .map((s) => s.body ?? "")
+    .join(" ");
+  const cautionGrams = textBigrams(cautionText);
+  if (!hasPersona && cautionGrams.size === 0) return sections;
   let changed = false;
   const out = sections.map((s) => {
     if (s.type !== "tradeoff_card") return s;
     const recommend = Array.isArray(s.recommendFor) ? s.recommendFor.filter((t) => t.trim()) : [];
     const consider = Array.isArray(s.considerIf) ? s.considerIf.filter((t) => t.trim()) : [];
-    if (recommend.length === 0 || consider.length === 0) return s;
+    const nextConsider = consider.filter((t) => bigramContainment(t, cautionGrams) < 0.55);
+    const nextRecommend = hasPersona ? [] : recommend;
+    if (nextConsider.length === consider.length && nextRecommend.length === recommend.length) return s;
     changed = true;
-    return { ...s, recommendFor: [] };
+    return { ...s, recommendFor: nextRecommend, considerIf: nextConsider };
   });
   return changed ? out : sections;
+}
+
+function textBigrams(text: string): Set<string> {
+  const t = text.replace(/[^\p{L}\p{N}]/gu, "");
+  const out = new Set<string>();
+  for (let i = 0; i < t.length - 1; i++) out.add(t.slice(i, i + 2));
+  return out;
+}
+
+/** text의 2글자 조각 중 ref에 들어 있는 비율(0~1). */
+function bigramContainment(text: string, ref: Set<string>): number {
+  if (ref.size === 0) return 0;
+  const grams = textBigrams(text);
+  if (grams.size === 0) return 0;
+  let hit = 0;
+  for (const g of grams) if (ref.has(g)) hit++;
+  return hit / grams.size;
 }
 
 export function shouldInsertBreather(

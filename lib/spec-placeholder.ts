@@ -36,3 +36,9 @@ export function groupPendingSpecRows<T extends { label: string; value: string }>
 }
 
 export const PENDING_SPEC_ROW_LABEL = "확인 필요 항목";
+
+/** 용량 안내 섹션인데 숫자(용량·옵션 수치)가 하나도 없으면 정보 없는 안내 문구뿐 */
+export function isEmptySizeOptions(section: { slot?: string; heading?: string; body?: string }): boolean {
+  if (section.slot !== "size_options") return false;
+  return !/\d/.test(`${section.heading ?? ""} ${section.body ?? ""}`);
+}

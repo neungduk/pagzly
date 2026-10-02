@@ -15,6 +15,7 @@ import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import { parseStandalonePercent, splitStatValue, STAT_UNIT_EM } from "@/lib/stat-value";
 import {
   groupPendingSpecRows,
+  isEmptySizeOptions,
   isPlaceholderAnswer,
   isPlaceholderValue,
   PENDING_SPEC_ROW_LABEL,
@@ -1983,6 +1984,7 @@ function renderSection(
     }
 
     case "image_text": {
+      if (FLAT_SECTION_SURFACES && !edit?.enabled && isEmptySizeOptions(section)) return null;
       const src = resolveImage(imageUrls, section.imageIndex);
       if (section.layout === "text_only") {
         return (
