@@ -794,8 +794,18 @@ function sectionHtml(
         const cols = n <= 1 ? "max-width:320px;grid-template-columns:1fr" : n === 2 ? "max-width:448px;grid-template-columns:repeat(2,1fr)" : "max-width:672px;grid-template-columns:repeat(2,1fr)";
         return `<div${n >= 3 ? ` class="pagzly-stat-grid3"` : ""} style="display:grid;${cols};gap:${gap};margin:40px auto 0">${items.map(metricHtml).join("")}</div>`;
       };
+      const statRule = `1px solid ${hexToRgba(accent, 0.2)}`;
+      const numberStrip =
+        FLAT_SECTION_SURFACES && numberMetrics.length >= 2 && numberMetrics.length <= 3
+          ? `<div style="display:flex;align-items:stretch;max-width:${numberMetrics.length === 2 ? 448 : 672}px;margin:40px auto 0;border-top:${statRule};border-bottom:${statRule}">${numberMetrics
+              .map(
+                (m, i) =>
+                  `<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:28px 8px;text-align:center${i > 0 ? `;border-left:${statRule}` : ""}"><div style="width:100%;container-type:inline-size"><div class="pz-fit" style="${titleFitCss("statNumber", m.value, -0.05)};font-weight:800;line-height:1;letter-spacing:-0.02em;color:${deepText}">${statValueHtml(m.value)}${footnoteMarkFor(m)}</div></div><div style="margin-top:2px;${STAT_LABEL_CSS}">${esc(m.label)}</div></div>`,
+              )
+              .join("")}</div>`
+          : null;
       const metricsHtml = [
-        statGrid(numberMetrics, "24px 20px"),
+        numberStrip ?? statGrid(numberMetrics, "24px 20px"),
         statGrid(ringMetrics, "32px 20px"),
         barMetrics.length > 0
           ? `<div style="max-width:576px;margin:40px auto 0;display:flex;flex-direction:column;gap:28px">${barMetrics.map(metricHtml).join("")}</div>`

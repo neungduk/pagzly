@@ -3214,7 +3214,51 @@ function renderSection(
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
             className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}
           />
-          {numberMetrics.length > 0 && (
+          {FLAT_SECTION_SURFACES && numberMetrics.length >= 2 && numberMetrics.length <= 3 ? (
+            <div
+              className={`mx-auto mt-10 flex items-stretch ${numberMetrics.length === 2 ? "max-w-md" : "max-w-2xl"}`}
+              style={{
+                borderTop: `1px solid ${hexToRgba(theme.accent, 0.2)}`,
+                borderBottom: `1px solid ${hexToRgba(theme.accent, 0.2)}`,
+              }}
+            >
+              {numberMetrics.map(({ metric, metricIndex }, i) => (
+                <div
+                  key={`${metric.label}-${metricIndex}`}
+                  className="flex min-w-0 flex-1 flex-col items-center gap-2 px-2 py-7 text-center"
+                  style={i > 0 ? { borderLeft: `1px solid ${hexToRgba(theme.accent, 0.2)}` } : undefined}
+                >
+                  <div className="@container w-full" style={{ color: readableTextDeep(theme) }}>
+                    <StatValue
+                      editEnabled={edit?.enabled}
+                      value={metric.value}
+                      style={fitTokenStyle(metric.value, -0.05)}
+                      onChange={(value) => {
+                        const metrics = section.metrics.map((item, mi) =>
+                          mi === metricIndex ? { ...item, value } : item,
+                        );
+                        edit?.onChange(index, { ...section, metrics });
+                      }}
+                      className="pz-fit font-heading [--pz-fs:var(--pz-t-statNumber-b)] font-black leading-none tracking-tighter tabular-nums @min-[640px]/pz:[--pz-fs:var(--pz-t-statNumber-w)]"
+                    />
+                    {renderFootnoteMark(metricIndex)}
+                  </div>
+                  <EditableText
+                    as="span"
+                    enabled={edit?.enabled}
+                    value={metric.label}
+                    onChange={(label) => {
+                      const metrics = section.metrics.map((item, mi) =>
+                        mi === metricIndex ? { ...item, label } : item,
+                      );
+                      edit?.onChange(index, { ...section, metrics });
+                    }}
+                    className={`mt-0.5 ${STAT_LABEL_CLASS}`}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : numberMetrics.length > 0 && (
             <div className={`mx-auto mt-10 grid gap-x-5 gap-y-6 ${numberGridCols}`}>
               {numberMetrics.map(({ metric, metricIndex }) => (
                 <LayeredPanel
@@ -3281,12 +3325,14 @@ function renderSection(
                     <div className="relative flex items-center justify-center">
                       <RadialGauge percent={percent} theme={theme} size={112} strokeWidth={10} />
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <StatValue
-                          value={metric.value}
-                          className="font-heading text-[length:var(--pz-t-statRing-b)] font-black leading-none tracking-tighter tabular-nums @min-[640px]/pz:text-[length:var(--pz-t-statRing-w)]"
-                          style={{ color: readableTextDeep(theme) }}
-                        />
-                        {renderFootnoteMark(metricIndex)}
+                        <span className="whitespace-nowrap">
+                          <StatValue
+                            value={metric.value}
+                            className="font-heading text-[length:var(--pz-t-statRing-b)] font-black leading-none tracking-tighter tabular-nums @min-[640px]/pz:text-[length:var(--pz-t-statRing-w)]"
+                            style={{ color: readableTextDeep(theme) }}
+                          />
+                          {renderFootnoteMark(metricIndex)}
+                        </span>
                       </div>
                     </div>
                     <span className={`mt-0.5 ${STAT_LABEL_CLASS}`}>{metric.label}</span>
@@ -3303,7 +3349,7 @@ function renderSection(
                   <div key={`${metric.label}-${metricIndex}`}>
                     <div className="flex items-baseline justify-between gap-4">
                       <div className="flex items-center gap-2.5">
-                        {(!FLAT_SECTION_SURFACES || conceptIcons?.statInfographic?.[metricIndex]) && (
+                        {!FLAT_SECTION_SURFACES && (
                           <ConceptBadgeIcon
                             src={conceptIcons?.statInfographic?.[metricIndex]}
                             theme={theme}
@@ -3324,18 +3370,20 @@ function renderSection(
                           className="text-sm font-medium text-ink/65 @min-[640px]/pz:text-base"
                         />
                       </div>
-                      <StatValue
-                        editEnabled={edit?.enabled}
-                        value={metric.value}
-                        onChange={(value) => {
-                          const metrics = section.metrics.map((item, i) =>
-                            i === metricIndex ? { ...item, value } : item,
-                          );
-                          edit?.onChange(index, { ...section, metrics });
-                        }}
-                        className="font-heading text-[length:var(--pz-t-statBar-b)] font-black leading-none tracking-tighter tabular-nums text-ink @min-[640px]/pz:text-[length:var(--pz-t-statBar-w)]"
-                      />
-                      {renderFootnoteMark(metricIndex)}
+                      <span className="shrink-0 whitespace-nowrap">
+                        <StatValue
+                          editEnabled={edit?.enabled}
+                          value={metric.value}
+                          onChange={(value) => {
+                            const metrics = section.metrics.map((item, i) =>
+                              i === metricIndex ? { ...item, value } : item,
+                            );
+                            edit?.onChange(index, { ...section, metrics });
+                          }}
+                          className="font-heading text-[length:var(--pz-t-statBar-b)] font-black leading-none tracking-tighter tabular-nums text-ink @min-[640px]/pz:text-[length:var(--pz-t-statBar-w)]"
+                        />
+                        {renderFootnoteMark(metricIndex)}
+                      </span>
                     </div>
                     {FLAT_SECTION_SURFACES && isConcentrationMetricLabel(metric.label) ? (
                       <div className="mt-3 h-px" style={{ backgroundColor: hexToRgba(theme.accent, 0.2) }} />
