@@ -125,6 +125,11 @@ import AnnotatedImageOverlay from "@/components/AnnotatedImageOverlay";
 import SpecBentoGrid from "@/components/SpecBentoGrid";
 import SectionAnchorNav from "@/components/SectionAnchorNav";
 import SectionImage from "@/components/SectionImage";
+import {
+  CHECKLIST_HUB_LABEL_W,
+  checklistHubLayout,
+  isChecklistHubEligible,
+} from "@/lib/checklist-hub";
 import { SellerImageMetaContext } from "@/components/SellerImageMetaContext";
 import CanvasSectionRenderer from "@/components/CanvasSectionRenderer";
 import {
@@ -1789,6 +1794,15 @@ function renderSection(
           ? followPattern
           : pattern;
       const headingParts = parseMegaKeywordHeading(section.heading);
+      const hubSrc = resolveImage(imageUrls, 0);
+      const hub = isChecklistHubEligible(items, {
+        flat: FLAT_SECTION_SURFACES,
+        compactFollow,
+        boldBlock,
+        hasImage: Boolean(hubSrc),
+      })
+        ? checklistHubLayout(items.length)
+        : null;
       return (
         <section
           key={`checklist-${index}`}
@@ -1825,6 +1839,86 @@ function renderSection(
               </div>
             )}
           </div>
+          {hub && hubSrc ? (
+            <div className="relative mx-auto mt-8 aspect-square w-full max-w-[420px]">
+              <svg
+                className="absolute inset-0 h-full w-full"
+                viewBox="0 0 100 100"
+                aria-hidden="true"
+              >
+                <circle
+                  cx={hub.cx}
+                  cy={hub.cy}
+                  r={hub.r + 2.5}
+                  fill="none"
+                  stroke={hexToRgba(theme.accent, 0.28)}
+                  strokeWidth={1}
+                  strokeDasharray="2 3"
+                  vectorEffect="non-scaling-stroke"
+                />
+                {hub.nodes.slice(0, items.length).map((n, i) => (
+                  <g key={i}>
+                    <line
+                      x1={n.x1}
+                      y1={n.y1}
+                      x2={n.x2}
+                      y2={n.y2}
+                      stroke={hexToRgba(theme.accent, 0.45)}
+                      strokeWidth={1}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                    <circle cx={n.x2} cy={n.y2} r={1.2} fill={readableTextDeep(theme)} />
+                  </g>
+                ))}
+              </svg>
+              <div
+                className="absolute overflow-hidden rounded-full"
+                style={{
+                  left: `${hub.cx - hub.r}%`,
+                  top: `${hub.cy - hub.r}%`,
+                  width: `${hub.r * 2}%`,
+                  height: `${hub.r * 2}%`,
+                  boxShadow: `0 0 0 1px ${hexToRgba(theme.accent, 0.18)}`,
+                }}
+              >
+                <SectionImage
+                  src={hubSrc}
+                  alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              {items.map((item, itemIndex) => {
+                const n = hub.nodes[itemIndex]!;
+                return (
+                  <div
+                    key={`${itemIndex}-${item.slice(0, 12)}`}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 text-center"
+                    style={{ left: `${n.x}%`, top: `${n.y}%`, width: `${CHECKLIST_HUB_LABEL_W}%` }}
+                  >
+                    <span
+                      className="mb-1 block font-mono text-[10px] font-bold tracking-[0.2em]"
+                      style={{ color: readableTextAccent(theme) }}
+                      aria-hidden="true"
+                    >
+                      {String(itemIndex + 1).padStart(2, "0")}
+                    </span>
+                    <EditableText
+                      as="span"
+                      enabled={edit?.enabled}
+                      value={item}
+                      onChange={(next) => {
+                        const nextItems = [...section.items];
+                        nextItems[itemIndex] = next;
+                        edit?.onChange(index, { ...section, items: nextItems });
+                      }}
+                      className="font-heading text-[15px] font-bold leading-snug tracking-[-0.02em] [word-break:keep-all]"
+                      style={{ color: readableTextDeep(theme) }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
           <ul
             className={`relative ${compactFollow ? "mt-8" : "mt-10"} grid ${
               compactFollow ? "gap-x-3 gap-y-6" : getCategoryRhythm(category).checklistGapClass
@@ -1882,6 +1976,7 @@ function renderSection(
               </li>
             ))}
           </ul>
+          )}
         </section>
       );
     }

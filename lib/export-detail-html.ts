@@ -1,5 +1,10 @@
 import type { CategoryTheme } from "@/lib/category-theme";
 import { renderCanvasSectionHtml } from "@/lib/canvas-section-export-html";
+import {
+  CHECKLIST_HUB_LABEL_W,
+  checklistHubLayout,
+  isChecklistHubEligible,
+} from "@/lib/checklist-hub";
 import { buildSectionImageAlt } from "@/lib/detail-image-alt";
 import { buildSeoTextBlockHtml } from "@/lib/detail-seo-text";
 import {
@@ -548,6 +553,41 @@ function sectionHtml(
           ${headingParts.keyword ? `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClamp};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:16px 0 0;text-transform:uppercase;color:${section.boldBlock ? "#FAF8F3" : deep}">${esc(headingParts.keyword)}</p>` : ""}
           ${dh2(category, esc(headingParts.remainder || section.heading), `${titleFitCss(headingParts.keyword ? "subtitle" : "section", headingParts.remainder || section.heading, headingParts.keyword ? -0.02 : -0.03)};margin:16px 0 0;font-weight:${headingParts.keyword ? "600" : "700"}`)}
         </div>`;
+      const clCompact = section.compactFollow === true;
+      const hubSrc = resolveExportImage(imageUrls, 0);
+      const clItems = section.items.filter((item) => String(item).trim());
+      if (
+        hubSrc &&
+        isChecklistHubEligible(clItems, {
+          flat: FLAT_SECTION_SURFACES,
+          compactFollow: clCompact,
+          boldBlock: Boolean(section.boldBlock) && !clCompact,
+          hasImage: true,
+        })
+      ) {
+        const hub = checklistHubLayout(clItems.length);
+        const lines = hub.nodes
+          .slice(0, clItems.length)
+          .map(
+            (n) =>
+              `<line x1="${n.x1}" y1="${n.y1}" x2="${n.x2}" y2="${n.y2}" stroke="${hexToRgba(accent, 0.45)}" stroke-width="1" vector-effect="non-scaling-stroke"/><circle cx="${n.x2}" cy="${n.y2}" r="1.2" fill="${deepText}"/>`,
+          )
+          .join("");
+        const labels = clItems
+          .map((item, i) => {
+            const n = hub.nodes[i]!;
+            return `<div style="position:absolute;left:${n.x}%;top:${n.y}%;width:${CHECKLIST_HUB_LABEL_W}%;transform:translate(-50%,-50%);text-align:center"><span aria-hidden="true" style="display:block;margin-bottom:4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;font-weight:700;letter-spacing:.2em;color:${accentText}">${String(i + 1).padStart(2, "0")}</span><span style="font-family:${DETAIL_FONT_STACK.heading};font-size:15px;font-weight:700;line-height:1.375;letter-spacing:-.02em;word-break:keep-all;color:${deepText}">${esc(item)}</span></div>`;
+          })
+          .join("");
+        const alt = buildSectionImageAlt(productName, section.heading, section.slot);
+        return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
+        ${checklistHead}
+        <div style="position:relative;margin:32px auto 0;width:100%;max-width:420px;aspect-ratio:1/1">
+          <svg viewBox="0 0 100 100" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%"><circle cx="${hub.cx}" cy="${hub.cy}" r="${hub.r + 2.5}" fill="none" stroke="${hexToRgba(accent, 0.28)}" stroke-width="1" stroke-dasharray="2 3" vector-effect="non-scaling-stroke"/>${lines}</svg>
+          <div style="position:absolute;left:${hub.cx - hub.r}%;top:${hub.cy - hub.r}%;width:${hub.r * 2}%;height:${hub.r * 2}%;border-radius:9999px;overflow:hidden;box-shadow:0 0 0 1px ${hexToRgba(accent, 0.18)}"><img src="${esc(hubSrc)}" alt="${esc(alt)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block"/></div>
+          ${labels}
+        </div></section>`;
+      }
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${checklistHead}
         <ul class="pagzly-cl-grid" style="${checklistGridCss(section.items, category)};gap:12px;list-style:none;padding:0;margin:0">
