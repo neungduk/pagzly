@@ -4,6 +4,8 @@
  * 성분명만으로 조합을 보여준다. 라이브·export가 같은 문자열을 쓴다.
  */
 
+import { isBaseSolventIngredient } from "@/lib/ingredient-labels";
+
 function esc(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -16,14 +18,20 @@ const D = 148;
 const OVERLAP = 28;
 
 export function ingredientVennHtml(labels: string[], color: string, fontFamily: string): string {
-  const names = labels.map((l) => l.trim()).filter(Boolean).slice(0, 2);
+  const trimmed = labels.map((l) => l.trim()).filter(Boolean);
+  const actives = trimmed.filter((l) => !isBaseSolventIngredient(l));
+  const names = (actives.length > 0 ? actives : trimmed).slice(0, 2);
   if (names.length === 0) return "";
   const label = (text: string, left: number, width: number) =>
     `<span style="position:absolute;top:0;left:${left}px;width:${width}px;height:${D}px;display:flex;align-items:center;justify-content:center;padding:0 10px;box-sizing:border-box;text-align:center;font-family:${fontFamily};font-size:${text.length > 9 ? 13 : 15}px;font-weight:700;line-height:1.3;letter-spacing:-0.02em;color:${color};word-break:keep-all;overflow-wrap:normal">${esc(text)}</span>`;
   if (names.length === 1) {
-    return `<div style="position:relative;width:${D}px;height:${D}px;margin:0 auto" role="img" aria-label="${esc(names[0]!)}">
+    const name = names[0]!;
+    return `<div style="position:relative;width:${D}px;height:${D}px;margin:0 auto" role="img" aria-label="${esc(name)}">
       <span style="position:absolute;inset:0;border:1.5px solid ${color};border-radius:9999px"></span>
-      ${label(names[0]!, 0, D)}
+      <span style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:0 16px;box-sizing:border-box;text-align:center;font-family:${fontFamily};color:${color}">
+        <span style="font-size:11px;font-weight:600;letter-spacing:.08em;opacity:.6">핵심 성분</span>
+        <span style="font-size:${name.length > 14 ? 15 : 18}px;font-weight:700;line-height:1.25;letter-spacing:-0.02em;word-break:keep-all;overflow-wrap:normal">${esc(name)}</span>
+      </span>
     </div>`;
   }
   const W = D * 2 - OVERLAP;

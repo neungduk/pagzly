@@ -2,6 +2,11 @@ const PLACEHOLDER_PATTERNS = ["판매자 확인 필요", "판매자에게 문의
 
 const INGREDIENT_SEP = /[,，、·/|;|\n]+/;
 
+/** 전성분 맨 앞의 기제(정제수 등) — 대표 성분으로 내세울 이름이 아님 */
+export function isBaseSolventIngredient(label: string): boolean {
+  return /^(?:water|aqua|purified water|water\s*\(aqua\)|aqua\s*\/\s*water|water\s*\/\s*aqua|정제수|물)$/i.test(label.trim());
+}
+
 function splitIngredientLabels(raw: string): string[] {
   const seen = new Set<string>();
   const labels: string[] = [];
@@ -24,8 +29,9 @@ export function parseIngredientLabels(
   if (!raw) return null;
   if (PLACEHOLDER_PATTERNS.some((p) => raw.includes(p))) return null;
 
-  const labels = splitIngredientLabels(raw);
-  return labels.length > 0 ? labels : null;
+  const all = splitIngredientLabels(raw);
+  const labels = all.filter((label) => !isBaseSolventIngredient(label));
+  return labels.length > 0 ? labels : all.length > 0 ? all : null;
 }
 
 /** 사용자 입력에서 라벨 2개 추출 — 정확히 2개 못 뽑으면 null (65차 호환) */

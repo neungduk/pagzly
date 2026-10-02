@@ -125,6 +125,7 @@ import {
   FLAT_PAPER,
   flatAccentTint,
   ensureReadableOnPaper,
+  getCategoryRhythm,
   type ExtendedTheme,
   type TitleScaleKey,
 } from "@/lib/design-tokens";
@@ -161,6 +162,27 @@ import type {
   GeneratedCopy,
   ImageTextSection,
 } from "@/lib/types/generate";
+
+/** 라이브 checklistGridClass와 같은 열 수 — 모바일 열은 인라인, 640px 이상은 --pz-cl-wide */
+function checklistGridCss(items: string[], category: string): string {
+  const n = items.filter((item) => String(item).trim()).length;
+  let mobile = 2;
+  let wide = 3;
+  if (n === 3) {
+    mobile = 3;
+    wide = 3;
+  } else if (n === 5) {
+    wide = 5;
+  } else if (n === 2) {
+    wide = 2;
+  } else if (n === 4) {
+    const hasLongToken = items.some((item) => longestTokenEm(item) > 3.5);
+    mobile = !hasLongToken && getCategoryRhythm(category).checklistGridFour.startsWith("grid-cols-4") ? 4 : 2;
+    wide = 4;
+  }
+  const narrow = n === 2 ? ";max-width:448px;margin-left:auto;margin-right:auto" : "";
+  return `display:grid;grid-template-columns:repeat(${mobile},1fr);--pz-cl-wide:repeat(${wide},1fr)${narrow}`;
+}
 
 function textPanelWrap(theme: CategoryTheme, inner: string): string {
   if (FLAT_SECTION_SURFACES) {
@@ -474,7 +496,11 @@ function sectionHtml(
   const sectionIdAttr = anchorId ? ` id="${anchorId}"` : "";
   const pad = "padding:48px 20px;";
   const bi = bodyIndex ?? 0;
-  const skipSurface = new Set(["hero", "cta_price", "illustration_banner", "ai_disclosure"]);
+  const skipSurface = new Set(
+    FLAT_SECTION_SURFACES
+      ? ["hero", "cta_price", "illustration_banner"]
+      : ["hero", "cta_price", "illustration_banner", "ai_disclosure"],
+  );
   const surface =
     extended && !skipSurface.has(section.type)
       ? resolveSectionSurface(extended, section.type, bi, category)
@@ -499,7 +525,7 @@ function sectionHtml(
         brandName,
         productName,
       });
-      return `<section${sectionIdAttr} class="hero"${sectionIdAttr} style="${pad}position:relative;min-height:70vh;background:${baseTheme.baseNeutral}">
+      return `<section${sectionIdAttr} class="hero"${sectionIdAttr} style="${FLAT_SECTION_SURFACES ? "" : pad}position:relative;min-height:70vh;background:${baseTheme.baseNeutral}">
         ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" fetchPriority="high" style="width:100%;height:70vh;object-fit:cover"/>` : ""}
         ${section.badge && !FLAT_SECTION_SURFACES ? `<span style="position:absolute;left:0;top:20px;background:${deepFill};color:#FAF8F3;padding:8px 16px;font-size:${FONT_SIZE.xs};font-weight:700">${esc(section.badge)}</span>` : ""}
         ${brandMarkHtml}
@@ -512,7 +538,7 @@ function sectionHtml(
       const fg = section.boldBlock ? "#FAF8F3" : "#1B1B18";
       const kicker = getSectionKicker(section);
       const headingParts = parseMegaKeywordHeading(section.heading);
-      const pointBadge = bodyIndex != null ? formatPointBadge(bodyIndex + 1) : "";
+      const pointBadge = pointOrdinal != null ? formatPointBadge(pointOrdinal) : "";
       const bg = section.boldBlock ? deep : sectionBg;
       const checklistHead = FLAT_SECTION_SURFACES
         ? flatSectionHeaderHtml(category, theme, section.heading, pointBadge, Boolean(section.boldBlock))
@@ -524,7 +550,7 @@ function sectionHtml(
         </div>`;
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${checklistHead}
-        <ul style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;list-style:none;padding:0;margin:0">
+        <ul class="pagzly-cl-grid" style="${checklistGridCss(section.items, category)};gap:12px;list-style:none;padding:0;margin:0">
           ${section.items
             .map(
               (item) =>
@@ -543,7 +569,7 @@ function sectionHtml(
       const bg = section.boldBlock ? deep : sectionBg;
       const fg = section.boldBlock ? "#FAF8F3" : "#1B1B18";
       const headingParts = parseMegaKeywordHeading(section.heading);
-      const pointBadge = bodyIndex != null ? formatPointBadge(bodyIndex + 1) : "";
+      const pointBadge = pointOrdinal != null ? formatPointBadge(pointOrdinal) : "";
       const kicker = getSectionKicker(section);
       const headerHtml = FLAT_SECTION_SURFACES
         ? flatSectionHeaderHtml(category, theme, section.heading, pointBadge, Boolean(section.boldBlock), 0)
@@ -589,7 +615,7 @@ function sectionHtml(
       }
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${headerHtml}
-        <div style="display:grid;grid-template-columns:repeat(${Math.min(3, cards.length)},1fr);gap:12px;margin-top:32px">
+        <div class="pagzly-hl-grid" style="display:grid;grid-template-columns:repeat(${cards.length === 4 ? 2 : 1},1fr);--pz-hl-wide:repeat(${cards.length},1fr);gap:12px;margin-top:32px">
           ${cards
             .map((card, i) => {
               const em = i === center;
@@ -641,18 +667,23 @@ function sectionHtml(
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         ${kickerHtml(`<p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">HOW TO USE</p>`)}
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
-        <div style="display:grid;grid-template-columns:repeat(${section.steps.length === 2 || section.steps.length === 4 ? 2 : 3},1fr);gap:20px;margin-top:32px">
-          ${section.steps
+        ${(() => {
+          const rowMode = section.steps.length !== 2 && section.steps.length !== 4;
+          const items = section.steps
             .map((step, i) => {
               const src = imageUrls[step.imageIndex] ?? "";
               const alt = buildSectionImageAlt(productName, step.title, section.slot);
-              return `<div><div style="position:relative;aspect-ratio:1;border-radius:${RADIUS.md}px;overflow:hidden;background:#eee">
+              const badge = `STEP ${String(i + 1).padStart(2, "0")}`;
+              return `<div${rowMode ? ` class="pagzly-step-row" style="display:grid;grid-template-columns:40% 1fr;gap:16px;align-items:center"` : ""}><div style="position:relative;aspect-ratio:1;border-radius:${RADIUS.md}px;overflow:hidden;background:#eee">
                 ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover"/>` : ""}
-                <span style="position:absolute;left:10px;top:10px;background:${deepFill};color:#FAF8F3;font-size:${FONT_SIZE.label};padding:4px 10px;border-radius:${RADIUS.pill}px;font-weight:700">STEP ${String(i + 1).padStart(2, "0")}</span>
-              </div><h3 style="margin:12px 0 4px">${esc(step.title)}</h3><p style="margin:0;font-size:${FONT_SIZE.sm};opacity:.8">${esc(step.body)}</p></div>`;
+                <span style="position:absolute;left:${rowMode ? 8 : 10}px;top:${rowMode ? 8 : 10}px;background:${deepFill};color:#FAF8F3;font-size:${rowMode ? "10px" : FONT_SIZE.label};padding:${rowMode ? "4px 10px" : "4px 10px"};border-radius:${RADIUS.pill}px;font-weight:700;letter-spacing:${rowMode ? ".18em" : ".24em"}">${badge}</span>
+              </div><div style="min-width:0"><h3 style="margin:${rowMode ? "0" : "12px"} 0 4px;font-size:16px;font-weight:700;letter-spacing:-0.02em">${esc(step.title)}</h3><p style="margin:0;font-size:${rowMode ? "13px" : FONT_SIZE.sm};line-height:1.625;opacity:.8;word-break:keep-all">${esc(step.body)}</p></div></div>`;
             })
-            .join("")}
-        </div>${flowHtml}</section>`;
+            .join("");
+          return rowMode
+            ? `<div class="pagzly-step-rows" style="display:grid;grid-template-columns:1fr;gap:20px;margin-top:32px">${items}</div>`
+            : `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-top:32px">${items}</div>`;
+        })()}${flowHtml}</section>`;
     }
     case "stat_infographic": {
       // 151차 — 각주(sourceNote)가 있는 measured metric에 순서대로 번호를 매겨
@@ -1208,7 +1239,7 @@ function sectionHtml(
           <p class="pz-fit" style="font-family:${DETAIL_FONT_STACK.heading};${titleFitCss("section", brandName!, -0.03)};font-weight:800;line-height:1.05;letter-spacing:-0.03em;color:${readableTextAccent(theme, 3)};margin:12px 0 0">${esc(brandName!)}</p>
           <span aria-hidden="true" style="display:block;width:40px;height:3px;border-radius:${RADIUS.pill}px;background:${solidAccentOnPaper(theme)};margin:20px auto 0"></span>
         </div>
-        <div style="${pad}${sectionInset}background:${FLAT_PAPER}">
+        <div style="${pad}${sectionInset}background:${FLAT_PAPER};text-align:center">
         ${textPanelWrap(theme, storyInner)}
         </div></section>`;
       }
@@ -1820,10 +1851,11 @@ ${jsonLd}
   ${buildDetailExportFontCss(opts.category)}
   .pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size}
   ${titleScaleExportCss()}
-  @media (min-width:640px){.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}}
+  @media (min-width:640px){.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}.pagzly-hl-grid{grid-template-columns:var(--pz-hl-wide)!important}.pagzly-cl-grid{grid-template-columns:var(--pz-cl-wide)!important}.pagzly-step-rows{grid-template-columns:repeat(3,1fr)!important;gap:32px!important}.pagzly-step-row{display:block!important}.pagzly-step-row h3{margin-top:12px!important}.pagzly-step-row p{font-size:${FONT_SIZE.sm}!important}}
   .pagzly-wrap .pz-fit{font-size:max(min(var(--pz-fs),0.6875rem),min(var(--pz-fs),calc(100cqi / var(--pz-fit-em,0.01))))!important}
   .pagzly-anchor-nav a{scroll-margin-top:52px}
-  .pagzly-seo-text{padding:20px;font-size:${FONT_SIZE.bodySm};line-height:1.65;border-bottom:1px solid #DAD5C9}
+  .pagzly-seo-text{padding:32px 20px;font-size:${FONT_SIZE.bodySm};line-height:1.65;border-top:1px solid #DAD5C9;color:rgba(27,27,24,.62)}
+  .pagzly-seo-text h1{font-size:${FONT_SIZE.seoH2};margin:0 0 8px;color:#1B1B18}
   .pagzly-seo-text h2{font-size:${FONT_SIZE.seoH2};margin:16px 0 8px}
   .pagzly-seo-text ul{padding-left:1.2rem;margin:0}
   @keyframes fillBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
@@ -1848,8 +1880,8 @@ ${jsonLd}
 <div class="pagzly-wrap">
 <header style="padding:14px 20px;border-bottom:1px solid #DAD5C9;font-size:${FONT_SIZE.xs};opacity:.65">${esc(opts.category)} · ${esc(opts.productName)}</header>
 ${anchorNavHtml}
-${seoBlock}
 ${body}
+${seoBlock}
 <footer style="padding:28px 20px;text-align:center;font-size:${FONT_SIZE.caption};opacity:.45">Pagzly HTML export · 마켓·자사몰용 (통이미지와 별도 텍스트·스키마 포함)</footer>
 </div>
 </body>
