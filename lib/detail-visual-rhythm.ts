@@ -182,6 +182,29 @@ export function restoreHashtagHeadingUnits(sections: DetailSection[]): DetailSec
   return changed ? out : sections;
 }
 
+/**
+ * 같은 페이지에 target_persona(이런 분께)가 이미 있으면 tradeoff_card의 "이런 분께 추천" 열은
+ * 같은 대상을 한 번 더 나열하는 중복 — 참고 열만 남긴다(참고 열이 비면 그대로 둔다).
+ */
+export function dropDuplicateRecommendColumn(sections: DetailSection[]): DetailSection[] {
+  const hasPersona = sections.some(
+    (s) =>
+      s.type === "target_persona" &&
+      (Array.isArray(s.personas) ? s.personas.filter((p) => p.trim()).length : 0) >= 2,
+  );
+  if (!hasPersona) return sections;
+  let changed = false;
+  const out = sections.map((s) => {
+    if (s.type !== "tradeoff_card") return s;
+    const recommend = Array.isArray(s.recommendFor) ? s.recommendFor.filter((t) => t.trim()) : [];
+    const consider = Array.isArray(s.considerIf) ? s.considerIf.filter((t) => t.trim()) : [];
+    if (recommend.length === 0 || consider.length === 0) return s;
+    changed = true;
+    return { ...s, recommendFor: [] };
+  });
+  return changed ? out : sections;
+}
+
 export function shouldInsertBreather(
   prev: DetailSection | undefined,
   current: DetailSection,

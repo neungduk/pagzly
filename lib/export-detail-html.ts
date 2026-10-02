@@ -13,6 +13,7 @@ import {
   limitBoldBlocks,
   resolveSplitFlexRatio,
   restoreHashtagHeadingUnits,
+  dropDuplicateRecommendColumn,
   resolveSplitImageLeft,
   shouldInsertBreather,
   shouldUseEditorialBleed,
@@ -827,15 +828,15 @@ function sectionHtml(
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         ${kickerHtml(`<p style="text-align:center;color:${deepText};font-size:${FONT_SIZE.caption};letter-spacing:.2em">FIT CHECK</p>`)}
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
-        <div style="max-width:720px;margin:32px auto 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px">
-          <div style="border-radius:${RADIUS.lg}px;padding:20px;${FLAT_SECTION_SURFACES ? `background:${FLAT_PAPER};border:1px solid ${hexToRgba(accent, 0.24)}` : `background:${accent}1a`}">
+        <div style="max-width:${recommendFor.length > 0 && considerIf.length > 0 ? 720 : 576}px;margin:32px auto 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px">
+          ${recommendFor.length > 0 ? `<div style="border-radius:${RADIUS.lg}px;padding:20px;${FLAT_SECTION_SURFACES ? `background:${FLAT_PAPER};border:1px solid ${hexToRgba(accent, 0.24)}` : `background:${accent}1a`}">
             <p style="margin:0 0 14px;font-size:${FONT_SIZE.sm};font-weight:600;letter-spacing:-0.01em;color:${deepText}">이런 분께 추천</p>
             ${recommendFor.map((item) => `<p style="display:flex;gap:8px;margin:0 0 12px;font-size:${FONT_SIZE.bodySm};line-height:1.6;color:rgba(27,27,24,.8)"><span aria-hidden="true" style="flex-shrink:0;width:16px;text-align:center;font-weight:700;color:${accentText}">✓</span><span>${esc(item)}</span></p>`).join("")}
-          </div>
-          <div style="border-radius:${RADIUS.lg}px;padding:20px;${FLAT_SECTION_SURFACES ? `background:${FLAT_PAPER};border:1px solid ${hexToRgba(BRAND.ink, 0.1)}` : `background:${theme.baseNeutral}59`}">
+          </div>` : ""}
+          ${considerIf.length > 0 ? `<div style="border-radius:${RADIUS.lg}px;padding:20px;${FLAT_SECTION_SURFACES ? `background:${FLAT_PAPER};border:1px solid ${hexToRgba(BRAND.ink, 0.1)}` : `background:${theme.baseNeutral}59`}">
             <p style="margin:0 0 14px;font-size:${FONT_SIZE.sm};font-weight:600;letter-spacing:-0.01em;color:rgba(27,27,24,.6)">이런 점은 참고하세요</p>
             ${considerIf.map((item) => `<p style="display:flex;gap:8px;margin:0 0 12px;font-size:${FONT_SIZE.bodySm};line-height:1.6;color:rgba(27,27,24,.7)"><span aria-hidden="true" style="flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-top:2px;border:1.5px solid rgba(27,27,24,.45);border-radius:50%;font-size:10px;font-weight:700;line-height:1;color:rgba(27,27,24,.55)">i</span><span>${esc(item)}</span></p>`).join("")}
-          </div>
+          </div>` : ""}
         </div>
       </section>`;
     }
@@ -1718,8 +1719,10 @@ export function buildDetailPageHtml(opts: {
   const hidden = new Set(opts.hiddenIndexes ?? []);
   // 183차 — 저관여(생활/펫) 표시 예산: 세션 데이터는 유지하고 export 노출만 축소
   const afterUserHidden = opts.sections.filter((_, i) => !hidden.has(i));
-  const visibleSections = restoreHashtagHeadingUnits(
-    limitBoldBlocks(applySectionDisplayBudget(opts.category, afterUserHidden)),
+  const visibleSections = dropDuplicateRecommendColumn(
+    restoreHashtagHeadingUnits(
+      limitBoldBlocks(applySectionDisplayBudget(opts.category, afterUserHidden)),
+    ),
   );
   const trustChips = extractTrustChips(visibleSections);
   const extended = extendTheme(opts.theme);

@@ -55,6 +55,7 @@ import {
   getSectionKicker,
   limitBoldBlocks,
   restoreHashtagHeadingUnits,
+  dropDuplicateRecommendColumn,
   buildPointOrdinals,
   resolveSplitColumnRatio,
   resolveSplitImageLeft,
@@ -2883,7 +2884,14 @@ function renderSection(
           <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}>
             {section.heading}
           </h3>
-          <div className="mx-auto mt-10 grid max-w-3xl gap-6 @min-[640px]/pz:grid-cols-2">
+          <div
+            className={`mx-auto mt-10 grid gap-6 ${
+              recommendFor.length > 0 && considerIf.length > 0
+                ? "max-w-3xl @min-[640px]/pz:grid-cols-2"
+                : "max-w-xl"
+            }`}
+          >
+            {recommendFor.length > 0 ? (
             <div
               className={`rounded-2xl p-5 @min-[640px]/pz:p-6 ${FLAT_SECTION_SURFACES ? "border" : ""}`}
               style={
@@ -2904,6 +2912,8 @@ function renderSection(
                 ))}
               </ul>
             </div>
+            ) : null}
+            {considerIf.length > 0 ? (
             <div
               className={`rounded-2xl p-5 @min-[640px]/pz:p-6 ${FLAT_SECTION_SURFACES ? "border" : ""}`}
               style={
@@ -2924,6 +2934,7 @@ function renderSection(
                 ))}
               </ul>
             </div>
+            ) : null}
           </div>
         </section>
       );
@@ -2986,7 +2997,7 @@ function renderSection(
                   key={cardIndex}
                   data-preview-pulse={emphasized ? "true" : undefined}
                   className={`@container flex flex-col gap-2 rounded-2xl px-6 py-8 text-center ${
-                    emphasized && !isTrustEvidence
+                    emphasized && !isTrustEvidence && !FLAT_SECTION_SURFACES
                       ? "pagzly-pulse-card pagzly-ink-shimmer @min-[640px]/pz:-translate-y-2"
                       : ""
                   } ${isTrustEvidence ? "py-10 @min-[640px]/pz:py-14" : ""}`}
@@ -4643,7 +4654,9 @@ export default function DetailSectionRenderer({
   certifications,
   pendingHighlightIndex = null,
 }: DetailSectionRendererProps) {
-  const sections = restoreHashtagHeadingUnits(limitBoldBlocks(rawSections));
+  const sections = dropDuplicateRecommendColumn(
+    restoreHashtagHeadingUnits(limitBoldBlocks(rawSections)),
+  );
   const pointOrdinals = buildPointOrdinals(sections);
   const baseTheme = themeOverride ?? getCategoryTheme(category);
   const extendedTheme = extendTheme(baseTheme);
