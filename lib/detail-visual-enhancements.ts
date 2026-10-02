@@ -40,6 +40,16 @@ export function isConcentrationMetricLabel(label: string): boolean {
 }
 
 /** heading에서 초대형 키워드(영문 압축) + 나머지 분리 */
+/** 형제 카드끼리 큰 키워드/일반 제목이 섞이지 않도록 — 하나라도 분리 안 되면 전부 일반 제목 */
+export function parseUniformCardKeywords(
+  titles: string[],
+): { keyword: string | null; remainder: string }[] {
+  const parsed = titles.map((title) => parseMegaKeywordHeading(title));
+  return parsed.every((p) => p.keyword)
+    ? parsed
+    : titles.map((title) => ({ keyword: null, remainder: title.trim() }));
+}
+
 export function parseMegaKeywordHeading(title: string): {
   keyword: string | null;
   remainder: string;

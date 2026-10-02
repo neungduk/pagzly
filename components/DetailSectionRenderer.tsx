@@ -67,6 +67,7 @@ import {
   getCategoryTitleKeyword,
   isCertificationHighlight,
   parseMegaKeywordHeading,
+  parseUniformCardKeywords,
   isConcentrationMetricLabel,
   isShortSectionHeading,
 } from "@/lib/detail-visual-enhancements";
@@ -2882,7 +2883,9 @@ function renderSection(
             {cards.map((card, cardIndex) => {
               const emphasized = cardIndex === centerIdx;
               const lightEm = FLAT_SECTION_SURFACES && boldBlock && emphasized;
-              const cardKeyword = parseMegaKeywordHeading(card.title);
+              const cardKeyword = FLAT_SECTION_SURFACES
+                ? parseUniformCardKeywords(cards.map((c) => c.title ?? ""))[cardIndex]!
+                : parseMegaKeywordHeading(card.title);
               return (
                 <div
                   key={cardIndex}

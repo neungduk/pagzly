@@ -20,6 +20,7 @@ import {
   isConcentrationMetricLabel,
   isShortSectionHeading,
   parseMegaKeywordHeading,
+  parseUniformCardKeywords,
 } from "@/lib/detail-visual-enhancements";
 import {
   buildFashionSizeDiagramSvg,
@@ -593,7 +594,9 @@ function sectionHtml(
             .map((card, i) => {
               const em = i === center;
               const lightEm = FLAT_SECTION_SURFACES && Boolean(section.boldBlock) && em;
-              const cardKeyword = parseMegaKeywordHeading(card.title);
+              const cardKeyword = FLAT_SECTION_SURFACES
+                ? parseUniformCardKeywords(cards.map((c) => c.title ?? ""))[i]!
+                : parseMegaKeywordHeading(card.title);
               const cardBg = lightEm
                 ? FLAT_PAPER
                 : em
