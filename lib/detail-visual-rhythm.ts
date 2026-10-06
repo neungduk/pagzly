@@ -254,3 +254,8 @@ export function shouldInsertBreather(
 
   return breaksAfter.has(prev.type) || breaksBefore.has(current.type);
 }
+
+/** 넓은 화면에서 짧은 추천 대상 4·6개는 두 줄 배치 — 긴 문장은 칸이 좁아 한 줄 목록 유지 */
+export function isPersonaPairGrid(personas: string[]): boolean {
+  return (personas.length === 4 || personas.length === 6) && personas.every((p) => p.trim().length <= 16);
+}

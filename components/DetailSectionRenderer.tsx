@@ -57,6 +57,7 @@ import {
   limitBoldBlocks,
   restoreHashtagHeadingUnits,
   dropDuplicateRecommendColumn,
+  isPersonaPairGrid,
   buildPointOrdinals,
   resolveSplitColumnRatio,
   resolveSplitImageLeft,
@@ -2069,7 +2070,10 @@ function renderSection(
               <h2 className={TYPO.sectionTitle} style={{ color: readableTextDeep(theme, 3) }}>
                 {section.heading}
               </h2>
-              <p className={`mt-4 whitespace-pre-line ${TYPO.body}`} style={{ color: BRAND.ink }}>
+              <p
+                className={`mt-4 whitespace-pre-line ${TYPO.body}`}
+                style={FLAT_SECTION_SURFACES ? undefined : { color: BRAND.ink }}
+              >
                 {section.body}
               </p>
             </div>
@@ -4632,7 +4636,11 @@ function renderSection(
             />
           </div>
           <ul
-            className={`mx-auto mt-8 flex max-w-xl flex-col items-stretch ${FLAT_SECTION_SURFACES ? "gap-3" : "gap-2.5"}`}
+            className={
+              FLAT_SECTION_SURFACES && isPersonaPairGrid(section.personas)
+                ? "mx-auto mt-8 grid max-w-xl gap-3 @min-[640px]/pz:grid-cols-2"
+                : `mx-auto mt-8 flex max-w-xl flex-col items-stretch ${FLAT_SECTION_SURFACES ? "gap-3" : "gap-2.5"}`
+            }
           >
             {section.personas.map((persona, personaIndex) => (
               <li

@@ -14,6 +14,7 @@ import {
   resolveSplitFlexRatio,
   restoreHashtagHeadingUnits,
   dropDuplicateRecommendColumn,
+  isPersonaPairGrid,
   resolveSplitImageLeft,
   shouldInsertBreather,
   shouldUseEditorialBleed,
@@ -884,7 +885,7 @@ function sectionHtml(
         return `<section${sectionIdAttr} style="padding:40px 24px;${sectionInset}${bgCss}">
           <div style="max-width:576px;margin:0 auto;text-align:${FLAT_SECTION_SURFACES ? "center" : "left"}">
             ${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)};margin:0;line-height:1.2;color:${readableTextDeep(theme, 3)}`)}
-            <p style="margin:16px 0 0;white-space:pre-line;font-size:${titleSizeCss("body")};line-height:1.9;color:${BRAND.ink}">${esc(section.body)}</p>
+            <p style="margin:16px 0 0;white-space:pre-line;font-size:${titleSizeCss("body")};line-height:1.9;color:${FLAT_SECTION_SURFACES ? hexToRgba(BRAND.ink, 0.72) : BRAND.ink}">${esc(section.body)}</p>
           </div>
         </section>`;
       }
@@ -1341,7 +1342,7 @@ function sectionHtml(
         const check = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${BRAND.paper}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>`;
         return `<section${sectionIdAttr} class="pagzly-persona" style="${pad}${sectionInset}${bgCss}">
         <div style="text-align:center;max-width:576px;margin:0 auto">${twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}</div>
-        <ul style="max-width:576px;margin:32px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px">
+        <ul${isPersonaPairGrid(section.personas) ? ` class="pagzly-persona-pairs"` : ""} style="max-width:576px;margin:32px auto 0;padding:0;list-style:none;display:${isPersonaPairGrid(section.personas) ? "grid" : "flex"};flex-direction:column;gap:12px">
           ${section.personas.map((p) => `<li style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-radius:${RADIUS.lg}px;border:1px solid ${hexToRgba(theme.accent, 0.16)};background:${FLAT_PAPER};font-size:16px;font-weight:500;line-height:1.375;color:${BRAND.ink}"><span style="display:flex;flex-shrink:0;align-items:center;justify-content:center;width:24px;height:24px;border-radius:9999px;background:${solidAccentOnPaper(theme)}">${check}</span><span style="min-width:0;flex:1;text-align:left">${esc(p)}</span></li>`).join("")}
         </ul>
       </section>`;
@@ -1932,7 +1933,7 @@ ${jsonLd}
   ${buildDetailExportFontCss(opts.category)}
   .pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size}
   ${titleScaleExportCss()}
-  @media (min-width:640px){.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}.pagzly-hl-grid{grid-template-columns:var(--pz-hl-wide)!important}.pagzly-cl-grid{grid-template-columns:var(--pz-cl-wide)!important}.pagzly-step-rows{grid-template-columns:repeat(3,1fr)!important;gap:32px!important}.pagzly-step-row{display:block!important}.pagzly-step-row h3{margin-top:12px!important}.pagzly-step-row p{font-size:${FONT_SIZE.sm}!important}}
+  @media (min-width:640px){.pagzly-persona-pairs{grid-template-columns:repeat(2,1fr)!important}.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}.pagzly-hl-grid{grid-template-columns:var(--pz-hl-wide)!important}.pagzly-cl-grid{grid-template-columns:var(--pz-cl-wide)!important}.pagzly-step-rows{grid-template-columns:repeat(3,1fr)!important;gap:32px!important}.pagzly-step-row{display:block!important}.pagzly-step-row h3{margin-top:12px!important}.pagzly-step-row p{font-size:${FONT_SIZE.sm}!important}}
   .pagzly-wrap .pz-fit{font-size:max(min(var(--pz-fs),0.6875rem),min(var(--pz-fs),calc(100cqi / var(--pz-fit-em,0.01))))!important}
   .pagzly-anchor-nav a{scroll-margin-top:52px}
   .pagzly-seo-text{padding:32px 20px;font-size:${FONT_SIZE.bodySm};line-height:1.65;border-top:1px solid #DAD5C9;color:rgba(27,27,24,.62)}
