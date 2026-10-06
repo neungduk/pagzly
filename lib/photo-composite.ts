@@ -301,9 +301,10 @@ export async function featherCutout(
     out[i * channels + 2] = data[s * channels + 2];
   }
 
-  // 제품이 캔버스의 ~50% 스팬일 때 blur≈2.4 가 되도록 정규화
+  // 제품이 캔버스의 ~50% 스팬일 때 blur≈2.4 가 되도록 정규화.
+  // 하한이 1.2면 100~150px로 작게 붙는 컷아웃의 윤곽이 실사진 엣지(≈1px)보다 3~4배 물러져 유령처럼 보인다.
   const span = Math.max(width, height);
-  const blurSigma = Math.max(1.2, Math.min(4.8, 2.4 * (span / (canvasSize * 0.5))));
+  const blurSigma = Math.max(0.6, Math.min(4.8, 2.4 * (span / (canvasSize * 0.5))));
 
   const blurredAlpha = await sharp(Buffer.from(eroded), { raw: { width, height, channels: 1 } })
     .blur(blurSigma)
@@ -710,9 +711,10 @@ export async function matchCutoutSharpness(
     return cutout;
   }
 
-  // ratio가 0(배경이 완전히 평탄)에 가까울수록 1.4에, threshold 바로 아래일수록 0.8에 가깝게.
+  // 아웃포커스 배경 앞의 제품은 초점이 맞은 피사체로 읽혀야 한다 — 배경만큼 흐리면 라벨·윤곽이
+  // 뭉개져 합성 티가 오히려 커진다. 업스케일 계단만 다듬는 수준(0.3~0.6)으로 제한.
   const t = Math.min(1, Math.max(0, (threshold - ratio) / threshold));
-  const sigma = 0.8 + t * 0.6;
+  const sigma = 0.3 + t * 0.3;
 
   // 주의: ensureAlpha() 뒤에 removeAlpha()를 이어붙이면(sharp/libvips 실측 확인) 알파가
   // 파이프라인에 그대로 남는 경우가 있어, RGB만 뽑을 때는 removeAlpha()를 단독으로 쓴다.
