@@ -3,6 +3,13 @@ import { extractBenefitKeywords } from "@/lib/marketplace-pdp-patterns";
 import { parseCertificationTokens } from "@/lib/enrich-product-sections";
 import { FLAT_SECTION_SURFACES } from "@/lib/design-tokens";
 
+/** "피부자극 테스트 완료(자체, n=32)" → 본문 "피부자극 테스트 완료" + 보조 "자체, n=32" */
+export function splitChipCaption(chip: string): { main: string; sub: string | null } {
+  const m = chip.trim().match(/^(.+?)\s*\(([^()]+)\)$/);
+  if (!m || m[1]!.trim().length < 2) return { main: chip.trim(), sub: null };
+  return { main: m[1]!.trim(), sub: m[2]!.trim() };
+}
+
 /** 히어로 직후 혜택·신뢰 스트립 — CTA 배지·배송·인증·스펙 행에서 추출 */
 export function extractTrustChips(
   sections: DetailSection[],

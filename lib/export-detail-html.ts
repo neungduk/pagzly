@@ -96,7 +96,7 @@ import {
   buildSectionAnchors,
 } from "@/lib/section-anchor-nav";
 import { parseCertificationTokens } from "@/lib/enrich-product-sections";
-import { extractTrustChips } from "@/lib/extract-trust-chips";
+import { extractTrustChips, splitChipCaption } from "@/lib/extract-trust-chips";
 import {
   pickSummaryIcon,
   summaryChipWidth,
@@ -240,11 +240,12 @@ function trustStripHtml(
                 c.toLowerCase().includes(token.toLowerCase())),
           );
           const icon = summaryIconSvg(pickSummaryIcon(c), certHighlight ? accent : deepText, SUMMARY_ICON_PX);
+          const caption = splitChipCaption(c);
           const divider =
             FLAT_SECTION_SURFACES && i % summaryGridColumns(chips.length) !== 0
               ? `<span aria-hidden="true" style="position:absolute;left:-6px;top:4px;bottom:4px;width:1px;background:${hexToRgba(accent, 0.22)}"></span>`
               : "";
-          return `<div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;width:${chipWidth}">${divider}${icon}<span style="font-size:14px;font-weight:600;line-height:1.375;word-break:keep-all;color:${certHighlight ? accentText : theme.deepAccent}">${esc(c)}</span></div>`;
+          return `<div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;width:${chipWidth}">${divider}${icon}<span style="font-size:14px;font-weight:600;line-height:1.375;word-break:keep-all;color:${certHighlight ? accentText : theme.deepAccent}">${esc(caption.main)}${caption.sub ? `<span style="display:block;margin-top:2px;font-size:11px;font-weight:500;opacity:.6">${esc(caption.sub)}</span>` : ""}</span></div>`;
         })
         .join("")}
     </div></div>`;

@@ -44,7 +44,7 @@ import {
 } from "@/lib/before-after-eligibility";
 import { buildSectionImageAlt } from "@/lib/detail-image-alt";
 import { splitTextByKeywords } from "@/lib/review-insights";
-import { extractTrustChips } from "@/lib/extract-trust-chips";
+import { extractTrustChips, splitChipCaption } from "@/lib/extract-trust-chips";
 import {
   pickSummaryIcon,
   summaryChipWidth,
@@ -1228,6 +1228,7 @@ function TrustStrip({
                 chip.toLowerCase().includes(token.toLowerCase())),
           );
           const iconColor = certHighlight ? theme.accent : readableTextDeep(theme);
+          const caption = splitChipCaption(chip);
           const divider =
             FLAT_SECTION_SURFACES && chipIndex % summaryGridColumns(chips.length) !== 0;
           return (
@@ -1253,7 +1254,10 @@ function TrustStrip({
                 className="text-[14px] font-semibold leading-snug [word-break:keep-all]"
                 style={{ color: certHighlight ? theme.accent : theme.deepAccent }}
               >
-                {chip}
+                {caption.main}
+                {caption.sub ? (
+                  <span className="mt-0.5 block text-[11px] font-medium opacity-60">{caption.sub}</span>
+                ) : null}
               </span>
             </div>
           );
