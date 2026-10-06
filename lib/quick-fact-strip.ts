@@ -1,6 +1,8 @@
 /** spec_table 핵심 행 → 퀵팩트 스트립 (55차) */
 
 import type { DetailSection } from "@/lib/types/generate";
+import { FLAT_SECTION_SURFACES } from "@/lib/design-tokens";
+import { displaySpecValue } from "@/lib/ingredient-venn";
 
 const PLACEHOLDER_PATTERNS = [
   "판매자 확인 필요",
@@ -47,7 +49,12 @@ export function extractQuickFacts(sections: DetailSection[]): QuickFact[] {
   if (!spec || spec.type !== "spec_table") return [];
 
   const validRows = spec.rows.filter(
-    (r) => r.label.trim() && r.value.trim() && !isPlaceholderValue(r.value),
+    (r) =>
+      r.label.trim() &&
+      r.value.trim() &&
+      !isPlaceholderValue(r.value) &&
+      // 플랫 톤은 히어로 워드마크·브랜드 섹션·CTA에 이미 브랜드명이 있다
+      !(FLAT_SECTION_SURFACES && r.label.trim() === "브랜드"),
   );
   if (validRows.length === 0) return [];
 
@@ -56,7 +63,10 @@ export function extractQuickFacts(sections: DetailSection[]): QuickFact[] {
   );
 
   const picked = (whitelisted.length > 0 ? whitelisted : validRows.slice(0, 2)).slice(0, 4);
-  return picked.map((r) => ({ label: r.label.trim(), value: r.value.trim() }));
+  return picked.map((r) => ({
+    label: r.label.trim(),
+    value: displaySpecValue(r.label, r.value.trim()),
+  }));
 }
 
 export function formatQuickFactLine(facts: QuickFact[]): string {

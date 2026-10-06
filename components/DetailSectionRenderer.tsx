@@ -37,7 +37,7 @@ import {
 } from "@/lib/circle-comparison-combo";
 import { classifyBoolishCell } from "@/lib/comparison-cell-classify";
 import { resolveCompactImageShape } from "@/lib/compact-image-shape";
-import { ingredientVennHtml } from "@/lib/ingredient-venn";
+import { displaySpecValue, ingredientVennHtml, isRedundantSoloVenn } from "@/lib/ingredient-venn";
 import {
   BEFORE_AFTER_COMPLIANCE_NOTE,
   CERTIFICATE_EVIDENCE_COMPLIANCE_NOTE,
@@ -1486,6 +1486,15 @@ function renderCircleComparisonCombo(params: {
   productName: string;
 }): ReactNode {
   const { circleSection, chartSection, index, category, theme, pattern, productName } = params;
+  const hideCircle =
+    FLAT_SECTION_SURFACES &&
+    isRedundantSoloVenn(
+      isCircleSoloSection(circleSection) && circleSection.circleSolo
+        ? [circleSection.circleSolo.label]
+        : (circleSection.circlePair ?? []).map((p) => p.label),
+      circleSection.heading,
+      circleSection.body,
+    );
   return (
     <section
       key={`circle-comparison-combo-${index}`}
@@ -1493,14 +1502,16 @@ function renderCircleComparisonCombo(params: {
       style={textSectionStyle(theme, pattern, category)}
       data-testid="circle-comparison-combo"
     >
-      <div className="mb-10">
-        {renderIngredientCircleVisual({
-          section: circleSection,
-          productName,
-          theme,
-          compact: true,
-        })}
-      </div>
+      {hideCircle ? null : (
+        <div className="mb-10">
+          {renderIngredientCircleVisual({
+            section: circleSection,
+            productName,
+            theme,
+            compact: true,
+          })}
+        </div>
+      )}
       {renderComparisonChartBody({ section: chartSection, theme })}
     </section>
   );
@@ -1993,7 +2004,7 @@ function renderSection(
             className="px-6 py-10 @min-[640px]/pz:px-10 @min-[640px]/pz:py-12"
             style={textSectionStyle(theme, pattern, category)}
           >
-            <div className="mx-auto max-w-xl">
+            <div className={`mx-auto max-w-xl ${FLAT_SECTION_SURFACES ? "text-center" : ""}`}>
               <h2 className={TYPO.sectionTitle} style={{ color: readableTextDeep(theme, 3) }}>
                 {section.heading}
               </h2>
@@ -2014,6 +2025,19 @@ function renderSection(
       const isCallout = section.layout === "callout" || section.slot === "feature_callout";
 
       if (isCircleSolo || isCirclePair) {
+        if (
+          FLAT_SECTION_SURFACES &&
+          !edit?.enabled &&
+          isRedundantSoloVenn(
+            isCircleSolo && section.circleSolo
+              ? [section.circleSolo.label]
+              : (section.circlePair ?? []).map((p) => p.label),
+            section.heading,
+            section.body,
+          )
+        ) {
+          return null;
+        }
         return (
           <section
             key={`image_text-${index}`}
@@ -2733,7 +2757,7 @@ function renderSection(
                         <EditableText
                           as="span"
                           enabled={edit?.enabled}
-                          value={row.value}
+                          value={edit?.enabled ? row.value : displaySpecValue(row.label, row.value)}
                           onChange={(value) => {
                             const rows = section.rows.map((item, i) =>
                               i === rowIndex ? { ...item, value } : item,
@@ -3193,6 +3217,13 @@ function renderSection(
           : numberMetrics.length === 2
             ? "max-w-md grid-cols-2"
             : "max-w-2xl grid-cols-2 @min-[640px]/pz:grid-cols-3";
+      // 숫자 카드·링·막대가 한 섹션에 섞이면 세 가지 시각 언어가 겹친다 — 숫자가 있으면 링도 같은 선 구분 칸으로
+      const stripMetrics =
+        FLAT_SECTION_SURFACES &&
+        numberMetrics.length >= 1 &&
+        numberMetrics.length + ringMetrics.length <= 3
+          ? [...numberMetrics, ...ringMetrics].sort((a, b) => a.metricIndex - b.metricIndex)
+          : null;
       const ringGridCols =
         ringMetrics.length <= 1
           ? "max-w-xs grid-cols-1"
@@ -3214,15 +3245,15 @@ function renderSection(
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
             className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}
           />
-          {FLAT_SECTION_SURFACES && numberMetrics.length >= 2 && numberMetrics.length <= 3 ? (
+          {stripMetrics ? (
             <div
-              className={`mx-auto mt-10 flex items-stretch ${numberMetrics.length === 2 ? "max-w-md" : "max-w-2xl"}`}
+              className={`mx-auto mt-10 flex items-stretch ${stripMetrics.length === 1 ? "max-w-xs" : stripMetrics.length === 2 ? "max-w-md" : "max-w-2xl"}`}
               style={{
                 borderTop: `1px solid ${hexToRgba(theme.accent, 0.2)}`,
                 borderBottom: `1px solid ${hexToRgba(theme.accent, 0.2)}`,
               }}
             >
-              {numberMetrics.map(({ metric, metricIndex }, i) => (
+              {stripMetrics.map(({ metric, metricIndex }, i) => (
                 <div
                   key={`${metric.label}-${metricIndex}`}
                   className="flex min-w-0 flex-1 flex-col items-center gap-2 px-2 py-7 text-center"
@@ -3310,7 +3341,7 @@ function renderSection(
               ))}
             </div>
           )}
-          {ringMetrics.length > 0 && (
+          {!stripMetrics && ringMetrics.length > 0 && (
             <div className={`mx-auto mt-10 grid gap-x-5 gap-y-8 ${ringGridCols}`}>
               {ringMetrics.map(({ metric, metricIndex }) => {
                 const percent = Math.min(100, Math.max(0, metric.percent ?? 0));

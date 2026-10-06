@@ -1,6 +1,7 @@
 import type { DetailSection } from "@/lib/types/generate";
 import { extractBenefitKeywords } from "@/lib/marketplace-pdp-patterns";
 import { parseCertificationTokens } from "@/lib/enrich-product-sections";
+import { FLAT_SECTION_SURFACES } from "@/lib/design-tokens";
 
 /** 히어로 직후 혜택·신뢰 스트립 — CTA 배지·배송·인증·스펙 행에서 추출 */
 export function extractTrustChips(
@@ -29,6 +30,13 @@ export function extractTrustChips(
     if (section.type !== "spec_table") continue;
     for (const row of section.rows) {
       if (/인증|수상|kc|KC|허가|원산지|제조국/i.test(row.label) && row.value) {
+        const originLabel = row.label.match(/원산지|제조국/)?.[0];
+        // "대한민국"만 단독으로 두면 무엇의 국가인지 알 수 없다
+        if (originLabel) {
+          const v = row.value.trim();
+          add(/원산지|제조|생산|made\s*in/i.test(v) ? v : `${originLabel} ${v}`);
+          continue;
+        }
         const parts = parseCertificationTokens(row.value);
         if (parts.length > 0) {
           for (const p of parts) add(p);
@@ -57,5 +65,7 @@ export function extractTrustChips(
     add(benefit);
   }
 
+  // 칸 하나짜리 요약 그리드는 빈 띠처럼 보인다
+  if (FLAT_SECTION_SURFACES && chips.length < 2) return [];
   return chips.slice(0, 6);
 }

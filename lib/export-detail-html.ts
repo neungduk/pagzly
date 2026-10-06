@@ -71,7 +71,7 @@ import {
 } from "@/lib/package-contents-diagram";
 import { buildAnnotatedImageOverlaySvg } from "@/lib/annotated-image-overlay-svg";
 import { resolveCompactImageShape } from "@/lib/compact-image-shape";
-import { ingredientVennHtml } from "@/lib/ingredient-venn";
+import { displaySpecValue, ingredientVennHtml, isRedundantSoloVenn } from "@/lib/ingredient-venn";
 import {
   BEFORE_AFTER_COMPLIANCE_NOTE,
   CERTIFICATE_EVIDENCE_COMPLIANCE_NOTE,
@@ -462,6 +462,13 @@ function circleComparisonComboHtml(params: {
     isCircleSoloSection(circleSection) && circleSection.circleSolo
       ? [circleSection.circleSolo]
       : (circleSection.circlePair ?? []);
+  const hideCircle =
+    FLAT_SECTION_SURFACES &&
+    isRedundantSoloVenn(
+      items.map((item) => item.label),
+      circleSection.heading,
+      circleSection.body,
+    );
   const circlesHtml = FLAT_SECTION_SURFACES
     ? ingredientVennHtml(
         items.map((item) => item.label),
@@ -475,7 +482,7 @@ function circleComparisonComboHtml(params: {
     )
     .join("");
   return `<section${anchorId ? ` id="${anchorId}"` : ""} class="pagzly-circle-combo" style="${sectionStyle}">
-        <div style="margin-bottom:40px"><div style="display:flex;justify-content:center;align-items:flex-start;gap:32px;max-width:448px;margin:0 auto">${circlesHtml}</div></div>
+        ${hideCircle ? "" : `<div style="margin-bottom:40px"><div style="display:flex;justify-content:center;align-items:flex-start;gap:32px;max-width:448px;margin:0 auto">${circlesHtml}</div></div>`}
         ${comparisonChartBodyHtml(chartSection, theme, category)}
       </section>`;
 }
@@ -795,9 +802,14 @@ function sectionHtml(
         return `<div${n >= 3 ? ` class="pagzly-stat-grid3"` : ""} style="display:grid;${cols};gap:${gap};margin:40px auto 0">${items.map(metricHtml).join("")}</div>`;
       };
       const statRule = `1px solid ${hexToRgba(accent, 0.2)}`;
-      const numberStrip =
-        FLAT_SECTION_SURFACES && numberMetrics.length >= 2 && numberMetrics.length <= 3
-          ? `<div style="display:flex;align-items:stretch;max-width:${numberMetrics.length === 2 ? 448 : 672}px;margin:40px auto 0;border-top:${statRule};border-bottom:${statRule}">${numberMetrics
+      const stripMetrics =
+        FLAT_SECTION_SURFACES &&
+        numberMetrics.length >= 1 &&
+        numberMetrics.length + ringMetrics.length <= 3
+          ? section.metrics.filter((m) => m.style === "number" || m.style === "ring")
+          : null;
+      const numberStrip = stripMetrics
+          ? `<div style="display:flex;align-items:stretch;max-width:${stripMetrics.length === 1 ? 320 : stripMetrics.length === 2 ? 448 : 672}px;margin:40px auto 0;border-top:${statRule};border-bottom:${statRule}">${stripMetrics
               .map(
                 (m, i) =>
                   `<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:28px 8px;text-align:center${i > 0 ? `;border-left:${statRule}` : ""}"><div style="width:100%;container-type:inline-size"><div class="pz-fit" style="${titleFitCss("statNumber", m.value, -0.05)};font-weight:800;line-height:1;letter-spacing:-0.02em;color:${deepText}">${statValueHtml(m.value)}${footnoteMarkFor(m)}</div></div><div style="margin-top:2px;${STAT_LABEL_CSS}">${esc(m.label)}</div></div>`,
@@ -806,7 +818,7 @@ function sectionHtml(
           : null;
       const metricsHtml = [
         numberStrip ?? statGrid(numberMetrics, "24px 20px"),
-        statGrid(ringMetrics, "32px 20px"),
+        stripMetrics ? "" : statGrid(ringMetrics, "32px 20px"),
         barMetrics.length > 0
           ? `<div style="max-width:576px;margin:40px auto 0;display:flex;flex-direction:column;gap:28px">${barMetrics.map(metricHtml).join("")}</div>`
           : "",
@@ -857,7 +869,7 @@ function sectionHtml(
       // 떨어지면 뺀 사진이 다시 붙는다.
       if (section.layout === "text_only") {
         return `<section${sectionIdAttr} style="padding:40px 24px;${sectionInset}${bgCss}">
-          <div style="max-width:576px;margin:0 auto;text-align:left">
+          <div style="max-width:576px;margin:0 auto;text-align:${FLAT_SECTION_SURFACES ? "center" : "left"}">
             ${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)};margin:0;line-height:1.2;color:${readableTextDeep(theme, 3)}`)}
             <p style="margin:16px 0 0;white-space:pre-line;font-size:${titleSizeCss("body")};line-height:1.9;color:${BRAND.ink}">${esc(section.body)}</p>
           </div>
@@ -878,6 +890,7 @@ function sectionHtml(
         const labels = isCircleSolo
           ? [section.circleSolo!.label]
           : section.circlePair!.map((p) => p.label);
+        if (isRedundantSoloVenn(labels, section.heading, section.body)) return "";
         return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">${ingredientVennHtml(labels, deepText, DETAIL_FONT_STACK.heading)}</section>`;
       }
       if (isCircleSolo) {
@@ -1213,7 +1226,7 @@ function sectionHtml(
           const certHighlight = isCertificationHighlight(row.label, row.value, certTokens);
           const valueHtml = certHighlight
             ? `<span style="display:inline-block;padding:2px 8px;border-radius:${RADIUS.sm}px;color:${accentText};background:${accent}24;box-shadow:${ELEVATION.certUnderlineExportHex(accent + "8c")}">${esc(row.value)}</span>`
-            : esc(row.value);
+            : esc(displaySpecValue(row.label, row.value));
           const rowRule =
             ri === tableRows.length - 1
               ? "none"

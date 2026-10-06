@@ -53,10 +53,39 @@ export function koreanIngredientLabel(label: string): { main: string; sub: strin
   return { main: pct ? `${ko} ${pct}` : ko, sub: base };
 }
 
-export function ingredientVennHtml(labels: string[], color: string, fontFamily: string): string {
+/** 스펙 표 값 표시용 — 성분 행만 한글 표준명으로 */
+export function displaySpecValue(label: string, value: string): string {
+  return /성분/.test(label) ? koreanizeIngredientList(value) : value;
+}
+
+/** "나이아신아마이드 5%, Sodium Hyaluronate, Panthenol" → 사전에 있는 영문 성분명만 한글 표준명으로 */
+export function koreanizeIngredientList(text: string): string {
+  return text.replace(/[^,·/\n]+/g, (token) => {
+    const lead = token.match(/^\s*/)?.[0] ?? "";
+    const trail = token.match(/\s*$/)?.[0] ?? "";
+    const core = token.trim();
+    if (!core) return token;
+    const { main, sub } = koreanIngredientLabel(core);
+    return sub ? `${lead}${main}${trail}` : token;
+  });
+}
+
+function vennNames(labels: string[]): string[] {
   const trimmed = labels.map((l) => l.trim()).filter(Boolean);
   const actives = trimmed.filter((l) => !isBaseSolventIngredient(l));
-  const names = (actives.length > 0 ? actives : trimmed).slice(0, 2);
+  return (actives.length > 0 ? actives : trimmed).slice(0, 2);
+}
+
+/**
+ * 제목·본문 없이 성분 하나만 그리는 원은 히어로 배지·요약·포인트에 이미 나온 성분명을
+ * 맥락 없이 한 번 더 반복할 뿐이다.
+ */
+export function isRedundantSoloVenn(labels: string[], heading?: string, body?: string): boolean {
+  return vennNames(labels).length <= 1 && !heading?.trim() && !body?.trim();
+}
+
+export function ingredientVennHtml(labels: string[], color: string, fontFamily: string): string {
+  const names = vennNames(labels);
   if (names.length === 0) return "";
   const subHtml = (sub: string | null) =>
     sub
