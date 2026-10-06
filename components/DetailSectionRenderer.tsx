@@ -644,9 +644,44 @@ function ComparisonMetricRow({
   unit: string;
   theme: CategoryTheme;
 }) {
-  const max = Math.max(ourValue, baselineValue, 1);
+  const absolutePercent = FLAT_SECTION_SURFACES && unit === "%" && Math.max(ourValue, baselineValue) <= 100;
+  const max = absolutePercent ? 100 : Math.max(ourValue, baselineValue, 1);
   const ourPercent = Math.min(100, (ourValue / max) * 100);
   const basePercent = Math.min(100, (baselineValue / max) * 100);
+  if (FLAT_SECTION_SURFACES) {
+    return (
+      <div>
+        <div className="flex items-baseline justify-between gap-4">
+          <p className="text-[15px] font-semibold leading-snug text-ink/80">{label}</p>
+          <span className="shrink-0 whitespace-nowrap tabular-nums">
+            <span
+              className="font-heading text-base font-black leading-none"
+              style={{ color: readableTextDeep(theme) }}
+            >
+              {ourValue}
+              <span className="ml-0.5 text-[11px] font-bold">{unit}</span>
+            </span>
+            <span className="ml-1.5 text-[13px] text-ink/45">
+              / {baselineValue}
+              {unit}
+            </span>
+          </span>
+        </div>
+        <div
+          className="mt-3 h-2 overflow-hidden rounded-full"
+          style={{ backgroundColor: hexToRgba(theme.accent, 0.16) }}
+        >
+          <MetricBarFill percent={ourPercent} color={theme.accent} />
+        </div>
+        <div
+          className="mt-1.5 h-1.5 overflow-hidden rounded-full"
+          style={{ backgroundColor: hexToRgba(BRAND.ink, 0.06) }}
+        >
+          <MetricBarFill percent={basePercent} color={hexToRgba(BRAND.ink, 0.28)} />
+        </div>
+      </div>
+    );
+  }
   return (
     <div>
       <p className="mb-2.5 text-[15px] font-semibold leading-snug text-ink/80">{label}</p>
@@ -1405,7 +1440,29 @@ function renderComparisonChartBody(params: {
       <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}>
         {section.heading}
       </h3>
-      <div className="mx-auto mt-10 max-w-md space-y-8">
+      {FLAT_SECTION_SURFACES && section.presentationStyle !== "checklist" ? (
+        <div className="mx-auto mt-8 flex max-w-md items-center justify-center gap-5 text-xs text-ink/60">
+          <span className="flex items-center gap-1.5">
+            <span aria-hidden className="h-2 w-4 rounded-full" style={{ backgroundColor: theme.accent }} />
+            <span className="font-semibold" style={{ color: readableTextDeep(theme) }}>
+              {section.ourLabel}
+            </span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span
+              aria-hidden
+              className="h-1.5 w-4 rounded-full"
+              style={{ backgroundColor: hexToRgba(BRAND.ink, 0.28) }}
+            />
+            {section.baselineLabel}
+          </span>
+        </div>
+      ) : null}
+      <div
+        className={`mx-auto max-w-md space-y-8 ${
+          FLAT_SECTION_SURFACES && section.presentationStyle !== "checklist" ? "mt-7" : "mt-10"
+        }`}
+      >
         {section.presentationStyle === "checklist"
           ? section.metrics.map((metric, metricIndex) => (
               <ComparisonChecklistRow

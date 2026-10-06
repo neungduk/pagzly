@@ -390,10 +390,17 @@ function comparisonChartBodyHtml(
         .join("")
     : section.metrics
         .map((m) => {
-          const max = Math.max(m.ourValue, m.baselineValue, 1);
-          const ourP = (m.ourValue / max) * 100;
-          const baseP = (m.baselineValue / max) * 100;
           const unit = section.unit ?? "%";
+          const absolutePercent =
+            FLAT_SECTION_SURFACES && unit === "%" && Math.max(m.ourValue, m.baselineValue) <= 100;
+          const max = absolutePercent ? 100 : Math.max(m.ourValue, m.baselineValue, 1);
+          const ourP = Math.min(100, (m.ourValue / max) * 100);
+          const baseP = Math.min(100, (m.baselineValue / max) * 100);
+          if (FLAT_SECTION_SURFACES) {
+            return `<div><div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px"><p style="margin:0;font-size:${FONT_SIZE.body};font-weight:600;line-height:1.375;color:rgba(27,27,24,.8)">${esc(m.label)}</p><span style="flex-shrink:0;white-space:nowrap;font-variant-numeric:tabular-nums"><span style="font-family:${DETAIL_FONT_STACK.heading};font-size:${FONT_SIZE.bodyLg};font-weight:900;line-height:1;color:${deepText}">${m.ourValue}<span style="margin-left:2px;font-size:${FONT_SIZE.caption};font-weight:700">${esc(unit)}</span></span><span style="margin-left:6px;font-size:${FONT_SIZE.sm};color:rgba(27,27,24,.45)">/ ${m.baselineValue}${esc(unit)}</span></span></div>
+            <div style="margin-top:12px;height:8px;background:${hexToRgba(accent, 0.16)};border-radius:${RADIUS.pill}px;overflow:hidden"><div class="fill-bar" style="height:100%;width:${ourP}%;background:${accent};border-radius:${RADIUS.pill}px"></div></div>
+            <div style="margin-top:6px;height:6px;background:${hexToRgba(BRAND.ink, 0.06)};border-radius:${RADIUS.pill}px;overflow:hidden"><div class="fill-bar" style="height:100%;width:${baseP}%;background:${hexToRgba(BRAND.ink, 0.28)};border-radius:${RADIUS.pill}px"></div></div></div>`;
+          }
           return `<div><p style="font-size:${FONT_SIZE.body};font-weight:600;line-height:1.375;color:rgba(27,27,24,.8);margin:0 0 10px">${esc(m.label)}</p>
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:10px 12px;border-radius:${RADIUS.md}px;background:${hexToRgba(accent, 0.14)}"><span style="width:72px;font-size:${FONT_SIZE.caption};font-weight:700;color:${deepText}">${esc(section.ourLabel)}</span>
               <div style="flex:1;height:14px;background:${hexToRgba(accent, 0.22)};border-radius:${RADIUS.pill}px"><div class="fill-bar" style="height:100%;width:${ourP}%;background:${accent};border-radius:${RADIUS.pill}px"></div></div>
@@ -416,7 +423,12 @@ function comparisonChartBodyHtml(
   return `
         ${kickerHtml(`<p style="text-align:center;color:${deepText};font-size:${FONT_SIZE.caption};letter-spacing:.2em">COMPARE</p>`)}
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
-        <div style="max-width:420px;margin:32px auto 0;display:flex;flex-direction:column;gap:${isChecklist ? 0 : 24}px">
+        ${
+          FLAT_SECTION_SURFACES && !isChecklist
+            ? `<div style="max-width:420px;margin:32px auto 0;display:flex;align-items:center;justify-content:center;gap:20px;font-size:${FONT_SIZE.xs};color:rgba(27,27,24,.6)"><span style="display:flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:16px;height:8px;border-radius:${RADIUS.pill}px;background:${accent}"></span><span style="font-weight:600;color:${deepText}">${esc(section.ourLabel)}</span></span><span style="display:flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:16px;height:6px;border-radius:${RADIUS.pill}px;background:${hexToRgba(BRAND.ink, 0.28)}"></span>${esc(section.baselineLabel)}</span></div>`
+            : ""
+        }
+        <div style="max-width:420px;margin:${FLAT_SECTION_SURFACES && !isChecklist ? 28 : 32}px auto 0;display:flex;flex-direction:column;gap:${isChecklist ? 0 : FLAT_SECTION_SURFACES ? 32 : 24}px">
           ${metricsHtml}
         </div>
         ${basisNoteHtml}
