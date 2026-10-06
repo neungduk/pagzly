@@ -11,6 +11,7 @@ import type { BlogBlockOverride, BlogPostGlobalOverride } from "@/lib/blog-post"
 import type { InstagramSlideOverride } from "@/lib/instagram-feed";
 import type { DetailSection } from "@/lib/types/generate";
 import type { ConceptIconMap } from "@/lib/concept-icons";
+import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import { validateImageFile } from "@/lib/image-upload";
 import { resolveHeadlineFontKind } from "@/lib/detail-typography";
 import {
@@ -1138,6 +1139,7 @@ type CapturePreset = {
   /** 121차 — capture=58-* 전용 카테고리 이미지. 없으면 iteration-fixtures */
   imageUrls?: string[];
   conceptIcons?: ConceptIconMap;
+  theme?: Partial<CategoryTheme>;
 };
 
 /** 281차 — capture=session: 저장된 실제 결과(sessionStorage)를 로그인 없이 재현 */
@@ -1156,6 +1158,7 @@ function readSessionPreset(): CapturePreset | null {
       productName: parsed.productName ?? "",
       imageUrls: parsed.imageUrls,
       conceptIcons: parsed.conceptIcons,
+      theme: parsed.theme,
     };
   } catch {
     return null;
@@ -1609,6 +1612,11 @@ export default function DetailPreviewPage() {
             brandName={previewBrandName}
             productName={previewProductName}
             conceptIcons={capturePreset?.conceptIcons}
+            theme={
+              capturePreset?.theme
+                ? { ...getCategoryTheme(previewCategory), ...capturePreset.theme }
+                : undefined
+            }
             edit={{
               enabled: editMode,
               onChange: (displayIndex, section) => {

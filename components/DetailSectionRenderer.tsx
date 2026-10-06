@@ -51,6 +51,8 @@ import {
   summaryGridColumns,
   summaryIconSvg,
   SUMMARY_ICON_PX,
+  pickBenefitCardIcons,
+  BENEFIT_ICON_PX,
 } from "@/lib/summary-line-icons";
 import {
   getSectionKicker,
@@ -3047,6 +3049,7 @@ function renderSection(
       const boldBlock = section.boldBlock === true;
       const boxPattern: SectionColorPattern = boldBlock ? "C" : pattern;
       const headingParts = parseMegaKeywordHeading(section.heading);
+      const benefitIcons = pickBenefitCardIcons(cards);
       const gridCols = isTrustEvidence
         ? "max-w-3xl grid-cols-1"
         : cards.length <= 2
@@ -3116,8 +3119,19 @@ function renderSection(
                         : undefined,
                   }}
                 >
-                  {!isTrustEvidence &&
-                  (!FLAT_SECTION_SURFACES || conceptIcons?.highlightBox?.[cardIndex]) ? (
+                  {!isTrustEvidence && FLAT_SECTION_SURFACES && benefitIcons ? (
+                    <span
+                      className="mx-auto mb-1"
+                      aria-hidden="true"
+                      dangerouslySetInnerHTML={{
+                        __html: summaryIconSvg(
+                          benefitIcons[cardIndex]!,
+                          (emphasized || boldBlock) && !lightEm ? BRAND.paper : readableTextDeep(theme),
+                          BENEFIT_ICON_PX,
+                        ),
+                      }}
+                    />
+                  ) : !isTrustEvidence && !FLAT_SECTION_SURFACES ? (
                     <div className="mx-auto">
                       <ConceptBadgeIcon
                         src={conceptIcons?.highlightBox?.[cardIndex]}
@@ -3283,12 +3297,21 @@ function renderSection(
             ? "max-w-md grid-cols-2"
             : "max-w-2xl grid-cols-2 @min-[640px]/pz:grid-cols-3";
       // 숫자 카드·링·막대가 한 섹션에 섞이면 세 가지 시각 언어가 겹친다 — 숫자가 있으면 링도 같은 선 구분 칸으로
+      // 막대 없이 그려지는 농도 수치(5% 등)가 선 아래 한 줄로 떨어져 있으면 고아처럼 보인다 — 같은 칸으로 흡수
+      const stripBars = barMetrics.filter(({ metric }) => isConcentrationMetricLabel(metric.label));
       const stripMetrics =
         FLAT_SECTION_SURFACES &&
         numberMetrics.length >= 1 &&
         numberMetrics.length + ringMetrics.length <= 3
-          ? [...numberMetrics, ...ringMetrics].sort((a, b) => a.metricIndex - b.metricIndex)
+          ? [
+              ...numberMetrics,
+              ...ringMetrics,
+              ...(numberMetrics.length + ringMetrics.length + stripBars.length <= 3 ? stripBars : []),
+            ].sort((a, b) => a.metricIndex - b.metricIndex)
           : null;
+      const listBars = stripMetrics
+        ? barMetrics.filter((b) => !stripMetrics.includes(b))
+        : barMetrics;
       const ringGridCols =
         ringMetrics.length <= 1
           ? "max-w-xs grid-cols-1"
@@ -3437,9 +3460,9 @@ function renderSection(
               })}
             </div>
           )}
-          {barMetrics.length > 0 && (
+          {listBars.length > 0 && (
             <div className="mx-auto mt-10 max-w-xl space-y-7">
-              {barMetrics.map(({ metric, metricIndex }) => {
+              {listBars.map(({ metric, metricIndex }) => {
                 const percent = Math.min(100, Math.max(0, metric.percent ?? 0));
                 return (
                   <div key={`${metric.label}-${metricIndex}`}>

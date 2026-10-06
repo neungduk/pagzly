@@ -104,6 +104,8 @@ import {
   summaryGridColumns,
   summaryIconSvg,
   SUMMARY_ICON_PX,
+  pickBenefitCardIcons,
+  BENEFIT_ICON_PX,
 } from "@/lib/summary-line-icons";
 import {
   extendTheme,
@@ -133,6 +135,7 @@ import {
   flatAccentTint,
   ensureReadableOnPaper,
   getCategoryRhythm,
+  getComposedSectionBackgroundStyle,
   type ExtendedTheme,
   type TitleScaleKey,
 } from "@/lib/design-tokens";
@@ -539,6 +542,7 @@ function sectionHtml(
   const sectionInset = surface?.insetShadow ? `box-shadow:${surface.insetShadow};` : "";
   const accent = theme.accent;
   const deep = theme.deepAccent;
+  const boldBlockBg = getComposedSectionBackgroundStyle(theme, "C", category).background;
   // 188 — paper 텍스트가 올라가는 솔리드 fill만 대비 보정 (텍스트색·반투명 틴트는 원본 유지)
   const deepFill = solidDeepOnPaper(theme);
   const deepText = readableTextDeep(theme);
@@ -567,7 +571,7 @@ function sectionHtml(
       const kicker = getSectionKicker(section);
       const headingParts = parseMegaKeywordHeading(section.heading);
       const pointBadge = pointOrdinal != null ? formatPointBadge(pointOrdinal) : "";
-      const bg = section.boldBlock ? deep : sectionBg;
+      const bg = section.boldBlock ? boldBlockBg : sectionBg;
       const checklistHead = FLAT_SECTION_SURFACES
         ? flatSectionHeaderHtml(category, theme, section.heading, pointBadge, Boolean(section.boldBlock))
         : `<div style="text-align:center;max-width:640px;margin:0 auto 32px">
@@ -629,7 +633,7 @@ function sectionHtml(
         : section.cards.slice(0, 4);
       if (cards.length === 0) return "";
       const center = Math.floor((cards.length - 1) / 2);
-      const bg = section.boldBlock ? deep : sectionBg;
+      const bg = section.boldBlock ? boldBlockBg : sectionBg;
       const fg = section.boldBlock ? "#FAF8F3" : "#1B1B18";
       const headingParts = parseMegaKeywordHeading(section.heading);
       const pointBadge = pointOrdinal != null ? formatPointBadge(pointOrdinal) : "";
@@ -676,6 +680,7 @@ function sectionHtml(
             .join("")}
         </div></section>`;
       }
+      const benefitIcons = pickBenefitCardIcons(cards);
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${headerHtml}
         <div class="pagzly-hl-grid" style="display:grid;grid-template-columns:repeat(${cards.length === 4 ? 2 : 1},1fr);--pz-hl-wide:repeat(${cards.length},1fr);gap:12px;margin-top:32px">
@@ -709,8 +714,12 @@ function sectionHtml(
                   ? hexToRgba(BRAND.paper, 0.82)
                   : hexToRgba(BRAND.ink, 0.68);
               const showTitle = !cardKeyword.keyword || Boolean(cardKeyword.remainder);
+              const iconHtml =
+                FLAT_SECTION_SURFACES && benefitIcons
+                  ? `<span aria-hidden="true" style="display:flex;justify-content:center;margin-bottom:12px">${summaryIconSvg(benefitIcons[i]!, (em || section.boldBlock) && !lightEm ? BRAND.paper : deepText, BENEFIT_ICON_PX)}</span>`
+                  : "";
               return `<div class="${em ? "pulse-card" : ""}" style="border-radius:${RADIUS.lg}px;padding:28px 20px;text-align:center;background:${cardBg};border:${cardBorder};${em && !FLAT_SECTION_SURFACES ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}color:${titleColor}">
-                ${FLAT_SECTION_SURFACES ? "" : `<div style="font-size:${FONT_SIZE.label};letter-spacing:.22em;opacity:.7;border:1px solid ${accent}55;border-radius:${RADIUS.pill}px;display:inline-block;padding:4px 10px">${formatPointBadge(i + 1)}</div>`}
+                ${iconHtml}${FLAT_SECTION_SURFACES ? "" : `<div style="font-size:${FONT_SIZE.label};letter-spacing:.22em;opacity:.7;border:1px solid ${accent}55;border-radius:${RADIUS.pill}px;display:inline-block;padding:4px 10px">${formatPointBadge(i + 1)}</div>`}
                 ${cardKeyword.keyword ? `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClampCard};font-weight:900;line-height:.92;letter-spacing:-.05em;margin:${FLAT_SECTION_SURFACES ? 0 : 12}px 0 ${showTitle ? 0 : 8}px;text-transform:uppercase;color:${(em || section.boldBlock) && !lightEm ? BRAND.paper : deepText}">${esc(cardKeyword.keyword)}</p>` : ""}
                 ${showTitle ? `<h3 style="margin:8px 0;font-size:${cardKeyword.keyword ? FONT_SIZE.bodySm : "inherit"};font-weight:${cardKeyword.keyword ? "600" : "700"};color:${titleColor}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</h3>` : ""}
                 <p style="margin:0;font-size:${FONT_SIZE.bodySm};color:${bodyColor}">${esc(card.body)}</p>
@@ -773,7 +782,7 @@ function sectionHtml(
           if (m.style === "number") {
             // 154차 — 라이브 렌더러와 동일하게 숫자를 "히어로 넘버"로 키움(2rem→3rem,
             // 700→800, 라벨은 소문자 캡션에서 대문자 트래킹 라벨로).
-            return `<div style="text-align:center;container-type:inline-size;padding:32px 16px;border-radius:${RADIUS.lg}px;${FLAT_SECTION_SURFACES ? `background:${FLAT_PAPER};border:1px solid ${hexToRgba(accent, 0.16)}` : `background:rgba(250,248,243,.78);box-shadow:${ELEVATION.imageThumb}`}"><div class="pz-fit" style="${titleFitCss("statNumber", m.value, -0.05)};font-weight:800;line-height:1;letter-spacing:-0.02em;color:${deepText}">${statValueHtml(m.value)}${footnoteMarkFor(m)}</div><div style="margin-top:6px;${STAT_LABEL_CSS}">${esc(m.label)}</div></div>`;
+            return `<div style="text-align:center;container-type:inline-size;padding:32px 16px;border-radius:${RADIUS.lg}px;${FLAT_SECTION_SURFACES ? `background:${FLAT_PAPER};border:1px solid ${hexToRgba(accent, 0.16)}` : `background:rgba(250,248,243,.78);box-shadow:${ELEVATION.imageThumb}`}"><div class="pz-fit" style="${titleFitCss("statNumber", m.value, -0.05)};font-weight:900;line-height:1;letter-spacing:-0.05em;color:${deepText}">${statValueHtml(m.value)}${footnoteMarkFor(m)}</div><div style="margin-top:6px;${STAT_LABEL_CSS}">${esc(m.label)}</div></div>`;
           }
           if (m.style === "ring") {
             // 241차 — 라이브 RadialGauge(size=112, strokeWidth=10)와 동일 기하로
@@ -816,25 +825,30 @@ function sectionHtml(
         return `<div${n >= 3 ? ` class="pagzly-stat-grid3"` : ""} style="display:grid;${cols};gap:${gap};margin:40px auto 0">${items.map(metricHtml).join("")}</div>`;
       };
       const statRule = `1px solid ${hexToRgba(accent, 0.2)}`;
+      const stripBars = barMetrics.filter((m) => isConcentrationMetricLabel(m.label));
+      const foldBars = numberMetrics.length + ringMetrics.length + stripBars.length <= 3;
       const stripMetrics =
         FLAT_SECTION_SURFACES &&
         numberMetrics.length >= 1 &&
         numberMetrics.length + ringMetrics.length <= 3
-          ? section.metrics.filter((m) => m.style === "number" || m.style === "ring")
+          ? section.metrics.filter(
+              (m) => m.style === "number" || m.style === "ring" || (foldBars && stripBars.includes(m)),
+            )
           : null;
+      const listBars = stripMetrics ? barMetrics.filter((m) => !stripMetrics.includes(m)) : barMetrics;
       const numberStrip = stripMetrics
           ? `<div style="display:flex;align-items:stretch;max-width:${stripMetrics.length === 1 ? 320 : stripMetrics.length === 2 ? 448 : 672}px;margin:40px auto 0;border-top:${statRule};border-bottom:${statRule}">${stripMetrics
               .map(
                 (m, i) =>
-                  `<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:28px 8px;text-align:center${i > 0 ? `;border-left:${statRule}` : ""}"><div style="width:100%;container-type:inline-size"><div class="pz-fit" style="${titleFitCss("statNumber", m.value, -0.05)};font-weight:800;line-height:1;letter-spacing:-0.02em;color:${deepText}">${statValueHtml(m.value)}${footnoteMarkFor(m)}</div></div><div style="margin-top:2px;${STAT_LABEL_CSS}">${esc(m.label)}</div></div>`,
+                  `<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:28px 8px;text-align:center${i > 0 ? `;border-left:${statRule}` : ""}"><div style="width:100%;container-type:inline-size"><div class="pz-fit" style="${titleFitCss("statNumber", m.value, -0.05)};font-weight:900;line-height:1;letter-spacing:-0.05em;color:${deepText}">${statValueHtml(m.value)}${footnoteMarkFor(m)}</div></div><div style="margin-top:2px;${STAT_LABEL_CSS}">${esc(m.label)}</div></div>`,
               )
               .join("")}</div>`
           : null;
       const metricsHtml = [
         numberStrip ?? statGrid(numberMetrics, "24px 20px"),
         stripMetrics ? "" : statGrid(ringMetrics, "32px 20px"),
-        barMetrics.length > 0
-          ? `<div style="max-width:576px;margin:40px auto 0;display:flex;flex-direction:column;gap:28px">${barMetrics.map(metricHtml).join("")}</div>`
+        listBars.length > 0
+          ? `<div style="max-width:576px;margin:40px auto 0;display:flex;flex-direction:column;gap:28px">${listBars.map(metricHtml).join("")}</div>`
           : "",
       ].join("");
       const footnotesHtml =

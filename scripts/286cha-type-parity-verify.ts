@@ -192,7 +192,7 @@ async function exportHtml(browser: Browser, p: Payload, width: number, targets: 
     category: p.category,
     sections: p.sections,
     imageUrls: p.imageUrls.map((u) => (u.startsWith("/") ? `${BASE}${u}` : u)),
-    theme: p.theme ?? getCategoryTheme(p.category),
+    theme: p.theme ? { ...getCategoryTheme(p.category), ...p.theme } : getCategoryTheme(p.category),
     price: p.price,
   });
   const file = path.join(OUT, `export-${p.key}.html`);

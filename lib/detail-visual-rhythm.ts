@@ -169,12 +169,24 @@ export function restoreHashtagHeadingUnit(heading: string, body: string | undefi
   return unit ? `${heading}${unit}` : heading;
 }
 
+/**
+ * 해시태그만으로 된 헤드라인("#나이아신아마이드5%", "#보습 #진정")을 디자이너 상세의 키워드 제목으로 바꾼다.
+ * "#"는 SNS 문법이라 상세 타이포에서 기호 노이즈로 읽힌다. 단어와 수치 사이는 띄운다.
+ */
+export function hashtagHeadingToKeyword(heading: string): string {
+  const tokens = heading.trim().split(/\s+/);
+  if (tokens.length === 0 || !tokens.every((t) => /^#[^#\s]+$/.test(t))) return heading;
+  return tokens
+    .map((t) => t.slice(1).replace(/([\p{L}])(\d+(?:\.\d+)?\s*(?:%|mg|ml|mL|g|ppm|배)?)$/u, "$1 $2"))
+    .join(" · ");
+}
+
 export function restoreHashtagHeadingUnits(sections: DetailSection[]): DetailSection[] {
   let changed = false;
   const out = sections.map((s) => {
     if (!("heading" in s) || typeof s.heading !== "string" || !s.heading.startsWith("#")) return s;
     const body = "body" in s && typeof s.body === "string" ? s.body : undefined;
-    const next = restoreHashtagHeadingUnit(s.heading, body);
+    const next = hashtagHeadingToKeyword(restoreHashtagHeadingUnit(s.heading, body));
     if (next === s.heading) return s;
     changed = true;
     return { ...s, heading: next } as DetailSection;
