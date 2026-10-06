@@ -499,7 +499,13 @@ export async function matchCutoutWhiteBalance(
   const src = { r: sr / sn, g: sg / sn, b: sb / sn };
   const srcLumMean = sLum / sn;
   const srcLumStd = Math.sqrt(Math.max(0, sLum2 / sn - srcLumMean * srcLumMean));
-  const colorMix = 0.38;
+  // 조명 캐스트는 채도가 낮다. 주변 링이 손·원색 소품처럼 채도 높은 물체면 그건 빛 색이 아니라
+  // 물체 색이므로 옮기면 흰 제품이 분홍·주황으로 물든다 — 채도가 높을수록 색 보정만 약하게.
+  const tMax = Math.max(target.r, target.g, target.b, 1);
+  const targetChroma = (tMax - Math.min(target.r, target.g, target.b)) / tMax;
+  const chromaWeight =
+    targetChroma <= 0.18 ? 1 : Math.max(0.35, 1 - (targetChroma - 0.18) / 0.4);
+  const colorMix = 0.38 * chromaWeight;
   const lumMix = 0.24;
   // 287 — 채널 게인은 색조(휘도로 정규화한 채널 비)만 옮긴다. 예전엔 절대값 비라 어두운 씬이면
   // 색 보정만으로 제품이 최대 −25 L* 어두워졌다. 밝기는 lumScale 하나로만, ±15% 안에서.
