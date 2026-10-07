@@ -255,6 +255,15 @@ function trustStripHtml(
     </div></div>`;
 }
 
+/** 라이브 섹션의 카테고리 리듬(generousPadClass: px-6 py-N / pz:px-10 pz:py-M)과 같은 여백 — Tailwind 단위 ×4px */
+function sectionPadVarsCss(category: string, wide: boolean): string {
+  const cls = getCategoryRhythm(category).generousPadClass;
+  const unit = (re: RegExp, fallback: number) => Number(re.exec(cls)?.[1] ?? fallback) * 4;
+  const y = wide ? unit(/pz:py-(\d+)/, 28) : unit(/(?:^|\s)py-(\d+)/, 16);
+  const x = wide ? unit(/pz:px-(\d+)/, 10) : unit(/(?:^|\s)px-(\d+)/, 6);
+  return `--pz-pad-y:${y}px;--pz-pad-x:${x}px`;
+}
+
 function sectionBgStyle(sectionBg: string, category: string): string {
   const hasPattern = Boolean(getCategoryPatternBackground(category));
   if (!hasPattern) return `background:${sectionBg}`;
@@ -525,7 +534,7 @@ function sectionHtml(
   pointOrdinal?: number,
 ): string {
   const sectionIdAttr = anchorId ? ` id="${anchorId}"` : "";
-  const pad = "padding:48px 20px;";
+  const pad = "padding:var(--pz-pad-y,48px) var(--pz-pad-x,20px);";
   const bi = bodyIndex ?? 0;
   const skipSurface = new Set(
     FLAT_SECTION_SURFACES
@@ -1848,7 +1857,7 @@ export function buildDetailPageHtml(opts: {
         theme: surface.theme,
         category: opts.category,
         productName: opts.productName,
-        sectionStyle: `padding:48px 20px;${surface.insetShadow ? `box-shadow:${surface.insetShadow};` : ""}${sectionBgStyle(surface.background, opts.category)}`,
+        sectionStyle: `padding:var(--pz-pad-y,48px) var(--pz-pad-x,20px);${surface.insetShadow ? `box-shadow:${surface.insetShadow};` : ""}${sectionBgStyle(surface.background, opts.category)}`,
         anchorId: anchorIdMap.get(i),
       });
     } else {
@@ -1960,7 +1969,8 @@ ${jsonLd}
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   ${buildDetailExportFontCss(opts.category)}
-  .pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size}
+  .pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size;${sectionPadVarsCss(opts.category, false)}}
+  @media (min-width:640px){.pagzly-wrap{${sectionPadVarsCss(opts.category, true)}}}
   ${titleScaleExportCss()}
   @media (min-width:640px){.pagzly-usage{flex-direction:row!important;align-items:flex-start;gap:16px!important}.pagzly-usage-line{left:var(--pz-step-edge)!important;right:var(--pz-step-edge);bottom:auto!important;width:auto!important;height:1px}.pagzly-usage-step{flex:1;flex-direction:column;align-items:center!important;gap:12px!important;text-align:center}.pagzly-usage-step>div{flex:none!important;padding-top:0!important}.pagzly-usage-text{max-width:14rem;margin:0 auto}.pagzly-persona-pairs{grid-template-columns:repeat(2,1fr)!important}.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}.pagzly-hl-grid{grid-template-columns:var(--pz-hl-wide)!important}.pagzly-cl-grid{grid-template-columns:var(--pz-cl-wide)!important}.pagzly-step-rows{grid-template-columns:repeat(3,1fr)!important;gap:32px!important}.pagzly-step-row{display:block!important}.pagzly-step-row h3{margin-top:12px!important}.pagzly-step-row p{font-size:${FONT_SIZE.sm}!important}}
   .pagzly-wrap .pz-fit{font-size:max(min(var(--pz-fs),0.6875rem),min(var(--pz-fs),calc(100cqi / var(--pz-fit-em,0.01))))!important}

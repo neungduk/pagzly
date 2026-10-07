@@ -174,9 +174,10 @@ async function live(browser: Browser, p: Payload, width: number, targets: Target
   await page.evaluate((x) => sessionStorage.setItem("pagzly-dev-preview-session", JSON.stringify(x)), p);
   await page.goto(`${BASE}/dev/detail-preview?capture=session`, { waitUntil: "load", timeout: 180_000 });
   await page.waitForSelector("[data-pagzly-preview] section", { timeout: 120_000 });
-  if (width >= 640) {
-    await page.addStyleTag({ content: `[data-pagzly-preview]{width:${width}px !important;max-width:${width}px !important}` });
-  }
+  // 좁은 폭에선 스크롤바·프레임 테두리만큼 라이브가 export보다 좁아져 폭 기반 피팅 수치가 어긋난다
+  await page.addStyleTag({
+    content: `html{scrollbar-width:none}::-webkit-scrollbar{display:none}[data-pagzly-preview]{width:${width}px !important;max-width:${width}px !important;border:0 !important;box-sizing:border-box}`,
+  });
   await waitImages(page);
   await page.waitForTimeout(1000);
   const m = (await page.evaluate(`${MEASURE}(${JSON.stringify(targets)})`)) as Measured[];
