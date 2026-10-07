@@ -1081,13 +1081,13 @@ function sectionHtml(
             section.slot === "ingredient_highlight" && isCosmeticsCategory(category)
               ? `<p style="margin-top:12px;font-size:${FONT_SIZE.caption};line-height:1.6;opacity:.55">${esc(INGREDIENT_HIGHLIGHT_COMPLIANCE_NOTE)}</p>`
               : "";
-          return `<section${sectionIdAttr} class="pagzly-stacked" style="padding:80px 0;${sectionInset}${bgCss}">
-          <div style="padding:0 40px">${flatSectionHeaderHtml(category, theme, section.heading, pill, false, 40, false)}</div>
+          return `<section${sectionIdAttr} class="pagzly-stacked" style="${sectionInset}${bgCss}">
+          <div class="pagzly-stacked-head">${flatSectionHeaderHtml(category, theme, section.heading, pill, false, 40, false)}</div>
           <div style="position:relative">
             ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${splitAspect};object-fit:cover;display:block"/>` : ""}
             ${annotationOverlayHtml}
           </div>
-          <div style="max-width:576px;margin:0 auto;padding:48px 40px 0;text-align:center">
+          <div class="pagzly-stacked-body" style="max-width:576px;margin:0 auto;text-align:center">
             <p style="margin:0;line-height:1.85;font-size:${titleSizeCss("body")};color:${hexToRgba(BRAND.ink, 0.82)};overflow-wrap:anywhere">${emphasizedBodyHtml(section.body, section.emphasis, accent)}</p>
             ${compliance}
           </div>
@@ -2005,6 +2005,8 @@ ${jsonLd}
   .pagzly-wrap .pagzly-display-headline{line-height:1.2}
   @media (min-width:640px){.pagzly-caution-list{padding:20px 28px!important}}
   .pagzly-compact-thumb{display:block;width:96px;height:96px}
+  .pagzly-stacked{padding:64px 0}.pagzly-stacked-head{padding:0 24px}.pagzly-stacked-body{padding:40px 24px 0}
+  @media (min-width:640px){.pagzly-stacked{padding:80px 0}.pagzly-stacked-head{padding:0 40px}.pagzly-stacked-body{padding:48px 40px 0}}
   .pagzly-concern{font-size:12px}.pagzly-concern-count{font-size:11px;line-height:1.5}
   @media (min-width:640px){.pagzly-concern{font-size:13px}.pagzly-concern-count{font-size:12px}}
   @media (min-width:640px){.pagzly-compact-thumb{width:120px;height:120px}.pagzly-compact-row{padding:24px 0!important}}
