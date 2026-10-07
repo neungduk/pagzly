@@ -257,11 +257,13 @@ function trustStripHtml(
 
 /** 라이브 섹션의 카테고리 리듬(generousPadClass: px-6 py-N / pz:px-10 pz:py-M)과 같은 여백 — Tailwind 단위 ×4px */
 function sectionPadVarsCss(category: string, wide: boolean): string {
-  const cls = getCategoryRhythm(category).generousPadClass;
-  const unit = (re: RegExp, fallback: number) => Number(re.exec(cls)?.[1] ?? fallback) * 4;
-  const y = wide ? unit(/pz:py-(\d+)/, 28) : unit(/(?:^|\s)py-(\d+)/, 16);
-  const x = wide ? unit(/pz:px-(\d+)/, 10) : unit(/(?:^|\s)px-(\d+)/, 6);
-  return `--pz-pad-y:${y}px;--pz-pad-x:${x}px`;
+  const rhythm = getCategoryRhythm(category);
+  const unit = (cls: string, re: RegExp, fallback: number) => Number(re.exec(cls)?.[1] ?? fallback) * 4;
+  const padY = (cls: string) => (wide ? unit(cls, /pz:py-(\d+)/, 28) : unit(cls, /(?:^|\s)py-(\d+)/, 16));
+  const x = wide
+    ? unit(rhythm.generousPadClass, /pz:px-(\d+)/, 10)
+    : unit(rhythm.generousPadClass, /(?:^|\s)px-(\d+)/, 6);
+  return `--pz-pad-y:${padY(rhythm.generousPadClass)}px;--pz-pad-ty:${padY(rhythm.trustPadClass)}px;--pz-pad-x:${x}px`;
 }
 
 function sectionBgStyle(sectionBg: string, category: string): string {
@@ -535,6 +537,7 @@ function sectionHtml(
 ): string {
   const sectionIdAttr = anchorId ? ` id="${anchorId}"` : "";
   const pad = "padding:var(--pz-pad-y,48px) var(--pz-pad-x,20px);";
+  const trustPad = "padding:var(--pz-pad-ty,48px) var(--pz-pad-x,20px);";
   const bi = bodyIndex ?? 0;
   const skipSurface = new Set(
     FLAT_SECTION_SURFACES
@@ -1255,8 +1258,10 @@ function sectionHtml(
         FLAT_SECTION_SURFACES && !isShipping
           ? groupPendingSpecRows(visibleRows)
           : { shown: visibleRows, pendingLabels: [] as string[] };
+      const thPad = isShipping ? "14px 16px" : "14px 16px 14px 0";
+      const tdPad = isShipping ? "14px 16px 14px 0" : "14px 0";
       const pendingRowHtml = pendingLabels.length
-        ? `<tr style="border-top:1px solid ${hexToRgba(BRAND.ink, INFO_TABLE.specRuleInkAlpha)}"><th style="text-align:left;padding:12px 16px;width:38%;opacity:.55;font-weight:500;font-size:${FONT_SIZE.sm};letter-spacing:-0.01em">${PENDING_SPEC_ROW_LABEL}</th><td style="padding:12px 16px;font-size:13px;line-height:1.625;letter-spacing:-0.025em;color:rgba(27,27,24,.45)">${esc(pendingLabels.join(" · "))}</td></tr>`
+        ? `<tr style="border-top:1px solid ${hexToRgba(BRAND.ink, INFO_TABLE.specRuleInkAlpha)}"><th style="text-align:left;padding:${thPad};width:38%;opacity:.55;font-weight:500;font-size:${FONT_SIZE.sm};letter-spacing:-0.01em">${PENDING_SPEC_ROW_LABEL}</th><td style="padding:${tdPad};font-size:13px;line-height:1.625;letter-spacing:-0.025em;color:rgba(27,27,24,.45)">${esc(pendingLabels.join(" · "))}</td></tr>`
         : "";
       const rowsHtml = tableRows
         .map((row, ri) => {
@@ -1268,13 +1273,13 @@ function sectionHtml(
             ri === tableRows.length - 1
               ? "none"
               : `1px solid ${isShipping ? `${accent}33` : hexToRgba(BRAND.ink, INFO_TABLE.specRuleInkAlpha)}`;
-          return `<tr style="border-bottom:${rowRule}"><th style="text-align:left;padding:12px 16px;width:38%;opacity:.55;font-weight:500;font-size:${FONT_SIZE.sm};letter-spacing:-0.01em">${esc(row.label)}</th><td style="padding:12px 16px;letter-spacing:-0.025em;${isPlaceholderValue(row.value) ? "font-weight:400;color:rgba(27,27,24,.45)" : "font-weight:500"}">${valueHtml}</td></tr>`;
+          return `<tr style="border-bottom:${rowRule}"><th style="text-align:left;padding:${thPad};width:38%;opacity:.55;font-weight:500;font-size:${FONT_SIZE.sm};letter-spacing:-0.01em">${esc(row.label)}</th><td style="padding:${tdPad};letter-spacing:-0.025em;${isPlaceholderValue(row.value) ? "font-weight:400;color:rgba(27,27,24,.45)" : "font-weight:500"}">${valueHtml}</td></tr>`;
         })
         .join("") + pendingRowHtml;
       const specEdge = `1px solid ${hexToRgba(BRAND.ink, INFO_TABLE.specEdgeInkAlpha)}`;
-      const tableHtml = `<table style="width:100%;border-collapse:collapse;font-size:${FONT_SIZE.bodySm}${isShipping ? "" : `;border-top:${specEdge};border-bottom:${specEdge}`}"><tbody>${rowsHtml}</tbody></table>`;
+      const tableHtml = `<table style="width:100%;border-collapse:collapse;font-size:${FONT_SIZE.bodySm};line-height:20px${isShipping ? "" : `;border-top:${specEdge};border-bottom:${specEdge}`}"><tbody>${rowsHtml}</tbody></table>`;
       const tableMargin = diagramHtml ? "16px" : "24px";
-      return `<section${sectionIdAttr} style="${pad}${sectionInset}${specTableBg}${bgCss}" class="${isShipping ? "pagzly-shipping" : ""}">
+      return `<section${sectionIdAttr} style="${trustPad}${sectionInset}${specTableBg}${bgCss}" class="${isShipping ? "pagzly-shipping" : ""}">
         ${kickerHtml(`<p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">INFO</p>`)}
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
         ${thumbHtml}
@@ -1342,7 +1347,7 @@ function sectionHtml(
           <p class="pz-fit" style="font-family:${DETAIL_FONT_STACK.heading};${titleFitCss("section", brandName!, -0.03)};font-weight:800;line-height:1.05;letter-spacing:-0.03em;color:${readableTextAccent(theme, 3)};margin:12px 0 0">${esc(brandName!)}</p>
           <span aria-hidden="true" style="display:block;width:40px;height:3px;border-radius:${RADIUS.pill}px;background:${solidAccentOnPaper(theme)};margin:20px auto 0"></span>
         </div>
-        <div style="${pad}${sectionInset}background:${FLAT_PAPER};text-align:center">
+        <div style="${trustPad}${sectionInset}background:${FLAT_PAPER};text-align:center">
         ${textPanelWrap(theme, storyInner)}
         </div></section>`;
       }
@@ -1352,11 +1357,11 @@ function sectionHtml(
           <p style="font-family:${DETAIL_FONT_STACK.label};font-size:${FONT_SIZE.caption};letter-spacing:.32em;opacity:.75;margin:0">${esc(brandName!)}</p>
           <p style="font-size:${FONT_SIZE.categoryKeyword};font-weight:900;line-height:.92;letter-spacing:-.06em;text-transform:uppercase;margin:16px 0 0">${esc(categoryKeyword)}</p>
         </div>
-        <div style="${pad}${sectionInset}${bgCss}">
+        <div style="${trustPad}${sectionInset}${bgCss}">
         ${textPanelWrap(theme, storyInner)}
         </div></section>`;
       }
-      return `<section${sectionIdAttr} class="pagzly-brand-story" style="${pad}${sectionInset}${bgCss}">
+      return `<section${sectionIdAttr} class="pagzly-brand-story" style="${trustPad}${sectionInset}${bgCss}">
         ${textPanelWrap(theme, storyInner)}
       </section>`;
     }
@@ -1435,7 +1440,7 @@ function sectionHtml(
       if (FLAT_SECTION_SURFACES) {
         const line = hexToRgba(BRAND.ink, 0.12);
         const circle = "display:flex;flex-shrink:0;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9999px;font-size:13px;font-weight:700;line-height:1";
-        return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
+        return `<section${sectionIdAttr} style="${trustPad}${sectionInset}${bgCss}">
         <div style="text-align:center;max-width:576px;margin:0 auto">${twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}</div>
         <div data-faq-list style="max-width:576px;margin:40px auto 0;border-top:1px solid ${line};text-align:left">
           ${section.items
@@ -1453,7 +1458,7 @@ function sectionHtml(
             .join("")}
         </div></section>`;
       }
-      return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
+      return `<section${sectionIdAttr} style="${trustPad}${sectionInset}${bgCss}">
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
         <div style="max-width:640px;margin:24px auto 0;display:flex;flex-direction:column;gap:16px">
           ${section.items
@@ -1469,7 +1474,7 @@ function sectionHtml(
             .join("")}
         </div></section>`;
     case "caution":
-      return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
+      return `<section${sectionIdAttr} style="${trustPad}${sectionInset}${bgCss}">
         ${textPanelWrap(
           theme,
           `${kickerHtml(`<p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText};margin:0 0 12px">NOTICE</p>`)}
@@ -1979,6 +1984,7 @@ ${jsonLd}
   ${buildDetailExportFontCss(opts.category)}
   .pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size;${sectionPadVarsCss(opts.category, false)}}
   @media (min-width:640px){.pagzly-wrap{${sectionPadVarsCss(opts.category, true)}}}
+  .pagzly-wrap section>h2.pagzly-display-headline:first-child{margin-top:0}
   ${titleScaleExportCss()}
   @media (min-width:640px){.pagzly-usage{flex-direction:row!important;align-items:flex-start;gap:16px!important}.pagzly-usage-line{left:var(--pz-step-edge)!important;right:var(--pz-step-edge);bottom:auto!important;width:auto!important;height:1px}.pagzly-usage-step{flex:1;flex-direction:column;align-items:center!important;gap:12px!important;text-align:center}.pagzly-usage-step>div{flex:none!important;padding-top:0!important}.pagzly-usage-text{max-width:14rem;margin:0 auto}.pagzly-persona-pairs{grid-template-columns:repeat(2,1fr)!important}.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}.pagzly-hl-grid{grid-template-columns:var(--pz-hl-wide)!important}.pagzly-cl-grid{grid-template-columns:var(--pz-cl-wide)!important}.pagzly-step-rows{grid-template-columns:repeat(3,1fr)!important;gap:32px!important}.pagzly-step-row{display:block!important}.pagzly-step-row h3{margin-top:12px!important}.pagzly-step-row p{font-size:${FONT_SIZE.sm}!important}}
   .pagzly-wrap .pz-fit{font-size:max(min(var(--pz-fs),0.6875rem),min(var(--pz-fs),calc(100cqi / var(--pz-fit-em,0.01))))!important}

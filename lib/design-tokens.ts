@@ -1001,7 +1001,7 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
       trustPadClass: "px-6 py-12 @min-[640px]/pz:px-10 @min-[640px]/pz:py-16",
       ctaPadClass: "px-6 py-24 @min-[640px]/pz:px-10 @min-[640px]/pz:py-36",
       ctaButtonClass:
-        "inline-flex h-12 min-w-[12rem] items-center justify-center rounded-sm px-10 text-sm font-semibold tracking-[0.16em] text-paper",
+        "inline-flex h-12 min-w-[12rem] items-center justify-center rounded-sm px-10 text-sm font-semibold tracking-[0.08em] text-paper",
       galleryGapClass: "gap-2",
       galleryTitlePadClass: "px-6 pt-8 pb-8 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-10 @min-[640px]/pz:pb-8",
     };
@@ -1034,7 +1034,7 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
       trustPadClass: "px-6 py-14 @min-[640px]/pz:px-10 @min-[640px]/pz:py-20",
       ctaPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
       ctaButtonClass:
-        "inline-flex h-11 min-w-[12rem] items-center justify-center rounded-none px-8 text-xs font-semibold uppercase tracking-[0.24em] text-paper",
+        "inline-flex h-11 min-w-[12rem] items-center justify-center rounded-none px-8 text-xs font-semibold uppercase tracking-[0.12em] text-paper",
       galleryGapClass: "gap-2",
     };
   }

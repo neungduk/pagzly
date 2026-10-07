@@ -2723,7 +2723,7 @@ function renderSection(
             />
           ) : null}
           <div
-            className={`mx-auto max-w-xl overflow-hidden ${FLAT_SECTION_SURFACES ? "rounded-xl" : "rounded-lg"} ${isShipping ? (FLAT_SECTION_SURFACES ? "border" : "border-2") : ""} ${
+            className={`mx-auto max-w-xl overflow-hidden ${isShipping ? (FLAT_SECTION_SURFACES ? "rounded-xl border" : "rounded-lg border-2") : ""} ${
               sizeDiagramMatches.length > 0 ||
               showSizeComparison ||
               showVolumeDiagram ||
