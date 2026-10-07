@@ -970,9 +970,9 @@ function sectionHtml(
           ? `padding:0 24px;${sectionInset}background:${FLAT_PAPER}`
           : `padding:20px 24px;${sectionInset}${bgCss}`;
         return `<section${sectionIdAttr} style="${sectionStyle}">
-          <div style="max-width:576px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-direction:${imageFirst ? "row" : "row-reverse"}${FLAT_SECTION_SURFACES ? ";padding:20px 0" : ""}${compactDivider ? `;border-bottom:1px solid ${hexToRgba(BRAND.ink, 0.08)}` : ""}">
+          <div class="${FLAT_SECTION_SURFACES ? "pagzly-compact-row" : ""}" style="max-width:576px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-direction:${imageFirst ? "row" : "row-reverse"}${FLAT_SECTION_SURFACES ? ";padding:20px 0" : ""}${compactDivider ? `;border-bottom:1px solid ${hexToRgba(BRAND.ink, 0.08)}` : ""}">
             <div style="flex-shrink:0">
-              ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:120px;height:120px;object-fit:cover;border-radius:${thumbRadius}px"/>` : ""}
+              ${src ? `<img class="pagzly-compact-thumb" src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="object-fit:cover;border-radius:${thumbRadius}px"/>` : ""}
             </div>
             <div style="min-width:0;flex:1;text-align:${imageFirst ? "left" : "right"}">
               <h3 style="margin:0;font-family:${DETAIL_FONT_STACK.heading};font-size:${titleSizeCss("compact")};font-weight:600;line-height:1.35;letter-spacing:-0.02em;color:#1B1B18;overflow-wrap:anywhere">${esc(section.heading)}</h3>
@@ -2004,6 +2004,8 @@ ${jsonLd}
   .pagzly-wrap section>h2.pagzly-display-headline:first-child{margin-top:0}
   .pagzly-wrap .pagzly-display-headline{line-height:1.2}
   @media (min-width:640px){.pagzly-caution-list{padding:20px 28px!important}}
+  .pagzly-compact-thumb{display:block;width:96px;height:96px}
+  @media (min-width:640px){.pagzly-compact-thumb{width:120px;height:120px}.pagzly-compact-row{padding:24px 0!important}}
   ${titleScaleExportCss()}
   @media (min-width:640px){.pagzly-usage{flex-direction:row!important;align-items:flex-start;gap:16px!important}.pagzly-usage-line{left:var(--pz-step-edge)!important;right:var(--pz-step-edge);bottom:auto!important;width:auto!important;height:1px}.pagzly-usage-step{flex:1;flex-direction:column;align-items:center!important;gap:12px!important;text-align:center}.pagzly-usage-step>div{flex:none!important;padding-top:0!important}.pagzly-usage-text{max-width:14rem;margin:0 auto}.pagzly-persona-pairs{grid-template-columns:repeat(2,1fr)!important}.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}.pagzly-hl-grid{grid-template-columns:var(--pz-hl-wide)!important}.pagzly-cl-grid{grid-template-columns:var(--pz-cl-wide)!important}.pagzly-step-rows{grid-template-columns:repeat(3,1fr)!important;gap:32px!important}.pagzly-step-row{display:block!important}.pagzly-step-row h3{margin-top:12px!important}.pagzly-step-row p{font-size:${FONT_SIZE.sm}!important}}
   .pagzly-wrap .pz-fit{font-size:max(min(var(--pz-fs),0.6875rem),min(var(--pz-fs),calc(100cqi / var(--pz-fit-em,0.01))))!important}
