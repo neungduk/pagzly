@@ -444,6 +444,68 @@ function sampleCornerLuminanceStats(
 }
 
 /**
+ * 원본 촬영 조명이 남긴 색 기운(흰 용기가 분홍·청록으로 뜨는 것)을 무채색 영역에서만 걷어낸다.
+ * - 판정: 불투명 픽셀 중 채도 낮은(max-min < 24) 밝은 픽셀이 15% 이상이고, 그 평균의 채널 편차가 1.2~6%일 때만.
+ *   6% 넘는 기운은 파스텔 용기처럼 의도된 색일 수 있어 건드리지 않는다.
+ * - 보정: 픽셀별로 무채색일수록 강하게(채도 0 → 85%, 채도 24 이상 → 0) 빼서 라벨·제품 고유색은 보존.
+ */
+export async function neutralizeCutoutCast(
+  cutout: Buffer,
+): Promise<{ buffer: Buffer; cast: number }> {
+  const { data, info } = await sharp(cutout).ensureAlpha().raw().toBuffer({
+    resolveWithObject: true,
+  });
+  const NEUTRAL_CHROMA = 24;
+  let opaque = 0;
+  let n = 0;
+  let sr = 0;
+  let sg = 0;
+  let sb = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < 200) continue;
+    opaque += 1;
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const chroma = Math.max(r, g, b) - Math.min(r, g, b);
+    if (chroma >= NEUTRAL_CHROMA || r + g + b < 3 * 70 || r + g + b > 3 * 250) continue;
+    sr += r;
+    sg += g;
+    sb += b;
+    n += 1;
+  }
+  if (opaque < 200 || n / opaque < 0.15) return { buffer: cutout, cast: 0 };
+  const mr = sr / n;
+  const mg = sg / n;
+  const mb = sb / n;
+  const m = (mr + mg + mb) / 3;
+  const dr = (mr - m) / m;
+  const dg = (mg - m) / m;
+  const db = (mb - m) / m;
+  const cast = Math.max(Math.abs(dr), Math.abs(dg), Math.abs(db));
+  if (cast < 0.012 || cast > 0.06) return { buffer: cutout, cast };
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] === 0) continue;
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const chroma = Math.max(r, g, b) - Math.min(r, g, b);
+    if (chroma >= NEUTRAL_CHROMA) continue;
+    const w = 0.85 * (1 - (chroma / NEUTRAL_CHROMA) ** 2);
+    const lum = (r + g + b) / 3;
+    data[i] = Math.max(0, Math.min(255, Math.round(r - w * dr * lum)));
+    data[i + 1] = Math.max(0, Math.min(255, Math.round(g - w * dg * lum)));
+    data[i + 2] = Math.max(0, Math.min(255, Math.round(b - w * db * lum)));
+  }
+  const buffer = await sharp(data, {
+    raw: { width: info.width, height: info.height, channels: 4 },
+  })
+    .png()
+    .toBuffer();
+  return { buffer, cast };
+}
+
+/**
  * 배경 코너 평균에 맞춰 컷아웃 RGB·명암·콘트라스트를 약하게 당긴다. 알파는 유지.
  * mix는 제품 고유 색(화장품 색조 등)이 과하게 왜곡되지 않도록 상한을 둔다.
  * 163차 — 평균색/휘도 매칭에 더해 콘트라스트(명암 대비) 매칭을 추가.

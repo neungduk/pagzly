@@ -22,6 +22,7 @@ import {
   matchCutoutGrain,
   matchCutoutSharpness,
   matchCutoutWhiteBalance,
+  neutralizeCutoutCast,
   measureCornerMeanAlpha,
   measureCutoutPlateRisk,
   measureTransparentRatio,
@@ -953,6 +954,7 @@ export async function pasteCutoutOnSceneDetailed(params: {
   // 배경이 이미 매끈하면 조용히 원본을 그대로 반환하는 스킵 로직이 내장돼 있어
   // 안전합니다. backdrop 인자로는 sceneBuffer(실제 라이프스타일 사진)를 그대로 씁니다.
   const targetBox = { left, top, width: targetW, height: targetH };
+  cutoutPrepared = (await neutralizeCutoutCast(cutoutPrepared)).buffer;
   cutoutPrepared = await matchCutoutWhiteBalance(cutoutPrepared, sceneBuffer, targetBox);
   cutoutPrepared = await matchCutoutSharpness(cutoutPrepared, sceneBuffer, targetBox);
   cutoutPrepared = await matchCutoutGrain(cutoutPrepared, sceneBuffer);

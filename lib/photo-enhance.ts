@@ -30,6 +30,7 @@ import {
   defringeCutoutEdges,
   featherCutout,
   matchCutoutWhiteBalance,
+  neutralizeCutoutCast,
   matchCutoutSharpness,
   matchCutoutGrain,
   measureCornerMeanAlpha,
@@ -1952,7 +1953,8 @@ export async function enhanceProductImage(
   let cutoutForComposite: Buffer = cutoutResized;
   try {
     const feathered = await featherCutout(cutoutResized, CANVAS_SIZE);
-    const whiteBalanced = await matchCutoutWhiteBalance(feathered, backdropWithDecor);
+    const neutralized = (await neutralizeCutoutCast(feathered)).buffer;
+    const whiteBalanced = await matchCutoutWhiteBalance(neutralized, backdropWithDecor);
     // 164차 — 색상/명암 대비 매칭에 이어 선명도(포커스감)까지 배경과 매칭.
     const sharpnessMatched = await matchCutoutSharpness(whiteBalanced, backdropWithDecor);
     // 187차 — 배경 그레인(노이즈) 레벨에 맞춰 컷아웃에만 미세 노이즈(스킵 가능).
