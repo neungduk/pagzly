@@ -1751,6 +1751,14 @@ function sectionHtml(
       </section>`;
     }
     case "ai_disclosure":
+      if (FLAT_SECTION_SURFACES) {
+        return `<section${sectionIdAttr} style="padding:40px var(--pz-pad-x,20px);${sectionInset}${bgCss}">
+        <div style="max-width:36rem;margin:0 auto;text-align:center;border:1px solid ${hexToRgba(BRAND.ink, 0.12)};border-radius:12px;background:${FLAT_PAPER};padding:16px 20px">
+          <p style="margin:0;font-size:14px;font-weight:600;line-height:1.375;color:${hexToRgba(BRAND.ink, 0.8)}">${esc(section.heading)}</p>
+          <p style="margin:6px 0 0;font-size:13px;line-height:1.625;color:${hexToRgba(BRAND.ink, 0.6)}">${esc(section.body)}</p>
+        </div>
+      </section>`;
+      }
       // 라이브와 같은 레이블·헤딩·본문 섹션. 본문은 마켓 업로드용 최종 고지라 줄 자르기 없이 전체 노출.
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         <div style="max-width:36rem;margin:0 auto;text-align:center">

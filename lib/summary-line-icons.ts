@@ -57,7 +57,7 @@ const PATHS: Record<SummaryIconId, string> = {
 
 /** 위에서부터 먼저 맞는 규칙. 근거 없는 의미를 덧씌우지 않도록 못 맞추면 체크 아이콘 */
 const RULES: [RegExp, SummaryIconId][] = [
-  [/인증|허가|등록|haccp|해썹|gmp|fda|\bkc\b|\bce\b|iso|식약처|유기농/i, "shield"],
+  [/인증|허가|등록|책임판매업|haccp|해썹|gmp|fda|\bkc\b|\bce\b|iso|식약처|유기농/i, "shield"],
   [/수상|1위|어워드|award|베스트/i, "award"],
   [/테스트|임상|검사|시험/, "flask"],
   [/당일|오늘\s*출발|새벽|익일|빠른\s*배송/, "clock"],
@@ -68,6 +68,8 @@ const RULES: [RegExp, SummaryIconId][] = [
   [/동물실험|비건|vegan|천연|무첨가|무향|친환경/i, "leaf"],
   [/보습|수분|방수|촉촉/, "droplet"],
   [/충전|배터리|mah|소비전력|와트/i, "bolt"],
+  [/민감|저자극|진정|순한/, "heart"],
+  [/(?<!전)성분|배합|함유|나이아신|판테놀|세라마이드|비타민|레티놀|펩타이드|콜라겐/, "molecule"],
 ];
 
 export function pickSummaryIcon(label: string): SummaryIconId {

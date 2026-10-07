@@ -4325,6 +4325,36 @@ function renderSection(
     }
 
     case "ai_disclosure":
+      if (FLAT_SECTION_SURFACES) {
+        return (
+          <section
+            key={`ai_disclosure-${index}`}
+            className="px-6 py-10 @min-[640px]/pz:px-10"
+            style={textSectionStyle(theme, pattern, category)}
+          >
+            <div
+              className="mx-auto max-w-xl rounded-xl border px-5 py-4 text-center"
+              style={{ borderColor: hexToRgba(BRAND.ink, 0.12), backgroundColor: FLAT_PAPER }}
+            >
+              <EditableText
+                as="p"
+                enabled={edit?.enabled}
+                value={section.heading}
+                onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+                className="text-[14px] font-semibold leading-snug text-ink/80"
+              />
+              <EditableText
+                as="p"
+                multiline
+                enabled={edit?.enabled}
+                value={section.body}
+                onChange={(body) => edit?.onChange(index, { ...section, body })}
+                className="mt-1.5 text-[13px] leading-relaxed text-ink/60"
+              />
+            </div>
+          </section>
+        );
+      }
       return (
         <section
           key={`ai_disclosure-${index}`}
