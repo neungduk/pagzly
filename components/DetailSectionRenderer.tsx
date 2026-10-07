@@ -660,11 +660,11 @@ function ComparisonMetricRow({
           <p className="text-[15px] font-semibold leading-snug text-ink/80">{label}</p>
           <span className="shrink-0 whitespace-nowrap tabular-nums">
             <span
-              className="font-heading text-base font-black leading-none"
+              className="font-heading text-[22px] font-black leading-none"
               style={{ color: readableTextDeep(theme) }}
             >
               {ourValue}
-              <span className="ml-0.5 text-[11px] font-bold">{unit}</span>
+              <span className="ml-0.5 text-[13px] font-bold">{unit}</span>
             </span>
             <span className="ml-1.5 text-[13px] text-ink/45">
               / {baselineValue}
@@ -673,13 +673,13 @@ function ComparisonMetricRow({
           </span>
         </div>
         <div
-          className="mt-3 h-2 overflow-hidden rounded-full"
+          className="mt-3 h-3 overflow-hidden rounded-full"
           style={{ backgroundColor: hexToRgba(theme.accent, 0.16) }}
         >
           <MetricBarFill percent={ourPercent} color={theme.accent} />
         </div>
         <div
-          className="mt-1.5 h-1.5 overflow-hidden rounded-full"
+          className="mt-1.5 h-2 overflow-hidden rounded-full"
           style={{ backgroundColor: hexToRgba(BRAND.ink, 0.06) }}
         >
           <MetricBarFill percent={basePercent} color={hexToRgba(BRAND.ink, 0.28)} />
