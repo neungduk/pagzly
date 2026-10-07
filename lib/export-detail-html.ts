@@ -417,7 +417,7 @@ function comparisonChartBodyHtml(
           const ourP = Math.min(100, (m.ourValue / max) * 100);
           const baseP = Math.min(100, (m.baselineValue / max) * 100);
           if (FLAT_SECTION_SURFACES) {
-            return `<div><div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px"><p style="margin:0;font-size:${FONT_SIZE.body};font-weight:600;line-height:1.375;color:rgba(27,27,24,.8)">${esc(m.label)}</p><span style="flex-shrink:0;white-space:nowrap;font-variant-numeric:tabular-nums"><span style="font-family:${DETAIL_FONT_STACK.heading};font-size:22px;font-weight:900;line-height:1;color:${deepText}">${m.ourValue}<span style="margin-left:2px;font-size:13px;font-weight:700">${esc(unit)}</span></span><span style="margin-left:6px;font-size:${FONT_SIZE.sm};color:rgba(27,27,24,.45)">/ ${m.baselineValue}${esc(unit)}</span></span></div>
+            return `<div><div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px"><p style="margin:0;font-size:${FONT_SIZE.body};font-weight:600;line-height:1.375;color:rgba(27,27,24,.8)">${esc(m.label)}</p><span style="flex-shrink:0;white-space:nowrap;font-variant-numeric:tabular-nums;line-height:1"><span style="font-family:${DETAIL_FONT_STACK.heading};font-size:22px;font-weight:900;line-height:1;color:${deepText}">${m.ourValue}<span style="margin-left:2px;font-size:13px;font-weight:700">${esc(unit)}</span></span><span style="margin-left:6px;font-size:${FONT_SIZE.sm};color:rgba(27,27,24,.45)">/ ${m.baselineValue}${esc(unit)}</span></span></div>
             <div style="margin-top:12px;height:12px;background:${hexToRgba(accent, 0.16)};border-radius:${RADIUS.pill}px;overflow:hidden"><div class="fill-bar" style="height:100%;width:${ourP}%;background:${accent};border-radius:${RADIUS.pill}px"></div></div>
             <div style="margin-top:6px;height:8px;background:${hexToRgba(BRAND.ink, 0.06)};border-radius:${RADIUS.pill}px;overflow:hidden"><div class="fill-bar" style="height:100%;width:${baseP}%;background:${hexToRgba(BRAND.ink, 0.28)};border-radius:${RADIUS.pill}px"></div></div></div>`;
           }
@@ -1248,10 +1248,10 @@ function sectionHtml(
       const thumbRadius = specThumbUrls.length > 1 ? 12 : 16;
       const thumbHtml =
         specThumbUrls.length > 0
-          ? `<div style="display:flex;justify-content:center;gap:${specThumbUrls.length > 1 ? 12 : 0}px;margin:32px auto 0;max-width:${specThumbUrls.length > 1 ? 320 : 140}px">${specThumbUrls
+          ? `<div class="${specThumbUrls.length > 1 ? "pagzly-spec-thumbs" : ""}" style="display:flex;justify-content:center;gap:${specThumbUrls.length > 1 ? 12 : 0}px;margin:32px auto 0;max-width:${specThumbUrls.length > 1 ? 448 : 140}px">${specThumbUrls
               .map(
                 (url, ti) =>
-                  `<img src="${esc(url)}" alt="${esc(buildSectionImageAlt(productName, specThumbUrls.length > 1 ? `${section.heading} ${ti + 1}` : section.heading, section.slot))}" loading="lazy" decoding="async" style="width:${thumbSize}px;height:${thumbSize}px;object-fit:cover;border-radius:${thumbRadius}px;box-shadow:${ELEVATION.imageThumb};border:${ELEVATION.specThumbBorder}"/>`,
+                  `<img class="${specThumbUrls.length > 1 ? "pagzly-spec-thumb-m" : "pagzly-spec-thumb-s"}" src="${esc(url)}" alt="${esc(buildSectionImageAlt(productName, specThumbUrls.length > 1 ? `${section.heading} ${ti + 1}` : section.heading, section.slot))}" loading="lazy" decoding="async" style="width:${thumbSize}px;height:${thumbSize}px;object-fit:cover;border-radius:${thumbRadius}px;box-shadow:${ELEVATION.imageThumb};border:${ELEVATION.specThumbBorder}"/>`,
               )
               .join("")}</div>`
           : "";
@@ -2012,6 +2012,7 @@ ${jsonLd}
   .pagzly-concern{font-size:12px}.pagzly-concern-count{font-size:11px;line-height:1.5}
   @media (min-width:640px){.pagzly-concern{font-size:13px}.pagzly-concern-count{font-size:12px}}
   @media (min-width:640px){.pagzly-compact-thumb{width:120px;height:120px}.pagzly-compact-row{padding:24px 0!important}}
+  @media (min-width:640px){.pagzly-spec-thumbs{gap:16px!important}.pagzly-spec-thumb-m{width:96px!important;height:96px!important}.pagzly-spec-thumb-s{width:128px!important;height:128px!important}}
   ${titleScaleExportCss()}
   @media (min-width:640px){.pagzly-usage{flex-direction:row!important;align-items:flex-start;gap:16px!important}.pagzly-usage-line{left:var(--pz-step-edge)!important;right:var(--pz-step-edge);bottom:auto!important;width:auto!important;height:1px}.pagzly-usage-step{flex:1;flex-direction:column;align-items:center!important;gap:12px!important;text-align:center}.pagzly-usage-step>div{flex:none!important;padding-top:0!important}.pagzly-usage-text{max-width:14rem;margin:0 auto}.pagzly-persona-pairs{grid-template-columns:repeat(2,1fr)!important}.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}.pagzly-hl-grid{grid-template-columns:var(--pz-hl-wide)!important}.pagzly-cl-grid{grid-template-columns:var(--pz-cl-wide)!important}.pagzly-step-rows{grid-template-columns:repeat(3,1fr)!important;gap:32px!important}.pagzly-step-row{display:block!important}.pagzly-step-row h3{margin-top:12px!important}.pagzly-step-row p{font-size:${FONT_SIZE.sm}!important}}
   .pagzly-wrap .pz-fit{font-size:max(min(var(--pz-fs),0.6875rem),min(var(--pz-fs),calc(100cqi / var(--pz-fit-em,0.01))))!important}
