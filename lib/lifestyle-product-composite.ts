@@ -14,6 +14,7 @@ import {
   type HeldObjectRegion,
 } from "@/lib/detect-held-object-placement";
 import {
+  applyEdgeLightWrap,
   applyRimHighlight,
   buildProductShadowSvg,
   buildSilhouetteShadowBuffer,
@@ -1010,12 +1011,17 @@ export async function pasteCutoutOnSceneDetailed(params: {
     .png()
     .toBuffer();
 
-  const pasted = await sharp(withShadow)
+  let pasted: Buffer = await sharp(withShadow)
     .composite([{ input: cutoutPrepared, left: pasteLeft, top: pasteTop }])
     .png()
     .toBuffer();
 
   const rect: CropRectPx = { left: pasteLeft, top: pasteTop, width: cutW, height: cutH };
+  try {
+    pasted = await applyEdgeLightWrap(pasted, cutoutPrepared, rect, sceneBuffer);
+  } catch (error) {
+    console.warn("[lifestyle-composite] light wrap 실패 — 스킵", error);
+  }
   // 261차 — 어두운 씬 전용 림 하이라이트. hero(photo-enhance.ts)와 같은 함수·같은 순서
   // (그림자 → 컷아웃 → 림). 밝은 씬은 게이트로 pasted 그대로.
   try {

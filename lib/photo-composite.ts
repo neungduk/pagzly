@@ -1171,6 +1171,73 @@ export async function applyRimHighlight(
     .toBuffer();
 }
 
+const WRAP_OPACITY = 0.3;
+
+/**
+ * 321차 — 엣지 라이트 랩. 컷아웃 바깥 둘레 몇 px 안쪽에 흐린 배경색을 밝히는 방향으로만
+ * 스며들게 해 "오려 붙인" 경계를 줄인다. out = b + k·max(0, s − b) 라 배경이 제품보다
+ * 어두운 곳(어두운 씬)은 무변화 — 그쪽은 applyRimHighlight 담당.
+ * composited와 scene 크기가 다르면 composited를 그대로 반환.
+ */
+export async function applyEdgeLightWrap(
+  composited: Buffer,
+  cutoutPlaced: Buffer,
+  placement: { left: number; top: number; width: number; height: number },
+  scene: Buffer,
+): Promise<Buffer> {
+  const { data: base, info: bInfo } = await sharp(composited).raw().toBuffer({ resolveWithObject: true });
+  const sMeta = await sharp(scene).metadata();
+  if (sMeta.width !== bInfo.width || sMeta.height !== bInfo.height) return composited;
+
+  const { data: a, info: aInfo } = await sharp(cutoutPlaced)
+    .ensureAlpha()
+    .extractChannel(3)
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const w = aInfo.width;
+  const h = aInfo.height;
+  if (Math.min(w, h) < 24) return composited;
+  const band = Math.max(2, Math.min(6, Math.round(Math.min(w, h) * 0.012)));
+  const blurA = await sharp(a, { raw: { width: w, height: h, channels: 1 } })
+    .blur(band)
+    .extractChannel(0)
+    .raw()
+    .toBuffer();
+  if (blurA.length !== w * h) return composited;
+
+  const { data: bg, info: gInfo } = await sharp(scene)
+    .removeAlpha()
+    .blur(Math.max(6, band * 3))
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const out = Buffer.from(base);
+  const c = bInfo.channels;
+  const gc = gInfo.channels;
+  for (let y = Math.max(0, placement.top); y < Math.min(bInfo.height, placement.top + h); y += 1) {
+    for (let x = Math.max(0, placement.left); x < Math.min(bInfo.width, placement.left + w); x += 1) {
+      const i = (y - placement.top) * w + (x - placement.left);
+      if (a[i] === 0) continue;
+      const edge = Math.max(0, Math.min(1, (255 - blurA[i]) / 127));
+      if (edge === 0) continue;
+      // 바닥 접지부(하단 15%)는 그림자가 붙는 자리라 랩을 서서히 끈다.
+      const yFrac = (y - placement.top) / h;
+      const contactFade = yFrac <= 0.8 ? 1 : Math.max(0, (0.95 - yFrac) / 0.15);
+      const k = WRAP_OPACITY * edge * contactFade * (a[i] / 255);
+      if (k === 0) continue;
+      const bi = (y * bInfo.width + x) * c;
+      const gi = (y * gInfo.width + x) * gc;
+      for (let ch = 0; ch < 3; ch += 1) {
+        const bv = base[bi + ch];
+        out[bi + ch] = Math.round(bv + k * Math.max(0, bg[gi + ch] - bv));
+      }
+    }
+  }
+  return sharp(out, { raw: { width: bInfo.width, height: bInfo.height, channels: c } })
+    .png()
+    .toBuffer();
+}
+
 /** 폴백용 타원 그림자 SVG (실루엣 생성 실패 시). */
 export function buildProductShadowSvg(
   canvasSize: number,
