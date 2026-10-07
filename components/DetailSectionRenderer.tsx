@@ -177,6 +177,7 @@ import {
   splitTwoToneHeadline,
 } from "@/lib/designer-headline";
 import { emphasisMarkerGradient, splitBodyEmphasis } from "@/lib/body-emphasis";
+import { uniqueGalleryIndexes } from "@/lib/gallery-dedupe";
 
 export type SectionEditApi = {
   enabled: boolean;
@@ -3846,11 +3847,14 @@ function renderSection(
         });
         return null;
       }
+      const galleryIndexes = edit?.enabled
+        ? section.imageIndexes
+        : uniqueGalleryIndexes(section.imageIndexes, imageUrls);
+      if (galleryIndexes.length === 0) return null;
       const ratioClass = resolveImageRatioClass(section);
       const pairCompare =
-        category === "화장품/뷰티" && section.imageIndexes.length >= 2;
-      const oddLead =
-        !pairCompare && section.imageIndexes.length >= 3 && section.imageIndexes.length % 2 === 1;
+        category === "화장품/뷰티" && galleryIndexes.length >= 2;
+      const oddLead = galleryIndexes.length >= 3 && galleryIndexes.length % 2 === 1;
       return (
         <section
           key={`gallery-${index}`}
@@ -3869,15 +3873,15 @@ function renderSection(
             className={
               pairCompare
                 ? "grid grid-cols-2 gap-2"
-                : section.imageIndexes.length <= 2
+                : galleryIndexes.length <= 2
                   ? `grid grid-cols-1 ${getCategoryRhythm(category).galleryGapClass}`
-                  : section.imageIndexes.length % 6 === 0
+                  : galleryIndexes.length % 6 === 0
                     ? `grid grid-cols-2 ${getCategoryRhythm(category).galleryGapClass} @min-[640px]/pz:grid-cols-3`
                     : `grid grid-cols-2 ${getCategoryRhythm(category).galleryGapClass}`
             }
             style={{ backgroundColor: hexToRgba(theme.accent, 0.18) }}
           >
-            {section.imageIndexes.map((imageIndex, pairIndex) => {
+            {galleryIndexes.map((imageIndex, pairIndex) => {
               const src = resolveImage(imageUrls, imageIndex);
               return (
                 <div

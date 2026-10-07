@@ -141,6 +141,7 @@ import {
 } from "@/lib/design-tokens";
 import { applySectionDisplayBudget } from "@/lib/section-display-budget";
 import { emphasisMarkerGradient, splitBodyEmphasis } from "@/lib/body-emphasis";
+import { uniqueGalleryIndexes } from "@/lib/gallery-dedupe";
 import {
   POINT_PILL,
   TWO_TONE_LEAD_EM,
@@ -1304,16 +1305,17 @@ function sectionHtml(
     }
     case "gallery": {
       // 라이브와 같은 풀블리드 그리드: 뷰티 2장 이상 2열, 2장 이하 1열, 그 외 2열→넓은 칸 3열
-      const pairCompare = category === "화장품/뷰티" && section.imageIndexes.length >= 2;
-      const cols = pairCompare ? 2 : section.imageIndexes.length <= 2 ? 1 : 2;
-      const oddLead =
-        !pairCompare && section.imageIndexes.length >= 3 && section.imageIndexes.length % 2 === 1;
-      const wideCols = !pairCompare && section.imageIndexes.length % 6 === 0;
+      const galleryIndexes = uniqueGalleryIndexes(section.imageIndexes ?? [], imageUrls);
+      if (galleryIndexes.length === 0) return "";
+      const pairCompare = category === "화장품/뷰티" && galleryIndexes.length >= 2;
+      const cols = pairCompare ? 2 : galleryIndexes.length <= 2 ? 1 : 2;
+      const oddLead = galleryIndexes.length >= 3 && galleryIndexes.length % 2 === 1;
+      const wideCols = !pairCompare && galleryIndexes.length % 6 === 0;
       const galleryAspect = imageRatioCss(resolveSlotImageRatio(section));
       return `<section${sectionIdAttr} class="pagzly-gallery" style="padding:40px 0 0;${sectionInset}${bgCss}">
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)};margin:0 24px 32px${flatTitleColorCss(theme)}`)}
         <div${wideCols ? ` class="pagzly-gallery-grid3"` : ""} style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:8px;background:${accent}2e">
-          ${section.imageIndexes
+          ${galleryIndexes
             .map((idx, pos) => {
               const src = imageUrls[idx] ?? "";
               const alt = buildSectionImageAlt(productName, `${section.heading} ${idx + 1}`, section.slot);
