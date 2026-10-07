@@ -37,6 +37,15 @@ export function groupPendingSpecRows<T extends { label: string; value: string }>
 
 export const PENDING_SPEC_ROW_LABEL = "확인 필요 항목";
 
+/** 주의사항 본문을 문장 단위 항목으로. 2문장 미만이면 null(문단 그대로). */
+export function splitNoticeSentences(body: string): string[] | null {
+  const items = body
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return items.length >= 2 && items.length <= 8 ? items : null;
+}
+
 /** 용량 안내 섹션인데 숫자(용량·옵션 수치)가 하나도 없으면 정보 없는 안내 문구뿐 */
 export function isEmptySizeOptions(section: { slot?: string; heading?: string; body?: string }): boolean {
   if (section.slot !== "size_options") return false;

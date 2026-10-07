@@ -162,6 +162,7 @@ import {
   isPlaceholderAnswer,
   isPlaceholderValue,
   PENDING_SPEC_ROW_LABEL,
+  splitNoticeSentences,
 } from "@/lib/spec-placeholder";
 import {
   findCircleComparisonComboIndices,
@@ -263,7 +264,10 @@ function sectionPadVarsCss(category: string, wide: boolean): string {
   const x = wide
     ? unit(rhythm.generousPadClass, /pz:px-(\d+)/, 10)
     : unit(rhythm.generousPadClass, /(?:^|\s)px-(\d+)/, 6);
-  return `--pz-pad-y:${padY(rhythm.generousPadClass)}px;--pz-pad-ty:${padY(rhythm.trustPadClass)}px;--pz-pad-x:${x}px`;
+  const heroMin = wide
+    ? `${Number(/pz:min-h-\[(\d+)px\]/.exec(rhythm.heroMinClass)?.[1] ?? 760)}px`
+    : `${Number(/(?:^|\s)min-h-\[(\d+)svh\]/.exec(rhythm.heroMinClass)?.[1] ?? 85)}svh`;
+  return `--pz-pad-y:${padY(rhythm.generousPadClass)}px;--pz-pad-ty:${padY(rhythm.trustPadClass)}px;--pz-pad-x:${x}px;--pz-hero-min:${heroMin}`;
 }
 
 function sectionBgStyle(sectionBg: string, category: string): string {
@@ -569,8 +573,8 @@ function sectionHtml(
         brandName,
         productName,
       });
-      return `<section${sectionIdAttr} class="hero"${sectionIdAttr} style="${FLAT_SECTION_SURFACES ? "" : pad}position:relative;min-height:70vh;background:${baseTheme.baseNeutral}">
-        ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" fetchPriority="high" style="width:100%;height:70vh;object-fit:cover"/>` : ""}
+      return `<section${sectionIdAttr} class="hero pagzly-hero"${sectionIdAttr} style="${FLAT_SECTION_SURFACES ? "" : pad}position:relative;overflow:hidden;aspect-ratio:4/5;min-height:var(--pz-hero-min,70vh);background:${baseTheme.baseNeutral}">
+        ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" fetchPriority="high" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"/>` : ""}
         ${section.badge && !FLAT_SECTION_SURFACES ? `<span style="position:absolute;left:0;top:20px;background:${deepFill};color:#FAF8F3;padding:8px 16px;font-size:${FONT_SIZE.xs};font-weight:700">${esc(section.badge)}</span>` : ""}
         ${brandMarkHtml}
         <div style="position:absolute;inset:0;background:${getHeroGradient(baseTheme)};display:flex;align-items:flex-end;padding:48px 20px 40px">
@@ -1473,7 +1477,19 @@ function sectionHtml(
             )
             .join("")}
         </div></section>`;
-    case "caution":
+    case "caution": {
+      const cautionItems = FLAT_SECTION_SURFACES ? splitNoticeSentences(section.body) : null;
+      if (cautionItems) {
+        const dot = `display:block;flex-shrink:0;width:6px;height:6px;margin-top:8px;border-radius:9999px;background:${solidAccentOnPaper(theme)}`;
+        return `<section${sectionIdAttr} style="${trustPad}${sectionInset}${bgCss}">
+        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)};margin:0`)}
+        <div data-caution-list class="pagzly-caution-list" style="max-width:36rem;margin:32px auto 0;border:1px solid ${hexToRgba(BRAND.ink, 0.12)};border-radius:12px;background:${FLAT_PAPER};padding:20px;text-align:left;font-size:14px;line-height:1.625;color:${hexToRgba(BRAND.ink, 0.75)}">
+          <ul style="list-style:none;margin:0;padding:0">${cautionItems
+            .map((item, i) => `<li style="display:flex;gap:12px${i ? ";margin-top:10px" : ""}"><span aria-hidden="true" style="${dot}"></span><span style="min-width:0">${esc(item)}</span></li>`)
+            .join("")}</ul>
+        </div>
+      </section>`;
+      }
       return `<section${sectionIdAttr} style="${trustPad}${sectionInset}${bgCss}">
         ${textPanelWrap(
           theme,
@@ -1482,6 +1498,7 @@ function sectionHtml(
         <p style="font-size:${titleSizeCss("body")};line-height:1.65;opacity:.8;margin-top:12px">${esc(section.body)}</p>`,
         )}
       </section>`;
+    }
     case "comparison_table": {
       // 242차 — 라이브 ComparisonValueCell과 동일 판정(공유 lib/comparison-cell-classify.ts)+
       // 동일 시각(28px 원형 배지, accent 틴트/회색, 체크·X)을 export에도 배선.
@@ -1985,6 +2002,7 @@ ${jsonLd}
   .pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size;${sectionPadVarsCss(opts.category, false)}}
   @media (min-width:640px){.pagzly-wrap{${sectionPadVarsCss(opts.category, true)}}}
   .pagzly-wrap section>h2.pagzly-display-headline:first-child{margin-top:0}
+  @media (min-width:640px){.pagzly-caution-list{padding:20px 28px!important}}
   ${titleScaleExportCss()}
   @media (min-width:640px){.pagzly-usage{flex-direction:row!important;align-items:flex-start;gap:16px!important}.pagzly-usage-line{left:var(--pz-step-edge)!important;right:var(--pz-step-edge);bottom:auto!important;width:auto!important;height:1px}.pagzly-usage-step{flex:1;flex-direction:column;align-items:center!important;gap:12px!important;text-align:center}.pagzly-usage-step>div{flex:none!important;padding-top:0!important}.pagzly-usage-text{max-width:14rem;margin:0 auto}.pagzly-persona-pairs{grid-template-columns:repeat(2,1fr)!important}.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}.pagzly-hl-grid{grid-template-columns:var(--pz-hl-wide)!important}.pagzly-cl-grid{grid-template-columns:var(--pz-cl-wide)!important}.pagzly-step-rows{grid-template-columns:repeat(3,1fr)!important;gap:32px!important}.pagzly-step-row{display:block!important}.pagzly-step-row h3{margin-top:12px!important}.pagzly-step-row p{font-size:${FONT_SIZE.sm}!important}}
   .pagzly-wrap .pz-fit{font-size:max(min(var(--pz-fs),0.6875rem),min(var(--pz-fs),calc(100cqi / var(--pz-fit-em,0.01))))!important}
