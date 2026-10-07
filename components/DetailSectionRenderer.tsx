@@ -3122,8 +3122,14 @@ function renderSection(
                 >
                   {!isTrustEvidence && FLAT_SECTION_SURFACES && benefitIcons ? (
                     <span
-                      className="mx-auto mb-1"
+                      className="mx-auto mb-1 inline-flex h-12 w-12 items-center justify-center rounded-full border"
                       aria-hidden="true"
+                      style={{
+                        borderColor:
+                          (emphasized || boldBlock) && !lightEm
+                            ? hexToRgba(BRAND.paper, 0.32)
+                            : hexToRgba(readableTextDeep(theme), 0.22),
+                      }}
                       dangerouslySetInnerHTML={{
                         __html: summaryIconSvg(
                           benefitIcons[cardIndex]!,

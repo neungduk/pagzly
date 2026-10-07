@@ -732,7 +732,7 @@ function sectionHtml(
               const showTitle = !cardKeyword.keyword || Boolean(cardKeyword.remainder);
               const iconHtml =
                 FLAT_SECTION_SURFACES && benefitIcons
-                  ? `<span aria-hidden="true" style="display:flex;justify-content:center;margin-bottom:12px">${summaryIconSvg(benefitIcons[i]!, (em || section.boldBlock) && !lightEm ? BRAND.paper : deepText, BENEFIT_ICON_PX)}</span>`
+                  ? `<span aria-hidden="true" style="display:flex;justify-content:center;margin-bottom:12px"><span style="display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:48px;height:48px;border-radius:50%;border:1px solid ${(em || section.boldBlock) && !lightEm ? hexToRgba(BRAND.paper, 0.32) : hexToRgba(deepText, 0.22)}">${summaryIconSvg(benefitIcons[i]!, (em || section.boldBlock) && !lightEm ? BRAND.paper : deepText, BENEFIT_ICON_PX)}</span></span>`
                   : "";
               return `<div class="${em ? "pulse-card" : ""}" style="border-radius:${RADIUS.lg}px;padding:28px 20px;text-align:center;background:${cardBg};border:${cardBorder};${em && !FLAT_SECTION_SURFACES ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}color:${titleColor}">
                 ${iconHtml}${FLAT_SECTION_SURFACES ? "" : `<div style="font-size:${FONT_SIZE.label};letter-spacing:.22em;opacity:.7;border:1px solid ${accent}55;border-radius:${RADIUS.pill}px;display:inline-block;padding:4px 10px">${formatPointBadge(i + 1)}</div>`}
