@@ -2019,7 +2019,7 @@ function renderSection(
                     : ELEVATION.checklistCard(theme.deepAccent),
                 }}
               >
-                {FLAT_SECTION_SURFACES && !conceptIcons?.checklist?.[itemIndex] ? (
+                {FLAT_SECTION_SURFACES ? (
                   <span
                     aria-hidden="true"
                     dangerouslySetInnerHTML={{
@@ -3386,7 +3386,7 @@ function renderSection(
                   rotate={metricIndex % 2 === 0 ? -2 : 2}
                   className="flex flex-col items-center gap-2 px-4 py-8 text-center"
                 >
-                  {(!FLAT_SECTION_SURFACES || conceptIcons?.statInfographic?.[metricIndex]) && (
+                  {!FLAT_SECTION_SURFACES && (
                     <ConceptBadgeIcon
                       src={conceptIcons?.statInfographic?.[metricIndex]}
                       theme={theme}
@@ -3658,8 +3658,15 @@ function renderSection(
             {/* 연결선: 모바일은 세로(뱃지 중심 x=24px), sm 이상은 가로(뱃지 중심 y=24px) */}
             <div
               aria-hidden="true"
-              className="absolute left-6 top-0 bottom-0 w-px @min-[640px]/pz:left-0 @min-[640px]/pz:right-0 @min-[640px]/pz:top-6 @min-[640px]/pz:bottom-auto @min-[640px]/pz:h-px @min-[640px]/pz:w-auto"
-              style={{ backgroundColor: hexToRgba(theme.accent, 0.25) }}
+              className={
+                FLAT_SECTION_SURFACES
+                  ? "absolute left-[22px] top-[22px] bottom-[22px] w-px @min-[640px]/pz:left-[var(--pz-step-edge)] @min-[640px]/pz:right-[var(--pz-step-edge)] @min-[640px]/pz:top-[22px] @min-[640px]/pz:bottom-auto @min-[640px]/pz:h-px @min-[640px]/pz:w-auto"
+                  : "absolute left-6 top-0 bottom-0 w-px @min-[640px]/pz:left-0 @min-[640px]/pz:right-0 @min-[640px]/pz:top-6 @min-[640px]/pz:bottom-auto @min-[640px]/pz:h-px @min-[640px]/pz:w-auto"
+              }
+              style={{
+                backgroundColor: hexToRgba(theme.accent, 0.25),
+                ["--pz-step-edge" as string]: `${50 / Math.max(1, section.steps.length)}%`,
+              }}
             />
             {section.steps.map((step, stepIndex) => (
               <li
@@ -3667,12 +3674,25 @@ function renderSection(
                 className="relative flex items-start gap-4 @min-[640px]/pz:flex-1 @min-[640px]/pz:flex-col @min-[640px]/pz:items-center @min-[640px]/pz:gap-3 @min-[640px]/pz:text-center"
               >
                 <div className="relative z-10 shrink-0">
+                  {FLAT_SECTION_SURFACES ? (
+                    <span
+                      className="flex h-11 w-11 items-center justify-center rounded-full text-base font-semibold tabular-nums"
+                      style={{
+                        background: `linear-gradient(${hexToRgba(theme.accent, 0.12)}, ${hexToRgba(theme.accent, 0.12)}), ${FLAT_PAPER}`,
+                        color: readableTextDeep(theme),
+                      }}
+                      aria-hidden="true"
+                    >
+                      {stepIndex + 1}
+                    </span>
+                  ) : (
                   <ConceptBadgeIcon
                     src={conceptIcons?.usageSteps?.[stepIndex]}
                     theme={theme}
                     fallbackIndex={stepIndex}
                     size={INFO_BADGE.defaultSize}
                   />
+                  )}
                 </div>
                 <div className="min-w-0 flex-1 pt-1 @min-[640px]/pz:flex-none @min-[640px]/pz:pt-0">
                   <p
@@ -3690,7 +3710,11 @@ function renderSection(
                       steps[stepIndex] = next;
                       edit?.onChange(index, { ...section, steps });
                     }}
-                    className={TYPO.stepItem}
+                    className={
+                      FLAT_SECTION_SURFACES
+                        ? "block text-sm font-normal leading-relaxed text-ink/78 @min-[640px]/pz:max-w-[14rem]"
+                        : TYPO.stepItem
+                    }
                   />
                 </div>
               </li>

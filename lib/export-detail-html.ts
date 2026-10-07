@@ -1371,6 +1371,21 @@ function sectionHtml(
       const flowHtml = isCosmeticsCategory(category)
         ? buildUsageOrderFlowSvg(section.steps, deep, "#1B1B18")
         : "";
+      if (FLAT_SECTION_SURFACES) {
+        const tint = hexToRgba(accent, 0.12);
+        const edge = `${50 / Math.max(1, section.steps.length)}%`;
+        return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
+        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
+        <ol class="pagzly-usage" style="position:relative;max-width:768px;margin:56px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:40px;--pz-step-edge:${edge}">
+          <div class="pagzly-usage-line" aria-hidden="true" style="position:absolute;left:22px;top:22px;bottom:22px;width:1px;background:${hexToRgba(accent, 0.25)}"></div>
+          ${section.steps
+            .map(
+              (s, i) =>
+                `<li class="pagzly-usage-step" style="position:relative;display:flex;align-items:flex-start;gap:16px"><span aria-hidden="true" style="position:relative;z-index:1;flex-shrink:0;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:9999px;background:linear-gradient(${tint},${tint}),${FLAT_PAPER};color:${deepText};font-size:16px;font-weight:600;font-variant-numeric:tabular-nums">${i + 1}</span><div style="min-width:0;flex:1;padding-top:4px"><p style="margin:0 0 6px;font-family:${DETAIL_FONT_STACK.label};font-size:11px;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:${accentText}">STEP ${String(i + 1).padStart(2, "0")}</p><span class="pagzly-usage-text" style="display:block;font-size:14px;line-height:1.625;color:${hexToRgba(BRAND.ink, 0.78)}">${esc(s)}</span></div></li>`,
+            )
+            .join("")}
+        </ol>${flowHtml}</section>`;
+      }
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
         <ol style="max-width:640px;margin:32px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:16px">
@@ -1947,7 +1962,7 @@ ${jsonLd}
   ${buildDetailExportFontCss(opts.category)}
   .pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size}
   ${titleScaleExportCss()}
-  @media (min-width:640px){.pagzly-persona-pairs{grid-template-columns:repeat(2,1fr)!important}.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}.pagzly-hl-grid{grid-template-columns:var(--pz-hl-wide)!important}.pagzly-cl-grid{grid-template-columns:var(--pz-cl-wide)!important}.pagzly-step-rows{grid-template-columns:repeat(3,1fr)!important;gap:32px!important}.pagzly-step-row{display:block!important}.pagzly-step-row h3{margin-top:12px!important}.pagzly-step-row p{font-size:${FONT_SIZE.sm}!important}}
+  @media (min-width:640px){.pagzly-usage{flex-direction:row!important;align-items:flex-start;gap:16px!important}.pagzly-usage-line{left:var(--pz-step-edge)!important;right:var(--pz-step-edge);bottom:auto!important;width:auto!important;height:1px}.pagzly-usage-step{flex:1;flex-direction:column;align-items:center!important;gap:12px!important;text-align:center}.pagzly-usage-step>div{flex:none!important;padding-top:0!important}.pagzly-usage-text{max-width:14rem;margin:0 auto}.pagzly-persona-pairs{grid-template-columns:repeat(2,1fr)!important}.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}.pagzly-hl-grid{grid-template-columns:var(--pz-hl-wide)!important}.pagzly-cl-grid{grid-template-columns:var(--pz-cl-wide)!important}.pagzly-step-rows{grid-template-columns:repeat(3,1fr)!important;gap:32px!important}.pagzly-step-row{display:block!important}.pagzly-step-row h3{margin-top:12px!important}.pagzly-step-row p{font-size:${FONT_SIZE.sm}!important}}
   .pagzly-wrap .pz-fit{font-size:max(min(var(--pz-fs),0.6875rem),min(var(--pz-fs),calc(100cqi / var(--pz-fit-em,0.01))))!important}
   .pagzly-anchor-nav a{scroll-margin-top:52px}
   .pagzly-seo-text{padding:32px 20px;font-size:${FONT_SIZE.bodySm};line-height:1.65;border-top:1px solid #DAD5C9;color:rgba(27,27,24,.62)}

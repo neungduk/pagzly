@@ -72,6 +72,7 @@ function buildMock(category: string): Payload {
         { label: "재구매 의향", value: "81%", percent: 81, style: "bar", basis: "measured", sourceNote: "판매자 설문, 2026.08, n=50" },
       ],
     },
+    { type: "usage_steps", slot: "usage_steps", heading: "이렇게 사용하세요", steps: ["포장을 열고 구성품을 확인해요", "필요한 만큼 덜어 사용해요", "사용 후 뚜껑을 닫아 보관해요"] },
     { type: "spec_table", slot: "spec_table", heading: "제품 정보", rows: [{ label: "제조국", value: "대한민국" }, { label: "구성", value: "본품 1개" }] },
     { type: "gallery", slot: "gallery", heading: "다양한 각도", imageIndexes: [1, 2, 3] },
     { type: "tradeoff_card", slot: "tradeoff_card", heading: "구매 전 확인하세요", recommendFor: ["가볍게 쓰고 싶은 분"], considerIf: ["대용량이 필요한 분"] },
