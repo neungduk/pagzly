@@ -770,3 +770,10 @@ body {
   .pagzly-spec-grid tr > :last-child { flex: 1; }
   .pagzly-spec-grid tr:nth-last-child(2) { border-bottom-width: 0; }
 }
+
+/* 335차 — 혜택 카드 3장 이하는 좁은 화면에서 아이콘 왼쪽 가로 행 (export는 @media 639px) */
+@container pz (max-width: 639px) {
+  .pagzly-hl-row { display: grid !important; grid-template-columns: 48px 1fr; column-gap: 16px; row-gap: 4px; align-items: start; text-align: left !important; padding: 20px !important; }
+  .pagzly-hl-row > * { grid-column: 2; margin-top: 0 !important; margin-bottom: 0 !important; }
+  .pagzly-hl-row > :first-child { grid-column: 1; grid-row: 1 / span 4; }
+}

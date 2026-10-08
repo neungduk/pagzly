@@ -3113,6 +3113,8 @@ function renderSection(
                   key={cardIndex}
                   data-preview-pulse={emphasized ? "true" : undefined}
                   className={`@container flex flex-col gap-2 rounded-2xl px-6 py-8 text-center ${
+                    !isTrustEvidence && FLAT_SECTION_SURFACES && benefitIcons && cards.length <= 3 ? "pagzly-hl-row" : ""
+                  } ${
                     emphasized && !isTrustEvidence && !FLAT_SECTION_SURFACES
                       ? "pagzly-pulse-card pagzly-ink-shimmer @min-[640px]/pz:-translate-y-2"
                       : ""
