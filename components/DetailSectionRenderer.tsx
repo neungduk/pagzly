@@ -5011,7 +5011,7 @@ export default function DetailSectionRenderer({
   const extendedTheme = extendTheme(baseTheme);
   const trustChips = extractTrustChips(sections);
   const certTokens = parseCertificationTokens(certifications);
-  const quickFacts = extractQuickFacts(sections);
+  const quickFacts = extractQuickFacts(sections, trustChips);
   const sectionAnchors = buildSectionAnchors(sections);
   const anchorIdMap = buildSectionAnchorIdMap(sections);
   let imageTextCount = 0;

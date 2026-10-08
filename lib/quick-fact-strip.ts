@@ -43,18 +43,31 @@ function findProductSpecTable(sections: DetailSection[]) {
   );
 }
 
+const factKey = (s: string) => s.toLowerCase().replace(/\s+/g, "");
+
+/** 값 조각(쉼표·가운뎃점 구분)의 절반 이상이 바로 위 신뢰 칩에 이미 있으면 같은 말 반복 */
+function coveredByChips(value: string, chipKeys: string[]): boolean {
+  if (chipKeys.length === 0) return false;
+  const parts = value.split(/[,·/]/).map(factKey).filter(Boolean);
+  if (parts.length === 0) return false;
+  const hit = parts.filter((p) => chipKeys.some((c) => c.includes(p))).length;
+  return hit * 2 >= parts.length;
+}
+
 /** spec_table에서 2~4개 핵심 행 추출. 없으면 빈 배열 */
-export function extractQuickFacts(sections: DetailSection[]): QuickFact[] {
+export function extractQuickFacts(sections: DetailSection[], trustChips: string[] = []): QuickFact[] {
   const spec = findProductSpecTable(sections);
   if (!spec || spec.type !== "spec_table") return [];
 
+  const chipKeys = trustChips.map(factKey);
   const validRows = spec.rows.filter(
     (r) =>
       r.label.trim() &&
       r.value.trim() &&
       !isPlaceholderValue(r.value) &&
-      // 플랫 톤은 히어로 워드마크·브랜드 섹션·CTA에 이미 브랜드명이 있다
-      !(FLAT_SECTION_SURFACES && r.label.trim() === "브랜드"),
+      // 플랫 톤은 히어로 워드마크·브랜드 섹션·CTA에 이미 브랜드명·상품명이 있다
+      !(FLAT_SECTION_SURFACES && /^(브랜드|제품명|상품명)$/.test(r.label.trim())) &&
+      !coveredByChips(r.value, chipKeys),
   );
   if (validRows.length === 0) return [];
 

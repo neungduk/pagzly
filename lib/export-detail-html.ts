@@ -1893,7 +1893,7 @@ export function buildDetailPageHtml(opts: {
   const extended = extendTheme(opts.theme);
 
   const certTokens = parseCertificationTokens(opts.certifications);
-  const quickFacts = extractQuickFacts(visibleSections);
+  const quickFacts = extractQuickFacts(visibleSections, trustChips);
   const sectionAnchors = buildSectionAnchors(visibleSections);
   const anchorIdMap = buildSectionAnchorIdMap(visibleSections);
   const anchorNavHtml = buildAnchorNavHtml(sectionAnchors, opts.theme);
