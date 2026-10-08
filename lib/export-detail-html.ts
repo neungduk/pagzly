@@ -760,7 +760,7 @@ function sectionHtml(
               return `<div class="${em && !FLAT_SECTION_SURFACES ? "pulse-card" : ""}${rowCls}" style="${FLAT_SECTION_SURFACES ? "container-type:inline-size;" : ""}border-radius:${RADIUS.lg}px;padding:${FLAT_SECTION_SURFACES ? "32px 24px" : "28px 20px"};text-align:center;background:${cardBg};border:${cardBorder};${em && !FLAT_SECTION_SURFACES ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}color:${titleColor}">
                 ${iconHtml}${FLAT_SECTION_SURFACES ? "" : `<div style="font-size:${FONT_SIZE.label};letter-spacing:.22em;opacity:.7;border:1px solid ${accent}55;border-radius:${RADIUS.pill}px;display:inline-block;padding:4px 10px">${formatPointBadge(i + 1)}</div>`}
                 ${cardKeyword.keyword ? FLAT_SECTION_SURFACES ? `<p class="pz-fit" style="--pz-fs:clamp(1.75rem,8cqi,2.75rem);--pz-fit-em:${longestTokenEm(cardKeyword.keyword, -0.06)};font-size:clamp(1.75rem,8cqi,2.75rem);font-family:${DETAIL_FONT_STACK.heading};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:0 0 ${showTitle ? 0 : 8}px;text-transform:uppercase;color:${(em || section.boldBlock) && !lightEm ? BRAND.paper : deepText}">${esc(cardKeyword.keyword)}</p>` : `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClampCard};font-weight:900;line-height:.92;letter-spacing:-.05em;margin:${FLAT_SECTION_SURFACES ? 0 : 12}px 0 ${showTitle ? 0 : 8}px;text-transform:uppercase;color:${(em || section.boldBlock) && !lightEm ? BRAND.paper : deepText}">${esc(cardKeyword.keyword)}</p>` : ""}
-                ${showTitle ? `<h3 style="margin:${FLAT_SECTION_SURFACES && !cardKeyword.keyword ? 0 : 8}px 0 8px;font-size:${cardKeyword.keyword ? FONT_SIZE.bodySm : FLAT_SECTION_SURFACES ? "18px;line-height:28px;letter-spacing:-0.02em" : "inherit"};font-weight:${cardKeyword.keyword ? "600" : "700"};color:${titleColor}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</h3>` : ""}
+                ${showTitle ? `<h3 style="margin:${FLAT_SECTION_SURFACES && !cardKeyword.keyword ? 0 : 8}px 0 8px;font-size:${cardKeyword.keyword ? (FLAT_SECTION_SURFACES ? `16px;line-height:24px;letter-spacing:-0.02em;font-family:${DETAIL_FONT_STACK.heading}` : FONT_SIZE.bodySm) : FLAT_SECTION_SURFACES ? "18px;line-height:28px;letter-spacing:-0.02em" : "inherit"};font-weight:${cardKeyword.keyword ? "600" : "700"};color:${titleColor}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</h3>` : ""}
                 <p style="margin:0;font-size:${FONT_SIZE.bodySm};line-height:1.625;color:${bodyColor}">${esc(card.body)}</p>
               </div>`;
             })
@@ -821,7 +821,7 @@ function sectionHtml(
           if (m.style === "number") {
             // 154차 — 라이브 렌더러와 동일하게 숫자를 "히어로 넘버"로 키움(2rem→3rem,
             // 700→800, 라벨은 소문자 캡션에서 대문자 트래킹 라벨로).
-            return `<div style="text-align:center;container-type:inline-size;padding:32px 16px;border-radius:${RADIUS.lg}px;${FLAT_SECTION_SURFACES ? `background:${FLAT_PAPER};border:1px solid ${hexToRgba(accent, 0.16)}` : `background:rgba(250,248,243,.78);box-shadow:${ELEVATION.imageThumb}`}"><div class="pz-fit" style="${titleFitCss("statNumber", m.value, -0.05)};font-weight:900;line-height:1;letter-spacing:-0.05em;color:${deepText}">${statValueHtml(m.value)}${footnoteMarkFor(m)}</div><div style="margin-top:6px;${STAT_LABEL_CSS}">${esc(m.label)}</div></div>`;
+            return `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:32px 16px;border-radius:${RADIUS.lg}px;${FLAT_SECTION_SURFACES ? `background:${FLAT_PAPER};border:1px solid ${hexToRgba(accent, 0.16)}` : `background:rgba(250,248,243,.78);box-shadow:${ELEVATION.imageThumb}`}"><div style="width:100%;container-type:inline-size;font-size:16px;line-height:1.5;color:${deepText}"><span class="pz-fit" style="${titleFitCss("statNumber", m.value, -0.05)};font-weight:900;line-height:1;letter-spacing:-0.05em">${statValueHtml(m.value)}</span>${footnoteMarkFor(m)}</div><div style="margin-top:2px;${STAT_LABEL_CSS}">${esc(m.label)}</div></div>`;
           }
           if (m.style === "ring") {
             // 241차 — 라이브 RadialGauge(size=112, strokeWidth=10)와 동일 기하로
@@ -1241,8 +1241,10 @@ function sectionHtml(
             baseTheme.accentText,
           )
         : "";
-      const diagramHtml =
-        (sizeMatches.length > 0
+      const wrapDiagram = (html: string) =>
+        html ? `<div class="pagzly-diagram" style="margin:32px auto 0">${html}</div>` : "";
+      const diagramHtml = [
+        sizeMatches.length > 0
           ? buildFashionSizeDiagramSvg(sizeMatches, deep, deep)
           : volumeHtml
             ? volumeHtml
@@ -1254,11 +1256,14 @@ function sectionHtml(
                     baseTheme.accentText,
                     baseTheme.accentText,
                   )
-                : "") +
-        noiseHtml +
-        waterproofHtml +
-        weightHtml +
-        powerHtml;
+                : "",
+        noiseHtml,
+        waterproofHtml,
+        weightHtml,
+        powerHtml,
+      ]
+        .map(wrapDiagram)
+        .join("");
       const specThumbUrls = (
         section.imageIndexes?.length
           ? section.imageIndexes
@@ -1318,9 +1323,9 @@ function sectionHtml(
         ${
           isShipping
             ? FLAT_SECTION_SURFACES
-              ? `<div class="pagzly-shipping-table" style="max-width:560px;margin:${tableMargin} auto 0;border:1px solid ${hexToRgba(accent, 0.2)};border-radius:12px;overflow:hidden;background:${FLAT_PAPER}">${tableHtml}</div>`
-              : `<div class="pagzly-shipping-table" style="max-width:560px;margin:${tableMargin} auto 0;border:2px solid ${accent}59;border-radius:${RADIUS.md}px;overflow:hidden;background:${sectionBg}80">${tableHtml}</div>`
-            : `<div style="max-width:560px;margin:${tableMargin} auto 0">${tableHtml}</div>`
+              ? `<div class="pagzly-shipping-table" style="max-width:576px;margin:${tableMargin} auto 0;border:1px solid ${hexToRgba(accent, 0.2)};border-radius:12px;overflow:hidden;background:${FLAT_PAPER}">${tableHtml}</div>`
+              : `<div class="pagzly-shipping-table" style="max-width:576px;margin:${tableMargin} auto 0;border:2px solid ${accent}59;border-radius:${RADIUS.md}px;overflow:hidden;background:${sectionBg}80">${tableHtml}</div>`
+            : `<div style="max-width:576px;margin:${tableMargin} auto 0">${tableHtml}</div>`
         }
         ${
           sizeMatches.length > 0
@@ -2040,7 +2045,7 @@ ${jsonLd}
   @media (min-width:640px){.pagzly-concern{font-size:13px}.pagzly-concern-count{font-size:12px;line-height:16px}}
   @media (min-width:640px){.pagzly-gallery{padding-top:var(--pz-gt-w)!important}}
   @media (min-width:640px){.pagzly-stat-bar-label{font-size:16px}}
-  .pagzly-wrap [data-diagram]>svg{display:block}
+  .pagzly-wrap [data-diagram]>svg,.pagzly-wrap .pagzly-diagram>div>svg{display:block}
   .pagzly-textonly{padding:40px 24px}
   @media (min-width:640px){.pagzly-textonly{padding:48px 40px}}
   .pagzly-rv-cap{font-size:11px;line-height:1.5}
