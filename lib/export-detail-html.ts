@@ -755,9 +755,9 @@ function sectionHtml(
                   ? `<span aria-hidden="true" style="display:flex;justify-content:center;margin-bottom:12px"><span style="display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:48px;height:48px;border-radius:50%;border:1px solid ${(em || section.boldBlock) && !lightEm ? hexToRgba(BRAND.paper, 0.32) : hexToRgba(deepText, 0.22)}">${summaryIconSvg(benefitIcons[i]!, (em || section.boldBlock) && !lightEm ? BRAND.paper : deepText, BENEFIT_ICON_PX)}</span></span>`
                   : "";
               const rowCls = FLAT_SECTION_SURFACES && benefitIcons && cards.length <= 3 ? " pagzly-hl-row" : "";
-              return `<div class="${em ? "pulse-card" : ""}${rowCls}" style="border-radius:${RADIUS.lg}px;padding:${FLAT_SECTION_SURFACES ? "32px 24px" : "28px 20px"};text-align:center;background:${cardBg};border:${cardBorder};${em && !FLAT_SECTION_SURFACES ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}color:${titleColor}">
+              return `<div class="${em && !FLAT_SECTION_SURFACES ? "pulse-card" : ""}${rowCls}" style="${FLAT_SECTION_SURFACES ? "container-type:inline-size;" : ""}border-radius:${RADIUS.lg}px;padding:${FLAT_SECTION_SURFACES ? "32px 24px" : "28px 20px"};text-align:center;background:${cardBg};border:${cardBorder};${em && !FLAT_SECTION_SURFACES ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}color:${titleColor}">
                 ${iconHtml}${FLAT_SECTION_SURFACES ? "" : `<div style="font-size:${FONT_SIZE.label};letter-spacing:.22em;opacity:.7;border:1px solid ${accent}55;border-radius:${RADIUS.pill}px;display:inline-block;padding:4px 10px">${formatPointBadge(i + 1)}</div>`}
-                ${cardKeyword.keyword ? `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClampCard};font-weight:900;line-height:.92;letter-spacing:-.05em;margin:${FLAT_SECTION_SURFACES ? 0 : 12}px 0 ${showTitle ? 0 : 8}px;text-transform:uppercase;color:${(em || section.boldBlock) && !lightEm ? BRAND.paper : deepText}">${esc(cardKeyword.keyword)}</p>` : ""}
+                ${cardKeyword.keyword ? FLAT_SECTION_SURFACES ? `<p class="pz-fit" style="--pz-fs:clamp(1.75rem,8cqi,2.75rem);--pz-fit-em:${longestTokenEm(cardKeyword.keyword, -0.06)};font-size:clamp(1.75rem,8cqi,2.75rem);font-family:${DETAIL_FONT_STACK.heading};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:0 0 ${showTitle ? 0 : 8}px;text-transform:uppercase;color:${(em || section.boldBlock) && !lightEm ? BRAND.paper : deepText}">${esc(cardKeyword.keyword)}</p>` : `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClampCard};font-weight:900;line-height:.92;letter-spacing:-.05em;margin:${FLAT_SECTION_SURFACES ? 0 : 12}px 0 ${showTitle ? 0 : 8}px;text-transform:uppercase;color:${(em || section.boldBlock) && !lightEm ? BRAND.paper : deepText}">${esc(cardKeyword.keyword)}</p>` : ""}
                 ${showTitle ? `<h3 style="margin:8px 0;font-size:${cardKeyword.keyword ? FONT_SIZE.bodySm : FLAT_SECTION_SURFACES ? "18px;line-height:28px;letter-spacing:-0.02em" : "inherit"};font-weight:${cardKeyword.keyword ? "600" : "700"};color:${titleColor}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</h3>` : ""}
                 <p style="margin:0;font-size:${FONT_SIZE.bodySm};line-height:1.625;color:${bodyColor}">${esc(card.body)}</p>
               </div>`;
@@ -792,7 +792,7 @@ function sectionHtml(
           return rowMode
             ? `<div class="pagzly-step-rows" style="display:grid;grid-template-columns:1fr;gap:20px;margin-top:40px;max-width:896px;margin-left:auto;margin-right:auto">${items}</div>`
             : `<div class="pagzly-step-pairs" style="display:grid;grid-template-columns:repeat(2,1fr);gap:32px 16px;margin:48px auto 0;max-width:896px">${items}</div>`;
-        })()}${flowHtml}</section>`;
+        })()}${flowHtml ? `<div style="max-width:360px;margin:40px auto 0">${flowHtml}</div>` : ""}</section>`;
     }
     case "stat_infographic": {
       // 151차 — 각주(sourceNote)가 있는 measured metric에 순서대로 번호를 매겨
@@ -842,11 +842,11 @@ function sectionHtml(
               </div>`;
           }
           const barColor = section.barAccent === "emphasis" ? deep : accent;
-          return `<div><div style="display:flex;justify-content:space-between;align-items:baseline;font-size:${FONT_SIZE.bodySm}"><span>${esc(m.label)}</span><strong style="font-size:${titleSizeCss("statBar")};font-weight:800;line-height:1;letter-spacing:-0.01em">${statValueHtml(m.value)}${footnoteMarkFor(m)}</strong></div>
+          return `<div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;font-size:${FONT_SIZE.bodySm}"><span class="pagzly-stat-bar-label" style="font-weight:500;color:rgba(27,27,24,.65)">${esc(m.label)}</span><span style="flex-shrink:0;white-space:nowrap;font-size:16px;line-height:1.5"><strong style="font-family:${DETAIL_FONT_STACK.heading};font-size:${titleSizeCss("statBar")};font-weight:900;line-height:1;letter-spacing:-0.05em;font-variant-numeric:tabular-nums;color:${BRAND.ink}">${statValueHtml(m.value)}</strong>${footnoteMarkFor(m)}</span></div>
                 ${
                   FLAT_SECTION_SURFACES && isConcentrationMetricLabel(m.label)
                     ? `<div style="height:1px;background:${hexToRgba(accent, 0.2)};margin-top:12px"></div>`
-                    : `<div style="height:${section.barAccent === "emphasis" ? 14 : 10}px;background:${barColor}29;border-radius:${RADIUS.pill}px;margin-top:8px;overflow:hidden">
+                    : `<div style="height:${section.barAccent === "emphasis" ? 16 : 12}px;background:${hexToRgba(section.barAccent === "emphasis" ? deep : accent, section.barAccent === "emphasis" ? 0.14 : 0.16)};border-radius:${RADIUS.pill}px;margin-top:12px;overflow:hidden">
                   <div class="fill-bar" style="height:100%;width:${pct}%;background:${barColor};border-radius:${RADIUS.pill}px"></div>
                 </div>`
                 }</div>`;
@@ -1415,6 +1415,7 @@ function sectionHtml(
       const flowHtml = isCosmeticsCategory(category)
         ? buildUsageOrderFlowSvg(section.steps, deep, "#1B1B18")
         : "";
+      const flowBlock = flowHtml ? `<div style="max-width:360px;margin:40px auto 0">${flowHtml}</div>` : "";
       if (FLAT_SECTION_SURFACES) {
         const tint = hexToRgba(accent, 0.12);
         const edge = `${50 / Math.max(1, section.steps.length)}%`;
@@ -1428,13 +1429,13 @@ function sectionHtml(
                 `<li class="pagzly-usage-step" style="position:relative;display:flex;align-items:flex-start;gap:16px"><span aria-hidden="true" style="position:relative;z-index:1;flex-shrink:0;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:9999px;background:linear-gradient(${tint},${tint}),${FLAT_PAPER};color:${deepText};font-size:16px;font-weight:600;font-variant-numeric:tabular-nums">${i + 1}</span><div style="min-width:0;flex:1;padding-top:4px"><p style="margin:0 0 6px;font-family:${DETAIL_FONT_STACK.label};font-size:11px;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:${accentText}">STEP ${String(i + 1).padStart(2, "0")}</p><span class="pagzly-usage-text" style="display:block;font-size:14px;line-height:1.625;color:${hexToRgba(BRAND.ink, 0.78)}">${esc(s)}</span></div></li>`,
             )
             .join("")}
-        </ol>${flowHtml}</section>`;
+        </ol>${flowBlock}</section>`;
       }
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
         <ol style="max-width:640px;margin:32px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:16px">
           ${section.steps.map((s, i) => `<li><span style="color:${accentText};font-size:${FONT_SIZE.caption};font-weight:700">STEP ${String(i + 1).padStart(2, "0")}</span><div style="font-size:${FONT_SIZE.body};margin-top:4px">${esc(s)}</div></li>`).join("")}
-        </ol>${flowHtml}</section>`;
+        </ol>${flowBlock}</section>`;
     }
     case "custom_gif":
       // 라이브와 같은 16:9 풀블리드 + 하단 스크림 + 배너 제목
@@ -2036,6 +2037,8 @@ ${jsonLd}
   .pagzly-concern{font-size:12px}.pagzly-concern-count{font-size:11px;line-height:1.5}
   @media (min-width:640px){.pagzly-concern{font-size:13px}.pagzly-concern-count{font-size:12px;line-height:16px}}
   @media (min-width:640px){.pagzly-gallery{padding-top:var(--pz-gt-w)!important}}
+  @media (min-width:640px){.pagzly-stat-bar-label{font-size:16px}}
+  .pagzly-wrap [data-diagram]>svg{display:block}
   .pagzly-textonly{padding:40px 24px}
   @media (min-width:640px){.pagzly-textonly{padding:48px 40px}}
   .pagzly-rv-cap{font-size:11px;line-height:1.5}
