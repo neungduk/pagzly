@@ -926,10 +926,10 @@ function sectionHtml(
       // text_only는 배정 단계가 사진을 뺀 섹션 — imageIndex는 원본 값이 남아 있어 아래 분기로
       // 떨어지면 뺀 사진이 다시 붙는다.
       if (section.layout === "text_only") {
-        return `<section${sectionIdAttr} style="padding:40px 24px;${sectionInset}${bgCss}">
+        return `<section${sectionIdAttr} class="pagzly-textonly" style="${sectionInset}${bgCss}">
           <div style="max-width:576px;margin:0 auto;text-align:${FLAT_SECTION_SURFACES ? "center" : "left"}">
             ${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)};margin:0;line-height:1.2;color:${readableTextDeep(theme, 3)}`)}
-            <p style="margin:16px 0 0;white-space:pre-line;font-size:${titleSizeCss("body")};line-height:1.9;color:${FLAT_SECTION_SURFACES ? hexToRgba(BRAND.ink, 0.72) : BRAND.ink}">${esc(section.body)}</p>
+            <p class="pagzly-body-lh" style="margin:16px 0 0;white-space:pre-line;font-size:${titleSizeCss("body")};line-height:1.9;color:${FLAT_SECTION_SURFACES ? hexToRgba(BRAND.ink, 0.72) : BRAND.ink}">${esc(section.body)}</p>
           </div>
         </section>`;
       }
@@ -1475,7 +1475,7 @@ function sectionHtml(
             .map(
               (item) => `<div class="pagzly-faq-card" style="border-bottom:1px solid ${line};padding:24px 0">
             <div style="display:flex;align-items:flex-start;gap:12px"><span aria-hidden="true" style="${circle};background:${solidAccentOnPaper(theme)};color:${BRAND.paper}">Q</span><p style="min-width:0;flex:1;margin:0;padding-top:2px;font-family:${DETAIL_FONT_STACK.heading};font-size:17px;font-weight:700;line-height:1.375;letter-spacing:-0.02em;color:${BRAND.ink}">${esc(item.question)}</p></div>
-            <div style="display:flex;align-items:flex-start;gap:12px;margin-top:12px"><span aria-hidden="true" style="${circle};border:1px solid ${hexToRgba(theme.accent, 0.4)};color:${deepText}">A</span><p style="min-width:0;flex:1;margin:0;font-size:${titleSizeCss("body")};line-height:1.85;color:rgba(27,27,24,.72)">${esc(item.answer)}</p></div>
+            <div style="display:flex;align-items:flex-start;gap:12px;margin-top:12px"><span aria-hidden="true" style="${circle};border:1px solid ${hexToRgba(theme.accent, 0.4)};color:${deepText}">A</span><p class="pagzly-body-lh" style="min-width:0;flex:1;margin:0;font-size:${titleSizeCss("body")};line-height:1.85;color:rgba(27,27,24,.72)">${esc(item.answer)}</p></div>
           </div>`,
             )
             .join("")}
@@ -1642,27 +1642,27 @@ function sectionHtml(
         .filter((c) => Boolean(c.text));
       const countCaption =
         typeof section.sourceReviewCount === "number" && section.sourceReviewCount > 0
-          ? `<p style="text-align:center;font-size:${FONT_SIZE.xs};opacity:.4;margin:8px 0 0">실제 리뷰 ${section.sourceReviewCount}건 분석</p>`
+          ? `<p class="pagzly-rv-cap" style="text-align:center;opacity:.4;margin:8px 0 0">실제 리뷰 ${section.sourceReviewCount}건 분석</p>`
           : "";
       const petCaption =
         typeof section.petAgeWeightMentionCount === "number" &&
         section.petAgeWeightMentionCount > 0
-          ? `<p style="text-align:center;font-size:${FONT_SIZE.xs};opacity:.4;margin:4px 0 0">반려동물 나이·체중 언급 리뷰 ${section.petAgeWeightMentionCount}건</p>`
+          ? `<p class="pagzly-rv-cap" style="text-align:center;opacity:.4;margin:4px 0 0">반려동물 나이·체중 언급 리뷰 ${section.petAgeWeightMentionCount}건</p>`
           : "";
       const repurchaseCaption =
         typeof section.repurchaseMentionCount === "number" &&
         section.repurchaseMentionCount > 0
-          ? `<p style="text-align:center;font-size:${FONT_SIZE.xs};opacity:.4;margin:4px 0 0">재구매 의사 언급 리뷰 ${section.repurchaseMentionCount}건</p>`
+          ? `<p class="pagzly-rv-cap" style="text-align:center;opacity:.4;margin:4px 0 0">재구매 의사 언급 리뷰 ${section.repurchaseMentionCount}건</p>`
           : "";
       const sizeFitCaption =
         typeof section.sizeFitMentionCount === "number" &&
         section.sizeFitMentionCount > 0
-          ? `<p style="text-align:center;font-size:${FONT_SIZE.xs};opacity:.4;margin:4px 0 0">사이즈·핏 언급 리뷰 ${section.sizeFitMentionCount}건</p>`
+          ? `<p class="pagzly-rv-cap" style="text-align:center;opacity:.4;margin:4px 0 0">사이즈·핏 언급 리뷰 ${section.sizeFitMentionCount}건</p>`
           : "";
       const longTermUseCaption =
         typeof section.longTermUseMentionCount === "number" &&
         section.longTermUseMentionCount > 0
-          ? `<p style="text-align:center;font-size:${FONT_SIZE.xs};opacity:.4;margin:4px 0 0">장기 사용 후기 ${section.longTermUseMentionCount}건</p>`
+          ? `<p class="pagzly-rv-cap" style="text-align:center;opacity:.4;margin:4px 0 0">장기 사용 후기 ${section.longTermUseMentionCount}건</p>`
           : "";
       const highlightTextHtml = (text: string, matchCount: number): string =>
         matchCount > 0
@@ -1678,13 +1678,13 @@ function sectionHtml(
           : esc(text);
       const concernsBlock =
         concernItems.length > 0
-          ? `<div class="pagzly-review-concerns" style="max-width:560px;margin:40px auto 0;padding-top:28px;border-top:1px solid rgba(27,27,24,0.1)">
-              <p style="text-align:center;font-size:${FONT_SIZE.xs};font-weight:500;letter-spacing:.02em;opacity:.45;margin:0">실제 후기에 나온 아쉬운 점</p>
+          ? `<div class="pagzly-review-concerns" style="max-width:576px;margin:48px auto 0;padding-top:32px;border-top:1px solid rgba(27,27,24,0.1)">
+              <p class="pagzly-rv-cap" style="text-align:center;font-weight:500;letter-spacing:.025em;opacity:.45;margin:0">실제 후기에 나온 아쉬운 점</p>
               <ul style="list-style:none;padding:0;margin:16px 0 0">
                 ${concernItems
                   .map(
-                    (c) =>
-                      `<li class="pagzly-concern" style="text-align:center;line-height:1.625;color:rgba(27,27,24,.5);margin:0 0 10px">${highlightTextHtml(c.text, c.matchCount)}${
+                    (c, i) =>
+                      `<li class="pagzly-concern" style="text-align:center;line-height:1.625;color:rgba(27,27,24,.5);margin:${i ? 10 : 0}px 0 0">${highlightTextHtml(c.text, c.matchCount)}${
                         c.matchCount > 0
                           ? `<div class="pagzly-concern-count" style="color:rgba(27,27,24,.4);margin-top:4px">${c.matchCount}건 언급</div>`
                           : ""
@@ -1710,7 +1710,7 @@ function sectionHtml(
             (item) => `<li class="pagzly-review-card" style="display:flex;align-items:flex-start;gap:16px;border-radius:${RADIUS.lg}px;border:1px solid ${hexToRgba(theme.accent, 0.16)};background:${FLAT_PAPER};padding:20px;text-align:left">
               <span aria-hidden="true" style="flex-shrink:0;font-family:${DETAIL_FONT_STACK.heading};font-size:2.25rem;font-weight:700;line-height:.8;color:${solidAccentOnPaper(theme)}">&ldquo;</span>
               <div style="min-width:0;flex:1">
-                <p style="margin:0;font-size:${titleSizeCss("body")};line-height:1.85;color:rgba(27,27,24,.8)">${praiseTextHtml(item.text, item.matchCount)}</p>
+                <p class="pagzly-body-lh" style="margin:0;font-size:${titleSizeCss("body")};line-height:1.85;color:rgba(27,27,24,.8)">${praiseTextHtml(item.text, item.matchCount)}</p>
                 ${item.matchCount > 0 ? `<span style="display:inline-block;margin-top:8px;border-radius:${RADIUS.pill}px;padding:4px 10px;font-size:12px;font-weight:600;line-height:1;background:${hexToRgba(theme.accent, 0.12)};color:${deepText}">${item.matchCount}건 언급</span>` : ""}
               </div>
             </li>`,
@@ -1719,7 +1719,7 @@ function sectionHtml(
         return `<section${sectionIdAttr} class="pagzly-review-highlight" style="${pad}${sectionInset}${bgCss}">
         <div style="text-align:center;max-width:576px;margin:0 auto">${twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}</div>
         ${countCaption}${petCaption}${repurchaseCaption}${sizeFitCaption}${longTermUseCaption}
-        <p style="text-align:center;font-size:${FONT_SIZE.xs};opacity:.45;margin:8px 0 0">실제 구매자 리뷰에서 자주 나온 내용을 요약했습니다</p>
+        <p style="text-align:center;font-size:12px;line-height:16px;opacity:.45;margin:8px 0 0">실제 구매자 리뷰에서 자주 나온 내용을 요약했습니다</p>
         <ul style="list-style:none;padding:0;max-width:576px;margin:40px auto 0;display:flex;flex-direction:column;gap:12px">${cards}</ul>
         ${concernsBlock}
       </section>`;
@@ -1727,7 +1727,7 @@ function sectionHtml(
       return `<section${sectionIdAttr} class="pagzly-review-highlight" style="${pad}${sectionInset}${bgCss}">
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)};margin:0`)}
         ${countCaption}${petCaption}${repurchaseCaption}${sizeFitCaption}${longTermUseCaption}
-        <p style="text-align:center;font-size:${FONT_SIZE.xs};opacity:.45;margin:8px 0 0">실제 구매자 리뷰에서 자주 나온 내용을 요약했습니다</p>
+        <p style="text-align:center;font-size:12px;line-height:16px;opacity:.45;margin:8px 0 0">실제 구매자 리뷰에서 자주 나온 내용을 요약했습니다</p>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;max-width:680px;margin:32px auto 0">
           ${praiseItems
             .map(
@@ -2027,7 +2027,11 @@ ${jsonLd}
   .pagzly-stacked{padding:64px 0}.pagzly-stacked-head{padding:0 24px}.pagzly-stacked-body{padding:40px 24px 0}
   @media (min-width:640px){.pagzly-stacked{padding:80px 0}.pagzly-stacked-head{padding:0 40px}.pagzly-stacked-body{padding:48px 40px 0}}
   .pagzly-concern{font-size:12px}.pagzly-concern-count{font-size:11px;line-height:1.5}
-  @media (min-width:640px){.pagzly-concern{font-size:13px}.pagzly-concern-count{font-size:12px}}
+  @media (min-width:640px){.pagzly-concern{font-size:13px}.pagzly-concern-count{font-size:12px;line-height:16px}}
+  .pagzly-textonly{padding:40px 24px}
+  @media (min-width:640px){.pagzly-textonly{padding:48px 40px}}
+  .pagzly-rv-cap{font-size:11px;line-height:1.5}
+  @media (min-width:640px){.pagzly-rv-cap{font-size:12px;line-height:16px}}
   @media (min-width:640px){.pagzly-compact-thumb{width:120px;height:120px}.pagzly-compact-row{padding:24px 0!important}}
   .pagzly-tradeoff-card{padding:20px}
   @media (min-width:640px){.pagzly-tradeoff-card{padding:24px}.pagzly-tradeoff-2{grid-template-columns:1fr 1fr!important}}
