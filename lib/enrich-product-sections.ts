@@ -28,7 +28,7 @@ export function parseCertificationTokens(raw: string | null | undefined): string
 
 const PLACEHOLDER = "판매자 확인 필요";
 
-type SkeletonRow = { label: string; match?: RegExp };
+type SkeletonRow = { label: string; match?: RegExp; value?: RegExp };
 
 const SPEC_SKELETONS: Record<string, SkeletonRow[]> = {
   "화장품/뷰티": [
@@ -64,7 +64,8 @@ const SPEC_SKELETONS: Record<string, SkeletonRow[]> = {
     { label: "모델명", match: /모델/ },
     { label: "크기·용량·형태", match: /크기|용량|규격|사이즈|형태/ },
     { label: "KC 인증", match: /KC|인증/ },
-    { label: "정격전압", match: /정격|전압|전력/ },
+    // "정격 소음" 같은 행이 끌려오지 않게 전압·전력 낱말만, 값도 V/W 단위가 있을 때만
+    { label: "정격전압", match: /전압|전력/, value: /\d\s*(V|W|kW|볼트|와트)\b|\d\s*(V|W)$/i },
     { label: "품질보증", match: /품질|보증|A\/S/ },
     { label: "제조국", match: /제조국|원산지/ },
   ],
@@ -113,7 +114,7 @@ function resolveSkeletonValue(
     productSizeHint?: string | null;
   },
 ): string {
-  const found = existing.find((r) => rowMatches(r, skel));
+  const found = existing.find((r) => rowMatches(r, skel) && (!skel.value || skel.value.test(r.value)));
   const trimmed = found?.value?.trim() ?? "";
   if (trimmed && !trimmed.includes("판매자")) return trimmed;
 
@@ -170,7 +171,9 @@ export function mergeSpecRows(
   for (const row of existing) {
     // 249차 — 스켈레톤 흡수와 동일하게 rowMatches로 판정. 정확 라벨 비교만 하면
     // "배송 기간"/"교환·반품"처럼 정규식으로는 이미 흡수된 행이 다시 append되어 중복됨.
-    const alreadyCovered = skeleton.some((skel) => rowMatches(row, skel));
+    const alreadyCovered = skeleton.some(
+      (skel) => rowMatches(row, skel) && (!skel.value || skel.value.test(row.value)),
+    );
     if (!alreadyCovered) merged.push(row);
   }
   return merged.slice(0, 10);

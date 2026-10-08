@@ -26,6 +26,8 @@ const TRAILING_PARTICLE = /[을를은는이가의에도와과로]$/;
 
 function isFunctionWordToken(token: string): boolean {
   if (MEGA_KEYWORD_STOPWORDS.has(token)) return true;
+  // 2자는 "자는", "맑은"처럼 관형형 어미일 때만 거른다 — "가을"·"마을" 같은 명사는 남김
+  if (token.length === 2) return /[는를은]$/.test(token);
   return token.length >= 3 && TRAILING_PARTICLE.test(token);
 }
 

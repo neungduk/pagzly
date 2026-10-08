@@ -16,15 +16,21 @@ export function extractTrustChips(
   options?: { keyFeatures?: string | null },
 ): string[] {
   const chips: string[] = [];
-  const seen = new Set<string>();
+  // 괄호 보조 문구만 다른 칩("…완료" / "…완료(자체, n=32)")은 같은 칩 — 보조 문구 있는 쪽을 남긴다
+  const seen = new Map<string, number>();
 
   const add = (raw: string) => {
     const t = raw.trim();
     if (!t || t.length > 32) return;
-    const key = t.toLowerCase();
-    if (seen.has(key)) return;
     if (/판매자 확인|판매자 정책|확인 필요/i.test(t)) return;
-    seen.add(key);
+    const { main, sub } = splitChipCaption(t);
+    const key = main.toLowerCase().replace(/\s+/g, "");
+    const at = seen.get(key);
+    if (at != null) {
+      if (sub && !splitChipCaption(chips[at]!).sub) chips[at] = t;
+      return;
+    }
+    seen.set(key, chips.length);
     chips.push(t);
   };
 
