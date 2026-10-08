@@ -51,3 +51,12 @@ export function isEmptySizeOptions(section: { slot?: string; heading?: string; b
   if (section.slot !== "size_options") return false;
   return !/\d/.test(`${section.heading ?? ""} ${section.body ?? ""}`);
 }
+
+/** 333차 — 값이 모두 짧은 스펙은 넓은 화면에서 2열 키:값 그리드로(라이브·export 같은 조건). */
+export function isCompactSpecGrid(rows: { value: string }[], pendingCount: number): boolean {
+  if (pendingCount > 0 || rows.length < 4 || rows.length > 10 || rows.length % 2 !== 0) return false;
+  return rows.every((row) => {
+    const v = row.value.trim();
+    return v.length > 0 && v.length <= 14 && !isPlaceholderValue(v) && !/\d\s*%/.test(v);
+  });
+}

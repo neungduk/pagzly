@@ -15,6 +15,7 @@ import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import { parseStandalonePercent, splitStatValue, STAT_UNIT_EM } from "@/lib/stat-value";
 import {
   groupPendingSpecRows,
+  isCompactSpecGrid,
   isEmptySizeOptions,
   isPlaceholderAnswer,
   isPlaceholderValue,
@@ -2748,7 +2749,11 @@ function renderSection(
             }
           >
             <table
-              className="w-full text-sm"
+              className={`w-full text-sm ${
+                FLAT_SECTION_SURFACES && !isShipping && !edit?.enabled && isCompactSpecGrid(tableRows, pendingLabels.length)
+                  ? "pagzly-spec-grid"
+                  : ""
+              }`}
               style={
                 isShipping
                   ? undefined
