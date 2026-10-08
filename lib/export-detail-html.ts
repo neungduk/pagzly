@@ -783,8 +783,8 @@ function sectionHtml(
             })
             .join("");
           return rowMode
-            ? `<div class="pagzly-step-rows" style="display:grid;grid-template-columns:1fr;gap:20px;margin-top:32px">${items}</div>`
-            : `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-top:32px">${items}</div>`;
+            ? `<div class="pagzly-step-rows" style="display:grid;grid-template-columns:1fr;gap:20px;margin-top:40px;max-width:896px;margin-left:auto;margin-right:auto">${items}</div>`
+            : `<div class="pagzly-step-pairs" style="display:grid;grid-template-columns:repeat(2,1fr);gap:32px 16px;margin:48px auto 0;max-width:896px">${items}</div>`;
         })()}${flowHtml}</section>`;
     }
     case "stat_infographic": {
@@ -909,14 +909,14 @@ function sectionHtml(
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         ${kickerHtml(`<p style="text-align:center;color:${deepText};font-size:${FONT_SIZE.caption};letter-spacing:.2em">FIT CHECK</p>`)}
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
-        <div style="max-width:${recommendFor.length > 0 && considerIf.length > 0 ? 720 : 576}px;margin:32px auto 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px">
-          ${recommendFor.length > 0 ? `<div style="border-radius:${RADIUS.lg}px;padding:20px;${FLAT_SECTION_SURFACES ? `background:${FLAT_PAPER};border:1px solid ${hexToRgba(accent, 0.24)}` : `background:${accent}1a`}">
-            <p style="margin:0 0 14px;font-size:${FONT_SIZE.sm};font-weight:600;letter-spacing:-0.01em;color:${deepText}">이런 분께 추천</p>
-            ${recommendFor.map((item) => `<p style="display:flex;gap:8px;margin:0 0 12px;font-size:${FONT_SIZE.bodySm};line-height:1.6;color:rgba(27,27,24,.8)"><span aria-hidden="true" style="flex-shrink:0;width:16px;text-align:center;font-weight:700;color:${accentText}">✓</span><span>${esc(item)}</span></p>`).join("")}
+        <div class="${recommendFor.length > 0 && considerIf.length > 0 ? "pagzly-tradeoff-2" : ""}" style="max-width:${recommendFor.length > 0 && considerIf.length > 0 ? 768 : 576}px;margin:40px auto 0;display:grid;grid-template-columns:1fr;gap:24px">
+          ${recommendFor.length > 0 ? `<div class="pagzly-tradeoff-card" style="border-radius:${RADIUS.lg}px;${FLAT_SECTION_SURFACES ? `background:${FLAT_PAPER};border:1px solid ${hexToRgba(accent, 0.24)}` : `background:${accent}1a`}">
+            <p style="margin:0 0 16px;font-size:${FONT_SIZE.sm};font-weight:600;letter-spacing:-0.01em;color:${deepText}">이런 분께 추천</p>
+            ${recommendFor.map((item, i) => `<p style="display:flex;gap:8px;margin:${i ? 12 : 0}px 0 0;font-size:${FONT_SIZE.bodySm};line-height:1.625;color:rgba(27,27,24,.8)"><span aria-hidden="true" style="flex-shrink:0;width:16px;text-align:center;font-weight:700;color:${accentText}">✓</span><span>${esc(item)}</span></p>`).join("")}
           </div>` : ""}
-          ${considerIf.length > 0 ? `<div style="border-radius:${RADIUS.lg}px;padding:20px;${FLAT_SECTION_SURFACES ? `background:${FLAT_PAPER};border:1px solid ${hexToRgba(BRAND.ink, 0.1)}` : `background:${theme.baseNeutral}59`}">
-            <p style="margin:0 0 14px;font-size:${FONT_SIZE.sm};font-weight:600;letter-spacing:-0.01em;color:rgba(27,27,24,.6)">이런 점은 참고하세요</p>
-            ${considerIf.map((item) => `<p style="display:flex;gap:8px;margin:0 0 12px;font-size:${FONT_SIZE.bodySm};line-height:1.6;color:rgba(27,27,24,.7)"><span aria-hidden="true" style="flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-top:2px;border:1.5px solid rgba(27,27,24,.45);border-radius:50%;font-size:10px;font-weight:700;line-height:1;color:rgba(27,27,24,.55)">i</span><span>${esc(item)}</span></p>`).join("")}
+          ${considerIf.length > 0 ? `<div class="pagzly-tradeoff-card" style="border-radius:${RADIUS.lg}px;${FLAT_SECTION_SURFACES ? `background:${FLAT_PAPER};border:1px solid ${hexToRgba(BRAND.ink, 0.1)}` : `background:${theme.baseNeutral}59`}">
+            <p style="margin:0 0 16px;font-size:${FONT_SIZE.sm};font-weight:600;letter-spacing:-0.01em;color:rgba(27,27,24,.6)">이런 점은 참고하세요</p>
+            ${considerIf.map((item, i) => `<p style="display:flex;gap:8px;margin:${i ? 12 : 0}px 0 0;font-size:${FONT_SIZE.bodySm};line-height:1.625;color:rgba(27,27,24,.7)"><span aria-hidden="true" style="flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-top:2px;border:1.5px solid rgba(27,27,24,.45);border-radius:50%;font-size:10px;font-weight:700;line-height:1;color:rgba(27,27,24,.55)">i</span><span>${esc(item)}</span></p>`).join("")}
           </div>` : ""}
         </div>
       </section>`;
@@ -2029,6 +2029,8 @@ ${jsonLd}
   .pagzly-concern{font-size:12px}.pagzly-concern-count{font-size:11px;line-height:1.5}
   @media (min-width:640px){.pagzly-concern{font-size:13px}.pagzly-concern-count{font-size:12px}}
   @media (min-width:640px){.pagzly-compact-thumb{width:120px;height:120px}.pagzly-compact-row{padding:24px 0!important}}
+  .pagzly-tradeoff-card{padding:20px}
+  @media (min-width:640px){.pagzly-tradeoff-card{padding:24px}.pagzly-tradeoff-2{grid-template-columns:1fr 1fr!important}}
   .pagzly-bleed-ov{padding:0 24px 24px}.pagzly-callout-flat{padding:0 0 48px}.pagzly-bubble{bottom:24px;font-size:14px}
   @media (min-width:640px){.pagzly-bleed-ov{padding:0 32px 32px}.pagzly-callout-flat{padding:0 0 64px}.pagzly-bubble{bottom:32px;font-size:16px}}
   .pagzly-brand-sig{padding:56px 24px}.pagzly-brand-sig>p:first-child{line-height:1.5}
@@ -2038,7 +2040,7 @@ ${jsonLd}
   @media (min-width:640px){.pagzly-spec-grid tbody{display:grid;grid-template-columns:1fr 1fr;column-gap:32px}.pagzly-spec-grid tr{display:flex}.pagzly-spec-grid tr>:first-child{width:40%!important;flex-shrink:0}.pagzly-spec-grid tr>:last-child{flex:1}.pagzly-spec-grid tr:nth-last-child(2){border-bottom:none!important}}
   @media (min-width:640px){.pagzly-spec-thumbs{gap:16px!important}.pagzly-spec-thumb-m{width:96px!important;height:96px!important}.pagzly-spec-thumb-s{width:128px!important;height:128px!important}}
   ${titleScaleExportCss()}
-  @media (min-width:640px){.pagzly-usage{flex-direction:row!important;align-items:flex-start;gap:16px!important}.pagzly-usage-line{left:var(--pz-step-edge)!important;right:var(--pz-step-edge);bottom:auto!important;width:auto!important;height:1px}.pagzly-usage-step{flex:1;flex-direction:column;align-items:center!important;gap:12px!important;text-align:center}.pagzly-usage-step>div{flex:none!important;padding-top:0!important}.pagzly-usage-text{max-width:14rem;margin:0 auto}.pagzly-persona-pairs{grid-template-columns:repeat(2,1fr)!important}.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}.pagzly-hl-grid{grid-template-columns:var(--pz-hl-wide)!important}.pagzly-cl-grid{grid-template-columns:var(--pz-cl-wide)!important}.pagzly-step-rows{grid-template-columns:repeat(3,1fr)!important;gap:32px!important}.pagzly-step-row{display:block!important}.pagzly-step-row h3{margin-top:12px!important}.pagzly-step-row p{font-size:${FONT_SIZE.sm}!important}}
+  @media (min-width:640px){.pagzly-usage{flex-direction:row!important;align-items:flex-start;gap:16px!important}.pagzly-usage-line{left:var(--pz-step-edge)!important;right:var(--pz-step-edge);bottom:auto!important;width:auto!important;height:1px}.pagzly-usage-step{flex:1;flex-direction:column;align-items:center!important;gap:12px!important;text-align:center}.pagzly-usage-step>div{flex:none!important;padding-top:0!important}.pagzly-usage-text{max-width:14rem;margin:0 auto}.pagzly-persona-pairs{grid-template-columns:repeat(2,1fr)!important}.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}.pagzly-hl-grid{grid-template-columns:var(--pz-hl-wide)!important}.pagzly-cl-grid{grid-template-columns:var(--pz-cl-wide)!important}.pagzly-step-rows{grid-template-columns:repeat(3,1fr)!important;gap:32px!important;margin-top:48px!important}.pagzly-step-pairs{gap:32px!important}.pagzly-step-row{display:block!important}.pagzly-step-row h3{margin-top:12px!important}.pagzly-step-row p,.pagzly-step-pairs p{font-size:14px!important}}
   .pagzly-wrap .pz-fit{font-size:max(min(var(--pz-fs),0.6875rem),min(var(--pz-fs),calc(100cqi / var(--pz-fit-em,0.01))))!important}
   .pagzly-anchor-nav a{scroll-margin-top:52px}
   .pagzly-seo-text{padding:32px 20px;font-size:${FONT_SIZE.bodySm};line-height:1.65;border-top:1px solid #DAD5C9;color:rgba(27,27,24,.62)}
