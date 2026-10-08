@@ -1347,14 +1347,14 @@ function sectionHtml(
         .filter(Boolean);
       const galleryHtml =
         storyImgs.length > 0
-          ? `<div style="margin-top:28px;display:grid;grid-template-columns:repeat(${Math.min(storyImgs.length, 2)},1fr);gap:12px">${storyImgs.join("")}</div>`
+          ? `<div style="margin-top:32px;display:grid;grid-template-columns:repeat(${Math.min(storyImgs.length, 2)},1fr);gap:12px">${storyImgs.join("")}</div>`
           : "";
       const storyInner = `${kickerHtml(`<p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText};margin:0 0 12px">STORY</p>`)}
           ${twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
-          <p style="line-height:1.75;font-size:${titleSizeCss("body")};opacity:.85;margin-top:16px;white-space:pre-line">${esc(section.body)}</p>${galleryHtml}`;
+          <p class="pagzly-story-body" style="line-height:1.75;font-size:${titleSizeCss("body")};opacity:.85;margin-top:16px;white-space:pre-line">${esc(section.body)}</p>${galleryHtml}`;
       if (hasBrandCard && FLAT_SECTION_SURFACES) {
         return `<section${sectionIdAttr} class="pagzly-brand-story">
-        <div data-brand-signature style="padding:64px 40px;text-align:center;background:${flatAccentTint(theme)}">
+        <div data-brand-signature class="pagzly-brand-sig" style="text-align:center;background:${flatAccentTint(theme)}">
           <p style="font-family:${DETAIL_FONT_STACK.label};font-size:${FONT_SIZE.caption};font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:${deepText};margin:0">${esc(categoryKeyword)}</p>
           <p class="pz-fit" style="font-family:${DETAIL_FONT_STACK.heading};${titleFitCss("section", brandName!, -0.03)};font-weight:800;line-height:1.05;letter-spacing:-0.03em;color:${readableTextAccent(theme, 3)};margin:12px 0 0">${esc(brandName!)}</p>
           <span aria-hidden="true" style="display:block;width:40px;height:3px;border-radius:${RADIUS.pill}px;background:${solidAccentOnPaper(theme)};margin:20px auto 0"></span>
@@ -2018,6 +2018,9 @@ ${jsonLd}
   .pagzly-concern{font-size:12px}.pagzly-concern-count{font-size:11px;line-height:1.5}
   @media (min-width:640px){.pagzly-concern{font-size:13px}.pagzly-concern-count{font-size:12px}}
   @media (min-width:640px){.pagzly-compact-thumb{width:120px;height:120px}.pagzly-compact-row{padding:24px 0!important}}
+  .pagzly-brand-sig{padding:56px 24px}.pagzly-brand-sig>p:first-child{line-height:1.5}
+  .pagzly-story-body{line-height:1.9!important;margin-top:20px!important}
+  @media (min-width:640px){.pagzly-brand-sig{padding:64px 40px}.pagzly-story-body{line-height:1.85!important}}
   @media (max-width:639px){.pagzly-hl-row{display:grid!important;grid-template-columns:48px 1fr;column-gap:16px;row-gap:4px;align-items:start;text-align:left!important;padding:20px!important}.pagzly-hl-row>*{grid-column:2;margin-top:0!important;margin-bottom:0!important}.pagzly-hl-row>:first-child{grid-column:1;grid-row:1/span 4;display:block!important}}
   @media (min-width:640px){.pagzly-spec-grid tbody{display:grid;grid-template-columns:1fr 1fr;column-gap:32px}.pagzly-spec-grid tr{display:flex}.pagzly-spec-grid tr>:first-child{width:40%!important;flex-shrink:0}.pagzly-spec-grid tr>:last-child{flex:1}.pagzly-spec-grid tr:nth-last-child(2){border-bottom:none!important}}
   @media (min-width:640px){.pagzly-spec-thumbs{gap:16px!important}.pagzly-spec-thumb-m{width:96px!important;height:96px!important}.pagzly-spec-thumb-s{width:128px!important;height:128px!important}}
