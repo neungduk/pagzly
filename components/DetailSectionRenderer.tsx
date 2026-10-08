@@ -21,6 +21,7 @@ import {
   isPlaceholderValue,
   PENDING_SPEC_ROW_LABEL,
   dedupeSpecRows,
+  shopperFacingTarget,
   splitNoticeSentences,
 } from "@/lib/spec-placeholder";
 import type {
@@ -4926,7 +4927,7 @@ function renderSection(
             >
               ₩{section.price.toLocaleString()}
             </p>
-            {section.targetCustomer && (
+            {shopperFacingTarget(section.targetCustomer) && (
               <span
                 className="inline-block rounded-full px-4 py-1.5 text-xs font-medium"
                 style={{
@@ -4934,7 +4935,7 @@ function renderSection(
                   color: readableTextDeep(theme),
                 }}
               >
-                {section.targetCustomer}
+                {shopperFacingTarget(section.targetCustomer)}
               </span>
             )}
             {section.badges && section.badges.length > 0 && (
