@@ -1576,7 +1576,7 @@ function sectionHtml(
       const swatches = section.options
         .map(
           (opt, i) =>
-            `<label for="${cvId}-${i}" style="display:inline-flex;align-items:center;gap:8px;margin:4px;padding:6px 12px;border:1px solid ${accent}44;border-radius:${RADIUS.pill}px;font-size:${FONT_SIZE.bodySm};cursor:pointer">
+            `<label for="${cvId}-${i}" style="display:inline-flex;align-items:center;gap:8px;margin:0;padding:6px 12px;border:1px solid #DAD5C9;border-radius:${RADIUS.pill}px;font-size:14px;line-height:20px;color:rgba(27,27,24,.7);cursor:pointer">
               <span style="width:16px;height:16px;border-radius:${RADIUS.pill}px;background:${esc(opt.colorHex)};box-shadow:${ELEVATION.swatchRing(accent + "44")}"></span>
               ${esc(opt.label)}
             </label>`,
@@ -1598,7 +1598,7 @@ function sectionHtml(
                 `#${cvId}-${active}:checked ~ .${cvId}-stage .${cvId}-img[data-cv="${i}"]{display:${i === active ? "block" : "none"}!important}`,
             )
             .join("");
-          return show;
+          return `${show}#${cvId}-${active}:checked ~ .${cvId}-swatches label[for="${cvId}-${active}"]{border-color:rgba(27,27,24,.4)!important;background:rgba(27,27,24,.05);font-weight:500;color:#1B1B18}`;
         })
         .join("");
       return `<section${sectionIdAttr} class="pagzly-color-variation" style="${pad}${sectionInset}${bgCss}">
@@ -1608,8 +1608,8 @@ function sectionHtml(
           ${selectors}
         </style>
         ${inputs}
-        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
-        <div class="${cvId}-swatches" style="text-align:center;margin:48px auto 0">${swatches}</div>
+        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)};margin:0`)}
+        <div class="${cvId}-swatches" style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin:48px auto 0">${swatches}</div>
         <div class="${cvId}-stage" style="margin:32px auto 0;max-width:384px">${images}</div>
       </section>`;
     }
