@@ -85,6 +85,14 @@ export function dropRawSpecMetrics(
   return metrics.length >= 2 ? { ...section, metrics } : null;
 }
 
+/** "VITAL LAB 프로바이오틱스 30억"처럼 상품명 전체가 오면 10px 칩에 욱여넣어진다 — 앞쪽 영문 브랜드만 */
+export function compactOurLabel(label: string): string {
+  const t = label.trim();
+  if (t.length <= 12) return t;
+  const brand = t.match(/^([A-Za-z][A-Za-z0-9&.'’\- ]{1,20}?)\s+[가-힣0-9]/)?.[1]?.trim();
+  return brand && brand.length >= 2 ? brand : t;
+}
+
 /** checklist 렌더용 — ourValue/baselineValue > 0 이면 true */
 export function comparisonChecklistPresent(value: number): boolean {
   return Number(value) > 0;

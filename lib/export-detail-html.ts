@@ -56,6 +56,7 @@ import {
   matchPowerComparisonRow,
 } from "@/lib/power-consumption-diagram";
 import {
+  compactOurLabel,
   comparisonChecklistPresent,
   SELF_ASSESSED_DISCLAIMER,
 } from "@/lib/comparison-chart-guard";
@@ -409,10 +410,11 @@ function titleFitCss(key: TitleScaleKey, rawText: string | undefined, letterSpac
 
 /** comparison_chart 본문 — 단독 섹션과 circle 콤보 섹션 공용 (라이브 renderComparisonChartBody) */
 function comparisonChartBodyHtml(
-  section: ComparisonChartSection,
+  rawSection: ComparisonChartSection,
   theme: CategoryTheme,
   category: string,
 ): string {
+  const section = { ...rawSection, ourLabel: compactOurLabel(rawSection.ourLabel) };
   const accent = theme.accent;
   const deepText = readableTextDeep(theme);
   const isChecklist = section.presentationStyle === "checklist";

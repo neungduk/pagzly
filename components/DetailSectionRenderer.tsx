@@ -32,6 +32,7 @@ import type {
 } from "@/lib/types/generate";
 import type { ConceptIconMap } from "@/lib/concept-icons";
 import {
+  compactOurLabel,
   comparisonChecklistPresent,
   SELF_ASSESSED_DISCLAIMER,
 } from "@/lib/comparison-chart-guard";
@@ -1435,7 +1436,8 @@ function renderComparisonChartBody(params: {
   section: ComparisonChartSection;
   theme: CategoryTheme;
 }): ReactNode {
-  const { section, theme } = params;
+  const { theme } = params;
+  const section = { ...params.section, ourLabel: compactOurLabel(params.section.ourLabel) };
   const evidence =
     Array.isArray(section.evidenceQuotes) && section.evidenceQuotes.length > 0
       ? section.evidenceQuotes.filter((e) => e.quotes?.some((q) => Boolean(q?.trim())))
