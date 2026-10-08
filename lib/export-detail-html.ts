@@ -362,16 +362,16 @@ function flatSectionHeaderHtml(
     ? `<div style="margin:0 0 20px;display:flex;justify-content:center">${pointPillHtml(pointBadge, theme, inverted)}</div>`
     : "";
   const keyword = parts.keyword
-    ? `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClamp};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:0;text-transform:uppercase;color:${inverted ? BRAND.paper : readableTextAccent(theme, 3)}">${esc(parts.keyword)}</p>`
+    ? `<p class="pz-fit" style="--pz-fs:clamp(2.25rem,11cqi,4.25rem);--pz-fit-em:${longestTokenEm(parts.keyword, -0.06)};font-size:clamp(2.25rem,11cqi,4.25rem);font-family:${DETAIL_FONT_STACK.heading};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:0;text-transform:uppercase;color:${inverted ? BRAND.paper : readableTextAccent(theme, 3)}">${esc(parts.keyword)}</p>`
     : "";
   const titleHtml = twoToneDh2(
     category,
     theme,
     title,
-    `${titleFitCss(parts.keyword ? "subtitle" : "section", title, parts.keyword ? -0.02 : -0.03)};margin:0;font-weight:${parts.keyword ? "600" : "700"}`,
+    `${titleFitCss(parts.keyword ? "subtitle" : "section", title, parts.keyword ? -0.02 : -0.03)};margin:0;font-weight:${parts.keyword ? "600" : "700"}${parts.keyword ? ";line-height:1.375" : ""}`,
     { inverted, plain: Boolean(parts.keyword) },
   );
-  return `<div style="text-align:center;max-width:576px;margin:0 auto ${marginBottomPx}px">${pill}${keyword}${titleHtml}</div>`;
+  return `<div style="container-type:inline-size;text-align:center;max-width:576px;margin:0 auto ${marginBottomPx}px">${pill}${keyword}${titleHtml}</div>`;
 }
 
 /** 라이브 EmphasizedBody와 같은 규칙 — 핵심 구절 1개만 굵게 */
@@ -413,17 +413,19 @@ function comparisonChartBodyHtml(
   const isChecklist = section.presentationStyle === "checklist";
   const metricsHtml = isChecklist
     ? section.metrics
-        .map((m) => {
+        .map((m, i) => {
           const ourYes = comparisonChecklistPresent(m.ourValue);
           const baseYes = comparisonChecklistPresent(m.baselineValue);
-          const mark = (yes: boolean, strong: boolean) =>
-            yes
-              ? `<span style="color:${strong ? accent : "rgba(27,27,24,0.35)"};font-size:${FONT_SIZE.checkMark};font-weight:700" aria-label="있음">✓</span>`
-              : `<span style="color:${theme.baseNeutral};font-size:${FONT_SIZE.checkMark};font-weight:700" aria-label="없음">✗</span>`;
-          return `<div style="display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(27,27,24,0.08)">
-            <p style="margin:0;font-size:${FONT_SIZE.bodySm}">${esc(m.label)}</p>
-            <div style="text-align:center;min-width:4.5rem;padding:8px 10px;border-radius:${RADIUS.md}px;background:${hexToRgba(accent, 0.16)}"><p style="margin:0 0 4px;font-size:${FONT_SIZE.label};font-weight:700;color:${deepText}">${esc(section.ourLabel)}</p>${mark(ourYes, true)}</div>
-            <div style="text-align:center;min-width:4.5rem;padding:8px 10px;border-radius:${RADIUS.md}px;border:1px solid ${hexToRgba(theme.baseNeutral, 0.9)}"><p style="margin:0 0 4px;font-size:${FONT_SIZE.label};opacity:.4">${esc(section.baselineLabel)}</p>${mark(baseYes, false)}</div>
+          const mark = (yes: boolean, strong: boolean) => {
+            const color = yes ? (strong ? readableTextAccent(theme) : "rgba(27,27,24,0.3)") : theme.baseNeutral;
+            const sw = yes ? (strong ? 2.75 : 2) : strong ? 2.5 : 2;
+            return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" style="display:block" role="img" aria-label="${yes ? "있음" : "없음"}">${yes ? `<path d="M20 6 9 17l-5-5"/>` : `<path d="M18 6 6 18"/><path d="m6 6 12 12"/>`}</svg>`;
+          };
+          const cell = "display:flex;flex-direction:column;align-items:center;gap:4px;min-width:4.5rem;box-sizing:border-box;padding:8px 10px;border-radius:8px";
+          return `<div style="display:grid;grid-template-columns:1fr auto auto;column-gap:12px;row-gap:4px;align-items:center;padding:12px 0;border-bottom:${i === section.metrics.length - 1 ? "0" : "1px solid rgba(27,27,24,0.08)"}">
+            <p style="margin:0;font-size:14px;line-height:20px;font-weight:500;color:rgba(27,27,24,.75)">${esc(m.label)}</p>
+            <span style="${cell};background:${hexToRgba(accent, 0.16)}"><span style="font-size:10px;line-height:1.5;font-weight:700;letter-spacing:.025em;color:${deepText}">${esc(section.ourLabel)}</span>${mark(ourYes, true)}</span>
+            <span style="${cell};border:1px solid ${hexToRgba(theme.baseNeutral, 0.9)}"><span style="font-size:10px;line-height:1.5;color:rgba(27,27,24,.4)">${esc(section.baselineLabel)}</span>${mark(baseYes, false)}</span>
           </div>`;
         })
         .join("")
@@ -467,7 +469,7 @@ function comparisonChartBodyHtml(
             ? `<div style="max-width:448px;margin:32px auto 0;display:flex;align-items:center;justify-content:center;gap:20px;font-size:12px;line-height:16px;color:rgba(27,27,24,.6)"><span style="display:flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:16px;height:8px;border-radius:${RADIUS.pill}px;background:${accent}"></span><span style="font-weight:600;color:${deepText}">${esc(section.ourLabel)}</span></span><span style="display:flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:16px;height:6px;border-radius:${RADIUS.pill}px;background:${hexToRgba(BRAND.ink, 0.28)}"></span>${esc(section.baselineLabel)}</span></div>`
             : ""
         }
-        <div style="max-width:448px;margin:${FLAT_SECTION_SURFACES && !isChecklist ? 28 : 40}px auto 0;display:flex;flex-direction:column;gap:${isChecklist ? 0 : FLAT_SECTION_SURFACES ? 32 : 24}px">
+        <div style="max-width:448px;margin:${FLAT_SECTION_SURFACES && !isChecklist ? 28 : 40}px auto 0;display:flex;flex-direction:column;gap:${FLAT_SECTION_SURFACES ? 32 : 24}px">
           ${metricsHtml}
         </div>
         ${basisNoteHtml}
@@ -758,7 +760,7 @@ function sectionHtml(
               return `<div class="${em && !FLAT_SECTION_SURFACES ? "pulse-card" : ""}${rowCls}" style="${FLAT_SECTION_SURFACES ? "container-type:inline-size;" : ""}border-radius:${RADIUS.lg}px;padding:${FLAT_SECTION_SURFACES ? "32px 24px" : "28px 20px"};text-align:center;background:${cardBg};border:${cardBorder};${em && !FLAT_SECTION_SURFACES ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}color:${titleColor}">
                 ${iconHtml}${FLAT_SECTION_SURFACES ? "" : `<div style="font-size:${FONT_SIZE.label};letter-spacing:.22em;opacity:.7;border:1px solid ${accent}55;border-radius:${RADIUS.pill}px;display:inline-block;padding:4px 10px">${formatPointBadge(i + 1)}</div>`}
                 ${cardKeyword.keyword ? FLAT_SECTION_SURFACES ? `<p class="pz-fit" style="--pz-fs:clamp(1.75rem,8cqi,2.75rem);--pz-fit-em:${longestTokenEm(cardKeyword.keyword, -0.06)};font-size:clamp(1.75rem,8cqi,2.75rem);font-family:${DETAIL_FONT_STACK.heading};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:0 0 ${showTitle ? 0 : 8}px;text-transform:uppercase;color:${(em || section.boldBlock) && !lightEm ? BRAND.paper : deepText}">${esc(cardKeyword.keyword)}</p>` : `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClampCard};font-weight:900;line-height:.92;letter-spacing:-.05em;margin:${FLAT_SECTION_SURFACES ? 0 : 12}px 0 ${showTitle ? 0 : 8}px;text-transform:uppercase;color:${(em || section.boldBlock) && !lightEm ? BRAND.paper : deepText}">${esc(cardKeyword.keyword)}</p>` : ""}
-                ${showTitle ? `<h3 style="margin:8px 0;font-size:${cardKeyword.keyword ? FONT_SIZE.bodySm : FLAT_SECTION_SURFACES ? "18px;line-height:28px;letter-spacing:-0.02em" : "inherit"};font-weight:${cardKeyword.keyword ? "600" : "700"};color:${titleColor}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</h3>` : ""}
+                ${showTitle ? `<h3 style="margin:${FLAT_SECTION_SURFACES && !cardKeyword.keyword ? 0 : 8}px 0 8px;font-size:${cardKeyword.keyword ? FONT_SIZE.bodySm : FLAT_SECTION_SURFACES ? "18px;line-height:28px;letter-spacing:-0.02em" : "inherit"};font-weight:${cardKeyword.keyword ? "600" : "700"};color:${titleColor}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</h3>` : ""}
                 <p style="margin:0;font-size:${FONT_SIZE.bodySm};line-height:1.625;color:${bodyColor}">${esc(card.body)}</p>
               </div>`;
             })
@@ -1369,7 +1371,7 @@ function sectionHtml(
           : "";
       const storyInner = `${kickerHtml(`<p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText};margin:0 0 12px">STORY</p>`)}
           ${twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
-          <p class="pagzly-story-body" style="line-height:1.75;font-size:${titleSizeCss("body")};opacity:.85;margin-top:16px;white-space:pre-line">${esc(section.body)}</p>${galleryHtml}`;
+          <p class="pagzly-story-body" style="line-height:1.75;font-size:${titleSizeCss("body")};opacity:.85;margin:16px 0 0;white-space:pre-line">${esc(section.body)}</p>${galleryHtml}`;
       if (hasBrandCard && FLAT_SECTION_SURFACES) {
         return `<section${sectionIdAttr} class="pagzly-brand-story">
         <div data-brand-signature class="pagzly-brand-sig" style="text-align:center;background:${flatAccentTint(theme)}">
