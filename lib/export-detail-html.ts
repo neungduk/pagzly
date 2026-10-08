@@ -23,6 +23,7 @@ import {
 import {
   formatPointBadge,
   getCategoryTitleKeyword,
+  isBrandEchoHeading,
   isCertificationHighlight,
   isConcentrationMetricLabel,
   isShortSectionHeading,
@@ -1398,9 +1399,10 @@ function sectionHtml(
         storyImgs.length > 0
           ? `<div style="margin-top:32px;display:grid;grid-template-columns:repeat(${Math.min(storyImgs.length, 2)},1fr);gap:12px">${storyImgs.join("")}</div>`
           : "";
+      const hideEchoHeading = FLAT_SECTION_SURFACES && hasBrandCard && isBrandEchoHeading(section.heading, brandName);
       const storyInner = `${kickerHtml(`<p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText};margin:0 0 12px">STORY</p>`)}
-          ${twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
-          <p class="pagzly-story-body" style="line-height:1.75;font-size:${titleSizeCss("body")};opacity:.85;margin:16px 0 0;white-space:pre-line">${esc(section.body)}</p>${galleryHtml}`;
+          ${hideEchoHeading ? "" : twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
+          <p class="pagzly-story-body${hideEchoHeading ? " pagzly-story-lead" : ""}" style="line-height:1.75;font-size:${titleSizeCss("body")};opacity:.85;margin:${hideEchoHeading ? 0 : 16}px 0 0;white-space:pre-line">${esc(section.body)}</p>${galleryHtml}`;
       if (hasBrandCard && FLAT_SECTION_SURFACES) {
         return `<section${sectionIdAttr} class="pagzly-brand-story">
         <div data-brand-signature class="pagzly-brand-sig" style="text-align:center;background:${flatAccentTint(theme)}">
@@ -2091,7 +2093,7 @@ ${jsonLd}
   .pagzly-bleed-ov{padding:0 24px 24px}.pagzly-callout-flat{padding:0 0 48px}.pagzly-bubble{bottom:24px;font-size:14px}
   @media (min-width:640px){.pagzly-bleed-ov{padding:0 32px 32px}.pagzly-callout-flat{padding:0 0 64px}.pagzly-bubble{bottom:32px;font-size:16px}}
   .pagzly-brand-sig{padding:56px 24px}.pagzly-brand-sig>p:first-child{line-height:1.5}
-  .pagzly-story-body{line-height:1.9!important;margin-top:20px!important}.pagzly-body-lh{line-height:1.9!important}
+  .pagzly-story-body{line-height:1.9!important;margin-top:20px!important}.pagzly-story-body.pagzly-story-lead{margin-top:0!important}.pagzly-body-lh{line-height:1.9!important}
   @media (min-width:640px){.pagzly-brand-sig{padding:64px 40px}.pagzly-story-body,.pagzly-body-lh{line-height:1.85!important}}
   @media (max-width:639px){.pagzly-hl-row{display:grid!important;grid-template-columns:48px 1fr;column-gap:16px;row-gap:4px;align-items:start;text-align:left!important;padding:20px!important}.pagzly-hl-row>*{grid-column:2;margin-top:0!important;margin-bottom:0!important}.pagzly-hl-row>:first-child{grid-column:1;grid-row:1/span 4;display:block!important}}
   @media (min-width:640px){.pagzly-spec-grid tbody{display:grid;grid-template-columns:1fr 1fr;column-gap:32px}.pagzly-spec-grid tr{display:flex}.pagzly-spec-grid tr>:first-child{width:40%!important;flex-shrink:0}.pagzly-spec-grid tr>:last-child{flex:1}.pagzly-spec-grid tr:nth-last-child(2){border-bottom:none!important}}

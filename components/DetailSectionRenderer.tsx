@@ -75,6 +75,7 @@ import {
 import {
   formatPointBadge,
   getCategoryTitleKeyword,
+  isBrandEchoHeading,
   isCertificationHighlight,
   parseMegaKeywordHeading,
   parseUniformCardKeywords,
@@ -4539,20 +4540,24 @@ function renderSection(
       const storyImages = (section.imageIndexes ?? [])
         .map((i) => resolveImage(imageUrls, i))
         .filter(Boolean);
-      const storyBodyClass = `mt-5 whitespace-pre-line ${TYPO.body}`;
+      const hideEchoHeading =
+        FLAT_SECTION_SURFACES && hasBrandCard && !edit?.enabled && isBrandEchoHeading(section.heading, brandName);
+      const storyBodyClass = `${hideEchoHeading ? "" : "mt-5 "}whitespace-pre-line ${TYPO.body}`;
       const storyText = (
         <>
           <p className={`mb-4 ${TYPO.sectionKicker}`} style={{ color: readableTextDeep(theme) }}>
             STORY
           </p>
-          <TwoToneTitle
-            theme={theme}
-            title={section.heading}
-            className={TYPO.sectionTitle}
-            letterSpacingEm={-0.03}
-            edit={edit}
-            onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-          />
+          {hideEchoHeading ? null : (
+            <TwoToneTitle
+              theme={theme}
+              title={section.heading}
+              className={TYPO.sectionTitle}
+              letterSpacingEm={-0.03}
+              edit={edit}
+              onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+            />
+          )}
           <EditableText
             as="p"
             multiline

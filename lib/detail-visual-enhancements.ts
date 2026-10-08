@@ -13,6 +13,13 @@ export function getCategoryTitleKeyword(category: string): string {
   return CATEGORY_TITLE_KEYWORDS[category] ?? category.split(/[/·]/)[0]?.toUpperCase() ?? "PRODUCT";
 }
 
+/** 브랜드 스토리 제목이 브랜드명 그대로면 바로 위 브랜드 카드와 같은 말 두 번 */
+export function isBrandEchoHeading(heading: string, brandName: string | null | undefined): boolean {
+  const key = (s: string) => s.toLowerCase().replace(/[\s.,·'’"-]/g, "");
+  const b = key(brandName ?? "");
+  return b.length > 0 && key(heading) === b;
+}
+
 /** 지시어·부사 — 초대형으로 키우면 "이런 / 점을 확인하세요"처럼 뜻이 끊긴다 */
 const MEGA_KEYWORD_STOPWORDS = new Set([
   "이런", "이렇게", "그런", "그렇게", "저런", "어떤", "어떻게", "왜", "무엇", "무엇을",
