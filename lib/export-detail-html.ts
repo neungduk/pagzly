@@ -269,7 +269,10 @@ function sectionPadVarsCss(category: string, wide: boolean): string {
   const heroMin = wide
     ? `${Number(/pz:min-h-\[(\d+)px\]/.exec(rhythm.heroMinClass)?.[1] ?? 760)}px`
     : `${Number(/(?:^|\s)min-h-\[(\d+)svh\]/.exec(rhythm.heroMinClass)?.[1] ?? 85)}svh`;
-  return `--pz-pad-y:${padY(rhythm.generousPadClass)}px;--pz-pad-ty:${padY(rhythm.trustPadClass)}px;--pz-pad-x:${x}px;--pz-hero-min:${heroMin}`;
+  const pt = rhythm.pointTextPadClass;
+  const ptSide = (side: "t" | "b" | "x", fallback: number) =>
+    wide ? unit(pt, new RegExp(`pz:p${side}-(\\d+)`), fallback) : unit(pt, new RegExp(`(?:^|\\s)p${side}-(\\d+)`), fallback);
+  return `--pz-pad-y:${padY(rhythm.generousPadClass)}px;--pz-pad-ty:${padY(rhythm.trustPadClass)}px;--pz-pad-x:${x}px;--pz-hero-min:${heroMin};--pz-pt-t:${ptSide("t", 10)}px;--pz-pt-b:${ptSide("b", 16)}px;--pz-pt-x:${ptSide("x", 6)}px`;
 }
 
 function sectionBgStyle(sectionBg: string, category: string): string {
@@ -1019,13 +1022,13 @@ function sectionHtml(
           <div style="position:relative">
             ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${imageRatioCss(resolveSlotImageRatio(section))};object-fit:cover;display:block"/>` : ""}
             <div style="position:absolute;inset:0;background:linear-gradient(0deg,${hexToRgba(BRAND.ink, 0.82)} 0%,${hexToRgba(BRAND.ink, 0.4)} 24%,${hexToRgba(BRAND.ink, 0.08)} 42%,transparent 55%)"></div>
-            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:24px 24px 28px;text-align:center">
+            <div class="pagzly-bleed-ov" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;text-align:center">
               ${kicker ? `<p style="font-size:${FONT_SIZE.caption};letter-spacing:.36em;color:rgba(250,248,243,.85);margin:0 0 10px">${kicker}</p>` : ""}
               ${dh2(category, esc(section.heading), `font-size:${titleSizeCss("banner")};margin:0;line-height:1.15;color:#FAF8F3;text-shadow:0 2px 20px rgba(0,0,0,.4);max-width:100%`)}
             </div>
           </div>
-          <div style="padding:24px 24px 48px;text-align:center;max-width:640px;margin:0 auto">
-            <p style="line-height:1.85;font-size:${titleSizeCss("body")};color:${hexToRgba(BRAND.ink, 0.82)}">${emphasizedBodyHtml(section.body, section.emphasis, accent)}</p>
+          <div style="padding:var(--pz-pt-t,40px) var(--pz-pt-x,24px) var(--pz-pt-b,64px);text-align:center;max-width:576px;box-sizing:border-box;margin:0 auto">
+            <p class="pagzly-body-lh" style="margin:0;line-height:1.85;font-size:${titleSizeCss("body")};color:${hexToRgba(BRAND.ink, 0.82)}">${emphasizedBodyHtml(section.body, section.emphasis, accent)}</p>
             ${ringHtml}
           </div>
         </section>`;
@@ -2018,9 +2021,11 @@ ${jsonLd}
   .pagzly-concern{font-size:12px}.pagzly-concern-count{font-size:11px;line-height:1.5}
   @media (min-width:640px){.pagzly-concern{font-size:13px}.pagzly-concern-count{font-size:12px}}
   @media (min-width:640px){.pagzly-compact-thumb{width:120px;height:120px}.pagzly-compact-row{padding:24px 0!important}}
+  .pagzly-bleed-ov{padding:0 24px 24px}
+  @media (min-width:640px){.pagzly-bleed-ov{padding:0 32px 32px}}
   .pagzly-brand-sig{padding:56px 24px}.pagzly-brand-sig>p:first-child{line-height:1.5}
-  .pagzly-story-body{line-height:1.9!important;margin-top:20px!important}
-  @media (min-width:640px){.pagzly-brand-sig{padding:64px 40px}.pagzly-story-body{line-height:1.85!important}}
+  .pagzly-story-body{line-height:1.9!important;margin-top:20px!important}.pagzly-body-lh{line-height:1.9!important}
+  @media (min-width:640px){.pagzly-brand-sig{padding:64px 40px}.pagzly-story-body,.pagzly-body-lh{line-height:1.85!important}}
   @media (max-width:639px){.pagzly-hl-row{display:grid!important;grid-template-columns:48px 1fr;column-gap:16px;row-gap:4px;align-items:start;text-align:left!important;padding:20px!important}.pagzly-hl-row>*{grid-column:2;margin-top:0!important;margin-bottom:0!important}.pagzly-hl-row>:first-child{grid-column:1;grid-row:1/span 4;display:block!important}}
   @media (min-width:640px){.pagzly-spec-grid tbody{display:grid;grid-template-columns:1fr 1fr;column-gap:32px}.pagzly-spec-grid tr{display:flex}.pagzly-spec-grid tr>:first-child{width:40%!important;flex-shrink:0}.pagzly-spec-grid tr>:last-child{flex:1}.pagzly-spec-grid tr:nth-last-child(2){border-bottom:none!important}}
   @media (min-width:640px){.pagzly-spec-thumbs{gap:16px!important}.pagzly-spec-thumb-m{width:96px!important;height:96px!important}.pagzly-spec-thumb-s{width:128px!important;height:128px!important}}
