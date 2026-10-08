@@ -283,6 +283,13 @@ function checklistGapCss(category: string): string {
   return `${y}px ${x}px`;
 }
 
+function galleryTitlePadVars(category: string): string {
+  const cls = getCategoryRhythm(category).galleryTitlePadClass;
+  const narrow = Number(/(?:^|\s)pt-(\d+)/.exec(cls)?.[1] ?? 10) * 4;
+  const wide = Number(/\/pz:pt-(\d+)/.exec(cls)?.[1] ?? narrow / 4) * 4;
+  return `--pz-gt:${narrow}px;--pz-gt-w:${wide}px;`;
+}
+
 function sectionBgStyle(sectionBg: string, category: string): string {
   const hasPattern = Boolean(getCategoryPatternBackground(category));
   if (!hasPattern) return `background:${sectionBg}`;
@@ -429,7 +436,7 @@ function comparisonChartBodyHtml(
           const ourP = Math.min(100, (m.ourValue / max) * 100);
           const baseP = Math.min(100, (m.baselineValue / max) * 100);
           if (FLAT_SECTION_SURFACES) {
-            return `<div><div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px"><p style="margin:0;font-size:${FONT_SIZE.body};font-weight:600;line-height:1.375;color:rgba(27,27,24,.8)">${esc(m.label)}</p><span style="flex-shrink:0;white-space:nowrap;font-variant-numeric:tabular-nums;line-height:1"><span style="font-family:${DETAIL_FONT_STACK.heading};font-size:22px;font-weight:900;line-height:1;color:${deepText}">${m.ourValue}<span style="margin-left:2px;font-size:13px;font-weight:700">${esc(unit)}</span></span><span style="margin-left:6px;font-size:${FONT_SIZE.sm};color:rgba(27,27,24,.45)">/ ${m.baselineValue}${esc(unit)}</span></span></div>
+            return `<div><div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px"><p style="margin:0;font-size:${FONT_SIZE.body};font-weight:600;line-height:1.375;color:rgba(27,27,24,.8)">${esc(m.label)}</p><span style="flex-shrink:0;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:16px;line-height:1.5"><span style="font-family:${DETAIL_FONT_STACK.heading};font-size:22px;font-weight:900;line-height:1;color:${deepText}">${m.ourValue}<span style="margin-left:2px;font-size:13px;font-weight:700">${esc(unit)}</span></span><span style="margin-left:6px;font-size:${FONT_SIZE.sm};color:rgba(27,27,24,.45)">/ ${m.baselineValue}${esc(unit)}</span></span></div>
             <div style="margin-top:12px;height:12px;background:${hexToRgba(accent, 0.16)};border-radius:${RADIUS.pill}px;overflow:hidden"><div class="fill-bar" style="height:100%;width:${ourP}%;background:${accent};border-radius:${RADIUS.pill}px"></div></div>
             <div style="margin-top:6px;height:8px;background:${hexToRgba(BRAND.ink, 0.06)};border-radius:${RADIUS.pill}px;overflow:hidden"><div class="fill-bar" style="height:100%;width:${baseP}%;background:${hexToRgba(BRAND.ink, 0.28)};border-radius:${RADIUS.pill}px"></div></div></div>`;
           }
@@ -446,7 +453,7 @@ function comparisonChartBodyHtml(
   const selfAssessed = section.basis === "self_assessed";
   const basisNote = section.basisNote || (selfAssessed ? SELF_ASSESSED_DISCLAIMER : "");
   const basisNoteHtml = basisNote
-    ? `<p style="max-width:420px;margin:20px auto 0;text-align:center;font-size:${FONT_SIZE.caption};${
+    ? `<p style="max-width:448px;margin:24px auto 0;text-align:center;font-size:12px;line-height:16px;${
         selfAssessed
           ? `padding:8px 12px;border-radius:${RADIUS.md}px;background:rgba(27,27,24,0.05);font-weight:500;color:rgba(27,27,24,0.55)`
           : "opacity:.4"
@@ -454,13 +461,13 @@ function comparisonChartBodyHtml(
     : "";
   return `
         ${kickerHtml(`<p style="text-align:center;color:${deepText};font-size:${FONT_SIZE.caption};letter-spacing:.2em">COMPARE</p>`)}
-        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
+        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)};margin-bottom:0`)}
         ${
           FLAT_SECTION_SURFACES && !isChecklist
-            ? `<div style="max-width:420px;margin:32px auto 0;display:flex;align-items:center;justify-content:center;gap:20px;font-size:${FONT_SIZE.xs};color:rgba(27,27,24,.6)"><span style="display:flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:16px;height:8px;border-radius:${RADIUS.pill}px;background:${accent}"></span><span style="font-weight:600;color:${deepText}">${esc(section.ourLabel)}</span></span><span style="display:flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:16px;height:6px;border-radius:${RADIUS.pill}px;background:${hexToRgba(BRAND.ink, 0.28)}"></span>${esc(section.baselineLabel)}</span></div>`
+            ? `<div style="max-width:448px;margin:32px auto 0;display:flex;align-items:center;justify-content:center;gap:20px;font-size:12px;line-height:16px;color:rgba(27,27,24,.6)"><span style="display:flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:16px;height:8px;border-radius:${RADIUS.pill}px;background:${accent}"></span><span style="font-weight:600;color:${deepText}">${esc(section.ourLabel)}</span></span><span style="display:flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:16px;height:6px;border-radius:${RADIUS.pill}px;background:${hexToRgba(BRAND.ink, 0.28)}"></span>${esc(section.baselineLabel)}</span></div>`
             : ""
         }
-        <div style="max-width:420px;margin:${FLAT_SECTION_SURFACES && !isChecklist ? 28 : 32}px auto 0;display:flex;flex-direction:column;gap:${isChecklist ? 0 : FLAT_SECTION_SURFACES ? 32 : 24}px">
+        <div style="max-width:448px;margin:${FLAT_SECTION_SURFACES && !isChecklist ? 28 : 40}px auto 0;display:flex;flex-direction:column;gap:${isChecklist ? 0 : FLAT_SECTION_SURFACES ? 32 : 24}px">
           ${metricsHtml}
         </div>
         ${basisNoteHtml}
@@ -870,7 +877,7 @@ function sectionHtml(
           ? `<div style="display:flex;align-items:stretch;max-width:${stripMetrics.length === 1 ? 320 : stripMetrics.length === 2 ? 448 : 672}px;margin:40px auto 0;border-top:${statRule};border-bottom:${statRule}">${stripMetrics
               .map(
                 (m, i) =>
-                  `<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:28px 8px;text-align:center${i > 0 ? `;border-left:${statRule}` : ""}"><div style="width:100%;container-type:inline-size"><div class="pz-fit" style="${titleFitCss("statNumber", m.value, -0.05)};font-weight:900;line-height:1;letter-spacing:-0.05em;color:${deepText}">${statValueHtml(m.value)}${footnoteMarkFor(m)}</div></div><div style="margin-top:2px;${STAT_LABEL_CSS}">${esc(m.label)}</div></div>`,
+                  `<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:28px 8px;text-align:center${i > 0 ? `;border-left:${statRule}` : ""}"><div style="width:100%;container-type:inline-size;font-size:16px;line-height:1.5;color:${deepText}"><span class="pz-fit" style="${titleFitCss("statNumber", m.value, -0.05)};font-weight:900;line-height:1;letter-spacing:-0.05em">${statValueHtml(m.value)}</span>${footnoteMarkFor(m)}</div><div style="margin-top:2px;${STAT_LABEL_CSS}">${esc(m.label)}</div></div>`,
               )
               .join("")}</div>`
           : null;
@@ -1303,7 +1310,7 @@ function sectionHtml(
       const tableMargin = diagramHtml ? "24px" : "40px";
       return `<section${sectionIdAttr} style="${trustPad}${sectionInset}${specTableBg}${bgCss}" class="${isShipping ? "pagzly-shipping" : ""}">
         ${kickerHtml(`<p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">INFO</p>`)}
-        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
+        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}${thumbHtml ? ";margin-bottom:0" : ""}`)}
         ${thumbHtml}
         ${diagramHtml}
         ${
@@ -1329,7 +1336,7 @@ function sectionHtml(
       const oddLead = galleryIndexes.length >= 3 && galleryIndexes.length % 2 === 1;
       const wideCols = !pairCompare && galleryIndexes.length % 6 === 0;
       const galleryAspect = imageRatioCss(resolveSlotImageRatio(section));
-      return `<section${sectionIdAttr} class="pagzly-gallery" style="padding:40px 0 0;${sectionInset}${bgCss}">
+      return `<section${sectionIdAttr} class="pagzly-gallery" style="${galleryTitlePadVars(category)}padding:var(--pz-gt) 0 0;${sectionInset}${bgCss}">
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)};margin:0 24px 32px${flatTitleColorCss(theme)}`)}
         <div${wideCols ? ` class="pagzly-gallery-grid3"` : ""} style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:8px;background:${accent}2e">
           ${galleryIndexes
@@ -2028,6 +2035,7 @@ ${jsonLd}
   @media (min-width:640px){.pagzly-stacked{padding:80px 0}.pagzly-stacked-head{padding:0 40px}.pagzly-stacked-body{padding:48px 40px 0}}
   .pagzly-concern{font-size:12px}.pagzly-concern-count{font-size:11px;line-height:1.5}
   @media (min-width:640px){.pagzly-concern{font-size:13px}.pagzly-concern-count{font-size:12px;line-height:16px}}
+  @media (min-width:640px){.pagzly-gallery{padding-top:var(--pz-gt-w)!important}}
   .pagzly-textonly{padding:40px 24px}
   @media (min-width:640px){.pagzly-textonly{padding:48px 40px}}
   .pagzly-rv-cap{font-size:11px;line-height:1.5}
