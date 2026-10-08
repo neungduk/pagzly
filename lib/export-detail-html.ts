@@ -1300,7 +1300,7 @@ function sectionHtml(
       const specEdge = `1px solid ${hexToRgba(BRAND.ink, INFO_TABLE.specEdgeInkAlpha)}`;
       const specGrid = FLAT_SECTION_SURFACES && !isShipping && isCompactSpecGrid(tableRows, pendingLabels.length);
       const tableHtml = `<table${specGrid ? ` class="pagzly-spec-grid"` : ""} style="width:100%;border-collapse:collapse;font-size:${FONT_SIZE.bodySm};line-height:20px${isShipping ? "" : `;border-top:${specEdge};border-bottom:${specEdge}`}"><tbody>${rowsHtml}</tbody></table>`;
-      const tableMargin = diagramHtml ? "16px" : "24px";
+      const tableMargin = diagramHtml ? "24px" : "40px";
       return `<section${sectionIdAttr} style="${trustPad}${sectionInset}${specTableBg}${bgCss}" class="${isShipping ? "pagzly-shipping" : ""}">
         ${kickerHtml(`<p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">INFO</p>`)}
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
@@ -2018,7 +2018,7 @@ ${jsonLd}
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   ${buildDetailExportFontCss(opts.category)}
-  .pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size;${sectionPadVarsCss(opts.category, false)}}
+  .pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size;line-height:1.5;${sectionPadVarsCss(opts.category, false)}}
   @media (min-width:640px){.pagzly-wrap{${sectionPadVarsCss(opts.category, true)}}}
   .pagzly-wrap section>h2.pagzly-display-headline:first-child{margin-top:0}
   .pagzly-wrap .pagzly-display-headline{line-height:1.2}
