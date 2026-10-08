@@ -67,7 +67,9 @@ export function parseMegaKeywordHeading(title: string): {
     };
   }
 
-  const first = trimmed.split(/\s+/)[0] ?? "";
+  const [first = "", second = ""] = trimmed.split(/\s+/);
+  // "급여 전", "세안 후"처럼 다음 어절이 한 글자 의존 명사면 떼어 키우면 뜻이 끊긴다
+  if (second.length === 1) return { keyword: null, remainder: trimmed };
   // 219차: 숫자가 섞인 토큰("210g/yd", "1단당" 등)은 줄바꿈 지점이 없어
   // 초대형 keywordDisplay에서 카드 밖으로 흘러넘칠 수 있으므로 승격 제외.
   const hasDigit = /[0-9]/.test(first);
