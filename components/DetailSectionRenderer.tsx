@@ -20,6 +20,7 @@ import {
   isPlaceholderAnswer,
   isPlaceholderValue,
   PENDING_SPEC_ROW_LABEL,
+  dedupeSpecRows,
   splitNoticeSentences,
 } from "@/lib/spec-placeholder";
 import type {
@@ -2619,7 +2620,8 @@ function renderSection(
     }
 
     case "spec_table": {
-      const visibleRows = section.rows.filter((row) => row.label.trim());
+      const labeledRows = section.rows.filter((row) => row.label.trim());
+      const visibleRows = edit?.enabled ? labeledRows : dedupeSpecRows(labeledRows);
       if (visibleRows.length === 0) return null;
       const isShipping = section.slot === "shipping_info";
       const isSizeTable = section.slot === "size_table";

@@ -164,6 +164,7 @@ import {
   isPlaceholderAnswer,
   isPlaceholderValue,
   PENDING_SPEC_ROW_LABEL,
+  dedupeSpecRows,
   splitNoticeSentences,
 } from "@/lib/spec-placeholder";
 import {
@@ -1180,7 +1181,7 @@ function sectionHtml(
       // export에는 이 필터가 없었음. 빈 라벨 행은 별칭 매칭이 항상 참이 되는 구조라
       // (rowLooksLikeWeight의 alias.includes("")) 라이브에는 안 뜨고 export에만 뜨는
       // 유령 다이어그램 위험이 있었음. live와 동일하게 필터링.
-      const visibleRows = section.rows.filter((row) => row.label.trim());
+      const visibleRows = dedupeSpecRows(section.rows.filter((row) => row.label.trim()));
       if (visibleRows.length === 0) return "";
       const isShipping = section.slot === "shipping_info";
       const isSizeTable = section.slot === "size_table";

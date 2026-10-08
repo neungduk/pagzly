@@ -37,6 +37,23 @@ export function groupPendingSpecRows<T extends { label: string; value: string }>
 
 export const PENDING_SPEC_ROW_LABEL = "확인 필요 항목";
 
+/** "배송기간"/"배송 기간"처럼 띄어쓰기·가운뎃점만 다른 라벨은 한 행 — 값 있는 쪽을 첫 자리에 남긴다 */
+export function dedupeSpecRows<T extends { label: string; value: string }>(rows: T[]): T[] {
+  const out: T[] = [];
+  const at = new Map<string, number>();
+  for (const row of rows) {
+    const key = row.label.toLowerCase().replace(/[\s·・/,]/g, "");
+    const i = at.get(key);
+    if (i == null) {
+      at.set(key, out.length);
+      out.push(row);
+    } else if (isPlaceholderValue(out[i]!.value) && !isPlaceholderValue(row.value)) {
+      out[i] = row;
+    }
+  }
+  return out;
+}
+
 /** 주의사항 본문을 문장 단위 항목으로. 2문장 미만이면 null(문단 그대로). */
 export function splitNoticeSentences(body: string): string[] | null {
   const items = body
