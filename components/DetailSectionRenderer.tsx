@@ -37,6 +37,7 @@ import {
   isCirclePairSection,
   isCircleSoloSection,
 } from "@/lib/circle-comparison-combo";
+import { findTextOnlyRuns, textOnlyRunHeading } from "@/lib/text-only-run";
 import { classifyBoolishCell } from "@/lib/comparison-cell-classify";
 import { resolveCompactImageShape } from "@/lib/compact-image-shape";
 import { displaySpecValue, ingredientVennHtml, isRedundantSoloVenn, specIngredientChips } from "@/lib/ingredient-venn";
@@ -1539,6 +1540,57 @@ function renderComparisonChartBody(params: {
         </details>
       ) : null}
     </>
+  );
+}
+
+/** 연속 text_only 섹션을 번호 매긴 한 블록으로 렌더 (lib/text-only-run.ts) */
+function renderTextOnlyRun(params: {
+  rows: ImageTextSection[];
+  index: number;
+  category: string;
+  theme: CategoryTheme;
+  pattern: SectionColorPattern;
+}): ReactNode {
+  const { rows, index, category, theme, pattern } = params;
+  return (
+    <section
+      key={`text-only-run-${index}`}
+      className={getCategoryRhythm(category).generousPadClass}
+      style={textSectionStyle(theme, pattern, category)}
+      data-testid="text-only-run"
+    >
+      <ol className="mx-auto max-w-xl">
+        {rows.map((row, i) => (
+          <li
+            key={`${row.slot}-${i}`}
+            className={`grid grid-cols-[auto_1fr] items-start gap-x-5 ${i === 0 ? "" : "pt-6"} ${i === rows.length - 1 ? "" : "pb-6"}`}
+            style={i === 0 ? undefined : { borderTop: `1px solid ${hexToRgba(BRAND.ink, 0.1)}` }}
+          >
+            <span
+              aria-hidden="true"
+              className="font-heading text-[2rem] font-extrabold leading-none tracking-[-0.04em] tabular-nums @min-[640px]/pz:text-[2.5rem]"
+              style={{ color: readableTextAccent(theme) }}
+            >
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <div className="min-w-0">
+              <h3
+                className="font-heading text-xl font-bold tracking-[-0.02em]"
+                style={{ color: readableTextDeep(theme, 3) }}
+              >
+                {textOnlyRunHeading(row.heading)}
+              </h3>
+              <p
+                className="mt-2 whitespace-pre-line text-[15px] leading-[1.75]"
+                style={{ color: hexToRgba(BRAND.ink, 0.72) }}
+              >
+                {row.body}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 
@@ -4977,6 +5029,10 @@ export default function DetailSectionRenderer({
     comboLeadToPair.set(lead, { circleIdx, chartIdx });
     comboTrailIndices.add(trail);
   }
+  const textOnlyRuns = edit?.enabled ? new Map<number, number[]>() : findTextOnlyRuns(sections);
+  const textOnlyTrailIndices = new Set(
+    [...textOnlyRuns.values()].flatMap((members) => members.slice(1)),
+  );
 
   return (
     <SellerImageMetaContext.Provider
@@ -5048,8 +5104,16 @@ export default function DetailSectionRenderer({
             pattern: chartPattern,
             productName: productName ?? category,
           });
-        } else if (comboTrailIndices.has(index)) {
+        } else if (comboTrailIndices.has(index) || textOnlyTrailIndices.has(index)) {
           content = null;
+        } else if (textOnlyRuns.has(index)) {
+          content = renderTextOnlyRun({
+            rows: textOnlyRuns.get(index)!.map((i) => sections[i] as ImageTextSection),
+            index,
+            category,
+            theme: sectionTheme,
+            pattern,
+          });
         } else {
           content = renderSection(
             section,

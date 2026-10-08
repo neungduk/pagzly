@@ -170,6 +170,7 @@ import {
   findCircleComparisonComboIndices,
   isCircleSoloSection,
 } from "@/lib/circle-comparison-combo";
+import { findTextOnlyRuns, textOnlyRunHeading } from "@/lib/text-only-run";
 import type {
   ComparisonChartSection,
   DetailSection,
@@ -497,6 +498,27 @@ function comparisonChartBodyHtml(
             : ""
         }
       `;
+}
+
+/** 라이브 renderTextOnlyRun — 연속 text_only 섹션을 번호 매긴 한 블록으로 */
+function textOnlyRunHtml(params: {
+  rows: ImageTextSection[];
+  theme: CategoryTheme;
+  sectionStyle: string;
+  anchorId?: string;
+}): string {
+  const { rows, theme, sectionStyle, anchorId } = params;
+  const rule = `1px solid ${hexToRgba(BRAND.ink, 0.1)}`;
+  const items = rows
+    .map(
+      (row, i) =>
+        `<li style="display:grid;grid-template-columns:auto 1fr;align-items:start;column-gap:20px;padding:${i === 0 ? 0 : 24}px 0 ${i === rows.length - 1 ? 0 : 24}px${i === 0 ? "" : `;border-top:${rule}`}">` +
+        `<span class="pagzly-run-num" aria-hidden="true" style="font-family:${DETAIL_FONT_STACK.heading};font-size:2rem;font-weight:800;line-height:1;letter-spacing:-0.04em;font-variant-numeric:tabular-nums;color:${readableTextAccent(theme)}">${String(i + 1).padStart(2, "0")}</span>` +
+        `<div style="min-width:0"><h3 style="margin:0;font-family:${DETAIL_FONT_STACK.heading};font-size:20px;line-height:28px;font-weight:700;letter-spacing:-0.02em;color:${readableTextDeep(theme, 3)}">${esc(textOnlyRunHeading(row.heading))}</h3>` +
+        `<p style="margin:8px 0 0;white-space:pre-line;font-size:15px;line-height:1.75;color:${hexToRgba(BRAND.ink, 0.72)}">${esc(row.body)}</p></div></li>`,
+    )
+    .join("");
+  return `<section${anchorId ? ` id="${anchorId}"` : ""} style="${sectionStyle}"><ol style="max-width:576px;margin:0 auto;padding:0;list-style:none">${items}</ol></section>`;
 }
 
 /** 라이브 renderCircleComparisonCombo — 인접 circle + comparison_chart를 한 <section>으로 */
@@ -1889,6 +1911,8 @@ export function buildDetailPageHtml(opts: {
     comboLeadToPair.set(Math.min(circleIdx, chartIdx), { circleIdx, chartIdx });
     comboTrailIndices.add(Math.max(circleIdx, chartIdx));
   }
+  const textOnlyRuns = findTextOnlyRuns(visibleSections);
+  for (const members of textOnlyRuns.values()) members.slice(1).forEach((m) => comboTrailIndices.add(m));
   for (let i = 0; i < visibleSections.length; i += 1) {
     const section = visibleSections[i]!;
     const isFullPoint = shouldUseSplitLayout(section);
@@ -1921,6 +1945,14 @@ export function buildDetailPageHtml(opts: {
         theme: surface.theme,
         category: opts.category,
         productName: opts.productName,
+        sectionStyle: `padding:var(--pz-pad-y,48px) var(--pz-pad-x,20px);${surface.insetShadow ? `box-shadow:${surface.insetShadow};` : ""}${sectionBgStyle(surface.background, opts.category)}`,
+        anchorId: anchorIdMap.get(i),
+      });
+    } else if (textOnlyRuns.has(i)) {
+      const surface = resolveSectionSurface(extended, "image_text", bodyIndex, opts.category);
+      html = textOnlyRunHtml({
+        rows: textOnlyRuns.get(i)!.map((m) => visibleSections[m] as ImageTextSection),
+        theme: surface.theme,
         sectionStyle: `padding:var(--pz-pad-y,48px) var(--pz-pad-x,20px);${surface.insetShadow ? `box-shadow:${surface.insetShadow};` : ""}${sectionBgStyle(surface.background, opts.category)}`,
         anchorId: anchorIdMap.get(i),
       });
@@ -2046,6 +2078,7 @@ ${jsonLd}
   @media (min-width:640px){.pagzly-gallery{padding-top:var(--pz-gt-w)!important}}
   @media (min-width:640px){.pagzly-stat-bar-label{font-size:16px}}
   .pagzly-wrap [data-diagram]>svg,.pagzly-wrap .pagzly-diagram>div>svg{display:block}
+  @media (min-width:640px){.pagzly-run-num{font-size:2.5rem!important}}
   .pagzly-textonly{padding:40px 24px}
   @media (min-width:640px){.pagzly-textonly{padding:48px 40px}}
   .pagzly-rv-cap{font-size:11px;line-height:1.5}
