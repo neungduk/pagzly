@@ -72,7 +72,7 @@ import {
 } from "@/lib/package-contents-diagram";
 import { buildAnnotatedImageOverlaySvg } from "@/lib/annotated-image-overlay-svg";
 import { resolveCompactImageShape } from "@/lib/compact-image-shape";
-import { displaySpecValue, ingredientVennHtml, isRedundantSoloVenn } from "@/lib/ingredient-venn";
+import { displaySpecValue, ingredientVennHtml, isRedundantSoloVenn, specIngredientChips } from "@/lib/ingredient-venn";
 import {
   BEFORE_AFTER_COMPLIANCE_NOTE,
   CERTIFICATE_EVIDENCE_COMPLIANCE_NOTE,
@@ -1272,9 +1272,12 @@ function sectionHtml(
       const rowsHtml = tableRows
         .map((row, ri) => {
           const certHighlight = isCertificationHighlight(row.label, row.value, certTokens);
+          const chips = FLAT_SECTION_SURFACES && !isShipping && !certHighlight ? specIngredientChips(row.label, row.value) : null;
           const valueHtml = certHighlight
             ? `<span style="display:inline-block;padding:2px 8px;border-radius:${RADIUS.sm}px;color:${accentText};background:${accent}24;box-shadow:${ELEVATION.certUnderlineExportHex(accent + "8c")}">${esc(row.value)}</span>`
-            : esc(displaySpecValue(row.label, row.value));
+            : chips
+              ? `<span data-spec-chips style="display:flex;flex-wrap:wrap;gap:6px">${chips.map((c) => `<span style="padding:2px 10px;border-radius:${RADIUS.pill}px;font-size:13px;line-height:20px;color:${accentText};background:${hexToRgba(accent, 0.1)}">${esc(c)}</span>`).join("")}</span>`
+              : esc(displaySpecValue(row.label, row.value));
           const rowRule =
             ri === tableRows.length - 1
               ? "none"

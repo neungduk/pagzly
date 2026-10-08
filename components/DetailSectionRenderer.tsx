@@ -39,7 +39,7 @@ import {
 } from "@/lib/circle-comparison-combo";
 import { classifyBoolishCell } from "@/lib/comparison-cell-classify";
 import { resolveCompactImageShape } from "@/lib/compact-image-shape";
-import { displaySpecValue, ingredientVennHtml, isRedundantSoloVenn } from "@/lib/ingredient-venn";
+import { displaySpecValue, ingredientVennHtml, isRedundantSoloVenn, specIngredientChips } from "@/lib/ingredient-venn";
 import {
   BEFORE_AFTER_COMPLIANCE_NOTE,
   CERTIFICATE_EVIDENCE_COMPLIANCE_NOTE,
@@ -2826,6 +2826,21 @@ function renderSection(
                               edit?.onChange(index, { ...section, rows });
                             }}
                           />
+                        </span>
+                      ) : FLAT_SECTION_SURFACES && !isShipping && !edit?.enabled && specIngredientChips(row.label, row.value) ? (
+                        <span data-spec-chips className="flex flex-wrap gap-1.5">
+                          {specIngredientChips(row.label, row.value)!.map((chip, ci) => (
+                            <span
+                              key={ci}
+                              className="rounded-full px-2.5 py-0.5 text-[13px] leading-5"
+                              style={{
+                                color: readableTextAccent(theme),
+                                backgroundColor: hexToRgba(theme.accent, 0.1),
+                              }}
+                            >
+                              {chip}
+                            </span>
+                          ))}
                         </span>
                       ) : (
                         <EditableText

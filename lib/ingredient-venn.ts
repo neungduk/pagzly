@@ -58,6 +58,17 @@ export function displaySpecValue(label: string, value: string): string {
   return /성분/.test(label) ? koreanizeIngredientList(value) : value;
 }
 
+/** 334차 — 성분·원료 행 값을 칩 목록으로(라이브·export 공용). 입력에 있는 이름만 쓰고 역할 태그는 붙이지 않는다. */
+export function specIngredientChips(label: string, value: string): string[] | null {
+  if (!/성분|원료/.test(label)) return null;
+  const items = displaySpecValue(label, value)
+    .split(/[,·/\n]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (items.length < 2 || items.length > 6 || items.some((s) => s.length > 18)) return null;
+  return items;
+}
+
 /** "나이아신아마이드 5%, Sodium Hyaluronate, Panthenol" → 사전에 있는 영문 성분명만 한글 표준명으로 */
 export function koreanizeIngredientList(text: string): string {
   return text.replace(/[^,·/\n]+/g, (token) => {
