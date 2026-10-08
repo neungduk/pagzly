@@ -275,6 +275,14 @@ function sectionPadVarsCss(category: string, wide: boolean): string {
   return `--pz-pad-y:${padY(rhythm.generousPadClass)}px;--pz-pad-ty:${padY(rhythm.trustPadClass)}px;--pz-pad-x:${x}px;--pz-hero-min:${heroMin};--pz-pt-t:${ptSide("t", 10)}px;--pz-pt-b:${ptSide("b", 16)}px;--pz-pt-x:${ptSide("x", 6)}px`;
 }
 
+/** 라이브 checklistGapClass("gap-x-4 gap-y-8")와 같은 행·열 간격 */
+function checklistGapCss(category: string): string {
+  const cls = getCategoryRhythm(category).checklistGapClass;
+  const y = Number(/gap-y-(\d+)/.exec(cls)?.[1] ?? 3) * 4;
+  const x = Number(/gap-x-(\d+)/.exec(cls)?.[1] ?? 3) * 4;
+  return `${y}px ${x}px`;
+}
+
 function sectionBgStyle(sectionBg: string, category: string): string {
   const hasPattern = Boolean(getCategoryPatternBackground(category));
   if (!hasPattern) return `background:${sectionBg}`;
@@ -344,7 +352,7 @@ function flatSectionHeaderHtml(
     : { keyword: null, remainder: heading };
   const title = parts.remainder || heading;
   const pill = pointBadge
-    ? `<div style="margin:0 0 20px">${pointPillHtml(pointBadge, theme, inverted)}</div>`
+    ? `<div style="margin:0 0 20px;display:flex;justify-content:center">${pointPillHtml(pointBadge, theme, inverted)}</div>`
     : "";
   const keyword = parts.keyword
     ? `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClamp};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:0;text-transform:uppercase;color:${inverted ? BRAND.paper : readableTextAccent(theme, 3)}">${esc(parts.keyword)}</p>`
@@ -638,11 +646,11 @@ function sectionHtml(
       }
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${checklistHead}
-        <ul class="pagzly-cl-grid" style="${checklistGridCss(section.items, category)};gap:12px;list-style:none;padding:0;margin:0">
+        <ul class="pagzly-cl-grid" style="${checklistGridCss(section.items, category)};gap:${FLAT_SECTION_SURFACES ? checklistGapCss(category) : "12px"};list-style:none;padding:0;margin:0">
           ${section.items
             .map(
               (item) =>
-                `<li style="text-align:center;font-size:${FONT_SIZE.bodySm};padding:20px 16px;border-radius:${RADIUS.lg}px;border:1px solid ${section.boldBlock ? "rgba(250,248,243,.22)" : FLAT_SECTION_SURFACES ? hexToRgba(accent, 0.16) : accent + "3d"};background:${section.boldBlock ? "rgba(250,248,243,.08)" : FLAT_SECTION_SURFACES ? FLAT_PAPER : accent + "0f"}${FLAT_SECTION_SURFACES ? ";font-weight:600;word-break:keep-all" : ""}">${FLAT_SECTION_SURFACES ? `<span aria-hidden="true" style="display:flex;justify-content:center;margin-bottom:10px">${summaryIconSvg("check", section.boldBlock ? BRAND.paper : deepText, 26)}</span>` : ""}${esc(item)}</li>`,
+                `<li style="text-align:center;font-size:${FONT_SIZE.bodySm};padding:20px 16px;border-radius:${RADIUS.lg}px;border:1px solid ${section.boldBlock ? "rgba(250,248,243,.22)" : FLAT_SECTION_SURFACES ? hexToRgba(accent, 0.16) : accent + "3d"};background:${section.boldBlock ? "rgba(250,248,243,.08)" : FLAT_SECTION_SURFACES ? FLAT_PAPER : accent + "0f"}${FLAT_SECTION_SURFACES ? ";font-weight:600;line-height:1.375;word-break:keep-all" : ""}">${FLAT_SECTION_SURFACES ? `<span aria-hidden="true" style="display:flex;justify-content:center;margin-bottom:10px">${summaryIconSvg("check", section.boldBlock ? BRAND.paper : deepText, 26)}</span>` : ""}${esc(item)}</li>`,
             )
             .join("")}
         </ul></section>`;
@@ -704,7 +712,7 @@ function sectionHtml(
       const benefitIcons = pickBenefitCardIcons(cards);
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${headerHtml}
-        <div class="pagzly-hl-grid" style="display:grid;grid-template-columns:repeat(${cards.length === 4 ? 2 : 1},1fr);--pz-hl-wide:repeat(${cards.length},1fr);gap:${FLAT_SECTION_SURFACES ? 16 : 12}px;margin-top:32px">
+        <div class="pagzly-hl-grid" style="display:grid;grid-template-columns:repeat(${cards.length === 4 ? 2 : 1},1fr);--pz-hl-wide:repeat(${cards.length},1fr);gap:${FLAT_SECTION_SURFACES ? 16 : 12}px;margin-top:${FLAT_SECTION_SURFACES ? 40 : 32}px">
           ${cards
             .map((card, i) => {
               const em = i === center;
@@ -737,7 +745,7 @@ function sectionHtml(
               const showTitle = !cardKeyword.keyword || Boolean(cardKeyword.remainder);
               const iconHtml =
                 FLAT_SECTION_SURFACES && benefitIcons
-                  ? `<span aria-hidden="true" style="display:flex;justify-content:center;margin-bottom:${cardKeyword.keyword ? 12 : 4}px"><span style="display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:48px;height:48px;border-radius:50%;border:1px solid ${(em || section.boldBlock) && !lightEm ? hexToRgba(BRAND.paper, 0.32) : hexToRgba(deepText, 0.22)}">${summaryIconSvg(benefitIcons[i]!, (em || section.boldBlock) && !lightEm ? BRAND.paper : deepText, BENEFIT_ICON_PX)}</span></span>`
+                  ? `<span aria-hidden="true" style="display:flex;justify-content:center;margin-bottom:12px"><span style="display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:48px;height:48px;border-radius:50%;border:1px solid ${(em || section.boldBlock) && !lightEm ? hexToRgba(BRAND.paper, 0.32) : hexToRgba(deepText, 0.22)}">${summaryIconSvg(benefitIcons[i]!, (em || section.boldBlock) && !lightEm ? BRAND.paper : deepText, BENEFIT_ICON_PX)}</span></span>`
                   : "";
               const rowCls = FLAT_SECTION_SURFACES && benefitIcons && cards.length <= 3 ? " pagzly-hl-row" : "";
               return `<div class="${em ? "pulse-card" : ""}${rowCls}" style="border-radius:${RADIUS.lg}px;padding:${FLAT_SECTION_SURFACES ? "32px 24px" : "28px 20px"};text-align:center;background:${cardBg};border:${cardBorder};${em && !FLAT_SECTION_SURFACES ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}color:${titleColor}">
@@ -988,15 +996,15 @@ function sectionHtml(
         </section>`;
       }
       if (isCallout && section.callout && FLAT_SECTION_SURFACES) {
-        return `<section${sectionIdAttr} class="pagzly-callout" style="padding:0 0 64px;${sectionInset}${bgCss}">
+        return `<section${sectionIdAttr} class="pagzly-callout pagzly-callout-flat" style="${sectionInset}${bgCss}">
           <div style="position:relative">
             ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${imageRatioCss(resolveSlotImageRatio(section))};object-fit:cover;display:block"/>` : ""}
-            <p style="position:absolute;bottom:32px;left:50%;transform:translateX(-50%);background:${deepFill};color:#FAF8F3;padding:12px 20px;border-radius:${RADIUS.lg}px;font-size:${FONT_SIZE.body};font-weight:600;text-align:center;max-width:85%;margin:0">${esc(section.callout)}</p>
+            <p class="pagzly-bubble" style="position:absolute;left:50%;transform:translateX(-50%);background:${deepFill};color:#FAF8F3;padding:12px 20px;border-radius:${RADIUS.lg}px;font-weight:600;line-height:1.375;text-align:center;max-width:85%;margin:0;box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1)">${esc(section.callout)}<span aria-hidden="true" style="position:absolute;left:50%;bottom:-8px;width:16px;height:16px;background:${deepFill};transform:translateX(-50%) rotate(45deg)"></span></p>
           </div>
-          <div style="max-width:576px;margin:0 auto;padding:48px 40px 0;text-align:center">
+          <div style="padding:var(--pz-pt-t,40px) var(--pz-pt-x,24px) var(--pz-pt-b,64px);text-align:center"><div style="max-width:576px;margin:0 auto">
             ${twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
-            <div style="margin:16px 0 0"><p style="margin:0;line-height:1.85;font-size:${titleSizeCss("body")};color:${hexToRgba(BRAND.ink, 0.82)};overflow-wrap:anywhere">${emphasizedBodyHtml(section.body, section.emphasis, accent)}</p></div>
-          </div>
+            <div style="margin:16px 0 0"><p class="pagzly-body-lh" style="margin:0;line-height:1.85;font-size:${titleSizeCss("body")};color:${hexToRgba(BRAND.ink, 0.82)};overflow-wrap:anywhere">${emphasizedBodyHtml(section.body, section.emphasis, accent)}</p></div>
+          </div></div>
         </section>`;
       }
       if (isCallout && section.callout) {
@@ -1085,16 +1093,16 @@ function sectionHtml(
           const pill = pointOrdinal != null && !isAnnotatedSection ? formatPointBadge(pointOrdinal) : "";
           const compliance =
             section.slot === "ingredient_highlight" && isCosmeticsCategory(category)
-              ? `<p style="margin-top:12px;font-size:${FONT_SIZE.caption};line-height:1.6;opacity:.55">${esc(INGREDIENT_HIGHLIGHT_COMPLIANCE_NOTE)}</p>`
-              : "";
-          return `<section${sectionIdAttr} class="pagzly-stacked" style="${sectionInset}${bgCss}">
+          ? `<p style="margin:12px 0 0;font-size:${FONT_SIZE.caption};line-height:1.6;opacity:.55">${esc(INGREDIENT_HIGHLIGHT_COMPLIANCE_NOTE)}</p>`
+          : "";
+        return `<section${sectionIdAttr} class="pagzly-stacked" style="${sectionInset}${bgCss}">
           <div class="pagzly-stacked-head">${flatSectionHeaderHtml(category, theme, section.heading, pill, false, 40, false)}</div>
           <div style="position:relative">
             ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${splitAspect};object-fit:cover;display:block"/>` : ""}
             ${annotationOverlayHtml}
           </div>
           <div class="pagzly-stacked-body" style="max-width:576px;margin:0 auto;text-align:center">
-            <p style="margin:0;line-height:1.85;font-size:${titleSizeCss("body")};color:${hexToRgba(BRAND.ink, 0.82)};overflow-wrap:anywhere">${emphasizedBodyHtml(section.body, section.emphasis, accent)}</p>
+            <p class="pagzly-body-lh" style="margin:0;line-height:1.85;font-size:${titleSizeCss("body")};color:${hexToRgba(BRAND.ink, 0.82)};overflow-wrap:anywhere">${emphasizedBodyHtml(section.body, section.emphasis, accent)}</p>
             ${compliance}
           </div>
           ${pkgHtml}${foodHtml}${ringHtml}
@@ -2021,8 +2029,8 @@ ${jsonLd}
   .pagzly-concern{font-size:12px}.pagzly-concern-count{font-size:11px;line-height:1.5}
   @media (min-width:640px){.pagzly-concern{font-size:13px}.pagzly-concern-count{font-size:12px}}
   @media (min-width:640px){.pagzly-compact-thumb{width:120px;height:120px}.pagzly-compact-row{padding:24px 0!important}}
-  .pagzly-bleed-ov{padding:0 24px 24px}
-  @media (min-width:640px){.pagzly-bleed-ov{padding:0 32px 32px}}
+  .pagzly-bleed-ov{padding:0 24px 24px}.pagzly-callout-flat{padding:0 0 48px}.pagzly-bubble{bottom:24px;font-size:14px}
+  @media (min-width:640px){.pagzly-bleed-ov{padding:0 32px 32px}.pagzly-callout-flat{padding:0 0 64px}.pagzly-bubble{bottom:32px;font-size:16px}}
   .pagzly-brand-sig{padding:56px 24px}.pagzly-brand-sig>p:first-child{line-height:1.5}
   .pagzly-story-body{line-height:1.9!important;margin-top:20px!important}.pagzly-body-lh{line-height:1.9!important}
   @media (min-width:640px){.pagzly-brand-sig{padding:64px 40px}.pagzly-story-body,.pagzly-body-lh{line-height:1.85!important}}
