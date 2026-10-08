@@ -90,6 +90,14 @@ export function splitNoticeSentences(body: string): string[] | null {
   return items.length >= 2 && items.length <= 8 ? items : null;
 }
 
+/** 사이즈표인데 브랜드·상품명 말고 실제 값이 하나도 없으면 "확인 필요" 목록뿐인 빈 표 */
+export function isEmptySizeTable(section: { slot?: string; rows?: { label: string; value: string }[] }): boolean {
+  if (section.slot !== "size_table") return false;
+  return !(section.rows ?? []).some(
+    (r) => r.label.trim() && !/^(브랜드|제품명|상품명)$/.test(r.label.trim()) && !isPlaceholderValue(r.value),
+  );
+}
+
 /** 용량 안내 섹션인데 숫자(용량·옵션 수치)가 하나도 없으면 정보 없는 안내 문구뿐 */
 export function isEmptySizeOptions(section: { slot?: string; heading?: string; body?: string }): boolean {
   if (section.slot !== "size_options") return false;

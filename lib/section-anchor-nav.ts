@@ -1,6 +1,8 @@
 /** 섹션 앵커 내비게이션 (55차) */
 
 import type { DetailSection } from "@/lib/types/generate";
+import { FLAT_SECTION_SURFACES } from "@/lib/design-tokens";
+import { isEmptySizeTable } from "@/lib/spec-placeholder";
 
 export type SectionAnchor = {
   sectionIndex: number;
@@ -25,7 +27,8 @@ const ANCHOR_RULES: AnchorRule[] = [
   {
     id: "pagzly-size",
     label: "사이즈",
-    match: (s) => s.type === "spec_table" && s.slot === "size_table",
+    match: (s) =>
+      s.type === "spec_table" && s.slot === "size_table" && !(FLAT_SECTION_SURFACES && isEmptySizeTable(s)),
   },
   {
     id: "pagzly-gallery",

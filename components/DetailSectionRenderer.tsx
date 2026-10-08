@@ -17,6 +17,7 @@ import {
   groupPendingSpecRows,
   isCompactSpecGrid,
   isEmptySizeOptions,
+  isEmptySizeTable,
   isPlaceholderAnswer,
   isPlaceholderValue,
   PENDING_SPEC_ROW_LABEL,
@@ -2622,6 +2623,7 @@ function renderSection(
     }
 
     case "spec_table": {
+      if (FLAT_SECTION_SURFACES && !edit?.enabled && isEmptySizeTable(section)) return null;
       const labeledRows = section.rows.filter((row) => row.label.trim());
       const visibleRows = edit?.enabled ? labeledRows : dedupeSpecRows(labeledRows);
       if (visibleRows.length === 0) return null;
