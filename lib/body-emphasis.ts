@@ -37,9 +37,17 @@ export function splitBodyEmphasis(
   }
   const m = NUMERIC_PHRASE.exec(text);
   if (!m || m.index == null) return null;
+  let start = m.index;
+  let strong = m[0];
+  // "켜고 8시간"·"물에 3분"처럼 앞 단어가 어미·조사로 끝나면 수치만 강조
+  const lead = strong.match(/^([가-힣A-Za-z]+)\s/);
+  if (lead && /[고며서면게는은을를에로와과도의]$/.test(lead[1]!)) {
+    start += lead[0].length;
+    strong = strong.slice(lead[0].length);
+  }
   return {
-    before: text.slice(0, m.index),
-    strong: m[0],
-    after: text.slice(m.index + m[0].length),
+    before: text.slice(0, start),
+    strong,
+    after: text.slice(start + strong.length),
   };
 }

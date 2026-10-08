@@ -84,6 +84,8 @@ export function matchSizeComparisonRows(
     if (usedKinds.has(rule.kind)) continue;
     const row = rows.find((r) => rowMatchesKind(r.label, rule.aliases));
     if (!row || isPlaceholderValue(row.value)) continue;
+    // "22 × 38 × 22cm"는 어느 축이 높이인지 표기마다 달라 한 치수로 그리면 배율이 틀린다
+    if (/\d\s*[×xX*]\s*\d/.test(row.value)) continue;
     const cm = parseDimensionCm(row.value);
     if (cm == null) continue;
     found.push({
