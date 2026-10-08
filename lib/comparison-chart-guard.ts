@@ -65,6 +65,26 @@ export function sanitizeComparisonChartSection(
   };
 }
 
+const UNIT_NUMBER_RE =
+  /(\d+(?:\.\d+)?)\s*(kg|mg|g|ml|l|db|mah|kw|w|v|cm|mm|m|시간|분|년|개월|일|포|매|단|구|인치|평)(?![a-z])/gi;
+
+/**
+ * self_assessed 막대는 % 상대 점수로 그려진다 — 값이 입력 스펙의 "80kg"·"5년"·"24dB" 숫자와 같으면
+ * 스펙 숫자를 점수로 옮긴 것이라 "80%"로 잘못 읽힌다. 그런 축은 빼고, 2개 미만이면 차트 자체를 뺀다.
+ */
+export function dropRawSpecMetrics(
+  section: ComparisonChartSection,
+  sourceText: string,
+): ComparisonChartSection | null {
+  if (section.basis !== "self_assessed" || section.presentationStyle === "checklist") return section;
+  if ((section.unit ?? "%") !== "%") return section;
+  const specNumbers = new Set(Array.from(sourceText.matchAll(UNIT_NUMBER_RE), (m) => Number(m[1])));
+  if (specNumbers.size === 0) return section;
+  const metrics = section.metrics.filter((m) => !specNumbers.has(Number(m.ourValue)));
+  if (metrics.length === section.metrics.length) return section;
+  return metrics.length >= 2 ? { ...section, metrics } : null;
+}
+
 /** checklist 렌더용 — ourValue/baselineValue > 0 이면 true */
 export function comparisonChecklistPresent(value: number): boolean {
   return Number(value) > 0;

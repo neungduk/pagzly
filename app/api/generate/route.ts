@@ -77,7 +77,7 @@ import {
 } from "@/lib/planning-doc";
 import { getCategoryTheme } from "@/lib/category-theme";
 import { calculateClaudeCost, logClaudeCost } from "@/lib/claude-cost";
-import { sanitizeComparisonChartSection } from "@/lib/comparison-chart-guard";
+import { dropRawSpecMetrics, sanitizeComparisonChartSection } from "@/lib/comparison-chart-guard";
 import { isTestMode } from "@/lib/test-mode";
 import { isForceRegenerate } from "@/lib/force-regenerate";
 import { assignDistinctSectionImages, countImageIndexFrequency } from "@/lib/assign-section-images";
@@ -535,7 +535,7 @@ const SECTION_TYPE_SHAPES: Record<DetailSection["type"], string> = {
   caution: `{ type: "caution", slot, heading, body }`,
   cta_price: `{ type: "cta_price", slot, price, targetCustomer?, badges[]? }`,
   comparison_table: `{ type: "comparison_table", slot, heading, columns: [string,string], rows: [{label, values: [string,string]}] }`,
-  comparison_chart: `{ type: "comparison_chart", slot, heading, ourLabel, baselineLabel, unit?: "%", presentationStyle?: "bar"|"checklist", metrics: [{label, ourValue: 0-100, baselineValue: 0-100}], basis: "measured"|"self_assessed", basisNote? } — "우리 제품 vs 비교대상" 비교. baselineLabel은 반드시 "일반 제품"|"업계 평균"|"타 제품" 중 하나만(특정 브랜드명·경쟁사명 절대 금지). metrics 2~4개. presentationStyle:"bar"(기본)=수치 막대, "checklist"=유무 ✓/✗(있음=100, 없음=0). 유무/포함 여부(신선육 포함·무첨가·코팅 유무 등)는 checklist, 수치 크기 비교는 bar. 실측 근거 있으면 basis:"measured"+basisNote, 없으면 "self_assessed"(bar일 때 30~85·극단 0/100 금지·our≤baseline×2). 근거·추정 불가하면 슬롯 생략`,
+  comparison_chart: `{ type: "comparison_chart", slot, heading, ourLabel, baselineLabel, unit?: "%", presentationStyle?: "bar"|"checklist", metrics: [{label, ourValue: 0-100, baselineValue: 0-100}], basis: "measured"|"self_assessed", basisNote? } — "우리 제품 vs 비교대상" 비교. baselineLabel은 반드시 "일반 제품"|"업계 평균"|"타 제품" 중 하나만(특정 브랜드명·경쟁사명 절대 금지). metrics 2~4개. presentationStyle:"bar"(기본)=수치 막대, "checklist"=유무 ✓/✗(있음=100, 없음=0). 유무/포함 여부(신선육 포함·무첨가·코팅 유무 등)는 checklist, 수치 크기 비교는 bar. 실측 근거 있으면 basis:"measured"+basisNote, 없으면 "self_assessed"(bar일 때 30~85·극단 0/100 금지·our≤baseline×2). bar 값은 % 상대 점수 — 단위 있는 실측 스펙 숫자(80kg→80 등)를 넣지 말 것. 근거·추정 불가하면 슬롯 생략`,
   tradeoff_card: `{ type: "tradeoff_card", slot, heading, recommendFor: string[], considerIf: string[] } — 전 카테고리. 입력에 추천 대상·유의사항·사용 조건이 있을 때만. recommendFor 1~4(이런 분께 추천), considerIf 1~4(이런 점은 참고하세요·완곡·사실 기반, 깎아내리기 금지). 없으면 슬롯 생략`,
   highlight_box: `{ type: "highlight_box", slot, heading, cards: [{title, body}] } — 정확히 3개(2~4개 허용) 카드로 핵심 효과/성분을 요약. 각 title은 6자 내외, body는 1~2문장. checklist와 겹치지 않게 서로 다른 효과/성분 축으로 구성. 가장 강조하고 싶은 내용을 가운데(2번째) 카드에 배치 — 서버가 가운데 카드를 자동으로 진하게 강조 처리함`,
   step_card: `{ type: "step_card", slot, heading, steps: [{title, body, imageIndex}] } — 사용법 3단계 권장. 각 단계에 실제 상품 사진 imageIndex를 배정(가능하면 서로 다른 사진), title은 6자 내외, body는 1문장. STEP 태그는 서버가 자동으로 붙이므로 title에 "STEP 01" 등을 직접 쓰지 말 것`,
@@ -965,6 +965,8 @@ comparison_chart 슬롯이 있다면: baselineLabel은 반드시 "일반 제품"
 있음=100·없음=0. 수치 크기 비교(예: 보습력·신축성 %)는 bar로 ourValue/baselineValue를 0~100
 숫자로. 입력에 실측 근거가 있으면 basis:"measured"로 하고 basisNote에 출처를 한 줄로 적으세요.
 근거가 없으면 basis:"self_assessed"로 하고(bar일 때 ourValue는 baseline의 약 1.2~1.8배, 극단 금지).
+bar 막대 값은 % 상대 점수로 표시됩니다 — 실제 스펙 숫자(예: 하중 80kg→80, 수명 5년→5, 소음 24dB→24)를
+ourValue에 그대로 넣지 마세요. kg·년·dB·시간처럼 단위가 있는 실측 스펙은 comparison_table·spec_table로 보내세요.
 입력에 근거도 없고 합리적으로 추정할 수도 없으면 comparison_chart 슬롯 전체를 생략하세요.
 화장품/뷰티이고 ingredients(전성분·주요 성분)가 입력에 있으면 comparison_chart를 생략하지 말고
 안정성·자극감·사용감 등 self_assessed 축으로라도 채워 주세요(수치 지어내기 금지·극단값 금지 규칙은 동일).
@@ -1795,11 +1797,21 @@ export async function POST(request: Request) {
       );
       savedCopy.sections = pair.sections;
     }
-    savedCopy.sections = savedCopy.sections.map((section) =>
-      section.type === "comparison_chart"
-        ? sanitizeComparisonChartSection(section)
-        : section,
-    );
+    {
+      const specSource = [
+        body.keyFeatures ?? "",
+        ...savedCopy.sections.flatMap((s) =>
+          s.type === "spec_table" ? s.rows.map((r) => `${r.label} ${r.value}`) : [],
+        ),
+      ].join("\n");
+      savedCopy.sections = savedCopy.sections
+        .map((section) =>
+          section.type === "comparison_chart"
+            ? dropRawSpecMetrics(sanitizeComparisonChartSection(section), specSource)
+            : section,
+        )
+        .filter((section): section is NonNullable<typeof section> => section != null);
+    }
 
     if (mode === "final" && body.category === "전자제품") {
       const ann = await applyElectronicsAnnotatedSections(
