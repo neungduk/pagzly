@@ -133,6 +133,7 @@ import {
   titleScaleExportCss,
   titleSizeCss,
   twoToneHeadlineColors,
+  headlineKeywordColors,
   FLAT_PAPER,
   flatAccentTint,
   ensureReadableOnPaper,
@@ -147,6 +148,7 @@ import { uniqueGalleryIndexes } from "@/lib/gallery-dedupe";
 import {
   POINT_PILL,
   TWO_TONE_LEAD_EM,
+  splitHeadlineKeywords,
   splitTwoToneHeadline,
 } from "@/lib/designer-headline";
 import { buildProductJsonLd, serializeJsonLdScripts } from "@/lib/product-json-ld";
@@ -321,6 +323,16 @@ function flatTitleColorCss(theme: CategoryTheme): string {
   return FLAT_SECTION_SURFACES ? `;color:${twoToneHeadlineColors(theme).main}` : "";
 }
 
+/** 제목 속 수치·개수 구절만 포인트색, 나머지 잉크 (라이브 headlineKeywordNodes와 동일). 없으면 esc(text) */
+function headlineKeywordHtml(text: string, theme: CategoryTheme): string {
+  const colors = FLAT_SECTION_SURFACES ? headlineKeywordColors(theme) : null;
+  const segments = colors ? splitHeadlineKeywords(joinNumericSuffix(text)) : null;
+  if (!colors || !segments) return esc(text);
+  return segments
+    .map((s) => `<span style="color:${s.keyword ? colors.keyword : colors.rest}">${esc(s.text)}</span>`)
+    .join("");
+}
+
 function dh2(category: string, escapedText: string, extraStyle: string): string {
   const fit = extraStyle.includes("--pz-fs:") ? " pz-fit" : "";
   return `<h2 class="pagzly-display-headline${fit}" style="${displayHeadlineInlineCss(category)};${extraStyle}">${escapedText}</h2>`;
@@ -342,7 +354,7 @@ function twoToneDh2(
   const lead = parts.lead
     ? `<span style="display:block;font-size:${TWO_TONE_LEAD_EM}em;font-weight:500;letter-spacing:-0.02em;margin-bottom:.3em;color:${leadColor}">${esc(parts.lead)}</span>`
     : "";
-  return dh2(category, `${lead}<span style="display:block;color:${mainColor}">${esc(parts.main)}</span>`, extraStyle);
+  return dh2(category, `${lead}<span style="display:block;color:${mainColor}">${!parts.lead && !opts.inverted ? headlineKeywordHtml(parts.main, theme) : esc(parts.main)}</span>`, extraStyle);
 }
 
 /** 라이브 PointPill과 같은 채운 알약 */
@@ -470,7 +482,7 @@ function comparisonChartBodyHtml(
     : "";
   return `
         ${kickerHtml(`<p style="text-align:center;color:${deepText};font-size:${FONT_SIZE.caption};letter-spacing:.2em">COMPARE</p>`)}
-        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)};margin-bottom:0`)}
+        ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)};margin-bottom:0`)}
         ${
           FLAT_SECTION_SURFACES && !isChecklist
             ? `<div style="max-width:448px;margin:32px auto 0;display:flex;align-items:center;justify-content:center;gap:20px;font-size:12px;line-height:16px;color:rgba(27,27,24,.6)"><span style="display:flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:16px;height:8px;border-radius:${RADIUS.pill}px;background:${accent}"></span><span style="font-weight:600;color:${deepText}">${esc(section.ourLabel)}</span></span><span style="display:flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:16px;height:6px;border-radius:${RADIUS.pill}px;background:${hexToRgba(BRAND.ink, 0.28)}"></span>${esc(section.baselineLabel)}</span></div>`
@@ -805,7 +817,7 @@ function sectionHtml(
         : "";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         ${kickerHtml(`<p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">HOW TO USE</p>`)}
-        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
+        ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
         ${(() => {
           const rowMode = section.steps.length !== 2 && section.steps.length !== 4;
           const items = section.steps
@@ -928,7 +940,7 @@ function sectionHtml(
               .join("")}</div>`
           : "";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
+        ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
         ${metricsHtml}${footnotesHtml}</section>`;
     }
     case "comparison_chart":
@@ -945,7 +957,7 @@ function sectionHtml(
       if (recommendFor.length === 0 && considerIf.length === 0) return "";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         ${kickerHtml(`<p style="text-align:center;color:${deepText};font-size:${FONT_SIZE.caption};letter-spacing:.2em">FIT CHECK</p>`)}
-        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
+        ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
         <div class="${recommendFor.length > 0 && considerIf.length > 0 ? "pagzly-tradeoff-2" : ""}" style="max-width:${recommendFor.length > 0 && considerIf.length > 0 ? 768 : 576}px;margin:40px auto 0;display:grid;grid-template-columns:1fr;gap:24px">
           ${recommendFor.length > 0 ? `<div class="pagzly-tradeoff-card" style="border-radius:${RADIUS.lg}px;${FLAT_SECTION_SURFACES ? `background:${FLAT_PAPER};border:1px solid ${hexToRgba(accent, 0.24)}` : `background:${accent}1a`}">
             <p style="margin:0 0 16px;font-size:${FONT_SIZE.sm};font-weight:600;letter-spacing:-0.01em;color:${deepText}">이런 분께 추천</p>
@@ -1346,7 +1358,7 @@ function sectionHtml(
       const tableMargin = diagramHtml ? "24px" : "40px";
       return `<section${sectionIdAttr} style="${trustPad}${sectionInset}${specTableBg}${bgCss}" class="${isShipping ? "pagzly-shipping" : ""}">
         ${kickerHtml(`<p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">INFO</p>`)}
-        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}${thumbHtml ? ";margin-bottom:0" : ""}`)}
+        ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}${thumbHtml ? ";margin-bottom:0" : ""}`)}
         ${thumbHtml}
         ${diagramHtml}
         ${
@@ -1373,7 +1385,7 @@ function sectionHtml(
       const wideCols = !pairCompare && galleryIndexes.length % 6 === 0;
       const galleryAspect = imageRatioCss(resolveSlotImageRatio(section));
       return `<section${sectionIdAttr} class="pagzly-gallery" style="${galleryTitlePadVars(category)}padding:var(--pz-gt) 0 0;${sectionInset}${bgCss}">
-        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)};margin:0 24px 32px${flatTitleColorCss(theme)}`)}
+        ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)};margin:0 24px 32px${flatTitleColorCss(theme)}`)}
         <div${wideCols ? ` class="pagzly-gallery-grid3"` : ""} style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:8px;background:${accent}2e">
           ${galleryIndexes
             .map((idx, pos) => {
@@ -1443,7 +1455,7 @@ function sectionHtml(
       </section>`;
       }
       return `<section${sectionIdAttr} class="pagzly-persona" style="${pad}${sectionInset}${bgCss}">
-        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
+        ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
         <ul style="max-width:480px;margin:24px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px">
           ${section.personas.map((p) => `<li style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:${RADIUS.pill}px;background:${sectionBg};box-shadow:${ELEVATION.personaRingExportHex(accent + "33")};font-size:${FONT_SIZE.bodySm};font-weight:500;color:${deepText}">✓ ${esc(p)}</li>`).join("")}
         </ul>
@@ -1457,7 +1469,7 @@ function sectionHtml(
         const tint = hexToRgba(accent, 0.12);
         const edge = `${50 / Math.max(1, section.steps.length)}%`;
         return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
+        ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
         <ol class="pagzly-usage" style="position:relative;max-width:768px;margin:56px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:40px;--pz-step-edge:${edge}">
           <div class="pagzly-usage-line" aria-hidden="true" style="position:absolute;left:22px;top:22px;bottom:22px;width:1px;background:${hexToRgba(accent, 0.25)}"></div>
           ${section.steps
@@ -1469,7 +1481,7 @@ function sectionHtml(
         </ol>${flowBlock}</section>`;
       }
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
+        ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
         <ol style="max-width:640px;margin:32px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:16px">
           ${section.steps.map((s, i) => `<li><span style="color:${accentText};font-size:${FONT_SIZE.caption};font-weight:700">STEP ${String(i + 1).padStart(2, "0")}</span><div style="font-size:${FONT_SIZE.body};margin-top:4px">${esc(s)}</div></li>`).join("")}
         </ol>${flowBlock}</section>`;
@@ -1527,7 +1539,7 @@ function sectionHtml(
         </div></section>`;
       }
       return `<section${sectionIdAttr} style="${trustPad}${sectionInset}${bgCss}">
-        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
+        ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
         <div style="max-width:640px;margin:24px auto 0;display:flex;flex-direction:column;gap:16px">
           ${section.items
             .map(
@@ -1546,7 +1558,7 @@ function sectionHtml(
       if (cautionItems) {
         const dot = `display:block;flex-shrink:0;width:6px;height:6px;margin-top:8px;border-radius:9999px;background:${solidAccentOnPaper(theme)}`;
         return `<section${sectionIdAttr} style="${trustPad}${sectionInset}${bgCss}">
-        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)};margin:0`)}
+        ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)};margin:0`)}
         <div data-caution-list class="pagzly-caution-list" style="max-width:36rem;margin:32px auto 0;border:1px solid ${hexToRgba(BRAND.ink, 0.12)};border-radius:12px;background:${FLAT_PAPER};padding:20px;text-align:left;font-size:14px;line-height:1.625;color:${hexToRgba(BRAND.ink, 0.75)}">
           <ul style="list-style:none;margin:0;padding:0">${cautionItems
             .map((item, i) => `<li style="display:flex;gap:12px${i ? ";margin-top:10px" : ""}"><span aria-hidden="true" style="${dot}"></span><span style="min-width:0">${esc(item)}</span></li>`)
@@ -1578,7 +1590,7 @@ function sectionHtml(
       };
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         ${kickerHtml(`<p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">COMPARE</p>`)}
-        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
+        ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
         <table style="width:100%;max-width:560px;margin:24px auto 0;border-collapse:collapse;font-size:${FONT_SIZE.bodySm}">
           <thead><tr style="background:${accent}1a">
             <th style="padding:12px;text-align:left"></th>
@@ -1643,7 +1655,7 @@ function sectionHtml(
           ${selectors}
         </style>
         ${inputs}
-        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)};margin:0`)}
+        ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)};margin:0`)}
         <div class="${cvId}-swatches" style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin:48px auto 0">${swatches}</div>
         <div class="${cvId}-stage" style="margin:32px auto 0;max-width:384px">${images}</div>
       </section>`;
@@ -1812,7 +1824,7 @@ function sectionHtml(
         )
         .join("");
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
+        ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
         <div style="max-width:640px;margin:32px auto 0">${pairsHtml}</div>
         <p style="max-width:480px;margin:16px auto 0;text-align:center;font-size:${FONT_SIZE.caption};opacity:.4">${esc(BEFORE_AFTER_COMPLIANCE_NOTE)}</p>
       </section>`;
@@ -1831,7 +1843,7 @@ function sectionHtml(
         )
         .join("");
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
-        ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
+        ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
         <div style="max-width:640px;margin:32px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:16px">${certsHtml}</div>
         <p style="max-width:480px;margin:24px auto 0;text-align:center;font-size:${FONT_SIZE.caption};opacity:.4">${esc(CERTIFICATE_EVIDENCE_COMPLIANCE_NOTE)}</p>
       </section>`;

@@ -14,6 +14,8 @@ type Props = {
   textSectionStyle: React.CSSProperties;
   accentHairline: React.ReactNode;
   titleClassName: string;
+  titleStyle?: React.CSSProperties;
+  titleContent?: React.ReactNode;
 };
 
 function resolveImage(imageUrls: string[], imageIndex: number): string {
@@ -38,6 +40,8 @@ export default function ColorVariationInteractive({
   textSectionStyle,
   accentHairline,
   titleClassName,
+  titleStyle,
+  titleContent,
 }: Props) {
   const [active, setActive] = useState(0);
   const activeOption = section.options[active] ?? section.options[0];
@@ -49,7 +53,9 @@ export default function ColorVariationInteractive({
       style={textSectionStyle}
     >
       {accentHairline}
-      <h3 className={titleClassName}>{section.heading}</h3>
+      <h3 className={titleClassName} style={titleStyle}>
+        {titleContent ?? section.heading}
+      </h3>
 
       <div className="mt-12 flex flex-wrap justify-center gap-3">
         {section.options.map((option, optIndex) => (

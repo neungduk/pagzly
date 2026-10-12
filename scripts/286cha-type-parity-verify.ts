@@ -18,7 +18,9 @@ const ROOT = path.join(__dirname, "..");
 const BASE = process.env.LOCAL_BASE ?? "http://localhost:3000";
 const LABEL = process.env.LABEL ?? "after";
 const OUT = path.join(ROOT, "review", `286cha-parity-${LABEL}`);
-const SESSION = path.join(ROOT, "review", "279cha-live", "session.json");
+const SESSION = process.env.SESSION
+  ? path.resolve(process.env.SESSION)
+  : path.join(ROOT, "review", "279cha-live", "session.json");
 const ONLY = process.env.ONLY?.split(",");
 
 type Payload = {

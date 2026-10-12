@@ -694,6 +694,12 @@ export function twoToneHeadlineColors(
   return { lead: weak ? hexToRgba(BRAND.ink, 0.6) : BRAND.ink, main };
 }
 
+/** 359차 — 제목 속 수치·개수 구절만 포인트색. 잉크와 포인트색 구분이 약하면 null(단색 유지) */
+export function headlineKeywordColors(theme: CategoryTheme): { rest: string; keyword: string } | null {
+  const { lead, main } = twoToneHeadlineColors(theme);
+  return lead === BRAND.ink ? { rest: BRAND.ink, keyword: main } : null;
+}
+
 // baseNeutral의 hue만 targetHue로 바꾸면서, ink 텍스트 대비 4.5:1을 계속
 // 만족하도록 필요하면 명도를 조금씩 올린다(색상-extract.ts의
 // ensureReadableBaseNeutral()과 동일한 안전장치를 sharp 의존성 없이 재구현).

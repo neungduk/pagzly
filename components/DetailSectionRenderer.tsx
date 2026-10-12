@@ -128,7 +128,7 @@ import NoiseComparisonDiagram from "@/components/NoiseComparisonDiagram";
 import WaterproofIpDiagram from "@/components/WaterproofIpDiagram";
 import WeightComparisonDiagram from "@/components/WeightComparisonDiagram";
 import PowerConsumptionDiagram from "@/components/PowerConsumptionDiagram";
-import { headlineDisplayStyle, longestTokenEm } from "@/lib/detail-typography";
+import { headlineDisplayStyle, joinNumericSuffix, longestTokenEm } from "@/lib/detail-typography";
 import VolumeComparisonDiagram from "@/components/VolumeComparisonDiagram";
 import UsageOrderFlowDiagram from "@/components/UsageOrderFlowDiagram";
 import FoodRatioDiagram from "@/components/FoodRatioDiagram";
@@ -176,11 +176,13 @@ import {
   FLAT_SECTION_SURFACES,
   flatAccentTint,
   twoToneHeadlineColors,
+  headlineKeywordColors,
   type SectionColorPattern,
 } from "@/lib/design-tokens";
 import {
   POINT_PILL,
   TWO_TONE_LEAD_EM,
+  splitHeadlineKeywords,
   splitTwoToneHeadline,
 } from "@/lib/designer-headline";
 import { emphasisMarkerGradient, splitBodyEmphasis } from "@/lib/body-emphasis";
@@ -932,6 +934,19 @@ function flatTitleColor(theme: CategoryTheme): CSSProperties | undefined {
   return FLAT_SECTION_SURFACES ? { color: twoToneHeadlineColors(theme).main } : undefined;
 }
 
+/** 제목 속 수치·개수 구절만 포인트색, 나머지 잉크 (export headlineKeywordHtml과 동일) */
+function headlineKeywordNodes(text: string, theme: CategoryTheme): ReactNode | null {
+  if (!FLAT_SECTION_SURFACES) return null;
+  const colors = headlineKeywordColors(theme);
+  const segments = colors ? splitHeadlineKeywords(joinNumericSuffix(text)) : null;
+  if (!colors || !segments) return null;
+  return segments.map((s, i) => (
+    <span key={i} style={{ color: s.keyword ? colors.keyword : colors.rest }}>
+      {s.text}
+    </span>
+  ));
+}
+
 function TwoToneTitle({
   theme,
   title,
@@ -981,7 +996,7 @@ function TwoToneTitle({
         </span>
       ) : null}
       <span className="block" style={{ color: mainColor }}>
-        {parts.main}
+        {(!parts.lead && !inverted && headlineKeywordNodes(parts.main, theme)) || parts.main}
       </span>
     </h3>
   );
@@ -1451,7 +1466,7 @@ function renderComparisonChartBody(params: {
         COMPARE
       </p>
       <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}>
-        {section.heading}
+        {headlineKeywordNodes(section.heading, theme) ?? section.heading}
       </h3>
       {FLAT_SECTION_SURFACES && section.presentationStyle !== "checklist" ? (
         <div className="mx-auto mt-8 flex max-w-md items-center justify-center gap-5 text-xs text-ink/60">
@@ -2712,7 +2727,7 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)} display={headlineKeywordNodes(section.heading, theme)}
           />
           {specThumbUrls.length > 0 ? (
             <div
@@ -2964,7 +2979,7 @@ function renderSection(
             COMPARE
           </p>
           <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}>
-            {section.heading}
+            {headlineKeywordNodes(section.heading, theme) ?? section.heading}
           </h3>
           <div className="mx-auto mt-10 max-w-xl overflow-x-auto overflow-hidden rounded-lg">
             <table className="w-full text-sm">
@@ -3057,7 +3072,7 @@ function renderSection(
             FIT CHECK
           </p>
           <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}>
-            {section.heading}
+            {headlineKeywordNodes(section.heading, theme) ?? section.heading}
           </h3>
           <div
             className={`mx-auto mt-10 grid gap-6 ${
@@ -3328,6 +3343,8 @@ function renderSection(
           padClass={getCategoryRhythm(category).generousPadClass}
           textSectionStyle={textSectionStyle(theme, pattern, category)}
           accentHairline={<SectionAccentHairline theme={theme} />}
+          titleStyle={flatTitleColor(theme)}
+          titleContent={headlineKeywordNodes(section.heading, theme)}
           titleClassName={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`}
         />
       );
@@ -3421,7 +3438,7 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)} display={headlineKeywordNodes(section.heading, theme)}
           />
           {stripMetrics ? (
             <div
@@ -3742,7 +3759,7 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)} display={headlineKeywordNodes(section.heading, theme)}
           />
           <ol className="relative mx-auto mt-14 max-w-3xl flex flex-col gap-10 @min-[640px]/pz:flex-row @min-[640px]/pz:items-start @min-[640px]/pz:gap-4">
             {/* 연결선: 모바일은 세로(뱃지 중심 x=24px), sm 이상은 가로(뱃지 중심 y=24px) */}
@@ -3840,7 +3857,7 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)} display={headlineKeywordNodes(section.heading, theme)}
           />
           <div
             className={
@@ -3948,7 +3965,7 @@ function renderSection(
               enabled={edit?.enabled}
               value={section.heading}
               onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-              className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}
+              className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)} display={headlineKeywordNodes(section.heading, theme)}
             />
           </div>
           <div
@@ -3998,7 +4015,7 @@ function renderSection(
             style={textSectionStyle(theme, pattern, category)}
           >
             <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}>
-              {section.heading}
+              {headlineKeywordNodes(section.heading, theme) ?? section.heading}
             </h3>
             <div
               data-caution-list
@@ -4355,7 +4372,7 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)} display={headlineKeywordNodes(section.heading, theme)}
           />
           <div className="mx-auto mt-8 flex max-w-3xl flex-col gap-8">
             {section.pairs.map((pair, i) => (
@@ -4422,7 +4439,7 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)} display={headlineKeywordNodes(section.heading, theme)}
           />
           <div className="mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-4">
             {section.certificates.map((cert, i) => (
@@ -4771,7 +4788,7 @@ function renderSection(
             enabled={edit?.enabled}
             value={section.heading}
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)} display={headlineKeywordNodes(section.heading, theme)}
           />
           <div className="mx-auto mt-10 max-w-xl space-y-4 text-left">
             {section.items.map((item, itemIndex) => (

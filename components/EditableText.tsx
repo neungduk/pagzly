@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { joinNumericSuffix } from "@/lib/detail-typography";
 
 type EditableTextProps = {
@@ -15,6 +15,8 @@ type EditableTextProps = {
   /** 96차 — AI 패치 타겟 필드 경로 */
   elementPath?: string;
   onElementSelect?: (elementPath: string) => void;
+  /** 편집 중이 아닐 때 value 대신 그릴 내용(같은 글자, 색만 나눈 span 등) */
+  display?: ReactNode;
 };
 
 export default function EditableText({
@@ -27,6 +29,7 @@ export default function EditableText({
   style,
   elementPath,
   onElementSelect,
+  display,
 }: EditableTextProps) {
   function handleSelect() {
     if (elementPath && onElementSelect) onElementSelect(elementPath);
@@ -36,7 +39,7 @@ export default function EditableText({
     const Tag = as;
     return (
       <Tag className={className} style={style}>
-        {joinNumericSuffix(value)}
+        {display ?? joinNumericSuffix(value)}
       </Tag>
     );
   }
