@@ -118,6 +118,7 @@ export function selectNearbyReferencePoints(productG: number): WeightReferencePo
 
 /** 300g 미만은 g로, 이상은 kg 1자리로 표기 (예: 1500g → 1.5kg) */
 export function formatWeightLabel(g: number): string {
+  if (g < 10) return `${Number(g.toFixed(1))}g`;
   if (g < 1000) return `${Math.round(g)}g`;
   const kg = g / 1000;
   return `${kg % 1 === 0 ? kg.toFixed(0) : kg.toFixed(1)}kg`;
@@ -168,13 +169,17 @@ export function buildWeightComparisonDiagramSvg(
     .join("");
 
   const prodX = toX(productG);
-  const sameAsTop =
-    productValueLabel.replace(/\s+/g, "").toLowerCase() === formatWeightLabel(productG).toLowerCase();
-  const safeLabel = sameAsTop
+  const topValue = formatWeightLabel(productG).toLowerCase();
+  const withoutValue = productValueLabel
+    .split(/\s+/)
+    .filter((t) => t.toLowerCase() !== topValue)
+    .join(" ")
+    .trim();
+  const safeLabel = !withoutValue
     ? "이 제품"
-    : productValueLabel.length > 16
-      ? `${productValueLabel.slice(0, 15)}…`
-      : productValueLabel;
+    : withoutValue.length > 16
+      ? `${withoutValue.slice(0, 15)}…`
+      : withoutValue;
 
   return `<div style="max-width:340px;margin:28px auto 0;text-align:center">
     ${diagramTitleWithIconHtml("무게 비교", "weight-scale", labelColor)}
