@@ -53,6 +53,28 @@ export function isLowInvolvementCategory(category: string): boolean {
   return LOW_INVOLVEMENT.has(category);
 }
 
+const VOLUME_TOKEN_RE = /\d+(?:\.\d+)?\s*(?:ml|mL|ML|g|kg|매|개입|정|포|L)(?![a-zA-Z])/g;
+
+/**
+ * 모든 카테고리 — 앞 섹션과 내용이 겹치는 보조 image_text를 숨긴다.
+ * - how_it_works: ingredient_highlight가 이미 있으면 같은 성분 설명의 반복
+ * - size_options: 용량이 하나뿐이면 스펙표 '용량' 행과 같은 정보
+ */
+function computeRedundantSectionIndexes(sections: DetailSection[]): number[] {
+  const slots = new Set(sections.map((s) => s.slot));
+  const out: number[] = [];
+  sections.forEach((s, i) => {
+    if (s.type !== "image_text") return;
+    if (s.slot === "how_it_works" && slots.has("ingredient_highlight")) out.push(i);
+    if (s.slot === "size_options") {
+      const text = `${s.heading ?? ""} ${s.body ?? ""}`;
+      const sizes = new Set(Array.from(text.matchAll(VOLUME_TOKEN_RE), (m) => m[0].replace(/\s+/g, "").toLowerCase()));
+      if (sizes.size === 1 || /단일\s*(?:용량|사이즈|구성)/.test(text)) out.push(i);
+    }
+  });
+  return out;
+}
+
 /**
  * @returns demotedIndexes ? indexes into the original sections array (to hide)
  */
@@ -60,9 +82,10 @@ export function computeDemotedSectionIndexes(
   category: string,
   sections: DetailSection[],
 ): number[] {
-  if (!isLowInvolvementCategory(category)) return [];
+  const redundant = computeRedundantSectionIndexes(sections);
+  if (!isLowInvolvementCategory(category)) return redundant;
 
-  const demote = new Set<number>();
+  const demote = new Set<number>(redundant);
 
   // 1) decorative / secondary slots
   sections.forEach((s, i) => {

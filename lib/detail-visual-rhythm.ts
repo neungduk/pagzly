@@ -112,7 +112,9 @@ function showsPointBadge(section: DetailSection): boolean {
       section.layout === "annotated" &&
       Array.isArray(section.annotations) &&
       section.annotations.length > 0;
-    return shouldUseSplitLayout(section) && !annotated;
+    // text_only·circle-pair는 렌더러가 배지를 그리지 않는다 — 번호를 주면 POINT 2→4처럼 건너뛴다
+    const noBadgeLayout = section.layout === "text_only" || section.layout === "circle-pair";
+    return shouldUseSplitLayout(section) && !annotated && !noBadgeLayout;
   }
   return false;
 }
