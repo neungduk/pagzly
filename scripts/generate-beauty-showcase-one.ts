@@ -17,6 +17,7 @@ import path from "path";
 import { getCategoryTheme } from "../lib/category-theme";
 import { buildDetailPageHtml } from "../lib/export-detail-html";
 import { freezeDetailScrollReveal } from "./capture-utils";
+import { closeLabelFilter, scanStockPhotoForLabel } from "../lib/stock-photo-label-filter";
 
 const ROOT = path.join(__dirname, "..");
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
@@ -79,12 +80,13 @@ async function crawlPexels(apiKey: string): Promise<string[]> {
   const queries = QUERIES;
   const seen = new Set<number>();
   const files: string[] = [];
+  const rejected: { id: number; words: string[] }[] = [];
 
   for (const query of queries) {
     if (files.length >= NEED) break;
     const url = new URL("https://api.pexels.com/v1/search");
     url.searchParams.set("query", query);
-    url.searchParams.set("per_page", "8");
+    url.searchParams.set("per_page", "20");
     url.searchParams.set("orientation", "portrait");
     const res = await fetch(url.toString(), { headers: { Authorization: apiKey } });
     if (!res.ok) throw new Error(`Pexels search failed: ${res.status}`);
@@ -96,12 +98,21 @@ async function crawlPexels(apiKey: string): Promise<string[]> {
       const imgRes = await fetch(photo.src.large2x || photo.src.large);
       if (!imgRes.ok) continue;
       const buf = Buffer.from(await imgRes.arrayBuffer());
+      const scan = await scanStockPhotoForLabel(buf);
+      if (scan.branded) {
+        rejected.push({ id: photo.id, words: scan.words });
+        console.log(`[pexels] #${photo.id} 라벨 글자 감지 — 제외 (${scan.words.length}단어)`);
+        continue;
+      }
       const file = path.join(ASSET_DIR, `pexels-${photo.id}.jpeg`);
       fs.writeFileSync(file, buf);
       files.push(file);
       console.log(`[pexels] #${photo.id} ${photo.photographer} → ${path.basename(file)}`);
     }
   }
+  await closeLabelFilter();
+  fs.mkdirSync(OUT_DIR, { recursive: true });
+  fs.writeFileSync(path.join(OUT_DIR, "label-rejected.json"), JSON.stringify(rejected, null, 2), "utf8");
 
   if (files.length < 7) {
     throw new Error(`Pexels 사진 ${files.length}장 — 최소 7장 필요`);
@@ -144,6 +155,10 @@ async function main() {
     JSON.stringify(images.map((f) => path.basename(f)), null, 2),
     "utf8",
   );
+  if (process.env.CRAWL_ONLY === "1") {
+    console.log(`[crawl-only] ${images.length}장 → ${ASSET_DIR}`);
+    return;
+  }
 
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
