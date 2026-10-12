@@ -1074,15 +1074,21 @@ function sectionHtml(
         const ringHtml = ringLabels
           ? buildIngredientRingDiagramSvg(ringLabels, deep, "#1B1B18")
           : "";
-        return `<section${sectionIdAttr} class="pagzly-editorial" style="padding:0;background:${sectionBg}">
-          <div style="position:relative">
-            ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${imageRatioCss(resolveSlotImageRatio(section))};object-fit:cover;display:block"/>` : ""}
+        const bleedHeadHtml = src
+          ? `<div style="position:relative">
+            <img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${imageRatioCss(resolveSlotImageRatio(section))};object-fit:cover;display:block"/>
             <div style="position:absolute;inset:0;background:linear-gradient(0deg,${hexToRgba(BRAND.ink, 0.82)} 0%,${hexToRgba(BRAND.ink, 0.4)} 24%,${hexToRgba(BRAND.ink, 0.08)} 42%,transparent 55%)"></div>
             <div class="pagzly-bleed-ov" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;text-align:center">
               ${kicker ? `<p style="font-size:${FONT_SIZE.caption};letter-spacing:.36em;color:rgba(250,248,243,.85);margin:0 0 10px">${kicker}</p>` : ""}
               ${dh2(category, esc(section.heading), `font-size:${titleSizeCss("banner")};margin:0;line-height:1.15;color:#FAF8F3;text-shadow:0 2px 20px rgba(0,0,0,.4);max-width:100%`)}
             </div>
-          </div>
+          </div>`
+          : `<div style="max-width:576px;margin:0 auto;padding:56px 24px 0;text-align:center;box-sizing:border-box">
+            ${kicker ? `<p style="margin:0 0 12px;font-size:11px;letter-spacing:.36em;color:${deepText}">${kicker}</p>` : ""}
+            ${dh2(category, headlineKeywordHtml(section.heading, theme), `${titleFitCss("section", section.heading, -0.03)};margin:0${flatTitleColorCss(theme)}`)}
+          </div>`;
+        return `<section${sectionIdAttr} class="pagzly-editorial" style="padding:0;background:${sectionBg}">
+          ${bleedHeadHtml}
           <div style="padding:var(--pz-pt-t,40px) var(--pz-pt-x,24px) var(--pz-pt-b,64px);text-align:center;max-width:576px;box-sizing:border-box;margin:0 auto">
             <p class="pagzly-body-lh" style="margin:0;line-height:1.85;font-size:${titleSizeCss("body")};color:${hexToRgba(BRAND.ink, 0.82)}">${emphasizedBodyHtml(section.body, section.emphasis, accent)}</p>
             ${ringHtml}

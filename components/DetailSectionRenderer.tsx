@@ -2460,32 +2460,51 @@ function renderSection(
             className="relative overflow-hidden"
             style={textSectionStyle(theme, pattern, category)}
           >
-            <div className="relative w-full">
-              <SectionImage
-                src={src}
-                alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
-                className={`${ratioClass} w-full object-cover`}
-              />
-              <ImageReplaceHit
-                enabled={edit?.enabled}
-                onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
-              />
-              <div
-                className="pointer-events-none absolute inset-0"
-                style={{ background: getEditorialBleedScrim() }}
-                aria-hidden="true"
-              />
-              <div className={EDITORIAL_BLEED_OVERLAY_CLASS}>
-                {kicker ? <p className={TYPO.heroCategory}>{kicker}</p> : null}
+            {src ? (
+              <div className="relative w-full">
+                <SectionImage
+                  src={src}
+                  alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
+                  className={`${ratioClass} w-full object-cover`}
+                />
+                <ImageReplaceHit
+                  enabled={edit?.enabled}
+                  onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
+                />
+                <div
+                  className="pointer-events-none absolute inset-0"
+                  style={{ background: getEditorialBleedScrim() }}
+                  aria-hidden="true"
+                />
+                <div className={EDITORIAL_BLEED_OVERLAY_CLASS}>
+                  {kicker ? <p className={TYPO.heroCategory}>{kicker}</p> : null}
+                  <EditableText
+                    as="h3"
+                    enabled={edit?.enabled}
+                    value={section.heading}
+                    onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+                    className={`${TYPO.bannerTitle} ${getCategoryRhythm(category).heroTitleExtra}`}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="mx-auto max-w-xl px-6 pt-14 text-center @min-[640px]/pz:px-10">
+                {kicker ? (
+                  <p className="mb-3 text-[11px] tracking-[0.36em]" style={{ color: readableTextDeep(theme) }}>
+                    {kicker}
+                  </p>
+                ) : null}
                 <EditableText
                   as="h3"
                   enabled={edit?.enabled}
                   value={section.heading}
                   onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-                  className={`${TYPO.bannerTitle} ${getCategoryRhythm(category).heroTitleExtra}`}
+                  className={TYPO.sectionTitle}
+                  style={flatTitleColor(theme)}
+                  display={headlineKeywordNodes(section.heading, theme)}
                 />
               </div>
-            </div>
+            )}
             <div className={`${getCategoryRhythm(category).pointTextPadClass} mx-auto max-w-xl px-6 text-center @min-[640px]/pz:px-10`}>
               <EmphasizedBody
                 body={section.body}
