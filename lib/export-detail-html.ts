@@ -372,9 +372,8 @@ function flatSectionHeaderHtml(
   marginBottomPx = 40,
   allowKeyword = true,
 ): string {
-  const parts = allowKeyword && !isShortSectionHeading(heading)
-    ? parseMegaKeywordHeading(heading)
-    : { keyword: null, remainder: heading };
+  const parsed = allowKeyword && !isShortSectionHeading(heading) ? parseMegaKeywordHeading(heading) : null;
+  const parts = parsed?.keyword && parsed.remainder ? parsed : { keyword: null, remainder: heading };
   const title = parts.remainder || heading;
   const pill = pointBadge
     ? `<div style="margin:0 0 20px;display:flex;justify-content:center">${pointPillHtml(pointBadge, theme, inverted)}</div>`

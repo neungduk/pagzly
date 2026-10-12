@@ -1068,6 +1068,7 @@ function SectionHeader({
   const accentColor = inverted ? BRAND.paper : theme.accent;
 
   if (FLAT_SECTION_SURFACES) {
+    if (megaKeyword && megaKeyword.toUpperCase() === title.trim().toUpperCase()) megaKeyword = null;
     const mergeKeyword = Boolean(megaKeyword) && isShortSectionHeading(`${megaKeyword}${title}`);
     if (mergeKeyword) {
       title = `${megaKeyword} ${title}`;
