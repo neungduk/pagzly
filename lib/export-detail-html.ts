@@ -331,7 +331,11 @@ function headlineKeywordHtml(text: string, theme: CategoryTheme): string {
   const segments = colors ? splitHeadlineKeywords(joinNumericSuffix(text)) : null;
   if (!colors || !segments) return esc(text);
   return segments
-    .map((s) => `<span style="color:${s.keyword ? colors.keyword : colors.rest}">${esc(s.text)}</span>`)
+    .map((s) =>
+      s.keyword
+        ? `<span style="color:${colors.keyword}${s.text.length <= 14 ? ";white-space:nowrap" : ""}">${esc(s.text)}</span>`
+        : `<span style="color:${colors.rest}">${esc(s.text)}</span>`,
+    )
     .join("");
 }
 

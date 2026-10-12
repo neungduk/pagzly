@@ -943,7 +943,14 @@ function headlineKeywordNodes(text: string, theme: CategoryTheme): ReactNode | n
   const segments = colors ? splitHeadlineKeywords(joinNumericSuffix(text)) : null;
   if (!colors || !segments) return null;
   return segments.map((s, i) => (
-    <span key={i} style={{ color: s.keyword ? colors.keyword : colors.rest }}>
+    <span
+      key={i}
+      style={
+        s.keyword
+          ? { color: colors.keyword, whiteSpace: s.text.length <= 14 ? "nowrap" : undefined }
+          : { color: colors.rest }
+      }
+    >
       {s.text}
     </span>
   ));
