@@ -5038,7 +5038,13 @@ function renderSection(
               </span>
             )}
             {section.badges && section.badges.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-2 pt-1">
+              <div
+                className={`justify-center gap-2 pt-1 ${
+                  section.badges.length === 4
+                    ? "grid grid-cols-[repeat(2,max-content)] @min-[640px]/pz:flex @min-[640px]/pz:flex-wrap"
+                    : "flex flex-wrap"
+                }`}
+              >
                 {section.badges.map((badge) => (
                   <span
                     key={badge}

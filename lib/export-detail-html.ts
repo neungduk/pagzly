@@ -1528,7 +1528,7 @@ function sectionHtml(
         ${productName.trim() ? `<p style="margin:0 0 12px;font-family:${DETAIL_FONT_STACK.heading};font-size:15px;font-weight:700;line-height:1.375;letter-spacing:-0.025em;color:rgba(27,27,24,.8);word-break:keep-all">${esc(productName.trim())}</p>` : ""}
         <p style="font-family:${DETAIL_FONT_STACK.heading};font-size:${titleSizeCss("price")};font-weight:700;line-height:1;letter-spacing:-0.04em;margin:8px 0 0;color:${ensureReadableOnPaper(accent, 3)}">₩${section.price.toLocaleString("ko-KR")}</p>
         ${shopperFacingTarget(section.targetCustomer) ? `<p style="display:inline-block;margin:16px 0 0;padding:6px 16px;border-radius:9999px;background:${hexToRgba(accent, 0.14)};color:${deepText};font-size:${FONT_SIZE.xs};font-weight:500">${esc(shopperFacingTarget(section.targetCustomer))}</p>` : ""}
-        ${section.badges?.length ? `<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:16px">${section.badges.map((b) => `<span style="background:${FLAT_PAPER};border:1px solid ${hexToRgba(accent, 0.3)};border-radius:9999px;color:${deepText};padding:8px 16px;font-size:${FONT_SIZE.xs};font-weight:600">${esc(b)}</span>`).join("")}</div>` : ""}
+        ${section.badges?.length ? `<div${section.badges.length === 4 ? ` class="pagzly-badges4"` : ""} style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:16px">${section.badges.map((b) => `<span style="background:${FLAT_PAPER};border:1px solid ${hexToRgba(accent, 0.3)};border-radius:9999px;color:${deepText};padding:8px 16px;font-size:${FONT_SIZE.xs};font-weight:600">${esc(b)}</span>`).join("")}</div>` : ""}
         <p style="margin-top:20px;font-size:${FONT_SIZE.xs};color:rgba(27,27,24,.5)">배송·교환·환불은 판매자 정책을 확인해 주세요.</p>
       </section>`;
       }
@@ -2135,6 +2135,7 @@ ${jsonLd}
   .pagzly-brand-sig{padding:56px 24px}.pagzly-brand-sig>p:first-child{line-height:1.5}
   .pagzly-story-body{line-height:1.9!important;margin-top:20px!important}.pagzly-story-body.pagzly-story-lead{margin-top:0!important}.pagzly-body-lh{line-height:1.9!important}
   @media (min-width:640px){.pagzly-brand-sig{padding:64px 40px}.pagzly-story-body,.pagzly-body-lh{line-height:1.85!important}}
+  @media (max-width:639px){.pagzly-badges4{display:grid!important;grid-template-columns:repeat(2,max-content)}}
   @media (max-width:639px){.pagzly-hl-row{display:grid!important;grid-template-columns:48px 1fr;column-gap:16px;row-gap:4px;align-items:start;text-align:left!important;padding:20px!important}.pagzly-hl-row>*{grid-column:2;margin-top:0!important;margin-bottom:0!important}.pagzly-hl-row>:first-child{grid-column:1;grid-row:1/span 4;display:block!important}}
   @media (min-width:640px){.pagzly-spec-grid tbody{display:grid;grid-template-columns:1fr 1fr;column-gap:32px}.pagzly-spec-grid tr{display:flex}.pagzly-spec-grid tr>:first-child{width:40%!important;flex-shrink:0}.pagzly-spec-grid tr>:last-child{flex:1}.pagzly-spec-grid tr:nth-last-child(2){border-bottom:none!important}}
   @media (min-width:640px){.pagzly-spec-thumbs{gap:16px!important}.pagzly-spec-thumb-m{width:96px!important;height:96px!important}.pagzly-spec-thumb-s{width:128px!important;height:128px!important}}
