@@ -52,8 +52,15 @@ export function dedupeSpecRows<T extends { label: string; value: string }>(rows:
   const out: T[] = [];
   const at = new Map<string, number>();
   const synonymSeen = new Set<string>();
+  const filled: { key: string; value: string }[] = [];
   for (const row of rows) {
     const key = row.label.toLowerCase().replace(/[\s·・/,]/g, "");
+    if (!isPlaceholderValue(row.value)) {
+      // "인증"/"인증·수상"처럼 한쪽 라벨이 다른 쪽을 포함하고 값이 같으면 같은 정보
+      const value = row.value.toLowerCase().replace(/[\s·・/,.]/g, "");
+      if (filled.some((f) => f.value === value && f.key !== key && (f.key.includes(key) || key.includes(f.key)))) continue;
+      filled.push({ key, value });
+    }
     const group = SPEC_LABEL_SYNONYMS.find(([re]) => re.test(key))?.[1];
     if (group && !isPlaceholderValue(row.value)) {
       const synonymKey = `${group}|${row.value.toLowerCase().replace(/[\s·・/,]/g, "")}`;
