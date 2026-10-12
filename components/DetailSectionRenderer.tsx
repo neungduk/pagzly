@@ -74,7 +74,7 @@ import {
   shouldUseEditorialBleed,
   shouldUseSplitLayout,
 } from "@/lib/detail-visual-rhythm";
-import { isRedundantCardBody } from "@/lib/designer-detail-patterns";
+import { isPainBubbleChecklist, isRedundantCardBody } from "@/lib/designer-detail-patterns";
 import {
   formatPointBadge,
   getCategoryTitleKeyword,
@@ -178,6 +178,7 @@ import {
   flatAccentTint,
   twoToneHeadlineColors,
   headlineKeywordColors,
+  painBubbleColors,
   type SectionColorPattern,
 } from "@/lib/design-tokens";
 import {
@@ -1960,6 +1961,7 @@ function renderSection(
       })
         ? checklistHubLayout(items.length)
         : null;
+      const painBubbles = FLAT_SECTION_SURFACES && isPainBubbleChecklist(section.heading, items, compactFollow);
       return (
         <section
           key={`checklist-${index}`}
@@ -2075,6 +2077,39 @@ function renderSection(
                 );
               })}
             </div>
+          ) : painBubbles ? (
+            <ul className="relative mx-auto mt-10 flex max-w-[420px] flex-col gap-3.5">
+              {items.map((item, itemIndex) => {
+                const right = itemIndex % 2 === 1;
+                const bubble = painBubbleColors(theme, boldBlock, right);
+                return (
+                  <li
+                    key={`${itemIndex}-${item.slice(0, 12)}`}
+                    className={`flex ${right ? "justify-end" : "justify-start"}`}
+                  >
+                    <EditableText
+                      as="span"
+                      enabled={edit?.enabled}
+                      value={item}
+                      onChange={(next) => {
+                        const nextItems = [...section.items];
+                        nextItems[itemIndex] = next;
+                        edit?.onChange(index, { ...section, items: nextItems });
+                      }}
+                      className={`block max-w-[82%] text-balance rounded-[20px] px-[18px] py-3 text-left text-[15px] font-semibold leading-[1.45] [word-break:keep-all] ${
+                        right ? "rounded-br-[6px]" : "rounded-bl-[6px]"
+                      }`}
+                      style={{
+                        backgroundColor: bubble.bg,
+                        color: bubble.fg,
+                        border: bubble.border,
+                        boxShadow: "0 2px 8px rgba(0,0,0,.06)",
+                      }}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
           ) : (
           <ul
             className={`relative ${compactFollow ? "mt-8" : "mt-10"} grid ${

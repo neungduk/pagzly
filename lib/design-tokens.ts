@@ -665,6 +665,22 @@ export function solidDeepOnPaper(theme: CategoryTheme): string {
   return ensureReadableOnPaper(theme.deepAccent, 3);
 }
 
+/** 공감 체크리스트 말풍선 — 좌(밝은 면)·우(진한 면) 교차. 어두운 블록 위에서는 반투명 paper. */
+export function painBubbleColors(
+  theme: CategoryTheme,
+  onDark: boolean,
+  right: boolean,
+): { bg: string; fg: string; border: string } {
+  if (onDark) {
+    return right
+      ? { bg: hexToRgba(BRAND.paper, 0.14), fg: BRAND.paper, border: `1px solid ${hexToRgba(BRAND.paper, 0.22)}` }
+      : { bg: BRAND.paper, fg: BRAND.ink, border: "1px solid transparent" };
+  }
+  return right
+    ? { bg: solidDeepOnPaper(theme), fg: BRAND.paper, border: "1px solid transparent" }
+    : { bg: FLAT_PAPER, fg: BRAND.ink, border: `1px solid ${hexToRgba(theme.accent, 0.18)}` };
+}
+
 /**
  * 189차 — 밝은 배경(paper·옅은 틴트) 위 텍스트 색.
  * ensureReadableOnPaper 재사용. 기본 4.5(본문), 대형 제목은 minRatio=3 가능.

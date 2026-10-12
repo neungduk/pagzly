@@ -27,6 +27,17 @@ export function shouldUseEditorialBleed(section: DetailSection): boolean {
   return EDITORIAL_BLEED_SLOTS.has(section.slot);
 }
 
+/** "이런 고민, 있으신가요?" 같은 공감 체크리스트 — 카드 그리드 대신 좌우 교차 말풍선으로 그린다. */
+export function isPainBubbleChecklist(
+  heading: string | undefined,
+  items: string[],
+  compactFollow: boolean,
+): boolean {
+  if (compactFollow) return false;
+  if (!/고민|걱정|불편|스트레스|이런\s*적|있으신가요|있나요/.test(heading ?? "")) return false;
+  return items.length >= 2 && items.length <= 5 && items.every((item) => item.trim().length <= 40);
+}
+
 /** 카드 본문이 제목을 그대로 반복하면(공백·문장부호 차이만) 본문을 숨긴다. */
 export function isRedundantCardBody(title: string | undefined, body: string | undefined): boolean {
   const norm = (value: string | undefined) => (value ?? "").replace(/[\s.,!?·~]/g, "").toLowerCase();

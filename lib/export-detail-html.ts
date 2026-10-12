@@ -20,7 +20,7 @@ import {
   shouldUseEditorialBleed,
   shouldUseSplitLayout,
 } from "@/lib/detail-visual-rhythm";
-import { isRedundantCardBody } from "@/lib/designer-detail-patterns";
+import { isPainBubbleChecklist, isRedundantCardBody } from "@/lib/designer-detail-patterns";
 import {
   formatPointBadge,
   getCategoryTitleKeyword,
@@ -135,6 +135,7 @@ import {
   titleSizeCss,
   twoToneHeadlineColors,
   headlineKeywordColors,
+  painBubbleColors,
   FLAT_PAPER,
   flatAccentTint,
   ensureReadableOnPaper,
@@ -692,6 +693,18 @@ function sectionHtml(
           <div style="position:absolute;left:${hub.cx - hub.r}%;top:${hub.cy - hub.r}%;width:${hub.r * 2}%;height:${hub.r * 2}%;border-radius:9999px;overflow:hidden;box-shadow:0 0 0 1px ${hexToRgba(accent, 0.18)}"><img src="${esc(hubSrc)}" alt="${esc(alt)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block"/></div>
           ${labels}
         </div></section>`;
+      }
+      if (FLAT_SECTION_SURFACES && isPainBubbleChecklist(section.heading, clItems, clCompact)) {
+        const bubblesHtml = clItems
+          .map((item, i) => {
+            const right = i % 2 === 1;
+            const c = painBubbleColors(theme, Boolean(section.boldBlock), right);
+            return `<li style="display:flex;justify-content:${right ? "flex-end" : "flex-start"}"><span style="display:block;max-width:82%;box-sizing:border-box;padding:12px 18px;border-radius:20px;border-bottom-${right ? "right" : "left"}-radius:6px;background:${c.bg};color:${c.fg};border:${c.border};box-shadow:0 2px 8px rgba(0,0,0,.06);font-size:15px;font-weight:600;line-height:1.45;text-align:left;word-break:keep-all;text-wrap:balance">${esc(item)}</span></li>`;
+          })
+          .join("");
+        return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
+        ${checklistHead}
+        <ul style="list-style:none;padding:0;margin:40px auto 0;max-width:420px;display:flex;flex-direction:column;gap:14px">${bubblesHtml}</ul></section>`;
       }
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${checklistHead}
