@@ -21,11 +21,12 @@ import { freezeDetailScrollReveal } from "./capture-utils";
 const ROOT = path.join(__dirname, "..");
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 const STORAGE_STATE_PATH = path.join(__dirname, "auth-state.json");
-const OUT_DIR = path.join(ROOT, "review", "beauty-showcase-one");
-const ASSET_DIR = path.join(__dirname, "test-assets", "_beauty-showcase-run");
+// OUT=review/xxx, PRODUCT_JSON=상품 정보 JSON 파일(+queries 배열)로 다른 견본 생성
+const OUT_DIR = path.join(ROOT, process.env.OUT ?? path.join("review", "beauty-showcase-one"));
+const ASSET_DIR = path.join(__dirname, "test-assets", `_${path.basename(OUT_DIR)}-run`);
 const NEED = 8;
 
-const PRODUCT = {
+const DEFAULT_PRODUCT = {
   category: "화장품/뷰티",
   productName: "라이트 워터 히알루론 세럼",
   brandName: "페이즐리랩",
@@ -38,6 +39,22 @@ const PRODUCT = {
   wholesaleUrl:
     "원본: Light Water Hyaluronic Serum 30ml / 스펙: 워터리 세럼, 무향, 민감성 피부 / 사용: 세안 후 2~3방울 / 포인트: 속건조, 끈적임 없음, 아침·저녁 데일리",
 };
+
+const DEFAULT_QUERIES = [
+  "skincare serum dropper bottle white background",
+  "face serum cosmetic product photography",
+  "hyaluronic acid serum bottle minimal",
+  "beauty serum texture skincare product",
+  "moisturizer serum glass bottle aesthetic",
+];
+
+const OVERRIDE = process.env.PRODUCT_JSON
+  ? (JSON.parse(fs.readFileSync(process.env.PRODUCT_JSON, "utf8")) as typeof DEFAULT_PRODUCT & {
+      queries?: string[];
+    })
+  : null;
+const PRODUCT: typeof DEFAULT_PRODUCT = OVERRIDE ?? DEFAULT_PRODUCT;
+const QUERIES = OVERRIDE?.queries?.length ? OVERRIDE.queries : DEFAULT_QUERIES;
 
 type PexelsPhoto = {
   id: number;
@@ -59,13 +76,7 @@ function loadEnvLocal(): Record<string, string> {
 
 async function crawlPexels(apiKey: string): Promise<string[]> {
   fs.mkdirSync(ASSET_DIR, { recursive: true });
-  const queries = [
-    "skincare serum dropper bottle white background",
-    "face serum cosmetic product photography",
-    "hyaluronic acid serum bottle minimal",
-    "beauty serum texture skincare product",
-    "moisturizer serum glass bottle aesthetic",
-  ];
+  const queries = QUERIES;
   const seen = new Set<number>();
   const files: string[] = [];
 
@@ -219,7 +230,7 @@ async function main() {
   }
 
   console.log("[4/5] 상세 미리보기 캡처 (견본 1장)…");
-  const preview = page.locator('[data-testid="detail-preview"]');
+  const preview = page.locator('[data-testid="detail-preview"]:visible').first();
   await preview.waitFor({ state: "visible", timeout: 60_000 });
   await preview.screenshot({ path: path.join(OUT_DIR, "showcase-detail.png") });
   await page.screenshot({ path: path.join(OUT_DIR, "showcase-full.png"), fullPage: true });
