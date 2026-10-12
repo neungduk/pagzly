@@ -59,7 +59,11 @@ export function collectSectionPlainText(section: DetailSection): string[] {
     case "comparison_chart":
       lines.push(section.heading);
       section.metrics.forEach((m) =>
-        lines.push(`${m.label}: ${section.ourLabel} ${m.ourValue}, ${section.baselineLabel} ${m.baselineValue}`),
+        lines.push(
+          section.basis === "measured"
+            ? `${m.label}: ${section.ourLabel} ${m.ourValue}, ${section.baselineLabel} ${m.baselineValue}`
+            : m.label,
+        ),
       );
       break;
     case "comparison_table":

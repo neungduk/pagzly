@@ -93,6 +93,23 @@ export function compactOurLabel(label: string): string {
   return brand && brand.length >= 2 ? brand : t;
 }
 
+/**
+ * 측정 근거 없는(self_assessed) 막대는 "85% / 60%" 같은 근거 없는 정밀 수치로 읽힌다 —
+ * 표시 단계에서 ✓/– 비교로 바꾼다. measured만 막대·수치를 유지. 저장 데이터는 그대로.
+ */
+export function displayComparisonSection(section: ComparisonChartSection): ComparisonChartSection {
+  if (section.basis === "measured" || section.presentationStyle === "checklist") return section;
+  return {
+    ...section,
+    presentationStyle: "checklist",
+    metrics: section.metrics.map((m) => {
+      const our = clampMetricValue(m.ourValue);
+      const base = clampMetricValue(m.baselineValue);
+      return { ...m, ourValue: our > 0 ? 100 : 0, baselineValue: base >= our ? 100 : 0 };
+    }),
+  };
+}
+
 /** checklist 렌더용 — ourValue/baselineValue > 0 이면 true */
 export function comparisonChecklistPresent(value: number): boolean {
   return Number(value) > 0;

@@ -59,6 +59,7 @@ import {
 import {
   compactOurLabel,
   comparisonChecklistPresent,
+  displayComparisonSection,
   SELF_ASSESSED_DISCLAIMER,
 } from "@/lib/comparison-chart-guard";
 import { classifyBoolishCell } from "@/lib/comparison-cell-classify";
@@ -431,7 +432,7 @@ function comparisonChartBodyHtml(
   theme: CategoryTheme,
   category: string,
 ): string {
-  const section = { ...rawSection, ourLabel: compactOurLabel(rawSection.ourLabel) };
+  const section = { ...displayComparisonSection(rawSection), ourLabel: compactOurLabel(rawSection.ourLabel) };
   const accent = theme.accent;
   const deepText = readableTextDeep(theme);
   const isChecklist = section.presentationStyle === "checklist";
