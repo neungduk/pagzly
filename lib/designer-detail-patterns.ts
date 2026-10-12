@@ -27,6 +27,13 @@ export function shouldUseEditorialBleed(section: DetailSection): boolean {
   return EDITORIAL_BLEED_SLOTS.has(section.slot);
 }
 
+/** 카드 본문이 제목을 그대로 반복하면(공백·문장부호 차이만) 본문을 숨긴다. */
+export function isRedundantCardBody(title: string | undefined, body: string | undefined): boolean {
+  const norm = (value: string | undefined) => (value ?? "").replace(/[\s.,!?·~]/g, "").toLowerCase();
+  const b = norm(body);
+  return b.length > 0 && b === norm(title);
+}
+
 /** 디자이너 상세의 전형적 스토리 아크 (8~12 스크롤 구간 권장) */
 export function buildDesignerPatternGuide(category: string): string {
   const template = resolveTemplateCategory(category);

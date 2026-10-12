@@ -74,6 +74,7 @@ import {
   shouldUseEditorialBleed,
   shouldUseSplitLayout,
 } from "@/lib/detail-visual-rhythm";
+import { isRedundantCardBody } from "@/lib/designer-detail-patterns";
 import {
   formatPointBadge,
   getCategoryTitleKeyword,
@@ -3325,7 +3326,7 @@ function renderSection(
                     {...elementSelectProps(edit, index, `cards[${cardIndex}].title`)}
                   />
                   ) : null}
-                  {card.body ? (
+                  {card.body && (edit?.enabled || !isRedundantCardBody(card.title, card.body)) ? (
                     <EditableText
                       as="p"
                       multiline

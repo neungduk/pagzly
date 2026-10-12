@@ -20,6 +20,7 @@ import {
   shouldUseEditorialBleed,
   shouldUseSplitLayout,
 } from "@/lib/detail-visual-rhythm";
+import { isRedundantCardBody } from "@/lib/designer-detail-patterns";
 import {
   formatPointBadge,
   getCategoryTitleKeyword,
@@ -800,7 +801,7 @@ function sectionHtml(
                 ${iconHtml}${FLAT_SECTION_SURFACES ? "" : `<div style="font-size:${FONT_SIZE.label};letter-spacing:.22em;opacity:.7;border:1px solid ${accent}55;border-radius:${RADIUS.pill}px;display:inline-block;padding:4px 10px">${formatPointBadge(i + 1)}</div>`}
                 ${cardKeyword.keyword ? FLAT_SECTION_SURFACES ? `<p class="pz-fit" style="--pz-fs:clamp(1.75rem,8cqi,2.75rem);--pz-fit-em:${longestTokenEm(cardKeyword.keyword, -0.06)};font-size:clamp(1.75rem,8cqi,2.75rem);font-family:${DETAIL_FONT_STACK.heading};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:0 0 ${showTitle ? 0 : 8}px;text-transform:uppercase;color:${(em || section.boldBlock) && !lightEm ? BRAND.paper : deepText}">${esc(cardKeyword.keyword)}</p>` : `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClampCard};font-weight:900;line-height:.92;letter-spacing:-.05em;margin:${FLAT_SECTION_SURFACES ? 0 : 12}px 0 ${showTitle ? 0 : 8}px;text-transform:uppercase;color:${(em || section.boldBlock) && !lightEm ? BRAND.paper : deepText}">${esc(cardKeyword.keyword)}</p>` : ""}
                 ${showTitle ? `<h3 style="margin:${FLAT_SECTION_SURFACES && !cardKeyword.keyword ? 0 : 8}px 0 8px;font-size:${cardKeyword.keyword ? (FLAT_SECTION_SURFACES ? `16px;line-height:24px;letter-spacing:-0.02em;font-family:${DETAIL_FONT_STACK.heading}` : FONT_SIZE.bodySm) : FLAT_SECTION_SURFACES ? "18px;line-height:28px;letter-spacing:-0.02em" : "inherit"};font-weight:${cardKeyword.keyword ? "600" : "700"};color:${titleColor}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</h3>` : ""}
-                <p style="margin:0;font-size:${FONT_SIZE.bodySm};line-height:1.625;color:${bodyColor}">${esc(card.body)}</p>
+                ${isRedundantCardBody(card.title, card.body) ? "" : `<p style="margin:0;font-size:${FONT_SIZE.bodySm};line-height:1.625;color:${bodyColor}">${esc(card.body)}</p>`}
               </div>`;
             })
             .join("")}
