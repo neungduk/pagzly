@@ -133,7 +133,13 @@ export function extractBenefitKeywords(
     for (const part of commaParts) {
       if (/^(무료배송|당일발송|새벽배송|무료교환|무향|유기농|친환경)$/i.test(part)) add(part);
       else if (/^KC\s?인증$/i.test(part)) add(part);
-      else if (/배송|발송|적립/i.test(part) && part.length <= 12) add(part);
+      // "배송비 구매 금액·지역에 따라…"를 쪼갠 조각처럼 수치·조건이 없는 배송 문구는 혜택이 아니다
+      else if (
+        /배송|발송|적립/i.test(part) &&
+        part.length <= 12 &&
+        /\d|무료|당일|익일|새벽|오늘|내일|빠른|즉시/.test(part)
+      )
+        add(part);
     }
   }
   return chips.slice(0, 4);
