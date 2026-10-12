@@ -173,13 +173,18 @@ export function buildPowerConsumptionDiagramSvg(
     .join("");
 
   const prodX = toX(productW);
-  const sameAsTop =
-    productValueLabel.replace(/\s+/g, "").toLowerCase() === formatPowerLabel(productW).toLowerCase();
-  const safeLabel = sameAsTop
-    ? "이 제품"
-    : productValueLabel.length > 16
-      ? `${productValueLabel.slice(0, 15)}…`
-      : productValueLabel;
+  const topValue = formatPowerLabel(productW).replace(/\s+/g, "").toLowerCase();
+  const withoutValue = productValueLabel
+    .split(/\s+/)
+    .filter((t) => t.toLowerCase() !== topValue)
+    .join(" ")
+    .trim();
+  const safeLabel =
+    !withoutValue || withoutValue.replace(/\s+/g, "").toLowerCase() === topValue
+      ? "이 제품"
+      : withoutValue.length > 16
+        ? `${withoutValue.slice(0, 15)}…`
+        : withoutValue;
 
   return `<div style="max-width:340px;margin:28px auto 0;text-align:center">
     ${diagramTitleWithIconHtml("소비전력 비교", "power-plug", labelColor)}
