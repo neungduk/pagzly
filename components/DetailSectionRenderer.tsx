@@ -2397,7 +2397,11 @@ function renderSection(
                 />
                 {bubbleText ? (
                   <div
-                    className="absolute bottom-6 left-1/2 z-10 max-w-[85%] -translate-x-1/2 @min-[640px]/pz:bottom-8"
+                    className={
+                      src
+                        ? "absolute bottom-6 left-1/2 z-10 max-w-[85%] -translate-x-1/2 @min-[640px]/pz:bottom-8"
+                        : "relative z-10 mx-auto w-fit max-w-[85%] pb-2 pt-14"
+                    }
                     aria-hidden={!edit?.enabled}
                   >
                     <div

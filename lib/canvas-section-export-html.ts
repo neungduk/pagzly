@@ -20,9 +20,10 @@ export function renderCanvasSectionHtml(
     ? `background-image:url(${esc(section.background.imageUrl)});background-size:cover;background-position:center;`
     : "";
 
-  const elementsHtml = sortCanvasElements(
-    visibleCanvasElements(section.elements, { hideIncompleteAi: true }),
-  )
+  const visibleElements = visibleCanvasElements(section.elements, { hideIncompleteAi: true });
+  if (!bgImage && visibleElements.length === 0) return "";
+
+  const elementsHtml = sortCanvasElements(visibleElements)
     .map((element) => {
       const box = canvasElementBoxCss(element);
       if (element.kind === "text") {

@@ -410,6 +410,8 @@ export default function CanvasSectionRenderer({
     ? (section.elements.find((el) => el.id === selectedId) ?? null)
     : null;
 
+  if (!editing && !bgImage && elements.length === 0) return null;
+
   return (
     <section data-testid="canvas-section" className="w-full" style={{ backgroundColor: bgColor }}>
       {editing ? (
