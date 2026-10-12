@@ -35,6 +35,8 @@ function isFunctionWordToken(token: string): boolean {
   if (MEGA_KEYWORD_STOPWORDS.has(token)) return true;
   // 2자는 "자는", "맑은"처럼 관형형 어미일 때만 거른다 — "가을"·"마을" 같은 명사는 남김
   if (token.length === 2) return /[는를은]$/.test(token);
+  // "산뜻한", "가벼운"처럼 관형형 형용사는 뒤 명사 없이 키우면 "산뜻한 / 마무리"로 끊긴다
+  if (token.length >= 3 && /[한운된던]$/.test(token) && !/(기한|제한)$/.test(token)) return true;
   return token.length >= 3 && TRAILING_PARTICLE.test(token);
 }
 
