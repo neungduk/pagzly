@@ -1754,21 +1754,23 @@ function StackedImageTextSection({
           onTitleChange={(heading) => edit?.onChange(index, { ...section, heading })}
         />
       </div>
-      <div className="relative">
-        <SectionImage
-          src={src}
-          alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
-          className={`${ratioClass} w-full object-cover`}
-        />
-        {annotated && section.annotations ? (
-          <AnnotatedImageOverlay annotations={section.annotations} theme={theme} />
-        ) : null}
-        <ImageReplaceHit
-          enabled={edit?.enabled}
-          onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
-        />
-      </div>
-      <div className="mx-auto max-w-xl px-6 pt-10 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12">
+      {src ? (
+        <div className="relative">
+          <SectionImage
+            src={src}
+            alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
+            className={`${ratioClass} w-full object-cover`}
+          />
+          {annotated && section.annotations ? (
+            <AnnotatedImageOverlay annotations={section.annotations} theme={theme} />
+          ) : null}
+          <ImageReplaceHit
+            enabled={edit?.enabled}
+            onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
+          />
+        </div>
+      ) : null}
+      <div className={`mx-auto max-w-xl px-6 text-center @min-[640px]/pz:px-10 ${src ? "pt-10 @min-[640px]/pz:pt-12" : ""}`}>
         <EmphasizedBody
           body={section.body}
           emphasis={section.emphasis}

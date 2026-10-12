@@ -1151,11 +1151,11 @@ function sectionHtml(
           : "";
         return `<section${sectionIdAttr} class="pagzly-stacked" style="${sectionInset}${bgCss}">
           <div class="pagzly-stacked-head">${flatSectionHeaderHtml(category, theme, section.heading, pill, false, 40, false)}</div>
-          <div style="position:relative">
-            ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${splitAspect};object-fit:cover;display:block"/>` : ""}
+          ${src ? `<div style="position:relative">
+            <img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${splitAspect};object-fit:cover;display:block"/>
             ${annotationOverlayHtml}
-          </div>
-          <div class="pagzly-stacked-body" style="max-width:576px;margin:0 auto;text-align:center">
+          </div>` : ""}
+          <div class="pagzly-stacked-body" style="max-width:576px;margin:0 auto;text-align:center${src ? "" : ";padding-top:0"}">
             <p class="pagzly-body-lh" style="margin:0;line-height:1.85;font-size:${titleSizeCss("body")};color:${hexToRgba(BRAND.ink, 0.82)};overflow-wrap:anywhere">${emphasizedBodyHtml(section.body, section.emphasis, accent)}</p>
             ${compliance}
           </div>
