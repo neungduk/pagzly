@@ -41,6 +41,11 @@ body {
   overflow-wrap: break-word;
 }
 
+/* 제목 마지막 줄에 한 어절만 남지 않게 줄 길이를 고른다 (export .pagzly-wrap과 동일) */
+[data-pagzly-preview] :is(h1, h2, h3) {
+  text-wrap: balance;
+}
+
 /* 칸(가장 가까운 container)보다 긴 한 어절은 음절로 쪼개지 않고 글자 크기를 줄인다(가독 하한 11px).
    --pz-fs: 기본 글자 크기, --pz-fit-em: 가장 긴 어절 폭(em, longestTokenEm). 미지정 시 --pz-fs 그대로 */
 .pz-fit {
