@@ -900,8 +900,8 @@ function sectionHtml(
       const statGrid = (items: typeof section.metrics, gap: string) => {
         if (items.length === 0) return "";
         const n = items.length;
-        const cols = n <= 1 ? "max-width:320px;grid-template-columns:1fr" : n === 2 ? "max-width:448px;grid-template-columns:repeat(2,1fr)" : "max-width:672px;grid-template-columns:repeat(2,1fr)";
-        return `<div${n >= 3 ? ` class="pagzly-stat-grid3"` : ""} style="display:grid;${cols};gap:${gap};margin:40px auto 0">${items.map(metricHtml).join("")}</div>`;
+        const cols = n <= 1 ? "max-width:320px;grid-template-columns:1fr" : n === 2 ? "max-width:448px;grid-template-columns:repeat(2,1fr)" : n === 4 ? "max-width:576px;grid-template-columns:repeat(2,1fr)" : "max-width:672px;grid-template-columns:repeat(2,1fr)";
+        return `<div${n >= 3 && n !== 4 ? ` class="pagzly-stat-grid3"` : ""} style="display:grid;${cols};gap:${gap};margin:40px auto 0">${items.map(metricHtml).join("")}</div>`;
       };
       const statRule = `1px solid ${hexToRgba(accent, 0.2)}`;
       const stripBars = barMetrics.filter((m) => isConcentrationMetricLabel(m.label));

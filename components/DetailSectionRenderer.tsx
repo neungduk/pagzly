@@ -3429,7 +3429,9 @@ function renderSection(
           ? "max-w-xs grid-cols-1"
           : numberMetrics.length === 2
             ? "max-w-md grid-cols-2"
-            : "max-w-2xl grid-cols-2 @min-[640px]/pz:grid-cols-3";
+            : numberMetrics.length === 4
+              ? "max-w-xl grid-cols-2"
+              : "max-w-2xl grid-cols-2 @min-[640px]/pz:grid-cols-3";
       // 숫자 카드·링·막대가 한 섹션에 섞이면 세 가지 시각 언어가 겹친다 — 숫자가 있으면 링도 같은 선 구분 칸으로
       // 막대 없이 그려지는 농도 수치(5% 등)가 선 아래 한 줄로 떨어져 있으면 고아처럼 보인다 — 같은 칸으로 흡수
       const stripBars = barMetrics.filter(({ metric }) => isConcentrationMetricLabel(metric.label));
@@ -3451,7 +3453,9 @@ function renderSection(
           ? "max-w-xs grid-cols-1"
           : ringMetrics.length === 2
             ? "max-w-md grid-cols-2"
-            : "max-w-2xl grid-cols-2 @min-[640px]/pz:grid-cols-3";
+            : ringMetrics.length === 4
+              ? "max-w-xl grid-cols-2"
+              : "max-w-2xl grid-cols-2 @min-[640px]/pz:grid-cols-3";
 
       return (
         <section
