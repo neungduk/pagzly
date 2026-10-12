@@ -195,8 +195,9 @@ export function buildVolumeComparisonDiagramSvg(
     const y = baseY - h;
     const opacity = e.isProduct ? 0.85 : 0.45;
     const strokeW = e.isProduct ? 2 : 1.4;
+    const topLabel = e.label.replace(/\s*\d+(?:\.\d+)?\s*mL$/i, "").trim() || e.label;
     return `
-      <text x="${x + bottleW / 2}" y="${y - 10}" text-anchor="middle" font-size="10" fill="${labelColor}" opacity="0.85">${escapeXml(e.label)}</text>
+      <text x="${x + bottleW / 2}" y="${y - 10}" text-anchor="middle" font-size="10" fill="${labelColor}" font-weight="${e.isProduct ? 700 : 500}" opacity="${e.isProduct ? 1 : 0.7}">${escapeXml(topLabel)}</text>
       <path d="${bottlePath(x, y, bottleW, h)}" fill="none" stroke="${strokeColor}" stroke-width="${strokeW}" opacity="${opacity}"/>
       <text x="${x + bottleW / 2}" y="${baseY + 18}" text-anchor="middle" font-size="11" fill="${labelColor}" font-weight="${e.isProduct ? 700 : 500}">${e.ml}mL</text>
     `;
