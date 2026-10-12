@@ -128,8 +128,15 @@ export function buildWaterproofIpDiagramSvg(
   const span = Math.max(scaleMax - scaleMin, 1);
   const toX = (v: number) => trackX1 + ((v - scaleMin) / span) * (trackX2 - trackX1);
   const prodX = toX(level);
-  const safeLabel =
-    productValueLabel.length > 16 ? `${productValueLabel.slice(0, 15)}…` : productValueLabel;
+  const withoutLevel = productValueLabel
+    .replace(new RegExp(`IP[X\\d]?${level}\\b`, "i"), "")
+    .replace(/^[\s·,/()-]+|[\s·,/()-]+$/g, "")
+    .trim();
+  const safeLabel = !withoutLevel
+    ? "이 제품"
+    : withoutLevel.length > 16
+      ? `${withoutLevel.slice(0, 15)}…`
+      : withoutLevel;
 
   const refMarks = refs
     .map((r) => {
