@@ -47,6 +47,7 @@ import { isTestMode } from "@/lib/test-mode";
 import { isPremiumQualityMode } from "@/lib/premium-mode";
 import { logForceRegenerateStatus } from "@/lib/force-regenerate";
 import { addCostLogTally } from "@/lib/cost-log-tally";
+import { restoreProductPixels } from "@/lib/composite-label-restore";
 
 const CANVAS_SIZE = 1200;
 /** flux-fill / 마스크 생성 해상도 — CANVAS_SIZE와 맞춰 업스케일 없이 합성 (합성 티 완화). */
@@ -1580,6 +1581,44 @@ export async function sharpenCutout(cutoutUrl: string): Promise<{ url: string; c
   }
 }
 
+/**
+ * 통째 재생성형 배경(Kontext·nano-banana)은 상품까지 다시 그려 라벨 글자가 뭉개진다.
+ * 원본 컷아웃을 생성본 속 상품 위치에 정합해 원본 픽셀(라벨)로 되덮는다.
+ * 위치를 확신하지 못하면 손대지 않는다. 실패는 조용히 원래 배경으로.
+ */
+async function restoreLabelsOnRegeneratedBackdrop(
+  sourceImageUrl: string,
+  backdrop: Buffer,
+): Promise<{ buffer: Buffer; cost: number }> {
+  const provider = getBackdropProvider();
+  if (provider !== "flux-kontext-pro" && provider !== "nano-banana") return { buffer: backdrop, cost: 0 };
+  if (isTestMode() || process.env.LABEL_RESTORE === "off") return { buffer: backdrop, cost: 0 };
+  try {
+    const replicate = getReplicateClient();
+    const ref = await getBackgroundRemoverRef(replicate);
+    const output = await runReplicateWithRetry("851-labs/background-remover", () =>
+      replicate.run(ref, { input: { image: sourceImageUrl }, wait: { mode: "poll", interval: 1000 } }),
+    );
+    const cost = REPLICATE_COST_USD.backgroundRemover;
+    addCostLogTally("labelRestore rembg", cost);
+    const cutoutUrl = extractFluxImageUrl(output);
+    if (!cutoutUrl) return { buffer: backdrop, cost };
+    const res = await fetch(cutoutUrl);
+    if (!res.ok) return { buffer: backdrop, cost };
+    const cutout = Buffer.from(await res.arrayBuffer());
+    const restored = await restoreProductPixels({ generated: backdrop, cutout });
+    console.log(
+      `[labelRestore] ${restored.applied ? "적용" : "건너뜀"} parts=${restored.parts
+        .map((p) => `${p.applied ? "O" : "x"}${p.score.toFixed(2)}`)
+        .join(",")} (rembg $${cost.toFixed(5)})`,
+    );
+    return { buffer: restored.applied ? restored.buffer : backdrop, cost };
+  } catch (error) {
+    console.warn("[labelRestore] 실패 — 생성본 그대로 사용", error);
+    return { buffer: backdrop, cost: 0 };
+  }
+}
+
 export async function enhanceProductImage(
   sourceImageUrl: string,
   backdropBuffer: Buffer,
@@ -1599,10 +1638,12 @@ export async function enhanceProductImage(
   // 원본을 다시 컷아웃해서 겹쳐 합성하면 이중노출(반투명 유리판 아티팩트)이 생기므로
   // 재컷아웃/재합성을 전부 건너뛰고 배경을 그대로 사용한다.
   if (backdropAlreadyComposited) {
-    const backdropResized = await sharp(backdropBuffer)
+    const resizedRaw = await sharp(backdropBuffer)
       .resize(CANVAS_SIZE, CANVAS_SIZE, { fit: "cover" })
       .png()
       .toBuffer();
+    const labelRestore = await restoreLabelsOnRegeneratedBackdrop(sourceImageUrl, resizedRaw);
+    const backdropResized = labelRestore.buffer;
 
     let decorCost = 0;
     let decorBuffer = reuseDecor;
@@ -1662,7 +1703,13 @@ export async function enhanceProductImage(
     console.log(
       "[enhanceProductImage] backdropAlreadyComposited=true — 재컷아웃 스킵, 그림자/그레인만 보정",
     );
-    return { buffer: finalBuffer, cost: 0, decorBuffer, decorCost: decorCost || undefined, claudeCost: 0 };
+    return {
+      buffer: finalBuffer,
+      cost: labelRestore.cost,
+      decorBuffer,
+      decorCost: decorCost || undefined,
+      claudeCost: 0,
+    };
   }
 
   const replicate = getReplicateClient();
