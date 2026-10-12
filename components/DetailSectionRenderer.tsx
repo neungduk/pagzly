@@ -2406,7 +2406,7 @@ function renderSection(
                     aria-hidden={!edit?.enabled}
                   >
                     <div
-                      className="relative rounded-2xl px-5 py-3 text-center text-sm font-semibold leading-snug text-paper shadow-lg @min-[640px]/pz:text-base"
+                      className="relative text-balance rounded-2xl px-5 py-3 text-center text-sm font-semibold leading-snug text-paper shadow-lg @min-[640px]/pz:text-base"
                       style={{ backgroundColor: solidDeepOnPaper(theme) }}
                     >
                       <EditableText

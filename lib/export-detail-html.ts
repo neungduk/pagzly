@@ -2105,7 +2105,7 @@ ${jsonLd}
   @media (min-width:640px){.pagzly-stat-bar-label{font-size:16px}}
   .pagzly-wrap [data-diagram]>svg,.pagzly-wrap .pagzly-diagram>div>svg{display:block}
   @media (min-width:640px){.pagzly-run-num{font-size:2.5rem!important}}
-  .pagzly-wrap :is(h1,h2,h3){text-wrap:balance}
+  .pagzly-wrap :is(h1,h2,h3){text-wrap:balance}.pagzly-wrap p{text-wrap:pretty}.pagzly-wrap .pagzly-bubble{text-wrap:balance}
   .pagzly-textonly{padding:40px 24px}
   @media (min-width:640px){.pagzly-textonly{padding:48px 40px}}
   .pagzly-rv-cap{font-size:11px;line-height:1.5}

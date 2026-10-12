@@ -46,6 +46,11 @@ body {
   text-wrap: balance;
 }
 
+/* 본문 단락 끝 줄에 한 어절만 남는 고아 줄 방지 (export .pagzly-wrap과 동일) */
+[data-pagzly-preview] p {
+  text-wrap: pretty;
+}
+
 /* 칸(가장 가까운 container)보다 긴 한 어절은 음절로 쪼개지 않고 글자 크기를 줄인다(가독 하한 11px).
    --pz-fs: 기본 글자 크기, --pz-fit-em: 가장 긴 어절 폭(em, longestTokenEm). 미지정 시 --pz-fs 그대로 */
 .pz-fit {
