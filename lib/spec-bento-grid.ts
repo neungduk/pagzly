@@ -41,16 +41,41 @@ function escapeXml(s: string): string {
 /** BRAND.paper와 동일한 값(design-tokens.ts) — deepAccent 배경 위 밝은 텍스트용 */
 const PAPER_TEXT = "#FAF8F3";
 
+const WIDE_VALUE_CHARS = 14;
+
+/**
+ * 2열 그리드에서 각 칸이 두 열을 차지할지. 긴 값(성분 나열 등)은 반 칸에서 4~5줄로 꺾여
+ * 옆 칸과 높이가 크게 어긋나므로 한 줄 전체를 쓰고, 그 뒤 홀로 남는 칸도 줄을 채운다.
+ */
+export function specBentoSpans(facts: QuickFact[]): boolean[] {
+  const spans: boolean[] = [];
+  let col = 0;
+  facts.forEach((f, i) => {
+    const wide = f.value.trim().length > WIDE_VALUE_CHARS;
+    if (wide) {
+      if (col === 1) spans[i - 1] = true;
+      spans.push(true);
+      col = 0;
+      return;
+    }
+    spans.push(false);
+    col = col === 0 ? 1 : 0;
+  });
+  if (col === 1 && facts.length > 0) spans[facts.length - 1] = true;
+  return spans;
+}
+
 /** export HTML용 인라인 스타일 그리드. 최소 2개 이상일 때만 렌더(1개면 그리드 의미 없음). */
 export function buildSpecBentoGridHtml(facts: QuickFact[], theme: SpecBentoTheme): string {
   if (facts.length < 2) return "";
   const cells = facts.slice(0, 4);
+  const spans = specBentoSpans(cells);
 
   const cellsHtml = cells
     .map((f, i) => {
       if (FLAT_SECTION_SURFACES) {
         const lead = i === 0;
-        return `<div style="background:${FLAT_PAPER};border:1px solid ${hexToRgba(theme.accent, 0.16)};border-radius:${RADIUS.lg}px;padding:16px;min-height:84px;display:flex;flex-direction:column;justify-content:flex-start">
+        return `<div style="${spans[i] ? "grid-column:span 2;" : ""}background:${FLAT_PAPER};border:1px solid ${hexToRgba(theme.accent, 0.16)};border-radius:${RADIUS.lg}px;padding:16px;min-height:84px;display:flex;flex-direction:column;justify-content:flex-start">
         <p style="margin:0 0 6px;font-size:${FONT_SIZE.micro};letter-spacing:.12em;color:${hexToRgba(BRAND.ink, 0.55)}">${escapeXml(f.label)}</p>
         <p style="margin:0;font-size:${lead ? "17px" : FONT_SIZE.body};font-weight:700;line-height:1.375;color:${lead ? ensureReadableOnPaper(theme.accent, 3) : theme.deepAccent}">${escapeXml(f.value)}</p>
       </div>`;

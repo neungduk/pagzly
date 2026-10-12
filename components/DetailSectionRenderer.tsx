@@ -45,7 +45,13 @@ import {
 import { findTextOnlyRuns, textOnlyRunHeading } from "@/lib/text-only-run";
 import { classifyBoolishCell } from "@/lib/comparison-cell-classify";
 import { resolveCompactImageShape } from "@/lib/compact-image-shape";
-import { displaySpecValue, ingredientVennHtml, isRedundantSoloVenn, specIngredientChips } from "@/lib/ingredient-venn";
+import {
+  displaySpecValue,
+  ingredientVennHtml,
+  isRedundantSoloVenn,
+  specCertChips,
+  specIngredientChips,
+} from "@/lib/ingredient-venn";
 import {
   BEFORE_AFTER_COMPLIANCE_NOTE,
   CERTIFICATE_EVIDENCE_COMPLIANCE_NOTE,
@@ -2962,7 +2968,25 @@ function renderSection(
                           : "font-medium text-ink"
                       }`}
                     >
-                      {isCertificationHighlight(row.label, row.value, certTokens) ? (
+                      {isCertificationHighlight(row.label, row.value, certTokens) &&
+                      !edit?.enabled &&
+                      specCertChips(row.value) ? (
+                        <span data-spec-chips className="flex flex-wrap gap-1.5">
+                          {specCertChips(row.value)!.map((chip, ci) => (
+                            <span
+                              key={ci}
+                              className="rounded-md px-2 py-0.5 text-[13px] leading-5"
+                              style={{
+                                color: readableTextAccent(theme),
+                                backgroundColor: hexToRgba(theme.accent, 0.14),
+                                boxShadow: ELEVATION.certUnderlineSoft(theme.accent),
+                              }}
+                            >
+                              {chip}
+                            </span>
+                          ))}
+                        </span>
+                      ) : isCertificationHighlight(row.label, row.value, certTokens) ? (
                         <span
                           className="inline-block rounded-md px-2 py-0.5"
                           style={{

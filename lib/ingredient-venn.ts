@@ -69,6 +69,16 @@ export function specIngredientChips(label: string, value: string): string[] | nu
   return items;
 }
 
+/** 인증 행의 "더마 테스트 완료, 비건 포뮬러, 동물실험 없음" → 항목별 강조 칩 (한 덩어리 강조 대신) */
+export function specCertChips(value: string): string[] | null {
+  const items = value
+    .split(/[,·/\n]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (items.length < 2 || items.length > 6 || items.some((s) => s.length > 18)) return null;
+  return items;
+}
+
 /** "나이아신아마이드 5%, Sodium Hyaluronate, Panthenol" → 사전에 있는 영문 성분명만 한글 표준명으로 */
 export function koreanizeIngredientList(text: string): string {
   return text.replace(/[^,·/\n]+/g, (token) => {

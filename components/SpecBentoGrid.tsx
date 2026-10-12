@@ -10,6 +10,7 @@ import {
 } from "@/lib/design-tokens";
 import { longestTokenEm } from "@/lib/detail-typography";
 import type { QuickFact } from "@/lib/quick-fact-strip";
+import { specBentoSpans } from "@/lib/spec-bento-grid";
 
 type SpecBentoGridProps = {
   facts: QuickFact[];
@@ -20,6 +21,7 @@ type SpecBentoGridProps = {
 export default function SpecBentoGrid({ facts, theme }: SpecBentoGridProps) {
   if (facts.length < 2) return null;
   const cells = facts.slice(0, 4);
+  const spans = specBentoSpans(cells);
 
   return (
     <div
@@ -34,7 +36,7 @@ export default function SpecBentoGrid({ facts, theme }: SpecBentoGridProps) {
             <div
               key={`${f.label}-${i}`}
               role="listitem"
-              className="@container flex min-h-[84px] flex-col justify-start p-4"
+              className={`@container flex min-h-[84px] flex-col justify-start p-4 ${spans[i] ? "col-span-2" : ""}`}
               style={{
                 backgroundColor: FLAT_PAPER,
                 border: `1px solid ${hexToRgba(theme.accent, 0.16)}`,
