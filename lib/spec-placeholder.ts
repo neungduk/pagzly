@@ -90,9 +90,10 @@ export function shopperFacingTarget(target: string | null | undefined): string {
 
 /** 주의사항 본문을 문장 단위 항목으로. 2문장 미만이면 null(문단 그대로). */
 export function splitNoticeSentences(body: string): string[] | null {
+  // 목록이 이미 글머리표를 달므로 "1)"·"①" 같은 원문 번호는 떼어 낸다
   const items = body
-    .split(/(?<=[.!?])\s+|\n+/)
-    .map((s) => s.trim())
+    .split(/(?<=[.!?])\s+|\n+|\s+(?=\d{1,2}\)\s)/)
+    .map((s) => s.trim().replace(/^(?:\d{1,2}[).]|[①-⑳])\s*/, "").trim())
     .filter(Boolean);
   return items.length >= 2 && items.length <= 8 ? items : null;
 }

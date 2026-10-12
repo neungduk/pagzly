@@ -582,7 +582,7 @@ function circleComparisonComboHtml(params: {
     )
     .join("");
   return `<section${anchorId ? ` id="${anchorId}"` : ""} class="pagzly-circle-combo" style="${sectionStyle}">
-        ${hideCircle ? "" : `<div style="margin-bottom:40px"><div style="display:flex;justify-content:center;align-items:flex-start;gap:32px;max-width:448px;margin:0 auto">${circlesHtml}</div></div>`}
+        ${hideCircle ? "" : `<div style="margin-bottom:40px">${FLAT_SECTION_SURFACES ? `<p style="margin:0 0 16px;text-align:center;font-size:12px;line-height:16px;font-weight:700;letter-spacing:.2em;color:${deepText}">핵심 성분</p>` : ""}<div style="display:flex;justify-content:center;align-items:flex-start;gap:32px;max-width:448px;margin:0 auto">${circlesHtml}</div></div>`}
         ${comparisonChartBodyHtml(chartSection, theme, category)}
       </section>`;
 }

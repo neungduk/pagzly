@@ -1658,6 +1658,14 @@ function renderCircleComparisonCombo(params: {
     >
       {hideCircle ? null : (
         <div className="mb-10">
+          {FLAT_SECTION_SURFACES ? (
+            <p
+              className="mb-4 text-center text-xs font-bold tracking-[0.2em]"
+              style={{ color: readableTextDeep(theme) }}
+            >
+              핵심 성분
+            </p>
+          ) : null}
           {renderIngredientCircleVisual({
             section: circleSection,
             productName,
