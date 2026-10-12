@@ -29,6 +29,8 @@ const HEADLINE_KEYWORD_RE = new RegExp(
   [
     String.raw`(?<![A-Za-z0-9.])\d+(?:[.,]\d+)?(?:\s?(?:%|％|kg|mg|g|mL|ml|L|cm|mm|시간|분|초|개월|일|년|개|가지|회|단계|배|종|컷|°C|℃|dB|mAh|W|도|겹|장|매|포|정|위|인분|명))?\+?`,
     String.raw`(?<![가-힣])(?:한|두|세|네|다섯|여섯|일곱|여덟|아홉|열)\s?(?:가지|컷|단계|종|겹|번|장)(?=$|[\s,.!?·]|[은는이가을를로으의에도와과만])`,
+    // 한글 제목 속 브랜드·모델명("AURA ONE Pro", "USB-C") — 대문자로 시작하는 라틴 어절 묶음
+    String.raw`(?<![A-Za-z0-9])[A-Z][A-Za-z0-9+\-]+(?:\s[A-Z0-9][A-Za-z0-9+\-]*)*`,
   ].join("|"),
   "g",
 );
@@ -50,7 +52,7 @@ export function splitHeadlineKeywords(text: string | null | undefined): Headline
   if (!segments.length) return null;
   if (last < raw.length) segments.push({ text: raw.slice(last), keyword: false });
   const rest = segments.filter((s) => !s.keyword).map((s) => s.text).join("");
-  if ((rest.match(/[가-힣A-Za-z]/g) ?? []).length < 2) return null;
+  if ((rest.match(/[가-힣]/g) ?? []).length < 2) return null;
   return segments;
 }
 
