@@ -151,6 +151,7 @@ import {
   CHECKLIST_HUB_LABEL_W,
   checklistHubLayout,
   isChecklistHubEligible,
+  isChecklistStacked,
 } from "@/lib/checklist-hub";
 import { SellerImageMetaContext } from "@/components/SellerImageMetaContext";
 import CanvasSectionRenderer from "@/components/CanvasSectionRenderer";
@@ -159,6 +160,9 @@ import {
   SLOT_IMAGE_RATIO,
   DETAIL_CROP,
   USAGE_SCENE,
+  PERSONA_SINGLE,
+  PERSONA_STRIP,
+  QUESTION_LEAD,
   resolvePointImageRatio,
   resolveSlotImageRatio,
   HERO_TRANSITION_OVERLAP_CLASS,
@@ -204,6 +208,8 @@ import {
 } from "@/lib/designer-headline";
 import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
 import { uniqueGalleryIndexes } from "@/lib/gallery-dedupe";
+import { applyDisplayRules } from "@/lib/display-sections";
+import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
 
 export type SectionEditApi = {
   enabled: boolean;
@@ -476,6 +482,7 @@ function ComparisonValueCell({
 }
 
 function checklistGridClass(items: string[], category: string): string {
+  if (FLAT_SECTION_SURFACES && isChecklistStacked(items)) return "grid-cols-1 mx-auto max-w-[480px]";
   const itemCount = items.length;
   if (itemCount === 3) return "grid-cols-3";
   if (itemCount === 5) return "grid-cols-2 @min-[640px]/pz:grid-cols-5";
@@ -1493,6 +1500,110 @@ function renderIngredientCircleVisual(params: {
 }
 
 /** 체크리스트 비교 상단 — 실제 상품 사진 VS 일반 제품 실루엣 */
+function QuestionLead({ theme }: { theme: CategoryTheme }) {
+  const q = QUESTION_LEAD;
+  const color = solidAccentOnPaper(theme);
+  return (
+    <div
+      aria-hidden
+      data-question-lead
+      className="flex flex-col items-center"
+      style={{ marginBottom: q.gapPx, gap: q.gapPx }}
+    >
+      <span
+        className="block leading-none"
+        style={{ fontSize: q.fontPx, fontWeight: q.weight, letterSpacing: `${q.letterSpacingEm}em`, color }}
+      >
+        {q.label}
+      </span>
+      <span className="flex flex-col items-center" style={{ gap: q.dotGapPx }}>
+        {Array.from({ length: q.dotCount }, (_, i) => (
+          <span
+            key={i}
+            className="block rounded-full"
+            style={{ width: q.dotPx, height: q.dotPx, backgroundColor: hexToRgba(color, 0.5) }}
+          />
+        ))}
+      </span>
+    </div>
+  );
+}
+
+function PersonaStrip({
+  section,
+  indexes,
+  imageUrls,
+  theme,
+  productName,
+  edit,
+  onChange,
+}: {
+  section: Extract<DetailSection, { type: "target_persona" }>;
+  indexes: number[];
+  imageUrls: string[];
+  theme: CategoryTheme;
+  productName?: string;
+  edit?: SectionEditApi;
+  onChange: (personas: string[]) => void;
+}) {
+  const s = PERSONA_STRIP;
+  return (
+    <ul data-persona-strip className="mx-auto mt-8 flex flex-col" style={{ gap: s.gapPx, maxWidth: s.maxWidthPx }}>
+      {section.personas.map((persona, i) => {
+        const flip = i % 2 === 1;
+        return (
+          <li
+            key={`${i}-${persona.slice(0, 12)}`}
+            className="flex items-center overflow-hidden rounded-full border"
+            style={{
+              aspectRatio: s.rowAspect,
+              flexDirection: flip ? "row-reverse" : "row",
+              backgroundColor: FLAT_PAPER,
+              borderColor: hexToRgba(theme.accent, 0.16),
+            }}
+          >
+            <div className="relative h-full shrink-0" style={{ width: `${s.photoWidthPct}%` }}>
+              <SectionImage
+                src={imageUrls[indexes[i]!] ?? ""}
+                alt={buildSectionImageAlt(productName ?? "", persona, section.slot)}
+                className="block h-full w-full object-cover"
+                imageIndex={indexes[i]}
+                showAiLifestyleBadge={false}
+              />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background: `linear-gradient(${flip ? "270deg" : "90deg"}, transparent ${100 - s.fadePct}%, ${FLAT_PAPER} 100%)`,
+                }}
+              />
+            </div>
+            <EditableText
+              as="span"
+              enabled={edit?.enabled}
+              value={persona}
+              onChange={(next) => {
+                const personas = [...section.personas];
+                personas[i] = next;
+                onChange(personas);
+              }}
+              className="line-clamp-3 min-w-0 flex-1 text-center font-medium"
+              style={{
+                padding: `0 ${s.padXPx}px`,
+                fontSize: s.textPx,
+                lineHeight: s.lineHeight,
+                color: BRAND.ink,
+                wordBreak: "keep-all",
+                textWrap: "balance",
+              }}
+            />
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 function ComparisonVersusHeader({
   productThumb,
   ourLabel,
@@ -4108,7 +4219,7 @@ function renderSection(
               </li>
             ))}
           </ol>
-          {isCosmeticsCategory(category) ? (
+          {!FLAT_SECTION_SURFACES && isCosmeticsCategory(category) ? (
             <UsageOrderFlowDiagram steps={section.steps} theme={theme} />
           ) : null}
         </section>
@@ -5142,6 +5253,9 @@ function renderSection(
         >
           <div className={TEXT_COL_CLASS}>
             <SectionAccentHairline theme={theme} />
+            {FLAT_SECTION_SURFACES && isQuestionHeading(section.heading) ? (
+              <QuestionLead theme={theme} />
+            ) : null}
             <TwoToneTitle
               theme={theme}
               title={section.heading}
@@ -5151,6 +5265,48 @@ function renderSection(
               onChange={(heading) => edit?.onChange(index, { ...section, heading })}
             />
           </div>
+          {FLAT_SECTION_SURFACES && personaStripIndexes(section, imageUrls.length) ? (
+            <PersonaStrip
+              section={section}
+              indexes={personaStripIndexes(section, imageUrls.length)!}
+              imageUrls={imageUrls}
+              theme={theme}
+              productName={productName}
+              edit={edit}
+              onChange={(personas) => edit?.onChange(index, { ...section, personas })}
+            />
+          ) : FLAT_SECTION_SURFACES && section.personas.length === 1 ? (
+            <div
+              data-persona-single
+              className="mx-auto mt-8 flex flex-col items-center text-center"
+              style={{ maxWidth: PERSONA_SINGLE.maxWidthPx, gap: PERSONA_SINGLE.ruleGapPx }}
+            >
+              <span
+                aria-hidden
+                className="block h-px"
+                style={{ width: PERSONA_SINGLE.ruleWidthPx, backgroundColor: hexToRgba(solidAccentOnPaper(theme), 0.5) }}
+              />
+              <EditableText
+                as="p"
+                enabled={edit?.enabled}
+                value={section.personas[0]!}
+                onChange={(next) => edit?.onChange(index, { ...section, personas: [next] })}
+                style={{
+                  fontSize: PERSONA_SINGLE.fontPx,
+                  fontWeight: PERSONA_SINGLE.weight,
+                  lineHeight: PERSONA_SINGLE.lineHeight,
+                  color: BRAND.ink,
+                  wordBreak: "keep-all",
+                  textWrap: "balance",
+                }}
+              />
+              <span
+                aria-hidden
+                className="block h-px"
+                style={{ width: PERSONA_SINGLE.ruleWidthPx, backgroundColor: hexToRgba(solidAccentOnPaper(theme), 0.5) }}
+              />
+            </div>
+          ) : (
           <ul
             className={
               FLAT_SECTION_SURFACES && isPersonaPairGrid(section.personas)
@@ -5209,7 +5365,8 @@ function renderSection(
               </li>
             ))}
           </ul>
-          {FLAT_SECTION_SURFACES ? (
+          )}
+          {FLAT_SECTION_SURFACES && section.personas.length > 1 ? (
             <div
               aria-hidden
               data-persona-trail
@@ -5329,7 +5486,7 @@ function renderSection(
 }
 
 export default function DetailSectionRenderer({
-  sections: rawSections,
+  sections: inputSections,
   imageUrls,
   imageOrigins,
   sellerAiBadges = false,
@@ -5337,15 +5494,26 @@ export default function DetailSectionRenderer({
   productName,
   theme: themeOverride,
   conceptIcons,
-  edit,
+  edit: inputEdit,
   previewCollapse,
   brandName,
   logoUrl,
   ingredients,
   keyFeatures,
   certifications,
-  pendingHighlightIndex = null,
+  pendingHighlightIndex: inputHighlightIndex = null,
 }: DetailSectionRendererProps) {
+  const display = applyDisplayRules(inputSections, imageUrls, { editing: inputEdit?.enabled });
+  const rawSections = display.sections;
+  const toSource = (i: number) => display.sourceIndexes[i] ?? i;
+  const edit: SectionEditApi | undefined = inputEdit && {
+    ...inputEdit,
+    onChange: (i, section) => inputEdit.onChange(toSource(i), section),
+    onRequestAiPatch: inputEdit.onRequestAiPatch && ((i) => inputEdit.onRequestAiPatch?.(toSource(i))),
+    onElementSelect: inputEdit.onElementSelect && ((i, path) => inputEdit.onElementSelect?.(toSource(i), path)),
+  };
+  const pendingHighlightIndex =
+    inputHighlightIndex == null ? null : display.sourceIndexes.indexOf(inputHighlightIndex);
   const shaped = dropDuplicateRecommendColumn(
     restoreHashtagHeadingUnits(limitBoldBlocks(rawSections)),
   );

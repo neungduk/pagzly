@@ -2,8 +2,10 @@ import type { CategoryTheme } from "@/lib/category-theme";
 import { renderCanvasSectionHtml } from "@/lib/canvas-section-export-html";
 import {
   CHECKLIST_HUB_LABEL_W,
+  CHECKLIST_STACK_MAX_W,
   checklistHubLayout,
   isChecklistHubEligible,
+  isChecklistStacked,
 } from "@/lib/checklist-hub";
 import { buildSectionImageAlt } from "@/lib/detail-image-alt";
 import { buildSeoTextBlockHtml } from "@/lib/detail-seo-text";
@@ -139,6 +141,9 @@ import {
   imageRatioCss,
   DETAIL_CROP,
   USAGE_SCENE,
+  PERSONA_SINGLE,
+  PERSONA_STRIP,
+  QUESTION_LEAD,
   resolvePointImageRatio,
   resolveSlotImageRatio,
   titleScaleExportCss,
@@ -168,6 +173,8 @@ import {
   splitTwoToneHeadline,
 } from "@/lib/designer-headline";
 import { resolveProductThumbs, type ProductThumbs } from "@/lib/product-thumb";
+import { applyDisplayRules } from "@/lib/display-sections";
+import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
 import { buildProductJsonLd, serializeJsonLdScripts } from "@/lib/product-json-ld";
 import {
   buildDetailExportFontCss,
@@ -204,6 +211,9 @@ import type {
 
 /** 라이브 checklistGridClass와 같은 열 수 — 모바일 열은 인라인, 640px 이상은 --pz-cl-wide */
 function checklistGridCss(items: string[], category: string): string {
+  if (FLAT_SECTION_SURFACES && isChecklistStacked(items)) {
+    return `display:grid;grid-template-columns:repeat(1,1fr);--pz-cl-wide:repeat(1,1fr);max-width:${CHECKLIST_STACK_MAX_W}px;margin-left:auto;margin-right:auto`;
+  }
   const n = items.filter((item) => String(item).trim()).length;
   let mobile = 2;
   let wide = 3;
@@ -754,7 +764,7 @@ function sectionHtml(
       }
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${checklistHead}
-        <ul class="pagzly-cl-grid" style="${checklistGridCss(section.items, category)};gap:${FLAT_SECTION_SURFACES ? checklistGapCss(category) : "12px"};list-style:none;padding:0;margin:0">
+        <ul class="pagzly-cl-grid" style="list-style:none;padding:0;margin:0;gap:${FLAT_SECTION_SURFACES ? checklistGapCss(category) : "12px"};${checklistGridCss(section.items, category)}">
           ${section.items
             .map(
               (item) =>
@@ -1534,12 +1544,38 @@ function sectionHtml(
     case "target_persona":
       if (FLAT_SECTION_SURFACES) {
         const check = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${BRAND.paper}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>`;
+        const stripIndexes = personaStripIndexes(section, imageUrls.length);
+        const qColor = solidAccentOnPaper(theme);
+        const ql = QUESTION_LEAD;
+        const questionLeadHtml = isQuestionHeading(section.heading)
+          ? `<div aria-hidden="true" data-question-lead style="display:flex;flex-direction:column;align-items:center;margin-bottom:${ql.gapPx}px;gap:${ql.gapPx}px"><span style="display:block;line-height:1;font-size:${ql.fontPx}px;font-weight:${ql.weight};letter-spacing:${ql.letterSpacingEm}em;color:${qColor}">${ql.label}</span><span style="display:flex;flex-direction:column;align-items:center;gap:${ql.dotGapPx}px">${Array.from({ length: ql.dotCount }, () => `<span style="display:block;width:${ql.dotPx}px;height:${ql.dotPx}px;border-radius:9999px;background:${hexToRgba(qColor, 0.5)}"></span>`).join("")}</span></div>`
+          : "";
+        const ps = PERSONA_STRIP;
+        const stripHtml = stripIndexes
+          ? `<ul data-persona-strip style="max-width:${ps.maxWidthPx}px;margin:32px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:${ps.gapPx}px">${section.personas
+              .map((p, i) => {
+                const flip = i % 2 === 1;
+                const alt = buildSectionImageAlt(productName, p, section.slot);
+                return `<li style="display:flex;align-items:center;flex-direction:${flip ? "row-reverse" : "row"};overflow:hidden;border-radius:9999px;border:1px solid ${hexToRgba(theme.accent, 0.16)};background:${FLAT_PAPER};aspect-ratio:${ps.rowAspect}"><div style="position:relative;height:100%;flex-shrink:0;width:${ps.photoWidthPct}%"><img src="${esc(imageUrls[stripIndexes[i]!] ?? "")}" alt="${esc(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover"/><div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(${flip ? "270deg" : "90deg"},transparent ${100 - ps.fadePct}%,${FLAT_PAPER} 100%)"></div></div><span style="min-width:0;flex:1;text-align:center;font-weight:500;padding:0 ${ps.padXPx}px;font-size:${ps.textPx}px;line-height:${ps.lineHeight};color:${BRAND.ink};word-break:keep-all;text-wrap:balance;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${esc(p)}</span></li>`;
+              })
+              .join("")}</ul>`
+          : "";
+        const one = PERSONA_SINGLE;
+        const ruleHtml = `<span aria-hidden="true" style="display:block;height:1px;width:${one.ruleWidthPx}px;background:${hexToRgba(solidAccentOnPaper(theme), 0.5)}"></span>`;
+        const singleHtml =
+          !stripHtml && section.personas.length === 1
+            ? `<div data-persona-single style="max-width:${one.maxWidthPx}px;margin:32px auto 0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:${one.ruleGapPx}px">${ruleHtml}<p style="margin:0;font-size:${one.fontPx}px;font-weight:${one.weight};line-height:${one.lineHeight};color:${BRAND.ink};word-break:keep-all;text-wrap:balance">${esc(section.personas[0]!)}</p>${ruleHtml}</div>`
+            : "";
+        const trailHtml =
+          section.personas.length > 1
+            ? `<div aria-hidden="true" data-persona-trail style="display:flex;flex-direction:column;align-items:center;margin-top:${PERSONA_TRAIL.marginTopPx}px;gap:${PERSONA_TRAIL.gapPx}px">${Array.from({ length: PERSONA_TRAIL.count }, () => `<span style="display:block;width:${PERSONA_TRAIL.dotPx}px;height:${PERSONA_TRAIL.dotPx}px;border-radius:9999px;background:${hexToRgba(solidAccentOnPaper(theme), PERSONA_TRAIL.alpha)}"></span>`).join("")}</div>`
+            : "";
         return `<section${sectionIdAttr} class="pagzly-persona" style="${pad}${sectionInset}${bgCss}">
-        <div style="text-align:center;max-width:576px;margin:0 auto">${twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}</div>
-        <ul${isPersonaPairGrid(section.personas) ? ` class="pagzly-persona-pairs"` : ""} style="max-width:576px;margin:32px auto 0;padding:0;list-style:none;display:${isPersonaPairGrid(section.personas) ? "grid" : "flex"};flex-direction:column;gap:12px">
+        <div style="text-align:center;max-width:576px;margin:0 auto">${questionLeadHtml}${twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}</div>
+        ${stripHtml || singleHtml || `<ul${isPersonaPairGrid(section.personas) ? ` class="pagzly-persona-pairs"` : ""} style="max-width:576px;margin:32px auto 0;padding:0;list-style:none;display:${isPersonaPairGrid(section.personas) ? "grid" : "flex"};flex-direction:column;gap:12px">
           ${section.personas.map((p) => `<li style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-radius:${RADIUS.lg}px;border:1px solid ${hexToRgba(theme.accent, 0.16)};background:${FLAT_PAPER};font-size:16px;font-weight:500;line-height:1.375;color:${BRAND.ink}"><span style="display:flex;flex-shrink:0;align-items:center;justify-content:center;width:24px;height:24px;border-radius:9999px;background:${solidAccentOnPaper(theme)}">${check}</span><span style="min-width:0;flex:1;text-align:left">${esc(p)}</span></li>`).join("")}
-        </ul>
-        <div aria-hidden="true" data-persona-trail style="display:flex;flex-direction:column;align-items:center;margin-top:${PERSONA_TRAIL.marginTopPx}px;gap:${PERSONA_TRAIL.gapPx}px">${Array.from({ length: PERSONA_TRAIL.count }, () => `<span style="display:block;width:${PERSONA_TRAIL.dotPx}px;height:${PERSONA_TRAIL.dotPx}px;border-radius:9999px;background:${hexToRgba(solidAccentOnPaper(theme), PERSONA_TRAIL.alpha)}"></span>`).join("")}</div>
+        </ul>`}
+        ${trailHtml}
       </section>`;
       }
       return `<section${sectionIdAttr} class="pagzly-persona" style="${pad}${sectionInset}${bgCss}">
@@ -1549,7 +1585,7 @@ function sectionHtml(
         </ul>
       </section>`;
     case "usage_steps": {
-      const flowHtml = isCosmeticsCategory(category)
+      const flowHtml = isCosmeticsCategory(category) && !FLAT_SECTION_SURFACES
         ? buildUsageOrderFlowSvg(section.steps, deep, "#1B1B18")
         : "";
       const flowBlock = flowHtml ? `<div style="max-width:360px;margin:40px auto 0">${flowHtml}</div>` : "";
@@ -1988,13 +2024,17 @@ export function buildDetailPageHtml(opts: {
   certifications?: string | null;
 }): string {
   const hidden = new Set(opts.hiddenIndexes ?? []);
-  // 183차 — 저관여(생활/펫) 표시 예산: 세션 데이터는 유지하고 export 노출만 축소
-  const afterUserHidden = opts.sections.filter((_, i) => !hidden.has(i));
+  // 183차 표시 예산은 결과 페이지(라이브)와 같은 순서 — 사용자 숨김 → 예산 → 표시 규칙(상한·사진 띠)
+  const afterUserHidden = applyDisplayRules(
+    applySectionDisplayBudget(
+      opts.category,
+      opts.sections.filter((_, i) => !hidden.has(i)),
+    ),
+    opts.imageUrls,
+  ).sections;
   const visibleSections = dropSpecEchoFaqItems(
     dropDuplicateRecommendColumn(
-      restoreHashtagHeadingUnits(
-        limitBoldBlocks(applySectionDisplayBudget(opts.category, afterUserHidden)),
-      ),
+      restoreHashtagHeadingUnits(limitBoldBlocks(afterUserHidden)),
     ),
   );
   const trustChips = extractTrustChips(visibleSections);
@@ -2009,7 +2049,7 @@ export function buildDetailPageHtml(opts: {
   const bodyParts: string[] = [];
   let imageTextCount = 0;
   const pointOrdinals = buildPointOrdinals(visibleSections);
-  const productThumbs = resolveProductThumbs(opts.sections, opts.imageUrls);
+  const productThumbs = resolveProductThumbs(afterUserHidden, opts.imageUrls);
   let lastRenderedSection: DetailSection | undefined; // 231차 — shouldInsertBreather 추적용
   const totalCompactImageTextCount = visibleSections.filter(
     (s) => s.type === "image_text" && s.layout === "compact",

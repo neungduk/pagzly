@@ -1,6 +1,7 @@
 import type { DetailSection } from "@/lib/types/generate";
 import { countSourceUses } from "@/lib/image-source-cap";
 import { IMAGE_SOURCE_CAP } from "@/lib/design-tokens";
+import { imageSourceGroups } from "@/lib/gallery-dedupe";
 
 export type ProductThumbs = { compare: string | null; highlight: string | null };
 
@@ -15,7 +16,10 @@ export function resolveProductThumbs(sections: DetailSection[], imageUrls: strin
   if (!hero || hero.type !== "hero") return none;
   const url = imageUrls[hero.imageIndex];
   if (typeof url !== "string" || !url.trim()) return none;
-  let left = IMAGE_SOURCE_CAP.maxUses - (countSourceUses(sections).get(hero.imageIndex) ?? 0);
+  const sourceOf = imageSourceGroups(imageUrls);
+  let left =
+    IMAGE_SOURCE_CAP.maxUses -
+    (countSourceUses(sections, sourceOf).get(sourceOf[hero.imageIndex] ?? hero.imageIndex) ?? 0);
   const out: ProductThumbs = { ...none };
   for (const s of sections) {
     if (left <= 0) break;

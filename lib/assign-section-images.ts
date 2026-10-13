@@ -10,6 +10,7 @@ import { AHASH_SIMILAR_THRESHOLD, hammingDistanceHex } from "@/lib/image-ahash-b
 import { scoreImageForCopy, sectionCopyText } from "@/lib/copy-image-match";
 import { enforceImageSourceCap } from "@/lib/image-source-cap";
 import { markUsageSceneSlots } from "@/lib/usage-scene";
+import { personIndexesFromHints, type PersonHint } from "@/lib/person-detect";
 
 /** 업로드·생성 공통 한도 */
 export const MAX_PRODUCT_IMAGES = 10;
@@ -71,6 +72,8 @@ export type AssignSectionImagesOptions = {
   imageTags?: string[][];
   /** 114차 — 이미지 index → Vision reason */
   imageReasons?: Array<string | undefined>;
+  /** 393차 — 로컬 인물 검출 힌트(lib/person-detect, 기본 꺼짐이면 무시) */
+  personHints?: Array<PersonHint | null | undefined>;
 };
 
 /** detail 역할 경쟁 슬롯 — 앞일수록 우선 배정 (104차 B) */
@@ -1027,7 +1030,11 @@ export function assignDistinctSectionImages(
   const capped = markUsageSceneSlots(
     enforceImageSourceCap(mapped, imageCount),
     category ?? "",
-    new Set([...lifestyleAiIndexes, ...lifestyleCompositeIndexes]),
+    new Set([
+      ...lifestyleAiIndexes,
+      ...lifestyleCompositeIndexes,
+      ...personIndexesFromHints(options?.personHints, imageCount),
+    ]),
   );
   logAssignResult(capped, imageCount);
   return capped;

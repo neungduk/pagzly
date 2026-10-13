@@ -26,8 +26,10 @@ function checklistShowsHub(section: Extract<DetailSection, { type: "checklist" }
 export function sectionImageIndexes(section: DetailSection): number[] {
   switch (section.type) {
     case "hero":
-    case "illustration_banner":
       return typeof section.imageIndex === "number" ? [section.imageIndex] : [];
+    case "illustration_banner":
+      if (section.illustrationUrl) return [];
+      return [typeof section.imageIndex === "number" ? section.imageIndex : 0];
     case "checklist":
       return checklistShowsHub(section) ? [CHECKLIST_HUB_INDEX] : [];
     case "image_text":
@@ -44,16 +46,21 @@ export function sectionImageIndexes(section: DetailSection): number[] {
     case "spec_table":
       return section.slot === "spec_table" ? (section.imageIndexes ?? []) : [];
     case "brand_story":
+    case "target_persona":
       return section.imageIndexes ?? [];
     default:
       return [];
   }
 }
 
-export function countSourceUses(sections: DetailSection[]): Map<number, number> {
+/** sourceOf(lib/gallery-dedupe imageSourceGroups)를 주면 같은 원본 사진을 한 소스로 센다(키 = 그 원본의 첫 인덱스) */
+export function countSourceUses(sections: DetailSection[], sourceOf?: readonly number[]): Map<number, number> {
   const uses = new Map<number, number>();
   for (const s of sections) {
-    for (const i of sectionImageIndexes(s)) uses.set(i, (uses.get(i) ?? 0) + 1);
+    for (const idx of sectionImageIndexes(s)) {
+      const i = sourceOf?.[idx] ?? idx;
+      uses.set(i, (uses.get(i) ?? 0) + 1);
+    }
   }
   return uses;
 }
@@ -70,25 +77,39 @@ export function enforceImageSourceCap(
   imageCount: number,
   maxUses: number = IMAGE_SOURCE_CAP.maxUses,
 ): DetailSection[] {
-  if (imageCount <= 0) return sections;
+  return enforceImageSourceCapIndexed(sections, imageCount, maxUses).sections;
+}
+
+/** sourceIndexes[i] = 결과 i번째 섹션이 입력의 몇 번째였는지 (생략된 섹션은 빠짐) */
+export function enforceImageSourceCapIndexed(
+  sections: DetailSection[],
+  imageCount: number,
+  maxUses: number = IMAGE_SOURCE_CAP.maxUses,
+  sourceOf?: readonly number[],
+): { sections: DetailSection[]; sourceIndexes: number[] } {
+  if (imageCount <= 0) return { sections, sourceIndexes: sections.map((_, i) => i) };
+  const group = (i: number) => sourceOf?.[i] ?? i;
   const uses = new Map<number, number>();
-  const used = (i: number) => uses.get(i) ?? 0;
-  const take = (i: number) => uses.set(i, used(i) + 1);
+  const used = (i: number) => uses.get(group(i)) ?? 0;
+  const take = (i: number) => uses.set(group(i), used(i) + 1);
   /** 같은 섹션 안 중복까지 포함해 전부 받을 수 있는지 */
   const fitsAll = (indexes: number[]) => {
     const need = new Map<number, number>();
-    for (const i of indexes) need.set(i, (need.get(i) ?? 0) + 1);
-    return [...need].every(([i, n]) => used(i) + n <= maxUses);
+    for (const i of indexes) need.set(group(i), (need.get(group(i)) ?? 0) + 1);
+    return [...need].every(([g, n]) => (uses.get(g) ?? 0) + n <= maxUses);
   };
+  const distinct = (indexes: number[]) => new Set(indexes.map(group)).size === indexes.length;
   let detailCrops = 0;
   const out: DetailSection[] = [];
+  const sourceIndexes: number[] = [];
   for (const section of sections) {
     if (section.type === "hero" || section.type === "illustration_banner") {
       sectionImageIndexes(section).forEach(take);
     }
   }
 
-  for (const section of sections) {
+  sections.forEach((section, sourceIndex) => {
+    const before = out.length;
     switch (section.type) {
       case "hero":
       case "illustration_banner":
@@ -128,13 +149,13 @@ export function enforceImageSourceCap(
       case "gallery": {
         const kept: number[] = [];
         for (const i of section.imageIndexes ?? []) {
-          if (!kept.includes(i) && used(i) < maxUses) {
+          if (!kept.some((k) => group(k) === group(i)) && used(i) < maxUses) {
             take(i);
             kept.push(i);
           }
         }
         if (kept.length >= 2) out.push({ ...section, imageIndexes: kept });
-        else kept.forEach((i) => uses.set(i, used(i) - 1));
+        else kept.forEach((i) => uses.set(group(i), used(i) - 1));
         break;
       }
       case "step_card": {
@@ -167,14 +188,31 @@ export function enforceImageSourceCap(
           out.push(section);
           break;
         }
-        const kept = indexes.filter((i, k) => indexes.indexOf(i) === k && used(i) < maxUses);
-        kept.forEach(take);
+        const kept: number[] = [];
+        for (const i of indexes) {
+          if (kept.some((k) => group(k) === group(i)) || used(i) >= maxUses) continue;
+          take(i);
+          kept.push(i);
+        }
         out.push({ ...section, imageIndexes: kept });
+        break;
+      }
+      case "target_persona": {
+        const indexes = sectionImageIndexes(section);
+        if (indexes.length === 0) {
+          out.push(section);
+        } else if (distinct(indexes) && fitsAll(indexes)) {
+          indexes.forEach(take);
+          out.push(section);
+        } else {
+          out.push({ ...section, imageIndexes: undefined });
+        }
         break;
       }
       default:
         out.push(section);
     }
-  }
-  return out;
+    if (out.length > before) sourceIndexes.push(sourceIndex);
+  });
+  return { sections: out, sourceIndexes };
 }

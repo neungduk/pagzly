@@ -24,6 +24,14 @@ export const CHECKLIST_HUB_MAX_CHARS = 16;
 /** 라벨 박스 폭(%) */
 export const CHECKLIST_HUB_LABEL_W = 38;
 
+/** 타일(3열·2열) 한 칸에 넣기엔 긴 항목 — 하나라도 있으면 타일 대신 한 줄짜리 세로 목록(라이브·export 공용) */
+export const CHECKLIST_TILE_MAX_CHARS = 28;
+export const CHECKLIST_STACK_MAX_W = 480;
+
+export function isChecklistStacked(items: string[]): boolean {
+  return items.some((item) => item.trim().length > CHECKLIST_TILE_MAX_CHARS);
+}
+
 export function isChecklistHubEligible(
   items: string[],
   opts: { flat: boolean; compactFollow: boolean; boldBlock: boolean; hasImage: boolean },

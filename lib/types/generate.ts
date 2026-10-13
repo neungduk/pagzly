@@ -418,6 +418,8 @@ export type TargetPersonaSection = {
   slot: string;
   heading: string;
   personas: string[];
+  /** 고민 행마다 붙는 사진 띠(personas와 같은 길이). 표시 단계에서 남은 사진 상한 안에서만 채운다 (lib/persona-strip.ts) */
+  imageIndexes?: number[];
 };
 
 export type BrandStorySection = {

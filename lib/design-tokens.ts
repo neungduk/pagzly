@@ -1160,6 +1160,46 @@ export const IMAGE_SOURCE_CAP = { maxUses: 2, singlePhotoDetailCrops: 1 } as con
 /** 디테일 확대 크롭 — 슬롯 비율 그대로, 가운데를 확대해 같은 사진을 다른 컷처럼 */
 export const DETAIL_CROP = { scale: 1.6 } as const;
 
+/**
+ * 고민 목록 사진 띠 — 행마다 한쪽에 사진(안쪽으로 종이색 페이드), 반대쪽에 고민 문구. 행마다 좌우 교대.
+ * 글자는 사진 밖 칸에만 둔다(얼굴 위 글자 금지). 사진이 행 수만큼 남지 않으면 띠 없이 기존 목록.
+ */
+export const PERSONA_STRIP = {
+  minRows: 3,
+  maxRows: 5,
+  maxChars: 30,
+  maxWidthPx: 480,
+  rowAspect: "14 / 5",
+  photoWidthPct: 42,
+  fadePct: 22,
+  gapPx: 12,
+  textPx: 16,
+  lineHeight: 1.45,
+  padXPx: 16,
+} as const;
+
+/** 고민이 한 줄뿐일 때 — 카드·체크·꼬리 점 없이 짧은 헤어라인 사이 가운데 한 줄 */
+export const PERSONA_SINGLE = {
+  maxWidthPx: 480,
+  ruleWidthPx: 32,
+  ruleGapPx: 20,
+  fontPx: 18,
+  weight: 600,
+  lineHeight: 1.5,
+} as const;
+
+/** 질문형 제목(…?) 위 "Q." 리드 + 세로 점 3개 — 새 문구 없이 제목이 질문임을 표시 */
+export const QUESTION_LEAD = {
+  label: "Q.",
+  fontPx: 20,
+  weight: 700,
+  letterSpacingEm: 0.02,
+  dotCount: 3,
+  dotPx: 3,
+  dotGapPx: 5,
+  gapPx: 10,
+} as const;
+
 export type UsageSceneCrop = "hands" | "upper_body";
 
 /**
