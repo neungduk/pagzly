@@ -1,6 +1,7 @@
 import type { DetailSection } from "@/lib/types/generate";
 import { shouldUseEditorialBleed } from "@/lib/designer-detail-patterns";
 import { FLAT_SECTION_SURFACES } from "@/lib/design-tokens";
+import { isPlaceholderValue } from "@/lib/spec-placeholder";
 
 const SECTION_KICKERS: Partial<Record<DetailSection["type"], string>> = {
   checklist: "OVERVIEW",
@@ -222,6 +223,42 @@ export function dropDuplicateRecommendColumn(sections: DetailSection[]): DetailS
     if (nextConsider.length === consider.length && nextRecommend.length === recommend.length) return s;
     changed = true;
     return { ...s, recommendFor: nextRecommend, considerIf: nextConsider };
+  });
+  return changed ? out : sections;
+}
+
+const FAQ_ECHO_MAX_ANSWER = 20;
+const FAQ_ECHO_MAX_REMAINDER = 6;
+const FAQ_MIN_VISIBLE = 3;
+
+/**
+ * FAQ 답변이 스펙 표 값을 되풀이할 뿐이면("용량은? 50ml입니다.") 뺀다 — 같은 페이지 표에
+ * 이미 있는 사실이라 질문 칸만 차지한다. 답이 짧고 스펙 값을 빼면 어미만 남는 경우만 해당,
+ * FAQ는 최소 3개 유지.
+ */
+export function dropSpecEchoFaqItems(sections: DetailSection[]): DetailSection[] {
+  const specValues = sections
+    .filter((s): s is Extract<DetailSection, { type: "spec_table" }> => s.type === "spec_table")
+    .flatMap((s) => (Array.isArray(s.rows) ? s.rows : []))
+    .map((r) => (r.value ?? "").trim())
+    .filter((v) => v.length >= 2 && !isPlaceholderValue(v));
+  if (specValues.length === 0) return sections;
+  const squash = (t: string) => t.replace(/[\s.,!?·~]/g, "").toLowerCase();
+  const isEcho = (answer: string) => {
+    const a = squash(answer);
+    if (!a || a.length > FAQ_ECHO_MAX_ANSWER) return false;
+    return specValues.some((v) => {
+      const sv = squash(v);
+      return sv.length >= 2 && a.includes(sv) && a.length - sv.length <= FAQ_ECHO_MAX_REMAINDER;
+    });
+  };
+  let changed = false;
+  const out = sections.map((s) => {
+    if (s.type !== "faq" || !Array.isArray(s.items)) return s;
+    const kept = s.items.filter((item) => !isEcho(item.answer ?? ""));
+    if (kept.length === s.items.length || kept.length < FAQ_MIN_VISIBLE) return s;
+    changed = true;
+    return { ...s, items: kept };
   });
   return changed ? out : sections;
 }

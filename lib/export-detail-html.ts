@@ -14,6 +14,7 @@ import {
   resolveSplitFlexRatio,
   restoreHashtagHeadingUnits,
   dropDuplicateRecommendColumn,
+  dropSpecEchoFaqItems,
   isPersonaPairGrid,
   resolveSplitImageLeft,
   shouldInsertBreather,
@@ -1935,9 +1936,11 @@ export function buildDetailPageHtml(opts: {
   const hidden = new Set(opts.hiddenIndexes ?? []);
   // 183차 — 저관여(생활/펫) 표시 예산: 세션 데이터는 유지하고 export 노출만 축소
   const afterUserHidden = opts.sections.filter((_, i) => !hidden.has(i));
-  const visibleSections = dropDuplicateRecommendColumn(
-    restoreHashtagHeadingUnits(
-      limitBoldBlocks(applySectionDisplayBudget(opts.category, afterUserHidden)),
+  const visibleSections = dropSpecEchoFaqItems(
+    dropDuplicateRecommendColumn(
+      restoreHashtagHeadingUnits(
+        limitBoldBlocks(applySectionDisplayBudget(opts.category, afterUserHidden)),
+      ),
     ),
   );
   const trustChips = extractTrustChips(visibleSections);

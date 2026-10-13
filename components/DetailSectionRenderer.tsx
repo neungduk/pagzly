@@ -73,6 +73,7 @@ import {
   limitBoldBlocks,
   restoreHashtagHeadingUnits,
   dropDuplicateRecommendColumn,
+  dropSpecEchoFaqItems,
   isPersonaPairGrid,
   buildPointOrdinals,
   resolveSplitColumnRatio,
@@ -5144,9 +5145,11 @@ export default function DetailSectionRenderer({
   certifications,
   pendingHighlightIndex = null,
 }: DetailSectionRendererProps) {
-  const sections = dropDuplicateRecommendColumn(
+  const shaped = dropDuplicateRecommendColumn(
     restoreHashtagHeadingUnits(limitBoldBlocks(rawSections)),
   );
+  // 편집 중엔 FAQ 항목 인덱스가 원본과 맞아야 하므로 빼지 않는다
+  const sections = edit?.enabled ? shaped : dropSpecEchoFaqItems(shaped);
   const pointOrdinals = buildPointOrdinals(sections);
   const baseTheme = themeOverride ?? getCategoryTheme(category);
   const extendedTheme = extendTheme(baseTheme);
