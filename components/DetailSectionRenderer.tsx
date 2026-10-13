@@ -195,7 +195,7 @@ import {
   splitHeadlineKeywords,
   splitTwoToneHeadline,
 } from "@/lib/designer-headline";
-import { emphasisMarkerGradient, splitBodyEmphasis } from "@/lib/body-emphasis";
+import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
 import { uniqueGalleryIndexes } from "@/lib/gallery-dedupe";
 
 export type SectionEditApi = {
@@ -2217,7 +2217,22 @@ function renderSection(
                 className={`mt-4 whitespace-pre-line ${TYPO.body}`}
                 style={FLAT_SECTION_SURFACES ? undefined : { color: BRAND.ink }}
               >
-                {section.body}
+                {(() => {
+                  const split = splitBodyEmphasis(section.body, section.emphasis);
+                  if (!split) return section.body;
+                  return (
+                    <>
+                      {split.before}
+                      <strong
+                        className="font-bold [box-decoration-break:clone]"
+                        style={{ color: BRAND.ink, backgroundImage: emphasisMarkerGradient(theme.accent) }}
+                      >
+                        {split.strong}
+                      </strong>
+                      {split.after}
+                    </>
+                  );
+                })()}
               </p>
             </div>
           </section>
@@ -4689,14 +4704,24 @@ function renderSection(
               onChange={(heading) => edit?.onChange(index, { ...section, heading })}
             />
           )}
-          <EditableText
-            as="p"
-            multiline
-            enabled={edit?.enabled}
-            value={section.body}
-            onChange={(body) => edit?.onChange(index, { ...section, body })}
-            className={storyBodyClass}
-          />
+          {!edit?.enabled && storyParagraphs(section.body).length > 1 ? (
+            <div className={storyBodyClass}>
+              {storyParagraphs(section.body).map((para, pi) => (
+                <p key={pi} className={pi ? "mt-3.5" : undefined}>
+                  {para}
+                </p>
+              ))}
+            </div>
+          ) : (
+            <EditableText
+              as="p"
+              multiline
+              enabled={edit?.enabled}
+              value={section.body}
+              onChange={(body) => edit?.onChange(index, { ...section, body })}
+              className={storyBodyClass}
+            />
+          )}
         </>
       );
       const storyGallery =

@@ -22,6 +22,27 @@ export function emphasisMarkerGradient(accentHex: string): string {
   return `linear-gradient(transparent 60%, rgba(${r}, ${g}, ${b}, 0.22) 60%)`;
 }
 
+const STORY_CHUNK_MAX = 110;
+
+/**
+ * 긴 이야기 본문을 짧은 단락으로 — 가운데 정렬 6~7줄 한 덩어리는 읽는 자리를 잃기 쉽다.
+ * 줄바꿈으로 먼저 나누고, 그래도 긴 덩어리는 두 문장씩 묶는다. 원문 글자는 그대로.
+ */
+export function storyParagraphs(body: string | null | undefined): string[] {
+  const chunks = (body ?? "")
+    .split(/\n+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return chunks.flatMap((chunk) => {
+    if (chunk.length <= STORY_CHUNK_MAX) return [chunk];
+    const sentences = chunk.split(/(?<=[.!?])\s+/).filter(Boolean);
+    if (sentences.length < 3) return [chunk];
+    const out: string[] = [];
+    for (let i = 0; i < sentences.length; i += 2) out.push(sentences.slice(i, i + 2).join(" "));
+    return out;
+  });
+}
+
 export function splitBodyEmphasis(
   body: string | null | undefined,
   emphasis?: string | null,

@@ -153,7 +153,7 @@ import {
   type TitleScaleKey,
 } from "@/lib/design-tokens";
 import { applySectionDisplayBudget } from "@/lib/section-display-budget";
-import { emphasisMarkerGradient, splitBodyEmphasis } from "@/lib/body-emphasis";
+import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
 import { uniqueGalleryIndexes } from "@/lib/gallery-dedupe";
 import {
   POINT_PILL,
@@ -1003,7 +1003,7 @@ function sectionHtml(
         return `<section${sectionIdAttr} class="pagzly-textonly" style="${sectionInset}${bgCss}">
           <div style="max-width:576px;margin:0 auto;text-align:${FLAT_SECTION_SURFACES ? "center" : "left"}">
             ${dh2(category, esc(section.heading), `${titleFitCss("section", section.heading, -0.03)};margin:0;line-height:1.2;color:${readableTextDeep(theme, 3)}`)}
-            <p class="pagzly-body-lh" style="margin:16px 0 0;white-space:pre-line;font-size:${titleSizeCss("body")};line-height:1.9;color:${FLAT_SECTION_SURFACES ? hexToRgba(BRAND.ink, 0.72) : BRAND.ink}">${esc(section.body)}</p>
+            <p class="pagzly-body-lh" style="margin:16px 0 0;white-space:pre-line;font-size:${titleSizeCss("body")};line-height:1.9;color:${FLAT_SECTION_SURFACES ? hexToRgba(BRAND.ink, 0.72) : BRAND.ink}">${emphasizedBodyHtml(section.body, section.emphasis, accent)}</p>
           </div>
         </section>`;
       }
@@ -1452,7 +1452,14 @@ function sectionHtml(
       const hideEchoHeading = FLAT_SECTION_SURFACES && hasBrandCard && isBrandEchoHeading(section.heading, brandName);
       const storyInner = `${kickerHtml(`<p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText};margin:0 0 12px">STORY</p>`)}
           ${hideEchoHeading ? "" : twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}
-          <p class="pagzly-story-body${hideEchoHeading ? " pagzly-story-lead" : ""}" style="line-height:1.75;font-size:${titleSizeCss("body")};opacity:.85;margin:${hideEchoHeading ? 0 : 16}px 0 0;white-space:pre-line">${esc(section.body)}</p>${galleryHtml}`;
+          ${(() => {
+            const paras = storyParagraphs(section.body);
+            const storyCls = `pagzly-story-body${hideEchoHeading ? " pagzly-story-lead" : ""}`;
+            const storyStyle = `line-height:1.75;font-size:${titleSizeCss("body")};opacity:.85;margin:${hideEchoHeading ? 0 : 16}px 0 0;white-space:pre-line`;
+            return paras.length > 1
+              ? `<div class="${storyCls}" style="${storyStyle}">${paras.map((p, pi) => `<p style="margin:${pi ? 14 : 0}px 0 0">${esc(p)}</p>`).join("")}</div>`
+              : `<p class="${storyCls}" style="${storyStyle}">${esc(section.body)}</p>`;
+          })()}${galleryHtml}`;
       if (hasBrandCard && FLAT_SECTION_SURFACES) {
         return `<section${sectionIdAttr} class="pagzly-brand-story">
         <div data-brand-signature class="pagzly-brand-sig" style="text-align:center;background:${flatAccentTint(theme)}">
