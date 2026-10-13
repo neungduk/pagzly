@@ -1,0 +1,48 @@
+{
+  "baseBranch": "main",
+  "branchPrefix": "auto/loop",
+  "pushBranch": false,
+
+  "maxRounds": 3,
+  "maxHours": 6,
+  "roundTimeoutMinutes": 90,
+  "plannerTimeoutMinutes": 15,
+  "verifyTimeoutMinutes": 40,
+  "noProgressRounds": 2,
+
+  "stopFile": "loop/STOP",
+  "agentCommand": "agent",
+  "plannerCommand": "claude",
+
+  "stripEnvVars": ["REPLICATE_API_TOKEN"],
+
+  "verify": [
+    { "name": "tsc", "cmd": "npx tsc --noEmit" },
+    { "name": "eslint", "cmd": "npx eslint . --quiet" },
+    { "name": "build", "cmd": "npx next build" },
+    { "name": "parity", "cmd": "npx tsx scripts/286cha-type-parity-verify.ts" }
+  ],
+
+  "protectedFiles": [
+    "lib/lifestyle-product-composite.ts",
+    "lib/photo-enhance.ts",
+    "lib/photo-composite.ts"
+  ],
+
+  "forbiddenPathPatterns": [
+    "^\\.env",
+    "^pagzly-backlog-master",
+    "^claude/pagzly-backlog-master",
+    "^cursor_brief_",
+    "^review/",
+    "^scripts/_[0-9]+cha-",
+    "^scripts/_281cha-",
+    "^scripts/280cha-png-download-repro\\.ts$",
+    "^loop/"
+  ],
+
+  "mustStayFalse": [
+    { "file": "lib/usage-scene.ts", "pattern": "USAGE_SCENE_GENERATION_ENABLED[^=\\r\\n]*=\\s*false" },
+    { "file": "lib/person-detect.ts", "pattern": "PERSON_DETECT_ENABLED[^=\\r\\n]*=\\s*false" }
+  ]
+}

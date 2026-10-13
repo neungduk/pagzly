@@ -63,3 +63,8 @@ supabase/.temp/
 review/*.log
 review/**/*.json
 review/*.txt
+
+# auto loop control files
+loop/STOP
+loop/STOPPED.txt
+loop/DONE.txt
