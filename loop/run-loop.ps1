@@ -170,6 +170,23 @@ if ($dirtyStart.Count -gt 0) {
   Stop-Loop 'tracked files have uncommitted changes (listed above); commit or stash them first' 2
 }
 
+# Paid verification is never part of the loop. Refuse to start while a paid API key is active anywhere it could be picked up.
+# Only checks that a non-empty value exists; the value itself is never read into a log or printed.
+foreach ($name in $cfg.blockIfEnvKeyActive) {
+  if (Test-Path ('Env:' + $name)) {
+    Stop-Loop ('environment variable ' + $name + ' is set. Paid keys must be off while the loop runs (see loop\README.md)') 2
+  }
+  foreach ($ef in @('.env', '.env.local', '.env.development', '.env.development.local', '.env.production', '.env.production.local')) {
+    $efp = Join-Path $root $ef
+    if (Test-Path $efp) {
+      $pattern = '^\s*(export\s+)?' + $name + '\s*=\s*("[^"]+"|''[^'']+''|[^\s"''#]+)'
+      if (Select-String -Path $efp -Pattern $pattern -Quiet) {
+        Stop-Loop ($name + ' is active in ' + $ef + '. Comment it out (put # in front of the line) while the loop runs, then restore it afterwards') 2
+      }
+    }
+  }
+}
+
 if ($cur -eq $cfg.baseBranch) {
   $branch = $cfg.branchPrefix + '-' + (Get-Date -Format 'yyyyMMdd-HHmm')
   Write-Log ('creating work branch ' + $branch)

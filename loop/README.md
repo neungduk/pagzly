@@ -12,7 +12,7 @@
 | 위험 | 막는 방법 |
 |---|---|
 | main에 잘못된 코드가 배포됨 | 작업은 `auto/loop-...` 브랜치에서만 하고 **push하지 않는다**(`pushBranch: false`). main 병합과 푸시는 사용자가 아침에 직접 한다 |
-| 유료 API 비용 | 실행기 프로세스에서 `REPLICATE_API_TOKEN`을 지우고, 프롬프트로 금지, 유료·인물 검출 플래그가 false인지 매 라운드 확인. **가장 확실한 방법은 Replicate 계정에 월 사용 한도를 걸어 두는 것** |
+| 유료 API 비용 | **유료 검증은 반복 밖에서, 사용자가 허락할 때만 한다.** 반복은 `REPLICATE_API_TOKEN`이 `.env.local` 등에서 켜져 있거나 환경변수로 잡혀 있으면 **시작 자체를 거부**한다. 그 외에도 실행기 프로세스에서 키를 지우고, 프롬프트로 금지하고, 유료·인물 검출 플래그가 false인지 매 라운드 확인한다 (Replicate의 월 사용 한도 기능은 중단되어 쓸 수 없다) |
 | 무한 반복 | 라운드 상한(`maxRounds` 3), 시간 상한(`maxHours` 6), 라운드별 시간 제한, 연속 2라운드 개선 없으면 멈춤 |
 | 금지 파일 커밋 | 커밋에 `.env*`, `review/`, `cursor_brief_*`, `loop/` 등이 있으면 멈춤 |
 | 사진합성 코드 변경 | 보호 파일 3개가 바뀌면 멈춤 |
@@ -25,7 +25,7 @@
 
 1. **Cursor CLI 설치**: PowerShell에서 `irm 'https://cursor.com/install?win32=true' | iex` 실행 후 새 창에서 `agent --version` 확인. 로그인(`agent login`) 하거나 `CURSOR_API_KEY` 환경변수를 설정한다
 2. **Claude Code CLI 설치**: 설치 후 `claude --version` 확인, `claude`를 한 번 실행해 로그인한다. 플래너가 쓰는 옵션(`--allowedTools`, `--max-turns`)이 현재 버전에서 맞는지 `claude --help`로 확인한다
-3. **Replicate 사용 한도**: Replicate 계정 설정에서 월 지출 한도를 낮게 건다 (예: 승인한 검증 비용 이하)
+3. **Replicate 키 끄기**: 반복을 돌리기 전에 `.env.local`에서 `REPLICATE_API_TOKEN=...` 줄 맨 앞에 `#`를 붙인다 (환경변수로 설정했다면 해제한다). 켜져 있으면 반복이 시작되지 않는다. 반복이 끝난 뒤, 유료 검증을 직접 허락할 때만 `#`를 지운다
 4. **Windows 절전 끄기** (전원 연결 상태에서): 관리자 PowerShell에서
    ```
    powercfg /change standby-timeout-ac 0

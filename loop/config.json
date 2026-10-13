@@ -15,6 +15,7 @@
   "plannerCommand": "claude",
 
   "stripEnvVars": ["REPLICATE_API_TOKEN"],
+  "blockIfEnvKeyActive": ["REPLICATE_API_TOKEN"],
 
   "verify": [
     { "name": "tsc", "cmd": "npx tsc --noEmit" },
