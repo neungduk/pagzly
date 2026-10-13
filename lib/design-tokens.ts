@@ -1139,6 +1139,8 @@ export const SLOT_IMAGE_RATIO: Record<string, string> = {
   install_scenario: IMAGE_RATIO.portrait4x5,
   material_detail: IMAGE_RATIO.square,
   usage_scenario_extra: IMAGE_RATIO.portrait4x5,
+  lifestyle_shot: IMAGE_RATIO.portrait4x5,
+  usage_scene: IMAGE_RATIO.portrait4x5,
   feature_callout: IMAGE_RATIO.square,
   step_card: IMAGE_RATIO.square,
   care_tip: IMAGE_RATIO.square,
@@ -1157,6 +1159,44 @@ export const IMAGE_SOURCE_CAP = { maxUses: 2, singlePhotoDetailCrops: 1 } as con
 
 /** 디테일 확대 크롭 — 슬롯 비율 그대로, 가운데를 확대해 같은 사진을 다른 컷처럼 */
 export const DETAIL_CROP = { scale: 1.6 } as const;
+
+export type UsageSceneCrop = "hands" | "upper_body";
+
+/**
+ * 익명 사용 장면(인물) 슬롯 — AI 일상컷·인물 합성컷이 배정된 사용 장면 image_text에만 적용(lib/usage-scene.ts).
+ * 얼굴을 피하려고 아래쪽 기준(origin 하단)으로 확대 크롭하고, 사진 위에는 글자·배지를 올리지 않는다.
+ * 비율은 SLOT_IMAGE_RATIO(resolveSlotImageRatio) 그대로.
+ */
+export const USAGE_SCENE = {
+  slots: [
+    "usage_scenario",
+    "usage_scenario_extra",
+    "customer_scenario",
+    "coordination",
+    "seasonal_styling",
+    "serving_suggestion",
+    "install_scenario",
+    "lifestyle_shot",
+    "usage_scene",
+  ],
+  crops: {
+    hands: { scale: 1.5, origin: "50% 100%" },
+    upper_body: { scale: 1.25, origin: "50% 100%" },
+  },
+  /** 의류·뷰티·펫·리빙은 사용 장면(상반신 이하), 식품·전자는 손·부분컷 */
+  categoryCrop: {
+    "패션/의류": "upper_body",
+    "화장품/뷰티": "upper_body",
+    "반려동물": "upper_body",
+    "생활/리빙": "upper_body",
+    "식품": "hands",
+    "전자/가전": "hands",
+  },
+} as const satisfies {
+  slots: readonly string[];
+  crops: Record<UsageSceneCrop, { scale: number; origin: string }>;
+  categoryCrop: Record<string, UsageSceneCrop>;
+};
 
 // ---------------------------------------------------------------------------
 // 6. 정보 섹션(표·체크리스트) — LACTO급 인포 폴리싱용 토큰.

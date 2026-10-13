@@ -9,6 +9,7 @@ import { isLifestyleAiPath, isLifestyleCompositePath } from "@/lib/lifestyle-sho
 import { AHASH_SIMILAR_THRESHOLD, hammingDistanceHex } from "@/lib/image-ahash-bits";
 import { scoreImageForCopy, sectionCopyText } from "@/lib/copy-image-match";
 import { enforceImageSourceCap } from "@/lib/image-source-cap";
+import { markUsageSceneSlots } from "@/lib/usage-scene";
 
 /** 업로드·생성 공통 한도 */
 export const MAX_PRODUCT_IMAGES = 10;
@@ -1023,7 +1024,11 @@ export function assignDistinctSectionImages(
     });
   }
 
-  const capped = enforceImageSourceCap(mapped, imageCount);
+  const capped = markUsageSceneSlots(
+    enforceImageSourceCap(mapped, imageCount),
+    category ?? "",
+    new Set([...lifestyleAiIndexes, ...lifestyleCompositeIndexes]),
+  );
   logAssignResult(capped, imageCount);
   return capped;
 }

@@ -208,6 +208,8 @@ export type ImageTextSection = {
   imageShape?: "square" | "circle";
   /** "detail" = 사진이 1장뿐일 때 같은 사진의 가운데 확대 크롭(POINT stacked 경로만, lib/image-source-cap.ts) */
   imageCrop?: "detail";
+  /** 익명 사용 장면(인물) 크롭 — 얼굴을 피하는 하단 기준 확대, 사진 위 글자 없음 (lib/usage-scene.ts) */
+  sceneCrop?: import("@/lib/design-tokens").UsageSceneCrop;
   /** layout:"callout"일 때 사진 위 말풍선에 표시할 짧은 강조 문구 (12~18자 권장) */
   callout?: string;
   /** 본문에 글자 그대로 있는 핵심 구절 1개 — 굵게 표시. 본문에 없으면 무시 (lib/body-emphasis.ts) */

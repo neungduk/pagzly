@@ -138,6 +138,7 @@ import {
   SECTION_BG_PATTERN_C_ALPHA,
   imageRatioCss,
   DETAIL_CROP,
+  USAGE_SCENE,
   resolvePointImageRatio,
   resolveSlotImageRatio,
   titleScaleExportCss,
@@ -1139,7 +1140,13 @@ function sectionHtml(
         const ringHtml = ringLabels
           ? buildIngredientRingDiagramSvg(ringLabels, deep, "#1B1B18")
           : "";
-        const bleedHeadHtml = src
+        const scene = src && section.sceneCrop ? USAGE_SCENE.crops[section.sceneCrop] : null;
+        const sceneHtml = scene
+          ? `<div data-usage-scene="${section.sceneCrop}" style="position:relative;margin-top:32px;width:100%;overflow:hidden">
+            <img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${imageRatioCss(resolveSlotImageRatio(section))};object-fit:cover;display:block;transform:scale(${scene.scale});transform-origin:${scene.origin}"/>
+          </div>`
+          : "";
+        const bleedHeadHtml = src && !scene
           ? `<div style="position:relative">
             <img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${imageRatioCss(resolveSlotImageRatio(section))};object-fit:cover;display:block"/>
             <div style="position:absolute;inset:0;background:linear-gradient(0deg,${hexToRgba(BRAND.ink, 0.82)} 0%,${hexToRgba(BRAND.ink, 0.4)} 24%,${hexToRgba(BRAND.ink, 0.08)} 42%,transparent 55%)"></div>
@@ -1153,7 +1160,7 @@ function sectionHtml(
             ${dh2(category, headlineKeywordHtml(section.heading, theme), `${titleFitCss("section", section.heading, -0.03)};margin:0${flatTitleColorCss(theme)}`)}
           </div>`;
         return `<section${sectionIdAttr} class="pagzly-editorial" style="padding:0;background:${sectionBg}">
-          ${bleedHeadHtml}
+          ${bleedHeadHtml}${sceneHtml}
           <div style="padding:var(--pz-pt-t,40px) var(--pz-pt-x,24px) var(--pz-pt-b,64px);text-align:center;max-width:576px;box-sizing:border-box;margin:0 auto">
             <p class="pagzly-body-lh" style="margin:0;line-height:1.85;font-size:${titleSizeCss("body")};color:${hexToRgba(BRAND.ink, 0.82)}">${emphasizedBodyHtml(section.body, section.emphasis, accent)}</p>
             ${ringHtml}

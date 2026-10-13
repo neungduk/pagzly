@@ -158,6 +158,7 @@ import {
   BRAND,
   SLOT_IMAGE_RATIO,
   DETAIL_CROP,
+  USAGE_SCENE,
   resolvePointImageRatio,
   resolveSlotImageRatio,
   HERO_TRANSITION_OVERLAP_CLASS,
@@ -2659,13 +2660,14 @@ function renderSection(
 
       if (shouldUseEditorialBleed(section)) {
         const kicker = getSectionKicker(section);
+        const scene = src && section.sceneCrop ? USAGE_SCENE.crops[section.sceneCrop] : null;
         return (
           <section
             key={`image_text-${index}`}
             className="relative overflow-hidden"
             style={textSectionStyle(theme, pattern, category)}
           >
-            {src ? (
+            {src && !scene ? (
               <div className="relative w-full">
                 <SectionImage
                   src={src}
@@ -2710,6 +2712,21 @@ function renderSection(
                 />
               </div>
             )}
+            {scene ? (
+              <div className="relative mt-8 w-full overflow-hidden" data-usage-scene={section.sceneCrop}>
+                <div style={{ transform: `scale(${scene.scale})`, transformOrigin: scene.origin }}>
+                  <SectionImage
+                    src={src}
+                    alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
+                    className={`${ratioClass} block w-full object-cover`}
+                  />
+                </div>
+                <ImageReplaceHit
+                  enabled={edit?.enabled}
+                  onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
+                />
+              </div>
+            ) : null}
             <div className={`${getCategoryRhythm(category).pointTextPadClass} mx-auto max-w-xl px-6 text-center @min-[640px]/pz:px-10`}>
               <EmphasizedBody
                 body={section.body}
