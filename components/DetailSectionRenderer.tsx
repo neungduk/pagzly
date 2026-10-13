@@ -195,6 +195,7 @@ import {
   CHAPTER_CONNECTOR,
   COMPARE_VERSUS,
   HIGHLIGHT_PRODUCT,
+  PERSONA_TRAIL,
   TWO_TONE_LEAD_EM,
   splitHeadlineKeywords,
   splitTwoToneHeadline,
@@ -5180,6 +5181,26 @@ function renderSection(
               </li>
             ))}
           </ul>
+          {FLAT_SECTION_SURFACES ? (
+            <div
+              aria-hidden
+              data-persona-trail
+              className="flex flex-col items-center"
+              style={{ marginTop: PERSONA_TRAIL.marginTopPx, gap: PERSONA_TRAIL.gapPx }}
+            >
+              {Array.from({ length: PERSONA_TRAIL.count }, (_, i) => (
+                <span
+                  key={i}
+                  className="block rounded-full"
+                  style={{
+                    width: PERSONA_TRAIL.dotPx,
+                    height: PERSONA_TRAIL.dotPx,
+                    backgroundColor: hexToRgba(solidAccentOnPaper(theme), PERSONA_TRAIL.alpha),
+                  }}
+                />
+              ))}
+            </div>
+          ) : null}
         </section>
       );
 

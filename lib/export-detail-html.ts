@@ -160,6 +160,7 @@ import {
   CHAPTER_CONNECTOR,
   COMPARE_VERSUS,
   HIGHLIGHT_PRODUCT,
+  PERSONA_TRAIL,
   TWO_TONE_LEAD_EM,
   splitHeadlineKeywords,
   splitTwoToneHeadline,
@@ -1530,6 +1531,7 @@ function sectionHtml(
         <ul${isPersonaPairGrid(section.personas) ? ` class="pagzly-persona-pairs"` : ""} style="max-width:576px;margin:32px auto 0;padding:0;list-style:none;display:${isPersonaPairGrid(section.personas) ? "grid" : "flex"};flex-direction:column;gap:12px">
           ${section.personas.map((p) => `<li style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-radius:${RADIUS.lg}px;border:1px solid ${hexToRgba(theme.accent, 0.16)};background:${FLAT_PAPER};font-size:16px;font-weight:500;line-height:1.375;color:${BRAND.ink}"><span style="display:flex;flex-shrink:0;align-items:center;justify-content:center;width:24px;height:24px;border-radius:9999px;background:${solidAccentOnPaper(theme)}">${check}</span><span style="min-width:0;flex:1;text-align:left">${esc(p)}</span></li>`).join("")}
         </ul>
+        <div aria-hidden="true" data-persona-trail style="display:flex;flex-direction:column;align-items:center;margin-top:${PERSONA_TRAIL.marginTopPx}px;gap:${PERSONA_TRAIL.gapPx}px">${Array.from({ length: PERSONA_TRAIL.count }, () => `<span style="display:block;width:${PERSONA_TRAIL.dotPx}px;height:${PERSONA_TRAIL.dotPx}px;border-radius:9999px;background:${hexToRgba(solidAccentOnPaper(theme), PERSONA_TRAIL.alpha)}"></span>`).join("")}</div>
       </section>`;
       }
       return `<section${sectionIdAttr} class="pagzly-persona" style="${pad}${sectionInset}${bgCss}">

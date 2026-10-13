@@ -960,7 +960,8 @@ export function buildSectionLengthGuide(category: string): string {
 - quick_points: layout 반드시 "compact". heading 8자 내외, body 1문장. compact layout은 사진이 작아지므로 텍스트도 짧게.
 - comparison_chart: 유무/포함 여부 축은 presentationStyle:"checklist"(있음=100, 없음=0), 수치 크기 비교는 "bar". baselineLabel 화이트리스트만.
 - stat_infographic: keyFeatures·ingredients·certifications에 **실제 수치**가 있으면 생략하지 말고 metrics 3~5개 채움(비율→bar/ring+percent, 절대수치→number). 근거 없으면 슬롯 생략·수치 날조 금지.
-- 섹션 간 흐름(한 편의 이야기처럼): hero 직후 섹션은 고객의 고민·상황을 짚고, 이어지는 image_text들은 그 고민의 해결 근거로 연결. 각 heading은 바로 앞 섹션이 남긴 질문에 답하는 느낌으로 쓰고, 질문형 heading(예: "왜 다를까요?")은 페이지 전체에서 최대 2개, 연속 배치 금지. 같은 시작어·같은 어미를 연달아 쓰지 말 것.`;
+- 섹션 간 흐름(한 편의 이야기처럼): hero 직후 섹션은 고객의 고민·상황을 짚고, 이어지는 image_text들은 그 고민의 해결 근거로 연결. 각 heading은 바로 앞 섹션이 남긴 질문에 답하는 느낌으로 쓰고, 질문형 heading(예: "왜 다를까요?")은 페이지 전체에서 최대 2개, 연속 배치 금지. 같은 시작어·같은 어미를 연달아 쓰지 말 것.
+- target_persona: 서버가 히어로 바로 뒤에 배치하는 '고민 짚기' 섹션. heading은 고객 고민을 짚는 짧은 문장(예: "이런 고민 있으신가요?"), personas는 targetCustomer·keyFeatures 근거 안에서 고민·상황 위주로. 바로 다음 섹션이 그 고민에 대한 답처럼 읽히게.`;
 
   if (category === "화장품/뷰티") {
     return `\n\n## 화장품 카피 길이·컨셉 정합\n${common}\n- ingredient_highlight body: 2문장.\n- texture_feel body: 2문장.\n- spec_table 값에 없는 % 수치를 만들지 말 것 (임상 막대용 가짜 데이터 금지).\n- 시각 컨셉과 모순 금지: 쿨링/진정이면 따뜻·온기·골드 카피 금지. 수분이면 오일리·번들 표현 금지. 클렌징이면 보습 도포를 주효능처럼 쓰지 말 것.\n- tradeoff_card: keyFeatures·targetCustomer·ingredients에 피부타입/자극도·'추천'/'이런 분'/'확인 후 구매' 등 사용 조건이 있으면 recommendFor/considerIf 채움. 없으면 생략. considerIf는 사실 기반·완곡만(깎아내리기 금지).\n- package_contents body: 입력에 기획/더블기획/1+1/증정/사은품/리필 같은 세트 구성 언급이 있을 때만 실제 포함 품목을 1~2문장으로. 그런 언급이 없으면 슬롯 자체를 생략(단품인데 사은품을 지어내지 말 것).`;

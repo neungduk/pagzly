@@ -82,3 +82,6 @@ export const COMPARE_VERSUS = {
 
 /** 요약 카드(highlight_box) 위 상품 사진 — 카드들이 사진을 설명하는 구도 */
 export const HIGHLIGHT_PRODUCT = { px: 136, marginTopPx: 32, ringPx: 4 } as const;
+
+/** 고민 목록(target_persona) 아래 세로 점 3개 — 다음 섹션(해결)으로 시선을 넘김 */
+export const PERSONA_TRAIL = { dotPx: 5, gapPx: 7, count: 3, marginTopPx: 36, alpha: 0.5 } as const;

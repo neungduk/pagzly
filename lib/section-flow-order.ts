@@ -27,7 +27,12 @@ function tailRank(item: { slot?: unknown; type: string }): number | null {
   return null;
 }
 
-/** 섹션 배열·슬롯 템플릿 공용 — 확인 영역만 뒤로 모으고 나머지는 원래 순서 */
+/** 고객 고민(이런 분께) — 해결(POINT)보다 먼저, 히어로 바로 뒤에서 이야기를 연다 */
+function isPersona(item: { slot?: unknown; type: string }): boolean {
+  return item.slot === "target_persona" || item.type === "target_persona";
+}
+
+/** 섹션 배열·슬롯 템플릿 공용 — 고민은 히어로 뒤로, 확인 영역은 뒤로 모으고 나머지는 원래 순서 */
 export function orderForFlow<T extends { slot?: unknown; type: string }>(items: T[]): T[] {
   const body: T[] = [];
   const tail: { s: T; rank: number; i: number }[] = [];
@@ -36,8 +41,12 @@ export function orderForFlow<T extends { slot?: unknown; type: string }>(items: 
     if (rank == null) body.push(s);
     else tail.push({ s, rank, i });
   });
-  if (tail.length === 0) return items;
   tail.sort((a, b) => a.rank - b.rank || a.i - b.i);
+  const personaAt = body.findIndex(isPersona);
+  if (personaAt > 1 && body[0]?.type === "hero") {
+    const [persona] = body.splice(personaAt, 1);
+    body.splice(1, 0, persona!);
+  }
   const out = [...body, ...tail.map((t) => t.s)];
   return out.every((s, i) => s === items[i]) ? items : out;
 }
