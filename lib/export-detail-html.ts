@@ -137,6 +137,7 @@ import {
   RADIUS,
   SECTION_BG_PATTERN_C_ALPHA,
   imageRatioCss,
+  DETAIL_CROP,
   resolvePointImageRatio,
   resolveSlotImageRatio,
   titleScaleExportCss,
@@ -165,7 +166,7 @@ import {
   splitHeadlineKeywords,
   splitTwoToneHeadline,
 } from "@/lib/designer-headline";
-import { resolveProductThumbUrl } from "@/lib/product-thumb";
+import { resolveProductThumbs, type ProductThumbs } from "@/lib/product-thumb";
 import { buildProductJsonLd, serializeJsonLdScripts } from "@/lib/product-json-ld";
 import {
   buildDetailExportFontCss,
@@ -644,7 +645,7 @@ function sectionHtml(
   compactImageTextIndex?: number,
   totalCompactImageTextCount?: number,
   pointOrdinal?: number,
-  productThumb?: string | null,
+  productThumbs?: ProductThumbs,
 ): string {
   const sectionIdAttr = anchorId ? ` id="${anchorId}"` : "";
   const pad = "padding:var(--pz-pad-y,48px) var(--pz-pad-x,20px);";
@@ -704,7 +705,7 @@ function sectionHtml(
           ${dh2(category, esc(headingParts.remainder || section.heading), `${titleFitCss(headingParts.keyword ? "subtitle" : "section", headingParts.remainder || section.heading, headingParts.keyword ? -0.02 : -0.03)};margin:16px 0 0;font-weight:${headingParts.keyword ? "600" : "700"}`)}
         </div>`;
       const clCompact = section.compactFollow === true;
-      const hubSrc = resolveExportImage(imageUrls, 0);
+      const hubSrc = section.hubPhoto === false ? "" : resolveExportImage(imageUrls, 0);
       const clItems = section.items.filter((item) => String(item).trim());
       if (
         hubSrc &&
@@ -818,8 +819,8 @@ function sectionHtml(
       const benefitIcons = pickBenefitCardIcons(cards);
       const hp = HIGHLIGHT_PRODUCT;
       const productPhotoHtml =
-        FLAT_SECTION_SURFACES && productThumb
-          ? `<div data-highlight-product style="position:relative;margin:${hp.marginTopPx}px auto 0;width:${hp.px}px;height:${hp.px}px;border-radius:9999px;overflow:hidden;box-shadow:0 0 0 ${hp.ringPx}px ${section.boldBlock ? hexToRgba(BRAND.paper, 0.28) : hexToRgba(solidAccentOnPaper(theme), 0.3)}"><img src="${esc(productThumb)}" alt="" aria-hidden="true" loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover"/></div>`
+        FLAT_SECTION_SURFACES && productThumbs?.highlight
+          ? `<div data-highlight-product style="position:relative;margin:${hp.marginTopPx}px auto 0;width:${hp.px}px;height:${hp.px}px;border-radius:9999px;overflow:hidden;box-shadow:0 0 0 ${hp.ringPx}px ${section.boldBlock ? hexToRgba(BRAND.paper, 0.28) : hexToRgba(solidAccentOnPaper(theme), 0.3)}"><img src="${esc(productThumbs.highlight)}" alt="" aria-hidden="true" loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover"/></div>`
           : "";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${headerHtml}
@@ -1007,7 +1008,7 @@ function sectionHtml(
         ${metricsHtml}${footnotesHtml}</section>`;
     }
     case "comparison_chart":
-      return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">${comparisonChartBodyHtml(section, theme, category, productThumb)}</section>`;
+      return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">${comparisonChartBodyHtml(section, theme, category, productThumbs?.compare)}</section>`;
     case "tradeoff_card": {
       const recommendFor = (Array.isArray(section.recommendFor) ? section.recommendFor : [])
         .map((t) => t.trim())
@@ -1215,8 +1216,8 @@ function sectionHtml(
           : "";
         return `<section${sectionIdAttr} class="pagzly-stacked" style="${sectionInset}${bgCss}">
           <div class="pagzly-stacked-head">${flatSectionHeaderHtml(category, theme, section.heading, pill, false, 40, false)}</div>
-          ${src ? `<div style="position:relative">
-            <img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${splitAspect};object-fit:cover;display:block"/>
+          ${src ? `<div style="position:relative${section.imageCrop === "detail" ? ";overflow:hidden" : ""}">
+            <img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async"${section.imageCrop === "detail" ? ` data-image-crop="detail"` : ""} style="width:100%;aspect-ratio:${splitAspect};object-fit:cover;display:block${section.imageCrop === "detail" ? `;transform:scale(${DETAIL_CROP.scale})` : ""}"/>
             ${annotationOverlayHtml}
           </div>` : ""}
           <div class="pagzly-stacked-body" style="max-width:576px;margin:0 auto;text-align:center${src ? "" : ";padding-top:0"}">
@@ -2001,7 +2002,7 @@ export function buildDetailPageHtml(opts: {
   const bodyParts: string[] = [];
   let imageTextCount = 0;
   const pointOrdinals = buildPointOrdinals(visibleSections);
-  const productThumb = resolveProductThumbUrl(visibleSections, opts.imageUrls);
+  const productThumbs = resolveProductThumbs(opts.sections, opts.imageUrls);
   let lastRenderedSection: DetailSection | undefined; // 231차 — shouldInsertBreather 추적용
   const totalCompactImageTextCount = visibleSections.filter(
     (s) => s.type === "image_text" && s.layout === "compact",
@@ -2050,7 +2051,7 @@ export function buildDetailPageHtml(opts: {
         productName: opts.productName,
         sectionStyle: `padding:var(--pz-pad-y,48px) var(--pz-pad-x,20px);${surface.insetShadow ? `box-shadow:${surface.insetShadow};` : ""}${sectionBgStyle(surface.background, opts.category)}`,
         anchorId: anchorIdMap.get(i),
-        productThumb,
+        productThumb: productThumbs.compare,
       });
     } else if (textOnlyRuns.has(i)) {
       const surface = resolveSectionSurface(extended, "image_text", bodyIndex, opts.category);
@@ -2080,7 +2081,7 @@ export function buildDetailPageHtml(opts: {
         compactImageTextIndex,
         totalCompactImageTextCount,
         pointOrdinals[i],
-        productThumb,
+        productThumbs,
       );
     }
     if (html) {

@@ -190,6 +190,8 @@ export type ChecklistSection = {
    * true를 주입한다(19차 Part B 신규).
    */
   boldBlock?: boolean;
+  /** false = 같은 소스 상한(lib/image-source-cap.ts) 초과로 가운데 허브 사진(1번 사진)을 쓰지 않는다 */
+  hubPhoto?: boolean;
 };
 
 export type ImageTextSection = {
@@ -204,6 +206,8 @@ export type ImageTextSection = {
   layout?: "full" | "compact" | "callout" | "annotated" | "circle-pair" | "circle-solo" | "text_only";
   /** compact 썸네일 모서리 — 기본 square, circle 시 rounded-full */
   imageShape?: "square" | "circle";
+  /** "detail" = 사진이 1장뿐일 때 같은 사진의 가운데 확대 크롭(POINT stacked 경로만, lib/image-source-cap.ts) */
+  imageCrop?: "detail";
   /** layout:"callout"일 때 사진 위 말풍선에 표시할 짧은 강조 문구 (12~18자 권장) */
   callout?: string;
   /** 본문에 글자 그대로 있는 핵심 구절 1개 — 굵게 표시. 본문에 없으면 무시 (lib/body-emphasis.ts) */

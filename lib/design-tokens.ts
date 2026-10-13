@@ -1152,6 +1152,12 @@ export function resolveSlotImageRatio(section: { type: string; slot?: string }):
   );
 }
 
+/** 한 페이지에서 같은 소스 사진 사용 상한(lib/image-source-cap.ts). 사진 1장이면 디테일 크롭 1곳 추가 */
+export const IMAGE_SOURCE_CAP = { maxUses: 2, singlePhotoDetailCrops: 1 } as const;
+
+/** 디테일 확대 크롭 — 슬롯 비율 그대로, 가운데를 확대해 같은 사진을 다른 컷처럼 */
+export const DETAIL_CROP = { scale: 1.6 } as const;
+
 // ---------------------------------------------------------------------------
 // 6. 정보 섹션(표·체크리스트) — LACTO급 인포 폴리싱용 토큰.
 //    렌더러는 색/알파를 하드코딩하지 말고 여기 값만 쓴다.

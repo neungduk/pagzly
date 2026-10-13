@@ -157,6 +157,7 @@ import CanvasSectionRenderer from "@/components/CanvasSectionRenderer";
 import {
   BRAND,
   SLOT_IMAGE_RATIO,
+  DETAIL_CROP,
   resolvePointImageRatio,
   resolveSlotImageRatio,
   HERO_TRANSITION_OVERLAP_CLASS,
@@ -189,7 +190,7 @@ import {
   painBubbleColors,
   type SectionColorPattern,
 } from "@/lib/design-tokens";
-import { resolveProductThumbUrl } from "@/lib/product-thumb";
+import { resolveProductThumbs, type ProductThumbs } from "@/lib/product-thumb";
 import {
   POINT_PILL,
   CHAPTER_CONNECTOR,
@@ -1893,12 +1894,22 @@ function StackedImageTextSection({
         />
       </div>
       {src ? (
-        <div className="relative">
-          <SectionImage
-            src={src}
-            alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
-            className={`${ratioClass} w-full object-cover`}
-          />
+        <div className={section.imageCrop === "detail" ? "relative overflow-hidden" : "relative"}>
+          {section.imageCrop === "detail" ? (
+            <div data-image-crop="detail" style={{ transform: `scale(${DETAIL_CROP.scale})` }}>
+              <SectionImage
+                src={src}
+                alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
+                className={`${ratioClass} block w-full object-cover`}
+              />
+            </div>
+          ) : (
+            <SectionImage
+              src={src}
+              alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
+              className={`${ratioClass} w-full object-cover`}
+            />
+          )}
           {annotated && section.annotations ? (
             <AnnotatedImageOverlay annotations={section.annotations} theme={theme} />
           ) : null}
@@ -1951,7 +1962,7 @@ function renderSection(
   ingredients?: string | null,
   keyFeatures?: string | null,
   pointOrdinal?: number,
-  productThumb?: string | null,
+  productThumbs?: ProductThumbs,
 ) {
   const heroFallback = imageUrls[0] ?? "";
   switch (section.type) {
@@ -2089,7 +2100,7 @@ function renderSection(
           ? followPattern
           : pattern;
       const headingParts = parseMegaKeywordHeading(section.heading);
-      const hubSrc = resolveImage(imageUrls, 0);
+      const hubSrc = section.hubPhoto === false ? "" : resolveImage(imageUrls, 0);
       const hub = isChecklistHubEligible(items, {
         flat: FLAT_SECTION_SURFACES,
         compactFollow,
@@ -3276,7 +3287,7 @@ function renderSection(
           className={getCategoryRhythm(category).generousPadClass}
           style={textSectionStyle(theme, pattern, category)}
         >
-          {renderComparisonChartBody({ section, theme, productThumb })}
+          {renderComparisonChartBody({ section, theme, productThumb: productThumbs?.compare })}
         </section>
       );
 
@@ -3408,7 +3419,7 @@ function renderSection(
               />
             </div>
           ) : null}
-          {!isTrustEvidence && FLAT_SECTION_SURFACES && productThumb ? (
+          {!isTrustEvidence && FLAT_SECTION_SURFACES && productThumbs?.highlight ? (
             <div
               data-highlight-product
               className="relative mx-auto overflow-hidden rounded-full"
@@ -3422,7 +3433,7 @@ function renderSection(
               }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={productThumb} alt="" aria-hidden className="block h-full w-full object-cover" />
+              <img src={productThumbs.highlight} alt="" aria-hidden className="block h-full w-full object-cover" />
             </div>
           ) : null}
           <div className={`relative mx-auto ${isTrustEvidence ? "mt-0" : "mt-10"} grid gap-4 ${gridCols}`}>
@@ -5324,7 +5335,7 @@ export default function DetailSectionRenderer({
   // 편집 중엔 FAQ 항목 인덱스가 원본과 맞아야 하므로 빼지 않는다
   const sections = edit?.enabled ? shaped : dropSpecEchoFaqItems(shaped);
   const pointOrdinals = buildPointOrdinals(sections);
-  const productThumb = resolveProductThumbUrl(sections, imageUrls);
+  const productThumbs = resolveProductThumbs(rawSections, imageUrls);
   const baseTheme = themeOverride ?? getCategoryTheme(category);
   const extendedTheme = extendTheme(baseTheme);
   const trustChips = extractTrustChips(sections);
@@ -5424,7 +5435,7 @@ export default function DetailSectionRenderer({
             theme: chartTheme,
             pattern: chartPattern,
             productName: productName ?? category,
-            productThumb,
+            productThumb: productThumbs.compare,
           });
         } else if (comboTrailIndices.has(index) || textOnlyTrailIndices.has(index)) {
           content = null;
@@ -5459,7 +5470,7 @@ export default function DetailSectionRenderer({
             ingredients,
             keyFeatures,
             pointOrdinals[index],
-            productThumb,
+            productThumbs,
           );
         }
         if (!content) {

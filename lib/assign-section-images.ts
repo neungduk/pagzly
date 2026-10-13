@@ -8,6 +8,7 @@ import {
 import { isLifestyleAiPath, isLifestyleCompositePath } from "@/lib/lifestyle-shot-planner";
 import { AHASH_SIMILAR_THRESHOLD, hammingDistanceHex } from "@/lib/image-ahash-bits";
 import { scoreImageForCopy, sectionCopyText } from "@/lib/copy-image-match";
+import { enforceImageSourceCap } from "@/lib/image-source-cap";
 
 /** 업로드·생성 공통 한도 */
 export const MAX_PRODUCT_IMAGES = 10;
@@ -501,8 +502,9 @@ export function assignDistinctSectionImages(
         }
         return section;
       });
-    logAssignResult(mapped, imageCount);
-    return mapped;
+    const capped = enforceImageSourceCap(mapped, imageCount);
+    logAssignResult(capped, imageCount);
+    return capped;
   }
 
   const category = options?.category;
@@ -1021,8 +1023,9 @@ export function assignDistinctSectionImages(
     });
   }
 
-  logAssignResult(mapped, imageCount);
-  return mapped;
+  const capped = enforceImageSourceCap(mapped, imageCount);
+  logAssignResult(capped, imageCount);
+  return capped;
 }
 
 /** 진단용: 인덱스별 사용 횟수 */
