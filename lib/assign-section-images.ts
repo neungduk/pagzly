@@ -1028,7 +1028,10 @@ export function assignDistinctSectionImages(
   }
 
   const capped = markUsageSceneSlots(
-    enforceImageSourceCap(mapped, imageCount),
+    enforceImageSourceCap(mapped, imageCount, {
+      keys: Array.from({ length: imageCount }, (_, i) => options?.imagePaths?.[i] || `slot-${i}`),
+      hashes: options?.imageHashes,
+    }),
     category ?? "",
     new Set([
       ...lifestyleAiIndexes,

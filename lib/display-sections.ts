@@ -2,8 +2,8 @@ import type { DetailSection } from "@/lib/types/generate";
 import { orderSectionsForFlow } from "@/lib/section-flow-order";
 import { limitBoldBlocks } from "@/lib/detail-visual-rhythm";
 import { enforceImageSourceCapIndexed } from "@/lib/image-source-cap";
-import { assignPersonaStrip } from "@/lib/persona-strip";
-import { imageSourceGroups } from "@/lib/gallery-dedupe";
+import { assignPersonaStrip, type StripImageHints } from "@/lib/persona-strip";
+import { imageSourceGroups, type ImageHashByUrl } from "@/lib/gallery-dedupe";
 
 export type DisplaySections = {
   sections: DetailSection[];
@@ -20,24 +20,75 @@ function trimCalloutTail(section: DetailSection): DetailSection {
   return callout ? { ...section, callout } : section;
 }
 
+const HEADING_NOISE = /[\s.,!?·:;'"“”‘’()\[\]-]+/gu;
+/** 제목이 같은지 볼 때 띄어쓰기·문장부호는 무시한다 */
+const headingKey = (heading: string) => heading.replace(HEADING_NOISE, "").toLowerCase();
+/** 바로 앞 제목 있는 섹션 2곳 안에 같은 제목이 있으면 겹친 것으로 본다(사이에 짧은 띠 섹션이 끼는 경우 포함) */
+const REPEAT_WINDOW = 2;
+
+/** 제목을 빼도 빈 머리 여백이 남지 않는 섹션(라이브 TwoToneTitle·export twoToneDh2가 빈 제목이면 아무것도 그리지 않음) */
+function canHideHeading(section: DetailSection): boolean {
+  return section.type === "image_text" && (section.layout === "callout" || section.slot === "feature_callout");
+}
+
+/** 같은 제목이 연달아 나오면 뒤쪽 제목만 표시에서 뺀다 — 새 문구를 만들지 않고, 섹션·번호는 그대로 둔다 */
+function hideRepeatedHeadings(sections: DetailSection[]): DetailSection[] {
+  const recent: string[] = [];
+  return sections.map((section) => {
+    if (section.type === "hero" || !("heading" in section) || typeof section.heading !== "string") return section;
+    const key = headingKey(section.heading);
+    if (!key) return section;
+    const repeated = recent.includes(key);
+    recent.push(key);
+    if (recent.length > REPEAT_WINDOW) recent.shift();
+    return repeated && canHideHeading(section) ? ({ ...section, heading: "" } as DetailSection) : section;
+  });
+}
+
+/** 요약 카드(compact)와 바로 옆 말풍선 카드가 같은 본문이면 요약 카드는 같은 사실을 한 번 더 읊는 것뿐이다 */
+const ECHO_WINDOW = 2;
+const isCompactSummary = (s: DetailSection) => s.type === "image_text" && s.layout === "compact";
+const isCallout = (s: DetailSection) => s.type === "image_text" && (s.layout === "callout" || s.slot === "feature_callout");
+const bodyKey = (s: DetailSection) => (s.type === "image_text" ? headingKey(s.body ?? "") : "");
+
+function echoSummaryIndexes(sections: DetailSection[]): Set<number> {
+  const out = new Set<number>();
+  sections.forEach((s, i) => {
+    if (!isCompactSummary(s)) return;
+    const key = bodyKey(s);
+    if (!key) return;
+    for (let j = Math.max(0, i - ECHO_WINDOW); j <= Math.min(sections.length - 1, i + ECHO_WINDOW); j += 1) {
+      if (j !== i && isCallout(sections[j]!) && bodyKey(sections[j]!) === key) out.add(i);
+    }
+  });
+  return out;
+}
+
 /**
  * 표시 단계 공용 규칙 — 라이브(DetailSectionRenderer)와 export(buildDetailPageHtml)가 같은 입력으로 부른다.
- * 저장 데이터는 바꾸지 않는다: 흐름 순서 → 굵은 블록 1개 → 같은 소스 사진 상한(같은 URL·파생본은 한 소스) → 말풍선 끝 문장부호 → 고민 사진 띠.
+ * 저장 데이터는 바꾸지 않는다: 흐름 순서 → 굵은 블록 1개 → 같은 촬영본 사진 상한 → 말풍선과 본문이 같은 요약 카드 숨김 → 말풍선 끝 문장부호 → 고민 사진 띠 → 겹친 제목 숨김.
  * 옛 세션(생성 당시 규칙이 없던 것)도 열 때 같은 결과가 된다. 새 세션에는 결과가 그대로다(멱등).
  * 편집 중에는 섹션 내용이 원본과 같아야 저장이 안전하므로 순서만 맞춘다.
  */
 export function applyDisplayRules(
   sections: DetailSection[],
   imageUrls: readonly string[],
-  opts: { editing?: boolean } = {},
+  opts: { editing?: boolean; imageHashByUrl?: ImageHashByUrl } & StripImageHints = {},
 ): DisplaySections {
   const ordered = orderSectionsForFlow(sections);
   const orderIndexes = ordered.map((s) => sections.indexOf(s));
   if (opts.editing) return { sections: ordered, sourceIndexes: orderIndexes };
-  const sourceOf = imageSourceGroups(imageUrls);
+  const sourceOf = imageSourceGroups(imageUrls, opts.imageHashByUrl);
   const capped = enforceImageSourceCapIndexed(limitBoldBlocks(ordered), imageUrls.length, undefined, sourceOf);
+  const echoes = echoSummaryIndexes(capped.sections);
+  const kept = capped.sections.filter((_, i) => !echoes.has(i));
   return {
-    sections: assignPersonaStrip(capped.sections.map(trimCalloutTail), imageUrls.length, sourceOf),
-    sourceIndexes: capped.sourceIndexes.map((i) => orderIndexes[i]!),
+    sections: hideRepeatedHeadings(
+      assignPersonaStrip(kept.map(trimCalloutTail), imageUrls.length, sourceOf, {
+        roles: opts.roles,
+        origins: opts.origins,
+      }),
+    ),
+    sourceIndexes: capped.sourceIndexes.filter((_, i) => !echoes.has(i)).map((i) => orderIndexes[i]!),
   };
 }

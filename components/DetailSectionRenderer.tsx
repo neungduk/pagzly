@@ -121,6 +121,7 @@ import {
   heroWordmarkClassName,
   heroWordmarkWrapClassName,
   resolveHeroBrandMark,
+  shouldSkipBrandBand,
 } from "@/lib/hero-brand-mark";
 import { extractQuickFacts, type QuickFact } from "@/lib/quick-fact-strip";
 import {
@@ -189,6 +190,7 @@ import {
   titleScaleVars,
   FLAT_PAPER,
   FLAT_SECTION_SURFACES,
+  SECTION_TAIL,
   flatAccentTint,
   twoToneHeadlineColors,
   headlineKeywordColors,
@@ -207,7 +209,7 @@ import {
   splitTwoToneHeadline,
 } from "@/lib/designer-headline";
 import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
-import { uniqueGalleryIndexes } from "@/lib/gallery-dedupe";
+import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe";
 import { applyDisplayRules } from "@/lib/display-sections";
 import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
 
@@ -238,6 +240,10 @@ type DetailSectionRendererProps = {
   imageUrls: string[];
   /** 106차 — AI 연출 배지용 출처 (판매자 미리보기 전용) */
   imageOrigins?: import("@/lib/image-origins").ProductImageOrigin[];
+  /** 생성 때 잰 사진 aHash — 같은 촬영본 묶음(표시 단계 사진 상한). export와 같은 값을 넘긴다 */
+  imageHashByUrl?: ImageHashByUrl;
+  /** 사진 역할(판매자·비전 태그) — 고민 사진 띠 순서. export와 같은 값을 넘긴다 */
+  imageRoles?: import("@/lib/image-roles").ProductImageRole[];
   /** true면 ai-lifestyle 컷에 배지 표시 (캡처/내보내기 시 false) */
   sellerAiBadges?: boolean;
   category: string;
@@ -1029,6 +1035,7 @@ function TwoToneTitle({
       />
     );
   }
+  if (!title.trim()) return null;
   const parts = plain ? { lead: null, main: title } : splitTwoToneHeadline(title);
   const tones = twoToneHeadlineColors(theme, inverted);
   const mainColor = plain && !inverted ? BRAND.ink : tones.main;
@@ -2523,12 +2530,16 @@ function renderSection(
           compactImageTextIndex != null &&
           totalCompactImageTextCount != null &&
           compactImageTextIndex < totalCompactImageTextCount - 1;
+        const compactTail =
+          compactImageTextIndex != null &&
+          totalCompactImageTextCount != null &&
+          compactImageTextIndex === totalCompactImageTextCount - 1;
         return (
           <section
             key={`image_text-${index}`}
             className={
               FLAT_SECTION_SURFACES
-                ? "px-6 @min-[640px]/pz:px-10"
+                ? `px-6 @min-[640px]/pz:px-10 ${compactTail ? SECTION_TAIL.compactList.className : ""}`
                 : "px-6 py-5 @min-[640px]/pz:px-10 @min-[640px]/pz:py-6"
             }
             style={
@@ -2683,7 +2694,7 @@ function renderSection(
         return (
           <section
             key={`image_text-${index}`}
-            className="pb-12 @min-[640px]/pz:pb-16"
+            className={SECTION_TAIL.callout.className}
             style={textSectionStyle(theme, pattern, category)}
           >
             <div
@@ -5021,7 +5032,7 @@ function renderSection(
       if (hasBrandCard) {
         return (
           <section key={`brand_story-${index}`} className="relative overflow-hidden">
-            {FLAT_SECTION_SURFACES ? (
+            {FLAT_SECTION_SURFACES && shouldSkipBrandBand({ bodyIndex, logoUrl, brandName, productName }) ? null : FLAT_SECTION_SURFACES ? (
               <div
                 className="@container flex flex-col items-center justify-center px-6 py-14 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:py-16"
                 style={{ backgroundColor: flatAccentTint(theme) }}
@@ -5489,6 +5500,8 @@ export default function DetailSectionRenderer({
   sections: inputSections,
   imageUrls,
   imageOrigins,
+  imageHashByUrl,
+  imageRoles,
   sellerAiBadges = false,
   category,
   productName,
@@ -5503,7 +5516,12 @@ export default function DetailSectionRenderer({
   certifications,
   pendingHighlightIndex: inputHighlightIndex = null,
 }: DetailSectionRendererProps) {
-  const display = applyDisplayRules(inputSections, imageUrls, { editing: inputEdit?.enabled });
+  const display = applyDisplayRules(inputSections, imageUrls, {
+    editing: inputEdit?.enabled,
+    imageHashByUrl,
+    roles: imageRoles,
+    origins: imageOrigins,
+  });
   const rawSections = display.sections;
   const toSource = (i: number) => display.sourceIndexes[i] ?? i;
   const edit: SectionEditApi | undefined = inputEdit && {
@@ -5520,7 +5538,7 @@ export default function DetailSectionRenderer({
   // 편집 중엔 FAQ 항목 인덱스가 원본과 맞아야 하므로 빼지 않는다
   const sections = edit?.enabled ? shaped : dropSpecEchoFaqItems(shaped);
   const pointOrdinals = buildPointOrdinals(sections);
-  const productThumbs = resolveProductThumbs(rawSections, imageUrls);
+  const productThumbs = resolveProductThumbs(rawSections, imageUrls, imageHashByUrl);
   const baseTheme = themeOverride ?? getCategoryTheme(category);
   const extendedTheme = extendTheme(baseTheme);
   const trustChips = extractTrustChips(sections);

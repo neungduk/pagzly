@@ -99,6 +99,7 @@ type ProductResult = {
   imageUrls: string[];
   imagePaths?: string[];
   imageOrigins?: import("@/lib/image-origins").ProductImageOrigin[];
+  imageRoles?: import("@/lib/image-roles").ProductImageRole[];
   productName: string;
   brandName: string | null;
   logoUrl?: string | null;
@@ -143,6 +144,7 @@ type ProductRow = {
   theme: GenerateResponse["theme"] | null;
   photo_cost_breakdown: PhotoCostBreakdown | null;
   image_origins?: import("@/lib/image-origins").ProductImageOrigin[] | null;
+  image_roles?: import("@/lib/image-roles").ProductImageRole[] | null;
   mfds_reviewed: boolean | null;
   replacements: GenerateResponse["replacements"];
   sections: DetailSection[] | null;
@@ -171,6 +173,7 @@ function mapProductRow(row: ProductRow): ProductResult {
     category: row.category,
     imageUrls: row.image_urls ?? [],
     imageOrigins: row.image_origins ?? undefined,
+    imageRoles: row.image_roles ?? undefined,
     productName: row.product_name,
     brandName: row.brand_name,
     logoUrl: row.logo_url ?? null,
@@ -294,7 +297,7 @@ function CreateResultContent() {
         const { data: row, error } = await supabase
           .from("products")
           .select(
-            "id, category, product_name, brand_name, logo_url, price, target_customer, key_features, ingredients, certifications, competitor_url, wholesale_url, image_urls, image_origins, headlines, description, features, how_to_use, caution, image_analysis, theme, photo_cost_breakdown, mfds_reviewed, replacements, sections, created_at, generation_cost",
+            "id, category, product_name, brand_name, logo_url, price, target_customer, key_features, ingredients, certifications, competitor_url, wholesale_url, image_urls, image_origins, image_roles, headlines, description, features, how_to_use, caution, image_analysis, theme, photo_cost_breakdown, mfds_reviewed, replacements, sections, created_at, generation_cost",
           )
           .eq("id", id)
           .single();
@@ -827,6 +830,9 @@ function CreateResultContent() {
         howToUse: data.generated.howToUse,
         caution: data.generated.caution,
         certifications: data.certifications,
+        imageHashByUrl: data.generated.imageHashByUrl,
+        imageRoles: data.generated.imageRoles ?? data.imageRoles,
+        imageOrigins: data.imageOrigins,
       });
       const blob = new Blob([html], { type: "text/html;charset=utf-8" });
       const url = URL.createObjectURL(blob);
@@ -978,6 +984,8 @@ function CreateResultContent() {
           sections={visibleSections}
           imageUrls={data.imageUrls}
           imageOrigins={data.imageOrigins}
+          imageHashByUrl={generated?.imageHashByUrl}
+          imageRoles={generated?.imageRoles ?? data.imageRoles}
           sellerAiBadges={!downloading && !downloadingSplit}
           category={data.category}
           productName={data.productName}

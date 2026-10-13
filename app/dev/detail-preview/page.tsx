@@ -14,6 +14,7 @@ import type { ConceptIconMap } from "@/lib/concept-icons";
 import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import { validateImageFile } from "@/lib/image-upload";
 import { resolveHeadlineFontKind } from "@/lib/detail-typography";
+import { computeDemotedSectionIndexes } from "@/lib/section-display-budget";
 import {
   capture128ChartThenCircleSections,
   capture128CircleThenChartSections,
@@ -1140,6 +1141,9 @@ type CapturePreset = {
   imageUrls?: string[];
   conceptIcons?: ConceptIconMap;
   theme?: Partial<CategoryTheme>;
+  imageHashByUrl?: Record<string, string>;
+  imageRoles?: import("@/lib/image-roles").ProductImageRole[];
+  imageOrigins?: import("@/lib/image-origins").ProductImageOrigin[];
 };
 
 /** 281차 — capture=session: 저장된 실제 결과(sessionStorage)를 로그인 없이 재현 */
@@ -1159,6 +1163,9 @@ function readSessionPreset(): CapturePreset | null {
       imageUrls: parsed.imageUrls,
       conceptIcons: parsed.conceptIcons,
       theme: parsed.theme,
+      imageHashByUrl: parsed.imageHashByUrl,
+      imageRoles: parsed.imageRoles,
+      imageOrigins: parsed.imageOrigins,
     };
   } catch {
     return null;
@@ -1426,10 +1433,16 @@ export default function DetailPreviewPage() {
     () => new URLSearchParams(window.location.search).get("capture"),
     () => null,
   );
-  return <DetailPreviewBody key={capture ?? ""} capture={capture} />;
+  /** budget=1 — 결과 페이지처럼 카테고리 표시 예산을 적용해 본다(기본은 예산 없이 전부) */
+  const budget = useSyncExternalStore(
+    subscribeNoop,
+    () => new URLSearchParams(window.location.search).get("budget") === "1",
+    () => false,
+  );
+  return <DetailPreviewBody key={`${capture ?? ""}:${budget}`} capture={capture} budget={budget} />;
 }
 
-function DetailPreviewBody({ capture }: { capture: string | null }) {
+function DetailPreviewBody({ capture, budget }: { capture: string | null; budget: boolean }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [capturePreset] = useState(() => resolveCapturePreset(capture));
   const captureMode = capturePreset !== null;
@@ -1485,9 +1498,15 @@ function DetailPreviewBody({ capture }: { capture: string | null }) {
     );
   }
 
-  const visibleOriginalIndexes = sections
+  const afterUserHiddenIndexes = sections
     .map((_, i) => i)
     .filter((i) => !hiddenIndexes.includes(i));
+  const demotedRel = new Set(
+    budget
+      ? computeDemotedSectionIndexes(previewCategory, afterUserHiddenIndexes.map((i) => sections[i]!))
+      : [],
+  );
+  const visibleOriginalIndexes = afterUserHiddenIndexes.filter((_, rel) => !demotedRel.has(rel));
   const visibleSections = visibleOriginalIndexes.map((i) => sections[i]!);
 
   function handleAiGenerate() {
@@ -1618,6 +1637,9 @@ function DetailPreviewBody({ capture }: { capture: string | null }) {
           <DetailSectionRenderer
             sections={visibleSections}
             imageUrls={imageUrls}
+            imageHashByUrl={capturePreset?.imageHashByUrl}
+            imageRoles={capturePreset?.imageRoles}
+            imageOrigins={capturePreset?.imageOrigins}
             category={previewCategory}
             brandName={previewBrandName}
             productName={previewProductName}

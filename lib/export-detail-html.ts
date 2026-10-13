@@ -101,7 +101,7 @@ import {
   isCosmeticsCategory,
 } from "@/lib/cosmetics-compliance";
 import { isFoodCategory } from "@/lib/food-compliance";
-import { buildHeroBrandMarkHtml } from "@/lib/hero-brand-mark";
+import { buildHeroBrandMarkHtml, shouldSkipBrandBand } from "@/lib/hero-brand-mark";
 import { extractQuickFacts } from "@/lib/quick-fact-strip";
 import { buildSpecBentoGridHtml } from "@/lib/spec-bento-grid";
 import {
@@ -133,6 +133,7 @@ import {
   readableTextDeep,
   BRAND,
   FLAT_SECTION_SURFACES,
+  SECTION_TAIL,
   ELEVATION,
   FONT_SIZE,
   INFO_TABLE,
@@ -161,7 +162,7 @@ import {
 } from "@/lib/design-tokens";
 import { applySectionDisplayBudget } from "@/lib/section-display-budget";
 import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
-import { uniqueGalleryIndexes } from "@/lib/gallery-dedupe";
+import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe";
 import {
   POINT_PILL,
   CHAPTER_CONNECTOR,
@@ -307,7 +308,7 @@ function sectionPadVarsCss(category: string, wide: boolean): string {
   const pt = rhythm.pointTextPadClass;
   const ptSide = (side: "t" | "b" | "x", fallback: number) =>
     wide ? unit(pt, new RegExp(`pz:p${side}-(\\d+)`), fallback) : unit(pt, new RegExp(`(?:^|\\s)p${side}-(\\d+)`), fallback);
-  return `--pz-pad-y:${padY(rhythm.generousPadClass)}px;--pz-pad-ty:${padY(rhythm.trustPadClass)}px;--pz-pad-x:${x}px;--pz-hero-min:${heroMin};--pz-pt-t:${ptSide("t", 10)}px;--pz-pt-b:${ptSide("b", 16)}px;--pz-pt-x:${ptSide("x", 6)}px`;
+  return `--pz-pad-y:${padY(rhythm.generousPadClass)}px;--pz-pad-ty:${padY(rhythm.trustPadClass)}px;--pz-pad-cy:${padY(rhythm.ctaPadClass)}px;--pz-pad-x:${x}px;--pz-hero-min:${heroMin};--pz-pt-t:${ptSide("t", 10)}px;--pz-pt-b:${ptSide("b", 16)}px;--pz-pt-x:${ptSide("x", 6)}px`;
 }
 
 /** 라이브 checklistGapClass("gap-x-4 gap-y-8")와 같은 행·열 간격 */
@@ -377,6 +378,7 @@ function twoToneDh2(
   extraStyle: string,
   opts: { inverted?: boolean; plain?: boolean } = {},
 ): string {
+  if (!text.trim()) return "";
   if (!FLAT_SECTION_SURFACES) return dh2(category, esc(text), extraStyle);
   const parts = opts.plain ? { lead: null, main: text } : splitTwoToneHeadline(text);
   const tones = twoToneHeadlineColors(theme, opts.inverted);
@@ -661,6 +663,7 @@ function sectionHtml(
   const sectionIdAttr = anchorId ? ` id="${anchorId}"` : "";
   const pad = "padding:var(--pz-pad-y,48px) var(--pz-pad-x,20px);";
   const trustPad = "padding:var(--pz-pad-ty,48px) var(--pz-pad-x,20px);";
+  const ctaPad = "padding:var(--pz-pad-cy,64px) var(--pz-pad-x,20px);";
   const bi = bodyIndex ?? 0;
   const skipSurface = new Set(
     FLAT_SECTION_SURFACES
@@ -1104,10 +1107,15 @@ function sectionHtml(
           compactImageTextIndex != null &&
           totalCompactImageTextCount != null &&
           compactImageTextIndex < totalCompactImageTextCount - 1;
+        const compactTail =
+          FLAT_SECTION_SURFACES &&
+          compactImageTextIndex != null &&
+          totalCompactImageTextCount != null &&
+          compactImageTextIndex === totalCompactImageTextCount - 1;
         const sectionStyle = FLAT_SECTION_SURFACES
           ? `padding:0 24px;${sectionInset}background:${FLAT_PAPER}`
           : `padding:20px 24px;${sectionInset}${bgCss}`;
-        return `<section${sectionIdAttr} style="${sectionStyle}">
+        return `<section${sectionIdAttr}${compactTail ? ` class="pagzly-compact-tail"` : ""} style="${sectionStyle}">
           <div class="${FLAT_SECTION_SURFACES ? "pagzly-compact-row" : ""}" style="max-width:576px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-direction:${imageFirst ? "row" : "row-reverse"}${FLAT_SECTION_SURFACES ? ";padding:20px 0" : ""}${compactDivider ? `;border-bottom:1px solid ${hexToRgba(BRAND.ink, 0.08)}` : ""}">
             <div style="flex-shrink:0">
               ${src ? `<img class="pagzly-compact-thumb" src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="object-fit:cover;border-radius:${thumbRadius}px"/>` : ""}
@@ -1517,12 +1525,15 @@ function sectionHtml(
               : `<p class="${storyCls}" style="${storyStyle}">${esc(section.body)}</p>`;
           })()}${galleryHtml}`;
       if (hasBrandCard && FLAT_SECTION_SURFACES) {
-        return `<section${sectionIdAttr} class="pagzly-brand-story">
-        <div data-brand-signature class="pagzly-brand-sig" style="text-align:center;background:${flatAccentTint(theme)}">
+        const bandHtml = shouldSkipBrandBand({ bodyIndex, logoUrl, brandName, productName })
+          ? ""
+          : `<div data-brand-signature class="pagzly-brand-sig" style="text-align:center;background:${flatAccentTint(theme)}">
           <p style="font-family:${DETAIL_FONT_STACK.label};font-size:${FONT_SIZE.caption};font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:${deepText};margin:0">${esc(categoryKeyword)}</p>
           <p class="pz-fit" style="font-family:${DETAIL_FONT_STACK.heading};${titleFitCss("section", brandName!, -0.03)};font-weight:800;line-height:1.05;letter-spacing:-0.03em;color:${readableTextAccent(theme, 3)};margin:12px 0 0">${esc(brandName!)}</p>
           <span aria-hidden="true" style="display:block;width:40px;height:3px;border-radius:${RADIUS.pill}px;background:${solidAccentOnPaper(theme)};margin:20px auto 0"></span>
-        </div>
+        </div>`;
+        return `<section${sectionIdAttr} class="pagzly-brand-story">
+        ${bandHtml}
         <div style="${trustPad}${sectionInset}background:${FLAT_PAPER};text-align:center">
         ${textPanelWrap(theme, storyInner)}
         </div></section>`;
@@ -1625,7 +1636,7 @@ function sectionHtml(
       </section>`;
     case "cta_price":
       if (FLAT_SECTION_SURFACES) {
-        return `<section${sectionIdAttr} class="pagzly-cta" style="${pad}background:${flatAccentTint(theme)};border-top:1px solid ${hexToRgba(accent, 0.16)};color:${BRAND.ink};text-align:center">
+        return `<section${sectionIdAttr} class="pagzly-cta" style="${ctaPad}background:${flatAccentTint(theme)};border-top:1px solid ${hexToRgba(accent, 0.16)};color:${BRAND.ink};text-align:center">
         ${productName.trim() ? `<p style="margin:0 0 12px;font-family:${DETAIL_FONT_STACK.heading};font-size:15px;font-weight:700;line-height:1.375;letter-spacing:-0.025em;color:rgba(27,27,24,.8);word-break:keep-all">${esc(productName.trim())}</p>` : ""}
         <p style="font-family:${DETAIL_FONT_STACK.heading};font-size:${titleSizeCss("price")};font-weight:700;line-height:1;letter-spacing:-0.04em;margin:8px 0 0;color:${ensureReadableOnPaper(accent, 3)}">₩${section.price.toLocaleString("ko-KR")}</p>
         ${shopperFacingTarget(section.targetCustomer) ? `<p style="display:inline-block;margin:16px 0 0;padding:6px 16px;border-radius:9999px;background:${hexToRgba(accent, 0.14)};color:${deepText};font-size:${FONT_SIZE.xs};font-weight:500">${esc(shopperFacingTarget(section.targetCustomer))}</p>` : ""}
@@ -1633,7 +1644,7 @@ function sectionHtml(
         <p style="margin-top:20px;font-size:${FONT_SIZE.xs};color:rgba(27,27,24,.5)">배송·교환·환불은 판매자 정책을 확인해 주세요.</p>
       </section>`;
       }
-      return `<section${sectionIdAttr} class="pagzly-cta" style="${pad}background:${deepFill};color:#FAF8F3;text-align:center;clip-path:polygon(0 44px, 100% 0, 100% 100%, 0 100%);margin-top:-16px">
+      return `<section${sectionIdAttr} class="pagzly-cta" style="${ctaPad}background:${deepFill};color:#FAF8F3;text-align:center;clip-path:polygon(0 44px, 100% 0, 100% 100%, 0 100%);margin-top:-16px">
         ${kickerHtml(`<p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;opacity:.8">PRICE</p>`)}
         <p style="font-size:${titleSizeCss("price")};font-weight:700;line-height:1;margin:8px 0 0">₩${section.price.toLocaleString("ko-KR")}</p>
         ${shopperFacingTarget(section.targetCustomer) ? `<p style="opacity:.85;margin-top:8px">${esc(shopperFacingTarget(section.targetCustomer))}</p>` : ""}
@@ -2022,6 +2033,9 @@ export function buildDetailPageHtml(opts: {
   howToUse?: string;
   caution?: string;
   certifications?: string | null;
+  imageHashByUrl?: ImageHashByUrl;
+  imageRoles?: import("@/lib/image-roles").ProductImageRole[];
+  imageOrigins?: import("@/lib/image-origins").ProductImageOrigin[];
 }): string {
   const hidden = new Set(opts.hiddenIndexes ?? []);
   // 183차 표시 예산은 결과 페이지(라이브)와 같은 순서 — 사용자 숨김 → 예산 → 표시 규칙(상한·사진 띠)
@@ -2031,6 +2045,7 @@ export function buildDetailPageHtml(opts: {
       opts.sections.filter((_, i) => !hidden.has(i)),
     ),
     opts.imageUrls,
+    { imageHashByUrl: opts.imageHashByUrl, roles: opts.imageRoles, origins: opts.imageOrigins },
   ).sections;
   const visibleSections = dropSpecEchoFaqItems(
     dropDuplicateRecommendColumn(
@@ -2049,7 +2064,7 @@ export function buildDetailPageHtml(opts: {
   const bodyParts: string[] = [];
   let imageTextCount = 0;
   const pointOrdinals = buildPointOrdinals(visibleSections);
-  const productThumbs = resolveProductThumbs(afterUserHidden, opts.imageUrls);
+  const productThumbs = resolveProductThumbs(afterUserHidden, opts.imageUrls, opts.imageHashByUrl);
   let lastRenderedSection: DetailSection | undefined; // 231차 — shouldInsertBreather 추적용
   const totalCompactImageTextCount = visibleSections.filter(
     (s) => s.type === "image_text" && s.layout === "compact",
@@ -2240,8 +2255,10 @@ ${jsonLd}
   @media (min-width:640px){.pagzly-compact-thumb{width:120px;height:120px}.pagzly-compact-row{padding:24px 0!important}}
   .pagzly-tradeoff-card{padding:20px}
   @media (min-width:640px){.pagzly-tradeoff-card{padding:24px}.pagzly-tradeoff-2{grid-template-columns:1fr 1fr!important}}
-  .pagzly-bleed-ov{padding:0 24px 24px}.pagzly-callout-flat{padding:0 0 48px}.pagzly-bubble{bottom:24px;font-size:14px}
-  @media (min-width:640px){.pagzly-bleed-ov{padding:0 32px 32px}.pagzly-callout-flat{padding:0 0 64px}.pagzly-bubble{bottom:32px;font-size:16px}}
+  .pagzly-bleed-ov{padding:0 24px 24px}.pagzly-callout-flat{padding:0 0 ${SECTION_TAIL.callout.mobilePx}px}.pagzly-bubble{bottom:24px;font-size:14px}
+  @media (min-width:640px){.pagzly-bleed-ov{padding:0 32px 32px}.pagzly-callout-flat{padding:0 0 ${SECTION_TAIL.callout.widePx}px}.pagzly-bubble{bottom:32px;font-size:16px}}
+  .pagzly-compact-tail{padding-bottom:${SECTION_TAIL.compactList.mobilePx}px!important}
+  @media (min-width:640px){.pagzly-compact-tail{padding-bottom:${SECTION_TAIL.compactList.widePx}px!important}}
   .pagzly-brand-sig{padding:56px 24px}.pagzly-brand-sig>p:first-child{line-height:1.5}
   .pagzly-story-body{line-height:1.9!important;margin-top:20px!important}.pagzly-story-body.pagzly-story-lead{margin-top:0!important}.pagzly-body-lh{line-height:1.9!important}
   @media (min-width:640px){.pagzly-brand-sig{padding:64px 40px}.pagzly-story-body,.pagzly-body-lh{line-height:1.85!important}}

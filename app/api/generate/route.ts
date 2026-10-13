@@ -982,6 +982,7 @@ illustration_banner는 heading·body만 채우세요. illustrationUrl은 쓰지 
 illustration_banner의 body는 이 섹션 분위기를 설명하는 1~2문장 카피입니다 (image_text body와 비슷한 톤).
 quick_points 슬롯은 layout:"compact"로 2~4개 채우세요. heading 8자 내외, body 1문장, 사진은 작은 텍스처/디테일 컷.
 feature_callout 슬롯은 layout:"callout" + callout(12~18자 말풍선 강조) + heading 8자 내외 + body 1~2문장. 후기·인증 표현 금지.
+섹션 heading은 페이지 안에서 서로 겹치지 않게 하세요. 같은 제목(예: 두 섹션 모두 "핵심 포인트")을 다른 섹션에 다시 쓰지 마세요.
 checklist의 compactFollow는 gallery 또는 image_text 섹션 **바로 다음**에 오는 checklist일 때만 true. 그 외에는 생략하거나 false.
 brand_story는 brandName이 입력된 경우에만 포함하세요. 없으면 슬롯 전체를 생략하세요.
 본문은 브랜드의 시작·철학·만드는 방식 중 하나를 골라 2~3문단으로 쓸 수 있습니다.
@@ -1387,6 +1388,13 @@ export async function POST(request: Request) {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     let savedCopy: GeneratedCopy;
+    const hashCache = new Map<string, string | null>();
+    const hashesFor = async (urls: string[]) => {
+      const missing = [...new Set(urls.filter((u) => !hashCache.has(u)))];
+      const got = await computeAHashesFromUrls(missing).catch(() => missing.map(() => null));
+      missing.forEach((u, i) => hashCache.set(u, got[i] ?? null));
+      return urls.map((u) => hashCache.get(u) ?? null);
+    };
     let imageAnalysis = "";
     let visionImageRoles: VisionImageRoleJudgment[] = [];
     let resolvedImageRoles = mergeImageRolesWithVision({
@@ -1633,9 +1641,7 @@ export async function POST(request: Request) {
       if (finalShortage) {
         console.warn(`[role-shortage] final ${finalShortage.message}`);
       }
-      const finalHashes = await computeAHashesFromUrls(body.imageUrls).catch(() =>
-        body.imageUrls.map(() => null),
-      );
+      const finalHashes = await hashesFor(body.imageUrls);
       const visionExpandFinal = expandVisionTagsByIndex(
         visionImageRoles,
         body.imageUrls.length,
@@ -1860,9 +1866,7 @@ export async function POST(request: Request) {
       while (rolesSlice.length < imageUrls.length) {
         rolesSlice.push("other");
       }
-      const postCircleHashes = await computeAHashesFromUrls(imageUrls).catch(() =>
-        imageUrls.map(() => null),
-      );
+      const postCircleHashes = await hashesFor(imageUrls);
       const visionExpandPost = expandVisionTagsByIndex(visionImageRoles, imageUrls.length);
       savedCopy.sections = assignDistinctSectionImages(
         savedCopy.sections,
@@ -1978,9 +1982,7 @@ export async function POST(request: Request) {
           while (imageOrigins.length < imageUrls.length) {
             imageOrigins.push("other");
           }
-          const fxHashes = await computeAHashesFromUrls(imageUrls).catch(() =>
-            imageUrls.map(() => null),
-          );
+          const fxHashes = await hashesFor(imageUrls);
           const visionExpandFx = expandVisionTagsByIndex(visionImageRoles, imageUrls.length);
           savedCopy.sections = assignDistinctSectionImages(
             savedCopy.sections,
@@ -2142,6 +2144,10 @@ export async function POST(request: Request) {
       savedCopy.sections = ensureAiDisclosure(savedCopy.sections, { hasAiLifestyle });
     }
     savedCopy.sections = enforceSplitZigzag(orderSectionsForFlow(savedCopy.sections));
+    const finalUrlHashes = await hashesFor(imageUrls);
+    const imageHashByUrl = Object.fromEntries(
+      imageUrls.flatMap((url, i) => (finalUrlHashes[i] ? [[url, finalUrlHashes[i]!]] : [])),
+    );
 
     const { data: savedProduct, error: insertError } = body.productId
       ? await supabase
@@ -2278,6 +2284,8 @@ export async function POST(request: Request) {
       imageUrls,
       imageOrigins,
       imagePaths,
+      imageHashByUrl,
+      imageRoles: resolvedImageRoles,
       referenceAnalysis: enrichedBody.referenceAnalysis ?? null,
       reviewInsights: enrichedBody.reviewInsights ?? null,
       planningDocText: enrichedBody.planningDocText ?? null,

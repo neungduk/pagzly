@@ -2,6 +2,7 @@ import type { DetailSection, ImageTextSection } from "@/lib/types/generate";
 import { shouldUseSplitLayout } from "@/lib/detail-visual-rhythm";
 import { FLAT_SECTION_SURFACES, IMAGE_SOURCE_CAP } from "@/lib/design-tokens";
 import { isChecklistHubEligible } from "@/lib/checklist-hub";
+import { sameShotGroups } from "@/lib/gallery-dedupe";
 
 /** 체크리스트 허브 인포그래픽은 가운데에 항상 1번 사진(index 0)을 쓴다 */
 const CHECKLIST_HUB_INDEX = 0;
@@ -72,12 +73,14 @@ function stepText(step: { title: string; body: string }): string {
   return title || body;
 }
 
+/** shots를 주면 같은 촬영본(원본 키·aHash, lib/gallery-dedupe sameShotGroups)을 한 소스로 센다 — 표시 단계와 같은 함수 */
 export function enforceImageSourceCap(
   sections: DetailSection[],
   imageCount: number,
-  maxUses: number = IMAGE_SOURCE_CAP.maxUses,
+  shots?: { keys: readonly string[]; hashes?: ReadonlyArray<string | null | undefined> },
 ): DetailSection[] {
-  return enforceImageSourceCapIndexed(sections, imageCount, maxUses).sections;
+  const sourceOf = shots && shots.keys.length > 0 ? sameShotGroups(shots.keys, shots.hashes) : undefined;
+  return enforceImageSourceCapIndexed(sections, imageCount, IMAGE_SOURCE_CAP.maxUses, sourceOf).sections;
 }
 
 /** sourceIndexes[i] = 결과 i번째 섹션이 입력의 몇 번째였는지 (생략된 섹션은 빠짐) */

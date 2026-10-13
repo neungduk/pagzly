@@ -71,6 +71,20 @@ export function resolveHeroBrandMark(opts: {
   };
 }
 
+/** 브랜드 스토리 시그니처 밴드는 이 본문 순번까지는 히어로 브랜드 마크와 겹쳐 보인다 */
+export const BRAND_BAND_EARLY_BODY_INDEX = 3;
+
+/** 히어로에 브랜드 마크가 있고 브랜드 스토리가 첫 화면권이면 시그니처 밴드를 생략 */
+export function shouldSkipBrandBand(opts: {
+  bodyIndex?: number;
+  logoUrl?: string | null;
+  brandName?: string | null;
+  productName?: string | null;
+}): boolean {
+  if ((opts.bodyIndex ?? 0) > BRAND_BAND_EARLY_BODY_INDEX) return false;
+  return resolveHeroBrandMark(opts).kind !== "none";
+}
+
 /** 미리보기용 Tailwind 클래스 (영문 vs 한글) */
 export function heroWordmarkClassName(script: HeroBrandMarkScript): string {
   if (script === "cjk" || script === "mixed") {

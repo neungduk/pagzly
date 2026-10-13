@@ -864,12 +864,21 @@ export function getDecorationColor(theme: CategoryTheme): string {
 
 /** 렌더러 전용 — 레퍼런스급 여백 리듬(넉넉한 본문 / 타이트한 갤러리 헤더). */
 export const SECTION_BLOCK_PAD = {
-  generous: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-28",
+  generous: "px-6 py-12 @min-[640px]/pz:px-10 @min-[640px]/pz:py-18",
   compact: "px-6 py-14 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
-  pointText: "px-6 pt-10 pb-16 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-24",
+  pointText: "px-6 pt-10 pb-12 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-16",
   galleryTitle: "px-6 pt-9 pb-8 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-11 @min-[640px]/pz:pb-8",
-  cta: "px-6 py-24 @min-[640px]/pz:px-10 @min-[640px]/pz:py-36",
-  trust: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
+  cta: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
+  trust: "px-6 py-12 @min-[640px]/pz:px-10 @min-[640px]/pz:py-16",
+} as const;
+
+/**
+ * 섹션 끝 여백(라이브 className = export px). POINT 말풍선 섹션 아래, 한눈에 포인트 목록의 마지막 행 아래.
+ * 목록 바로 뒤에 꽉 찬 사진이 붙어 24px로 답답하던 곳과, 말풍선 뒤 166px로 벌어지던 곳을 벤치마크 p75~p90에 맞춘다(394차).
+ */
+export const SECTION_TAIL = {
+  callout: { mobilePx: 32, widePx: 40, className: "pb-8 @min-[640px]/pz:pb-10" },
+  compactList: { mobilePx: 32, widePx: 40, className: "pb-8 @min-[640px]/pz:pb-10" },
 } as const;
 
 /** CTA 마감 밴드 — deepAccent 3색 안에서만 (별도 네이비/신규 색 금지). */
@@ -958,10 +967,10 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
       heroTitleExtra: "tracking-[-0.02em]",
       checklistGridFour: "grid-cols-2 @min-[640px]/pz:grid-cols-4",
       checklistGapClass: "gap-x-6 gap-y-10",
-      generousPadClass: "px-6 py-20 @min-[640px]/pz:px-10 @min-[640px]/pz:py-32",
-      pointTextPadClass: "px-6 pt-12 pb-16 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-14 @min-[640px]/pz:pb-24",
-      trustPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
-      ctaPadClass: "px-6 py-24 @min-[640px]/pz:px-10 @min-[640px]/pz:py-36",
+      generousPadClass: "px-6 py-14 @min-[640px]/pz:px-10 @min-[640px]/pz:py-20",
+      pointTextPadClass: "px-6 pt-12 pb-12 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-14 @min-[640px]/pz:pb-16",
+      trustPadClass: "px-6 py-12 @min-[640px]/pz:px-10 @min-[640px]/pz:py-16",
+      ctaPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
       ctaButtonClass:
         "inline-flex h-12 min-w-[13rem] items-center justify-center rounded-full px-10 text-sm font-semibold text-paper shadow-sm",
       galleryGapClass: "gap-2",
@@ -977,10 +986,10 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
       heroTitleExtra: "tracking-[-0.03em]",
       checklistGridFour: "grid-cols-4",
       checklistGapClass: "gap-x-4 gap-y-8",
-      generousPadClass: "px-6 py-14 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
-      pointTextPadClass: "px-6 pt-8 pb-12 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-10 @min-[640px]/pz:pb-16",
-      trustPadClass: "px-6 py-14 @min-[640px]/pz:px-10 @min-[640px]/pz:py-20",
-      ctaPadClass: "px-6 py-20 @min-[640px]/pz:px-10 @min-[640px]/pz:py-32",
+      generousPadClass: "px-6 py-12 @min-[640px]/pz:px-10 @min-[640px]/pz:py-16",
+      pointTextPadClass: "px-6 pt-8 pb-12 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-10 @min-[640px]/pz:pb-12",
+      trustPadClass: "px-6 py-12 @min-[640px]/pz:px-10 @min-[640px]/pz:py-16",
+      ctaPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-22",
       ctaButtonClass:
         "inline-flex h-12 min-w-[11rem] items-center justify-center rounded-full px-8 text-sm font-semibold text-paper shadow-sm",
       galleryGapClass: "gap-2",
@@ -999,10 +1008,10 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
         "absolute inset-0 z-20 flex flex-col items-center justify-end px-7 pb-16 text-center @min-[640px]/pz:px-12 @min-[640px]/pz:pb-28",
       checklistGridFour: "grid-cols-2 @min-[640px]/pz:grid-cols-4",
       checklistGapClass: "gap-x-6 gap-y-10",
-      generousPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-28",
-      pointTextPadClass: "px-6 pt-10 pb-16 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-20",
-      trustPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
-      ctaPadClass: "px-6 py-24 @min-[640px]/pz:px-10 @min-[640px]/pz:py-36",
+      generousPadClass: "px-6 py-12 @min-[640px]/pz:px-10 @min-[640px]/pz:py-18",
+      pointTextPadClass: "px-6 pt-10 pb-12 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-14",
+      trustPadClass: "px-6 py-12 @min-[640px]/pz:px-10 @min-[640px]/pz:py-16",
+      ctaPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
       ctaButtonClass:
         "inline-flex h-12 min-w-[13rem] items-center justify-center rounded-full px-10 text-sm font-semibold tracking-[0.02em] text-paper shadow-sm",
       galleryGapClass: "gap-2",
@@ -1016,12 +1025,12 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
       heroOverlayClass:
         "absolute inset-0 z-20 flex flex-col items-center justify-end px-10 pb-16 text-center @min-[640px]/pz:px-14 @min-[640px]/pz:pb-24",
       heroTitleExtra: "tracking-[-0.045em]",
-      generousPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-28",
+      generousPadClass: "px-6 py-12 @min-[640px]/pz:px-10 @min-[640px]/pz:py-18",
       checklistGridFour: "grid-cols-2 @min-[640px]/pz:grid-cols-4",
       checklistGapClass: "gap-x-5 gap-y-8",
-      pointTextPadClass: "px-8 pt-10 pb-16 @min-[640px]/pz:px-12 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-20",
+      pointTextPadClass: "px-8 pt-10 pb-12 @min-[640px]/pz:px-12 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-14",
       trustPadClass: "px-6 py-12 @min-[640px]/pz:px-10 @min-[640px]/pz:py-16",
-      ctaPadClass: "px-6 py-24 @min-[640px]/pz:px-10 @min-[640px]/pz:py-36",
+      ctaPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
       ctaButtonClass:
         "inline-flex h-12 min-w-[12rem] items-center justify-center rounded-sm px-10 text-sm font-semibold tracking-[0.08em] text-paper",
       galleryGapClass: "gap-2",
@@ -1033,12 +1042,12 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
       ...DEFAULT_RHYTHM,
       heroOverlayClass:
         "absolute inset-0 z-20 flex flex-col items-center justify-end px-7 pb-20 text-center @min-[640px]/pz:px-12 @min-[640px]/pz:pb-32",
-      generousPadClass: "px-6 py-20 @min-[640px]/pz:px-10 @min-[640px]/pz:py-36",
+      generousPadClass: "px-6 py-14 @min-[640px]/pz:px-10 @min-[640px]/pz:py-22",
       checklistGridFour: "grid-cols-2 @min-[640px]/pz:grid-cols-4",
       checklistGapClass: "gap-x-6 gap-y-12",
-      pointTextPadClass: "px-6 pt-12 pb-16 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-16 @min-[640px]/pz:pb-24",
-      trustPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
-      ctaPadClass: "px-6 py-24 @min-[640px]/pz:px-10 @min-[640px]/pz:py-36",
+      pointTextPadClass: "px-6 pt-12 pb-12 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-16 @min-[640px]/pz:pb-16",
+      trustPadClass: "px-6 py-12 @min-[640px]/pz:px-10 @min-[640px]/pz:py-16",
+      ctaPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
       ctaButtonClass:
         "inline-flex h-12 min-w-[13rem] items-center justify-center rounded-full px-10 text-sm font-semibold tracking-[0.04em] text-paper shadow-sm",
       galleryTitlePadClass: "px-6 pt-10 pb-8 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-8",
@@ -1049,12 +1058,12 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
       ...DEFAULT_RHYTHM,
       heroMinClass: "min-h-[78svh] @min-[640px]/pz:min-h-[700px]",
       heroTitleExtra: "tracking-[-0.05em] tabular-nums",
-      generousPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-28",
+      generousPadClass: "px-6 py-12 @min-[640px]/pz:px-10 @min-[640px]/pz:py-18",
       checklistGridFour: "grid-cols-2 @min-[640px]/pz:grid-cols-4",
       checklistGapClass: "gap-x-5 gap-y-10",
-      pointTextPadClass: "px-6 pt-7 pb-11 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-9 @min-[640px]/pz:pb-14",
-      trustPadClass: "px-6 py-14 @min-[640px]/pz:px-10 @min-[640px]/pz:py-20",
-      ctaPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-24",
+      pointTextPadClass: "px-6 pt-7 pb-11 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-9 @min-[640px]/pz:pb-12",
+      trustPadClass: "px-6 py-12 @min-[640px]/pz:px-10 @min-[640px]/pz:py-16",
+      ctaPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-18",
       ctaButtonClass:
         "inline-flex h-11 min-w-[12rem] items-center justify-center rounded-none px-8 text-xs font-semibold uppercase tracking-[0.12em] text-paper",
       galleryGapClass: "gap-2",
@@ -1065,10 +1074,10 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
     heroOverlayClass:
         "absolute inset-0 z-20 flex flex-col items-center justify-end px-6 pb-16 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pb-28",
     checklistGapClass: "gap-x-5 gap-y-10",
-    generousPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-28",
-    pointTextPadClass: "px-6 pt-8 pb-14 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-10 @min-[640px]/pz:pb-20",
-    trustPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-28",
-    ctaPadClass: "px-6 py-20 @min-[640px]/pz:px-10 @min-[640px]/pz:py-32",
+    generousPadClass: "px-6 py-12 @min-[640px]/pz:px-10 @min-[640px]/pz:py-18",
+    pointTextPadClass: "px-6 pt-8 pb-12 @min-[640px]/pz:px-10 @min-[640px]/pz:pt-10 @min-[640px]/pz:pb-14",
+    trustPadClass: "px-6 py-12 @min-[640px]/pz:px-10 @min-[640px]/pz:py-18",
+    ctaPadClass: "px-6 py-16 @min-[640px]/pz:px-10 @min-[640px]/pz:py-22",
     ctaButtonClass:
         "inline-flex h-12 min-w-[13rem] items-center justify-center rounded-full px-10 text-sm font-semibold text-paper shadow-sm",
     galleryTitlePadClass: "px-6 pt-10 pb-8 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-8",
@@ -1154,8 +1163,12 @@ export function resolveSlotImageRatio(section: { type: string; slot?: string }):
   );
 }
 
-/** 한 페이지에서 같은 소스 사진 사용 상한(lib/image-source-cap.ts). 사진 1장이면 디테일 크롭 1곳 추가 */
-export const IMAGE_SOURCE_CAP = { maxUses: 2, singlePhotoDetailCrops: 1 } as const;
+/**
+ * 한 페이지에서 같은 소스 사진 사용 상한(lib/image-source-cap.ts). 사진 1장이면 디테일 크롭 1곳 추가.
+ * sameShotAhashMax: aHash 해밍 거리가 이 값 이하면 URL이 달라도 같은 촬영본(색보정·배경 교체본)으로 센다.
+ * 5부터 같은 스튜디오의 다른 구도 컷이 묶이기 시작해 4에 둔다(394차 실측, 잘못 묶음 0).
+ */
+export const IMAGE_SOURCE_CAP = { maxUses: 2, singlePhotoDetailCrops: 1, sameShotAhashMax: 4 } as const;
 
 /** 디테일 확대 크롭 — 슬롯 비율 그대로, 가운데를 확대해 같은 사진을 다른 컷처럼 */
 export const DETAIL_CROP = { scale: 1.6 } as const;

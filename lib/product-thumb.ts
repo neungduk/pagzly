@@ -1,7 +1,7 @@
 import type { DetailSection } from "@/lib/types/generate";
 import { countSourceUses } from "@/lib/image-source-cap";
 import { IMAGE_SOURCE_CAP } from "@/lib/design-tokens";
-import { imageSourceGroups } from "@/lib/gallery-dedupe";
+import { imageSourceGroups, type ImageHashByUrl } from "@/lib/gallery-dedupe";
 
 export type ProductThumbs = { compare: string | null; highlight: string | null };
 
@@ -10,13 +10,17 @@ export type ProductThumbs = { compare: string | null; highlight: string | null }
  * 같은 소스 상한(IMAGE_SOURCE_CAP) 안에서만, 페이지 순서대로 먼저 나오는 쪽부터 쓴다.
  * 라이브·export 모두 표시 예산 적용 전 원본 섹션으로 계산해 결과를 맞춘다.
  */
-export function resolveProductThumbs(sections: DetailSection[], imageUrls: string[]): ProductThumbs {
+export function resolveProductThumbs(
+  sections: DetailSection[],
+  imageUrls: string[],
+  imageHashByUrl?: ImageHashByUrl,
+): ProductThumbs {
   const none: ProductThumbs = { compare: null, highlight: null };
   const hero = sections.find((s) => s.type === "hero");
   if (!hero || hero.type !== "hero") return none;
   const url = imageUrls[hero.imageIndex];
   if (typeof url !== "string" || !url.trim()) return none;
-  const sourceOf = imageSourceGroups(imageUrls);
+  const sourceOf = imageSourceGroups(imageUrls, imageHashByUrl);
   let left =
     IMAGE_SOURCE_CAP.maxUses -
     (countSourceUses(sections, sourceOf).get(sourceOf[hero.imageIndex] ?? hero.imageIndex) ?? 0);

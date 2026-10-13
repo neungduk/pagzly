@@ -666,6 +666,9 @@ export type GenerateResponse = GeneratedCopy & {
   imageUrls?: string[];
   imagePaths?: string[];
   imageOrigins?: import("@/lib/image-origins").ProductImageOrigin[];
+  /** 사진 URL → aHash hex. 같은 촬영본 묶음용(세션에만 있고 DB 행에는 없다) */
+  imageHashByUrl?: Record<string, string>;
+  imageRoles?: import("@/lib/image-roles").ProductImageRole[];
   referenceAnalysis?: ReferenceAnalysisInput | null;
   reviewInsights?: ReviewInsightsInput | null;
   planningDocText?: string | null;

@@ -6,19 +6,27 @@ import { resolveTemplateCategory } from "@/lib/section-templates";
 export function parseCertificationTokens(raw: string | null | undefined): string[] {
   if (!raw?.trim()) return [];
   // "피부자극 테스트 완료(자체, n=32)"처럼 괄호 안 구분자는 나누지 않는다
+  // "A/S"·"N/A"처럼 한 글자끼리 붙은 빗금은 한 낱말이다("KC/CE"는 나눈다)
   const parts: string[] = [];
   let depth = 0;
   let cur = "";
-  for (const ch of raw) {
+  const chars = [...raw];
+  chars.forEach((ch, i) => {
     if ("([（".includes(ch)) depth += 1;
     else if (")]）".includes(ch)) depth = Math.max(0, depth - 1);
-    if (depth === 0 && /[,/|·\n]/.test(ch)) {
+    const joinedSlash =
+      ch === "/" &&
+      /[A-Za-z0-9]/.test(chars[i - 1] ?? "") &&
+      !/[A-Za-z0-9]/.test(chars[i - 2] ?? "") &&
+      /[A-Za-z0-9]/.test(chars[i + 1] ?? "") &&
+      !/[A-Za-z0-9]/.test(chars[i + 2] ?? "");
+    if (depth === 0 && !joinedSlash && /[,/|·\n]/.test(ch)) {
       parts.push(cur);
       cur = "";
     } else {
       cur += ch;
     }
-  }
+  });
   parts.push(cur);
   return parts
     .map((s) => s.trim())
