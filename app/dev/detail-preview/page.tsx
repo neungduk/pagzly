@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { notFound } from "next/navigation";
 import DetailActionBar, { type DetailToolTab } from "@/components/DetailActionBar";
 import DetailSectionRenderer from "@/components/DetailSectionRenderer";
@@ -1238,9 +1238,8 @@ const CAPTURE58_PRESETS: Record<string, CapturePreset> = {
   },
 };
 
-function resolveCapturePreset(): CapturePreset | null {
-  if (typeof window === "undefined") return null;
-  const capture = new URLSearchParams(window.location.search).get("capture");
+function resolveCapturePreset(capture: string | null): CapturePreset | null {
+  if (!capture) return null;
   if (capture === "session") return readSessionPreset();
   if (capture === "1") return { sections: capture56Sections, ...capture56Meta };
   if (capture === "57-food") return { sections: capture57FoodSections, ...capture57FoodMeta };
@@ -1415,13 +1414,24 @@ function resolveCapturePreset(): CapturePreset | null {
   return null;
 }
 
-function readCaptureMode(): boolean {
-  return resolveCapturePreset() !== null;
+const subscribeNoop = () => () => {};
+
+/**
+ * capture 쿼리·sessionStorage는 브라우저에만 있다. 서버 스냅샷은 null(기본 미리보기)로 두고
+ * 하이드레이션 뒤 실제 값으로 본문을 다시 마운트해야 서버·클라이언트 첫 렌더가 같다.
+ */
+export default function DetailPreviewPage() {
+  const capture = useSyncExternalStore(
+    subscribeNoop,
+    () => new URLSearchParams(window.location.search).get("capture"),
+    () => null,
+  );
+  return <DetailPreviewBody key={capture ?? ""} capture={capture} />;
 }
 
-export default function DetailPreviewPage() {
+function DetailPreviewBody({ capture }: { capture: string | null }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [capturePreset] = useState(resolveCapturePreset);
+  const [capturePreset] = useState(() => resolveCapturePreset(capture));
   const captureMode = capturePreset !== null;
   const [sections, setSections] = useState(() =>
     capturePreset ? capturePreset.sections : initialSections,
