@@ -8,7 +8,7 @@
 2. `loop/scorecard.md` — 점수표와 멈춤 조건
 3. 프롬프트에 적힌 직전 보고서 (`review/NNNcha-report.md`) — 특히 "다음 후보", "사람 결정 대기", LOOP-SCORE
 4. `review/loop-gaps.md` (격차 목록)
-5. 최근 브리프 2개 (`cursor_brief_*cha.md` 중 번호가 큰 것) — 형식 참고
+5. `loop/brief-template.md` — 브리프 형식 (저장소 루트에 이전 브리프 파일이 있으면 그것도 참고)
 6. 필요하면 `review/285cha-bench`, `review/competitor-screens`의 보고서·표 (캡처 이미지는 열지 않아도 된다)
 
 ## 다음 라운드 정하기

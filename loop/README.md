@@ -65,6 +65,13 @@ powershell -ExecutionPolicy Bypass -File loop\run-loop.ps1
 3. 마음에 안 들면 `git checkout main`으로 돌아가고 브랜치를 그냥 버리면 된다
 4. 라운드 하나만 되돌리고 싶으면 각 라운드 시작 지점이 태그로 남아 있다: `git reset --hard loop-pre-NNN` (사용자가 직접, 작업 브랜치에서만)
 
+## 검증 도구 (설치 후 보정된 부분)
+
+- `check-eslint.mjs`: 저장소에 예전 lint 오류가 많아서 `eslint .`를 쓰면 매 라운드가 멈춘다. 이 도구는 라운드에서 바뀐 파일만 골라 **기준 브랜치(main) 때보다 오류가 늘었는지**만 본다
+- `check-parity.mjs`: 패리티 스크립트는 차이가 있어도 종료 코드 0으로 끝난다. 이 도구가 개발 서버를 확인(없으면 띄움)하고, 출력의 `diff=` 값을 세서 0이 아니면 실패로 바꾼다. `illustration_banner`는 건드리지 않는 대상이라 제외한다
+- 시작 점검은 `config.json`의 `ignoreDirtyPatterns`(예: `review/`, 백로그 파일)에 해당하는 추적 파일 변경을 무시한다. 그 외 추적 파일이 바뀌어 있으면 멈춘다
+- 하이드레이션 7경로를 직접 재는 스크립트는 아직 없어서, 지금은 보고서의 `hydration:` 값을 믿는다
+
 ## 이 폴더의 파일
 
 | 파일 | 역할 |

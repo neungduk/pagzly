@@ -18,9 +18,9 @@
 
   "verify": [
     { "name": "tsc", "cmd": "npx tsc --noEmit" },
-    { "name": "eslint", "cmd": "npx eslint . --quiet" },
+    { "name": "eslint", "cmd": "node loop/check-eslint.mjs main" },
     { "name": "build", "cmd": "npx next build" },
-    { "name": "parity", "cmd": "npx tsx scripts/286cha-type-parity-verify.ts" }
+    { "name": "parity", "cmd": "node loop/check-parity.mjs" }
   ],
 
   "protectedFiles": [
@@ -34,11 +34,25 @@
     "^pagzly-backlog-master",
     "^claude/pagzly-backlog-master",
     "^cursor_brief_",
+    "^claude/cursor_brief_",
     "^review/",
     "^scripts/_[0-9]+cha-",
     "^scripts/_281cha-",
     "^scripts/280cha-png-download-repro\\.ts$",
+    "traineddata$",
     "^loop/"
+  ],
+
+  "ignoreDirtyPatterns": [
+    "^\\.env",
+    "^pagzly-backlog-master",
+    "^claude/pagzly-backlog-master",
+    "^claude/cursor_brief_",
+    "^cursor_brief_",
+    "^review/",
+    "^scripts/_[0-9]+cha-",
+    "^scripts/280cha-png-download-repro\\.ts$",
+    "traineddata$"
   ],
 
   "mustStayFalse": [

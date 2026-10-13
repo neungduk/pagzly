@@ -102,6 +102,23 @@ function Invoke-Timed([string]$file, [string]$argString, [int]$timeoutMin, [stri
   return $p.ExitCode
 }
 
+# Tracked files with uncommitted changes, minus the paths the loop is told to leave alone (config.ignoreDirtyPatterns).
+function Get-RelevantDirty {
+  $lines = @(& git -c core.quotepath=false status --porcelain --untracked-files=no)
+  $result = @()
+  foreach ($l in $lines) {
+    $p = ([string]$l)
+    if ($p.Length -lt 4) { continue }
+    $p = $p.Substring(3).Trim('"').Replace('\', '/')
+    $idx = $p.IndexOf(' -> ')
+    if ($idx -ge 0) { $p = $p.Substring($idx + 4) }
+    $ignore = $false
+    foreach ($pat in $cfg.ignoreDirtyPatterns) { if ($p -match $pat) { $ignore = $true } }
+    if (-not $ignore) { $result += $p }
+  }
+  return $result
+}
+
 # Checks one finished round. Returns $true when everything is fine; otherwise sets $script:failReason.
 function Test-Round([int]$round, [string]$tag) {
   $changed = @(& git diff --name-only ($tag + '..HEAD'))
@@ -117,8 +134,8 @@ function Test-Round([int]$round, [string]$tag) {
     }
   }
 
-  $dirty = @(& git status --porcelain --untracked-files=no)
-  if ($dirty.Count -gt 0) { $script:failReason = 'uncommitted tracked changes remain'; return $false }
+  $dirty = @(Get-RelevantDirty)
+  if ($dirty.Count -gt 0) { $script:failReason = ('uncommitted tracked changes remain: ' + ($dirty -join ', ')); return $false }
 
   $subjects = @(& git -c core.quotepath=false log --format=%s ($tag + '..HEAD'))
   $needle = [string]$round + $cha
@@ -147,8 +164,11 @@ function Test-Round([int]$round, [string]$tag) {
 
 # ---------- preflight ----------
 $cur = ([string](& git rev-parse --abbrev-ref HEAD)).Trim()
-$dirtyStart = @(& git status --porcelain --untracked-files=no)
-if ($dirtyStart.Count -gt 0) { Stop-Loop 'tracked files have uncommitted changes; commit or stash them first' 2 }
+$dirtyStart = @(Get-RelevantDirty)
+if ($dirtyStart.Count -gt 0) {
+  Write-Log ('uncommitted tracked changes: ' + ($dirtyStart -join ', '))
+  Stop-Loop 'tracked files have uncommitted changes (listed above); commit or stash them first' 2
+}
 
 if ($cur -eq $cfg.baseBranch) {
   $branch = $cfg.branchPrefix + '-' + (Get-Date -Format 'yyyyMMdd-HHmm')
