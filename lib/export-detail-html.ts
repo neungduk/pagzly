@@ -157,10 +157,14 @@ import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/li
 import { uniqueGalleryIndexes } from "@/lib/gallery-dedupe";
 import {
   POINT_PILL,
+  CHAPTER_CONNECTOR,
+  COMPARE_VERSUS,
+  HIGHLIGHT_PRODUCT,
   TWO_TONE_LEAD_EM,
   splitHeadlineKeywords,
   splitTwoToneHeadline,
 } from "@/lib/designer-headline";
+import { resolveProductThumbUrl } from "@/lib/product-thumb";
 import { buildProductJsonLd, serializeJsonLdScripts } from "@/lib/product-json-ld";
 import {
   buildDetailExportFontCss,
@@ -376,6 +380,12 @@ function pointPillHtml(label: string, theme: CategoryTheme, inverted = false): s
   return `<span style="display:inline-block;border-radius:${RADIUS.pill}px;font-family:${DETAIL_FONT_STACK.sans};font-size:${POINT_PILL.fontPx}px;font-weight:700;line-height:1;letter-spacing:${POINT_PILL.letterSpacingEm}em;padding:${POINT_PILL.padY}px ${POINT_PILL.padX}px;background:${inverted ? BRAND.paper : solidAccentOnPaper(theme)};color:${inverted ? solidDeepOnPaper(theme) : BRAND.paper}">${esc(label)}</span>`;
 }
 
+/** 라이브 ChapterConnector와 같은 선+점 (절대 배치, 높이 영향 없음) */
+function chapterConnectorHtml(theme: CategoryTheme, inverted: boolean): string {
+  const color = inverted ? hexToRgba(BRAND.paper, 0.5) : hexToRgba(solidAccentOnPaper(theme), 0.45);
+  return `<span aria-hidden="true" data-chapter-connector style="pointer-events:none;position:absolute;left:50%;bottom:calc(100% + ${CHAPTER_CONNECTOR.gapPx}px);transform:translateX(-50%);display:flex;flex-direction:column;align-items:center"><span style="display:block;width:${CHAPTER_CONNECTOR.dotPx}px;height:${CHAPTER_CONNECTOR.dotPx}px;border-radius:9999px;background:${color}"></span><span style="display:block;width:1px;height:${CHAPTER_CONNECTOR.linePx}px;background:${color}"></span></span>`;
+}
+
 /** 라이브 SectionHeader 평면 분기와 같은 구조: POINT 알약 → (키워드) → 2톤 제목 */
 function flatSectionHeaderHtml(
   category: string,
@@ -390,7 +400,7 @@ function flatSectionHeaderHtml(
   const parts = parsed?.keyword && parsed.remainder ? parsed : { keyword: null, remainder: heading };
   const title = parts.remainder || heading;
   const pill = pointBadge
-    ? `<div style="margin:0 0 20px;display:flex;justify-content:center">${pointPillHtml(pointBadge, theme, inverted)}</div>`
+    ? `<div style="position:relative;margin:0 0 20px;display:flex;justify-content:center">${chapterConnectorHtml(theme, inverted)}${pointPillHtml(pointBadge, theme, inverted)}</div>`
     : "";
   const keyword = parts.keyword
     ? `<p class="pz-fit" style="--pz-fs:clamp(2.25rem,11cqi,4.25rem);--pz-fit-em:${longestTokenEm(parts.keyword, -0.06)};font-size:clamp(2.25rem,11cqi,4.25rem);font-family:${DETAIL_FONT_STACK.heading};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:0;text-transform:uppercase;color:${inverted ? BRAND.paper : readableTextAccent(theme, 3)}">${esc(parts.keyword)}</p>`
@@ -434,10 +444,28 @@ function titleFitCss(key: TitleScaleKey, rawText: string | undefined, letterSpac
 }
 
 /** comparison_chart 본문 — 단독 섹션과 circle 콤보 섹션 공용 (라이브 renderComparisonChartBody) */
+/** 라이브 ComparisonVersusHeader 와 동일 */
+function comparisonVersusHtml(
+  productThumb: string,
+  ourLabel: string,
+  baselineLabel: string,
+  theme: CategoryTheme,
+): string {
+  const v = COMPARE_VERSUS;
+  const col = `display:flex;flex-direction:column;align-items:center;width:${v.colPx}px;gap:8px`;
+  const label = "text-align:center;font-size:13px;line-height:18px";
+  return `<div data-compare-versus style="max-width:448px;margin:${v.marginTopPx}px auto 0;display:flex;align-items:center;justify-content:center;gap:${v.gapPx}px">
+    <div style="${col}"><img src="${esc(productThumb)}" alt="" aria-hidden="true" loading="lazy" decoding="async" style="display:block;width:${v.thumbPx}px;height:${v.thumbPx}px;border-radius:9999px;object-fit:cover;box-shadow:0 0 0 3px ${hexToRgba(solidAccentOnPaper(theme), 0.35)}"/><span style="${label};font-weight:700;color:${readableTextDeep(theme)}">${esc(ourLabel)}</span></div>
+    <span aria-hidden="true" style="font-family:${DETAIL_FONT_STACK.heading};font-size:18px;font-weight:900;letter-spacing:0.04em;color:${hexToRgba(BRAND.ink, 0.3)}">VS</span>
+    <div style="${col}"><span aria-hidden="true" style="display:flex;align-items:center;justify-content:center;width:${v.thumbPx}px;height:${v.thumbPx}px;border-radius:9999px;background:${hexToRgba(BRAND.ink, 0.06)}"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="${hexToRgba(BRAND.ink, 0.35)}" stroke-width="1.6" stroke-linejoin="round"><path d="${v.bottlePath}"/></svg></span><span style="${label};font-weight:500;color:${hexToRgba(BRAND.ink, 0.45)}">${esc(baselineLabel)}</span></div>
+  </div>`;
+}
+
 function comparisonChartBodyHtml(
   rawSection: ComparisonChartSection,
   theme: CategoryTheme,
   category: string,
+  productThumb?: string | null,
 ): string {
   const section = { ...displayComparisonSection(rawSection), ourLabel: compactOurLabel(rawSection.ourLabel) };
   const accent = theme.accent;
@@ -501,6 +529,7 @@ function comparisonChartBodyHtml(
             ? `<div style="max-width:448px;margin:32px auto 0;display:flex;align-items:center;justify-content:center;gap:20px;font-size:12px;line-height:16px;color:rgba(27,27,24,.6)"><span style="display:flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:16px;height:8px;border-radius:${RADIUS.pill}px;background:${accent}"></span><span style="font-weight:600;color:${deepText}">${esc(section.ourLabel)}</span></span><span style="display:flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:16px;height:6px;border-radius:${RADIUS.pill}px;background:${hexToRgba(BRAND.ink, 0.28)}"></span>${esc(section.baselineLabel)}</span></div>`
             : ""
         }
+        ${FLAT_SECTION_SURFACES && isChecklist && productThumb ? comparisonVersusHtml(productThumb, section.ourLabel, section.baselineLabel, theme) : ""}
         <div style="max-width:448px;margin:${FLAT_SECTION_SURFACES && !isChecklist ? 28 : 40}px auto 0;display:flex;flex-direction:column;gap:${FLAT_SECTION_SURFACES ? 32 : 24}px">
           ${metricsHtml}
         </div>
@@ -561,8 +590,9 @@ function circleComparisonComboHtml(params: {
   productName: string;
   sectionStyle: string;
   anchorId?: string;
+  productThumb?: string | null;
 }): string {
-  const { circleSection, chartSection, theme, category, productName, sectionStyle, anchorId } =
+  const { circleSection, chartSection, theme, category, productName, sectionStyle, anchorId, productThumb } =
     params;
   const deepText = readableTextDeep(theme);
   const items =
@@ -590,7 +620,7 @@ function circleComparisonComboHtml(params: {
     .join("");
   return `<section${anchorId ? ` id="${anchorId}"` : ""} class="pagzly-circle-combo" style="${sectionStyle}">
         ${hideCircle ? "" : `<div style="margin-bottom:40px">${FLAT_SECTION_SURFACES ? `<p style="margin:0 0 16px;text-align:center;font-size:12px;line-height:16px;font-weight:700;letter-spacing:.2em;color:${deepText}">핵심 성분</p>` : ""}<div style="display:flex;justify-content:center;align-items:flex-start;gap:32px;max-width:448px;margin:0 auto">${circlesHtml}</div></div>`}
-        ${comparisonChartBodyHtml(chartSection, theme, category)}
+        ${comparisonChartBodyHtml(chartSection, theme, category, productThumb)}
       </section>`;
 }
 
@@ -613,6 +643,7 @@ function sectionHtml(
   compactImageTextIndex?: number,
   totalCompactImageTextCount?: number,
   pointOrdinal?: number,
+  productThumb?: string | null,
 ): string {
   const sectionIdAttr = anchorId ? ` id="${anchorId}"` : "";
   const pad = "padding:var(--pz-pad-y,48px) var(--pz-pad-x,20px);";
@@ -784,8 +815,14 @@ function sectionHtml(
         </div></section>`;
       }
       const benefitIcons = pickBenefitCardIcons(cards);
+      const hp = HIGHLIGHT_PRODUCT;
+      const productPhotoHtml =
+        FLAT_SECTION_SURFACES && productThumb
+          ? `<div data-highlight-product style="position:relative;margin:${hp.marginTopPx}px auto 0;width:${hp.px}px;height:${hp.px}px;border-radius:9999px;overflow:hidden;box-shadow:0 0 0 ${hp.ringPx}px ${section.boldBlock ? hexToRgba(BRAND.paper, 0.28) : hexToRgba(solidAccentOnPaper(theme), 0.3)}"><img src="${esc(productThumb)}" alt="" aria-hidden="true" loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover"/></div>`
+          : "";
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${headerHtml}
+        ${productPhotoHtml}
         <div class="pagzly-hl-grid" style="display:grid;grid-template-columns:repeat(${cards.length === 4 ? 2 : 1},1fr);--pz-hl-wide:repeat(${cards.length},1fr);gap:${FLAT_SECTION_SURFACES ? 16 : 12}px;margin-top:${FLAT_SECTION_SURFACES ? 40 : 32}px">
           ${cards
             .map((card, i) => {
@@ -969,7 +1006,7 @@ function sectionHtml(
         ${metricsHtml}${footnotesHtml}</section>`;
     }
     case "comparison_chart":
-      return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">${comparisonChartBodyHtml(section, theme, category)}</section>`;
+      return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">${comparisonChartBodyHtml(section, theme, category, productThumb)}</section>`;
     case "tradeoff_card": {
       const recommendFor = (Array.isArray(section.recommendFor) ? section.recommendFor : [])
         .map((t) => t.trim())
@@ -1962,6 +1999,7 @@ export function buildDetailPageHtml(opts: {
   const bodyParts: string[] = [];
   let imageTextCount = 0;
   const pointOrdinals = buildPointOrdinals(visibleSections);
+  const productThumb = resolveProductThumbUrl(visibleSections, opts.imageUrls);
   let lastRenderedSection: DetailSection | undefined; // 231차 — shouldInsertBreather 추적용
   const totalCompactImageTextCount = visibleSections.filter(
     (s) => s.type === "image_text" && s.layout === "compact",
@@ -2010,6 +2048,7 @@ export function buildDetailPageHtml(opts: {
         productName: opts.productName,
         sectionStyle: `padding:var(--pz-pad-y,48px) var(--pz-pad-x,20px);${surface.insetShadow ? `box-shadow:${surface.insetShadow};` : ""}${sectionBgStyle(surface.background, opts.category)}`,
         anchorId: anchorIdMap.get(i),
+        productThumb,
       });
     } else if (textOnlyRuns.has(i)) {
       const surface = resolveSectionSurface(extended, "image_text", bodyIndex, opts.category);
@@ -2039,6 +2078,7 @@ export function buildDetailPageHtml(opts: {
         compactImageTextIndex,
         totalCompactImageTextCount,
         pointOrdinals[i],
+        productThumb,
       );
     }
     if (html) {

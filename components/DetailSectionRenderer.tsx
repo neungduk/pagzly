@@ -189,8 +189,12 @@ import {
   painBubbleColors,
   type SectionColorPattern,
 } from "@/lib/design-tokens";
+import { resolveProductThumbUrl } from "@/lib/product-thumb";
 import {
   POINT_PILL,
+  CHAPTER_CONNECTOR,
+  COMPARE_VERSUS,
+  HIGHLIGHT_PRODUCT,
   TWO_TONE_LEAD_EM,
   splitHeadlineKeywords,
   splitTwoToneHeadline,
@@ -913,6 +917,25 @@ function TextSectionPanel({
   );
 }
 
+/** 챕터(POINT) 알약 위로 내려오는 가는 선 + 점 — 앞 섹션에서 이어지는 흐름 표시. 절대 배치라 높이 영향 없음 */
+function ChapterConnector({ theme, inverted }: { theme: CategoryTheme; inverted?: boolean }) {
+  const color = inverted ? hexToRgba(BRAND.paper, 0.5) : hexToRgba(solidAccentOnPaper(theme), 0.45);
+  return (
+    <span
+      aria-hidden="true"
+      data-chapter-connector
+      className="pointer-events-none absolute left-1/2 flex -translate-x-1/2 flex-col items-center"
+      style={{ bottom: `calc(100% + ${CHAPTER_CONNECTOR.gapPx}px)` }}
+    >
+      <span
+        className="block rounded-full"
+        style={{ width: CHAPTER_CONNECTOR.dotPx, height: CHAPTER_CONNECTOR.dotPx, backgroundColor: color }}
+      />
+      <span className="block" style={{ width: 1, height: CHAPTER_CONNECTOR.linePx, backgroundColor: color }} />
+    </span>
+  );
+}
+
 function PointPill({
   theme,
   label,
@@ -1094,7 +1117,8 @@ function SectionHeader({
     return (
       <header className={`@container mb-10 w-full ${wrapClass}`}>
         {pointBadge ? (
-          <div className={`mb-5 flex ${rowClass}`}>
+          <div className={`relative mb-5 flex ${rowClass}`}>
+            {align !== "left" ? <ChapterConnector theme={theme} inverted={inverted} /> : null}
             <PointPill theme={theme} label={pointBadge} inverted={inverted} />
           </div>
         ) : null}
@@ -1465,9 +1489,85 @@ function renderIngredientCircleVisual(params: {
   return null;
 }
 
+/** 체크리스트 비교 상단 — 실제 상품 사진 VS 일반 제품 실루엣 */
+function ComparisonVersusHeader({
+  productThumb,
+  ourLabel,
+  baselineLabel,
+  theme,
+}: {
+  productThumb: string;
+  ourLabel: string;
+  baselineLabel: string;
+  theme: CategoryTheme;
+}) {
+  const v = COMPARE_VERSUS;
+  return (
+    <div
+      data-compare-versus
+      className="mx-auto flex max-w-md items-center justify-center"
+      style={{ marginTop: v.marginTopPx, gap: v.gapPx }}
+    >
+      <div className="flex flex-col items-center" style={{ width: v.colPx, gap: 8 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={productThumb}
+          alt=""
+          aria-hidden
+          className="block rounded-full object-cover"
+          style={{
+            width: v.thumbPx,
+            height: v.thumbPx,
+            boxShadow: `0 0 0 3px ${hexToRgba(solidAccentOnPaper(theme), 0.35)}`,
+          }}
+        />
+        <span
+          className="text-center font-bold"
+          style={{ fontSize: 13, lineHeight: "18px", color: readableTextDeep(theme) }}
+        >
+          {ourLabel}
+        </span>
+      </div>
+      <span
+        aria-hidden
+        className="font-heading font-black"
+        style={{ fontSize: 18, letterSpacing: "0.04em", color: hexToRgba(BRAND.ink, 0.3) }}
+      >
+        VS
+      </span>
+      <div className="flex flex-col items-center" style={{ width: v.colPx, gap: 8 }}>
+        <span
+          aria-hidden
+          className="flex items-center justify-center rounded-full"
+          style={{ width: v.thumbPx, height: v.thumbPx, backgroundColor: hexToRgba(BRAND.ink, 0.06) }}
+        >
+          <svg
+            width={30}
+            height={30}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke={hexToRgba(BRAND.ink, 0.35)}
+            strokeWidth={1.6}
+            strokeLinejoin="round"
+          >
+            <path d={COMPARE_VERSUS.bottlePath} />
+          </svg>
+        </span>
+        <span
+          className="text-center font-medium"
+          style={{ fontSize: 13, lineHeight: "18px", color: hexToRgba(BRAND.ink, 0.45) }}
+        >
+          {baselineLabel}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function renderComparisonChartBody(params: {
   section: ComparisonChartSection;
   theme: CategoryTheme;
+  productThumb?: string | null;
 }): ReactNode {
   const { theme } = params;
   const section = {
@@ -1506,6 +1606,14 @@ function renderComparisonChartBody(params: {
             {section.baselineLabel}
           </span>
         </div>
+      ) : null}
+      {FLAT_SECTION_SURFACES && section.presentationStyle === "checklist" && params.productThumb ? (
+        <ComparisonVersusHeader
+          productThumb={params.productThumb}
+          ourLabel={section.ourLabel}
+          baselineLabel={section.baselineLabel}
+          theme={theme}
+        />
       ) : null}
       <div
         className={`mx-auto max-w-md space-y-8 ${
@@ -1645,8 +1753,9 @@ function renderCircleComparisonCombo(params: {
   theme: CategoryTheme;
   pattern: SectionColorPattern;
   productName: string;
+  productThumb?: string | null;
 }): ReactNode {
-  const { circleSection, chartSection, index, category, theme, pattern, productName } = params;
+  const { circleSection, chartSection, index, category, theme, pattern, productName, productThumb } = params;
   const hideCircle =
     FLAT_SECTION_SURFACES &&
     isRedundantSoloVenn(
@@ -1681,7 +1790,7 @@ function renderCircleComparisonCombo(params: {
           })}
         </div>
       )}
-      {renderComparisonChartBody({ section: chartSection, theme })}
+      {renderComparisonChartBody({ section: chartSection, theme, productThumb })}
     </section>
   );
 }
@@ -1841,6 +1950,7 @@ function renderSection(
   ingredients?: string | null,
   keyFeatures?: string | null,
   pointOrdinal?: number,
+  productThumb?: string | null,
 ) {
   const heroFallback = imageUrls[0] ?? "";
   switch (section.type) {
@@ -3165,7 +3275,7 @@ function renderSection(
           className={getCategoryRhythm(category).generousPadClass}
           style={textSectionStyle(theme, pattern, category)}
         >
-          {renderComparisonChartBody({ section, theme })}
+          {renderComparisonChartBody({ section, theme, productThumb })}
         </section>
       );
 
@@ -3295,6 +3405,23 @@ function renderSection(
                 edit={edit}
                 onTitleChange={(heading) => edit?.onChange(index, { ...section, heading })}
               />
+            </div>
+          ) : null}
+          {!isTrustEvidence && FLAT_SECTION_SURFACES && productThumb ? (
+            <div
+              data-highlight-product
+              className="relative mx-auto overflow-hidden rounded-full"
+              style={{
+                width: HIGHLIGHT_PRODUCT.px,
+                height: HIGHLIGHT_PRODUCT.px,
+                marginTop: HIGHLIGHT_PRODUCT.marginTopPx,
+                boxShadow: `0 0 0 ${HIGHLIGHT_PRODUCT.ringPx}px ${
+                  boldBlock ? hexToRgba(BRAND.paper, 0.28) : hexToRgba(solidAccentOnPaper(theme), 0.3)
+                }`,
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={productThumb} alt="" aria-hidden className="block h-full w-full object-cover" />
             </div>
           ) : null}
           <div className={`relative mx-auto ${isTrustEvidence ? "mt-0" : "mt-10"} grid gap-4 ${gridCols}`}>
@@ -5176,6 +5303,7 @@ export default function DetailSectionRenderer({
   // 편집 중엔 FAQ 항목 인덱스가 원본과 맞아야 하므로 빼지 않는다
   const sections = edit?.enabled ? shaped : dropSpecEchoFaqItems(shaped);
   const pointOrdinals = buildPointOrdinals(sections);
+  const productThumb = resolveProductThumbUrl(sections, imageUrls);
   const baseTheme = themeOverride ?? getCategoryTheme(category);
   const extendedTheme = extendTheme(baseTheme);
   const trustChips = extractTrustChips(sections);
@@ -5275,6 +5403,7 @@ export default function DetailSectionRenderer({
             theme: chartTheme,
             pattern: chartPattern,
             productName: productName ?? category,
+            productThumb,
           });
         } else if (comboTrailIndices.has(index) || textOnlyTrailIndices.has(index)) {
           content = null;
@@ -5309,6 +5438,7 @@ export default function DetailSectionRenderer({
             ingredients,
             keyFeatures,
             pointOrdinals[index],
+            productThumb,
           );
         }
         if (!content) {

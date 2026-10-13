@@ -56,6 +56,7 @@ import {
   missingRequiredHighlightBox,
 } from "@/lib/highlight-box-guard";
 import { enforceSplitZigzag, limitBoldBlocks } from "@/lib/detail-visual-rhythm";
+import { orderSectionsForFlow } from "@/lib/section-flow-order";
 import {
   applyDesignerLayoutRhythm,
   buildDesignerPatternGuide,
@@ -1178,7 +1179,7 @@ sections 안의 내용과 자연스럽게 일치하도록 작성하세요.${conc
   // AI가 슬롯 순서를 어겼거나 알 수 없는 slot을 만들었더라도, 최종 출력은
   // 항상 카테고리 고정 템플릿 순서를 따르도록 강제 재정렬한다. 레이아웃
   // 틀은 서버가 지키고, AI는 콘텐츠만 책임진다는 원칙을 코드로도 보장.
-  parsed.sections = normalizeSectionsToTemplate(parsed.sections, template);
+  parsed.sections = orderSectionsForFlow(normalizeSectionsToTemplate(parsed.sections, template));
   parsed.sections = ensureAiDisclosure(parsed.sections);
   const rolesForAssign = normalizeImageRoles(productInfo.imageRoles, imageCount);
   const shortage = detectRoleShortages({
@@ -2140,7 +2141,7 @@ export async function POST(request: Request) {
       const hasAiLifestyle = hasAiLifestyleOrigin(imageOrigins);
       savedCopy.sections = ensureAiDisclosure(savedCopy.sections, { hasAiLifestyle });
     }
-    savedCopy.sections = enforceSplitZigzag(savedCopy.sections);
+    savedCopy.sections = enforceSplitZigzag(orderSectionsForFlow(savedCopy.sections));
 
     const { data: savedProduct, error: insertError } = body.productId
       ? await supabase

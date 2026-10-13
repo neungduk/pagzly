@@ -63,3 +63,22 @@ export const POINT_PILL = {
   padX: 18,
   letterSpacingEm: 0.04,
 } as const;
+
+/** POINT 알약 위 챕터 연결선 — 섹션 위 여백(최소 48px) 안에 들어가는 길이 */
+export const CHAPTER_CONNECTOR = {
+  linePx: 26,
+  dotPx: 5,
+  gapPx: 8,
+} as const;
+
+/** 체크리스트 비교 상단 VS 헤더 (실제 상품 사진 vs 일반 제품 실루엣) */
+export const COMPARE_VERSUS = {
+  thumbPx: 72,
+  colPx: 120,
+  gapPx: 20,
+  marginTopPx: 32,
+  bottlePath: "M10 2h4v3l2.5 3.5V20a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2V8.5L10 5z",
+} as const;
+
+/** 요약 카드(highlight_box) 위 상품 사진 — 카드들이 사진을 설명하는 구도 */
+export const HIGHLIGHT_PRODUCT = { px: 136, marginTopPx: 32, ringPx: 4 } as const;
