@@ -67,10 +67,20 @@ const PATHS: Record<SummaryIconId, string> = {
     '<path d="M12 3.5a8.5 8.5 0 0 0 0 17c1.2 0 1.8-.9 1.4-1.9-.5-1.2.3-2.4 1.6-2.4h1.9a3.6 3.6 0 0 0 3.6-3.6C20.5 7.6 16.7 3.5 12 3.5z"/><circle cx="7.8" cy="11.2" r="1"/><circle cx="10.6" cy="7.4" r="1"/><circle cx="15" cy="7.8" r="1"/>',
 };
 
-/** 위에서부터 먼저 맞는 규칙. 근거 없는 의미를 덧씌우지 않도록 못 맞추면 체크 아이콘 */
 /** 보증 키워드 — 요약 칩·핵심 포인트·혜택 카드가 같은 목록을 쓴다(397차). "보장"(만족 보장 등)은 보증이 아니라 넣지 않는다 */
 const WARRANTY_RE = /보증|워런티|무상\s*(수리|a\/?s)|\ba\/s\b/i;
 
+/**
+ * 사이즈·무게·용량 — 요약 칩·핵심 포인트·혜택 카드 공용(397·398차).
+ * 수치만으로는 붙이지 않는다. 키워드나 "숫자+단위"(cm·g·ml)가 있어야 한다. mg(영양 성분)은 무게로 보지 않는다
+ */
+const MEASURE_RULES: [RegExp, SummaryIconId][] = [
+  [/사이즈|치수|실측|총장|기장|길이|너비|높이|\d\s*(cm|mm)\b/i, "ruler"],
+  [/무게|중량|\d\s*k?g\b/i, "weight"],
+  [/용량|용적|\d\s*(ml|l|리터)\b/i, "cup"],
+];
+
+/** 위에서부터 먼저 맞는 규칙. 근거 없는 의미를 덧씌우지 않도록 못 맞추면 체크 아이콘 */
 const RULES: [RegExp, SummaryIconId][] = [
   [WARRANTY_RE, "shield"],
   [/인증|허가|등록|책임판매업|haccp|해썹|gmp|fda|\bkc\b|\bce\b|iso|식약처|유기농/i, "shield"],
@@ -86,6 +96,7 @@ const RULES: [RegExp, SummaryIconId][] = [
   [/충전|배터리|mah|소비전력|와트/i, "bolt"],
   [/민감|저자극|진정|순한/, "heart"],
   [/(?<!전)성분|배합|함유|나이아신|판테놀|세라마이드|비타민|레티놀|펩타이드|콜라겐/, "molecule"],
+  ...MEASURE_RULES,
 ];
 
 export function pickSummaryIcon(label: string): SummaryIconId {
@@ -103,7 +114,7 @@ const BENEFIT_RULES: [RegExp, SummaryIconId][] = [
   [/가볍|가벼|산뜻|흡수|스며|끈적/, "feather"],
   [/미백|톤|광채|브라이트|맑|투명|생기|윤기/, "sparkle"],
   [/장벽|보호|차단|방어|안심/, "shield"],
-  [/성분|배합|함유|나이아신|판테놀|세라마이드|비타민|펩타이드|레티놀|콜라겐|단백질|유산균|\d\s*%/, "molecule"],
+  [/성분|배합|함유|나이아신|판테놀|세라마이드|비타민|펩타이드|레티놀|콜라겐|단백질|유산균/, "molecule"],
   [/레이어|겹겹|다층|구조|이중|3중|삼중/, "layers"],
   [/지속|오래|하루\s*종일|24\s*시간|롱래스팅|내구/, "clock"],
   [/충전|배터리|출력|파워|강력|고속|mah/i, "bolt"],
@@ -117,10 +128,7 @@ const BENEFIT_RULES: [RegExp, SummaryIconId][] = [
   // 396차 — 보증·소재 키워드. 기존 아이콘 안에서만 고르고, 맞는 아이콘이 없는 키워드(사이즈 등)는 체크로 둔다
   [WARRANTY_RE, "shield"],
   [/소재|원단|재질|섬유/, "layers"],
-  // 397차 — 수치만으로는 붙이지 않는다. 키워드나 "숫자+단위"(cm·g·ml)가 있어야 한다. mg(영양 성분)은 무게로 보지 않는다
-  [/사이즈|치수|실측|총장|기장|길이|너비|높이|\d\s*(cm|mm)\b/i, "ruler"],
-  [/무게|중량|\d\s*k?g\b/i, "weight"],
-  [/용량|용적|\d\s*(ml|l|리터)\b/i, "cup"],
+  ...MEASURE_RULES,
   [/포장|패키지|구성품|개입/, "box"],
   [/세탁|손빨래/, "droplet"],
   [/내열|내냉|내한/, "thermo"],
