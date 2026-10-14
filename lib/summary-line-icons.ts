@@ -25,7 +25,12 @@ export type SummaryIconId =
   | "layers"
   | "target"
   | "wave"
-  | "thermo";
+  | "thermo"
+  | "ruler"
+  | "weight"
+  | "cup"
+  | "box"
+  | "palette";
 
 const PATHS: Record<SummaryIconId, string> = {
   check: '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/>',
@@ -53,10 +58,21 @@ const PATHS: Record<SummaryIconId, string> = {
   target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>',
   wave: '<path d="M3.5 10.5v3M7.5 8v8M11.5 5v14M15.5 8.5v7M19.5 10.5v3"/>',
   thermo: '<path d="M14 14.5V5a2 2 0 0 0-4 0v9.5a4 4 0 1 0 4 0z"/><path d="M12 9v7.5"/>',
+  // 397차 — 사이즈·무게·용량·포장·색상. 같은 24 격자·선 굵기·둥근 끝으로 직접 그린 선 아이콘
+  ruler: '<path d="M3.8 15.6L15.6 3.8a1 1 0 0 1 1.4 0l3.2 3.2a1 1 0 0 1 0 1.4L8.4 20.2a1 1 0 0 1-1.4 0l-3.2-3.2a1 1 0 0 1 0-1.4z"/><path d="M7.4 12l2 2M10 9.4l1.5 1.5M12.6 6.8l2 2"/>',
+  weight: '<circle cx="12" cy="6.2" r="2.4"/><path d="M7.2 9.5h9.6l2.2 11H5l2.2-11z"/>',
+  cup: '<path d="M5.5 4.5h11l-1.2 14.6a1.5 1.5 0 0 1-1.5 1.4H8.2a1.5 1.5 0 0 1-1.5-1.4L5.5 4.5z"/><path d="M16.3 8h1.7a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-2.2"/><path d="M8.5 9h2.5M8.5 12.5h3.5M8.5 16h2.5"/>',
+  box: '<path d="M3.5 7.5L12 3.5l8.5 4v9L12 20.5l-8.5-4v-9z"/><path d="M3.5 7.5L12 11.5l8.5-4M12 11.5v9"/>',
+  palette:
+    '<path d="M12 3.5a8.5 8.5 0 0 0 0 17c1.2 0 1.8-.9 1.4-1.9-.5-1.2.3-2.4 1.6-2.4h1.9a3.6 3.6 0 0 0 3.6-3.6C20.5 7.6 16.7 3.5 12 3.5z"/><circle cx="7.8" cy="11.2" r="1"/><circle cx="10.6" cy="7.4" r="1"/><circle cx="15" cy="7.8" r="1"/>',
 };
 
 /** 위에서부터 먼저 맞는 규칙. 근거 없는 의미를 덧씌우지 않도록 못 맞추면 체크 아이콘 */
+/** 보증 키워드 — 요약 칩·핵심 포인트·혜택 카드가 같은 목록을 쓴다(397차). "보장"(만족 보장 등)은 보증이 아니라 넣지 않는다 */
+const WARRANTY_RE = /보증|워런티|무상\s*(수리|a\/?s)|\ba\/s\b/i;
+
 const RULES: [RegExp, SummaryIconId][] = [
+  [WARRANTY_RE, "shield"],
   [/인증|허가|등록|책임판매업|haccp|해썹|gmp|fda|\bkc\b|\bce\b|iso|식약처|유기농/i, "shield"],
   [/수상|1위|어워드|award|베스트/i, "award"],
   [/테스트|임상|검사|시험/, "flask"],
@@ -99,8 +115,16 @@ const BENEFIT_RULES: [RegExp, SummaryIconId][] = [
   [/배송|출고/, "truck"],
   [/증정|사은품/, "gift"],
   // 396차 — 보증·소재 키워드. 기존 아이콘 안에서만 고르고, 맞는 아이콘이 없는 키워드(사이즈 등)는 체크로 둔다
-  [/보증|워런티|무상\s*(수리|a\/?s)/i, "shield"],
+  [WARRANTY_RE, "shield"],
   [/소재|원단|재질|섬유/, "layers"],
+  // 397차 — 수치만으로는 붙이지 않는다. 키워드나 "숫자+단위"(cm·g·ml)가 있어야 한다. mg(영양 성분)은 무게로 보지 않는다
+  [/사이즈|치수|실측|총장|기장|길이|너비|높이|\d\s*(cm|mm)\b/i, "ruler"],
+  [/무게|중량|\d\s*k?g\b/i, "weight"],
+  [/용량|용적|\d\s*(ml|l|리터)\b/i, "cup"],
+  [/포장|패키지|구성품|개입/, "box"],
+  [/세탁|손빨래/, "droplet"],
+  [/내열|내냉|내한/, "thermo"],
+  [/색상|컬러|색감/, "palette"],
 ];
 
 function benefitMatches(text: string): SummaryIconId[] {
