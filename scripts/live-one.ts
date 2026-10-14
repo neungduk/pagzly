@@ -18,6 +18,7 @@ import fs from "fs";
 import path from "path";
 import sharp from "sharp";
 import { freezeDetailScrollReveal } from "./capture-utils";
+import { MAX_PRODUCT_IMAGES, MIN_AI_USED_IMAGES } from "../lib/assign-section-images";
 
 const ROOT = path.join(__dirname, "..");
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
@@ -251,7 +252,16 @@ const SCENARIOS: Scenario[] = [
 
 /* ---------- 402차: 로컬 사진·상품 정보 입력 ---------- */
 
-type LocalInput = { scenario: Scenario; images: string[]; mapping: string[]; unmapped: string[] };
+type LocalInput = {
+  scenario: Scenario;
+  images: string[];
+  /** 사진별 역할 선택칸 라벨(착장·디테일·코디·패키지·기타 등) — "## 사진 설명"의 "파일 → 라벨: 설명" */
+  roleLabels: Array<string | null>;
+  /** 타깃 고객 선택칸 값 그대로("## 타깃 선택") */
+  targetOption: string;
+  mapping: string[];
+  unmapped: string[];
+};
 
 /** "## 항목" 머리글 단위로 나눈 상품 정보 파일 */
 function parseProductInfo(file: string): Map<string, string> {
@@ -291,11 +301,19 @@ function buildLocalInput(base: Scenario, photosDir: string, infoFile: string): L
     return get(k);
   };
   const lines = (k: string) => take(k).split(/\n+/).map((l) => l.trim()).filter(Boolean);
-  const pasteBlock = ["사이즈별 실측표", "모델 정보", "핏", "계절", "색상 옵션", "세탁·관리", "배송·교환·반품"]
+  const pasteBlock = ["타깃 고객", "사이즈별 실측표", "모델 정보", "핏", "계절", "색상 옵션", "세탁·관리", "배송·교환·반품"]
     .filter((k) => get(k))
     .map((k) => `[${k}]\n${take(k)}`)
     .join("\n\n");
   const cert = take("인증·검사");
+  const targetOption = take("타깃 선택");
+  const images = listPhotos(photosDir);
+  const roleByFile = new Map<string, string>();
+  for (const line of take("사진 설명").split(/\n+/)) {
+    const m = line.match(/^\s*(\S+)\s*→\s*([^:：]+)[:：]/);
+    if (m) roleByFile.set(m[1]!, m[2]!.trim());
+  }
+  const roleLabels = images.map((f) => roleByFile.get(path.basename(f)) ?? null);
   const scenario: Scenario = {
     ...base,
     categoryLabel: take("카테고리") || base.categoryLabel,
@@ -322,13 +340,15 @@ function buildLocalInput(base: Scenario, photosDir: string, infoFile: string): L
     `가격 → #price: ${scenario.price}`,
     `소재 혼용률 → #ingredients: ${scenario.ingredients}`,
     `특징 + 핏·계절·색상 → #keyFeatures: ${scenario.keyFeatures.slice(0, 120)}…`,
-    `타깃 고객 → #targetCustomer: ${scenario.target}`,
-    `사이즈별 실측표·모델 정보·핏·계절·색상 옵션·세탁·관리·배송·교환·반품 → #wholesaleUrl(원본 판매 페이지 붙여넣기 칸): ${pasteBlock.length}자`,
+    `타깃 고객(문구) → 생성 폼 타깃 칸은 선택형이라 원본 붙여넣기 칸에 함께 넣음: ${scenario.target}`,
+    `타깃 고객·사이즈별 실측표·모델 정보·핏·계절·색상 옵션·세탁·관리·배송·교환·반품 → #wholesaleUrl(원본 판매 페이지 붙여넣기 칸): ${pasteBlock.length}자`,
     `인증·검사 → #certifications: ${scenario.certifications || "(비움 — 해당 없음)"}`,
+    `타깃 선택 → #targetCustomer(선택칸): ${targetOption || "(없음 — 타깃 고객 문구로 비슷한 항목 고름)"}`,
+    `사진 설명 → 사진별 역할 선택칸: ${roleLabels.map((r, i) => `${i + 1}=${r ?? "기본값"}`).join(", ")}`,
     `후기 파일 → 올리지 않음(가상 상품)`,
   ];
   const unmapped = [...info.keys()].filter((k) => !used.has(k)).map((k) => `${k}: ${get(k).split(/\n/)[0]!.slice(0, 60)}${get(k).includes("\n") ? " …" : ""}`);
-  return { scenario, images: listPhotos(photosDir), mapping, unmapped };
+  return { scenario, images, roleLabels, targetOption, mapping, unmapped };
 }
 
 /** 이 이상이면 비정상 반복으로 보고 즉시 멈춘다(402차 지시: 같은 요소 이미지 생성 반복 정황) */
@@ -445,7 +465,13 @@ apiRequests=${JSON.stringify(apiRequests)}
   await page.fill("#productName", cfg.productName);
   await fillIfExists(page, "#brandName", cfg.brand);
   await page.fill("#price", cfg.price);
-  await fillIfExists(page, "#targetCustomer", cfg.target);
+  if (local?.targetOption) await page.locator("#targetCustomer").selectOption({ label: local.targetOption });
+  else await fillIfExists(page, "#targetCustomer", cfg.target);
+  if (local) {
+    for (const [i, label] of local.roleLabels.entries()) {
+      if (label) await page.locator(`[data-testid="image-role-${i}"]`).selectOption({ label });
+    }
+  }
   await fillIfExists(page, "#keyFeatures", cfg.keyFeatures);
   await fillIfExists(page, "#ingredients", cfg.ingredients);
   await fillIfExists(page, "#certifications", cfg.certifications);
@@ -629,8 +655,10 @@ async function main() {
     console.log("[live-one] 매핑 안 된 항목(폼에 맞는 칸 없음):");
     for (const line of local.unmapped) console.log(`  ${line}`);
     const missing = [["상품명", scenario.productName], ["가격", scenario.price], ["카테고리", scenario.categoryLabel]].filter(([, v]) => !v).map(([k]) => k);
-    if (missing.length || local.images.length < 6) {
-      console.error(`[live-one] 필수 입력 부족: ${[...missing, local.images.length < 6 ? `사진 ${local.images.length}장(6장 이상 필요)` : ""].filter(Boolean).join(", ")}`);
+    // 생성 폼이 사진 최소 MIN_AI_USED_IMAGES(7)장을 요구한다(402차: 6장으로 제출하다 폼에서 막혔다 — API 호출 0)
+    const fewPhotos = local.images.length < MIN_AI_USED_IMAGES || local.images.length > MAX_PRODUCT_IMAGES;
+    if (missing.length || fewPhotos) {
+      console.error(`[live-one] 필수 입력 부족: ${[...missing, fewPhotos ? `사진 ${local.images.length}장(${MIN_AI_USED_IMAGES}~${MAX_PRODUCT_IMAGES}장 필요)` : ""].filter(Boolean).join(", ")}`);
       process.exit(2);
     }
   }
