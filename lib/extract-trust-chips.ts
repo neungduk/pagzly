@@ -79,7 +79,15 @@ export function extractTrustChips(
     add(benefit);
   }
 
+  // 403차 — 다른 칩 안에 글자 그대로 들어 있는 짧은 칩은 같은 말의 중복이다
+  // ("무료배송" ⊂ "5만원 이상 무료배송", "무향" ⊂ "무향·저자극"). 더 구체적인 긴 칩만 남긴다 — 문구를 새로 만들지 않는다
+  const chipKey = (c: string) => splitChipCaption(c).main.toLowerCase().replace(/\s+/g, "");
+  const merged = chips.filter((c, i) => {
+    const k = chipKey(c);
+    return !chips.some((o, j) => j !== i && chipKey(o).length > k.length && chipKey(o).includes(k));
+  });
+
   // 칸 하나짜리 요약 그리드는 빈 띠처럼 보인다
-  if (FLAT_SECTION_SURFACES && chips.length < 2) return [];
-  return chips.slice(0, 6);
+  if (FLAT_SECTION_SURFACES && merged.length < 2) return [];
+  return merged.slice(0, 6);
 }

@@ -96,6 +96,13 @@ export async function run(): Promise<string[]> {
   if (dupChips.filter((c) => /에너지(소비)?효율/.test(c)).length !== 1) {
     fails.push(`요약 칩 중복 제거: ${dupChips.join(" | ")} (에너지효율 칩 1개 기대)`);
   }
+  // 다른 칩 안에 글자 그대로 들어 있는 짧은 칩은 합친다(403차) — 긴 쪽만 남고 새 문구는 없다
+  const subChips = extractTrustChips([
+    { type: "cta_price", slot: "cta_price", price: 1, badges: ["5만원 이상 무료배송", "무료배송", "무향·저자극", "무향", "당일발송"] },
+  ] as unknown as Parameters<typeof extractTrustChips>[0]);
+  if (JSON.stringify(subChips) !== JSON.stringify(["5만원 이상 무료배송", "무향·저자극", "당일발송"])) {
+    fails.push(`요약 칩 포함 중복 합치기: ${subChips.join(" | ")} (기대 5만원 이상 무료배송 | 무향·저자극 | 당일발송)`);
+  }
   for (const s of CHIP_SNAPSHOT) {
     const got = s.chips.map(pickSummaryIcon);
     if (JSON.stringify(got) !== JSON.stringify(s.icons)) fails.push(`요약 칩 스냅숏 ${s.sample}: ${got.join("·")} (기대 ${s.icons.join("·")})`);
