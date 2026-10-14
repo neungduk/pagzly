@@ -2059,7 +2059,10 @@ export function buildDetailPageHtml(opts: {
   const quickFacts = extractQuickFacts(visibleSections, trustChips);
   const sectionAnchors = buildSectionAnchors(visibleSections);
   const anchorIdMap = buildSectionAnchorIdMap(visibleSections);
-  const anchorNavHtml = buildAnchorNavHtml(sectionAnchors, opts.theme);
+  const anchorNavHtml = buildAnchorNavHtml(sectionAnchors, opts.theme, visibleSections.some((s) => s.type === "hero"));
+  // 396차 — 라이브와 같게: 히어로가 있으면 앵커 내비를 히어로·요약 띠 바로 아래(본문 앞)에 둔다.
+  const anchorNavAfterHero = visibleSections.some((s) => s.type === "hero");
+  let anchorNavPlaced = false;
 
   const bodyParts: string[] = [];
   let imageTextCount = 0;
@@ -2181,6 +2184,10 @@ export function buildDetailPageHtml(opts: {
         }
       }
     }
+        if (anchorNavHtml && !anchorNavPlaced) {
+          bodyParts.push(anchorNavHtml);
+          anchorNavPlaced = true;
+        }
   }
   const body = bodyParts.join("\n");
 
@@ -2295,7 +2302,7 @@ ${jsonLd}
 <body>
 <div class="pagzly-wrap">
 <header style="padding:14px 20px;border-bottom:1px solid #DAD5C9;font-size:${FONT_SIZE.xs};opacity:.65">${esc(opts.category)} · ${esc(opts.productName)}</header>
-${anchorNavHtml}
+${anchorNavAfterHero ? "" : anchorNavHtml}
 ${body}
 ${seoBlock}
 <footer style="padding:28px 20px;text-align:center;font-size:${FONT_SIZE.caption};opacity:.45">Pagzly HTML export · 마켓·자사몰용 (통이미지와 별도 텍스트·스키마 포함)</footer>

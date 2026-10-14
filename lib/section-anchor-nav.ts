@@ -95,6 +95,7 @@ export function buildSectionAnchorIdMap(sections: DetailSection[]): Map<number, 
 export function buildAnchorNavHtml(
   anchors: SectionAnchor[],
   theme: { accent: string; deepAccent: string; baseNeutral: string },
+  afterHero = false,
 ): string {
   if (anchors.length === 0) return "";
   const links = anchors
@@ -103,5 +104,5 @@ export function buildAnchorNavHtml(
         `<a href="#${a.id}" style="flex:0 0 auto;padding:8px 14px;font-size:12px;font-weight:600;color:${theme.deepAccent};text-decoration:none;border-radius:999px;background:${theme.accent}1a">${a.label}</a>`,
     )
     .join("");
-  return `<nav class="pagzly-anchor-nav" aria-label="섹션 이동" style="position:sticky;top:0;z-index:25;display:flex;gap:6px;overflow-x:auto;padding:10px 16px;border-bottom:1px solid ${theme.accent}33;background:${theme.baseNeutral}f2;backdrop-filter:blur(8px);-webkit-overflow-scrolling:touch">${links}</nav>`;
+  return `<nav class="pagzly-anchor-nav" aria-label="섹션 이동" style="${afterHero ? "margin-top:16px;" : ""}position:sticky;top:0;z-index:25;display:flex;gap:6px;overflow-x:auto;padding:10px 16px;border-bottom:1px solid ${theme.accent}33;background:${theme.baseNeutral}f2;backdrop-filter:blur(8px);-webkit-overflow-scrolling:touch">${links}</nav>`;
 }

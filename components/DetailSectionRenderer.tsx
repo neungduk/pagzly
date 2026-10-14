@@ -5548,6 +5548,8 @@ export default function DetailSectionRenderer({
   const anchorIdMap = buildSectionAnchorIdMap(sections);
   let imageTextCount = 0;
   const renderTrack: { lastSection: DetailSection | undefined; lastWasHero: boolean } = {
+  // 396차 — 앵커 내비는 히어로보다 먼저 보이지 않게 히어로 바로 아래(요약 띠 다음, 본문 앞)에 둔다. 히어로가 없으면 맨 위.
+  const anchorNavAfterHero = sections.some((s) => s.type === "hero");
     lastSection: undefined,
     lastWasHero: false,
   };
@@ -5580,7 +5582,7 @@ export default function DetailSectionRenderer({
     {/* 반응형은 뷰포트가 아니라 이 컨테이너(프리뷰 칼럼) 폭 기준 — 결과 페이지 데스크톱 3단 레이아웃에서
         좁은 가운데 칼럼에 sm: 폰트·그리드가 켜져 글자가 음절 단위로 쪼개지던 문제 방지 */}
     <div className="@container/pz overflow-hidden scroll-smooth" style={titleScaleVars() as CSSProperties}>
-      {sectionAnchors.length > 0 ? (
+      {sectionAnchors.length > 0 && !anchorNavAfterHero ? (
         <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} />
       ) : null}
       {sections.map((section, index) => {
@@ -5712,6 +5714,7 @@ export default function DetailSectionRenderer({
               ) : null}
               {content}
             </div>
+              {sectionAnchors.length > 0 ? <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} afterHero /> : null}
           ) : (
             content
           );
