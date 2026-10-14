@@ -4,6 +4,8 @@
  *   npx tsx scripts/live-one.ts <시나리오> <출력 폴더> --dry     # 계획만 출력(호출 없음, .env도 읽지 않음)
  *   $env:PAGZLY_PAID_VERIFY_APPROVED = "YYYY-MM-DD"              # 사용자가 승인한 오늘 날짜
  *   npx tsx scripts/live-one.ts electronics review/400-live
+ *   npx tsx scripts/live-one.ts fashion review/402-live --photos review/402-input/fashion/photos --info review/402-input/fashion/product-info.txt
+ *     (402차: Pexels 검색 대신 로컬 사진·상품 정보. 후기 파일은 올리지 않고 .env.local도 읽지 않는다)
  *
  * 안전장치: PAGZLY_PAID_VERIFY_APPROVED가 오늘 날짜(로컬, YYYY-MM-DD)와 정확히 같을 때만 실행한다.
  * 시나리오: beauty | fashion | food | electronics | living | pet (한 번에 1건만)
@@ -22,7 +24,15 @@ const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 const STORAGE_STATE_PATH = path.join(__dirname, "auth-state.json");
 const CLI = process.argv.slice(2);
 const DRY = CLI.includes("--dry");
-const [SCENARIO_ARG, OUT_ARG] = CLI.filter((a) => !a.startsWith("--"));
+const VALUE_FLAGS = new Set(["--photos", "--info"]);
+const flagValue = (name: string) => {
+  const i = CLI.indexOf(name);
+  return i >= 0 ? CLI[i + 1] : undefined;
+};
+/** 402차 — Pexels 자동 검색 대신 로컬 사진 폴더·상품 정보 파일을 입력으로 쓴다(둘 다 줘야 함) */
+const PHOTOS_ARG = flagValue("--photos");
+const INFO_ARG = flagValue("--info");
+const [SCENARIO_ARG, OUT_ARG] = CLI.filter((a, i) => !a.startsWith("--") && !VALUE_FLAGS.has(CLI[i - 1] ?? ""));
 const OUT_ROOT = path.resolve(ROOT, OUT_ARG ?? "review/live-one");
 const ASSET_DIR = path.join(__dirname, "test-assets", "_live-one");
 const REVIEW_FILE = path.join(ROOT, "public", "_verify146", "reviews_148cha.txt");
@@ -239,21 +249,119 @@ const SCENARIOS: Scenario[] = [
   },
 ];
 
-async function runScenario(cfg: Scenario) {
+/* ---------- 402차: 로컬 사진·상품 정보 입력 ---------- */
+
+type LocalInput = { scenario: Scenario; images: string[]; mapping: string[]; unmapped: string[] };
+
+/** "## 항목" 머리글 단위로 나눈 상품 정보 파일 */
+function parseProductInfo(file: string): Map<string, string> {
+  const out = new Map<string, string>();
+  let key: string | null = null;
+  const buf: string[] = [];
+  const flush = () => {
+    if (key) out.set(key, buf.join("\n").trim());
+    buf.length = 0;
+  };
+  for (const line of fs.readFileSync(file, "utf8").split(/\r?\n/)) {
+    const m = line.match(/^##\s+(.+?)\s*$/);
+    if (m) {
+      flush();
+      key = m[1]!;
+    } else if (key) buf.push(line);
+  }
+  flush();
+  return out;
+}
+
+function listPhotos(dir: string): string[] {
+  return fs
+    .readdirSync(dir)
+    .filter((f) => /\.(jpe?g|png|webp)$/i.test(f))
+    .sort()
+    .map((f) => path.resolve(dir, f));
+}
+
+/** 상품 정보 항목 → 생성 폼 입력칸. 폼에 없는 항목은 버리지 않고 unmapped로 돌려준다 */
+function buildLocalInput(base: Scenario, photosDir: string, infoFile: string): LocalInput {
+  const info = parseProductInfo(infoFile);
+  const get = (k: string) => info.get(k)?.trim() ?? "";
+  const used = new Set<string>();
+  const take = (k: string) => {
+    used.add(k);
+    return get(k);
+  };
+  const lines = (k: string) => take(k).split(/\n+/).map((l) => l.trim()).filter(Boolean);
+  const pasteBlock = ["사이즈별 실측표", "모델 정보", "핏", "계절", "색상 옵션", "세탁·관리", "배송·교환·반품"]
+    .filter((k) => get(k))
+    .map((k) => `[${k}]\n${take(k)}`)
+    .join("\n\n");
+  const cert = take("인증·검사");
+  const scenario: Scenario = {
+    ...base,
+    categoryLabel: take("카테고리") || base.categoryLabel,
+    productName: take("상품명"),
+    brand: take("브랜드"),
+    price: take("가격").replace(/[^\d]/g, ""),
+    queries: [],
+    need: 0,
+    keyFeatures: [...lines("특징"), get("핏") && `핏: ${get("핏")}`, get("계절") && `계절: ${get("계절")}`, get("색상 옵션") && `색상: ${get("색상 옵션")}`]
+      .filter(Boolean)
+      .join(", "),
+    ingredients: take("소재 혼용률"),
+    // 인증은 지어내지 않는다 — "해당 없음"이면 칸을 비운다
+    certifications: /해당\s*없음|없음/.test(cert) ? "" : cert,
+    wholesaleUrl: pasteBlock,
+    target: take("타깃 고객"),
+    // 가상 상품에 다른 상품용 후기 파일을 붙이면 근거 없는 후기가 된다
+    withReviews: false,
+  };
+  const mapping = [
+    `카테고리 → 카테고리 선택: ${scenario.categoryLabel}`,
+    `상품명 → #productName: ${scenario.productName}`,
+    `브랜드 → #brandName: ${scenario.brand}`,
+    `가격 → #price: ${scenario.price}`,
+    `소재 혼용률 → #ingredients: ${scenario.ingredients}`,
+    `특징 + 핏·계절·색상 → #keyFeatures: ${scenario.keyFeatures.slice(0, 120)}…`,
+    `타깃 고객 → #targetCustomer: ${scenario.target}`,
+    `사이즈별 실측표·모델 정보·핏·계절·색상 옵션·세탁·관리·배송·교환·반품 → #wholesaleUrl(원본 판매 페이지 붙여넣기 칸): ${pasteBlock.length}자`,
+    `인증·검사 → #certifications: ${scenario.certifications || "(비움 — 해당 없음)"}`,
+    `후기 파일 → 올리지 않음(가상 상품)`,
+  ];
+  const unmapped = [...info.keys()].filter((k) => !used.has(k)).map((k) => `${k}: ${get(k).split(/\n/)[0]!.slice(0, 60)}${get(k).includes("\n") ? " …" : ""}`);
+  return { scenario, images: listPhotos(photosDir), mapping, unmapped };
+}
+
+/** 이 이상이면 비정상 반복으로 보고 즉시 멈춘다(402차 지시: 같은 요소 이미지 생성 반복 정황) */
+const API_REPEAT_LIMIT: Record<string, number> = {
+  "/api/generate": 2,
+  "/api/generate-backdrop": 4,
+  "/api/section-backdrops": 4,
+  "/api/protect-product-images": 2,
+};
+/** 승인되지 않은 사용 장면·일상샷 생성 경로 — 한 번이라도 불리면 멈춘다 */
+const FORBIDDEN_API = ["/api/generate-lifestyle-shots", "/api/lifestyle-composite", "/api/canvas-ai-image", "/api/generate-social"];
+
+async function runScenario(cfg: Scenario, local?: LocalInput) {
   const outDir = path.join(OUT_ROOT, cfg.key);
   fs.mkdirSync(outDir, { recursive: true });
   fs.mkdirSync(SHOT, { recursive: true });
-
-  const env = loadEnvLocal();
-  for (const [k, v] of Object.entries(env)) {
-    if (!process.env[k]) process.env[k] = v;
-  }
   if (!fs.existsSync(STORAGE_STATE_PATH)) throw new Error("scripts/auth-state.json 없음");
-  const apiKey = process.env.PEXELS_API_KEY;
-  if (!apiKey) throw new Error("PEXELS_API_KEY 필요");
 
-  console.log(`[${cfg.key}] crawl images…`);
-  const images = await crawlPexels(apiKey, cfg.queries, cfg.need, cfg.key);
+  let images: string[];
+  if (local) {
+    // 로컬 사진 모드: .env.local을 읽지 않는다(Pexels 키가 필요 없음)
+    images = local.images;
+    console.log(`[${cfg.key}] 로컬 사진 ${images.length}장 사용`);
+  } else {
+    const env = loadEnvLocal();
+    for (const [k, v] of Object.entries(env)) {
+      if (!process.env[k]) process.env[k] = v;
+    }
+    const apiKey = process.env.PEXELS_API_KEY;
+    if (!apiKey) throw new Error("PEXELS_API_KEY 필요");
+    console.log(`[${cfg.key}] crawl images…`);
+    images = await crawlPexels(apiKey, cfg.queries, cfg.need, cfg.key);
+  }
 
   const inputSnapshot = {
     ...cfg,
@@ -274,8 +382,27 @@ async function runScenario(cfg: Scenario) {
 
   let generateHits = 0;
   const costLogs: string[] = [];
+  // 402차 — 원가 계측용 API 호출 집계 + 승인 밖 호출·비정상 반복 즉시 중단
+  const apiRequests: Record<string, number> = {};
+  // enhance-image는 사진마다 최대 2회(재시도) + 비용 집계 1회가 정상 — 사진 수로 상한을 정한다
+  const limits: Record<string, number> = { ...API_REPEAT_LIMIT, "/api/enhance-image": images.length * 2 + 1 };
+  let abortReason = "";
   page.on("request", (req) => {
     const u = req.url();
+    if (req.method() === "POST" && u.includes("/api/")) {
+      const p = new URL(u).pathname;
+      apiRequests[p] = (apiRequests[p] ?? 0) + 1;
+      const limit = limits[p];
+      if (!abortReason && FORBIDDEN_API.includes(p)) abortReason = `승인되지 않은 호출 감지: ${p}`;
+      else if (!abortReason && limit != null && apiRequests[p]! > limit) abortReason = `비정상 반복 감지: ${p} ${apiRequests[p]}회(상한 ${limit})`;
+      if (abortReason) {
+        console.log(`[${cfg.key}] 즉시 중단 — ${abortReason}`);
+        fs.writeFileSync(path.join(outDir, "abort.txt"), `${abortReason}
+apiRequests=${JSON.stringify(apiRequests)}
+`, "utf8");
+        void browser.close();
+      }
+    }
     if (
       req.method() === "POST" &&
       u.includes("/api/generate") &&
@@ -323,6 +450,7 @@ async function runScenario(cfg: Scenario) {
   await fillIfExists(page, "#ingredients", cfg.ingredients);
   await fillIfExists(page, "#certifications", cfg.certifications);
   await fillIfExists(page, "#wholesaleUrl", cfg.wholesaleUrl);
+  if (local) console.log(`[${cfg.key}] 입력 매핑 완료(후기 파일 없음, 인증 ${cfg.certifications ? "입력" : "비움"})`);
   if (cfg.withReviews && fs.existsSync(REVIEW_FILE)) {
     const rev = page.locator("#reviewFile");
     if (await rev.count()) await rev.setInputFiles(REVIEW_FILE);
@@ -447,6 +575,7 @@ async function runScenario(cfg: Scenario) {
     generationCost: session.generationCost ?? null,
     photoProcessingCost: session.photoProcessingCost ?? null,
     costLogs: costLogs.slice(0, 20),
+    apiRequests,
     types,
   };
   fs.writeFileSync(path.join(outDir, "summary.json"), JSON.stringify(summary, null, 2));
@@ -462,7 +591,7 @@ const COST_NOTE = [
   "이 실행기는 사용 장면 생성(USAGE_SCENE_GENERATION_ENABLED)을 켜지 않는다 — 사용 장면 3건(약 $0.15~0.20)은 별도 승인",
 ];
 const PRECHECK = [
-  "1. .env.local의 REPLICATE_API_TOKEN 줄이 #으로 꺼져 있는지(사람이 직접 확인)",
+  "1. .env.local의 REPLICATE_API_TOKEN 상태가 승인 범위와 같은지(꺼짐: 텍스트 생성만 / 켜짐: 실제 서비스 조건 원가 측정) — 사람이 직접 확인",
   "2. ANTHROPIC_API_KEY·DEEPSEEK_API_KEY가 켜져 있는지, PEXELS_API_KEY(무료)가 있는지",
   "3. 테스트 계정 크레딧 100 이상(long), 부족하면 402로 끝남",
   "4. scripts/auth-state.json 로그인 세션이 살아 있는지(만료면 npx tsx scripts/save-login-state.ts로 직접 로그인)",
@@ -476,7 +605,13 @@ function localToday(): string {
 }
 
 async function main() {
-  const scenario = SCENARIOS.find((s) => s.key === SCENARIO_ARG);
+  const base = SCENARIOS.find((s) => s.key === SCENARIO_ARG);
+  if ((PHOTOS_ARG && !INFO_ARG) || (!PHOTOS_ARG && INFO_ARG)) {
+    console.error("--photos와 --info는 함께 줘야 합니다.");
+    process.exit(2);
+  }
+  const local = base && PHOTOS_ARG && INFO_ARG ? buildLocalInput(base, path.resolve(ROOT, PHOTOS_ARG), path.resolve(ROOT, INFO_ARG)) : undefined;
+  const scenario = local?.scenario ?? base;
   if (!scenario || !OUT_ARG) {
     console.error("사용법: npx tsx scripts/live-one.ts <beauty|fashion|food|electronics|living|pet> <출력 폴더> [--dry]");
     process.exit(2);
@@ -486,7 +621,22 @@ async function main() {
   for (const line of COST_NOTE) console.log(`[live-one] ${line}`);
   console.log("[live-one] 사전 확인:");
   for (const line of PRECHECK) console.log(`  ${line}`);
-  console.log("[live-one] 순서: Pexels 사진 받기 → /create/detail 입력 → 초안(draft) → 승인하고 최종 생성(크레딧 차감) → 배경 실패 시 원본으로 계속 → /create/result 저장");
+  if (local) {
+    console.log(`[live-one] 입력: 로컬 사진 ${local.images.length}장(${path.relative(ROOT, path.resolve(ROOT, PHOTOS_ARG!))}) + 상품 정보(${path.relative(ROOT, path.resolve(ROOT, INFO_ARG!))}) — Pexels 검색 안 함`);
+    for (const f of local.images) console.log(`  사진 ${path.basename(f)}`);
+    console.log("[live-one] 매핑:");
+    for (const line of local.mapping) console.log(`  ${line}`);
+    console.log("[live-one] 매핑 안 된 항목(폼에 맞는 칸 없음):");
+    for (const line of local.unmapped) console.log(`  ${line}`);
+    const missing = [["상품명", scenario.productName], ["가격", scenario.price], ["카테고리", scenario.categoryLabel]].filter(([, v]) => !v).map(([k]) => k);
+    if (missing.length || local.images.length < 6) {
+      console.error(`[live-one] 필수 입력 부족: ${[...missing, local.images.length < 6 ? `사진 ${local.images.length}장(6장 이상 필요)` : ""].filter(Boolean).join(", ")}`);
+      process.exit(2);
+    }
+  }
+  console.log(`[live-one] 승인 밖 호출(즉시 중단): ${FORBIDDEN_API.join(", ")} / 반복 상한: ${Object.entries(API_REPEAT_LIMIT).map(([k, v]) => `${k} ${v}회`).join(", ")}`);
+  console.log("[live-one] 배경 후보: 첫 후보를 선택해 계속(재생성 버튼은 누르지 않음), 실패하면 원본으로 계속");
+  console.log(`[live-one] 순서: ${local ? "로컬 사진" : "Pexels 사진 받기"} → /create/detail 입력` + " → 초안(draft) → 승인하고 최종 생성(크레딧 차감) → 배경 실패 시 원본으로 계속 → /create/result 저장");
   console.log(`[live-one] 다음 단계: npx tsx scripts/audit-session.ts ${path.relative(ROOT, path.join(OUT_ROOT, scenario.key, "session.json"))} ${path.relative(ROOT, path.join(OUT_ROOT, scenario.key, "audit"))}`);
   if (DRY) {
     console.log("[live-one] --dry: 계획만 출력했습니다. 생성 API·Pexels·.env 모두 건드리지 않았습니다.");
@@ -498,7 +648,7 @@ async function main() {
     process.exit(1);
   }
   fs.mkdirSync(OUT_ROOT, { recursive: true });
-  const result = await runScenario(scenario);
+  const result = await runScenario(scenario, local);
   fs.writeFileSync(path.join(OUT_ROOT, `${scenario.key}-rollup.json`), JSON.stringify({ at: new Date().toISOString(), result }, null, 2));
   console.log("[live-one] 끝. 위의 '다음 단계' 명령으로 점검하세요.");
 }
