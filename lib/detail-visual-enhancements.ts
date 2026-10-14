@@ -68,11 +68,14 @@ export function parseMegaKeywordHeading(title: string): {
   const trimmed = title.trim();
   if (!trimmed) return { keyword: null, remainder: "" };
 
-  const latin = trimmed.match(/^([A-Za-z][A-Za-z0-9.&-]{0,18})/);
-  if (latin) {
+  // 396차: 첫 어절 전체가 영문 약어일 때만 키운다. 정규식이 어절 중간에서 끊으면
+  // "LDAC·AAC" → "LDAC" + "·AAC", "ANC노이즈" → "ANC" + "노이즈"처럼 약어가 갈라진다.
+  // · / + 로 이어진 약어("LDAC·AAC", "S/M/L")는 한 덩어리로 보고, 한글이 붙은 어절은 아래 한글 규칙에 맡긴다.
+  const firstToken = trimmed.split(/\s+/)[0] ?? "";
+  if (/^[A-Za-z][A-Za-z0-9.&\-·+/]{0,18}$/.test(firstToken)) {
     return {
-      keyword: latin[1].toUpperCase(),
-      remainder: trimmed.slice(latin[0].length).trim(),
+      keyword: firstToken.toUpperCase(),
+      remainder: trimmed.slice(firstToken.length).trim(),
     };
   }
 
