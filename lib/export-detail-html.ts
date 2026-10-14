@@ -2184,12 +2184,12 @@ export function buildDetailPageHtml(opts: {
             `<div style="position:relative;z-index:1;${HERO_FOLLOW_CLIP_PX > 0 ? `clip-path:polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - ${HERO_FOLLOW_CLIP_PX}px));` : `background:${FLAT_PAPER};`}margin-top:-16px">${heroFollowParts.join("\n")}</div>`,
           );
         }
-      }
-    }
         if (anchorNavHtml && !anchorNavPlaced) {
           bodyParts.push(anchorNavHtml);
           anchorNavPlaced = true;
         }
+      }
+    }
   }
   const body = bodyParts.join("\n");
 

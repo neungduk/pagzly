@@ -5548,10 +5548,10 @@ export default function DetailSectionRenderer({
   const quickFacts = extractQuickFacts(sections, trustChips);
   const sectionAnchors = buildSectionAnchors(sections);
   const anchorIdMap = buildSectionAnchorIdMap(sections);
-  let imageTextCount = 0;
-  const renderTrack: { lastSection: DetailSection | undefined; lastWasHero: boolean } = {
   // 396차 — 앵커 내비는 히어로보다 먼저 보이지 않게 히어로 바로 아래(요약 띠 다음, 본문 앞)에 둔다. 히어로가 없으면 맨 위.
   const anchorNavAfterHero = sections.some((s) => s.type === "hero");
+  let imageTextCount = 0;
+  const renderTrack: { lastSection: DetailSection | undefined; lastWasHero: boolean } = {
     lastSection: undefined,
     lastWasHero: false,
   };
@@ -5714,9 +5714,9 @@ export default function DetailSectionRenderer({
               {quickFacts.length > 0 ? (
                 <SpecBentoGrid facts={quickFacts} theme={getSectionTheme(extendedTheme, "checklist", 0)} />
               ) : null}
+              {sectionAnchors.length > 0 ? <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} afterHero /> : null}
               {content}
             </div>
-              {sectionAnchors.length > 0 ? <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} afterHero /> : null}
           ) : (
             content
           );
