@@ -2300,9 +2300,9 @@ ${jsonLd}
     .pagzly-circle-solo-img{width:150px;height:150px}
     .pagzly-circle-pair-img{width:120px;height:120px}
   }
-  @media (max-width:750px){
-    .pagzly-cta{position:sticky;bottom:0;z-index:20;box-shadow:${ELEVATION.ctaSticky}}
-  }
+  /* 402차 — 가격 카드는 제자리에 둔다(라이브와 같음). 750px 이하 sticky였을 때 첫 화면 아래 약 350~400px를 덮었고,
+     마켓 상세 영역에서는 마켓 자체 구매 바와 겹친다. 그림자는 라이브처럼 모든 폭에 둔다 */
+  .pagzly-cta{position:relative;z-index:20;box-shadow:${ELEVATION.ctaSticky}}
   @media (prefers-reduced-motion:reduce){.fill-bar,.pulse-card,.ring-fill{animation:none!important}}
 </style>
 </head>

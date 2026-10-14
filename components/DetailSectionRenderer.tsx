@@ -5406,7 +5406,7 @@ function renderSection(
       return (
         <section
           key={`cta_price-${index}`}
-          className={`${FLAT_SECTION_SURFACES ? "relative" : "pagzly-ink-cta pagzly-ink-shimmer"} sticky bottom-0 z-20 ${TW_ELEVATION.ctaSticky} ${FLAT_SECTION_SURFACES ? "" : CTA_TRANSITION_OVERLAP_CLASS} ${getCategoryRhythm(category).ctaPadClass}`}
+          className={`${FLAT_SECTION_SURFACES ? "relative" : "pagzly-ink-cta pagzly-ink-shimmer relative"} z-20 ${TW_ELEVATION.ctaSticky} ${FLAT_SECTION_SURFACES ? "" : CTA_TRANSITION_OVERLAP_CLASS} ${getCategoryRhythm(category).ctaPadClass}`}
           style={
             FLAT_SECTION_SURFACES
               ? {
