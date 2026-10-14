@@ -118,6 +118,7 @@ import {
   summaryIconSvg,
   SUMMARY_ICON_PX,
   pickBenefitCardIcons,
+  pickChecklistIcons,
   BENEFIT_ICON_PX,
 } from "@/lib/summary-line-icons";
 import {
@@ -721,6 +722,7 @@ function sectionHtml(
       const clCompact = section.compactFollow === true;
       const hubSrc = section.hubPhoto === false ? "" : resolveExportImage(imageUrls, 0);
       const clItems = section.items.filter((item) => String(item).trim());
+      const clIcons = pickChecklistIcons(clItems);
       if (
         hubSrc &&
         isChecklistHubEligible(clItems, {
@@ -768,10 +770,10 @@ function sectionHtml(
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${checklistHead}
         <ul class="pagzly-cl-grid" style="list-style:none;padding:0;margin:0;gap:${FLAT_SECTION_SURFACES ? checklistGapCss(category) : "12px"};${checklistGridCss(section.items, category)}">
-          ${section.items
+          ${clItems
             .map(
-              (item) =>
-                `<li style="text-align:center;font-size:${FONT_SIZE.bodySm};padding:20px 16px;border-radius:${RADIUS.lg}px;border:1px solid ${section.boldBlock ? "rgba(250,248,243,.22)" : FLAT_SECTION_SURFACES ? hexToRgba(accent, 0.16) : accent + "3d"};background:${section.boldBlock ? "rgba(250,248,243,.08)" : FLAT_SECTION_SURFACES ? FLAT_PAPER : accent + "0f"}${FLAT_SECTION_SURFACES ? ";font-weight:600;line-height:1.375;word-break:keep-all" : ""}">${FLAT_SECTION_SURFACES ? `<span aria-hidden="true" style="display:flex;justify-content:center;margin-bottom:10px">${summaryIconSvg("check", section.boldBlock ? BRAND.paper : deepText, 26)}</span>` : ""}${esc(item)}</li>`,
+              (item, i) =>
+                `<li style="text-align:center;font-size:${FONT_SIZE.bodySm};padding:20px 16px;border-radius:${RADIUS.lg}px;border:1px solid ${section.boldBlock ? "rgba(250,248,243,.22)" : FLAT_SECTION_SURFACES ? hexToRgba(accent, 0.16) : accent + "3d"};background:${section.boldBlock ? "rgba(250,248,243,.08)" : FLAT_SECTION_SURFACES ? FLAT_PAPER : accent + "0f"}${FLAT_SECTION_SURFACES ? ";font-weight:600;line-height:1.375;word-break:keep-all" : ""}">${FLAT_SECTION_SURFACES ? `<span aria-hidden="true" style="display:flex;justify-content:center;margin-bottom:10px">${summaryIconSvg(clIcons[i] ?? "check", section.boldBlock ? BRAND.paper : deepText, 26)}</span>` : ""}${esc(item)}</li>`,
             )
             .join("")}
         </ul></section>`;

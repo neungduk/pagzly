@@ -66,6 +66,7 @@ import {
   summaryIconSvg,
   SUMMARY_ICON_PX,
   pickBenefitCardIcons,
+  pickChecklistIcons,
   BENEFIT_ICON_PX,
 } from "@/lib/summary-line-icons";
 import {
@@ -2204,6 +2205,7 @@ function renderSection(
       const items = Array.isArray(section.items)
         ? section.items.filter((item) => String(item).trim())
         : [];
+      const checklistIcons = pickChecklistIcons(items);
       if (items.length === 0) {
         console.warn("[DetailSectionRenderer] checklist items empty — section skipped", {
           index,
@@ -2405,7 +2407,7 @@ function renderSection(
                   <span
                     aria-hidden="true"
                     dangerouslySetInnerHTML={{
-                      __html: summaryIconSvg("check", boldBlock ? BRAND.paper : readableTextDeep(theme), 26),
+                      __html: summaryIconSvg(checklistIcons[itemIndex] ?? "check", boldBlock ? BRAND.paper : readableTextDeep(theme), 26),
                     }}
                   />
                 ) : (

@@ -98,6 +98,9 @@ const BENEFIT_RULES: [RegExp, SummaryIconId][] = [
   [/집중|정확|타겟|핵심|맞춤/, "target"],
   [/배송|출고/, "truck"],
   [/증정|사은품/, "gift"],
+  // 396차 — 보증·소재 키워드. 기존 아이콘 안에서만 고르고, 맞는 아이콘이 없는 키워드(사이즈 등)는 체크로 둔다
+  [/보증|워런티|무상\s*(수리|a\/?s)/i, "shield"],
+  [/소재|원단|재질|섬유/, "layers"],
 ];
 
 function benefitMatches(text: string): SummaryIconId[] {
@@ -126,6 +129,23 @@ export function pickBenefitCardIcons(
     picked.push(id);
   }
   return picked;
+}
+
+/**
+ * 핵심 포인트(checklist) 항목별 아이콘. 항목 문구에 키워드 근거가 있을 때만 그 아이콘, 없으면 체크.
+ * 같은 아이콘이 반복되면 다음 후보로 넘기고, 후보가 없으면 체크로 되돌린다(억지 의미 금지).
+ * 라이브·export가 같은 항목 배열(빈 항목 제거 후)로 부른다.
+ */
+export function pickChecklistIcons(items: string[]): SummaryIconId[] {
+  const used = new Set<SummaryIconId>();
+  return items.map((item) => {
+    // 수치(%)만으로는 성분 아이콘을 붙이지 않는다 — "면 100%"는 성분 근거가 아니라 소재 혼용률
+    // 첫 문장만 본다 — 뒤에 붙는 "이런 점은 확인 후 구매: …테스트하세요"·"보호자" 같은 주의 문구로 아이콘이 정해지면 뜻이 어긋난다
+    const text = (String(item ?? "").split(/[.。]\s|\n/)[0] ?? "").replace(/\d+(\.\d+)?\s*%/g, "");
+    const id = benefitMatches(text).find((c) => !used.has(c)) ?? "check";
+    if (id !== "check") used.add(id);
+    return id;
+  });
 }
 
 export const BENEFIT_ICON_PX = 34;
