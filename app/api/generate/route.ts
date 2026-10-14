@@ -63,6 +63,7 @@ import {
 } from "@/lib/designer-detail-patterns";
 import { formatConceptCopyBlock, generateConceptBrief } from "@/lib/concept-brief";
 import { generateConceptIcons, type ConceptIconMap } from "@/lib/concept-icons";
+import { shouldGenerateConceptIcons } from "@/lib/concept-icon-policy";
 import { fetchFileBuffer } from "@/lib/fetch-file-buffer";
 import {
   analyzeReferenceImage,
@@ -2023,6 +2024,9 @@ export async function POST(request: Request) {
       console.warn(
         `[concept-icons] conceptBrief 없음 — 아이콘 생략 product="${body.productName}"`,
       );
+    } else if (!shouldGenerateConceptIcons({ hasConceptBrief: true })) {
+      // 403차 — 평면 표면에서는 렌더러·export가 개념 아이콘을 쓰지 않는다(원가만 들고 화면에 안 나옴). iconCost 0
+      console.log(`[concept-icons] 평면 표면 — 화면에 쓰이지 않아 생성 생략 product="${body.productName}"`);
     } else {
       const checklistSection = savedCopy.sections.find((s) => s.type === "checklist");
       const usageSection = savedCopy.sections.find((s) => s.type === "usage_steps");

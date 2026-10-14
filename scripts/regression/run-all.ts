@@ -8,8 +8,9 @@ import * as iconRules from "./icon-rules";
 import * as deadTracking from "./dead-tracking";
 import * as liveExportRender from "./live-export-render";
 import * as sizeDiagram from "./size-diagram";
+import * as conceptIconPolicy from "./concept-icon-policy";
 
-const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram];
+const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy];
 
 async function main() {
   let failed = 0;
