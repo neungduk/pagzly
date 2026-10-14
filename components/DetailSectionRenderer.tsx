@@ -309,7 +309,7 @@ const TYPO = {
   heroCategory:
     "mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.28em] text-white/80",
   heroTitle:
-    "pagzly-display-headline pz-fit font-heading [--pz-fs:var(--pz-t-hero-b)] font-extrabold leading-[1.02] tracking-[-0.035em] text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)] @min-[640px]/pz:[--pz-fs:var(--pz-t-hero-w)]",
+    "pagzly-display-headline pz-fit font-heading [--pz-fs:var(--pz-t-hero-b)] font-extrabold leading-[1.02] text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)] @min-[640px]/pz:[--pz-fs:var(--pz-t-hero-w)]",
   bannerTitle:
     "font-heading text-[length:var(--pz-t-banner-b)] font-bold leading-[1.15] tracking-[-0.03em] text-white @min-[640px]/pz:text-[length:var(--pz-t-banner-w)]",
   heroSub:
@@ -320,7 +320,7 @@ const TYPO = {
     "font-heading text-[length:var(--pz-t-compact-b)] font-semibold leading-snug tracking-[-0.02em] text-ink @min-[640px]/pz:text-[length:var(--pz-t-compact-w)]",
   compactBody: "mt-1.5 text-sm font-normal leading-relaxed text-ink/75",
   sectionTitle:
-    "pagzly-display-headline pz-fit font-heading [--pz-fs:var(--pz-t-section-b)] font-bold leading-[1.2] tracking-[-0.03em] text-ink @min-[640px]/pz:[--pz-fs:var(--pz-t-section-w)]",
+    "pagzly-display-headline pz-fit font-heading [--pz-fs:var(--pz-t-section-b)] font-bold leading-[1.2] text-ink @min-[640px]/pz:[--pz-fs:var(--pz-t-section-w)]",
   keywordDisplay:
     "pz-fit font-heading font-black uppercase leading-[0.92] tracking-[-0.06em]",
   keywordDisplaySize: "[--pz-fs:clamp(2.25rem,11cqi,4.25rem)]",
@@ -2957,7 +2957,7 @@ function renderSection(
                   // TYPO.sectionTitle과 동일 타이포, ink 언더라인만 이 분기에서 빠짐.
                   // 221차: ![overflow-wrap:anywhere] — globals `.pagzly-display-headline`의
                   // keep-all+overflow-wrap:break-word는 utility보다 특이도가 높아 무공백 긴 토큰이 안 접힘.
-                  className={`![overflow-wrap:anywhere] pagzly-display-headline pz-fit font-heading [--pz-fs:var(--pz-t-section-b)] font-bold leading-[1.2] tracking-[-0.03em] text-ink @min-[640px]/pz:[--pz-fs:var(--pz-t-section-w)]`}
+                  className={`![overflow-wrap:anywhere] pagzly-display-headline pz-fit font-heading [--pz-fs:var(--pz-t-section-b)] font-bold leading-[1.2] text-ink @min-[640px]/pz:[--pz-fs:var(--pz-t-section-w)]`}
                   style={fitTokenStyle(section.heading, -0.03)}
                 />
                 <EditableText
