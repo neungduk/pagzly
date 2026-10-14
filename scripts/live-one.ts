@@ -661,6 +661,16 @@ async function main() {
       console.error(`[live-one] 필수 입력 부족: ${[...missing, fewPhotos ? `사진 ${local.images.length}장(${MIN_AI_USED_IMAGES}~${MAX_PRODUCT_IMAGES}장 필요)` : ""].filter(Boolean).join(", ")}`);
       process.exit(2);
     }
+    // 403차 — 1번 사진은 히어로(세로 비율)에 쓰인다. 가로 사진이면 몸통 일부만 남아 상품이 안 읽힌다(402차 패션). 경고만 하고 중단하지 않는다
+    const first = local.images[0];
+    if (first) {
+      const meta = await sharp(first).metadata();
+      if ((meta.width ?? 0) > (meta.height ?? 0)) {
+        console.warn(
+          `[live-one] 경고: 1번 사진(${path.basename(first)})이 가로 사진입니다(${meta.width}×${meta.height}). 1번은 히어로에 쓰여 몸통 일부만 남을 수 있습니다. 패션이면 세로 전신 착용컷을 1번에 두세요(파일명 순서).`,
+        );
+      }
+    }
   }
   console.log(`[live-one] 승인 밖 호출(즉시 중단): ${FORBIDDEN_API.join(", ")} / 반복 상한: ${Object.entries(API_REPEAT_LIMIT).map(([k, v]) => `${k} ${v}회`).join(", ")}`);
   console.log("[live-one] 배경 후보: 첫 후보를 선택해 계속(재생성 버튼은 누르지 않음), 실패하면 원본으로 계속");
