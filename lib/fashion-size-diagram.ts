@@ -58,7 +58,9 @@ function rowMatchesKey(label: string, key: SizeDiagramMatch["key"]): boolean {
   const n = normalizeLabel(label);
   return LABEL_ALIASES[key].some((alias) => {
     const a = normalizeLabel(alias);
-    return n === a || n.includes(a) || a.includes(n);
+    // 402차 — 사이즈별 행("S"·"M"·"L")이 영어 별칭 부분 일치("shoulder".includes("s"))로 어깨·가슴·소매·총장에
+    // 잘못 붙어 도식 위에 "총장 68 · 어깨너비 50 …" 전체 문자열이 겹쳐 그려졌다. 부분 일치는 두 글자 이상 라벨만 본다
+    return n === a || n.includes(a) || (n.length >= 2 && a.includes(n));
   });
 }
 

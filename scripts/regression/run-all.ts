@@ -7,8 +7,9 @@ import * as keywordSplit from "./keyword-split";
 import * as iconRules from "./icon-rules";
 import * as deadTracking from "./dead-tracking";
 import * as liveExportRender from "./live-export-render";
+import * as sizeDiagram from "./size-diagram";
 
-const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender];
+const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram];
 
 async function main() {
   let failed = 0;
