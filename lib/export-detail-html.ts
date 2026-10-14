@@ -309,7 +309,12 @@ function sectionPadVarsCss(category: string, wide: boolean): string {
   const pt = rhythm.pointTextPadClass;
   const ptSide = (side: "t" | "b" | "x", fallback: number) =>
     wide ? unit(pt, new RegExp(`pz:p${side}-(\\d+)`), fallback) : unit(pt, new RegExp(`(?:^|\\s)p${side}-(\\d+)`), fallback);
-  return `--pz-pad-y:${padY(rhythm.generousPadClass)}px;--pz-pad-ty:${padY(rhythm.trustPadClass)}px;--pz-pad-cy:${padY(rhythm.ctaPadClass)}px;--pz-pad-x:${x}px;--pz-hero-min:${heroMin};--pz-pt-t:${ptSide("t", 10)}px;--pz-pt-b:${ptSide("b", 16)}px;--pz-pt-x:${ptSide("x", 6)}px`;
+  // 401차 — 히어로 글 영역 여백도 라이브 heroOverlayClass(px-N pb-N / pz:px-N pz:pb-N)와 같게.
+  // 예전 고정값(좌우 20px)이라 390 폭에서 라이브(24px)보다 제목 폭이 8px 넓어 줄 수가 달라졌다(라이브 3줄 ↔ export 2줄).
+  const hero = rhythm.heroOverlayClass;
+  const heroSide = (side: "x" | "b", fallback: number) =>
+    wide ? unit(hero, new RegExp(`pz:p${side}-(\\d+)`), fallback) : unit(hero, new RegExp(`(?:^|\\s)p${side}-(\\d+)`), fallback);
+  return `--pz-hero-x:${heroSide("x", wide ? 10 : 6)}px;--pz-hero-b:${heroSide("b", wide ? 20 : 14)}px;--pz-pad-y:${padY(rhythm.generousPadClass)}px;--pz-pad-ty:${padY(rhythm.trustPadClass)}px;--pz-pad-cy:${padY(rhythm.ctaPadClass)}px;--pz-pad-x:${x}px;--pz-hero-min:${heroMin};--pz-pt-t:${ptSide("t", 10)}px;--pz-pt-b:${ptSide("b", 16)}px;--pz-pt-x:${ptSide("x", 6)}px`;
 }
 
 /** 라이브 checklistGapClass("gap-x-4 gap-y-8")와 같은 행·열 간격 */
@@ -700,7 +705,7 @@ function sectionHtml(
         ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" fetchPriority="high" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"/>` : ""}
         ${section.badge && !FLAT_SECTION_SURFACES ? `<span style="position:absolute;left:0;top:20px;background:${deepFill};color:#FAF8F3;padding:8px 16px;font-size:${FONT_SIZE.xs};font-weight:700">${esc(section.badge)}</span>` : ""}
         ${brandMarkHtml}
-        <div style="position:absolute;inset:0;background:${getHeroGradient(baseTheme)};display:flex;align-items:flex-end;padding:48px 20px 40px">
+        <div style="position:absolute;inset:0;background:${getHeroGradient(baseTheme)};display:flex;align-items:flex-end;padding:48px var(--pz-hero-x,24px) var(--pz-hero-b,56px)">
           <div style="width:100%;text-align:center">${section.badge && FLAT_SECTION_SURFACES ? `<span style="display:inline-block;margin-bottom:16px;padding:4px 14px;border:1px solid rgba(255,255,255,.55);border-radius:9999px;color:#FFFFFF;font-size:${FONT_SIZE.xs};font-weight:700;letter-spacing:.025em">${esc(section.badge)}</span>` : ""}<h1 class="pagzly-display-headline pz-fit" style="color:#FAF8F3;${titleFitCss("hero", section.headline, -0.035)};font-weight:800;letter-spacing:-0.035em;line-height:1.02;margin:0;text-shadow:0 2px 24px rgba(0,0,0,0.45);${displayHeadlineInlineCss(category)}">${esc(section.headline)}</h1>
           ${section.subheadline ? `<p style="color:rgba(250,248,243,0.95);margin:12px auto 0;max-width:36rem;font-family:${DETAIL_FONT_STACK.sans};text-shadow:0 1px 12px rgba(0,0,0,0.35)">${esc(section.subheadline)}</p>` : ""}</div>
         </div></section>`;
