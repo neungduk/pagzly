@@ -80,6 +80,9 @@ const MEASURE_RULES: [RegExp, SummaryIconId][] = [
   [/용량|용적|\d\s*(ml|l|리터)\b/i, "cup"],
 ];
 
+/** 소음 키워드 — 요약 칩·혜택 카드 공용(401차: 실생성 "24dB 저소음" 칩이 체크로 나옴) */
+const NOISE_RE = /소음|저소음|노이즈|사운드|음질/;
+
 /** 위에서부터 먼저 맞는 규칙. 근거 없는 의미를 덧씌우지 않도록 못 맞추면 체크 아이콘 */
 const RULES: [RegExp, SummaryIconId][] = [
   [WARRANTY_RE, "shield"],
@@ -93,8 +96,9 @@ const RULES: [RegExp, SummaryIconId][] = [
   [/원산지|국내산|국산|제조국|made\s*in/i, "pin"],
   [/동물실험|비건|vegan|천연|무첨가|무향|친환경/i, "leaf"],
   [/보습|수분|방수|촉촉/, "droplet"],
-  [/충전|배터리|mah|소비전력|와트/i, "bolt"],
+  [/충전|배터리|mah|소비전력|와트|에너지s*(소비)?효율/i, "bolt"],
   [/민감|저자극|진정|순한/, "heart"],
+  [NOISE_RE, "wave"],
   [/(?<!전)성분|배합|함유|나이아신|판테놀|세라마이드|비타민|레티놀|펩타이드|콜라겐/, "molecule"],
   ...MEASURE_RULES,
 ];
@@ -118,7 +122,7 @@ const BENEFIT_RULES: [RegExp, SummaryIconId][] = [
   [/레이어|겹겹|다층|구조|이중|3중|삼중/, "layers"],
   [/지속|오래|하루\s*종일|24\s*시간|롱래스팅|내구/, "clock"],
   [/충전|배터리|출력|파워|강력|고속|mah/i, "bolt"],
-  [/소음|저소음|노이즈|사운드|음질/, "wave"],
+  [NOISE_RE, "wave"],
   [/온도|보온|쿨링|냉감|발열|따뜻|시원/, "thermo"],
   [/천연|비건|유기농|무첨가|친환경|식물/, "leaf"],
   [/원산지|국내산|국산|산지|제조국/, "pin"],

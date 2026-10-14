@@ -45,6 +45,10 @@ const CHIP_EDGE: Array<[string, SummaryIconId]> = [
   ["A/S 1년", "shield"],
   ["30일 무료 교환", "return"],
   ["KC 인증", "shield"],
+  // 401차 실생성(전자)에서 나온 칩
+  ["24dB 저소음", "wave"],
+  ["에너지효율 1등급", "bolt"],
+  ["H13 HEPA", "check"],
 ];
 
 /** 398차 확정 스냅숏 — 샘플 입력(review/ 세션의 핵심 포인트·요약 칩 문구)을 그대로 옮겨 둔 것 */
@@ -82,6 +86,15 @@ export async function run(): Promise<string[]> {
   for (const s of CHECKLIST_SNAPSHOT) {
     const got = pickChecklistIcons(s.items);
     if (JSON.stringify(got) !== JSON.stringify(s.icons)) fails.push(`핵심 포인트 스냅숏 ${s.sample}: ${got.join("·")} (기대 ${s.icons.join("·")})`);
+  }
+  // 같은 인증의 다른 이름은 칩 하나(401차)
+  const { extractTrustChips } = await import("../../lib/extract-trust-chips");
+  const dupChips = extractTrustChips([
+    { type: "cta_price", slot: "cta_price", price: 1, badges: ["에너지효율 1등급"] },
+    { type: "spec_table", slot: "spec_table", heading: "제품 사양", rows: [{ label: "KC 인증", value: "KC 인증, 에너지소비효율 1등급" }] },
+  ] as unknown as Parameters<typeof extractTrustChips>[0]);
+  if (dupChips.filter((c) => /에너지(소비)?효율/.test(c)).length !== 1) {
+    fails.push(`요약 칩 중복 제거: ${dupChips.join(" | ")} (에너지효율 칩 1개 기대)`);
   }
   for (const s of CHIP_SNAPSHOT) {
     const got = s.chips.map(pickSummaryIcon);

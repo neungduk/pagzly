@@ -24,7 +24,8 @@ export function extractTrustChips(
     if (!t || t.length > 32) return;
     if (/판매자 확인|판매자 정책|확인 필요/i.test(t)) return;
     const { main, sub } = splitChipCaption(t);
-    const key = main.toLowerCase().replace(/\s+/g, "");
+    // 401차 — 같은 인증의 다른 이름("에너지효율 1등급" / "에너지소비효율 1등급")이 칩 두 개로 나오던 것
+    const key = main.toLowerCase().replace(/\s+/g, "").replace(/에너지소비효율/g, "에너지효율");
     const at = seen.get(key);
     if (at != null) {
       if (sub && !splitChipCaption(chips[at]!).sub) chips[at] = t;
