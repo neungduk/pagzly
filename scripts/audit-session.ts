@@ -221,7 +221,7 @@ async function openPreview(browser: Browser, p: Payload, width: number, edit = f
       await page.waitForTimeout(800);
     }
   } else {
-    await page.addStyleTag({ content: `[data-pagzly-preview]{width:${width}px!important;max-width:${width}px!important;border:0!important}nextjs-portal{display:none!important}` });
+    await page.addStyleTag({ content: `html{scrollbar-width:none}::-webkit-scrollbar{display:none}[data-pagzly-preview]{box-sizing:border-box;width:${width}px!important;max-width:${width}px!important;border:0!important}nextjs-portal{display:none!important}` });
   }
   return { ctx, page, logs };
 }
@@ -269,6 +269,82 @@ const PAGE_PROBE = `(() => {
   return { srcCount, sentences: Object.values(sentences).filter((x) => x.n >= 3) };
 })()`;
 
+/* ---------- 2-1) 제목 줄 수 패리티 (401차) ---------- */
+
+/** h1·h2 제목별 줄 수와 마지막 줄 글자 수 — 글자 단위로 줄 top을 잰다 */
+const LINE_PROBE = `(() => {
+  const root = document.querySelector("[data-pagzly-preview]") ?? document.querySelector(".pagzly-wrap") ?? document.body;
+  const out = [];
+  for (const h of root.querySelectorAll("h1,h2")) {
+    if (h.closest(".pagzly-seo-text")) continue;
+    const text = (h.textContent || "").replace(/\\s+/g, " ").trim();
+    if (!text || h.getBoundingClientRect().width < 1) continue;
+    const chars = [];
+    const walker = document.createTreeWalker(h, NodeFilter.SHOW_TEXT);
+    let n;
+    while ((n = walker.nextNode())) {
+      for (let i = 0; i < n.textContent.length; i++) {
+        if (!n.textContent[i].trim()) continue;
+        const rr = document.createRange(); rr.setStart(n, i); rr.setEnd(n, i + 1);
+        const rc = rr.getClientRects()[0];
+        if (rc && rc.width > 0) chars.push(Math.round(rc.top));
+      }
+    }
+    const tops = [...new Set(chars)].sort((a, b) => a - b);
+    const lines = [];
+    for (const t of tops) if (!lines.length || t - lines[lines.length - 1] > 6) lines.push(t);
+    const lastChars = lines.length ? chars.filter((t) => t >= lines[lines.length - 1] - 6).length : 0;
+    out.push({ text: text.slice(0, 40), lines: lines.length, lastChars, width: Math.round(h.getBoundingClientRect().width) });
+  }
+  return out;
+})()`;
+
+type LineRow = { text: string; lines: number; lastChars: number; width: number };
+
+/** 라이브·export 같은 제목의 줄 수 비교. 다르면 실패, 한 글자만 남은 줄(고아 글자)은 주의 */
+export function compareLines(width: number, live: LineRow[], exp: LineRow[]): { mismatch: string[]; orphan: string[] } {
+  const mismatch: string[] = [];
+  const orphan: string[] = [];
+  for (const l of live) {
+    const e = exp.find((x) => x.text === l.text);
+    if (e && e.lines !== l.lines) mismatch.push(`${width}폭 "${l.text}" 라이브 ${l.lines}줄(폭 ${l.width}px) ↔ export ${e.lines}줄(폭 ${e.width}px)`);
+    if (l.lines > 1 && l.lastChars <= 1) orphan.push(`${width}폭 라이브 "${l.text}" 마지막 줄 한 글자`);
+    if (e && e.lines > 1 && e.lastChars <= 1) orphan.push(`${width}폭 export "${e.text}" 마지막 줄 한 글자`);
+  }
+  return { mismatch, orphan };
+}
+
+async function exportLines(browser: Browser, p: Payload, width: number, file: string): Promise<LineRow[]> {
+  const ctx = await browser.newContext({ viewport: { width, height: 844 }, deviceScaleFactor: 1 });
+  const page = await ctx.newPage();
+  await page.goto("file:///" + path.resolve(file).split(path.sep).join("/"), { waitUntil: "load", timeout: 120_000 });
+  await scrollThrough(page);
+  await page.evaluate(() => document.fonts.ready);
+  const rows = (await page.evaluate(LINE_PROBE)) as LineRow[];
+  await ctx.close();
+  return rows;
+}
+
+async function writeExportHtml(p: Payload, file: string) {
+  const { buildDetailPageHtml } = await import("../lib/export-detail-html");
+  const { getCategoryTheme } = await import("../lib/category-theme");
+  const abs = (u: string) => (u.startsWith("/") ? `${BASE}${u}` : u);
+  const theme = p.theme ? { ...getCategoryTheme(p.category), ...(p.theme as object) } : getCategoryTheme(p.category);
+  const html = buildDetailPageHtml({
+    productName: p.productName,
+    brandName: p.brandName,
+    category: p.category,
+    sections: p.sections,
+    imageUrls: p.imageUrls.map(abs),
+    theme: theme as Parameters<typeof buildDetailPageHtml>[0]["theme"],
+    price: p.price,
+    keyFeatures: p.keyFeatures,
+    imageRoles: p.imageRoles as Parameters<typeof buildDetailPageHtml>[0]["imageRoles"],
+    imageOrigins: p.imageOrigins as Parameters<typeof buildDetailPageHtml>[0]["imageOrigins"],
+  });
+  fs.writeFileSync(file, html);
+}
+
 /* ---------- 3) 타입 패리티 ---------- */
 
 function runParity(sessionPath: string, label: string): Check {
@@ -308,9 +384,18 @@ async function main() {
   const pageRepeat: string[] = [];
   let pageUses: string[] = [];
   const sentenceRepeat: string[] = [];
+  const lineMismatch: string[] = [];
+  const lineOrphan: string[] = [];
+  const exportFile = path.join(OUT_DIR!, "export.html");
+  await writeExportHtml(p, exportFile);
   for (const width of [390, 750]) {
     const { ctx, page, logs } = await openPreview(browser, p, width);
     await scrollThrough(page);
+    await page.evaluate(() => document.fonts.ready);
+    const liveLines = (await page.evaluate(LINE_PROBE)) as LineRow[];
+    const cmp = compareLines(width, liveLines, await exportLines(browser, p, width, exportFile));
+    lineMismatch.push(...cmp.mismatch);
+    lineOrphan.push(...cmp.orphan);
     const probe = (await page.evaluate(PAGE_PROBE)) as { srcCount: Record<string, number>; sentences: Array<{ text: string; n: number }> };
     if (width === 390) {
       const urls = p.imageUrls.map((u) => u.split("?")[0]);
@@ -348,6 +433,18 @@ async function main() {
   }
   await browser.close();
 
+  checks.push({
+    id: "title-lines",
+    name: "제목 줄 수 라이브↔export 같음(h1·h2, 390·750)",
+    status: lineMismatch.length ? "실패" : "통과",
+    detail: lineMismatch.length ? lineMismatch.join(" / ") : "모든 제목 줄 수 같음",
+  });
+  checks.push({
+    id: "title-orphan",
+    name: "제목 마지막 줄에 한 글자만 남지 않음",
+    status: lineOrphan.length ? "주의" : "통과",
+    detail: lineOrphan.length ? lineOrphan.join(" / ") : "고아 글자 없음",
+  });
   checks.push({
     id: "image-repeat-page",
     name: "화면에서 같은 사진이 2회를 넘지 않음",
