@@ -309,7 +309,12 @@ function buildLocalInput(base: Scenario, photosDir: string, infoFile: string): L
   const targetOption = take("타깃 선택");
   const images = listPhotos(photosDir);
   const roleByFile = new Map<string, string>();
-  for (const line of take("사진 설명").split(/\n+/)) {
+  // 404차 — 사진 폴더에 roles.txt("## 사진 설명" 같은 형식)가 있으면 상품 정보 파일의 사진 설명보다 우선한다.
+  // 상품 정보는 그대로 두고 사진 순서·역할만 바꿔 다시 쓸 수 있게 한다
+  const rolesFile = path.join(photosDir, "roles.txt");
+  const photoNotes = fs.existsSync(rolesFile) ? parseProductInfo(rolesFile).get("사진 설명") ?? "" : take("사진 설명");
+  used.add("사진 설명");
+  for (const line of photoNotes.split(/\n+/)) {
     const m = line.match(/^\s*(\S+)\s*→\s*([^:：]+)[:：]/);
     if (m) roleByFile.set(m[1]!, m[2]!.trim());
   }
@@ -344,7 +349,7 @@ function buildLocalInput(base: Scenario, photosDir: string, infoFile: string): L
     `타깃 고객·사이즈별 실측표·모델 정보·핏·계절·색상 옵션·세탁·관리·배송·교환·반품 → #wholesaleUrl(원본 판매 페이지 붙여넣기 칸): ${pasteBlock.length}자`,
     `인증·검사 → #certifications: ${scenario.certifications || "(비움 — 해당 없음)"}`,
     `타깃 선택 → #targetCustomer(선택칸): ${targetOption || "(없음 — 타깃 고객 문구로 비슷한 항목 고름)"}`,
-    `사진 설명 → 사진별 역할 선택칸: ${roleLabels.map((r, i) => `${i + 1}=${r ?? "기본값"}`).join(", ")}`,
+    `사진 설명${fs.existsSync(rolesFile) ? "(사진 폴더 roles.txt)" : ""} → 사진별 역할 선택칸: ${roleLabels.map((r, i) => `${i + 1}=${r ?? "기본값"}`).join(", ")}`,
     `후기 파일 → 올리지 않음(가상 상품)`,
   ];
   const unmapped = [...info.keys()].filter((k) => !used.has(k)).map((k) => `${k}: ${get(k).split(/\n/)[0]!.slice(0, 60)}${get(k).includes("\n") ? " …" : ""}`);
@@ -407,6 +412,13 @@ async function runScenario(cfg: Scenario, local?: LocalInput) {
   // enhance-image는 사진마다 최대 2회(재시도) + 비용 집계 1회가 정상 — 사진 수로 상한을 정한다
   const limits: Record<string, number> = { ...API_REPEAT_LIMIT, "/api/enhance-image": images.length * 2 + 1 };
   let abortReason = "";
+  let pickerShown = false;
+  // 404차 — 서버 안 Replicate 호출은 셀 수 없으므로, 응답·브라우저 로그의 오류 문구를 모은다.
+  // 키 미설정 같은 문구가 하나라도 있으면 summary.json에 따로 표시한다. URL·저장 경로는 지운다
+  const apiErrors: Array<{ path: string; status: number; error: string }> = [];
+  const browserWarnings: string[] = [];
+  const scrub = (t: string) => t.replace(/https?:\/\/\S+/g, "<url>").replace(/[\w-]+\/[\w./-]+\.(png|jpe?g|webp)/gi, "<path>").slice(0, 240);
+  const KEY_ERROR_RE = /API_TOKEN|API_KEY|키.{0,6}(설정|없)|not (set|configured)|unauthori[sz]ed|invalid.{0,10}(token|key)|authentication/i;
   page.on("request", (req) => {
     const u = req.url();
     if (req.method() === "POST" && u.includes("/api/")) {
@@ -434,6 +446,9 @@ apiRequests=${JSON.stringify(apiRequests)}
   });
   page.on("console", (msg) => {
     const t = msg.text();
+    if ((msg.type() === "warning" || msg.type() === "error") && /API (실패|error)|FALLBACK|생략|설정되지|실패/i.test(t)) {
+      if (browserWarnings.length < 40) browserWarnings.push(scrub(t));
+    }
     if (/\[cost\]|generationCost|photoProcessing|replicate|recraft/i.test(t)) {
       costLogs.push(t.slice(0, 400));
       console.log(`[browser] ${t.slice(0, 220)}`);
@@ -494,6 +509,29 @@ apiRequests=${JSON.stringify(apiRequests)}
     if (u.includes("/api/")) {
       apiHits.push(`${res.status()} ${res.request().method()} ${u.replace(BASE_URL, "")}`);
       console.log(`[${cfg.key}] api ${apiHits[apiHits.length - 1]}`);
+      if (res.status() >= 400) {
+        const status = res.status();
+        const p = new URL(u).pathname;
+        void res
+          .text()
+          .then((body) => {
+            let error = body;
+            try {
+              error = String((JSON.parse(body) as { error?: unknown }).error ?? body);
+            } catch {
+              // JSON이 아니면 본문 앞부분
+            }
+            apiErrors.push({ path: p, status, error: scrub(error) });
+            // 지시: 401·402·키 오류는 그대로 멈춘다(재시도 없음)
+            if (!abortReason && (status === 401 || status === 402 || KEY_ERROR_RE.test(error))) {
+              abortReason = `오류로 중단: ${p} ${status} ${scrub(error)}`;
+              console.log(`[${cfg.key}] 즉시 중단 — ${abortReason}`);
+              fs.writeFileSync(path.join(outDir, "abort.txt"), `${abortReason}\napiRequests=${JSON.stringify(apiRequests)}\napiErrors=${JSON.stringify(apiErrors)}\n`, "utf8");
+              void browser.close();
+            }
+          })
+          .catch(() => apiErrors.push({ path: p, status, error: "(본문 읽기 실패)" }));
+      }
     }
   });
 
@@ -518,27 +556,43 @@ apiRequests=${JSON.stringify(apiRequests)}
   await page.screenshot({ path: path.join(outDir, "01-draft.png"), fullPage: true });
 
   await page.getByRole("button", { name: /승인하고 최종 생성/ }).click();
-  try {
-    const picker = page.locator('[data-testid="backdrop-picker"]');
-    await picker.waitFor({ state: "visible", timeout: 420_000 });
-    const c0 = page.locator('[data-testid="backdrop-candidate-0"]');
-    if (await c0.count()) await c0.click();
-    await page.locator('[data-testid="backdrop-confirm"]').click();
-  } catch {
-    console.log(`[${cfg.key}] no backdrop picker`);
+  // 404차 — 배경 후보 선택 화면은 나오지 않을 수도 있다(패션 히어로가 원본이면 선택 없이 첫 후보 사용).
+  // 선택 화면·"원본으로 계속"·결과 화면 중 먼저 오는 것을 기다린다. 선택 화면이면 첫 후보 + 확인만 누른다(재생성 금지)
+  const picker = page.locator('[data-testid="backdrop-picker"]');
+  const continueBtn = page.getByRole("button", {
+    name: /이대로 최종 생성|이대로 진행|원본.*진행|원본으로/,
+  });
+  const nextStep = () =>
+    Promise.race([
+      picker.waitFor({ state: "visible", timeout: 1_020_000 }).then(() => "picker" as const),
+      continueBtn.waitFor({ state: "visible", timeout: 1_020_000 }).then(() => "continue" as const),
+      page.waitForURL(/\/create\/result/, { timeout: 1_020_000 }).then(() => "result" as const),
+    ]);
+  let pickerHandled = false;
+  let continueHandled = false;
+  for (let step = 0; step < 30; step++) {
+    const got = await nextStep().catch(() => "timeout" as const);
+    if (got === "picker" && !pickerHandled) {
+      pickerHandled = true;
+      const c0 = page.locator('[data-testid="backdrop-candidate-0"]');
+      if (await c0.count()) await c0.click();
+      await page.locator('[data-testid="backdrop-confirm"]').click();
+      console.log(`[${cfg.key}] backdrop picker → 첫 후보 확인`);
+      continue;
+    }
+    if (got === "continue" && !continueHandled) {
+      // backdrop 실패 시 draft가 photoPending 확인 UI를 띄움 — 원본으로 계속
+      continueHandled = true;
+      console.log(`[${cfg.key}] backdrop failed → continue with originals`);
+      await continueBtn.click();
+      continue;
+    }
+    if (got === "result" || got === "timeout") break;
+    // 같은 화면이 다시 보이면(아직 닫히는 중) 잠깐 기다린다
+    await page.waitForTimeout(2000);
   }
-
-  // backdrop 실패 시 draft가 photoPending 확인 UI를 띄움 — 원본으로 계속
-  try {
-    const continueBtn = page.getByRole("button", {
-      name: /이대로 최종 생성|이대로 진행|원본.*진행|원본으로/,
-    });
-    await continueBtn.waitFor({ state: "visible", timeout: 90_000 });
-    console.log(`[${cfg.key}] backdrop failed → continue with originals`);
-    await continueBtn.click();
-  } catch {
-    // picker 성공·자동 진행이면 없음
-  }
+  if (!pickerHandled) console.log(`[${cfg.key}] no backdrop picker`);
+  pickerShown = pickerHandled;
 
   await page.waitForURL(/\/create\/result/, { timeout: 600_000 });
   await page.waitForTimeout(2500);
@@ -559,8 +613,19 @@ apiRequests=${JSON.stringify(apiRequests)}
         };
         generationCost?: number;
         photoProcessingCost?: number;
+        imageRoles?: string[];
+        imageOrigins?: string[];
       })
     : {};
+  // 404차 — 사진별 역할·origin(original 원본 / enhanced 합성). 업로드 순서와 같은 인덱스. URL은 남기지 않는다
+  const photoTable = images.map((file, i) => ({
+    index: i + 1,
+    file: path.basename(file),
+    roleLabel: local?.roleLabels[i] ?? null,
+    role: session.imageRoles?.[i] ?? null,
+    origin: session.imageOrigins?.[i] ?? null,
+  }));
+  const keyErrorDetected = [...apiErrors.map((e) => e.error), ...browserWarnings].some((t) => KEY_ERROR_RE.test(t));
   const sections = session.generated?.sections ?? [];
   const types = sections.map((s) => `${s.type}:${s.slot ?? ""}`);
   const chart = sections.find((s) => s.type === "comparison_chart");
@@ -602,6 +667,11 @@ apiRequests=${JSON.stringify(apiRequests)}
     photoProcessingCost: session.photoProcessingCost ?? null,
     costLogs: costLogs.slice(0, 20),
     apiRequests,
+    backdropPickerShown: pickerShown,
+    photoTable,
+    keyErrorDetected,
+    apiErrors,
+    browserWarnings,
     types,
   };
   fs.writeFileSync(path.join(outDir, "summary.json"), JSON.stringify(summary, null, 2));
@@ -673,7 +743,7 @@ async function main() {
     }
   }
   console.log(`[live-one] 승인 밖 호출(즉시 중단): ${FORBIDDEN_API.join(", ")} / 반복 상한: ${Object.entries(API_REPEAT_LIMIT).map(([k, v]) => `${k} ${v}회`).join(", ")}`);
-  console.log("[live-one] 배경 후보: 첫 후보를 선택해 계속(재생성 버튼은 누르지 않음), 실패하면 원본으로 계속");
+  console.log("[live-one] 배경 후보: 선택 화면이 나오면 첫 후보를 선택해 계속(재생성 버튼은 누르지 않음), 안 나오면(패션 히어로 원본) 그대로 진행, 실패하면 원본으로 계속");
   console.log(`[live-one] 순서: ${local ? "로컬 사진" : "Pexels 사진 받기"} → /create/detail 입력` + " → 초안(draft) → 승인하고 최종 생성(크레딧 차감) → 배경 실패 시 원본으로 계속 → /create/result 저장");
   console.log(`[live-one] 다음 단계: npx tsx scripts/audit-session.ts ${path.relative(ROOT, path.join(OUT_ROOT, scenario.key, "session.json"))} ${path.relative(ROOT, path.join(OUT_ROOT, scenario.key, "audit"))}`);
   if (DRY) {
