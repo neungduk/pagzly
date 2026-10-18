@@ -216,6 +216,9 @@ export default function CreateDraftPage() {
           imageAnalysis: json.imageAnalysis,
           theme: json.theme ?? draft.payload.theme,
           photoCostBreakdown: json.photoCostBreakdown ?? draft.payload.photoCostBreakdown,
+          // 404차 — 초안을 다시 만들면 그 DeepSeek 비용도 더한다(기록용)
+          draftTextCost:
+            ((draft.payload.draftTextCost as number | undefined) ?? 0) + (json.draftTextCost ?? 0),
           referenceAnalysis: json.referenceAnalysis ?? draft.payload.referenceAnalysis,
           reviewInsights: json.reviewInsights ?? null,
           planningDocText: json.planningDocText ?? null,
@@ -326,6 +329,7 @@ export default function CreateDraftPage() {
       referenceImageUrl: (currentDraft.payload.referenceImageUrl as string | null) ?? null,
       lifestyleImageUrl: (currentDraft.payload.lifestyleImageUrl as string | null) ?? null,
       draftToken: currentDraft.draftToken,
+      imageRoles: (currentDraft.payload.imageRoles as string[] | undefined) ?? undefined,
       pickBackdrop: waitForBackdropPick,
       onStage: (event) => {
         setLoadingStage(mapProgressToStage(event));

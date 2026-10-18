@@ -9,8 +9,9 @@ import * as deadTracking from "./dead-tracking";
 import * as liveExportRender from "./live-export-render";
 import * as sizeDiagram from "./size-diagram";
 import * as conceptIconPolicy from "./concept-icon-policy";
+import * as fashionCompositePolicy from "./fashion-composite-policy";
 
-const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy];
+const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy];
 
 async function main() {
   let failed = 0;

@@ -7,6 +7,7 @@ import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import type { ConceptBrief } from "@/lib/concept-brief";
 import { buildLifestyleCompositeRequestBody } from "@/lib/lifestyle-composite-request";
 import { computeStudioCompositeLimit } from "@/lib/lifestyle-shot-planner";
+import { isHeroKeptOriginal, planStudioComposite } from "@/lib/fashion-composite-policy";
 import { getLifestyleShotConfig } from "@/lib/lifestyle-shot-config";
 import type { ProductImageOrigin } from "@/lib/image-origins";
 import type { PhotoCostBreakdown, ReferenceAnalysisInput } from "@/lib/types/generate";
@@ -167,6 +168,8 @@ export async function enhanceImages(params: {
    * 남아 있던 불일치를 해소.
    */
   theme?: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent"> | null;
+  /** 404차 — 사진별 역할(uploaded와 같은 순서). 패션 착장·코디는 합성하지 않고 원본을 쓴다 */
+  imageRoles?: readonly string[];
   onProgress?: (event: PhotoPipelineProgressEvent) => void;
 }): Promise<{ images: UploadedImage[]; cost: number; decorCost: number; claudeCost: number }> {
   const {
@@ -179,6 +182,7 @@ export async function enhanceImages(params: {
     sectionBackdrops,
     backdropAlreadyComposited,
     theme: productTheme,
+    imageRoles,
     onProgress,
   } = params;
 
@@ -334,8 +338,14 @@ export async function enhanceImages(params: {
 
   const studioCompositeLimit = computeStudioCompositeLimit(uploaded.length);
   const studioPassthrough = Math.max(0, uploaded.length - studioCompositeLimit);
+  const compositePlan = planStudioComposite({
+    category: productCategory,
+    roles: imageRoles,
+    count: uploaded.length,
+    studioLimit: studioCompositeLimit,
+  });
   console.log(
-    `[photo-pipeline] studioLimit=${studioCompositeLimit} uploaded=${uploaded.length} passthrough=${studioPassthrough}`,
+    `[photo-pipeline] studioLimit=${studioCompositeLimit} uploaded=${uploaded.length} passthrough=${studioPassthrough} wornOriginal=${compositePlan.filter((d) => d === "original-worn").length}`,
   );
 
   const results: UploadedImage[] = [];
@@ -352,7 +362,12 @@ export async function enhanceImages(params: {
     reportEnhance(`사진 보정 ${index + 1}/${uploaded.length}`, enhanceStep, totalEnhanceSteps);
     const item = uploaded[index];
     const isHero = index === 0;
-    if (!isHero && index >= studioCompositeLimit) {
+    if (compositePlan[index] === "original-worn") {
+      console.log(`[enhance] idx=${index} skip studio composite — fashion worn shot, keep original`);
+      results.push({ ...item, origin: item.origin ?? "original" });
+      continue;
+    }
+    if (compositePlan[index] === "original-limit") {
       console.log(`[enhance] idx=${index} skip studio composite — keep original (lifestyle pool)`);
       results.push({ ...item, origin: item.origin ?? "original" });
       continue;
@@ -477,6 +492,8 @@ export async function runPhotoEnhancementPipeline(params: {
   referenceImageUrl?: string | null;
   lifestyleImageUrl?: string | null;
   draftToken?: string | null;
+  /** 404차 — 사진별 역할(uploaded와 같은 순서). 패션 착장·코디(히어로 포함)는 합성하지 않고 원본을 쓴다 */
+  imageRoles?: readonly string[];
   pickBackdrop: (urls: string[]) => Promise<string>;
   onStage?: PhotoPipelineProgressCallback;
 }): Promise<{
@@ -543,16 +560,21 @@ export async function runPhotoEnhancementPipeline(params: {
   const candidates = backdropResult.candidateUrls ?? [];
   const testMode = backdropResult.testMode ?? false;
 
+  // 404차 — 패션 히어로가 원본이면 배경 후보는 히어로에 합성되지 않고, 섹션 배경이 없을 때
+  // 비히어로 합성의 예비 배경으로만 쓰인다. 고를 의미가 없으므로 선택 화면 없이 첫 후보를 쓴다.
+  const heroKeptOriginal = isHeroKeptOriginal(params.category, params.imageRoles);
+  const waitsForPick = !testMode && candidates.length > 1 && !heroKeptOriginal;
+
   emit({
     stage: "backdrop",
     detail:
-      candidates.length > 1
+      candidates.length > 1 && !heroKeptOriginal
         ? `배경 후보 ${candidates.length}장 — 선택 대기`
         : `배경 후보 ${Math.max(candidates.length, 1)}장 준비`,
     costUsdSoFar: photoProcessingCost,
   });
 
-  if (!testMode && candidates.length > 1) {
+  if (waitsForPick) {
     chosenBackdrop = await pickBackdrop(candidates);
   } else if (candidates.length >= 1) {
     chosenBackdrop = candidates[0];
@@ -661,6 +683,7 @@ export async function runPhotoEnhancementPipeline(params: {
     sectionBackdrops,
     backdropAlreadyComposited: backdropResult.productAlreadyComposited ?? false,
     theme: backdropResult.theme,
+    imageRoles: params.imageRoles,
     onProgress: (event) => emit({ ...event, costUsdSoFar: photoProcessingCost }),
   });
 
