@@ -676,6 +676,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           imageAnalysis: draftResult.imageAnalysis,
           theme: draftResult.theme ?? null,
           photoCostBreakdown: draftResult.photoCostBreakdown ?? payload.photoCostBreakdown,
+          // 404차 — 초안 DeepSeek 비용(기록용). 최종 결과 세션에 그대로 실려 간다
+          draftTextCost: draftResult.draftTextCost,
           referenceAnalysis: draftResult.referenceAnalysis ?? null,
           reviewInsights: draftResult.reviewInsights ?? null,
           planningDocText: draftResult.planningDocText ?? null,

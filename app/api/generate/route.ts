@@ -1594,6 +1594,8 @@ export async function POST(request: Request) {
           qaSummary,
           photoCostBreakdown,
           draftGenerationCost: totalDeepSeekCost + claudeCost,
+          // 404차 — 초안 DeepSeek 비용은 최종 generationCost에 합산되지 않으므로 따로 돌려준다(기록용)
+          draftTextCost: totalDeepSeekCost,
           testMode: isTestMode(),
           imageUrls: body.imageUrls,
           referenceAnalysis: enrichedBody.referenceAnalysis ?? null,

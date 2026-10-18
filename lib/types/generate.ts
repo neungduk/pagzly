@@ -688,6 +688,8 @@ export type DraftGenerateResponse = GeneratedCopy & {
   qaSummary?: string;
   photoCostBreakdown?: PhotoCostBreakdown;
   draftGenerationCost?: number;
+  /** 404차 — 초안 요청의 DeepSeek 비용만(USD). 최종 generationCost에는 들어가지 않아 세션에 따로 남긴다 */
+  draftTextCost?: number;
   testMode?: boolean;
   imageUrls?: string[];
   referenceAnalysis?: ReferenceAnalysisInput | null;
