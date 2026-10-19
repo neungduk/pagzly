@@ -15,6 +15,7 @@ import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import { validateImageFile } from "@/lib/image-upload";
 import { resolveHeadlineFontKind } from "@/lib/detail-typography";
 import StylePackPicker from "@/components/StylePackPicker";
+import { stylePackOptions } from "@/lib/style-packs";
 import { computeDemotedSectionIndexes } from "@/lib/section-display-budget";
 import {
   capture128ChartThenCircleSections,
@@ -1636,9 +1637,11 @@ function DetailPreviewBody({ capture, budget }: { capture: string | null; budget
         </div>
       ) : (
         <>
-        <div className="mx-auto max-w-[430px] px-4 pt-3">
-          <StylePackPicker category={previewCategory} value={previewPackId} onChange={setPreviewPackId} />
-        </div>
+        {stylePackOptions(previewCategory).length > 1 ? (
+          <div className="mx-auto max-w-[430px] px-4 pt-3">
+            <StylePackPicker category={previewCategory} value={previewPackId} onChange={setPreviewPackId} />
+          </div>
+        ) : null}
         <div
           className="mx-auto max-w-[430px] overflow-x-hidden border-x border-line bg-paper shadow-sm"
           data-pagzly-preview
