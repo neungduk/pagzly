@@ -514,11 +514,14 @@ export const ELEVATION = {
 
 // hero만 예외적으로 진→연 그라데이션 허용 (deepAccent → accent → transparent).
 // 183차 — 후커블형 대형 타이포 오버레이 가독성: 하단 스크림을 더 진하게, 중단부터는 빠르게 투명.
-export function getHeroGradient(theme: CategoryTheme): string {
+export function getHeroGradient(theme: CategoryTheme, strength?: number): string {
   // 408차 — 스타일 팩이 세기를 줄이면 theme.heroGradientStrength가 붙는다. 없으면 예전 값 그대로
-  const k = theme.heroGradientStrength ?? 1;
-  const a = (v: number) => (k === 1 ? v : Math.round(v * k * 1000) / 1000);
-  return `linear-gradient(0deg, ${hexToRgba(theme.deepAccent, a(0.92))} 0%, ${hexToRgba(theme.accent, a(0.55))} 42%, ${hexToRgba(theme.deepAccent, a(0.12))} 72%, transparent 88%)`;
+  // 409차 — 패션 classic 원본 인물 히어로는 호출부가 strength를 직접 넘긴다(일러스트 배너 등 다른 호출은 영향 없음)
+  // strength를 직접 넘기면(409차 패션 classic) 글자가 얹히는 맨 아래 0.92는 그대로 두고 위쪽(옷이 보이는 구간) 두 값만 줄인다 — 글자 대비를 지키면서 옷 색을 덜 덮는다
+  const k = strength ?? theme.heroGradientStrength ?? 1;
+  const r = (v: number) => (k === 1 ? v : Math.round(v * k * 1000) / 1000);
+  const bottom = strength === undefined ? r(0.92) : 0.92;
+  return `linear-gradient(0deg, ${hexToRgba(theme.deepAccent, bottom)} 0%, ${hexToRgba(theme.accent, r(0.55))} 42%, ${hexToRgba(theme.deepAccent, r(0.12))} 72%, transparent 88%)`;
 }
 
 // ---------------------------------------------------------------------------

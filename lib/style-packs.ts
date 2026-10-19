@@ -7,6 +7,7 @@
  */
 import type { CategoryTheme } from "@/lib/category-theme";
 import type { TitleScaleOverrides } from "@/lib/design-tokens";
+import { isHeroKeptOriginal } from "@/lib/fashion-composite-policy";
 
 export type StylePackId = "classic" | "mono-minimal" | "editorial";
 
@@ -187,6 +188,20 @@ export function resolveHeadingVariant(layout: PackLayout, hasLabel: boolean): He
 /** 409차 — 세로 여백 배율. density compact는 글만 있는 반복 카드·구분 여백이 길어 보이지 않게 0.85배로 조인다(섹션을 감추지는 않는다) */
 export function packPadScale(pack: StylePack | undefined | null): number {
   return (pack?.padYScale ?? 1) * (pack?.layout.density === "compact" ? 0.85 : 1);
+}
+
+/**
+ * 409차 — 패션 classic 히어로(원본 인물 사진)의 하단 그라데이션 세기. 푸른 그라데이션이 청바지·흰 티를 탁하게 덮는 문제(408차 6절)를 줄인다.
+ * 패션이 아니거나, 팩이 있거나, 히어로가 원본 인물 사진이 아니면 undefined(= 지금 값 그대로).
+ */
+export const CLASSIC_FASHION_HERO_STRENGTH = 0.7;
+export function classicFashionHeroStrength(
+  category: string,
+  pack: StylePack | undefined | null,
+  roles: readonly unknown[] | undefined,
+): number | undefined {
+  if (category !== PACK_CATEGORY || !isClassicPack(pack) || !isHeroKeptOriginal(category, roles)) return undefined;
+  return CLASSIC_FASHION_HERO_STRENGTH;
 }
 
 export function isClassicPack(pack: StylePack | undefined | null): boolean {

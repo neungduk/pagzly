@@ -147,6 +147,7 @@ import { packStructureCss } from "@/lib/pack-css";
 import { SUMMARY_VARIANT } from "@/lib/summary-variants";
 import {
   applyPackTone,
+  classicFashionHeroStrength,
   CLASSIC_LAYOUT,
   getPackLayout,
   isClassicPack,
@@ -2184,6 +2185,7 @@ function renderSection(
   pointOrdinal?: number,
   productThumbs?: ProductThumbs,
   layout: PackLayout = CLASSIC_LAYOUT,
+  heroGradientStrength?: number,
 ) {
   const heroFallback = imageUrls[0] ?? "";
   switch (section.type) {
@@ -2311,7 +2313,7 @@ function renderSection(
             />
             <div
               className="absolute inset-0"
-              style={{ background: getHeroGradient(theme) }}
+              style={{ background: getHeroGradient(theme, heroGradientStrength) }}
             />
             <div className="pagzly-ink-scan" aria-hidden="true" />
             <ImageReplaceHit
@@ -5919,6 +5921,7 @@ export default function DetailSectionRenderer({
             pointOrdinals[index],
             productThumbs,
             packLayout,
+            classicFashionHeroStrength(category, pack, imageRoles),
           );
         }
         if (!content) {

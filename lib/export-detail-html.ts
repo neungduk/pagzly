@@ -162,7 +162,7 @@ import {
   type TitleScaleKey,
 } from "@/lib/design-tokens";
 import { rhythmVarsCss } from "@/lib/rhythm-tokens";
-import { applyPackTone, isClassicPack, CLASSIC_LAYOUT, getPackLayout, packPadScale, packTitleScaleOverrides, resolveGalleryVariant, resolveHeroVariant, resolveStylePack, type PackLayout } from "@/lib/style-packs";
+import { applyPackTone, classicFashionHeroStrength, isClassicPack, CLASSIC_LAYOUT, getPackLayout, packPadScale, packTitleScaleOverrides, resolveGalleryVariant, resolveHeroVariant, resolveStylePack, type PackLayout } from "@/lib/style-packs";
 import { HERO_CAPTION, heroCaptionAlign, heroCaptionBackground } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
@@ -678,6 +678,7 @@ function sectionHtml(
   pointOrdinal?: number,
   productThumbs?: ProductThumbs,
   layout: PackLayout = CLASSIC_LAYOUT,
+  heroGradientStrength?: number,
 ): string {
   const sectionIdAttr = anchorId ? ` id="${anchorId}"` : "";
   const pad = "padding:var(--pz-pad-y,48px) var(--pz-pad-x,20px);";
@@ -740,7 +741,7 @@ function sectionHtml(
         ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" fetchPriority="high" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover${section.photoTopAnchored ? ";object-position:50% 0%" : ""}"/>` : ""}
         ${section.badge && !FLAT_SECTION_SURFACES ? `<span style="position:absolute;left:0;top:20px;background:${deepFill};color:#FAF8F3;padding:8px 16px;font-size:${FONT_SIZE.xs};font-weight:700">${esc(section.badge)}</span>` : ""}
         ${brandMarkHtml}
-        <div style="position:absolute;inset:0;background:${getHeroGradient(baseTheme)};display:flex;align-items:flex-end;padding:48px var(--pz-hero-x,24px) var(--pz-hero-b,56px)">
+        <div style="position:absolute;inset:0;background:${getHeroGradient(baseTheme, heroGradientStrength)};display:flex;align-items:flex-end;padding:48px var(--pz-hero-x,24px) var(--pz-hero-b,56px)">
           <div style="width:100%;text-align:center">${section.badge && FLAT_SECTION_SURFACES ? `<span style="display:inline-block;margin-bottom:16px;padding:4px 14px;border:1px solid rgba(255,255,255,.55);border-radius:9999px;color:#FFFFFF;font-size:${FONT_SIZE.xs};font-weight:700;letter-spacing:.025em">${esc(section.badge)}</span>` : ""}<h1 class="pagzly-display-headline pz-fit" style="color:#FAF8F3;${titleFitCss("hero", section.headline, -0.035)};font-weight:800;letter-spacing:-0.035em;line-height:1.02;margin:0;text-shadow:0 2px 24px rgba(0,0,0,0.45);${displayHeadlineInlineCss(category)}">${esc(section.headline)}</h1>
           ${section.subheadline ? `<p style="color:rgba(250,248,243,0.95);margin:12px auto 0;max-width:36rem;font-family:${DETAIL_FONT_STACK.sans};text-shadow:0 1px 12px rgba(0,0,0,0.35)">${esc(section.subheadline)}</p>` : ""}</div>
         </div></section>`;
@@ -2206,6 +2207,7 @@ export function buildDetailPageHtml(opts: {
         pointOrdinals[i],
         productThumbs,
         getPackLayout(pack),
+        classicFashionHeroStrength(opts.category, pack, opts.imageRoles),
       );
     }
     if (html) {

@@ -43,5 +43,23 @@ export async function run(): Promise<string[]> {
   if (packPadScale(CLASSIC_PACK) !== 1) fails.push("classic 여백 배율이 1이 아님");
   const mono = resolveStylePack("의류/패션", "mono-minimal");
   if (Math.abs(packPadScale(mono) - mono.padYScale * 0.85) > 1e-9) fails.push("mono compact 배율");
+  fails.push(...(await runGradient()));
+  return fails;
+}
+
+// 409차 9번 — 패션 classic 원본 인물 히어로 그라데이션(위쪽 두 값만 0.7배, 맨 아래 0.92 유지). 다른 경우는 그대로
+import { classicFashionHeroStrength, CLASSIC_FASHION_HERO_STRENGTH } from "../../lib/style-packs";
+import { getHeroGradient } from "../../lib/design-tokens";
+
+export async function runGradient(): Promise<string[]> {
+  const fails: string[] = [];
+  const th = getCategoryTheme("의류/패션");
+  if (classicFashionHeroStrength("의류/패션", CLASSIC_PACK, ["hero"]) !== CLASSIC_FASHION_HERO_STRENGTH) fails.push("패션 classic 원본 인물 히어로에 세기가 안 걸림");
+  if (classicFashionHeroStrength("의류/패션", CLASSIC_PACK, ["other"]) !== undefined) fails.push("착용컷이 아닌 히어로에 걸림");
+  if (classicFashionHeroStrength("화장품/뷰티", CLASSIC_PACK, ["hero"]) !== undefined) fails.push("패션 외에 걸림");
+  if (classicFashionHeroStrength("의류/패션", resolveStylePack("의류/패션", "editorial"), ["hero"]) !== undefined) fails.push("팩이 있는데 classic 규칙이 걸림");
+  const g = getHeroGradient(th, CLASSIC_FASHION_HERO_STRENGTH);
+  if (!g.includes(",0.92)") || !g.includes(",0.385)")) fails.push(`그라데이션 값: ${g}`);
+  if (getHeroGradient(th) !== getHeroGradient(th, undefined)) fails.push("인자 없는 호출이 달라짐");
   return fails;
 }
