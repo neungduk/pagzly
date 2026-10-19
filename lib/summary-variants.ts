@@ -12,6 +12,9 @@ export const SUMMARY_VARIANT = {
   stripRowGapPx: 8,
   dividerHeightPx: 12,
   listSizePx: 14,
-  listRowPadPx: 12,
+  listRowPadPx: 10,
   listMaxWidthPx: 560,
+  /** 410차 — spec-list는 2열(칩 3개 이상)로 압축 */
+  listCols: 2,
+  listColGapPx: 24,
 } as const;

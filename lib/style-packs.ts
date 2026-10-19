@@ -38,6 +38,8 @@ export type PackLayout = {
   flow: FlowVariant;
   gallery: GalleryVariant;
   summary: SummaryVariant;
+  /** 410차 — 요약 띠 위치: 히어로 바로 뒤(classic) / 첫 갤러리 뒤(사진이 먼저 오게). 갤러리가 히어로 바로 뒤가 아니면 앞에 둔다 */
+  summaryPlacement: "after-hero" | "after-gallery";
   checklist: ChecklistVariant;
   heading: HeadingVariant;
   /** 알약·카드·칩·갤러리·표 모서리 px. null = 지금 값 그대로(classic) */
@@ -53,6 +55,7 @@ export const CLASSIC_LAYOUT: PackLayout = {
   flow: "default",
   gallery: "duo-grid",
   summary: "icon-grid",
+  summaryPlacement: "after-hero",
   checklist: "cards",
   heading: "center-stack",
   radius: null,
@@ -108,6 +111,7 @@ const MONO_MINIMAL: StylePack = {
     flow: "story-after-photo",
     gallery: "lookbook-stack",
     summary: "inline-strip",
+    summaryPlacement: "after-hero",
     checklist: "plain-list",
     heading: "left-eyebrow",
     radius: 0,
@@ -125,7 +129,7 @@ const EDITORIAL: StylePack = {
   short: "큰 제목, 사진 아래 글",
   headline: { kind: "serif", weight: 600, letterSpacing: "-0.015em" },
   titleScale: {
-    hero: { base: "3.25rem", wide: "5rem" },
+    hero: { base: "2.75rem", wide: "4.5rem" },
     section: { base: "2.125rem", wide: "2.75rem" },
     subtitle: { base: "1.25rem", wide: "1.5rem" },
   },
@@ -136,6 +140,7 @@ const EDITORIAL: StylePack = {
     flow: "default",
     gallery: "lead-plus-two",
     summary: "spec-list",
+    summaryPlacement: "after-gallery",
     checklist: "plain-list",
     heading: "center-rule",
     radius: 0,

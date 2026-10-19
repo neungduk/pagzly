@@ -16,7 +16,7 @@ export async function run(): Promise<string[]> {
   const mono = getPackLayout(resolveStylePack("의류/패션", "mono-minimal"));
   const edi = getPackLayout(resolveStylePack("의류/패션", "editorial"));
   if (mono.hero !== "caption-above" || mono.flow !== "story-after-photo" || mono.gallery !== "lookbook-stack" || mono.radius !== 0) fails.push("mono 값이 제안과 다름");
-  if (edi.hero !== "caption-below" || edi.gallery !== "lead-plus-two" || edi.heading !== "center-rule" || edi.summary !== "spec-list") fails.push("editorial 값이 제안과 다름");
+  if (edi.hero !== "caption-below" || edi.gallery !== "lead-plus-two" || edi.heading !== "center-rule" || edi.summary !== "spec-list" || edi.summaryPlacement !== "after-gallery" || mono.summaryPlacement !== "after-hero") fails.push("editorial 값이 제안과 다름");
   // 폴백
   if (resolveHeroVariant(mono, false) !== "bleed-bottom" || resolveHeroVariant(edi, false) !== "bleed-bottom") fails.push("히어로 사진 없음 → bleed-bottom 아님");
   if (resolveHeroVariant(edi, true) !== "caption-below") fails.push("히어로 사진 있음인데 변형이 꺼짐");

@@ -141,7 +141,7 @@ import WeightComparisonDiagram from "@/components/WeightComparisonDiagram";
 import PowerConsumptionDiagram from "@/components/PowerConsumptionDiagram";
 import { headlineDisplayStyle, joinNumericSuffix, longestTokenEm, packHeadlineLiveVars } from "@/lib/detail-typography";
 import { rhythmLiveVars } from "@/lib/rhythm-tokens";
-import { HERO_CAPTION, heroCaptionAlign, heroCaptionBackground } from "@/lib/hero-variants";
+import { HERO_CAPTION, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
 import { SUMMARY_VARIANT } from "@/lib/summary-variants";
@@ -1397,7 +1397,18 @@ function TrustStrip({
             })}
           </div>
         ) : (
-          <ul className="mx-auto" style={{ listStyle: "none", padding: 0, margin: "0 auto", maxWidth: V.listMaxWidthPx }}>
+          <ul
+            className="mx-auto"
+            style={{
+              listStyle: "none",
+              padding: 0,
+              margin: "0 auto",
+              maxWidth: V.listMaxWidthPx,
+              display: "grid",
+              gridTemplateColumns: `repeat(${chips.length >= 3 ? V.listCols : 1}, 1fr)`,
+              columnGap: V.listColGapPx,
+            }}
+          >
             {chips.map((chip, i) => {
               const caption = splitChipCaption(chip);
               return (
@@ -1408,7 +1419,7 @@ function TrustStrip({
                     justifyContent: "space-between",
                     gap: 16,
                     padding: `${V.listRowPadPx}px 0`,
-                    borderTop: i > 0 ? `1px solid ${V.borderColor}` : undefined,
+                    borderTop: i >= (chips.length >= 3 ? V.listCols : 1) ? `1px solid ${V.borderColor}` : undefined,
                     fontSize: V.listSizePx,
                     fontWeight: 600,
                     wordBreak: "keep-all",
@@ -2205,7 +2216,7 @@ function renderSection(
           <div
             key="hero-photo"
             className="relative w-full overflow-hidden"
-            style={{ aspectRatio: HERO_CAPTION.photoRatio, background: theme.baseNeutral }}
+            style={{ aspectRatio: heroCaptionRatio(heroVariant), background: theme.baseNeutral }}
           >
             <SectionImage
               src={src}
@@ -2224,8 +2235,8 @@ function renderSection(
         const caption = (
           <div
             key="hero-caption"
-            className={getCategoryRhythm(category).generousPadClass}
-            style={{ textAlign: align, background: heroCaptionBackground(heroVariant, theme) }}
+            className="px-6 @min-[640px]/pz:px-10"
+            style={{ textAlign: align, background: heroCaptionBackground(heroVariant, theme), paddingTop: HERO_CAPTION.padYPx, paddingBottom: HERO_CAPTION.padYPx }}
             data-hero-caption
           >
             {eyebrowLabel || section.badge ? (
@@ -4625,7 +4636,7 @@ function renderSection(
                       variantGrid
                         ? cell.natural
                           ? "block h-auto w-full"
-                          : "block aspect-[3/4] w-full object-cover object-top"
+                          : "block aspect-[2/3] w-full object-cover object-top"
                         : `${oddLead && pairIndex === 0 ? "aspect-[4/3]" : ratioClass} w-full object-cover`
                     }
                   />
@@ -5936,6 +5947,16 @@ export default function DetailSectionRenderer({
         renderTrack.lastWasHero = section.type === "hero";
         // hero 바로 다음 섹션 1곳에만: 미세한 대각선 클립(제안 A) + 강한 진입 모션(제안 C).
         // 나머지 섹션은 전부 기존 직사각형·절제된 페이드를 그대로 유지한다.
+        // 410차 — 요약 띠를 첫 갤러리 뒤로(에디토리얼). 히어로 바로 뒤 섹션이 갤러리일 때만, 아니면 앞에 둔다(classic과 같음)
+        const stripAfterContent = packLayout.summaryPlacement === "after-gallery" && section.type === "gallery";
+        const trustStripEl = (
+          <TrustStrip
+            chips={trustChips}
+            theme={getSectionTheme(extendedTheme, "checklist", 0)}
+            certTokens={certTokens}
+            variant={packLayout.summary}
+          />
+        );
         const wrappedContent =
           isHeroFollow && content ? (
             <div
@@ -5946,14 +5967,7 @@ export default function DetailSectionRenderer({
                   : { clipPath: getCategoryRhythm(category).heroTransitionClip }
               }
             >
-              {trustChips.length > 0 ? (
-                <TrustStrip
-                  chips={trustChips}
-                  theme={getSectionTheme(extendedTheme, "checklist", 0)}
-                  certTokens={certTokens}
-                  variant={packLayout.summary}
-                />
-              ) : null}
+              {trustChips.length > 0 && !stripAfterContent ? trustStripEl : null}
               {/* 165차 — "Bento 그리드 2.0" 스펙 하이라이트. 히어로 바로 아래 위치에
                   카드형으로 핵심 스펙을 강조(기존 QuickFactStrip 평문 나열을 대체). */}
               {quickFacts.length > 0 ? (
@@ -5961,6 +5975,7 @@ export default function DetailSectionRenderer({
               ) : null}
               {sectionAnchors.length > 0 ? <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} afterHero /> : null}
               {content}
+              {trustChips.length > 0 && stripAfterContent ? trustStripEl : null}
             </div>
           ) : (
             content

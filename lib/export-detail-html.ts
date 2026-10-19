@@ -163,7 +163,7 @@ import {
 } from "@/lib/design-tokens";
 import { rhythmVarsCss } from "@/lib/rhythm-tokens";
 import { applyPackTone, classicFashionHeroStrength, isClassicPack, CLASSIC_LAYOUT, getPackLayout, packPadScale, packTitleScaleOverrides, resolveGalleryVariant, resolveHeroVariant, resolveStylePack, type PackLayout } from "@/lib/style-packs";
-import { HERO_CAPTION, heroCaptionAlign, heroCaptionBackground } from "@/lib/hero-variants";
+import { HERO_CAPTION, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
 import { SUMMARY_VARIANT } from "@/lib/summary-variants";
@@ -287,10 +287,10 @@ function trustStripHtml(
               return `${i > 0 ? `<span aria-hidden="true" style="width:1px;height:${V.dividerHeightPx}px;background:${V.borderColor}"></span>` : ""}<span style="font-size:${V.stripSizePx}px;font-weight:600;word-break:keep-all;color:${color}">${esc(cap.main)}${cap.sub ? `<span style="margin-left:4px;font-weight:500;opacity:.6">${esc(cap.sub)}</span>` : ""}</span>`;
             })
             .join("")}</div>`
-        : `<ul style="list-style:none;padding:0;margin:0 auto;max-width:${V.listMaxWidthPx}px">${chips
+        : `<ul style="list-style:none;padding:0;margin:0 auto;max-width:${V.listMaxWidthPx}px;display:grid;grid-template-columns:repeat(${chips.length >= 3 ? V.listCols : 1},1fr);column-gap:${V.listColGapPx}px">${chips
             .map((c, i) => {
               const cap = splitChipCaption(c);
-              return `<li style="display:flex;justify-content:space-between;gap:16px;padding:${V.listRowPadPx}px 0;${i > 0 ? `border-top:1px solid ${V.borderColor};` : ""}font-size:${V.listSizePx}px;font-weight:600;word-break:keep-all;color:${color}"><span>${esc(cap.main)}</span>${cap.sub ? `<span style="font-weight:500;opacity:.6">${esc(cap.sub)}</span>` : ""}</li>`;
+              return `<li style="display:flex;justify-content:space-between;gap:16px;padding:${V.listRowPadPx}px 0;${i >= (chips.length >= 3 ? V.listCols : 1) ? `border-top:1px solid ${V.borderColor};` : ""}font-size:${V.listSizePx}px;font-weight:600;word-break:keep-all;color:${color}"><span>${esc(cap.main)}</span>${cap.sub ? `<span style="font-weight:500;opacity:.6">${esc(cap.sub)}</span>` : ""}</li>`;
             })
             .join("")}</ul>`;
     return `<div data-summary="${variant}" style="padding:24px;border-top:1px solid ${V.borderColor};border-bottom:1px solid ${V.borderColor};background:${FLAT_PAPER}">${label}${body}</div>`;
@@ -722,7 +722,7 @@ function sectionHtml(
         const mark = resolveHeroBrandMark({ logoUrl, brandName, productName });
         const eyebrowLabel = mark.kind === "none" ? "" : mark.displayName;
         const edge = align === "center" ? "auto" : "0";
-        const photoHtml = `<div style="position:relative;width:100%;overflow:hidden;aspect-ratio:${HERO_CAPTION.photoRatio};background:${baseTheme.baseNeutral}"><img src="${esc(src)}" alt="${esc(alt)}" fetchPriority="high" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${HERO_CAPTION.photoPosition}"/></div>`;
+        const photoHtml = `<div style="position:relative;width:100%;overflow:hidden;aspect-ratio:${heroCaptionRatio(heroVariant)};background:${baseTheme.baseNeutral}"><img src="${esc(src)}" alt="${esc(alt)}" fetchPriority="high" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${HERO_CAPTION.photoPosition}"/></div>`;
         const eyebrowHtml =
           eyebrowLabel || section.badge
             ? `<p style="margin:0 0 ${HERO_CAPTION.eyebrowGapPx}px;font-size:${HERO_CAPTION.eyebrowSizePx}px;font-weight:700;letter-spacing:${HERO_CAPTION.eyebrowTracking};text-transform:uppercase;color:${deepText}">${eyebrowLabel ? `<span>${esc(eyebrowLabel)}</span>` : ""}${eyebrowLabel && section.badge ? `<span aria-hidden="true"> · </span>` : ""}${section.badge ? `<span>${esc(section.badge)}</span>` : ""}</p>`
@@ -734,7 +734,7 @@ function sectionHtml(
           layout.rule === "hairline"
             ? `<div aria-hidden="true" style="width:${HERO_CAPTION.ruleWidthPx}px;height:1px;background:${HERO_CAPTION.ruleColor};margin:${HERO_CAPTION.ruleGapPx}px ${edge} 0"></div>`
             : "";
-        const captionHtml = `<div data-hero-caption style="${pad}text-align:${align};background:${heroCaptionBackground(heroVariant, baseTheme)}">${eyebrowHtml}<h1 class="pagzly-display-headline pz-fit" style="color:${HERO_CAPTION.ink};${titleFitCss("hero", section.headline, -0.03)};font-weight:800;line-height:${HERO_CAPTION.titleLine};margin:0;${displayHeadlineInlineCss(category)}">${esc(section.headline)}</h1>${subHtml}${ruleHtml}</div>`;
+        const captionHtml = `<div data-hero-caption style="padding:${HERO_CAPTION.padYPx}px var(--pz-pad-x,20px);text-align:${align};background:${heroCaptionBackground(heroVariant, baseTheme)}">${eyebrowHtml}<h1 class="pagzly-display-headline pz-fit" style="color:${HERO_CAPTION.ink};${titleFitCss("hero", section.headline, -0.03)};font-weight:800;line-height:${HERO_CAPTION.titleLine};margin:0;${displayHeadlineInlineCss(category)}">${esc(section.headline)}</h1>${subHtml}${ruleHtml}</div>`;
         return `<section${sectionIdAttr} class="hero pagzly-hero" data-hero-variant="${heroVariant}" style="position:relative;width:100%">${heroVariant === "caption-above" ? captionHtml + photoHtml : photoHtml + captionHtml}</section>`;
       }
       return `<section${sectionIdAttr} class="hero pagzly-hero"${sectionIdAttr} style="${FLAT_SECTION_SURFACES ? "" : pad}position:relative;overflow:hidden;width:100%;box-sizing:border-box;aspect-ratio:4/5;min-height:var(--pz-hero-min,70vh);background:${baseTheme.baseNeutral}">
@@ -2122,6 +2122,7 @@ export function buildDetailPageHtml(opts: {
   // 396차 — 라이브와 같게: 히어로가 있으면 앵커 내비를 히어로·요약 띠 바로 아래(본문 앞)에 둔다.
   const anchorNavAfterHero = visibleSections.some((s) => s.type === "hero");
   let anchorNavPlaced = false;
+  let deferredStripHtml = ""; // 410차 — 갤러리 뒤로 미룬 요약 띠
 
   const bodyParts: string[] = [];
   let imageTextCount = 0;
@@ -2226,6 +2227,10 @@ export function buildDetailPageHtml(opts: {
       bodyParts.push(html);
       lastRenderedSection = section;
     }
+    if (deferredStripHtml && i === 1) {
+      bodyParts.push(deferredStripHtml);
+      deferredStripHtml = "";
+    }
     if (section.type === "hero") {
       const next = visibleSections[i + 1];
       if (next) {
@@ -2233,7 +2238,10 @@ export function buildDetailPageHtml(opts: {
         // 165차 — "Bento 그리드 2.0" 스펙 하이라이트. 히어로 바로 아래(라이브 렌더러와 동일 위치).
         const bentoHtml = quickFacts.length > 0 ? buildSpecBentoGridHtml(quickFacts, opts.theme) : "";
         if (trustChips.length > 0) {
-          heroFollowParts.push(trustStripHtml(trustChips, opts.theme, certTokens, !bentoHtml, getPackLayout(pack).summary));
+          const stripHtml = trustStripHtml(trustChips, opts.theme, certTokens, !bentoHtml, getPackLayout(pack).summary);
+          // 410차 — 요약 띠를 첫 갤러리 뒤로(에디토리얼, 라이브와 같은 조건). 바로 뒤 섹션이 갤러리가 아니면 앞에 둔다
+          if (getPackLayout(pack).summaryPlacement === "after-gallery" && next.type === "gallery") deferredStripHtml = stripHtml;
+          else heroFollowParts.push(stripHtml);
         }
         if (bentoHtml) heroFollowParts.push(bentoHtml);
         // 236차 — 라이브 hero-follow 북엔드 대각선 클립(trust+bento). 다음 섹션 본문까지

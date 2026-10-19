@@ -23,7 +23,7 @@ export async function run(): Promise<string[]> {
   if (!mono.includes('data-gallery-variant="lookbook-stack"') || !mono.includes("grid-template-columns:repeat(1,1fr)")) fails.push("mono 1열 스택 아님");
   if (!mono.includes("height:auto")) fails.push("mono 사진이 원본 비율(height:auto)이 아님");
   if (!edi.includes('data-gallery-variant="lead-plus-two"') || !edi.includes("grid-column:1/-1")) fails.push("editorial 첫 장 전폭 아님");
-  if (!edi.includes("aspect-ratio:3 / 4")) fails.push("editorial 나머지 칸 3:4 아님");
+  if (!edi.includes("aspect-ratio:2 / 3")) fails.push("editorial 나머지 칸 2:3 아님");
   for (const [n, h] of [["classic", classic], ["mono", mono], ["editorial", edi]] as const) if (imgs(h) !== 5) fails.push(`${n}: 사진 수가 5가 아님(${imgs(h)})`);
   // 폴백: lead-plus-two는 3장 미만 → classic, 1장 → classic
   if (html("editorial", 2).includes("data-gallery-variant")) fails.push("editorial 2장인데 변형이 켜짐");

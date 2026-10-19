@@ -75,7 +75,7 @@ export async function run(): Promise<string[]> {
   const edi = html("의류/패션", "editorial");
   if (!mono.includes("font-weight:600!important;letter-spacing:-0.03em!important")) fails.push("mono export에 제목 규칙 없음");
   if (!edi.includes("Noto Serif KR") || !edi.includes("letter-spacing:-0.015em!important")) fails.push("editorial export에 serif 규칙 없음");
-  if (!mono.includes("--pz-t-hero:2.5rem") || !edi.includes("--pz-t-hero:3.25rem")) fails.push("팩 제목 크기 변수가 export에 없음");
+  if (!mono.includes("--pz-t-hero:2.5rem") || !edi.includes("--pz-t-hero:2.75rem")) fails.push("팩 제목 크기 변수가 export에 없음");
   if (mono === base || edi === base || mono === edi) fails.push("팩 export가 서로 같음");
   const padOf = (s: string) => /--pz-pad-y:(\d+)px/.exec(s)?.[1];
   if (!(Number(padOf(mono)) > Number(padOf(base))) || !(Number(padOf(edi)) > Number(padOf(mono)))) fails.push(`여백 순서 classic<mono<editorial 아님: ${padOf(base)}/${padOf(mono)}/${padOf(edi)}`);

@@ -7,8 +7,8 @@ import type { GalleryVariant } from "@/lib/style-packs";
 export const GALLERY_VARIANT = {
   /** 사진 사이 간격(px) — 4~8 */
   gapPx: 6,
-  /** lead-plus-two의 나머지 사진 칸 비율(세로형, 위쪽 기준) — 라이브는 같은 값을 Tailwind aspect-[3/4] object-top으로 쓴다 */
-  restRatio: "3 / 4",
+  /** lead-plus-two의 나머지 사진 칸 비율(세로형, 위쪽 기준) — 라이브는 같은 값을 Tailwind aspect-[2/3] object-top으로 쓴다 */
+  restRatio: "2 / 3",
   restPosition: "50% 0%",
 } as const;
 
