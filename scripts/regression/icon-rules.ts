@@ -103,6 +103,15 @@ export async function run(): Promise<string[]> {
   if (JSON.stringify(subChips) !== JSON.stringify(["5만원 이상 무료배송", "무향·저자극", "당일발송"])) {
     fails.push(`요약 칩 포함 중복 합치기: ${subChips.join(" | ")} (기대 5만원 이상 무료배송 | 무향·저자극 | 당일발송)`);
   }
+  // 글자는 달라도 뜻이 확실히 같은 칩은 하나(405차, 404차 실생성 "당일 출고" + "당일발송") — 먼저 나온 칩을 남기고 새 문구는 없다
+  const synChips = extractTrustChips([
+    { type: "cta_price", slot: "cta_price", price: 1, badges: ["면 100%", "당일 출고", "배송비 무료", "당일배송"] },
+    { type: "spec_table", slot: "shipping_info", heading: "배송", rows: [{ label: "출고", value: "평일 오후 2시 이전 당일발송" }, { label: "배송비", value: "무료배송" }] },
+  ] as unknown as Parameters<typeof extractTrustChips>[0]);
+  const shipping = synChips.filter((c) => /당일\s*(출고|발송)/.test(c));
+  if (shipping.length !== 1 || shipping[0] !== "당일 출고") fails.push(`요약 칩 같은 뜻 합치기(출고=발송): ${synChips.join(" | ")} (당일 출고 1개 기대)`);
+  if (synChips.filter((c) => /무료\s*배송|배송비\s*무료/.test(c)).length !== 1) fails.push(`요약 칩 같은 뜻 합치기(무료배송): ${synChips.join(" | ")}`);
+  if (!synChips.includes("당일배송")) fails.push(`"당일배송"(그날 도착)이 출고·발송과 묶여 사라짐: ${synChips.join(" | ")}`);
   for (const s of CHIP_SNAPSHOT) {
     const got = s.chips.map(pickSummaryIcon);
     if (JSON.stringify(got) !== JSON.stringify(s.icons)) fails.push(`요약 칩 스냅숏 ${s.sample}: ${got.join("·")} (기대 ${s.icons.join("·")})`);

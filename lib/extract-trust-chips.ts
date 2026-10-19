@@ -10,6 +10,22 @@ export function splitChipCaption(chip: string): { main: string; sub: string | nu
   return { main: m[1]!.trim(), sub: m[2]!.trim() };
 }
 
+/**
+ * 405차 — 글자가 달라도 뜻이 확실히 같은 칩("당일 출고" / "당일발송")을 같은 칩으로 본다. 좁게 둔다:
+ * 출고 = 발송(보내는 날), 배송비 무료 = 무료배송. "당일배송"(그날 도착)은 뜻이 달라 묶지 않는다.
+ * 비교 키에만 쓰고 표시 문구는 바꾸지 않는다(먼저 나온 칩을 남긴다).
+ */
+const CHIP_SYNONYMS: Array<[RegExp, string]> = [
+  [/당일출고/g, "당일발송"],
+  [/배송비무료/g, "무료배송"],
+];
+
+function chipMeaningKey(main: string): string {
+  let key = main.toLowerCase().replace(/\s+/g, "").replace(/에너지소비효율/g, "에너지효율");
+  for (const [re, to] of CHIP_SYNONYMS) key = key.replace(re, to);
+  return key;
+}
+
 /** 히어로 직후 혜택·신뢰 스트립 — CTA 배지·배송·인증·스펙 행에서 추출 */
 export function extractTrustChips(
   sections: DetailSection[],
@@ -25,7 +41,7 @@ export function extractTrustChips(
     if (/판매자 확인|판매자 정책|확인 필요/i.test(t)) return;
     const { main, sub } = splitChipCaption(t);
     // 401차 — 같은 인증의 다른 이름("에너지효율 1등급" / "에너지소비효율 1등급")이 칩 두 개로 나오던 것
-    const key = main.toLowerCase().replace(/\s+/g, "").replace(/에너지소비효율/g, "에너지효율");
+    const key = chipMeaningKey(main);
     const at = seen.get(key);
     if (at != null) {
       if (sub && !splitChipCaption(chips[at]!).sub) chips[at] = t;
@@ -81,7 +97,7 @@ export function extractTrustChips(
 
   // 403차 — 다른 칩 안에 글자 그대로 들어 있는 짧은 칩은 같은 말의 중복이다
   // ("무료배송" ⊂ "5만원 이상 무료배송", "무향" ⊂ "무향·저자극"). 더 구체적인 긴 칩만 남긴다 — 문구를 새로 만들지 않는다
-  const chipKey = (c: string) => splitChipCaption(c).main.toLowerCase().replace(/\s+/g, "");
+  const chipKey = (c: string) => chipMeaningKey(splitChipCaption(c).main);
   const merged = chips.filter((c, i) => {
     const k = chipKey(c);
     return !chips.some((o, j) => j !== i && chipKey(o).length > k.length && chipKey(o).includes(k));
