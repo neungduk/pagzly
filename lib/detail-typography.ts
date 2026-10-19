@@ -100,7 +100,8 @@ export function packHeadlineStyle(pack?: StylePack | null): { fontFamily: string
 export function packHeadlineExportCss(pack?: StylePack | null): string {
   const s = packHeadlineStyle(pack);
   if (!s) return "";
-  return `.pagzly-display-headline{font-family:${s.fontFamily}!important;font-weight:${s.fontWeight}!important;letter-spacing:${s.letterSpacing}!important}`;
+  // 일러스트 배너 제목은 라이브에서 이 클래스를 쓰지 않으므로(250차 배너는 손대지 않는다) export에서도 배너 안은 뺀다
+  return `section:not(.pagzly-illustration-banner) .pagzly-display-headline{font-family:${s.fontFamily}!important;font-weight:${s.fontWeight}!important;letter-spacing:${s.letterSpacing}!important}`;
 }
 
 /** 라이브 루트 style — globals.css의 [data-pz-pack] 제목 규칙이 읽는다. 기본 팩이면 빈 객체 */
