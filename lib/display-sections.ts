@@ -88,6 +88,27 @@ export function pullWornGalleryForward(
 }
 
 /**
+ * 406차 — 패션 갤러리 안에서 착용컷(착장·코디)이 디테일·평면컷보다 앞 칸을 먼저 받게 순서만 바꾼다(안정 정렬).
+ * 갤러리 첫 칸이 큰 사진이라, 착용컷이 앞에 와야 "모델 착용 사진 연속"으로 보인다. 사진을 빼거나 더하지 않는다.
+ * 역할 정보가 없거나 패션이 아니면 그대로 둔다.
+ */
+function wornFirstInGallery(
+  sections: DetailSection[],
+  category: string | undefined,
+  roles: StripImageHints["roles"],
+): DetailSection[] {
+  if (category !== FASHION_CATEGORY || !roles?.length) return sections;
+  return sections.map((section) => {
+    if (section.type !== "gallery") return section;
+    const worn = section.imageIndexes.filter((n) => isWornFashionPhoto(category, roles[n]));
+    if (worn.length === 0 || worn.length === section.imageIndexes.length) return section;
+    const rest = section.imageIndexes.filter((n) => !isWornFashionPhoto(category, roles[n]));
+    const next = [...worn, ...rest];
+    return next.every((n, i) => n === section.imageIndexes[i]) ? section : { ...section, imageIndexes: next };
+  });
+}
+
+/**
  * 405차 — 패션 히어로가 착용컷이면 사진을 위쪽 기준으로 맞춘다. 세로 전신 원본(2:3)이 4:5 히어로 칸에 가운데 기준으로
  * 들어가면 넓은 폭(750)에서 위아래가 잘려 머리가 브랜드 알약 높이까지 올라간다. 좁은 폭(390)은 좌우만 잘려 영향이 없다.
  */
@@ -139,19 +160,15 @@ export function applyDisplayRules(
   const echoes = echoSummaryIndexes(capped.sections);
   const kept = capped.sections.filter((_, i) => !echoes.has(i));
   return {
-    sections: anchorWornHeroTop(
-      markStepBadgesOffPeople(
-        hideRepeatedHeadings(
-          assignPersonaStrip(kept.map(trimCalloutTail), imageUrls.length, sourceOf, {
-            roles: opts.roles,
-            origins: opts.origins,
-          }),
-        ),
-        opts.category,
-        opts.roles,
+    // 패션 사람 사진 규칙(404~406차): STEP 태그를 사진 밖으로 → 착용컷 히어로 위쪽 기준 → 갤러리 착용컷 먼저
+    sections: [markStepBadgesOffPeople, anchorWornHeroTop, wornFirstInGallery].reduce(
+      (acc, rule) => rule(acc, opts.category, opts.roles),
+      hideRepeatedHeadings(
+        assignPersonaStrip(kept.map(trimCalloutTail), imageUrls.length, sourceOf, {
+          roles: opts.roles,
+          origins: opts.origins,
+        }),
       ),
-      opts.category,
-      opts.roles,
     ),
     sourceIndexes: capped.sourceIndexes.filter((_, i) => !echoes.has(i)).map((i) => orderIndexes[i]!),
   };

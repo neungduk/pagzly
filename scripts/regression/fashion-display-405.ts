@@ -2,6 +2,7 @@
  * 회귀 — 405차 패션 표시 규칙(라이브·export 공용 applyDisplayRules). 유료 호출 0.
  * 1) 착용컷이 든 첫 갤러리를 히어로 바로 뒤로 앞당긴다(패션만, 순서만 바뀜).
  * 2) 착용컷 히어로는 사진을 위쪽 기준으로 맞춘다(750에서 브랜드 알약이 머리에 걸치지 않게).
+ * 3) 406차: 패션 갤러리 안에서 착용컷이 디테일·평면컷보다 앞 칸(순서만).
  */
 import { applyDisplayRules, pullWornGalleryForward } from "../../lib/display-sections";
 import { FASHION_CATEGORY } from "../../lib/fashion-composite-policy";
@@ -11,7 +12,7 @@ import path from "node:path";
 import { buildDetailPageHtml } from "../../lib/export-detail-html";
 import { getCategoryTheme } from "../../lib/category-theme";
 
-export const name = "405차 패션 표시 규칙(갤러리 앞당김·히어로 위쪽 기준)";
+export const name = "패션 표시 규칙(갤러리 앞당김·히어로 위쪽 기준·갤러리 착용컷 우선)";
 
 const hero = { type: "hero", slot: "hero", headline: "h", subheadline: "s", imageIndex: 0 } as unknown as DetailSection;
 const persona = { type: "target_persona", slot: "target_persona", heading: "이런 고민 있으신가요?", personas: ["a", "b"] } as unknown as DetailSection;
@@ -52,5 +53,13 @@ export async function run(): Promise<string[]> {
   if (!heroHtml(FASHION_CATEGORY).includes("object-fit:cover;object-position:50% 0%")) fails.push("export 패션 착용컷 히어로가 위쪽 기준이 아님");
   if (heroHtml("화장품/뷰티").includes("object-position:50% 0%")) fails.push("export 뷰티 히어로가 바뀜");
   if (!fs.readFileSync(path.join(__dirname, "..", "..", "components", "DetailSectionRenderer.tsx"), "utf8").includes('section.photoTopAnchored ? " object-top"')) fails.push("라이브 히어로가 photoTopAnchored를 읽지 않음");
+  // 3) 406차 — 패션 갤러리 안에서 착용컷이 앞 칸(안정 정렬, 사진 집합은 그대로)
+  const g = { type: "gallery", slot: "model_multicut", heading: "착용", imageIndexes: [1, 2, 3, 4] } as unknown as DetailSection;
+  const galleryOf = (category: string, roles: string[] | undefined) =>
+    (applyDisplayRules([hero, g], ["u0", "u1", "u2", "u3", "u4"], { category, roles: roles as never }).sections.find((s) => s.type === "gallery") as { imageIndexes: number[] }).imageIndexes.join(",");
+  const mixed = ["hero", "detail", "hero", "other", "lifestyle"];
+  if (galleryOf(FASHION_CATEGORY, mixed) !== "2,4,1,3") fails.push(`패션 갤러리 착용컷 우선 아님: ${galleryOf(FASHION_CATEGORY, mixed)}`);
+  if (galleryOf(FASHION_CATEGORY, undefined) !== "1,2,3,4") fails.push("역할 없는 패션 갤러리 순서가 바뀜");
+  if (galleryOf("화장품/뷰티", mixed) !== "1,2,3,4") fails.push("뷰티 갤러리 순서가 바뀜");
   return fails;
 }
