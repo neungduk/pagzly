@@ -7,7 +7,7 @@ import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import type { ConceptBrief } from "@/lib/concept-brief";
 import { buildLifestyleCompositeRequestBody } from "@/lib/lifestyle-composite-request";
 import { computeStudioCompositeLimit } from "@/lib/lifestyle-shot-planner";
-import { isHeroKeptOriginal, planStudioComposite } from "@/lib/fashion-composite-policy";
+import { isHeroKeptOriginal, planStudioComposite, shouldSkipBackdropImage } from "@/lib/fashion-composite-policy";
 import { getLifestyleShotConfig } from "@/lib/lifestyle-shot-config";
 import type { ProductImageOrigin } from "@/lib/image-origins";
 import type { PhotoCostBreakdown, ReferenceAnalysisInput } from "@/lib/types/generate";
@@ -47,6 +47,8 @@ export type BackdropGenerateResult = {
   productAlreadyComposited?: boolean;
   /** generate-backdrop에서 추출한 상품 테마 — section-backdrops 톤 주입용 */
   theme?: Pick<CategoryTheme, "accent" | "baseNeutral" | "deepAccent">;
+  /** 405차 — 서버가 배경 이미지 생성을 건너뜀(skipBackdropImage 요청에 대한 확인) */
+  backdropSkipped?: boolean;
 };
 
 function sleep(ms: number) {
@@ -91,6 +93,8 @@ export async function generateBackdrop(params: {
   ingredients?: string | null;
   targetCustomer?: string | null;
   referenceImageUrl?: string | null;
+  /** 405차 — true면 서버가 배경 이미지 생성만 건너뛴다(패션 히어로 원본). 후보 0장이 정상이다 */
+  skipBackdropImage?: boolean;
 }): Promise<BackdropGenerateResult | null> {
   return withBackoffRetry("generate-backdrop", async () => {
     const response = await fetch("/api/generate-backdrop", {
@@ -106,6 +110,7 @@ export async function generateBackdrop(params: {
         ingredients: params.ingredients ?? null,
         targetCustomer: params.targetCustomer ?? null,
         referenceImageUrl: params.referenceImageUrl ?? null,
+        skipBackdropImage: params.skipBackdropImage === true,
       }),
     });
 
@@ -128,7 +133,7 @@ export async function generateBackdrop(params: {
     }
 
     const candidates = result.candidateUrls?.filter(Boolean) ?? [];
-    if (!result.backdropDataUrl && candidates.length === 0) {
+    if (!result.backdropDataUrl && candidates.length === 0 && !(params.skipBackdropImage && result.backdropSkipped)) {
       console.warn("[generate-backdrop] 배경 후보가 없습니다.");
       return null;
     }
@@ -147,6 +152,7 @@ export async function generateBackdrop(params: {
       shadowAnalysis: result.shadowAnalysis,
       conceptBrief: result.conceptBrief,
       productAlreadyComposited: result.productAlreadyComposited ?? false,
+      backdropSkipped: result.backdropSkipped === true,
     };
   });
 }
@@ -387,6 +393,12 @@ export async function enhanceImages(params: {
       resolvedBackdrop = backdropByIndex[slotIndex] ?? heroBackdrop;
       backdropLabel = `${backdropSlotLabels[slotIndex] ?? "hero"}-empty-fallback`;
     }
+    if (!resolvedBackdrop) {
+      // 405차 — 배경 이미지를 건너뛰었고 섹션 배경도 없으면 합성할 배경이 없다. 호출하지 않고 원본을 쓴다
+      console.log(`[enhance] idx=${index} skip — no backdrop (hero backdrop skipped, no section backdrop)`);
+      results.push({ ...item, origin: item.origin ?? "original" });
+      continue;
+    }
     console.log(`[enhance] idx=${index} backdrop=${backdropLabel}`);
     try {
       const enhanced = await enhanceOne(item, resolvedBackdrop, {
@@ -517,7 +529,9 @@ export async function runPhotoEnhancementPipeline(params: {
     });
   };
 
-  emit({ stage: "backdrop", detail: "히어로 배경 생성 중" });
+  // 405차 — 패션 히어로가 원본이면 배경 이미지 생성을 서버에서 건너뛴다(conceptBrief·theme·shadow만 받음)
+  const skipBackdropImage = shouldSkipBackdropImage(params.category, params.imageRoles);
+  emit({ stage: "backdrop", detail: skipBackdropImage ? "상품 분석 중(히어로 원본 사용)" : "히어로 배경 생성 중" });
 
   const backdropResult = await generateBackdrop({
     category: params.category,
@@ -529,6 +543,7 @@ export async function runPhotoEnhancementPipeline(params: {
     ingredients: params.ingredients,
     targetCustomer: params.targetCustomer,
     referenceImageUrl: params.referenceImageUrl,
+    skipBackdropImage,
   });
 
   if (!backdropResult) {
@@ -567,8 +582,9 @@ export async function runPhotoEnhancementPipeline(params: {
 
   emit({
     stage: "backdrop",
-    detail:
-      candidates.length > 1 && !heroKeptOriginal
+    detail: backdropResult.backdropSkipped
+      ? "배경 생성 생략(히어로 원본 사용)"
+      : candidates.length > 1 && !heroKeptOriginal
         ? `배경 후보 ${candidates.length}장 — 선택 대기`
         : `배경 후보 ${Math.max(candidates.length, 1)}장 준비`,
     costUsdSoFar: photoProcessingCost,
@@ -580,7 +596,9 @@ export async function runPhotoEnhancementPipeline(params: {
     chosenBackdrop = candidates[0];
   }
 
-  if (!chosenBackdrop) {
+  // 405차 — 배경 이미지를 건너뛴 경우 고른 배경이 없는 것이 정상이다. 비히어로 합성은 섹션 배경만 쓴다(enhanceImages)
+  const backdropSkipped = backdropResult.backdropSkipped === true;
+  if (!chosenBackdrop && !backdropSkipped) {
     console.error(
       "[pipeline] no chosen backdrop — isolating: skip enhance, continue with originals",
     );
@@ -675,7 +693,7 @@ export async function runPhotoEnhancementPipeline(params: {
 
   const enhanced = await enhanceImages({
     uploaded,
-    heroBackdrop: chosenBackdrop,
+    heroBackdrop: chosenBackdrop ?? "",
     shadowAnalysis: backdropResult.shadowAnalysis,
     conceptBrief: backdropResult.conceptBrief,
     category: params.category,

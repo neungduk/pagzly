@@ -82,7 +82,10 @@ export async function POST(request: Request) {
       ingredients,
       targetCustomer,
       referenceImageUrl,
+      skipBackdropImage,
     } = (await request.json()) as {
+      /** 405차 — true면 배경 이미지 생성만 건너뛰고 conceptBrief·theme·shadowAnalysis는 그대로 돌려준다(기본 false) */
+      skipBackdropImage?: boolean;
       category?: string;
       productName?: string;
       brandName?: string | null;
@@ -186,8 +189,13 @@ export async function POST(request: Request) {
       conceptBrief,
       heroShadow,
     ] as const;
-    const { buffer, candidateUrls, cost: backdropCost, shadow, claudeCost, autoPicked } =
-      provider === "bria-replace"
+    // 405차 — 패션 히어로가 원본이면 배경 후보 이미지는 어디에도 쓰이지 않는다. 생성 함수들은 shadow로
+    // 넘겨받은 heroShadow를 그대로 돌려주므로(resolveShadowForBackdrop), 건너뛰어도 shadowAnalysis는 같다.
+    const skipped = skipBackdropImage === true;
+    if (skipped) console.log("[generate-backdrop] 배경 이미지 생성 건너뜀(패션 히어로 원본) — conceptBrief·theme·shadow만 반환");
+    const { buffer, candidateUrls, cost: backdropCost, shadow, claudeCost, autoPicked } = skipped
+      ? { buffer: undefined, candidateUrls: [] as string[], cost: 0, shadow: heroShadow, claudeCost: 0, autoPicked: true }
+      : provider === "bria-replace"
         ? await generateBackdropViaBria(...backdropArgs)
         : provider === "bria-genfill"
           ? await generateBackdropViaBriaGenFill(...backdropArgs)
@@ -229,7 +237,8 @@ export async function POST(request: Request) {
       backdropDataUrl,
       candidateUrls: storedCandidateUrls,
       // flux 외(bria / nano-banana / flux-kontext-pro)는 원본 상품이 이미 합성돼 있음
-      productAlreadyComposited: provider !== "flux",
+      productAlreadyComposited: !skipped && provider !== "flux",
+      backdropSkipped: skipped,
       autoPicked,
       cost: backdropCost + conceptBriefCost + referenceAnalysisCost,
       conceptBriefCost,

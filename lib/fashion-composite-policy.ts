@@ -47,3 +47,12 @@ export function planStudioComposite(input: {
 export function isHeroKeptOriginal(category: string | undefined, roles: readonly unknown[] | undefined): boolean {
   return isWornFashionPhoto(category, roles?.[0]);
 }
+
+/**
+ * 405차 — /api/generate-backdrop에서 배경 이미지 생성(flux-kontext-pro ×4, 404차 $0.16)을 건너뛸지.
+ * 히어로가 원본이면 배경 후보는 히어로에 쓰이지 않고, 비히어로 합성은 섹션 배경을 쓴다(404차 실생성 확인).
+ * 같은 응답의 conceptBrief·theme·shadowAnalysis는 그대로 받는다. 다른 카테고리·패션 비착용 히어로는 false(이전과 같음).
+ */
+export function shouldSkipBackdropImage(category: string | undefined, roles: readonly unknown[] | undefined): boolean {
+  return isHeroKeptOriginal(category, roles);
+}
