@@ -65,6 +65,8 @@ export type StylePack = {
   id: StylePackId;
   label: string;
   blurb: string;
+  /** 409차 — 선택칸 한 줄 설명(15자 안쪽, UI 라벨) */
+  short: string;
   headline: { kind: "serif" | "sans-display"; weight: number; letterSpacing: string } | null;
   titleScale: TitleScaleOverrides;
   /** 섹션 위·아래 여백 배율(1 = 기존) */
@@ -78,6 +80,7 @@ export const CLASSIC_PACK: StylePack = {
   id: "classic",
   label: "클래식",
   blurb: "지금 기본 디자인",
+  short: "지금 기본 디자인",
   headline: null,
   titleScale: {},
   padYScale: 1,
@@ -90,6 +93,7 @@ const MONO_MINIMAL: StylePack = {
   id: "mono-minimal",
   label: "모노 미니멀",
   blurb: "차분한 톤 · 가는 고딕 제목 · 넉넉한 여백",
+  short: "사진 먼저, 작은 제목",
   headline: { kind: "sans-display", weight: 600, letterSpacing: "-0.03em" },
   titleScale: {
     hero: { base: "2.5rem", wide: "4rem" },
@@ -117,6 +121,7 @@ const EDITORIAL: StylePack = {
   id: "editorial",
   label: "에디토리얼",
   blurb: "큰 명조 제목 · 아이보리 톤 · 넉넉한 여백",
+  short: "큰 제목, 사진 아래 글",
   headline: { kind: "serif", weight: 600, letterSpacing: "-0.015em" },
   titleScale: {
     hero: { base: "3.25rem", wide: "5rem" },

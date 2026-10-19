@@ -19,7 +19,7 @@ export default function StylePackPicker({
   if (options.length < 2) return null;
   const current = resolveStylePack(category, value).id;
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-2" role="radiogroup" aria-label="스타일" data-testid="style-pack-picker">
+    <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1" role="radiogroup" aria-label="스타일" data-testid="style-pack-picker">
       <span className="text-xs font-semibold text-ink/60">스타일</span>
       {options.map((p) => (
         <button
@@ -36,6 +36,9 @@ export default function StylePackPicker({
           {p.label}
         </button>
       ))}
+      <span className="w-full text-[11px] text-ink/50 sm:w-auto" data-testid="style-pack-short">
+        {options.find((p) => p.id === current)?.short}
+      </span>
     </div>
   );
 }
