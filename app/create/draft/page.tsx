@@ -31,6 +31,7 @@ import type {
   PhotoCostBreakdown,
 } from "@/lib/types/generate";
 import { GENERATE_DELAYED_MESSAGE, readJsonResponse } from "@/lib/read-json-response";
+import { mergeDraftAndPhotoCost } from "@/lib/cost/merge-photo-cost";
 
 function sectionPreviewText(section: DetailSection): string {
   switch (section.type) {
@@ -339,10 +340,11 @@ export default function CreateDraftPage() {
 
     const enhancedImages = photo.images;
     const photoProcessingCost = photo.photoProcessingCost ?? 0;
-    const photoCostBreakdown = {
-      ...(currentDraft.photoCostBreakdown ?? {}),
-      ...(photo.photoCostBreakdown ?? {}),
-    };
+    // 406차 — 초안 단계 Claude 비용이 사진 단계 값에 덮이지 않게 claude는 더한다
+    const photoCostBreakdown = mergeDraftAndPhotoCost(
+      currentDraft.photoCostBreakdown,
+      photo.photoCostBreakdown,
+    );
 
     const draftAfterEnhance: DraftSessionPayload = {
       ...currentDraft,
