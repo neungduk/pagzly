@@ -702,7 +702,7 @@ function sectionHtml(
         productName,
       });
       return `<section${sectionIdAttr} class="hero pagzly-hero"${sectionIdAttr} style="${FLAT_SECTION_SURFACES ? "" : pad}position:relative;overflow:hidden;width:100%;box-sizing:border-box;aspect-ratio:4/5;min-height:var(--pz-hero-min,70vh);background:${baseTheme.baseNeutral}">
-        ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" fetchPriority="high" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"/>` : ""}
+        ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" fetchPriority="high" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover${section.photoTopAnchored ? ";object-position:50% 0%" : ""}"/>` : ""}
         ${section.badge && !FLAT_SECTION_SURFACES ? `<span style="position:absolute;left:0;top:20px;background:${deepFill};color:#FAF8F3;padding:8px 16px;font-size:${FONT_SIZE.xs};font-weight:700">${esc(section.badge)}</span>` : ""}
         ${brandMarkHtml}
         <div style="position:absolute;inset:0;background:${getHeroGradient(baseTheme)};display:flex;align-items:flex-end;padding:48px var(--pz-hero-x,24px) var(--pz-hero-b,56px)">

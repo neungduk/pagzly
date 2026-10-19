@@ -1,12 +1,17 @@
 /**
  * 회귀 — 405차 패션 표시 규칙(라이브·export 공용 applyDisplayRules). 유료 호출 0.
  * 1) 착용컷이 든 첫 갤러리를 히어로 바로 뒤로 앞당긴다(패션만, 순서만 바뀜).
+ * 2) 착용컷 히어로는 사진을 위쪽 기준으로 맞춘다(750에서 브랜드 알약이 머리에 걸치지 않게).
  */
 import { applyDisplayRules, pullWornGalleryForward } from "../../lib/display-sections";
 import { FASHION_CATEGORY } from "../../lib/fashion-composite-policy";
 import type { DetailSection } from "../../lib/types/generate";
+import fs from "node:fs";
+import path from "node:path";
+import { buildDetailPageHtml } from "../../lib/export-detail-html";
+import { getCategoryTheme } from "../../lib/category-theme";
 
-export const name = "405차 패션 표시 규칙(갤러리 앞당김)";
+export const name = "405차 패션 표시 규칙(갤러리 앞당김·히어로 위쪽 기준)";
 
 const hero = { type: "hero", slot: "hero", headline: "h", subheadline: "s", imageIndex: 0 } as unknown as DetailSection;
 const persona = { type: "target_persona", slot: "target_persona", heading: "이런 고민 있으신가요?", personas: ["a", "b"] } as unknown as DetailSection;
@@ -36,5 +41,16 @@ export async function run(): Promise<string[]> {
   // 편집 모드도 같은 순서(저장은 sourceIndexes로 원래 자리에)
   const edit = applyDisplayRules(SECTIONS, URLS, { category: FASHION_CATEGORY, roles: worn as never, editing: true });
   if (edit.sections[1]?.type !== "gallery" || edit.sourceIndexes[1] !== 3) fails.push(`편집 모드 순서·원본 인덱스 불일치: ${edit.sourceIndexes.join(",")}`);
+  // 2) 착용컷 히어로는 사진을 위쪽 기준으로(라이브 object-top, export object-position:50% 0%)
+  const heroOf = (category: string, roles: string[]) =>
+    applyDisplayRules(SECTIONS, URLS, { category, roles: roles as never }).sections[0] as { photoTopAnchored?: boolean };
+  if (!heroOf(FASHION_CATEGORY, worn).photoTopAnchored) fails.push("패션 착용컷 히어로에 위쪽 기준 표시가 없음");
+  if (heroOf(FASHION_CATEGORY, ["detail", "hero"]).photoTopAnchored) fails.push("착용컷이 아닌 패션 히어로가 위쪽 기준으로 바뀜");
+  if (heroOf("화장품/뷰티", worn).photoTopAnchored) fails.push("뷰티 히어로가 위쪽 기준으로 바뀜");
+  const heroHtml = (category: string) =>
+    buildDetailPageHtml({ productName: "p", brandName: "b", category, sections: [hero], imageUrls: URLS, theme: getCategoryTheme(category), imageRoles: worn as never });
+  if (!heroHtml(FASHION_CATEGORY).includes("object-fit:cover;object-position:50% 0%")) fails.push("export 패션 착용컷 히어로가 위쪽 기준이 아님");
+  if (heroHtml("화장품/뷰티").includes("object-position:50% 0%")) fails.push("export 뷰티 히어로가 바뀜");
+  if (!fs.readFileSync(path.join(__dirname, "..", "..", "components", "DetailSectionRenderer.tsx"), "utf8").includes('section.photoTopAnchored ? " object-top"')) fails.push("라이브 히어로가 photoTopAnchored를 읽지 않음");
   return fails;
 }

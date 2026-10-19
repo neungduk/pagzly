@@ -174,6 +174,11 @@ export type HeroSection = {
    * (design-brief 제안 D). 근거 없는 "베스트/인기" 문구 금지 원칙 유지.
    */
   badge?: string;
+  /**
+   * 405차 — 표시 단계 전용(applyDisplayRules가 붙임, 저장하지 않음). true면 히어로 사진을 위쪽 기준으로 맞춘다.
+   * 패션 착용컷(원본, 머리가 사진 위쪽)이 히어로일 때 — 가운데 기준이면 넓은 폭에서 위가 잘려 브랜드 알약이 머리에 걸친다.
+   */
+  photoTopAnchored?: boolean;
 };
 
 export type ChecklistSection = {

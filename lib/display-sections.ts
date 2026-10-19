@@ -88,6 +88,22 @@ export function pullWornGalleryForward(
 }
 
 /**
+ * 405차 — 패션 히어로가 착용컷이면 사진을 위쪽 기준으로 맞춘다. 세로 전신 원본(2:3)이 4:5 히어로 칸에 가운데 기준으로
+ * 들어가면 넓은 폭(750)에서 위아래가 잘려 머리가 브랜드 알약 높이까지 올라간다. 좁은 폭(390)은 좌우만 잘려 영향이 없다.
+ */
+function anchorWornHeroTop(
+  sections: DetailSection[],
+  category: string | undefined,
+  roles: StripImageHints["roles"],
+): DetailSection[] {
+  return sections.map((section) =>
+    section.type === "hero" && isWornFashionPhoto(category, roles?.[section.imageIndex])
+      ? { ...section, photoTopAnchored: true }
+      : section,
+  );
+}
+
+/**
  * 404차 — 패션 착용컷(착장·코디)은 원본 그대로 쓰여 얼굴이 사진 위쪽에 들어 있다. STEP 태그(사진 왼쪽 위)가
  * 얼굴을 덮으므로, 단계 사진 중 착용컷이 하나라도 있으면 그 섹션의 태그를 모두 글 칸으로 옮긴다(섹션 안 모양 통일).
  * 인물 검출이 꺼져 있어 사진 내용 대신 역할로 판단한다. 문구는 그대로("STEP 0N"), 위치만 바뀐다.
@@ -123,12 +139,16 @@ export function applyDisplayRules(
   const echoes = echoSummaryIndexes(capped.sections);
   const kept = capped.sections.filter((_, i) => !echoes.has(i));
   return {
-    sections: markStepBadgesOffPeople(
-      hideRepeatedHeadings(
-        assignPersonaStrip(kept.map(trimCalloutTail), imageUrls.length, sourceOf, {
-          roles: opts.roles,
-          origins: opts.origins,
-        }),
+    sections: anchorWornHeroTop(
+      markStepBadgesOffPeople(
+        hideRepeatedHeadings(
+          assignPersonaStrip(kept.map(trimCalloutTail), imageUrls.length, sourceOf, {
+            roles: opts.roles,
+            origins: opts.origins,
+          }),
+        ),
+        opts.category,
+        opts.roles,
       ),
       opts.category,
       opts.roles,

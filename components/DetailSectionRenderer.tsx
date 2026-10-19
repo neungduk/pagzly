@@ -2108,7 +2108,7 @@ function renderSection(
               src={src}
               alt={imgAlt}
               fallbackSrc={heroFallback}
-              className="pagzly-hero-photo absolute inset-0 h-full w-full object-cover"
+              className={`pagzly-hero-photo absolute inset-0 h-full w-full object-cover${section.photoTopAnchored ? " object-top" : ""}`}
               priority
             />
             <div
