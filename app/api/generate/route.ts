@@ -1802,6 +1802,8 @@ export async function POST(request: Request) {
       price: body.price,
       keyFeatures: body.keyFeatures,
       productSizeHint: body.productSizeHint,
+      // 407차 — 패션 표 뼈대(색상·세탁방법)를 붙여넣기 블록의 라벨 줄로 채우는 폴백용
+      pastedText: body.wholesaleUrl ?? null,
     });
     savedCopy.sections = limitBoldBlocks(applyBoldBlock(savedCopy.sections));
     savedCopy.sections = applyDesignerLayoutRhythm(savedCopy.sections);

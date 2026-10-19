@@ -112,16 +112,50 @@ function rowMatches(row: { label: string }, skel: SkeletonRow): boolean {
   return false;
 }
 
+type SpecMeta = {
+  brandName?: string | null;
+  certifications?: string | null;
+  ingredients?: string | null;
+  price?: number;
+  productSizeHint?: string | null;
+  /** 407차 — 판매자가 원본 판매 페이지에서 붙여넣은 텍스트(wholesaleUrl 칸). URL이면 쓰지 않는다 */
+  pastedText?: string | null;
+};
+
+const clip80 = (v: string) => (v.length > 80 ? `${v.slice(0, 77)}…` : v);
+
+/**
+ * 407차 — 붙여넣기 블록에서 라벨이 분명한 줄의 값만 꺼낸다(추측하지 않는다).
+ * "색상: 화이트" 같은 한 줄, 또는 "[색상 옵션]" / "## 색상" 머리줄 다음의 첫 줄. 없으면 null.
+ */
+export function extractLabeledValue(text: string | null | undefined, label: RegExp): string | null {
+  if (!text?.trim() || /^\s*https?:\/\//i.test(text)) return null;
+  const lines = text.split(/\r?\n/).map((l) => l.trim());
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i]!;
+    const inline = line.match(/^[-•*]?\s*([^:：\[\]]{1,12})\s*[:：]\s*(.+)$/);
+    if (inline && label.test(inline[1]!)) return clip80(inline[2]!.trim());
+    const header = line.match(/^(?:\[([^\]]{1,12})\]|#{1,3}\s*(.{1,12}))$/);
+    if (header && label.test((header[1] ?? header[2])!)) {
+      const next = lines.slice(i + 1).find((l) => l.length > 0);
+      if (next && !/^(\[|#)/.test(next)) return clip80(next);
+    }
+  }
+  return null;
+}
+
+/** 패션 뼈대 행 중 입력에서 채울 수 있는 것(407차). 이 라벨들은 패션 뼈대에만 있다 */
+function fashionInputFallback(label: string, meta: SpecMeta): string | null {
+  if (label === "소재") return meta.ingredients?.trim() ? clip80(meta.ingredients.trim()) : null;
+  if (label === "색상") return extractLabeledValue(meta.pastedText, /^(색상|컬러)(\s*옵션)?$/);
+  if (label === "세탁방법") return extractLabeledValue(meta.pastedText, /^(세탁|세탁\s*방법|세탁\s*[·・/]\s*관리)$/);
+  return null;
+}
+
 function resolveSkeletonValue(
   skel: SkeletonRow,
   existing: { label: string; value: string }[],
-  meta: {
-    brandName?: string | null;
-    certifications?: string | null;
-    ingredients?: string | null;
-    price?: number;
-    productSizeHint?: string | null;
-  },
+  meta: SpecMeta,
 ): string {
   const found = existing.find((r) => rowMatches(r, skel) && (!skel.value || skel.value.test(r.value)));
   const trimmed = found?.value?.trim() ?? "";
@@ -147,6 +181,10 @@ function resolveSkeletonValue(
     return "구매 금액·지역에 따라 달라질 수 있습니다";
   }
 
+  // 407차 — 생성 결과가 행을 비웠어도 입력에 근거가 있으면 입력 값(패션 소재·색상·세탁방법)
+  const fromInput = fashionInputFallback(skel.label, meta);
+  if (fromInput) return fromInput;
+
   return PLACEHOLDER;
 }
 
@@ -154,13 +192,7 @@ function resolveSkeletonValue(
 export function mergeSpecRows(
   existing: { label: string; value: string }[],
   skeleton: SkeletonRow[],
-  meta: {
-    brandName?: string | null;
-    certifications?: string | null;
-    ingredients?: string | null;
-    price?: number;
-    productSizeHint?: string | null;
-  },
+  meta: SpecMeta,
 ): { label: string; value: string }[] {
   const merged: { label: string; value: string }[] = [];
   for (const skel of skeleton) {
@@ -192,13 +224,7 @@ export function mergeSpecRows(
 export function enrichSpecTableSection(
   section: DetailSection & { type: "spec_table" },
   category: string,
-  meta: {
-    brandName?: string | null;
-    certifications?: string | null;
-    ingredients?: string | null;
-    price?: number;
-    productSizeHint?: string | null;
-  },
+  meta: SpecMeta,
 ): DetailSection {
   const templateCat = resolveTemplateCategory(category);
   const isShipping = section.slot === "shipping_info";
@@ -227,6 +253,8 @@ export function enrichSectionsWithProductMetadata(
     price?: number;
     keyFeatures?: string | null;
     productSizeHint?: string | null;
+    /** 407차 — 붙여넣기 블록(wholesaleUrl 칸). 패션 표 뼈대의 색상·세탁방법 폴백에만 쓴다 */
+    pastedText?: string | null;
   },
 ): DetailSection[] {
   const certParts = parseCertificationTokens(meta.certifications);
