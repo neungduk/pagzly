@@ -35,11 +35,13 @@ export function packStructureCss(layout: PackLayout, scope: string, flavor: Flav
   // 소제목 — 가는 선(제목 위). 히어로 캡션 제목은 제외
   if (layout.heading !== "center-stack" || layout.rule === "hairline") {
     const left = layout.heading === "left-eyebrow";
-    const base = `${S} .pagzly-display-headline::before{content:"";display:block;width:${PACK_RULE.widthPx}px;height:1px;background:${PACK_RULE.color};margin:0 ${left ? "0" : "auto"} ${PACK_RULE.gapPx}px}`;
+    // export의 일러스트 배너 제목도 같은 클래스를 쓰지만 라이브 배너 제목은 아니라서(250차 배너는 손대지 않는다) export에서는 배너 안을 뺀다
+    const H = flavor === "export" ? `${S} section:not(.pagzly-illustration-banner) .pagzly-display-headline` : `${S} .pagzly-display-headline`;
+    const base = `${H}::before{content:"";display:block;width:${PACK_RULE.widthPx}px;height:1px;background:${PACK_RULE.color};margin:0 ${left ? "0" : "auto"} ${PACK_RULE.gapPx}px}`;
     if (layout.heading !== "center-stack") {
       out.push(base);
-      if (left) out.push(`${S} .pagzly-display-headline{text-align:left!important}`);
-      out.push(`${S} [data-hero-caption] .pagzly-display-headline::before{display:none}`);
+      if (left) out.push(`${H}{text-align:left!important}`);
+      out.push(`${S} [data-hero-caption] .pagzly-display-headline::before{display:none!important}`);
     }
   }
   // 체크리스트 — 카드 테두리·그림자·바탕 없이 줄 사이 가는 선
