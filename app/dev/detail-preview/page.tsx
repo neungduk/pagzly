@@ -14,6 +14,7 @@ import type { ConceptIconMap } from "@/lib/concept-icons";
 import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import { validateImageFile } from "@/lib/image-upload";
 import { resolveHeadlineFontKind } from "@/lib/detail-typography";
+import StylePackPicker from "@/components/StylePackPicker";
 import { computeDemotedSectionIndexes } from "@/lib/section-display-budget";
 import {
   capture128ChartThenCircleSections,
@@ -1472,6 +1473,8 @@ function DetailPreviewBody({ capture, budget }: { capture: string | null; budget
   );
 
   const previewCategory = capturePreset?.category ?? "화장품/뷰티";
+  // 408차 — 결과 화면 선택칸(StylePackPicker)을 로그인 없이 확인하기 위한 개발용 상태
+  const [previewPackId, setPreviewPackId] = useState<string | undefined>(capturePreset?.stylePackId);
   const previewBrandName = capturePreset?.brandName ?? "테스트 브랜드";
   const previewProductName = capturePreset?.productName ?? "히알루론 수분 크림";
 
@@ -1632,6 +1635,10 @@ function DetailPreviewBody({ capture, budget }: { capture: string | null; budget
           />
         </div>
       ) : (
+        <>
+        <div className="mx-auto max-w-[430px] px-4 pt-3">
+          <StylePackPicker category={previewCategory} value={previewPackId} onChange={setPreviewPackId} />
+        </div>
         <div
           className="mx-auto max-w-[430px] overflow-x-hidden border-x border-line bg-paper shadow-sm"
           data-pagzly-preview
@@ -1643,7 +1650,7 @@ function DetailPreviewBody({ capture, budget }: { capture: string | null; budget
             imageHashByUrl={capturePreset?.imageHashByUrl}
             imageRoles={capturePreset?.imageRoles}
             imageOrigins={capturePreset?.imageOrigins}
-            stylePackId={capturePreset?.stylePackId}
+            stylePackId={previewPackId}
             category={previewCategory}
             brandName={previewBrandName}
             productName={previewProductName}
@@ -1675,6 +1682,7 @@ function DetailPreviewBody({ capture, budget }: { capture: string | null; budget
             }}
           />
         </div>
+        </>
       )}
       {toast && (
         <ToastBanner

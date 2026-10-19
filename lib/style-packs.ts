@@ -20,8 +20,9 @@ type ToneSpec = {
   softSatMul: number;
   baseL: number;
   baseSatMul: number;
-  /** 있으면 baseNeutral만 이 색상(hue)으로 고정(에디토리얼 아이보리). 상품 hue와 무관한 중립 띠 색 */
+  /** 있으면 baseNeutral만 이 색상(hue)·채도로 고정(에디토리얼 아이보리). 상품 hue와 무관한 중립 띠 색 */
   baseHue?: number;
+  baseSat?: number;
 };
 
 export type StylePack = {
@@ -75,7 +76,7 @@ const EDITORIAL: StylePack = {
   },
   padYScale: 1.3,
   heroGradientStrength: 0.85,
-  tone: { satMul: 0.55, accentL: 0.3, deepL: 0.15, softL: 0.92, softSatMul: 0.45, baseL: 0.95, baseSatMul: 0.35, baseHue: 40 },
+  tone: { satMul: 0.55, accentL: 0.3, deepL: 0.15, softL: 0.92, softSatMul: 0.45, baseL: 0.945, baseSatMul: 0.35, baseHue: 40, baseSat: 0.45 },
 };
 
 const FASHION_PACKS: StylePack[] = [CLASSIC_PACK, MONO_MINIMAL, EDITORIAL];
@@ -149,7 +150,10 @@ export function applyPackTone<T extends Omit<CategoryTheme, "icon"> & { icon?: s
     accent: retone(theme.accent, tone.satMul, tone.accentL),
     accentText: retone(theme.accentText, tone.satMul, tone.accentL),
     accentSoft: retone(theme.accentSoft, tone.softSatMul, tone.softL),
-    baseNeutral: retone(theme.baseNeutral, tone.baseSatMul, tone.baseL, tone.baseHue),
+    baseNeutral:
+      tone.baseHue != null && tone.baseSat != null
+        ? hslToHex(tone.baseHue, tone.baseSat, tone.baseL)
+        : retone(theme.baseNeutral, tone.baseSatMul, tone.baseL, tone.baseHue),
     deepAccent,
     ...(strength === 1 ? {} : { heroGradientStrength: strength }),
     heroScrimFrom: `rgba(${parseInt(deepAccent.slice(1, 3), 16)},${parseInt(deepAccent.slice(3, 5), 16)},${parseInt(deepAccent.slice(5, 7), 16)},0.6)`,

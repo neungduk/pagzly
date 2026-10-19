@@ -31,6 +31,8 @@ import type { PatchChatMessage } from "@/lib/patch-section-suggestions";
 import { getCategoryTheme } from "@/lib/category-theme";
 import { resolveHeadlineFontKind } from "@/lib/detail-typography";
 import { buildDetailPageHtml } from "@/lib/export-detail-html";
+import { resolveStylePack, stylePackOptions } from "@/lib/style-packs";
+import StylePackPicker from "@/components/StylePackPicker";
 import { computeDemotedSectionIndexes } from "@/lib/section-display-budget";
 import { captureDetailToPngBlobs, downloadBlob, prepareCaptureRoot } from "@/lib/capture-detail-png";
 import { DEFAULT_SLICE_HEIGHT_PX, downloadPngPartsZip } from "@/lib/split-detail-download";
@@ -95,7 +97,28 @@ function remapHiddenAfterReorder(hidden: number[], from: number, to: number): nu
   });
 }
 
+/** 408차 — DB에서 불러온 상품은 세션 필드가 없어, 고른 스타일 팩을 이 브라우저에만 기억한다(스키마 변경 없음) */
+const STYLE_PACK_STORAGE_PREFIX = "pagzly-style-pack:";
+function readStoredStylePack(productId: string | undefined): string | undefined {
+  if (!productId) return undefined;
+  try {
+    return localStorage.getItem(STYLE_PACK_STORAGE_PREFIX + productId) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+function storeStylePack(productId: string | undefined, id: string) {
+  if (!productId) return;
+  try {
+    localStorage.setItem(STYLE_PACK_STORAGE_PREFIX + productId, id);
+  } catch {
+    /* 저장 불가 환경(시크릿 창 등)은 이번 화면에서만 적용 */
+  }
+}
+
 type ProductResult = {
+  /** 408차 — 스타일 팩 id(패션만 유효). 없거나 모르는 값이면 classic. sessionStorage 세션 JSON에 그대로 실린다 */
+  stylePackId?: string;
   category: string;
   imageUrls: string[];
   imagePaths?: string[];
@@ -834,6 +857,7 @@ function CreateResultContent() {
         imageHashByUrl: data.generated.imageHashByUrl,
         imageRoles: data.generated.imageRoles ?? data.imageRoles,
         imageOrigins: data.imageOrigins,
+        stylePackId: resolveStylePack(data.category, data.stylePackId ?? readStoredStylePack(data.generated.productId)).id,
       });
       const blob = new Blob([html], { type: "text/html;charset=utf-8" });
       const url = URL.createObjectURL(blob);
@@ -910,6 +934,13 @@ function CreateResultContent() {
     sessionStorage.setItem(RETRY_PHOTO_ONLY_KEY, "1");
     router.push("/create/draft");
   }
+  const packChoices = stylePackOptions(data.category);
+  const stylePackId = packChoices.length > 0 ? resolveStylePack(data.category, data.stylePackId ?? readStoredStylePack(generated?.productId)).id : undefined;
+  function handleStylePack(id: string) {
+    if (!data) return;
+    persist({ ...data, stylePackId: id });
+    storeStylePack(generated?.productId, id);
+  }
   const categoryTheme = getCategoryTheme(data.category);
   const theme = generated?.theme
     ? { ...categoryTheme, ...generated.theme }
@@ -974,6 +1005,8 @@ function CreateResultContent() {
   // 같은 JSX 객체를 데스크톱/모바일에 두 번 넣으면 ref가 숨김 노드로 붙음 → 함수로 각각 생성
   const renderDetailPreview = (bindCaptureRef: boolean) =>
     visibleSections.length > 0 ? (
+      <div>
+      <StylePackPicker category={data.category} value={stylePackId} onChange={handleStylePack} />
       <div
         ref={bindCaptureRef ? captureRef : undefined}
         data-testid="detail-preview"
@@ -996,6 +1029,7 @@ function CreateResultContent() {
           keyFeatures={data.keyFeatures}
           certifications={data.certifications}
           theme={theme}
+          stylePackId={stylePackId}
           conceptIcons={generated?.conceptIcons}
           pendingHighlightIndex={
             pendingPatch
@@ -1054,6 +1088,7 @@ function CreateResultContent() {
             섞여 있으면 「원클릭 업로드」로 해당 컷만 교체할 수 있습니다.
           </p>
         ) : null}
+      </div>
       </div>
     ) : (
       <div className="rounded-2xl border border-line bg-paper p-6 text-sm text-ink/60 shadow-sm">
