@@ -141,7 +141,18 @@ import WeightComparisonDiagram from "@/components/WeightComparisonDiagram";
 import PowerConsumptionDiagram from "@/components/PowerConsumptionDiagram";
 import { headlineDisplayStyle, joinNumericSuffix, longestTokenEm, packHeadlineLiveVars } from "@/lib/detail-typography";
 import { rhythmLiveVars } from "@/lib/rhythm-tokens";
-import { applyPackTone, isClassicPack, packTitleScaleOverrides, resolveStylePack, type StylePack } from "@/lib/style-packs";
+import { HERO_CAPTION, heroCaptionAlign, heroCaptionBackground } from "@/lib/hero-variants";
+import {
+  applyPackTone,
+  CLASSIC_LAYOUT,
+  getPackLayout,
+  isClassicPack,
+  packTitleScaleOverrides,
+  resolveHeroVariant,
+  resolveStylePack,
+  type PackLayout,
+  type StylePack,
+} from "@/lib/style-packs";
 import VolumeComparisonDiagram from "@/components/VolumeComparisonDiagram";
 import UsageOrderFlowDiagram from "@/components/UsageOrderFlowDiagram";
 import FoodRatioDiagram from "@/components/FoodRatioDiagram";
@@ -2100,6 +2111,7 @@ function renderSection(
   keyFeatures?: string | null,
   pointOrdinal?: number,
   productThumbs?: ProductThumbs,
+  layout: PackLayout = CLASSIC_LAYOUT,
 ) {
   const heroFallback = imageUrls[0] ?? "";
   switch (section.type) {
@@ -2111,6 +2123,103 @@ function renderSection(
         brandName,
         productName,
       });
+      // 409차 — 팩 히어로 변형: 사진과 글을 위아래로 나눠 글자가 인물을 가리지 않는다(사진이 없으면 classic)
+      const heroVariant = resolveHeroVariant(layout, Boolean(src));
+      if (heroVariant !== "bleed-bottom") {
+        const align = heroCaptionAlign(heroVariant);
+        const photo = (
+          <div
+            key="hero-photo"
+            className="relative w-full overflow-hidden"
+            style={{ aspectRatio: HERO_CAPTION.photoRatio, background: theme.baseNeutral }}
+          >
+            <SectionImage
+              src={src}
+              alt={imgAlt}
+              fallbackSrc={heroFallback}
+              className="pagzly-hero-photo absolute inset-0 h-full w-full object-cover object-top"
+              priority
+            />
+            <ImageReplaceHit
+              enabled={edit?.enabled}
+              onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}
+            />
+          </div>
+        );
+        const eyebrowLabel = brandMark.kind === "none" ? "" : brandMark.displayName;
+        const caption = (
+          <div
+            key="hero-caption"
+            className={getCategoryRhythm(category).generousPadClass}
+            style={{ textAlign: align, background: heroCaptionBackground(heroVariant, theme) }}
+            data-hero-caption
+          >
+            {eyebrowLabel || section.badge ? (
+              <p
+                style={{
+                  margin: `0 0 ${HERO_CAPTION.eyebrowGapPx}px`,
+                  fontSize: HERO_CAPTION.eyebrowSizePx,
+                  fontWeight: 700,
+                  letterSpacing: HERO_CAPTION.eyebrowTracking,
+                  textTransform: "uppercase",
+                  color: readableTextDeep(theme),
+                }}
+              >
+                {eyebrowLabel ? <span>{eyebrowLabel}</span> : null}
+                {eyebrowLabel && section.badge ? <span aria-hidden="true">{" · "}</span> : null}
+                {section.badge ? <span>{section.badge}</span> : null}
+              </p>
+            ) : null}
+            <EditableText
+              as="h2"
+              enabled={edit?.enabled}
+              value={section.headline}
+              onChange={(headline) => edit?.onChange(index, { ...section, headline })}
+              className="pagzly-display-headline pz-fit font-heading [--pz-fs:var(--pz-t-hero-b)] font-extrabold @min-[640px]/pz:[--pz-fs:var(--pz-t-hero-w)]"
+              style={{
+                color: HERO_CAPTION.ink,
+                lineHeight: HERO_CAPTION.titleLine,
+                ...headlineDisplayStyle(category),
+                ...fitTokenStyle(section.headline, parseFloat(headlineDisplayStyle(category).letterSpacing)),
+              }}
+              {...elementSelectProps(edit, index, "headline")}
+            />
+            {section.subheadline || edit?.enabled ? (
+              <EditableText
+                as="p"
+                enabled={edit?.enabled}
+                value={section.subheadline ?? ""}
+                onChange={(subheadline) => edit?.onChange(index, { ...section, subheadline })}
+                className="font-normal"
+                style={{
+                  margin: `${HERO_CAPTION.subTopPx}px ${align === "center" ? "auto" : "0"} 0`,
+                  maxWidth: HERO_CAPTION.subMaxWidth,
+                  fontSize: HERO_CAPTION.subSizePx,
+                  lineHeight: HERO_CAPTION.subLine,
+                  color: HERO_CAPTION.subInk,
+                }}
+                {...elementSelectProps(edit, index, "subheadline")}
+              />
+            ) : null}
+            {layout.rule === "hairline" ? (
+              <div
+                aria-hidden="true"
+                style={{
+                  width: HERO_CAPTION.ruleWidthPx,
+                  height: 1,
+                  background: HERO_CAPTION.ruleColor,
+                  margin: `${HERO_CAPTION.ruleGapPx}px ${align === "center" ? "auto" : "0"} 0`,
+                }}
+              />
+            ) : null}
+          </div>
+        );
+        return (
+          <section key={`hero-wrap-${index}`} className="relative w-full" data-hero-variant={heroVariant}>
+            {heroVariant === "caption-above" ? [caption, photo] : [photo, caption]}
+          </section>
+        );
+      }
       return (
         <div key={`hero-wrap-${index}`} className="relative">
           <div
@@ -5547,6 +5656,7 @@ export default function DetailSectionRenderer({
   stylePackId,
 }: DetailSectionRendererProps) {
   const pack = resolveStylePack(category, stylePackId);
+  const packLayout = getPackLayout(pack);
   const display = applyDisplayRules(inputSections, imageUrls, {
     editing: inputEdit?.enabled,
     imageHashByUrl,
@@ -5712,6 +5822,7 @@ export default function DetailSectionRenderer({
             keyFeatures,
             pointOrdinals[index],
             productThumbs,
+            packLayout,
           );
         }
         if (!content) {

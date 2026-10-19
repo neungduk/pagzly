@@ -101,7 +101,7 @@ import {
   isCosmeticsCategory,
 } from "@/lib/cosmetics-compliance";
 import { isFoodCategory } from "@/lib/food-compliance";
-import { buildHeroBrandMarkHtml, shouldSkipBrandBand } from "@/lib/hero-brand-mark";
+import { buildHeroBrandMarkHtml, resolveHeroBrandMark, shouldSkipBrandBand } from "@/lib/hero-brand-mark";
 import { extractQuickFacts } from "@/lib/quick-fact-strip";
 import { buildSpecBentoGridHtml } from "@/lib/spec-bento-grid";
 import {
@@ -162,7 +162,8 @@ import {
   type TitleScaleKey,
 } from "@/lib/design-tokens";
 import { rhythmVarsCss } from "@/lib/rhythm-tokens";
-import { applyPackTone, packTitleScaleOverrides, resolveStylePack } from "@/lib/style-packs";
+import { applyPackTone, CLASSIC_LAYOUT, getPackLayout, packTitleScaleOverrides, resolveHeroVariant, resolveStylePack, type PackLayout } from "@/lib/style-packs";
+import { HERO_CAPTION, heroCaptionAlign, heroCaptionBackground } from "@/lib/hero-variants";
 import { applySectionDisplayBudget } from "@/lib/section-display-budget";
 import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
 import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe";
@@ -651,6 +652,7 @@ function sectionHtml(
   totalCompactImageTextCount?: number,
   pointOrdinal?: number,
   productThumbs?: ProductThumbs,
+  layout: PackLayout = CLASSIC_LAYOUT,
 ): string {
   const sectionIdAttr = anchorId ? ` id="${anchorId}"` : "";
   const pad = "padding:var(--pz-pad-y,48px) var(--pz-pad-x,20px);";
@@ -687,6 +689,28 @@ function sectionHtml(
         brandName,
         productName,
       });
+      // 409차 — 팩 히어로 변형(라이브 renderSection과 같은 DOM·같은 토큰). 사진이 없으면 classic
+      const heroVariant = resolveHeroVariant(layout, Boolean(src));
+      if (heroVariant !== "bleed-bottom") {
+        const align = heroCaptionAlign(heroVariant);
+        const mark = resolveHeroBrandMark({ logoUrl, brandName, productName });
+        const eyebrowLabel = mark.kind === "none" ? "" : mark.displayName;
+        const edge = align === "center" ? "auto" : "0";
+        const photoHtml = `<div style="position:relative;width:100%;overflow:hidden;aspect-ratio:${HERO_CAPTION.photoRatio};background:${baseTheme.baseNeutral}"><img src="${esc(src)}" alt="${esc(alt)}" fetchPriority="high" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${HERO_CAPTION.photoPosition}"/></div>`;
+        const eyebrowHtml =
+          eyebrowLabel || section.badge
+            ? `<p style="margin:0 0 ${HERO_CAPTION.eyebrowGapPx}px;font-size:${HERO_CAPTION.eyebrowSizePx}px;font-weight:700;letter-spacing:${HERO_CAPTION.eyebrowTracking};text-transform:uppercase;color:${deepText}">${eyebrowLabel ? `<span>${esc(eyebrowLabel)}</span>` : ""}${eyebrowLabel && section.badge ? `<span aria-hidden="true"> · </span>` : ""}${section.badge ? `<span>${esc(section.badge)}</span>` : ""}</p>`
+            : "";
+        const subHtml = section.subheadline
+          ? `<p style="margin:${HERO_CAPTION.subTopPx}px ${edge} 0;max-width:${HERO_CAPTION.subMaxWidth};font-size:${HERO_CAPTION.subSizePx}px;line-height:${HERO_CAPTION.subLine};font-weight:400;font-family:${DETAIL_FONT_STACK.sans};color:${HERO_CAPTION.subInk}">${esc(section.subheadline)}</p>`
+          : "";
+        const ruleHtml =
+          layout.rule === "hairline"
+            ? `<div aria-hidden="true" style="width:${HERO_CAPTION.ruleWidthPx}px;height:1px;background:${HERO_CAPTION.ruleColor};margin:${HERO_CAPTION.ruleGapPx}px ${edge} 0"></div>`
+            : "";
+        const captionHtml = `<div data-hero-caption style="${pad}text-align:${align};background:${heroCaptionBackground(heroVariant, baseTheme)}">${eyebrowHtml}<h1 class="pagzly-display-headline pz-fit" style="color:${HERO_CAPTION.ink};${titleFitCss("hero", section.headline, -0.03)};font-weight:800;line-height:${HERO_CAPTION.titleLine};margin:0;${displayHeadlineInlineCss(category)}">${esc(section.headline)}</h1>${subHtml}${ruleHtml}</div>`;
+        return `<section${sectionIdAttr} class="hero pagzly-hero" data-hero-variant="${heroVariant}" style="position:relative;width:100%">${heroVariant === "caption-above" ? captionHtml + photoHtml : photoHtml + captionHtml}</section>`;
+      }
       return `<section${sectionIdAttr} class="hero pagzly-hero"${sectionIdAttr} style="${FLAT_SECTION_SURFACES ? "" : pad}position:relative;overflow:hidden;width:100%;box-sizing:border-box;aspect-ratio:4/5;min-height:var(--pz-hero-min,70vh);background:${baseTheme.baseNeutral}">
         ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" fetchPriority="high" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover${section.photoTopAnchored ? ";object-position:50% 0%" : ""}"/>` : ""}
         ${section.badge && !FLAT_SECTION_SURFACES ? `<span style="position:absolute;left:0;top:20px;background:${deepFill};color:#FAF8F3;padding:8px 16px;font-size:${FONT_SIZE.xs};font-weight:700">${esc(section.badge)}</span>` : ""}
@@ -2147,6 +2171,7 @@ export function buildDetailPageHtml(opts: {
         totalCompactImageTextCount,
         pointOrdinals[i],
         productThumbs,
+        getPackLayout(pack),
       );
     }
     if (html) {
