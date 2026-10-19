@@ -347,6 +347,11 @@ export type StepCardSection = {
   heading: string;
   /** 3단계 권장. */
   steps: { title: string; body: string; imageIndex: number }[];
+  /**
+   * 404차 — 표시 단계 전용(applyDisplayRules가 붙임, 저장하지 않음). true면 STEP 태그를 사진 위가 아니라
+   * 글 칸(제목 위)에 둔다. 단계 사진에 사람이 나오는 패션 착용컷이 있을 때 — 인물 사진 위 글자 금지.
+   */
+  stepBadgeOffImage?: boolean;
 };
 
 // 컬러/옵션별 스와치 + 착용컷. 패션의 color_variation 슬롯 전용.

@@ -4,6 +4,7 @@ import { limitBoldBlocks } from "@/lib/detail-visual-rhythm";
 import { enforceImageSourceCapIndexed } from "@/lib/image-source-cap";
 import { assignPersonaStrip, type StripImageHints } from "@/lib/persona-strip";
 import { imageSourceGroups, type ImageHashByUrl } from "@/lib/gallery-dedupe";
+import { isWornFashionPhoto } from "@/lib/fashion-composite-policy";
 
 export type DisplaySections = {
   sections: DetailSection[];
@@ -65,6 +66,23 @@ function echoSummaryIndexes(sections: DetailSection[]): Set<number> {
 }
 
 /**
+ * 404차 — 패션 착용컷(착장·코디)은 원본 그대로 쓰여 얼굴이 사진 위쪽에 들어 있다. STEP 태그(사진 왼쪽 위)가
+ * 얼굴을 덮으므로, 단계 사진 중 착용컷이 하나라도 있으면 그 섹션의 태그를 모두 글 칸으로 옮긴다(섹션 안 모양 통일).
+ * 인물 검출이 꺼져 있어 사진 내용 대신 역할로 판단한다. 문구는 그대로("STEP 0N"), 위치만 바뀐다.
+ */
+function markStepBadgesOffPeople(
+  sections: DetailSection[],
+  category: string | undefined,
+  roles: StripImageHints["roles"],
+): DetailSection[] {
+  return sections.map((section) => {
+    if (section.type !== "step_card") return section;
+    const hasPerson = section.steps.some((step) => isWornFashionPhoto(category, roles?.[step.imageIndex]));
+    return hasPerson ? { ...section, stepBadgeOffImage: true } : section;
+  });
+}
+
+/**
  * 표시 단계 공용 규칙 — 라이브(DetailSectionRenderer)와 export(buildDetailPageHtml)가 같은 입력으로 부른다.
  * 저장 데이터는 바꾸지 않는다: 흐름 순서 → 굵은 블록 1개 → 같은 촬영본 사진 상한 → 말풍선과 본문이 같은 요약 카드 숨김 → 말풍선 끝 문장부호 → 고민 사진 띠 → 겹친 제목 숨김.
  * 옛 세션(생성 당시 규칙이 없던 것)도 열 때 같은 결과가 된다. 새 세션에는 결과가 그대로다(멱등).
@@ -73,7 +91,7 @@ function echoSummaryIndexes(sections: DetailSection[]): Set<number> {
 export function applyDisplayRules(
   sections: DetailSection[],
   imageUrls: readonly string[],
-  opts: { editing?: boolean; imageHashByUrl?: ImageHashByUrl } & StripImageHints = {},
+  opts: { editing?: boolean; imageHashByUrl?: ImageHashByUrl; category?: string } & StripImageHints = {},
 ): DisplaySections {
   const ordered = orderSectionsForFlow(sections);
   const orderIndexes = ordered.map((s) => sections.indexOf(s));
@@ -83,11 +101,15 @@ export function applyDisplayRules(
   const echoes = echoSummaryIndexes(capped.sections);
   const kept = capped.sections.filter((_, i) => !echoes.has(i));
   return {
-    sections: hideRepeatedHeadings(
-      assignPersonaStrip(kept.map(trimCalloutTail), imageUrls.length, sourceOf, {
-        roles: opts.roles,
-        origins: opts.origins,
-      }),
+    sections: markStepBadgesOffPeople(
+      hideRepeatedHeadings(
+        assignPersonaStrip(kept.map(trimCalloutTail), imageUrls.length, sourceOf, {
+          roles: opts.roles,
+          origins: opts.origins,
+        }),
+      ),
+      opts.category,
+      opts.roles,
     ),
     sourceIndexes: capped.sourceIndexes.filter((_, i) => !echoes.has(i)).map((i) => orderIndexes[i]!),
   };

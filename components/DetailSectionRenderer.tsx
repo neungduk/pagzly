@@ -4289,6 +4289,7 @@ function renderSection(
                       alt={buildSectionImageAlt(productName ?? "", step.title, section.slot)}
                       className="h-full w-full object-cover"
                     />
+                    {section.stepBadgeOffImage ? null : (
                     <span
                       className={`absolute rounded-full font-bold uppercase text-paper shadow-sm ${
                         rowMode
@@ -4299,12 +4300,21 @@ function renderSection(
                     >
                       STEP {String(stepIndex + 1).padStart(2, "0")}
                     </span>
+                    )}
                     <ImageReplaceHit
                       enabled={edit?.enabled}
                       onReplace={() => edit?.onReplaceImage?.(step.imageIndex)}
                     />
                   </div>
                   <div className="min-w-0">
+                    {section.stepBadgeOffImage ? (
+                      <span
+                        className={`block mb-1.5 ${rowMode ? "mt-0 @min-[640px]/pz:mt-3" : "mt-3"} ${TYPO.sectionLabel}`}
+                        style={{ color: readableTextAccent(theme) }}
+                      >
+                        STEP {String(stepIndex + 1).padStart(2, "0")}
+                      </span>
+                    ) : null}
                     <EditableText
                       as="p"
                       enabled={edit?.enabled}
@@ -4314,7 +4324,7 @@ function renderSection(
                         nextSteps[stepIndex] = { ...nextSteps[stepIndex], title };
                         edit?.onChange(index, { ...section, steps: nextSteps });
                       }}
-                      className={`${rowMode ? "mt-0 @min-[640px]/pz:mt-3" : "mt-3"} font-heading text-base font-bold tracking-[-0.02em] text-ink`}
+                      className={`${section.stepBadgeOffImage ? "mt-0" : rowMode ? "mt-0 @min-[640px]/pz:mt-3" : "mt-3"} font-heading text-base font-bold tracking-[-0.02em] text-ink`}
                     />
                     <EditableText
                       as="p"
@@ -5523,6 +5533,7 @@ export default function DetailSectionRenderer({
     imageHashByUrl,
     roles: imageRoles,
     origins: imageOrigins,
+    category,
   });
   const rawSections = display.sections;
   const toSource = (i: number) => display.sourceIndexes[i] ?? i;

@@ -1,7 +1,7 @@
 /**
  * 회귀 — 패션 착용컷 합성 제외(404차). 패션 + 착장/코디 → 원본, 패션 + 디테일·패키지·기타 → 합성,
  * 다른 카테고리는 모든 역할에서 이전 규칙(히어로 또는 합성 상한 안 → 합성)과 같아야 한다.
- * 사진 파이프라인·초안 화면이 이 판단을 쓰는지도 본다. 유료 호출 0.
+ * 사진 파이프라인·초안 화면이 이 판단을 쓰는지도 본다. 착용컷이 든 STEP 묶음은 태그를 사진 밖으로 옮긴다(라이브·export). 유료 호출 0.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -12,6 +12,9 @@ import {
   type StudioCompositeDecision,
 } from "../../lib/fashion-composite-policy";
 import { PRODUCT_IMAGE_ROLES } from "../../lib/image-roles";
+import { applyDisplayRules } from "../../lib/display-sections";
+import { buildDetailPageHtml } from "../../lib/export-detail-html";
+import { getCategoryTheme } from "../../lib/category-theme";
 
 export const name = "패션 착용컷 합성 제외";
 
@@ -55,6 +58,30 @@ export async function run(): Promise<string[]> {
       if (isHeroKeptOriginal(category, [role])) fails.push(`${category} 히어로(${role})가 원본으로 판단됨`);
     }
   }
+
+  // STEP 태그: 패션 착용컷이 있는 단계 묶음은 사진 밖(글 칸)으로 — 라이브·export 공용 표시 규칙
+  const stepSection = {
+    type: "step_card" as const,
+    slot: "styling",
+    heading: "세 가지 조합",
+    steps: [0, 1, 2].map((i) => ({ title: `조합 ${i + 1}`, body: "본문", imageIndex: i })),
+  };
+  const urls = ["u0", "u1", "u2"];
+  const stepOf = (category: string, roles: string[]) =>
+    applyDisplayRules([stepSection], urls, { category, roles: roles as never }).sections.find((s) => s.type === "step_card") as
+      | (typeof stepSection & { stepBadgeOffImage?: boolean })
+      | undefined;
+  if (!stepOf(FASHION_CATEGORY, ["detail", "hero", "other"])?.stepBadgeOffImage) fails.push("패션 착용컷이 든 STEP 묶음에 태그 이동 표시가 없음");
+  if (stepOf(FASHION_CATEGORY, ["detail", "other", "package"])?.stepBadgeOffImage) fails.push("착용컷 없는 패션 STEP 묶음의 태그가 옮겨짐");
+  if (stepOf("화장품/뷰티", ["hero", "lifestyle", "hero"])?.stepBadgeOffImage) fails.push("뷰티 STEP 태그가 옮겨짐 — 이전과 같아야 함");
+  const exportHtml = (category: string, roles: string[]) =>
+    buildDetailPageHtml({ productName: "p", brandName: "b", category, sections: [stepSection], imageUrls: urls, theme: getCategoryTheme(category), imageRoles: roles as never });
+  const fashionHtml = exportHtml(FASHION_CATEGORY, ["hero", "hero", "detail"]);
+  if (!fashionHtml.includes('class="pagzly-step-tag"') || /position:absolute;left:8px;top:8px[^>]*>STEP 01/.test(fashionHtml)) fails.push("export: 패션 착용컷 STEP 태그가 사진 위에 남음");
+  const beautyHtml = exportHtml("화장품/뷰티", ["hero", "hero", "detail"]);
+  if (beautyHtml.includes('class="pagzly-step-tag"')) fails.push("export: 뷰티 STEP 태그 위치가 바뀜");
+  const live = fs.readFileSync(path.join(__dirname, "..", "..", "components", "DetailSectionRenderer.tsx"), "utf8");
+  if (!live.includes("section.stepBadgeOffImage")) fails.push("라이브 렌더러가 stepBadgeOffImage를 읽지 않음");
 
   const root = path.join(__dirname, "..", "..");
   const pipeline = fs.readFileSync(path.join(root, "lib", "photo-pipeline-client.ts"), "utf8");
