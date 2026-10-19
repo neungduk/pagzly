@@ -10,8 +10,9 @@ import * as liveExportRender from "./live-export-render";
 import * as sizeDiagram from "./size-diagram";
 import * as conceptIconPolicy from "./concept-icon-policy";
 import * as fashionCompositePolicy from "./fashion-composite-policy";
+import * as fashionDisplay405 from "./fashion-display-405";
 
-const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy];
+const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405];
 
 async function main() {
   let failed = 0;

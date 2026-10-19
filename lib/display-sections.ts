@@ -4,7 +4,7 @@ import { limitBoldBlocks } from "@/lib/detail-visual-rhythm";
 import { enforceImageSourceCapIndexed } from "@/lib/image-source-cap";
 import { assignPersonaStrip, type StripImageHints } from "@/lib/persona-strip";
 import { imageSourceGroups, type ImageHashByUrl } from "@/lib/gallery-dedupe";
-import { isWornFashionPhoto } from "@/lib/fashion-composite-policy";
+import { FASHION_CATEGORY, isWornFashionPhoto } from "@/lib/fashion-composite-policy";
 
 export type DisplaySections = {
   sections: DetailSection[];
@@ -66,6 +66,28 @@ function echoSummaryIndexes(sections: DetailSection[]): Set<number> {
 }
 
 /**
+ * 405차 — 패션 초반 구성: 착용컷이 든 첫 갤러리를 히어로 바로 뒤(요약 띠·내비 다음 첫 본문)로 앞당긴다.
+ * 패션 상세는 착용 사진으로 첫 화면을 이어 가는데, 생성 순서대로면 히어로 뒤에 고민·브랜드·포인트 글 카드가 먼저 온다.
+ * 갤러리는 앞 섹션을 가리키는 문구가 없는 사진 묶음이라 옮겨도 글 흐름이 깨지지 않는다. 섹션·문구는 그대로, 순서만 바꾼다.
+ * 패션이 아니거나, 히어로가 맨 앞이 아니거나, 착용컷이 든 갤러리가 없으면 그대로 둔다.
+ */
+export function pullWornGalleryForward(
+  sections: DetailSection[],
+  category: string | undefined,
+  roles: StripImageHints["roles"],
+): DetailSection[] {
+  if (category !== FASHION_CATEGORY || sections[0]?.type !== "hero") return sections;
+  const at = sections.findIndex(
+    (s, i) => i > 1 && s.type === "gallery" && s.imageIndexes.some((n) => isWornFashionPhoto(category, roles?.[n])),
+  );
+  if (at < 0) return sections;
+  const out = [...sections];
+  const [gallery] = out.splice(at, 1);
+  out.splice(1, 0, gallery!);
+  return out;
+}
+
+/**
  * 404차 — 패션 착용컷(착장·코디)은 원본 그대로 쓰여 얼굴이 사진 위쪽에 들어 있다. STEP 태그(사진 왼쪽 위)가
  * 얼굴을 덮으므로, 단계 사진 중 착용컷이 하나라도 있으면 그 섹션의 태그를 모두 글 칸으로 옮긴다(섹션 안 모양 통일).
  * 인물 검출이 꺼져 있어 사진 내용 대신 역할로 판단한다. 문구는 그대로("STEP 0N"), 위치만 바뀐다.
@@ -84,7 +106,7 @@ function markStepBadgesOffPeople(
 
 /**
  * 표시 단계 공용 규칙 — 라이브(DetailSectionRenderer)와 export(buildDetailPageHtml)가 같은 입력으로 부른다.
- * 저장 데이터는 바꾸지 않는다: 흐름 순서 → 굵은 블록 1개 → 같은 촬영본 사진 상한 → 말풍선과 본문이 같은 요약 카드 숨김 → 말풍선 끝 문장부호 → 고민 사진 띠 → 겹친 제목 숨김.
+ * 저장 데이터는 바꾸지 않는다: 흐름 순서 → (패션: 착용컷 갤러리 앞당김) → 굵은 블록 1개 → 같은 촬영본 사진 상한 → 말풍선과 본문이 같은 요약 카드 숨김 → 말풍선 끝 문장부호 → 고민 사진 띠 → 겹친 제목 숨김.
  * 옛 세션(생성 당시 규칙이 없던 것)도 열 때 같은 결과가 된다. 새 세션에는 결과가 그대로다(멱등).
  * 편집 중에는 섹션 내용이 원본과 같아야 저장이 안전하므로 순서만 맞춘다.
  */
@@ -93,7 +115,7 @@ export function applyDisplayRules(
   imageUrls: readonly string[],
   opts: { editing?: boolean; imageHashByUrl?: ImageHashByUrl; category?: string } & StripImageHints = {},
 ): DisplaySections {
-  const ordered = orderSectionsForFlow(sections);
+  const ordered = pullWornGalleryForward(orderSectionsForFlow(sections), opts.category, opts.roles);
   const orderIndexes = ordered.map((s) => sections.indexOf(s));
   if (opts.editing) return { sections: ordered, sourceIndexes: orderIndexes };
   const sourceOf = imageSourceGroups(imageUrls, opts.imageHashByUrl);
