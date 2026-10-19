@@ -92,12 +92,26 @@ export function buildSectionAnchorIdMap(sections: DetailSection[]): Map<number, 
   return map;
 }
 
+/** 410차 — 팩 앵커 탭(밑줄 탭형)의 공용 숫자. 라이브 SectionAnchorNav와 export가 같이 쓴다 */
+export const ANCHOR_TABS = { padYPx: 10, padXPx: 14, sizePx: 12, line: "rgba(27,27,24,0.14)" } as const;
+
 export function buildAnchorNavHtml(
   anchors: SectionAnchor[],
   theme: { accent: string; deepAccent: string; baseNeutral: string },
   afterHero = false,
+  variant: "pills" | "tabs" = "pills",
 ): string {
   if (anchors.length === 0) return "";
+  if (variant === "tabs") {
+    const T = ANCHOR_TABS;
+    const tabs = anchors
+      .map(
+        (a, i) =>
+          `<a href="#${a.id}" style="flex:0 0 auto;padding:${T.padYPx}px ${T.padXPx}px;font-size:${T.sizePx}px;font-weight:600;color:${theme.deepAccent};text-decoration:none${i < anchors.length - 1 ? `;border-right:1px solid ${T.line}` : ""}">${a.label}</a>`,
+      )
+      .join("");
+    return `<nav class="pagzly-anchor-nav" aria-label="섹션 이동" style="${afterHero ? "margin-top:16px;" : ""}position:sticky;top:0;z-index:25;display:flex;overflow-x:auto;padding:0 16px;border-bottom:1px solid ${T.line};background:${theme.baseNeutral}f2;backdrop-filter:blur(8px);-webkit-overflow-scrolling:touch">${tabs}</nav>`;
+  }
   const links = anchors
     .map(
       (a) =>

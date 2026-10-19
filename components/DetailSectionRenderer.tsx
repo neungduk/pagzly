@@ -5838,7 +5838,7 @@ export default function DetailSectionRenderer({
     >
       {isClassicPack(pack) ? null : <style>{packStructureCss(packLayout, "[data-pz-pack]", "live")}</style>}
       {sectionAnchors.length > 0 && !anchorNavAfterHero ? (
-        <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} />
+        <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} variant={packLayout.anchor} />
       ) : null}
       {sections.map((section, index) => {
         if (
@@ -5973,7 +5973,7 @@ export default function DetailSectionRenderer({
               {quickFacts.length > 0 ? (
                 <SpecBentoGrid facts={quickFacts} theme={getSectionTheme(extendedTheme, "checklist", 0)} />
               ) : null}
-              {sectionAnchors.length > 0 ? <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} afterHero /> : null}
+              {sectionAnchors.length > 0 ? <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} afterHero variant={packLayout.anchor} /> : null}
               {content}
               {trustChips.length > 0 && stripAfterContent ? trustStripEl : null}
             </div>

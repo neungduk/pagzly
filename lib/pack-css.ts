@@ -12,6 +12,9 @@ export const PACK_RULE = {
   gapPx: 20,
   /** 목록 줄 사이 가는 선 */
   lineColor: "rgba(27,27,24,0.14)",
+  /** 표 라벨 열 */
+  tableLabelWeight: 600,
+  tableLabelTracking: "0.02em",
 } as const;
 
 type Flavor = "live" | "export";
@@ -25,11 +28,16 @@ export function packStructureCss(layout: PackLayout, scope: string, flavor: Flav
     const r = `${layout.radius}px`;
     if (flavor === "live") {
       out.push(
-        `${S} [class*="rounded-"]:not(.rounded-full):not(img){border-radius:${r}!important}`,
-        `${S} .rounded-full[class*="px-"],${S} [data-persona-strip]>li{border-radius:${r}!important}`,
+        // 410차 — 사진(img)도 포함. 원형(rounded-full) 중 글자가 든 알약·배지·페르소나 줄만 0, 아이콘 점·아바타 원은 그대로
+        `${S} [class*="rounded-"]:not(.rounded-full){border-radius:${r}!important}`,
+        `${S} .rounded-full[class*="px-"],${S} .inline-block.rounded-full,${S} [data-persona-strip]>li{border-radius:${r}!important}`,
       );
     } else {
-      out.push(`${S} [style*="border-radius"]:not([style*="width:"]):not([style*="50%"]){border-radius:${r}!important}`);
+      // 410차 — 고정 크기 아이콘 점(9999/999px + width)은 남기고, 나머지 border-radius(8·12·16·20px 카드·상자·알약·사진)는 0
+      out.push(
+        `${S} [style*="border-radius"]:not([style*="border-radius:9999px"]):not([style*="border-radius:999px"]):not([style*="50%"]){border-radius:${r}!important}`,
+        `${S} [style*="border-radius:999px"][style*="padding"],${S} [style*="border-radius:9999px"][style*="padding"]{border-radius:${r}!important}`,
+      );
     }
   }
   // 소제목 — 가는 선(제목 위). 히어로 캡션 제목은 제외
@@ -43,6 +51,11 @@ export function packStructureCss(layout: PackLayout, scope: string, flavor: Flav
       if (left) out.push(`${H}{text-align:left!important}`);
       out.push(`${S} [data-hero-caption] .pagzly-display-headline::before{display:none!important}`);
     }
+  }
+  // 표 — 첫 열(라벨) 굵기·자간을 팩 토큰으로(행 사이 가는 선은 표가 원래 쓴다)
+  if (layout.radius !== null) {
+    const first = flavor === "live" ? "td" : "th";
+    out.push(`${S} table tr>${first}:first-child{font-weight:${PACK_RULE.tableLabelWeight}!important;letter-spacing:${PACK_RULE.tableLabelTracking}!important}`);
   }
   // 체크리스트 — 카드 테두리·그림자·바탕 없이 줄 사이 가는 선
   if (layout.checklist === "plain-list") {

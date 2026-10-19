@@ -2118,7 +2118,7 @@ export function buildDetailPageHtml(opts: {
   const quickFacts = extractQuickFacts(visibleSections, trustChips);
   const sectionAnchors = buildSectionAnchors(visibleSections);
   const anchorIdMap = buildSectionAnchorIdMap(visibleSections);
-  const anchorNavHtml = buildAnchorNavHtml(sectionAnchors, opts.theme, visibleSections.some((s) => s.type === "hero"));
+  const anchorNavHtml = buildAnchorNavHtml(sectionAnchors, opts.theme, visibleSections.some((s) => s.type === "hero"), getPackLayout(pack).anchor);
   // 396차 — 라이브와 같게: 히어로가 있으면 앵커 내비를 히어로·요약 띠 바로 아래(본문 앞)에 둔다.
   const anchorNavAfterHero = visibleSections.some((s) => s.type === "hero");
   let anchorNavPlaced = false;

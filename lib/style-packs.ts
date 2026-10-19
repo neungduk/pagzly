@@ -40,6 +40,8 @@ export type PackLayout = {
   summary: SummaryVariant;
   /** 410차 — 요약 띠 위치: 히어로 바로 뒤(classic) / 첫 갤러리 뒤(사진이 먼저 오게). 갤러리가 히어로 바로 뒤가 아니면 앞에 둔다 */
   summaryPlacement: "after-hero" | "after-gallery";
+  /** 410차 — 앵커 내비: 알약(classic) / 밑줄 탭(글자 + 가는 선 구분) */
+  anchor: "pills" | "tabs";
   checklist: ChecklistVariant;
   heading: HeadingVariant;
   /** 알약·카드·칩·갤러리·표 모서리 px. null = 지금 값 그대로(classic) */
@@ -56,6 +58,7 @@ export const CLASSIC_LAYOUT: PackLayout = {
   gallery: "duo-grid",
   summary: "icon-grid",
   summaryPlacement: "after-hero",
+  anchor: "pills",
   checklist: "cards",
   heading: "center-stack",
   radius: null,
@@ -112,6 +115,7 @@ const MONO_MINIMAL: StylePack = {
     gallery: "lookbook-stack",
     summary: "inline-strip",
     summaryPlacement: "after-hero",
+    anchor: "tabs",
     checklist: "plain-list",
     heading: "left-eyebrow",
     radius: 0,
@@ -141,6 +145,7 @@ const EDITORIAL: StylePack = {
     gallery: "lead-plus-two",
     summary: "spec-list",
     summaryPlacement: "after-gallery",
+    anchor: "tabs",
     checklist: "plain-list",
     heading: "center-rule",
     radius: 0,
