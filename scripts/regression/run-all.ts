@@ -21,8 +21,9 @@ import * as stylePacks from "./style-packs";
 import * as packLayout from "./pack-layout";
 import * as heroVariants from "./hero-variants";
 import * as flowPhotoFirst from "./flow-photo-first";
+import * as galleryVariants from "./gallery-variants";
 
-const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip, fashionSpecFallback, specRowCap, rhythmTokens, stylePacks, packLayout, heroVariants, flowPhotoFirst];
+const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip, fashionSpecFallback, specRowCap, rhythmTokens, stylePacks, packLayout, heroVariants, flowPhotoFirst, galleryVariants];
 
 async function main() {
   let failed = 0;

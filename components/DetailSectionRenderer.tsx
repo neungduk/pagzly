@@ -142,12 +142,14 @@ import PowerConsumptionDiagram from "@/components/PowerConsumptionDiagram";
 import { headlineDisplayStyle, joinNumericSuffix, longestTokenEm, packHeadlineLiveVars } from "@/lib/detail-typography";
 import { rhythmLiveVars } from "@/lib/rhythm-tokens";
 import { HERO_CAPTION, heroCaptionAlign, heroCaptionBackground } from "@/lib/hero-variants";
+import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import {
   applyPackTone,
   CLASSIC_LAYOUT,
   getPackLayout,
   isClassicPack,
   packTitleScaleOverrides,
+  resolveGalleryVariant,
   resolveHeroVariant,
   resolveStylePack,
   type PackLayout,
@@ -4495,6 +4497,9 @@ function renderSection(
       const pairCompare =
         category === "화장품/뷰티" && galleryIndexes.length >= 2;
       const oddLead = galleryIndexes.length >= 3 && galleryIndexes.length % 2 === 1;
+      // 409차 — 팩 갤러리 변형(뷰티 비교형 제외, 사진이 모자라면 classic)
+      const galleryVariant = pairCompare ? "duo-grid" : resolveGalleryVariant(layout, galleryIndexes.length);
+      const variantGrid = galleryVariant !== "duo-grid";
       return (
         <section
           key={`gallery-${index}`}
@@ -4510,8 +4515,11 @@ function renderSection(
             />
           </div>
           <div
+            data-gallery-variant={variantGrid ? galleryVariant : undefined}
             className={
-              pairCompare
+              variantGrid
+                ? "grid"
+                : pairCompare
                 ? "grid grid-cols-2 gap-2"
                 : galleryIndexes.length <= 2
                   ? `grid grid-cols-1 ${getCategoryRhythm(category).galleryGapClass}`
@@ -4519,19 +4527,35 @@ function renderSection(
                     ? `grid grid-cols-2 ${getCategoryRhythm(category).galleryGapClass} @min-[640px]/pz:grid-cols-3`
                     : `grid grid-cols-2 ${getCategoryRhythm(category).galleryGapClass}`
             }
-            style={{ backgroundColor: hexToRgba(theme.accent, 0.18) }}
+            style={
+              variantGrid
+                ? {
+                    gridTemplateColumns: `repeat(${galleryColumns(galleryVariant)}, 1fr)`,
+                    gap: GALLERY_VARIANT.gapPx,
+                    backgroundColor: hexToRgba(theme.accent, 0.18),
+                  }
+                : { backgroundColor: hexToRgba(theme.accent, 0.18) }
+            }
           >
             {galleryIndexes.map((imageIndex, pairIndex) => {
               const src = resolveImage(imageUrls, imageIndex);
+              const cell = galleryCell(galleryVariant, pairIndex);
               return (
                 <div
                   key={`${imageIndex}-${src}-${pairIndex}`}
-                  className={oddLead && pairIndex === 0 ? "relative col-span-2" : "relative"}
+                  className={variantGrid ? "relative" : oddLead && pairIndex === 0 ? "relative col-span-2" : "relative"}
+                  style={variantGrid && cell.span ? { gridColumn: "1 / -1" } : undefined}
                 >
                   <SectionImage
                     src={src}
                     alt={buildSectionImageAlt(productName ?? "", `${section.heading} ${imageIndex + 1}`, section.slot)}
-                    className={`${oddLead && pairIndex === 0 ? "aspect-[4/3]" : ratioClass} w-full object-cover`}
+                    className={
+                      variantGrid
+                        ? cell.natural
+                          ? "block h-auto w-full"
+                          : "block aspect-[3/4] w-full object-cover object-top"
+                        : `${oddLead && pairIndex === 0 ? "aspect-[4/3]" : ratioClass} w-full object-cover`
+                    }
                   />
                   <ImageReplaceHit
                     enabled={edit?.enabled}

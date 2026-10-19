@@ -162,8 +162,9 @@ import {
   type TitleScaleKey,
 } from "@/lib/design-tokens";
 import { rhythmVarsCss } from "@/lib/rhythm-tokens";
-import { applyPackTone, CLASSIC_LAYOUT, getPackLayout, packTitleScaleOverrides, resolveHeroVariant, resolveStylePack, type PackLayout } from "@/lib/style-packs";
+import { applyPackTone, CLASSIC_LAYOUT, getPackLayout, packTitleScaleOverrides, resolveGalleryVariant, resolveHeroVariant, resolveStylePack, type PackLayout } from "@/lib/style-packs";
 import { HERO_CAPTION, heroCaptionAlign, heroCaptionBackground } from "@/lib/hero-variants";
+import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { applySectionDisplayBudget } from "@/lib/section-display-budget";
 import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
 import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe";
@@ -1501,14 +1502,23 @@ function sectionHtml(
       const oddLead = galleryIndexes.length >= 3 && galleryIndexes.length % 2 === 1;
       const wideCols = !pairCompare && galleryIndexes.length % 6 === 0;
       const galleryAspect = imageRatioCss(resolveSlotImageRatio(section));
+      // 409차 — 팩 갤러리 변형(라이브와 같은 토큰). 뷰티 비교형 제외, 사진이 모자라면 classic
+      const galleryVariant = pairCompare ? "duo-grid" : resolveGalleryVariant(layout, galleryIndexes.length);
+      const variantGrid = galleryVariant !== "duo-grid";
       return `<section${sectionIdAttr} class="pagzly-gallery" style="${galleryTitlePadVars(category)}padding:var(--pz-gt) 0 0;${sectionInset}${bgCss}">
         ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)};margin:0 24px 32px${flatTitleColorCss(theme)}`)}
-        <div${wideCols ? ` class="pagzly-gallery-grid3"` : ""} style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:8px;background:${accent}2e">
+        <div${variantGrid ? ` data-gallery-variant="${galleryVariant}"` : wideCols ? ` class="pagzly-gallery-grid3"` : ""} style="display:grid;grid-template-columns:repeat(${variantGrid ? galleryColumns(galleryVariant) : cols},1fr);gap:${variantGrid ? GALLERY_VARIANT.gapPx : 8}px;background:${accent}2e">
           ${galleryIndexes
             .map((idx, pos) => {
               const src = imageUrls[idx] ?? "";
               const alt = buildSectionImageAlt(productName, `${section.heading} ${idx + 1}`, section.slot);
               const lead = oddLead && pos === 0;
+              if (variantGrid) {
+                const cell = galleryCell(galleryVariant, pos);
+                return src
+                  ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;${cell.natural ? "height:auto" : `aspect-ratio:${GALLERY_VARIANT.restRatio};object-fit:cover;object-position:${GALLERY_VARIANT.restPosition}`}${cell.span ? ";grid-column:1/-1" : ""}"/>`
+                  : "";
+              }
               return src
                 ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${lead ? "4/3" : galleryAspect};object-fit:cover;display:block${lead ? ";grid-column:1/-1" : ""}"/>`
                 : "";
