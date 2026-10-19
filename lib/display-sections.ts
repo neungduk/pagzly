@@ -5,6 +5,7 @@ import { enforceImageSourceCapIndexed } from "@/lib/image-source-cap";
 import { assignPersonaStrip, type StripImageHints } from "@/lib/persona-strip";
 import { imageSourceGroups, type ImageHashByUrl } from "@/lib/gallery-dedupe";
 import { FASHION_CATEGORY, isWornFashionPhoto } from "@/lib/fashion-composite-policy";
+import type { FlowVariant } from "@/lib/style-packs";
 
 export type DisplaySections = {
   sections: DetailSection[];
@@ -159,9 +160,9 @@ export function photoFirstFlow(
   sections: DetailSection[],
   category: string | undefined,
   roles: StripImageHints["roles"],
-  flow: "default" | "photo-first" | undefined,
+  flow: FlowVariant | undefined,
 ): DetailSection[] {
-  if (flow !== "photo-first" || category !== FASHION_CATEGORY || sections[0]?.type !== "hero") return sections;
+  if ((flow !== "photo-first" && flow !== "story-after-photo") || category !== FASHION_CATEGORY || sections[0]?.type !== "hero") return sections;
   const g = sections.findIndex((s, i) => i > 0 && s.type === "gallery");
   if (g < 0) return sections;
   const picks: number[] = [];
@@ -184,15 +185,64 @@ export function photoFirstFlow(
   return rest;
 }
 
+/** 410차 — story-after-photo의 "글 위주 묶음"에 들어가는 섹션: 고민 → 해결(체크리스트·포인트 요약 카드)과 브랜드 소개 */
+const STORY_UNIT_TYPES = new Set(["target_persona", "brand_story", "checklist"]);
+const isStoryUnitMember = (s: DetailSection): boolean =>
+  STORY_UNIT_TYPES.has(s.type) ||
+  (s.type === "image_text" && (s.layout === "compact" || s.layout === "callout" || s.slot === "feature_callout" || s.slot === "quick_points"));
+/** 사진이 이끄는 블록: 사진이 든 단독 image_text(전폭·분할), STEP 카드 */
+const isPhotoLed = (s: DetailSection): boolean =>
+  (s.type === "image_text" && (s.layout === "full" || s.layout === undefined) && typeof s.imageIndex === "number") ||
+  (s.type === "step_card" && s.steps.some((st) => typeof st.imageIndex === "number"));
+const STORY_PHOTO_LIMIT = 3;
+
+/**
+ * 410차 — story-after-photo(모노 팩): photo-first(착용 사진 블록을 갤러리 뒤로)에 더해, 히어로·갤러리 뒤에 오는
+ * "고민 → 해결 글 묶음"(고민·브랜드·체크리스트·포인트 요약 카드)을 통째로 사진 블록 뒤로 옮긴다.
+ *  - 묶음은 갤러리 바로 뒤에서 이어지는 연속 구간이며 고민(target_persona)과 체크리스트가 모두 있어야 한다(없으면 그대로).
+ *  - 묶음 안의 순서는 그대로, 묶음 뒤에 오던 사진 블록(최대 3개)만 묶음 앞으로 당긴다. 섹션 추가·삭제·문구 변경 없음.
+ *  - 사이즈·소재·세탁·주의·FAQ·배송·구매(확인 영역)는 건드리지 않는다. 하이라이트 요약(highlight_box)은 묶음 뒤에 그대로 있다.
+ */
+export function storyAfterPhotoFlow(
+  sections: DetailSection[],
+  category: string | undefined,
+  flow: FlowVariant | undefined,
+): DetailSection[] {
+  if (flow !== "story-after-photo" || category !== FASHION_CATEGORY || sections[0]?.type !== "hero") return sections;
+  // 첫 갤러리 뒤(+ photo-first가 당긴 사진 블록 뒤)에서 글 묶음이 시작되는 곳
+  let start = 1;
+  while (start < sections.length && (sections[start]!.type === "gallery" || isPhotoLed(sections[start]!))) start += 1;
+  if (!sections[start] || !isStoryUnitMember(sections[start]!)) return sections;
+  let end = start;
+  while (end < sections.length && isStoryUnitMember(sections[end]!)) end += 1;
+  const unit = sections.slice(start, end);
+  if (!unit.some((s) => s.type === "target_persona") || !unit.some((s) => s.type === "checklist")) return sections;
+  // 묶음 뒤, 확인 영역 앞에서 사진 블록을 찾는다
+  const picks: number[] = [];
+  for (let i = end; i < sections.length && picks.length < STORY_PHOTO_LIMIT; i += 1) {
+    const s = sections[i]!;
+    if (isPhotoLed(s)) picks.push(i);
+  }
+  if (picks.length === 0) return sections;
+  const moved = picks.map((i) => sections[i]!);
+  const rest = sections.filter((_, i) => !picks.includes(i));
+  rest.splice(start, 0, ...moved);
+  return rest;
+}
+
 export function applyDisplayRules(
   sections: DetailSection[],
   imageUrls: readonly string[],
-  opts: { editing?: boolean; imageHashByUrl?: ImageHashByUrl; category?: string; flow?: "default" | "photo-first" } & StripImageHints = {},
+  opts: { editing?: boolean; imageHashByUrl?: ImageHashByUrl; category?: string; flow?: FlowVariant } & StripImageHints = {},
 ): DisplaySections {
-  const ordered = photoFirstFlow(
-    pullWornGalleryForward(orderSectionsForFlow(sections), opts.category, opts.roles),
+  const ordered = storyAfterPhotoFlow(
+    photoFirstFlow(
+      pullWornGalleryForward(orderSectionsForFlow(sections), opts.category, opts.roles),
+      opts.category,
+      opts.roles,
+      opts.flow,
+    ),
     opts.category,
-    opts.roles,
     opts.flow,
   );
   const orderIndexes = ordered.map((s) => sections.indexOf(s));

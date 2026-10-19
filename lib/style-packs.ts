@@ -28,7 +28,7 @@ type ToneSpec = {
 
 /** 409차 — 구조 변형(열거값/숫자). classic 값 = 지금 화면과 같은 동작 */
 export type HeroVariant = "bleed-bottom" | "caption-below" | "caption-above";
-export type FlowVariant = "default" | "photo-first";
+export type FlowVariant = "default" | "photo-first" | "story-after-photo";
 export type GalleryVariant = "duo-grid" | "lookbook-stack" | "lead-plus-two";
 export type SummaryVariant = "icon-grid" | "spec-list" | "inline-strip";
 export type ChecklistVariant = "cards" | "plain-list";
@@ -105,7 +105,7 @@ const MONO_MINIMAL: StylePack = {
   heroGradientStrength: 0.6,
   layout: {
     hero: "caption-above",
-    flow: "photo-first",
+    flow: "story-after-photo",
     gallery: "lookbook-stack",
     summary: "inline-strip",
     checklist: "plain-list",

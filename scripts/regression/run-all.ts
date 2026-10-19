@@ -24,8 +24,9 @@ import * as flowPhotoFirst from "./flow-photo-first";
 import * as galleryVariants from "./gallery-variants";
 import * as packStructure from "./pack-structure";
 import * as packContrast from "./pack-contrast";
+import * as flowStory from "./flow-story-after-photo";
 
-const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip, fashionSpecFallback, specRowCap, rhythmTokens, stylePacks, packLayout, heroVariants, flowPhotoFirst, galleryVariants, packStructure, packContrast];
+const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip, fashionSpecFallback, specRowCap, rhythmTokens, stylePacks, packLayout, heroVariants, flowPhotoFirst, galleryVariants, packStructure, packContrast, flowStory];
 
 async function main() {
   let failed = 0;
