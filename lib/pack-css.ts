@@ -15,7 +15,7 @@ export const PACK_RULE = {
   lineColor: "rgba(27,27,24,0.14)",
   labelSizePx: 11,
   labelTracking: "0.2em",
-  labelColor: "rgba(27,27,24,0.55)",
+  labelColor: "rgba(27,27,24,0.68)",
   labelGapPx: 8,
   afterGapPx: 14,
   /** 표 라벨 열 */

@@ -31,6 +31,8 @@ export async function run(): Promise<string[]> {
         ["히어로 라벨(readableTextDeep/흰 바탕)", contrastRatioToken(readableTextDeep(t), "#FFFFFF"), 4.5],
         ["캡션 제목(ink/띠)", contrastRatioToken(HERO_CAPTION.ink, t.baseNeutral), 4.5],
         ["캡션 부제(ink 70%/띠)", contrastRatioToken(sub, t.baseNeutral), 4.5],
+        ["앵커 탭 글자(deepAccent/내비 바탕)", contrastRatioToken(t.deepAccent, t.baseNeutral), 4.5],
+        ...(id === "mono-minimal" ? ([["소제목 순번 라벨(ink 68%/종이)", contrastRatioToken(blend([27, 27, 24, 0.68], FLAT_PAPER), FLAT_PAPER), 4.5]] as Array<[string, number, number]>) : []),
         ["강조 글자(readableTextAccent/종이, 큰 글자)", contrastRatioToken(readableTextAccent(t, 3), FLAT_PAPER), 3],
       ];
       for (const [label, ratio, min] of checks) {
