@@ -18,8 +18,9 @@ import * as fashionSpecFallback from "./fashion-spec-fallback";
 import * as specRowCap from "./spec-row-cap";
 import * as rhythmTokens from "./rhythm-tokens";
 import * as stylePacks from "./style-packs";
+import * as packLayout from "./pack-layout";
 
-const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip, fashionSpecFallback, specRowCap, rhythmTokens, stylePacks];
+const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip, fashionSpecFallback, specRowCap, rhythmTokens, stylePacks, packLayout];
 
 async function main() {
   let failed = 0;

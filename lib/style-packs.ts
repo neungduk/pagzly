@@ -25,7 +25,43 @@ type ToneSpec = {
   baseSat?: number;
 };
 
+/** 409차 — 구조 변형(열거값/숫자). classic 값 = 지금 화면과 같은 동작 */
+export type HeroVariant = "bleed-bottom" | "caption-below" | "caption-above";
+export type FlowVariant = "default" | "photo-first";
+export type GalleryVariant = "duo-grid" | "lookbook-stack" | "lead-plus-two";
+export type SummaryVariant = "icon-grid" | "spec-list" | "inline-strip";
+export type ChecklistVariant = "cards" | "plain-list";
+export type HeadingVariant = "center-stack" | "left-eyebrow" | "center-rule";
+export type PackLayout = {
+  hero: HeroVariant;
+  flow: FlowVariant;
+  gallery: GalleryVariant;
+  summary: SummaryVariant;
+  checklist: ChecklistVariant;
+  heading: HeadingVariant;
+  /** 알약·카드·칩·갤러리·표 모서리 px. null = 지금 값 그대로(classic) */
+  radius: number | null;
+  rule: "none" | "hairline";
+  density: "full" | "compact";
+  /** 본문 글자 크기(px)·줄 높이. null = 지금 값 그대로 */
+  body: { sizePx: number; line: number } | null;
+};
+
+export const CLASSIC_LAYOUT: PackLayout = {
+  hero: "bleed-bottom",
+  flow: "default",
+  gallery: "duo-grid",
+  summary: "icon-grid",
+  checklist: "cards",
+  heading: "center-stack",
+  radius: null,
+  rule: "none",
+  density: "full",
+  body: null,
+};
+
 export type StylePack = {
+  layout: PackLayout;
   id: StylePackId;
   label: string;
   blurb: string;
@@ -46,6 +82,7 @@ export const CLASSIC_PACK: StylePack = {
   titleScale: {},
   padYScale: 1,
   heroGradientStrength: 1,
+  layout: CLASSIC_LAYOUT,
   tone: null,
 };
 
@@ -61,6 +98,18 @@ const MONO_MINIMAL: StylePack = {
   },
   padYScale: 1.25,
   heroGradientStrength: 0.6,
+  layout: {
+    hero: "caption-above",
+    flow: "photo-first",
+    gallery: "lookbook-stack",
+    summary: "inline-strip",
+    checklist: "plain-list",
+    heading: "left-eyebrow",
+    radius: 0,
+    rule: "hairline",
+    density: "compact",
+    body: { sizePx: 15, line: 1.7 },
+  },
   tone: { satMul: 0.3, accentL: 0.24, deepL: 0.11, softL: 0.94, softSatMul: 0.25, baseL: 0.955, baseSatMul: 0.3 },
 };
 
@@ -76,6 +125,18 @@ const EDITORIAL: StylePack = {
   },
   padYScale: 1.3,
   heroGradientStrength: 0.85,
+  layout: {
+    hero: "caption-below",
+    flow: "default",
+    gallery: "lead-plus-two",
+    summary: "spec-list",
+    checklist: "plain-list",
+    heading: "center-rule",
+    radius: 0,
+    rule: "hairline",
+    density: "full",
+    body: { sizePx: 16, line: 1.8 },
+  },
   tone: { satMul: 0.55, accentL: 0.3, deepL: 0.15, softL: 0.92, softSatMul: 0.45, baseL: 0.945, baseSatMul: 0.35, baseHue: 40, baseSat: 0.45 },
 };
 
@@ -93,6 +154,29 @@ export function stylePackOptions(category: string): StylePack[] {
 export function resolveStylePack(category: string, id?: string | null): StylePack {
   if (category !== PACK_CATEGORY || !id) return CLASSIC_PACK;
   return FASHION_PACKS.find((p) => p.id === id) ?? CLASSIC_PACK;
+}
+
+/** 라이브·export가 같은 곳에서 구조 변형 값을 받는다. 팩 없음 = classic */
+export function getPackLayout(pack: StylePack | undefined | null): PackLayout {
+  return pack?.layout ?? CLASSIC_LAYOUT;
+}
+
+/**
+ * 폴백 규칙 — 변형이 요구하는 입력이 없으면 classic 방식으로 되돌린다.
+ *  히어로: 사진이 없으면 bleed-bottom / 갤러리: 사진 2장 미만이면 duo-grid, lead-plus-two는 3장 미만이면 duo-grid
+ *  소제목: 라벨(STEP/POINT/번호)이 없으면 left-eyebrow도 center-stack
+ */
+export function resolveHeroVariant(layout: PackLayout, hasPhoto: boolean): HeroVariant {
+  return hasPhoto ? layout.hero : "bleed-bottom";
+}
+export function resolveGalleryVariant(layout: PackLayout, photoCount: number): GalleryVariant {
+  if (photoCount < 2) return "duo-grid";
+  if (layout.gallery === "lead-plus-two" && photoCount < 3) return "duo-grid";
+  return layout.gallery;
+}
+export function resolveHeadingVariant(layout: PackLayout, hasLabel: boolean): HeadingVariant {
+  if (layout.heading === "left-eyebrow" && !hasLabel) return "center-stack";
+  return layout.heading;
 }
 
 export function isClassicPack(pack: StylePack | undefined | null): boolean {
