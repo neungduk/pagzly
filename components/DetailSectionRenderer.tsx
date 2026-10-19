@@ -143,11 +143,14 @@ import { headlineDisplayStyle, joinNumericSuffix, longestTokenEm, packHeadlineLi
 import { rhythmLiveVars } from "@/lib/rhythm-tokens";
 import { HERO_CAPTION, heroCaptionAlign, heroCaptionBackground } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
+import { packStructureCss } from "@/lib/pack-css";
+import { SUMMARY_VARIANT } from "@/lib/summary-variants";
 import {
   applyPackTone,
   CLASSIC_LAYOUT,
   getPackLayout,
   isClassicPack,
+  packPadScale,
   packTitleScaleOverrides,
   resolveGalleryVariant,
   resolveHeroVariant,
@@ -295,7 +298,7 @@ function packRootStyle(category: string, pack: StylePack): Record<string, string
   if (isClassicPack(pack)) return titleScaleVars();
   return {
     ...titleScaleVars(packTitleScaleOverrides(pack)),
-    ...rhythmLiveVars(category, pack.padYScale),
+    ...rhythmLiveVars(category, packPadScale(pack)),
     ...packHeadlineLiveVars(pack),
   };
 }
@@ -1348,12 +1351,79 @@ function TrustStrip({
   chips,
   theme,
   certTokens = [],
+  variant = "icon-grid",
 }: {
   chips: string[];
   theme: CategoryTheme;
   certTokens?: string[];
+  variant?: "icon-grid" | "spec-list" | "inline-strip";
 }) {
   if (chips.length === 0) return null;
+  // 409차 — 팩 요약 변형: 아이콘 없이 한 줄(inline-strip) 또는 줄 목록(spec-list). 칩 문구는 그대로
+  if (variant !== "icon-grid") {
+    const V = SUMMARY_VARIANT;
+    const labelEl = (
+      <p
+        className="text-center"
+        style={{ margin: `0 0 ${V.labelGapPx}px`, fontSize: V.labelSizePx, letterSpacing: V.labelTracking, fontWeight: 600, color: readableTextDeep(theme) }}
+      >
+        한눈에 보기
+      </p>
+    );
+    return (
+      <div
+        data-summary={variant}
+        className="px-6 py-6 @min-[640px]/pz:px-10"
+        style={{ borderTop: `1px solid ${V.borderColor}`, borderBottom: `1px solid ${V.borderColor}`, backgroundColor: FLAT_PAPER }}
+      >
+        {labelEl}
+        {variant === "inline-strip" ? (
+          <div
+            className="mx-auto flex flex-wrap items-center justify-center"
+            style={{ columnGap: V.stripColGapPx, rowGap: V.stripRowGapPx, maxWidth: V.listMaxWidthPx }}
+          >
+            {chips.map((chip, i) => {
+              const caption = splitChipCaption(chip);
+              return (
+                <Fragment key={chip}>
+                  {i > 0 ? <span aria-hidden="true" style={{ width: 1, height: V.dividerHeightPx, backgroundColor: V.borderColor }} /> : null}
+                  <span style={{ fontSize: V.stripSizePx, fontWeight: 600, wordBreak: "keep-all", color: theme.deepAccent }}>
+                    {caption.main}
+                    {caption.sub ? <span style={{ marginLeft: 4, fontWeight: 500, opacity: 0.6 }}>{caption.sub}</span> : null}
+                  </span>
+                </Fragment>
+              );
+            })}
+          </div>
+        ) : (
+          <ul className="mx-auto" style={{ listStyle: "none", padding: 0, margin: "0 auto", maxWidth: V.listMaxWidthPx }}>
+            {chips.map((chip, i) => {
+              const caption = splitChipCaption(chip);
+              return (
+                <li
+                  key={chip}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 16,
+                    padding: `${V.listRowPadPx}px 0`,
+                    borderTop: i > 0 ? `1px solid ${V.borderColor}` : undefined,
+                    fontSize: V.listSizePx,
+                    fontWeight: 600,
+                    wordBreak: "keep-all",
+                    color: theme.deepAccent,
+                  }}
+                >
+                  <span>{caption.main}</span>
+                  {caption.sub ? <span style={{ fontWeight: 500, opacity: 0.6 }}>{caption.sub}</span> : null}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    );
+  }
   return (
     <div
       className="border-b border-t px-6 py-6 @min-[640px]/pz:px-10"
@@ -5753,6 +5823,7 @@ export default function DetailSectionRenderer({
       data-pz-pack={isClassicPack(pack) ? undefined : pack.id}
       style={packRootStyle(category, pack) as CSSProperties}
     >
+      {isClassicPack(pack) ? null : <style>{packStructureCss(packLayout, "[data-pz-pack]", "live")}</style>}
       {sectionAnchors.length > 0 && !anchorNavAfterHero ? (
         <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} />
       ) : null}
@@ -5877,6 +5948,7 @@ export default function DetailSectionRenderer({
                   chips={trustChips}
                   theme={getSectionTheme(extendedTheme, "checklist", 0)}
                   certTokens={certTokens}
+                  variant={packLayout.summary}
                 />
               ) : null}
               {/* 165차 — "Bento 그리드 2.0" 스펙 하이라이트. 히어로 바로 아래 위치에

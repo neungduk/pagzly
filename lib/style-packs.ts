@@ -179,6 +179,11 @@ export function resolveHeadingVariant(layout: PackLayout, hasLabel: boolean): He
   return layout.heading;
 }
 
+/** 409차 — 세로 여백 배율. density compact는 글만 있는 반복 카드·구분 여백이 길어 보이지 않게 0.85배로 조인다(섹션을 감추지는 않는다) */
+export function packPadScale(pack: StylePack | undefined | null): number {
+  return (pack?.padYScale ?? 1) * (pack?.layout.density === "compact" ? 0.85 : 1);
+}
+
 export function isClassicPack(pack: StylePack | undefined | null): boolean {
   return !pack || pack.id === "classic";
 }
@@ -246,5 +251,10 @@ export function applyPackTone<T extends Omit<CategoryTheme, "icon"> & { icon?: s
 
 /** 팩의 제목 크기 덮어쓰기 — 라이브 루트 style(-b/-w)과 export :root(--pz-t-*) 양쪽이 같은 값을 쓴다 */
 export function packTitleScaleOverrides(pack: StylePack | undefined | null): TitleScaleOverrides {
-  return pack?.titleScale ?? {};
+  // 409차 — 팩의 본문 글자 크기(layout.body)는 제목 크기와 같은 변수 경로(--pz-t-body-*)로 덮는다. 줄 높이는 지금 값 그대로
+  const base = pack?.titleScale ?? {};
+  const body = pack?.layout.body;
+  if (!body) return base;
+  const rem = `${body.sizePx / 16}rem`;
+  return { ...base, body: { base: rem, wide: rem } };
 }

@@ -162,9 +162,11 @@ import {
   type TitleScaleKey,
 } from "@/lib/design-tokens";
 import { rhythmVarsCss } from "@/lib/rhythm-tokens";
-import { applyPackTone, CLASSIC_LAYOUT, getPackLayout, packTitleScaleOverrides, resolveGalleryVariant, resolveHeroVariant, resolveStylePack, type PackLayout } from "@/lib/style-packs";
+import { applyPackTone, isClassicPack, CLASSIC_LAYOUT, getPackLayout, packPadScale, packTitleScaleOverrides, resolveGalleryVariant, resolveHeroVariant, resolveStylePack, type PackLayout } from "@/lib/style-packs";
 import { HERO_CAPTION, heroCaptionAlign, heroCaptionBackground } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
+import { packStructureCss } from "@/lib/pack-css";
+import { SUMMARY_VARIANT } from "@/lib/summary-variants";
 import { applySectionDisplayBudget } from "@/lib/section-display-budget";
 import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
 import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe";
@@ -269,8 +271,30 @@ function trustStripHtml(
   theme: CategoryTheme,
   certTokens: string[] = [],
   isLastInClip = false,
+  variant: "icon-grid" | "spec-list" | "inline-strip" = "icon-grid",
 ): string {
   if (chips.length === 0) return "";
+  // 409차 — 팩 요약 변형(라이브 TrustStrip과 같은 DOM·토큰). 칩 문구는 그대로, 아이콘만 뺀다
+  if (variant !== "icon-grid") {
+    const V = SUMMARY_VARIANT;
+    const color = theme.deepAccent;
+    const label = `<p style="margin:0 0 ${V.labelGapPx}px;font-size:${V.labelSizePx}px;letter-spacing:${V.labelTracking};font-weight:600;color:${readableTextDeep(theme)};text-align:center">한눈에 보기</p>`;
+    const body =
+      variant === "inline-strip"
+        ? `<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:center;column-gap:${V.stripColGapPx}px;row-gap:${V.stripRowGapPx}px;max-width:${V.listMaxWidthPx}px;margin:0 auto">${chips
+            .map((c, i) => {
+              const cap = splitChipCaption(c);
+              return `${i > 0 ? `<span aria-hidden="true" style="width:1px;height:${V.dividerHeightPx}px;background:${V.borderColor}"></span>` : ""}<span style="font-size:${V.stripSizePx}px;font-weight:600;word-break:keep-all;color:${color}">${esc(cap.main)}${cap.sub ? `<span style="margin-left:4px;font-weight:500;opacity:.6">${esc(cap.sub)}</span>` : ""}</span>`;
+            })
+            .join("")}</div>`
+        : `<ul style="list-style:none;padding:0;margin:0 auto;max-width:${V.listMaxWidthPx}px">${chips
+            .map((c, i) => {
+              const cap = splitChipCaption(c);
+              return `<li style="display:flex;justify-content:space-between;gap:16px;padding:${V.listRowPadPx}px 0;${i > 0 ? `border-top:1px solid ${V.borderColor};` : ""}font-size:${V.listSizePx}px;font-weight:600;word-break:keep-all;color:${color}"><span>${esc(cap.main)}</span>${cap.sub ? `<span style="font-weight:500;opacity:.6">${esc(cap.sub)}</span>` : ""}</li>`;
+            })
+            .join("")}</ul>`;
+    return `<div data-summary="${variant}" style="padding:24px;border-top:1px solid ${V.borderColor};border-bottom:1px solid ${V.borderColor};background:${FLAT_PAPER}">${label}${body}</div>`;
+  }
   const accent = theme.accent;
   const deepText = readableTextDeep(theme);
   const accentText = readableTextAccent(theme);
@@ -2207,7 +2231,7 @@ export function buildDetailPageHtml(opts: {
         // 165차 — "Bento 그리드 2.0" 스펙 하이라이트. 히어로 바로 아래(라이브 렌더러와 동일 위치).
         const bentoHtml = quickFacts.length > 0 ? buildSpecBentoGridHtml(quickFacts, opts.theme) : "";
         if (trustChips.length > 0) {
-          heroFollowParts.push(trustStripHtml(trustChips, opts.theme, certTokens, !bentoHtml));
+          heroFollowParts.push(trustStripHtml(trustChips, opts.theme, certTokens, !bentoHtml, getPackLayout(pack).summary));
         }
         if (bentoHtml) heroFollowParts.push(bentoHtml);
         // 236차 — 라이브 hero-follow 북엔드 대각선 클립(trust+bento). 다음 섹션 본문까지
@@ -2274,9 +2298,9 @@ ${jsonLd}
 <style>
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
-  ${buildDetailExportFontCss(opts.category)}${packHeadlineExportCss(pack)}
-  .pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size;line-height:1.5;${sectionPadVarsCss(opts.category, false, pack.padYScale)}}
-  @media (min-width:640px){.pagzly-wrap{${sectionPadVarsCss(opts.category, true, pack.padYScale)}}}
+  ${buildDetailExportFontCss(opts.category)}${packHeadlineExportCss(pack)}${isClassicPack(pack) ? "" : packStructureCss(getPackLayout(pack), ".pagzly-wrap", "export")}
+  .pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size;line-height:1.5;${sectionPadVarsCss(opts.category, false, packPadScale(pack))}}
+  @media (min-width:640px){.pagzly-wrap{${sectionPadVarsCss(opts.category, true, packPadScale(pack))}}}
   .pagzly-wrap section>h2.pagzly-display-headline:first-child{margin-top:0}
   .pagzly-wrap .pagzly-display-headline{line-height:1.2}
   @media (min-width:640px){.pagzly-caution-list{padding:20px 28px!important}}
