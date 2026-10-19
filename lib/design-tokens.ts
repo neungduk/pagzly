@@ -363,17 +363,20 @@ export const TITLE_SCALE = {
 } as const;
 
 export type TitleScaleKey = keyof typeof TITLE_SCALE;
+/** 408차 — 스타일 팩이 일부 제목 크기만 덮어쓸 때 */
+export type TitleScaleOverrides = Partial<Record<TitleScaleKey, { base: string; wide: string }>>;
 
 export const TITLE_SCALE_WIDE_MIN_PX = 640;
 
 const TITLE_SCALE_KEYS = Object.keys(TITLE_SCALE) as TitleScaleKey[];
 
 /** 라이브 루트 style — TYPO의 `var(--pz-t-{key}-b|w)` 원천 */
-export function titleScaleVars(): Record<string, string> {
+export function titleScaleVars(overrides: TitleScaleOverrides = {}): Record<string, string> {
   const vars: Record<string, string> = {};
   for (const key of TITLE_SCALE_KEYS) {
-    vars[`--pz-t-${key}-b`] = TITLE_SCALE[key].base;
-    vars[`--pz-t-${key}-w`] = TITLE_SCALE[key].wide;
+    const s = overrides[key] ?? TITLE_SCALE[key];
+    vars[`--pz-t-${key}-b`] = s.base;
+    vars[`--pz-t-${key}-w`] = s.wide;
   }
   return vars;
 }
@@ -384,9 +387,9 @@ export function titleSizeCss(key: TitleScaleKey): string {
 }
 
 /** export `<style>` — 뷰포트 640px 기준 base/wide 전환 */
-export function titleScaleExportCss(): string {
+export function titleScaleExportCss(overrides: TitleScaleOverrides = {}): string {
   const decl = (tier: "base" | "wide") =>
-    TITLE_SCALE_KEYS.map((key) => `--pz-t-${key}:${TITLE_SCALE[key][tier]}`).join(";");
+    TITLE_SCALE_KEYS.map((key) => `--pz-t-${key}:${(overrides[key] ?? TITLE_SCALE[key])[tier]}`).join(";");
   return `:root{${decl("base")}}@media (min-width:${TITLE_SCALE_WIDE_MIN_PX}px){:root{${decl("wide")}}}`;
 }
 
@@ -512,7 +515,10 @@ export const ELEVATION = {
 // hero만 예외적으로 진→연 그라데이션 허용 (deepAccent → accent → transparent).
 // 183차 — 후커블형 대형 타이포 오버레이 가독성: 하단 스크림을 더 진하게, 중단부터는 빠르게 투명.
 export function getHeroGradient(theme: CategoryTheme): string {
-  return `linear-gradient(0deg, ${hexToRgba(theme.deepAccent, 0.92)} 0%, ${hexToRgba(theme.accent, 0.55)} 42%, ${hexToRgba(theme.deepAccent, 0.12)} 72%, transparent 88%)`;
+  // 408차 — 스타일 팩이 세기를 줄이면 theme.heroGradientStrength가 붙는다. 없으면 예전 값 그대로
+  const k = theme.heroGradientStrength ?? 1;
+  const a = (v: number) => (k === 1 ? v : Math.round(v * k * 1000) / 1000);
+  return `linear-gradient(0deg, ${hexToRgba(theme.deepAccent, a(0.92))} 0%, ${hexToRgba(theme.accent, a(0.55))} 42%, ${hexToRgba(theme.deepAccent, a(0.12))} 72%, transparent 88%)`;
 }
 
 // ---------------------------------------------------------------------------

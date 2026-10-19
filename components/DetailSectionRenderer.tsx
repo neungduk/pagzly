@@ -139,7 +139,9 @@ import NoiseComparisonDiagram from "@/components/NoiseComparisonDiagram";
 import WaterproofIpDiagram from "@/components/WaterproofIpDiagram";
 import WeightComparisonDiagram from "@/components/WeightComparisonDiagram";
 import PowerConsumptionDiagram from "@/components/PowerConsumptionDiagram";
-import { headlineDisplayStyle, joinNumericSuffix, longestTokenEm } from "@/lib/detail-typography";
+import { headlineDisplayStyle, joinNumericSuffix, longestTokenEm, packHeadlineLiveVars } from "@/lib/detail-typography";
+import { rhythmLiveVars } from "@/lib/rhythm-tokens";
+import { applyPackTone, isClassicPack, packTitleScaleOverrides, resolveStylePack, type StylePack } from "@/lib/style-packs";
 import VolumeComparisonDiagram from "@/components/VolumeComparisonDiagram";
 import UsageOrderFlowDiagram from "@/components/UsageOrderFlowDiagram";
 import FoodRatioDiagram from "@/components/FoodRatioDiagram";
@@ -268,7 +270,22 @@ type DetailSectionRendererProps = {
   certifications?: string | null;
   /** 186 — 패치 미리보기 대기 중인 표시 인덱스(visible sections) */
   pendingHighlightIndex?: number | null;
+  /** 408차 — 스타일 팩 id(패션만 유효, 없거나 모르는 값이면 classic). export의 stylePackId와 같은 값을 넘긴다 */
+  stylePackId?: string | null;
 };
+
+/**
+ * 408차 — 라이브 루트 style. 기본 팩은 예전과 같은 제목 크기 변수만(속성·추가 변수 없음 = 화면 불변).
+ * 팩이 있으면 제목 크기 덮어쓰기 + 세로 여백(rhythm-tokens) + 제목 서체 변수를 같은 숫자로 싣는다.
+ */
+function packRootStyle(category: string, pack: StylePack): Record<string, string> {
+  if (isClassicPack(pack)) return titleScaleVars();
+  return {
+    ...titleScaleVars(packTitleScaleOverrides(pack)),
+    ...rhythmLiveVars(category, pack.padYScale),
+    ...packHeadlineLiveVars(pack),
+  };
+}
 
 const THEME_ICONS: Record<string, LucideIcon> = {
   Sparkles,
@@ -5527,7 +5544,9 @@ export default function DetailSectionRenderer({
   keyFeatures,
   certifications,
   pendingHighlightIndex: inputHighlightIndex = null,
+  stylePackId,
 }: DetailSectionRendererProps) {
+  const pack = resolveStylePack(category, stylePackId);
   const display = applyDisplayRules(inputSections, imageUrls, {
     editing: inputEdit?.enabled,
     imageHashByUrl,
@@ -5552,7 +5571,7 @@ export default function DetailSectionRenderer({
   const sections = edit?.enabled ? shaped : dropSpecEchoFaqItems(shaped);
   const pointOrdinals = buildPointOrdinals(sections);
   const productThumbs = resolveProductThumbs(rawSections, imageUrls, imageHashByUrl);
-  const baseTheme = themeOverride ?? getCategoryTheme(category);
+  const baseTheme = applyPackTone(themeOverride ?? getCategoryTheme(category), pack);
   const extendedTheme = extendTheme(baseTheme);
   const trustChips = extractTrustChips(sections);
   const certTokens = parseCertificationTokens(certifications);
@@ -5594,7 +5613,11 @@ export default function DetailSectionRenderer({
     >
     {/* 반응형은 뷰포트가 아니라 이 컨테이너(프리뷰 칼럼) 폭 기준 — 결과 페이지 데스크톱 3단 레이아웃에서
         좁은 가운데 칼럼에 sm: 폰트·그리드가 켜져 글자가 음절 단위로 쪼개지던 문제 방지 */}
-    <div className="@container/pz overflow-hidden scroll-smooth" style={titleScaleVars() as CSSProperties}>
+    <div
+      className="@container/pz overflow-hidden scroll-smooth"
+      data-pz-pack={isClassicPack(pack) ? undefined : pack.id}
+      style={packRootStyle(category, pack) as CSSProperties}
+    >
       {sectionAnchors.length > 0 && !anchorNavAfterHero ? (
         <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} />
       ) : null}

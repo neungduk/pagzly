@@ -1144,6 +1144,8 @@ type CapturePreset = {
   imageHashByUrl?: Record<string, string>;
   imageRoles?: import("@/lib/image-roles").ProductImageRole[];
   imageOrigins?: import("@/lib/image-origins").ProductImageOrigin[];
+  /** 408차 — 스타일 팩 id(패션 세션 감사용) */
+  stylePackId?: string;
 };
 
 /** 281차 — capture=session: 저장된 실제 결과(sessionStorage)를 로그인 없이 재현 */
@@ -1166,6 +1168,7 @@ function readSessionPreset(): CapturePreset | null {
       imageHashByUrl: parsed.imageHashByUrl,
       imageRoles: parsed.imageRoles,
       imageOrigins: parsed.imageOrigins,
+      stylePackId: parsed.stylePackId,
     };
   } catch {
     return null;
@@ -1640,6 +1643,7 @@ function DetailPreviewBody({ capture, budget }: { capture: string | null; budget
             imageHashByUrl={capturePreset?.imageHashByUrl}
             imageRoles={capturePreset?.imageRoles}
             imageOrigins={capturePreset?.imageOrigins}
+            stylePackId={capturePreset?.stylePackId}
             category={previewCategory}
             brandName={previewBrandName}
             productName={previewProductName}

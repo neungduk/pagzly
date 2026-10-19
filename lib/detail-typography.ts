@@ -6,6 +6,7 @@
  * 그 외: 기존 Noto Sans KR + weight/tracking 강화 (신규 패밀리 없음)
  */
 import { FONT_SIZE } from "@/lib/design-tokens";
+import type { StylePack } from "@/lib/style-packs";
 import { resolveTemplateCategory, type TemplateCategory } from "@/lib/section-templates";
 
 export type HeadlineFontKind = "serif" | "sans-display";
@@ -85,12 +86,38 @@ export function longestTokenEm(text: string, letterSpacingEm = 0): number {
   return Math.max(0.01, Math.round(max * 1.06 * 100) / 100);
 }
 
+/** 408차 — 스타일 팩의 제목 서체·굵기·자간(Noto Sans/Serif 2종 안). 기본 팩이면 null */
+export function packHeadlineStyle(pack?: StylePack | null): { fontFamily: string; letterSpacing: string; fontWeight: number } | null {
+  if (!pack?.headline) return null;
+  return {
+    fontFamily: pack.headline.kind === "serif" ? DETAIL_FONT_STACK.serifHeadline : DETAIL_FONT_STACK.sansDisplayHeadline,
+    letterSpacing: pack.headline.letterSpacing,
+    fontWeight: pack.headline.weight,
+  };
+}
+
+/** export <style>용 — 인라인 제목 스타일을 팩 값으로 덮는다. 기본 팩이면 빈 문자열 */
+export function packHeadlineExportCss(pack?: StylePack | null): string {
+  const s = packHeadlineStyle(pack);
+  if (!s) return "";
+  return `.pagzly-display-headline{font-family:${s.fontFamily}!important;font-weight:${s.fontWeight}!important;letter-spacing:${s.letterSpacing}!important}`;
+}
+
+/** 라이브 루트 style — globals.css의 [data-pz-pack] 제목 규칙이 읽는다. 기본 팩이면 빈 객체 */
+export function packHeadlineLiveVars(pack?: StylePack | null): Record<string, string> {
+  const s = packHeadlineStyle(pack);
+  if (!s) return {};
+  return { "--pz-hl-family": s.fontFamily, "--pz-hl-weight": String(s.fontWeight), "--pz-hl-ls": s.letterSpacing };
+}
+
 /** 미리보기·인라인용 */
-export function headlineDisplayStyle(category: string): {
+export function headlineDisplayStyle(category: string, pack?: StylePack | null): {
   fontFamily: string;
   letterSpacing: string;
   fontWeight: number;
 } {
+  const fromPack = packHeadlineStyle(pack);
+  if (fromPack) return fromPack;
   return {
     fontFamily: resolveHeadlineFontStack(category),
     letterSpacing: resolveHeadlineLetterSpacing(category),

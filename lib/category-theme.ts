@@ -15,6 +15,8 @@ export type CategoryTheme = {
   baseNeutral: string;
   deepAccent: string;
   icon: string;
+  /** 408차 — 스타일 팩이 히어로 하단 그라데이션 세기를 줄일 때만 붙는다(기본 팩에는 없음 = 1) */
+  heroGradientStrength?: number;
 };
 
 function theme(
