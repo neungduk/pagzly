@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import DetailSectionRenderer from "@/components/DetailSectionRenderer";
 import GenerationCostStrip from "@/components/GenerationCostStrip";
+import { SHOW_COST_STRIP } from "@/lib/cost/cost-strip-visibility";
 import { freezeScrollRevealAnimations, unfreezeScrollRevealAnimations } from "@/components/DetailScrollReveal";
 import DetailActionBar, { type DetailToolTab } from "@/components/DetailActionBar";
 import DetailStructureSidebar from "@/components/DetailStructureSidebar";
@@ -1155,11 +1156,14 @@ function CreateResultContent() {
               </div>
             )}
 
-          <GenerationCostStrip
-            photoCostBreakdown={photoCostBreakdown}
-            photoProcessingCost={data.photoProcessingCost}
-            generationCost={generationCost}
-          />
+          {/* 407차 — 내부 원가 띠는 NEXT_PUBLIC_SHOW_COST_STRIP=true일 때만(기본 숨김). 기록은 그대로 쌓인다 */}
+          {SHOW_COST_STRIP && (
+            <GenerationCostStrip
+              photoCostBreakdown={photoCostBreakdown}
+              photoProcessingCost={data.photoProcessingCost}
+              generationCost={generationCost}
+            />
+          )}
 
           {backdropFailed && (
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-orange-200/60 bg-orange-50/80 px-4 py-3 text-sm text-ink/75">

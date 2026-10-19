@@ -13,8 +13,9 @@ import * as fashionCompositePolicy from "./fashion-composite-policy";
 import * as fashionDisplay405 from "./fashion-display-405";
 import * as backdropSkip from "./backdrop-skip";
 import * as costMerge from "./cost-merge";
+import * as costStrip from "./cost-strip";
 
-const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge];
+const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip];
 
 async function main() {
   let failed = 0;
