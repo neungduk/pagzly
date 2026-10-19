@@ -193,7 +193,8 @@ const isStoryUnitMember = (s: DetailSection): boolean =>
 /** 사진이 이끄는 블록: 사진이 든 단독 image_text(전폭·분할), STEP 카드 */
 const isPhotoLed = (s: DetailSection): boolean =>
   (s.type === "image_text" && (s.layout === "full" || s.layout === undefined) && typeof s.imageIndex === "number") ||
-  (s.type === "step_card" && s.steps.some((st) => typeof st.imageIndex === "number"));
+  (s.type === "step_card" && s.steps.some((st) => typeof st.imageIndex === "number")) ||
+  (s.type === "color_variation" && s.options.some((o) => typeof o.imageIndex === "number"));
 const STORY_PHOTO_LIMIT = 3;
 
 /**

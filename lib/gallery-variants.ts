@@ -5,8 +5,8 @@
 import type { GalleryVariant } from "@/lib/style-packs";
 
 export const GALLERY_VARIANT = {
-  /** 사진 사이 간격(px) — 410차: 6/10/14 시험 후 10(벤치마크의 사진 사이 여유에 가깝고 6보다 사진이 서로 구분됨) */
-  gapPx: 10,
+  /** 사진 사이 간격(px) — 410차: 6/10/14 시험 → 8(10은 첫 3화면 사진 면적을 0.74 밑으로 깎음, 6은 사진이 서로 붙어 보임) */
+  gapPx: 8,
   /** lead-plus-two의 나머지 사진 칸 비율(세로형, 위쪽 기준) — 라이브는 같은 값을 Tailwind aspect-[2/3] object-top으로 쓴다 */
   restRatio: "2 / 3",
   restPosition: "50% 0%",
