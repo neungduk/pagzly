@@ -5663,6 +5663,7 @@ export default function DetailSectionRenderer({
     roles: imageRoles,
     origins: imageOrigins,
     category,
+    flow: getPackLayout(resolveStylePack(category, stylePackId)).flow,
   });
   const rawSections = display.sections;
   const toSource = (i: number) => display.sourceIndexes[i] ?? i;

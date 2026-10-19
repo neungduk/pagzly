@@ -147,12 +147,54 @@ function markStepBadgesOffPeople(
  * 옛 세션(생성 당시 규칙이 없던 것)도 열 때 같은 결과가 된다. 새 세션에는 결과가 그대로다(멱등).
  * 편집 중에는 섹션 내용이 원본과 같아야 저장이 안전하므로 순서만 맞춘다.
  */
+/** 409차 — 팩 흐름 변형 photo-first에서 착용 사진이 든 "단독 사진 블록"만 앞(갤러리 바로 뒤)으로 옮길 수 있는 슬롯 */
+const PHOTO_FIRST_SLOTS = new Set(["coordination", "fit_guide"]);
+
+/**
+ * 409차 — photo-first(모노 팩): 갤러리 뒤, 글 위주 섹션(고민·브랜드·체크리스트) 앞으로 착용 사진 블록을 최대 2개 당긴다.
+ * 순서만 바꾼다(섹션 추가·삭제·문구 변경 없음). 고민 → 해결 같은 글 흐름이 있는 섹션은 건드리지 않고,
+ * 슬롯이 코디·핏 안내(앞 섹션을 가리키는 문구가 없는 독립 사진 블록)이고 사진이 착용컷일 때만 옮긴다. 패션 외·갤러리 없음은 그대로.
+ */
+export function photoFirstFlow(
+  sections: DetailSection[],
+  category: string | undefined,
+  roles: StripImageHints["roles"],
+  flow: "default" | "photo-first" | undefined,
+): DetailSection[] {
+  if (flow !== "photo-first" || category !== FASHION_CATEGORY || sections[0]?.type !== "hero") return sections;
+  const g = sections.findIndex((s, i) => i > 0 && s.type === "gallery");
+  if (g < 0) return sections;
+  const picks: number[] = [];
+  sections.forEach((s, i) => {
+    if (picks.length >= 2 || i <= g + 1) return;
+    if (
+      s.type === "image_text" &&
+      s.layout === "full" &&
+      PHOTO_FIRST_SLOTS.has(String(s.slot)) &&
+      typeof s.imageIndex === "number" &&
+      isWornFashionPhoto(category, roles?.[s.imageIndex])
+    ) {
+      picks.push(i);
+    }
+  });
+  if (picks.length === 0) return sections;
+  const moved = picks.map((i) => sections[i]!);
+  const rest = sections.filter((_, i) => !picks.includes(i));
+  rest.splice(g + 1, 0, ...moved);
+  return rest;
+}
+
 export function applyDisplayRules(
   sections: DetailSection[],
   imageUrls: readonly string[],
-  opts: { editing?: boolean; imageHashByUrl?: ImageHashByUrl; category?: string } & StripImageHints = {},
+  opts: { editing?: boolean; imageHashByUrl?: ImageHashByUrl; category?: string; flow?: "default" | "photo-first" } & StripImageHints = {},
 ): DisplaySections {
-  const ordered = pullWornGalleryForward(orderSectionsForFlow(sections), opts.category, opts.roles);
+  const ordered = photoFirstFlow(
+    pullWornGalleryForward(orderSectionsForFlow(sections), opts.category, opts.roles),
+    opts.category,
+    opts.roles,
+    opts.flow,
+  );
   const orderIndexes = ordered.map((s) => sections.indexOf(s));
   if (opts.editing) return { sections: ordered, sourceIndexes: orderIndexes };
   const sourceOf = imageSourceGroups(imageUrls, opts.imageHashByUrl);

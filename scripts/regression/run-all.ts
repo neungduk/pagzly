@@ -20,8 +20,9 @@ import * as rhythmTokens from "./rhythm-tokens";
 import * as stylePacks from "./style-packs";
 import * as packLayout from "./pack-layout";
 import * as heroVariants from "./hero-variants";
+import * as flowPhotoFirst from "./flow-photo-first";
 
-const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip, fashionSpecFallback, specRowCap, rhythmTokens, stylePacks, packLayout, heroVariants];
+const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip, fashionSpecFallback, specRowCap, rhythmTokens, stylePacks, packLayout, heroVariants, flowPhotoFirst];
 
 async function main() {
   let failed = 0;
