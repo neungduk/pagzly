@@ -15,8 +15,9 @@ import * as backdropSkip from "./backdrop-skip";
 import * as costMerge from "./cost-merge";
 import * as costStrip from "./cost-strip";
 import * as fashionSpecFallback from "./fashion-spec-fallback";
+import * as specRowCap from "./spec-row-cap";
 
-const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip, fashionSpecFallback];
+const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip, fashionSpecFallback, specRowCap];
 
 async function main() {
   let failed = 0;

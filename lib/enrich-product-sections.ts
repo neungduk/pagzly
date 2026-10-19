@@ -188,6 +188,9 @@ function resolveSkeletonValue(
   return PLACEHOLDER;
 }
 
+/** 408차 — 사이즈 칸 라벨(알파벳 사이즈·FREE·숫자 호수). "사이즈" 같은 뼈대 라벨은 해당하지 않는다 */
+const SIZE_ROW_LABEL = /^(?:[2-5]?X?[SL]|XXS|XS|M|F|FREE|프리(?:사이즈)?|d{2,3}(?:호)?)$/i;
+
 /** @internal exported for 249cha verify */
 export function mergeSpecRows(
   existing: { label: string; value: string }[],
@@ -217,7 +220,18 @@ export function mergeSpecRows(
     );
     if (!alreadyCovered) merged.push(row);
   }
-  return merged.slice(0, 10);
+  // 408차 — 표는 10행까지. 단, 사이즈 행(S·M·L·XL·2XL·FREE…)은 상한에서 빼서 뼈대 7행 뒤의 XL 이후가 잘리지 않게 한다
+  const kept: { label: string; value: string }[] = [];
+  let others = 0;
+  for (const row of merged) {
+    if (SIZE_ROW_LABEL.test(row.label.trim())) {
+      kept.push(row);
+    } else if (others < 10) {
+      others += 1;
+      kept.push(row);
+    }
+  }
+  return kept;
 }
 
 /** @internal exported for 249cha verify */
