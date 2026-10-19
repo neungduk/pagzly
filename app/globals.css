@@ -91,6 +91,19 @@ body {
   overflow-wrap: break-word;
 }
 
+/* 408차 — 스타일 팩: 세로 여백. 루트에 data-pz-pack이 있을 때만 걸린다(기본 팩은 속성이 없어 화면 불변).
+   값은 lib/rhythm-tokens.ts의 rhythmLiveVars가 루트 style에 싣는다(export와 같은 숫자). 좁은 칸 -b, 넓은 칸 -w */
+[data-pz-pack] .pz-pad-g { padding-top: var(--pz-pad-y-b); padding-bottom: var(--pz-pad-y-b); }
+[data-pz-pack] .pz-pad-t { padding-top: var(--pz-pad-ty-b); padding-bottom: var(--pz-pad-ty-b); }
+[data-pz-pack] .pz-pad-c { padding-top: var(--pz-pad-cy-b); padding-bottom: var(--pz-pad-cy-b); }
+[data-pz-pack] .pz-pad-p { padding-top: var(--pz-pt-t-b); padding-bottom: var(--pz-pt-b-b); }
+@container pz (min-width: 640px) {
+  [data-pz-pack] .pz-pad-g { padding-top: var(--pz-pad-y-w); padding-bottom: var(--pz-pad-y-w); }
+  [data-pz-pack] .pz-pad-t { padding-top: var(--pz-pad-ty-w); padding-bottom: var(--pz-pad-ty-w); }
+  [data-pz-pack] .pz-pad-c { padding-top: var(--pz-pad-cy-w); padding-bottom: var(--pz-pad-cy-w); }
+  [data-pz-pack] .pz-pad-p { padding-top: var(--pz-pt-t-w); padding-bottom: var(--pz-pt-b-w); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-scroll-reveal] {
     opacity: 1 !important;

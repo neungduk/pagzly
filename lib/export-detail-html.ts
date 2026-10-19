@@ -161,6 +161,7 @@ import {
   type ExtendedTheme,
   type TitleScaleKey,
 } from "@/lib/design-tokens";
+import { rhythmVarsCss } from "@/lib/rhythm-tokens";
 import { applySectionDisplayBudget } from "@/lib/section-display-budget";
 import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
 import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe";
@@ -295,26 +296,9 @@ function trustStripHtml(
     </div></div>`;
 }
 
-/** 라이브 섹션의 카테고리 리듬(generousPadClass: px-6 py-N / pz:px-10 pz:py-M)과 같은 여백 — Tailwind 단위 ×4px */
-function sectionPadVarsCss(category: string, wide: boolean): string {
-  const rhythm = getCategoryRhythm(category);
-  const unit = (cls: string, re: RegExp, fallback: number) => Number(re.exec(cls)?.[1] ?? fallback) * 4;
-  const padY = (cls: string) => (wide ? unit(cls, /pz:py-(\d+)/, 28) : unit(cls, /(?:^|\s)py-(\d+)/, 16));
-  const x = wide
-    ? unit(rhythm.generousPadClass, /pz:px-(\d+)/, 10)
-    : unit(rhythm.generousPadClass, /(?:^|\s)px-(\d+)/, 6);
-  const heroMin = wide
-    ? `${Number(/pz:min-h-\[(\d+)px\]/.exec(rhythm.heroMinClass)?.[1] ?? 760)}px`
-    : `${Number(/(?:^|\s)min-h-\[(\d+)svh\]/.exec(rhythm.heroMinClass)?.[1] ?? 85)}svh`;
-  const pt = rhythm.pointTextPadClass;
-  const ptSide = (side: "t" | "b" | "x", fallback: number) =>
-    wide ? unit(pt, new RegExp(`pz:p${side}-(\\d+)`), fallback) : unit(pt, new RegExp(`(?:^|\\s)p${side}-(\\d+)`), fallback);
-  // 401차 — 히어로 글 영역 여백도 라이브 heroOverlayClass(px-N pb-N / pz:px-N pz:pb-N)와 같게.
-  // 예전 고정값(좌우 20px)이라 390 폭에서 라이브(24px)보다 제목 폭이 8px 넓어 줄 수가 달라졌다(라이브 3줄 ↔ export 2줄).
-  const hero = rhythm.heroOverlayClass;
-  const heroSide = (side: "x" | "b", fallback: number) =>
-    wide ? unit(hero, new RegExp(`pz:p${side}-(\\d+)`), fallback) : unit(hero, new RegExp(`(?:^|\\s)p${side}-(\\d+)`), fallback);
-  return `--pz-hero-x:${heroSide("x", wide ? 10 : 6)}px;--pz-hero-b:${heroSide("b", wide ? 20 : 14)}px;--pz-pad-y:${padY(rhythm.generousPadClass)}px;--pz-pad-ty:${padY(rhythm.trustPadClass)}px;--pz-pad-cy:${padY(rhythm.ctaPadClass)}px;--pz-pad-x:${x}px;--pz-hero-min:${heroMin};--pz-pt-t:${ptSide("t", 10)}px;--pz-pt-b:${ptSide("b", 16)}px;--pz-pt-x:${ptSide("x", 6)}px`;
+/** 라이브 섹션의 카테고리 리듬과 같은 여백 — 408차: 숫자 토큰(lib/rhythm-tokens.ts)에서 만든다 */
+function sectionPadVarsCss(category: string, wide: boolean, padYScale = 1): string {
+  return rhythmVarsCss(category, wide, padYScale);
 }
 
 /** 라이브 checklistGapClass("gap-x-4 gap-y-8")와 같은 행·열 간격 */

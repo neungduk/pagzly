@@ -949,7 +949,7 @@ const DEFAULT_RHYTHM: CategoryRhythm = {
   ctaTransitionClip: CTA_TRANSITION_CLIP_PATH,
 };
 
-export function getCategoryRhythm(category: string): CategoryRhythm {
+function getCategoryRhythmBase(category: string): CategoryRhythm {
   // 150차 — 6개 카테고리 중 의류/패션·생활용품·전자제품 3개만 고유 리듬이 있고
   // 화장품/뷰티·식품/건강기능식품·반려동물 3개는 전부 DEFAULT_RHYTHM으로 뭉뚱그려져
   // 있었다(색상은 category-theme.ts에서 6개 다 구분되는데 레이아웃 리듬만 절반이
@@ -1081,6 +1081,21 @@ export function getCategoryRhythm(category: string): CategoryRhythm {
     ctaButtonClass:
         "inline-flex h-12 min-w-[13rem] items-center justify-center rounded-full px-10 text-sm font-semibold text-paper shadow-sm",
     galleryTitlePadClass: "px-6 pt-10 pb-8 text-center @min-[640px]/pz:px-10 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-8",
+  };
+}
+
+/**
+ * 408차 — 여백 클래스에 표식 클래스(pz-pad-*)를 덧붙인다. 스타일 팩이 없으면 globals.css 규칙이 걸리지 않아
+ * 화면은 그대로이고, 팩이 있으면 [data-pz-pack] 규칙이 같은 숫자 토큰으로 세로 여백을 바꾼다.
+ */
+export function getCategoryRhythm(category: string): CategoryRhythm {
+  const r = getCategoryRhythmBase(category);
+  return {
+    ...r,
+    generousPadClass: `${r.generousPadClass} pz-pad-g`,
+    trustPadClass: `${r.trustPadClass} pz-pad-t`,
+    ctaPadClass: `${r.ctaPadClass} pz-pad-c`,
+    pointTextPadClass: `${r.pointTextPadClass} pz-pad-p`,
   };
 }
 

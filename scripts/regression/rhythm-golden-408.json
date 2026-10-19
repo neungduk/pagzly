@@ -1,0 +1,34 @@
+{
+ "의류/패션": [
+  ".pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size;line-height:1.5;--pz-hero-x:40px;--pz-hero-b:64px;--pz-pad-y:48px;--pz-pad-ty:48px;--pz-pad-cy:64px;--pz-pad-x:24px;--pz-hero-min:84svh;--pz-pt-t:40px;--pz-pt-b:48px;--pz-pt-x:32px}",
+  ".pagzly-wrap{--pz-hero-x:56px;--pz-hero-b:96px;--pz-pad-y:72px;--pz-pad-ty:64px;--pz-pad-cy:96px;--pz-pad-x:40px;--pz-hero-min:760px;--pz-pt-t:48px;--pz-pt-b:56px;--pz-pt-x:48px}"
+ ],
+ "화장품/뷰티": [
+  ".pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size;line-height:1.5;--pz-hero-x:24px;--pz-hero-b:56px;--pz-pad-y:48px;--pz-pad-ty:48px;--pz-pad-cy:64px;--pz-pad-x:24px;--pz-hero-min:82svh;--pz-pt-t:32px;--pz-pt-b:48px;--pz-pt-x:24px}",
+  ".pagzly-wrap{--pz-hero-x:40px;--pz-hero-b:80px;--pz-pad-y:64px;--pz-pad-ty:64px;--pz-pad-cy:88px;--pz-pad-x:40px;--pz-hero-min:720px;--pz-pt-t:40px;--pz-pt-b:48px;--pz-pt-x:40px}"
+ ],
+ "식품/건강기능식품": [
+  ".pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size;line-height:1.5;--pz-hero-x:24px;--pz-hero-b:80px;--pz-pad-y:56px;--pz-pad-ty:48px;--pz-pad-cy:64px;--pz-pad-x:24px;--pz-hero-min:86svh;--pz-pt-t:48px;--pz-pt-b:48px;--pz-pt-x:24px}",
+  ".pagzly-wrap{--pz-hero-x:40px;--pz-hero-b:128px;--pz-pad-y:80px;--pz-pad-ty:64px;--pz-pad-cy:96px;--pz-pad-x:40px;--pz-hero-min:780px;--pz-pt-t:56px;--pz-pt-b:64px;--pz-pt-x:40px}"
+ ],
+ "반려동물": [
+  ".pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size;line-height:1.5;--pz-hero-x:28px;--pz-hero-b:64px;--pz-pad-y:48px;--pz-pad-ty:48px;--pz-pad-cy:64px;--pz-pad-x:24px;--pz-hero-min:85svh;--pz-pt-t:40px;--pz-pt-b:48px;--pz-pt-x:24px}",
+  ".pagzly-wrap{--pz-hero-x:48px;--pz-hero-b:112px;--pz-pad-y:72px;--pz-pad-ty:64px;--pz-pad-cy:96px;--pz-pad-x:40px;--pz-hero-min:740px;--pz-pt-t:48px;--pz-pt-b:56px;--pz-pt-x:40px}"
+ ],
+ "생활용품": [
+  ".pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size;line-height:1.5;--pz-hero-x:28px;--pz-hero-b:80px;--pz-pad-y:56px;--pz-pad-ty:48px;--pz-pad-cy:64px;--pz-pad-x:24px;--pz-hero-min:85svh;--pz-pt-t:48px;--pz-pt-b:48px;--pz-pt-x:24px}",
+  ".pagzly-wrap{--pz-hero-x:48px;--pz-hero-b:128px;--pz-pad-y:88px;--pz-pad-ty:64px;--pz-pad-cy:96px;--pz-pad-x:40px;--pz-hero-min:760px;--pz-pt-t:64px;--pz-pt-b:64px;--pz-pt-x:40px}"
+ ],
+ "전자제품": [
+  ".pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size;line-height:1.5;--pz-hero-x:24px;--pz-hero-b:56px;--pz-pad-y:48px;--pz-pad-ty:48px;--pz-pad-cy:64px;--pz-pad-x:24px;--pz-hero-min:78svh;--pz-pt-t:28px;--pz-pt-b:44px;--pz-pt-x:24px}",
+  ".pagzly-wrap{--pz-hero-x:40px;--pz-hero-b:80px;--pz-pad-y:72px;--pz-pad-ty:64px;--pz-pad-cy:72px;--pz-pad-x:40px;--pz-hero-min:700px;--pz-pt-t:36px;--pz-pt-b:48px;--pz-pt-x:40px}"
+ ],
+ "생활/리빙": [
+  ".pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size;line-height:1.5;--pz-hero-x:24px;--pz-hero-b:64px;--pz-pad-y:48px;--pz-pad-ty:48px;--pz-pad-cy:64px;--pz-pad-x:24px;--pz-hero-min:85svh;--pz-pt-t:32px;--pz-pt-b:48px;--pz-pt-x:24px}",
+  ".pagzly-wrap{--pz-hero-x:40px;--pz-hero-b:112px;--pz-pad-y:72px;--pz-pad-ty:72px;--pz-pad-cy:88px;--pz-pad-x:40px;--pz-hero-min:760px;--pz-pt-t:40px;--pz-pt-b:56px;--pz-pt-x:40px}"
+ ],
+ "기타": [
+  ".pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size;line-height:1.5;--pz-hero-x:24px;--pz-hero-b:64px;--pz-pad-y:48px;--pz-pad-ty:48px;--pz-pad-cy:64px;--pz-pad-x:24px;--pz-hero-min:85svh;--pz-pt-t:32px;--pz-pt-b:48px;--pz-pt-x:24px}",
+  ".pagzly-wrap{--pz-hero-x:40px;--pz-hero-b:112px;--pz-pad-y:72px;--pz-pad-ty:72px;--pz-pad-cy:88px;--pz-pad-x:40px;--pz-hero-min:760px;--pz-pt-t:40px;--pz-pt-b:56px;--pz-pt-x:40px}"
+ ]
+}
