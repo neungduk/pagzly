@@ -166,7 +166,7 @@ import { applyPackTone, classicFashionHeroStrength, isClassicPack, CLASSIC_LAYOU
 import { HERO_CAPTION, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
-import { SUMMARY_VARIANT } from "@/lib/summary-variants";
+import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
 import { applySectionDisplayBudget } from "@/lib/section-display-budget";
 import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
 import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe";
@@ -271,9 +271,10 @@ function trustStripHtml(
   theme: CategoryTheme,
   certTokens: string[] = [],
   isLastInClip = false,
-  variant: "icon-grid" | "spec-list" | "inline-strip" = "icon-grid",
+  variantIn: "icon-grid" | "spec-list" | "inline-strip" = "icon-grid",
 ): string {
   if (chips.length === 0) return "";
+  const variant = resolveSummaryVariant(variantIn, chips);
   // 409차 — 팩 요약 변형(라이브 TrustStrip과 같은 DOM·토큰). 칩 문구는 그대로, 아이콘만 뺀다
   if (variant !== "icon-grid") {
     const V = SUMMARY_VARIANT;
@@ -1541,7 +1542,7 @@ function sectionHtml(
               if (variantGrid) {
                 const cell = galleryCell(galleryVariant, pos);
                 return src
-                  ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;${cell.natural ? "height:auto" : `aspect-ratio:${GALLERY_VARIANT.restRatio};object-fit:cover;object-position:${GALLERY_VARIANT.restPosition}`}${cell.span ? ";grid-column:1/-1" : ""}"/>`
+                  ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;${cell.natural ? `height:auto;max-height:${GALLERY_VARIANT.capNarrowPx}px;object-fit:cover;object-position:${GALLERY_VARIANT.restPosition}` : `aspect-ratio:${GALLERY_VARIANT.restRatio};object-fit:cover;object-position:${GALLERY_VARIANT.restPosition}`}${cell.span ? ";grid-column:1/-1" : ""}"/>`
                   : "";
               }
               return src

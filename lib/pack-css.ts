@@ -4,6 +4,7 @@
  * export에는 속성 선택자·::before 같은 기존 CSS만 쓴다(:has(), 컨테이너 쿼리, text-wrap 등 새 기능 없음).
  * 기본 팩은 빈 문자열이라 화면·HTML이 그대로다.
  */
+import { GALLERY_VARIANT } from "@/lib/gallery-variants";
 import type { PackLayout } from "@/lib/style-packs";
 
 export const PACK_RULE = {
@@ -12,6 +13,11 @@ export const PACK_RULE = {
   gapPx: 20,
   /** 목록 줄 사이 가는 선 */
   lineColor: "rgba(27,27,24,0.14)",
+  labelSizePx: 11,
+  labelTracking: "0.2em",
+  labelColor: "rgba(27,27,24,0.55)",
+  labelGapPx: 8,
+  afterGapPx: 14,
   /** 표 라벨 열 */
   tableLabelWeight: 600,
   tableLabelTracking: "0.02em",
@@ -46,9 +52,21 @@ export function packStructureCss(layout: PackLayout, scope: string, flavor: Flav
     // export의 일러스트 배너 제목도 같은 클래스를 쓰지만 라이브 배너 제목은 아니라서(250차 배너는 손대지 않는다) export에서는 배너 안을 뺀다
     const H = flavor === "export" ? `${S} section:not(.pagzly-illustration-banner) .pagzly-display-headline` : `${S} .pagzly-display-headline`;
     const base = `${H}::before{content:"";display:block;width:${PACK_RULE.widthPx}px;height:1px;background:${PACK_RULE.color};margin:0 ${left ? "0" : "auto"} ${PACK_RULE.gapPx}px}`;
-    if (layout.heading !== "center-stack") {
+    if (layout.heading === "left-eyebrow") {
+      // 410차 — 라벨 = 보이는 순서대로 센 순번(01, 02…). CSS counter라 라이브·export 모두 화면 순서와 같다.
+      // (제목 바로 위 INFO·NOTICE 같은 kicker는 라이브에만 그려지고 export에는 없어서(FLAT 표면), kicker 유무로 번호를 가르면 두 렌더러가 어긋난다 → 번호는 모든 소제목에 같은 규칙)
+      out.push(
+        `${S}{counter-reset:pz-n}`,
+        `${H}{counter-increment:pz-n;text-align:left!important}`,
+        `${S} [data-hero-caption] .pagzly-display-headline{counter-increment:none}`,
+        `${H}::before{content:counter(pz-n,decimal-leading-zero);display:block;font-size:${PACK_RULE.labelSizePx}px;font-weight:600;letter-spacing:${PACK_RULE.labelTracking};color:${PACK_RULE.labelColor};margin:0 0 ${PACK_RULE.labelGapPx}px}`,
+        `${H}::after{content:"";display:block;width:${PACK_RULE.widthPx}px;height:1px;background:${PACK_RULE.color};margin:${PACK_RULE.afterGapPx}px 0 0}`,
+        `${S} [data-hero-caption] .pagzly-display-headline::before,${S} [data-hero-caption] .pagzly-display-headline::after{display:none!important}`,
+      );
+      // 정렬 통일 — 제목이 좌측이면 본문 글도 좌측(가격·버튼 같은 가운데가 의미 있는 요소는 아래 예외)
+      out.push(`${S} section:not([data-keep-center]) p:not([data-keep-center]){text-align:left!important}`);
+    } else if (layout.heading !== "center-stack") {
       out.push(base);
-      if (left) out.push(`${H}{text-align:left!important}`);
       out.push(`${S} [data-hero-caption] .pagzly-display-headline::before{display:none!important}`);
     }
   }
@@ -56,6 +74,15 @@ export function packStructureCss(layout: PackLayout, scope: string, flavor: Flav
   if (layout.radius !== null) {
     const first = flavor === "live" ? "td" : "th";
     out.push(`${S} table tr>${first}:first-child{font-weight:${PACK_RULE.tableLabelWeight}!important;letter-spacing:${PACK_RULE.tableLabelTracking}!important}`);
+  }
+  // 본문 줄 높이(팩 토큰 layout.body.line) — 라이브는 leading-[1.9] 본문 클래스, export는 pagzly-body-lh·pagzly-story-body 클래스가 같은 자리
+  if (layout.body) {
+    const lh = `${layout.body.line}`;
+    out.push(flavor === "live" ? `${S} [class*="leading-[1.9]"]{line-height:${lh}!important}` : `${S} .pagzly-body-lh,${S} .pagzly-story-body{line-height:${lh}!important}`);
+  }
+  // 긴 세로 컷 상한(넓은 칸) — 좁은 칸 값은 사진 인라인 스타일/Tailwind 클래스에 있다. 라이브는 클래스가 같은 일을 한다
+  if (flavor === "export" && (layout.gallery === "lookbook-stack" || layout.gallery === "lead-plus-two")) {
+    out.push(`@media (min-width:640px){${S} [data-gallery-variant] img{max-height:${GALLERY_VARIANT.capWidePx}px!important}}`);
   }
   // 체크리스트 — 카드 테두리·그림자·바탕 없이 줄 사이 가는 선
   if (layout.checklist === "plain-list") {

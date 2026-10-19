@@ -30,6 +30,11 @@ export async function run(): Promise<string[]> {
     if (!ex.includes('[style*="border-radius:999px"][style*="padding"]')) fails.push(`${id}: export 알약(padding) 규칙 없음`);
     if (!lv.includes(".inline-block.rounded-full") || lv.includes(":not(img)")) fails.push(`${id}: 라이브 규칙이 배지/사진을 못 잡음`);
     if (!ex.includes("tr>th:first-child{font-weight:600!important") || !lv.includes("tr>td:first-child{font-weight:600!important")) fails.push(`${id}: 표 라벨 규칙 없음`);
+    if (id === "mono-minimal" && (!ex.includes("counter-reset:pz-n") || !ex.includes("decimal-leading-zero"))) fails.push("mono 소제목 순번 라벨(CSS counter) 규칙 없음");
+    if (id === "editorial" && ex.includes("counter-reset")) fails.push("editorial에 순번 라벨이 있음");
+    if (id === "mono-minimal" && !ex.includes("line-height:1.7!important")) fails.push("mono 본문 줄 높이 1.7 규칙 없음");
+    if (id === "editorial" && !ex.includes("line-height:1.8!important")) fails.push("editorial 본문 줄 높이 1.8 규칙 없음");
+    if (!ex.includes("[data-gallery-variant] img{max-height:1125px")) fails.push(`${id}: 긴 컷 상한(넓은 칸) 규칙 없음`);
     const h = html(id);
     const n = nav(h);
     if (!n) fails.push(`${id}: export에 앵커 내비 없음`);

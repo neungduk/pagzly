@@ -144,7 +144,7 @@ import { rhythmLiveVars } from "@/lib/rhythm-tokens";
 import { HERO_CAPTION, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
-import { SUMMARY_VARIANT } from "@/lib/summary-variants";
+import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
 import {
   applyPackTone,
   classicFashionHeroStrength,
@@ -1352,7 +1352,7 @@ function TrustStrip({
   chips,
   theme,
   certTokens = [],
-  variant = "icon-grid",
+  variant: variantIn = "icon-grid",
 }: {
   chips: string[];
   theme: CategoryTheme;
@@ -1360,6 +1360,7 @@ function TrustStrip({
   variant?: "icon-grid" | "spec-list" | "inline-strip";
 }) {
   if (chips.length === 0) return null;
+  const variant = resolveSummaryVariant(variantIn, chips);
   // 409차 — 팩 요약 변형: 아이콘 없이 한 줄(inline-strip) 또는 줄 목록(spec-list). 칩 문구는 그대로
   if (variant !== "icon-grid") {
     const V = SUMMARY_VARIANT;
@@ -4635,7 +4636,7 @@ function renderSection(
                     className={
                       variantGrid
                         ? cell.natural
-                          ? "block h-auto w-full"
+                          ? "block h-auto max-h-[585px] w-full object-cover object-top @min-[640px]/pz:max-h-[1125px]"
                           : "block aspect-[2/3] w-full object-cover object-top"
                         : `${oddLead && pairIndex === 0 ? "aspect-[4/3]" : ratioClass} w-full object-cover`
                     }

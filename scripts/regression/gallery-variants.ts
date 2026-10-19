@@ -17,7 +17,7 @@ const imgs = (h: string) => (h.match(/<img /g) ?? []).length;
 export async function run(): Promise<string[]> {
   const fails: string[] = [];
   const classic = html("classic", 5);
-  if (classic.includes("data-gallery-variant")) fails.push("classic에 갤러리 변형 표식");
+  if (classic.includes('data-gallery-variant="')) fails.push("classic에 갤러리 변형 표식");
   const mono = html("mono-minimal", 5);
   const edi = html("editorial", 5);
   if (!mono.includes('data-gallery-variant="lookbook-stack"') || !mono.includes("grid-template-columns:repeat(1,1fr)")) fails.push("mono 1열 스택 아님");
@@ -26,8 +26,8 @@ export async function run(): Promise<string[]> {
   if (!edi.includes("aspect-ratio:2 / 3")) fails.push("editorial 나머지 칸 2:3 아님");
   for (const [n, h] of [["classic", classic], ["mono", mono], ["editorial", edi]] as const) if (imgs(h) !== 5) fails.push(`${n}: 사진 수가 5가 아님(${imgs(h)})`);
   // 폴백: lead-plus-two는 3장 미만 → classic, 1장 → classic
-  if (html("editorial", 2).includes("data-gallery-variant")) fails.push("editorial 2장인데 변형이 켜짐");
-  if (html("mono-minimal", 1).includes("data-gallery-variant")) fails.push("mono 1장인데 변형이 켜짐");
+  if (html("editorial", 2).includes('data-gallery-variant="')) fails.push("editorial 2장인데 변형이 켜짐");
+  if (html("mono-minimal", 1).includes('data-gallery-variant="')) fails.push("mono 1장인데 변형이 켜짐");
   // 패션 외는 그대로
   if (html("editorial", 5, "화장품/뷰티") !== html(null, 5, "화장품/뷰티")) fails.push("패션 외 갤러리가 팩 때문에 바뀜");
   return fails;

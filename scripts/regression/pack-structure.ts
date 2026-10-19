@@ -28,7 +28,7 @@ export async function run(): Promise<string[]> {
   const ediCss = packStructureCss(getPackLayout(resolveStylePack("의류/패션", "editorial")), ".pagzly-wrap", "export");
   if (!monoCss.includes("border-radius:0px!important") || !ediCss.includes("border-radius:0px!important")) fails.push("모서리 0 규칙 없음");
   if (!monoCss.includes("section:not(.pagzly-illustration-banner)")) fails.push("export 소제목 규칙이 일러스트 배너를 제외하지 않음");
-  if (!monoCss.includes("::before{display:none!important}")) fails.push("히어로 캡션 제목 선 제외 규칙이 !important가 아님");
+  if (!monoCss.includes("display:none!important")) fails.push("히어로 캡션 제목 선 제외 규칙이 !important가 아님");
   if (!monoCss.includes("text-align:left!important")) fails.push("mono 소제목 좌측 정렬 규칙 없음");
   if (ediCss.includes("text-align:left!important")) fails.push("editorial에 좌측 정렬 규칙이 있음(가운데 + 선이어야 함)");
   if (!monoCss.includes("border-width:0 0 1px 0") || !ediCss.includes("border-width:0 0 1px 0")) fails.push("체크리스트 평면 규칙 없음");

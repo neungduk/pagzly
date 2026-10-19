@@ -5,11 +5,14 @@
 import type { GalleryVariant } from "@/lib/style-packs";
 
 export const GALLERY_VARIANT = {
-  /** 사진 사이 간격(px) — 4~8 */
-  gapPx: 6,
+  /** 사진 사이 간격(px) — 410차: 6/10/14 시험 후 10(벤치마크의 사진 사이 여유에 가깝고 6보다 사진이 서로 구분됨) */
+  gapPx: 10,
   /** lead-plus-two의 나머지 사진 칸 비율(세로형, 위쪽 기준) — 라이브는 같은 값을 Tailwind aspect-[2/3] object-top으로 쓴다 */
   restRatio: "2 / 3",
   restPosition: "50% 0%",
+  /** 긴 세로 컷 상한(원본 비율 칸의 최대 높이 px) — 폭의 1.5배(2:3). 좁은 칸 390 → 585, 넓은 칸 750 → 1125. 이보다 긴 컷만 위쪽 기준으로 잘린다 */
+  capNarrowPx: 585,
+  capWidePx: 1125,
 } as const;
 
 /** 한 칸의 모양 */
