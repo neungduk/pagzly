@@ -6,7 +6,7 @@ import path from "node:path";
 import {
   INFO_BACKDROP_COST_CAP_USD, INFO_BACKDROP_MAX_COUNT, INFO_BACKDROP_MODELS, INFO_ZONE_PRIORITY,
   buildInfoBackdropPrompt, infoBackdropCostUsd, infoBackdropCss, infoBackdropEligible, infoBackdropMapFrom, infoBackdropSeed,
-  planInfoBackdrops, safeBackdropUrl, type InfoZone,
+  infoZonesOfSections, planInfoBackdrops, safeBackdropUrl, type InfoZone,
 } from "../../lib/info-backdrop";
 import { infoColorsOf, infoCss } from "../../lib/info-style";
 import { applyPackTone } from "../../lib/style-packs";
@@ -135,5 +135,16 @@ export async function run(): Promise<string[]> {
       if (fs.readFileSync(path.join(root, f), "utf8").includes(slug)) fails.push(`${f}에 모델 슬러그(${slug})가 있음 — info-backdrop.ts에만 둔다`);
     }
   }
+  // 417차: 섹션 → 인포 구간, 결과 화면·export·초안 화면 연결
+  const z = infoZonesOfSections([
+    { type: "hero" }, { type: "highlight_box", slot: "seller_trust_evidence" }, { type: "highlight_box" }, { type: "usage_steps" },
+    { type: "comparison_chart", presentationStyle: "bar" }, { type: "comparison_chart", presentationStyle: "checklist" }, { type: "caution" }, { type: "stat_infographic" },
+  ]).join();
+  if (z !== "points,steps,stat,compare,care") fails.push(`섹션→구간 추출이 다름: ${z}`);
+  if (infoZonesOfSections([{ type: "hero" }, { type: "highlight_box", slot: "seller_trust_evidence" }, { type: "comparison_chart", presentationStyle: "bar" }]).length !== 0) fails.push("인포가 아닌 섹션이 구간으로 잡힘");
+  const result = fs.readFileSync(path.join(root, "app", "create", "result", "page.tsx"), "utf8");
+  if (!/infoBackdrops={data.infoBackdrops}/.test(result) || !/infoBackdrops: data.infoBackdrops,/.test(result)) fails.push("결과 화면이 라이브·export에 같은 infoBackdrops를 넘기지 않음");
+  const draft = fs.readFileSync(path.join(root, "app", "create", "draft", "page.tsx"), "utf8");
+  if (!/snap.category === FASHION && STYLE_AUTO_ENABLED/.test(draft) || !/infoBackdrops: photo.infoBackdrops/.test(draft)) fails.push("초안 화면 연결(패션·자동 적용 한정, 세션 저장)이 없음");
   return fails;
 }

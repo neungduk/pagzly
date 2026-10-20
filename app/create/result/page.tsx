@@ -144,6 +144,8 @@ const subscribeDesktop = (cb: () => void) => {
 type ProductResult = {
   /** 408차 — 스타일 팩 id(패션만 유효). 없거나 모르는 값이면 classic. sessionStorage 세션 JSON에 그대로 실린다 */
   stylePackId?: string;
+  /** 417차 — 인포 구간 AI 배경 URL 맵(세션 JSON에 실림, DB 불러오기에는 없음 → 코드 배경) */
+  infoBackdrops?: import("@/lib/info-backdrop").InfoBackdropMap;
   category: string;
   imageUrls: string[];
   imagePaths?: string[];
@@ -885,6 +887,7 @@ function CreateResultContent() {
         imageRoles: data.generated.imageRoles ?? data.imageRoles,
         imageOrigins: data.imageOrigins,
         stylePackId: effectiveStylePackId(data),
+        infoBackdrops: data.infoBackdrops,
       });
       const blob = new Blob([html], { type: "text/html;charset=utf-8" });
       const url = URL.createObjectURL(blob);
@@ -1057,6 +1060,7 @@ function CreateResultContent() {
           certifications={data.certifications}
           theme={theme}
           stylePackId={stylePackId}
+          infoBackdrops={data.infoBackdrops}
           conceptIcons={generated?.conceptIcons}
           pendingHighlightIndex={
             pendingPatch
