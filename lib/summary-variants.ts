@@ -6,7 +6,9 @@ export const SUMMARY_VARIANT = {
   borderColor: "rgba(27,27,24,0.14)",
   labelSizePx: 11,
   labelTracking: "0.2em",
-  labelGapPx: 14,
+  labelGapPx: 16,
+  /** 415차 — 요약 띠 위·아래 여백(px). 예전 24 → 32: 히어로·앵커 탭 사이에서 빽빽해 보이던 것(414차 눈 감사) */
+  padYPx: 32,
   stripSizePx: 13,
   stripColGapPx: 16,
   stripRowGapPx: 8,

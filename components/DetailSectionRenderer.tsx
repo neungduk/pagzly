@@ -1376,8 +1376,8 @@ function TrustStrip({
     return (
       <div
         data-summary={variant}
-        className="px-6 py-6 @min-[640px]/pz:px-10"
-        style={{ borderTop: `1px solid ${V.borderColor}`, borderBottom: `1px solid ${V.borderColor}`, backgroundColor: FLAT_PAPER }}
+        className="px-6 @min-[640px]/pz:px-10"
+        style={{ paddingTop: V.padYPx, paddingBottom: V.padYPx, borderTop: `1px solid ${V.borderColor}`, borderBottom: `1px solid ${V.borderColor}`, backgroundColor: FLAT_PAPER }}
       >
         {labelEl}
         {variant === "inline-strip" ? (

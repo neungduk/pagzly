@@ -295,7 +295,7 @@ function trustStripHtml(
               return `<li style="display:flex;justify-content:space-between;gap:16px;padding:${V.listRowPadPx}px 0;${i >= (chips.length >= 3 ? V.listCols : 1) ? `border-top:1px solid ${V.borderColor};` : ""}font-size:${V.listSizePx}px;font-weight:600;word-break:keep-all;color:${color}"><span>${esc(cap.main)}</span>${cap.sub ? `<span style="font-weight:500;opacity:.6">${esc(cap.sub)}</span>` : ""}</li>`;
             })
             .join("")}</ul>`;
-    return `<div data-summary="${variant}" style="padding:24px;border-top:1px solid ${V.borderColor};border-bottom:1px solid ${V.borderColor};background:${FLAT_PAPER}">${label}${body}</div>`;
+    return `<div data-summary="${variant}" style="padding:${V.padYPx}px 24px;border-top:1px solid ${V.borderColor};border-bottom:1px solid ${V.borderColor};background:${FLAT_PAPER}">${label}${body}</div>`;
   }
   const accent = theme.accent;
   const deepText = readableTextDeep(theme);
