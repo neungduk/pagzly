@@ -5,7 +5,8 @@
  */
 import type { InfoColors, InfoLevel } from "@/lib/info-style";
 
-export const BEAUTY_STYLE_ENABLED = true;
+/** 기본 켬. 끄려면 NEXT_PUBLIC_BEAUTY_STYLE=off로 서버를 시작한다(418차와 같은 화면 — 전/후 캡처·되돌리기용) */
+export const BEAUTY_STYLE_ENABLED = process.env.NEXT_PUBLIC_BEAUTY_STYLE !== "off";
 export const BEAUTY_CATEGORY = "화장품/뷰티";
 /** 뷰티 인포 기본 강도(415차 info 축: calm=418차 모습) */
 export const BEAUTY_INFO_DEFAULT: InfoLevel = "bold";
