@@ -166,6 +166,7 @@ import { applyPackTone, classicFashionHeroStrength, isClassicPack, CLASSIC_LAYOU
 import { HERO_CAPTION, HERO_FRAME, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
+import { infoAttr, infoColorsOf, infoCss, infoOn, ipAttr, splitLead, INFO_CHECK_SVG } from "@/lib/info-style";
 import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
 import { applySectionDisplayBudget } from "@/lib/section-display-budget";
 import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
@@ -500,6 +501,7 @@ function comparisonChartBodyHtml(
   theme: CategoryTheme,
   category: string,
   productThumb?: string | null,
+  info = false,
 ): string {
   const section = { ...displayComparisonSection(rawSection), ourLabel: compactOurLabel(rawSection.ourLabel) };
   const accent = theme.accent;
@@ -564,7 +566,7 @@ function comparisonChartBodyHtml(
             : ""
         }
         ${FLAT_SECTION_SURFACES && isChecklist && productThumb ? comparisonVersusHtml(productThumb, section.ourLabel, section.baselineLabel, theme) : ""}
-        <div style="max-width:448px;margin:${FLAT_SECTION_SURFACES && !isChecklist ? 28 : 40}px auto 0;display:flex;flex-direction:column;gap:${FLAT_SECTION_SURFACES ? 32 : 24}px">
+        <div${info ? ' data-ip="crows"' : ""} style="max-width:448px;margin:${FLAT_SECTION_SURFACES && !isChecklist ? 28 : 40}px auto 0;display:flex;flex-direction:column;gap:${FLAT_SECTION_SURFACES ? 32 : 24}px">
           ${metricsHtml}
         </div>
         ${basisNoteHtml}
@@ -881,10 +883,10 @@ function sectionHtml(
         FLAT_SECTION_SURFACES && productThumbs?.highlight
           ? `<div data-highlight-product style="position:relative;margin:${hp.marginTopPx}px auto 0;width:${hp.px}px;height:${hp.px}px;border-radius:9999px;overflow:hidden;box-shadow:0 0 0 ${hp.ringPx}px ${section.boldBlock ? hexToRgba(BRAND.paper, 0.28) : hexToRgba(solidAccentOnPaper(theme), 0.3)}"><img src="${esc(productThumbs.highlight)}" alt="" aria-hidden="true" loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover"/></div>`
           : "";
-      return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
+      return `<section${sectionIdAttr}${infoAttr(layout, "points")} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${headerHtml}
         ${productPhotoHtml}
-        <div class="pagzly-hl-grid" style="display:grid;grid-template-columns:repeat(${cards.length === 4 ? 2 : 1},1fr);--pz-hl-wide:repeat(${cards.length},1fr);gap:${FLAT_SECTION_SURFACES ? 16 : 12}px;margin-top:${FLAT_SECTION_SURFACES ? 40 : 32}px">
+        <div class="pagzly-hl-grid"${ipAttr(layout, "pgrid")} style="display:grid;grid-template-columns:repeat(${cards.length === 4 ? 2 : 1},1fr);--pz-hl-wide:repeat(${cards.length},1fr);gap:${FLAT_SECTION_SURFACES ? 16 : 12}px;margin-top:${FLAT_SECTION_SURFACES ? 40 : 32}px">
           ${cards
             .map((card, i) => {
               const em = i === center;
@@ -920,7 +922,7 @@ function sectionHtml(
                   ? `<span aria-hidden="true" style="display:flex;justify-content:center;margin-bottom:12px"><span style="display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:48px;height:48px;border-radius:50%;border:1px solid ${(em || section.boldBlock) && !lightEm ? hexToRgba(BRAND.paper, 0.32) : hexToRgba(deepText, 0.22)}">${summaryIconSvg(benefitIcons[i]!, (em || section.boldBlock) && !lightEm ? BRAND.paper : deepText, BENEFIT_ICON_PX)}</span></span>`
                   : "";
               const rowCls = FLAT_SECTION_SURFACES && benefitIcons && cards.length <= 3 ? " pagzly-hl-row" : "";
-              return `<div class="${em && !FLAT_SECTION_SURFACES ? "pulse-card" : ""}${rowCls}" style="${FLAT_SECTION_SURFACES ? "container-type:inline-size;" : ""}border-radius:${RADIUS.lg}px;padding:${FLAT_SECTION_SURFACES ? "32px 24px" : "28px 20px"};text-align:center;background:${cardBg};border:${cardBorder};${em && !FLAT_SECTION_SURFACES ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}color:${titleColor}">
+              return `<div class="${em && !FLAT_SECTION_SURFACES ? "pulse-card" : ""}${rowCls}"${infoOn(layout) && em ? ' data-em="1"' : ""} style="${FLAT_SECTION_SURFACES ? "container-type:inline-size;" : ""}border-radius:${RADIUS.lg}px;padding:${FLAT_SECTION_SURFACES ? "32px 24px" : "28px 20px"};text-align:center;background:${cardBg};border:${cardBorder};${em && !FLAT_SECTION_SURFACES ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}color:${titleColor}">
                 ${iconHtml}${FLAT_SECTION_SURFACES ? "" : `<div style="font-size:${FONT_SIZE.label};letter-spacing:.22em;opacity:.7;border:1px solid ${accent}55;border-radius:${RADIUS.pill}px;display:inline-block;padding:4px 10px">${formatPointBadge(i + 1)}</div>`}
                 ${cardKeyword.keyword ? FLAT_SECTION_SURFACES ? `<p class="pz-fit" style="--pz-fs:clamp(1.75rem,8cqi,2.75rem);--pz-fit-em:${longestTokenEm(cardKeyword.keyword, -0.06)};font-size:clamp(1.75rem,8cqi,2.75rem);font-family:${DETAIL_FONT_STACK.heading};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:0 0 ${showTitle ? 0 : 8}px;text-transform:uppercase;color:${(em || section.boldBlock) && !lightEm ? BRAND.paper : deepText}">${esc(cardKeyword.keyword)}</p>` : `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClampCard};font-weight:900;line-height:.92;letter-spacing:-.05em;margin:${FLAT_SECTION_SURFACES ? 0 : 12}px 0 ${showTitle ? 0 : 8}px;text-transform:uppercase;color:${(em || section.boldBlock) && !lightEm ? BRAND.paper : deepText}">${esc(cardKeyword.keyword)}</p>` : ""}
                 ${showTitle ? `<h3 style="margin:${FLAT_SECTION_SURFACES && !cardKeyword.keyword ? 0 : 8}px 0 8px;font-size:${cardKeyword.keyword ? (FLAT_SECTION_SURFACES ? `16px;line-height:24px;letter-spacing:-0.02em;font-family:${DETAIL_FONT_STACK.heading}` : FONT_SIZE.bodySm) : FLAT_SECTION_SURFACES ? "18px;line-height:28px;letter-spacing:-0.02em" : "inherit"};font-weight:${cardKeyword.keyword ? "600" : "700"};color:${titleColor}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</h3>` : ""}
@@ -1009,7 +1011,7 @@ function sectionHtml(
               </div>`;
           }
           const barColor = section.barAccent === "emphasis" ? deep : accent;
-          return `<div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;font-size:${FONT_SIZE.bodySm}"><span class="pagzly-stat-bar-label" style="font-weight:500;color:rgba(27,27,24,.65)">${esc(m.label)}</span><span style="flex-shrink:0;white-space:nowrap;font-size:16px;line-height:1.5"><strong style="font-family:${DETAIL_FONT_STACK.heading};font-size:${titleSizeCss("statBar")};font-weight:900;line-height:1;letter-spacing:-0.05em;font-variant-numeric:tabular-nums;color:${BRAND.ink}">${statValueHtml(m.value)}</strong>${footnoteMarkFor(m)}</span></div>
+          return `<div${infoOn(layout) && pct > 0 && pct === Math.max(...listBars.map((b) => b.percent ?? 0)) ? ' data-top="1"' : ""}><div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;font-size:${FONT_SIZE.bodySm}"><span class="pagzly-stat-bar-label" style="font-weight:500;color:rgba(27,27,24,.65)">${esc(m.label)}</span><span style="flex-shrink:0;white-space:nowrap;font-size:16px;line-height:1.5"><strong style="font-family:${DETAIL_FONT_STACK.heading};font-size:${titleSizeCss("statBar")};font-weight:900;line-height:1;letter-spacing:-0.05em;font-variant-numeric:tabular-nums;color:${BRAND.ink}">${statValueHtml(m.value)}</strong>${footnoteMarkFor(m)}</span></div>
                 ${
                   FLAT_SECTION_SURFACES && isConcentrationMetricLabel(m.label)
                     ? `<div style="height:1px;background:${hexToRgba(accent, 0.2)};margin-top:12px"></div>`
@@ -1048,11 +1050,12 @@ function sectionHtml(
               )
               .join("")}</div>`
           : null;
+      const numberBlockHtml = numberStrip ?? statGrid(numberMetrics, "24px 20px");
       const metricsHtml = [
-        numberStrip ?? statGrid(numberMetrics, "24px 20px"),
+        infoOn(layout) ? "" : numberBlockHtml,
         stripMetrics ? "" : statGrid(ringMetrics, "32px 20px"),
         listBars.length > 0
-          ? `<div style="max-width:576px;margin:40px auto 0;display:flex;flex-direction:column;gap:28px">${listBars.map(metricHtml).join("")}</div>`
+          ? `<div${ipAttr(layout, "bars")} style="max-width:576px;margin:40px auto 0;display:flex;flex-direction:column;gap:28px">${listBars.map(metricHtml).join("")}</div>`
           : "",
       ].join("");
       const footnotesHtml =
@@ -1064,12 +1067,14 @@ function sectionHtml(
               )
               .join("")}</div>`
           : "";
-      return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
+      return `<section${sectionIdAttr}${infoAttr(layout, "stat")} style="${pad}${sectionInset}${bgCss}">
         ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
-        ${metricsHtml}${footnotesHtml}</section>`;
+        ${metricsHtml}${footnotesHtml}</section>${infoOn(layout) && numberBlockHtml ? `<section${infoAttr(layout, "statnum")} style="${pad}${sectionInset}${bgCss}">${numberBlockHtml}</section>` : ""}`;
     }
-    case "comparison_chart":
-      return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">${comparisonChartBodyHtml(section, theme, category, productThumbs?.compare)}</section>`;
+    case "comparison_chart": {
+      const infoCompare = infoOn(layout) && section.presentationStyle === "checklist";
+      return `<section${sectionIdAttr}${infoCompare ? infoAttr(layout, "compare") : ""} style="${pad}${sectionInset}${bgCss}">${comparisonChartBodyHtml(section, theme, category, productThumbs?.compare, infoCompare)}</section>`;
+    }
     case "tradeoff_card": {
       const recommendFor = (Array.isArray(section.recommendFor) ? section.recommendFor : [])
         .map((t) => t.trim())
@@ -1662,14 +1667,14 @@ function sectionHtml(
       if (FLAT_SECTION_SURFACES) {
         const tint = hexToRgba(accent, 0.12);
         const edge = `${50 / Math.max(1, section.steps.length)}%`;
-        return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
+        return `<section${sectionIdAttr}${infoAttr(layout, "steps")} style="${pad}${sectionInset}${bgCss}">
         ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
         <ol class="pagzly-usage" style="position:relative;max-width:768px;margin:56px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:40px;--pz-step-edge:${edge}">
           <div class="pagzly-usage-line" aria-hidden="true" style="position:absolute;left:22px;top:22px;bottom:22px;width:1px;background:${hexToRgba(accent, 0.25)}"></div>
           ${section.steps
             .map(
               (s, i) =>
-                `<li class="pagzly-usage-step" style="position:relative;display:flex;align-items:flex-start;gap:16px"><span aria-hidden="true" style="position:relative;z-index:1;flex-shrink:0;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:9999px;background:linear-gradient(${tint},${tint}),${FLAT_PAPER};color:${deepText};font-size:16px;font-weight:600;font-variant-numeric:tabular-nums">${i + 1}</span><div style="min-width:0;flex:1;padding-top:4px"><p style="margin:0 0 6px;font-family:${DETAIL_FONT_STACK.label};font-size:11px;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:${accentText}">STEP ${String(i + 1).padStart(2, "0")}</p><span class="pagzly-usage-text" style="display:block;font-size:14px;line-height:1.625;color:${hexToRgba(BRAND.ink, 0.78)}">${esc(s)}</span></div></li>`,
+                `<li class="pagzly-usage-step" style="position:relative;display:flex;align-items:flex-start;gap:16px"><span aria-hidden="true" style="position:relative;z-index:1;flex-shrink:0;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:9999px;background:linear-gradient(${tint},${tint}),${FLAT_PAPER};color:${deepText};font-size:16px;font-weight:600;font-variant-numeric:tabular-nums">${i + 1}</span><div style="min-width:0;flex:1;padding-top:4px"><p style="margin:0 0 6px;font-family:${DETAIL_FONT_STACK.label};font-size:11px;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:${accentText}">STEP ${String(i + 1).padStart(2, "0")}</p><span class="pagzly-usage-text" style="display:block;font-size:14px;line-height:1.625;color:${hexToRgba(BRAND.ink, 0.78)}">${infoOn(layout) && splitLead(s) ? `<b data-ip="lead">${esc(splitLead(s)!.lead)}</b>${esc(splitLead(s)!.rest)}` : esc(s)}</span></div></li>`,
             )
             .join("")}
         </ol>${flowBlock}</section>`;
@@ -1751,11 +1756,11 @@ function sectionHtml(
       const cautionItems = FLAT_SECTION_SURFACES ? splitNoticeSentences(section.body) : null;
       if (cautionItems) {
         const dot = `display:block;flex-shrink:0;width:6px;height:6px;margin-top:8px;border-radius:9999px;background:${solidAccentOnPaper(theme)}`;
-        return `<section${sectionIdAttr} style="${trustPad}${sectionInset}${bgCss}">
+        return `<section${sectionIdAttr}${infoAttr(layout, "care")} style="${trustPad}${sectionInset}${bgCss}">
         ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)};margin:0`)}
         <div data-caution-list class="pagzly-caution-list" style="max-width:36rem;margin:32px auto 0;border:1px solid ${hexToRgba(BRAND.ink, 0.12)};border-radius:12px;background:${FLAT_PAPER};padding:20px;text-align:left;font-size:14px;line-height:1.625;color:${hexToRgba(BRAND.ink, 0.75)}">
           <ul style="list-style:none;margin:0;padding:0">${cautionItems
-            .map((item, i) => `<li style="display:flex;gap:12px${i ? ";margin-top:10px" : ""}"><span aria-hidden="true" style="${dot}"></span><span style="min-width:0">${esc(item)}</span></li>`)
+            .map((item, i) => `<li style="display:flex;gap:12px${i ? ";margin-top:10px" : ""}">${infoOn(layout) ? `<span aria-hidden="true">${INFO_CHECK_SVG}</span>` : `<span aria-hidden="true" style="${dot}"></span>`}<span style="min-width:0">${infoOn(layout) && splitLead(item) ? `<b data-ip="lead">${esc(splitLead(item)!.lead)}</b>${esc(splitLead(item)!.rest)}` : esc(item)}</span></li>`)
             .join("")}</ul>
         </div>
       </section>`;
@@ -2313,7 +2318,7 @@ ${jsonLd}
 <style>
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
-  ${buildDetailExportFontCss(opts.category)}${packHeadlineExportCss(pack)}${isClassicPack(pack) ? "" : packStructureCss(getPackLayout(pack), ".pagzly-wrap", "export")}
+  ${buildDetailExportFontCss(opts.category)}${packHeadlineExportCss(pack)}${isClassicPack(pack) ? "" : packStructureCss(getPackLayout(pack), ".pagzly-wrap", "export") + infoCss(getPackLayout(pack).info, ".pagzly-wrap", infoColorsOf(opts.theme))}
   .pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size;line-height:1.5;${sectionPadVarsCss(opts.category, false, packPadScale(pack))}}
   @media (min-width:640px){.pagzly-wrap{${sectionPadVarsCss(opts.category, true, packPadScale(pack))}}}
   .pagzly-wrap section>h2.pagzly-display-headline:first-child{margin-top:0}

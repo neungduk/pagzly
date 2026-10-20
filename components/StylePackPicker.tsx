@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { resolveStylePack } from "@/lib/style-packs";
+import { decodeSpec, encodeSpec, resolveStylePack } from "@/lib/style-packs";
+import { INFO_LABEL, INFO_LEVELS, type InfoLevel } from "@/lib/info-style";
 import { CLASSIC_PACK } from "@/lib/style-packs";
 
 /** 413차 — 디렉터가 고른 추천과 후보(코드·라벨). 패션 세션에서만 넘어온다 */
@@ -50,6 +51,9 @@ export default function StylePackPicker({
     (group?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[next])?.focus();
   }
 
+  // 415차 — 인포 구간(사용 단계·포인트 카드·혼방 막대·비교표·세탁 관리) 강도. 조합 스타일(스펙 코드)일 때만
+  const currentAxes = current.startsWith("x:") ? decodeSpec(current) : null;
+
   return (
     <div className="mb-3" data-testid="style-pack-picker">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -82,6 +86,25 @@ export default function StylePackPicker({
               }`}
             >
               {c.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {open && currentAxes ? (
+        <div role="radiogroup" aria-label="설명 구간 강도" className="mt-2 flex flex-wrap items-center gap-2" data-testid="info-level-picker">
+          <span className="text-xs font-semibold text-ink/60">설명 구간</span>
+          {INFO_LEVELS.map((lv: InfoLevel) => (
+            <button
+              key={lv}
+              type="button"
+              role="radio"
+              aria-checked={currentAxes.info === lv}
+              onClick={() => onChange(encodeSpec({ ...currentAxes, info: lv }))}
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                currentAxes.info === lv ? "border-ink bg-ink text-paper" : "border-line bg-paper text-ink/70 hover:border-ink/40"
+              }`}
+            >
+              {INFO_LABEL[lv]}
             </button>
           ))}
         </div>

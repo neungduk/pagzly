@@ -8,6 +8,7 @@
 import type { CategoryTheme } from "@/lib/category-theme";
 import type { TitleScaleOverrides } from "@/lib/design-tokens";
 import { isHeroKeptOriginal } from "@/lib/fashion-composite-policy";
+import { INFO_LEVELS, type InfoLevel } from "@/lib/info-style";
 
 export type StylePackId = "classic" | "mono-minimal" | "editorial";
 
@@ -50,6 +51,8 @@ export type PackLayout = {
   density: "full" | "compact";
   /** 본문 글자 크기(px)·줄 높이. null = 지금 값 그대로 */
   body: { sizePx: number; line: number } | null;
+  /** 415차 — 인포 구간(사용 단계·포인트 카드·혼방 막대·비교표·세탁 관리) 표현 강도. calm = 지금 모습 */
+  info: InfoLevel;
 };
 
 export const CLASSIC_LAYOUT: PackLayout = {
@@ -65,6 +68,7 @@ export const CLASSIC_LAYOUT: PackLayout = {
   rule: "none",
   density: "full",
   body: null,
+  info: "calm",
 };
 
 export type StylePack = {
@@ -123,6 +127,7 @@ const MONO_MINIMAL: StylePack = {
     rule: "hairline",
     density: "compact",
     body: { sizePx: 15, line: 1.7 },
+    info: "calm",
   },
   tone: { satMul: 0.3, accentL: 0.24, deepL: 0.11, softL: 0.94, softSatMul: 0.25, baseL: 0.955, baseSatMul: 0.3 },
 };
@@ -153,6 +158,7 @@ const EDITORIAL: StylePack = {
     rule: "hairline",
     density: "full",
     body: { sizePx: 16, line: 1.8 },
+    info: "calm",
   },
   tone: { satMul: 0.55, accentL: 0.3, deepL: 0.15, softL: 0.92, softSatMul: 0.45, baseL: 0.945, baseSatMul: 0.35, baseHue: 40, baseSat: 0.45 },
 };
@@ -338,6 +344,8 @@ export type SpecAxes = {
   rule: PackLayout["rule"];
   density: PackLayout["density"];
   body: PackLayout["body"];
+  /** 415차 — 인포 구간 표현. 코드에는 calm이 아닐 때만 실린다(기존 코드는 그대로 calm) */
+  info: InfoLevel;
   /** 제목 서체: Noto Serif/Sans 2종 안의 굵기·자간(em). null = 지금 값 */
   headline: { kind: "serif" | "sans-display"; weight: number; ls: number } | null;
   scale: TitleScaleName;
@@ -357,6 +365,7 @@ export const SPEC_ENUMS = {
   heading: ["center-stack", "left-eyebrow", "center-rule"],
   rule: ["none", "hairline"],
   density: ["full", "compact"],
+  info: INFO_LEVELS,
 } as const;
 
 /** 스펙 → StylePack(id는 코드). 프리셋과 같은 조합이면 프리셋 객체를 그대로 돌려준다 */
@@ -376,6 +385,7 @@ export function packFromSpec(axes: SpecAxes): StylePack {
     rule: axes.rule,
     density: axes.density,
     body: axes.body,
+    info: axes.info,
   };
   const label = specLabel(axes);
   return {
@@ -409,6 +419,7 @@ export function specOfPack(pack: StylePack): SpecAxes {
     rule: l.rule,
     density: l.density,
     body: l.body,
+    info: l.info,
     headline: pack.headline ? { kind: pack.headline.kind, weight: pack.headline.weight, ls: parseFloat(pack.headline.letterSpacing) } : null,
     scale,
     padY: pack.padYScale,
@@ -425,6 +436,7 @@ const KEYS: Array<keyof SpecAxes> = [
 export function encodeSpec(axes: SpecAxes): string {
   const o: Record<string, unknown> = {};
   for (const k of KEYS) o[k] = axes[k];
+  if (axes.info !== "calm") o.info = axes.info;
   return SPEC_PREFIX + JSON.stringify(o);
 }
 
@@ -451,11 +463,12 @@ export function decodeSpec(code: string): SpecAxes | null {
   const heading = oneOf(SPEC_ENUMS.heading, o.heading);
   const rule = oneOf(SPEC_ENUMS.rule, o.rule);
   const density = oneOf(SPEC_ENUMS.density, o.density);
+  const info = o.info === undefined ? ("calm" as const) : oneOf(SPEC_ENUMS.info, o.info);
   const scale = typeof o.scale === "string" && o.scale in TITLE_SCALES ? o.scale : null;
   const padY = num(o.padY, 0.8, 1.6);
   const heroGrad = num(o.heroGrad, 0, 1.2);
   const radius = o.radius === null ? null : num(o.radius, 0, 24);
-  if (!hero || !flow || !gallery || !summary || !summaryPlacement || !anchor || !checklist || !heading || !rule || !density || !scale || padY === null || heroGrad === null) return null;
+  if (!hero || !flow || !gallery || !summary || !summaryPlacement || !anchor || !checklist || !heading || !rule || !density || !info || !scale || padY === null || heroGrad === null) return null;
   if (o.radius !== null && radius === null) return null;
   let body: SpecAxes["body"] = null;
   if (o.body !== null) {
@@ -494,7 +507,7 @@ export function decodeSpec(code: string): SpecAxes | null {
       tone.baseSat = bs;
     }
   }
-  return { hero, flow, gallery, summary, summaryPlacement, anchor, checklist, heading, radius, rule, density, body, headline, scale, padY, heroGrad, tone };
+  return { hero, flow, gallery, summary, summaryPlacement, anchor, checklist, heading, radius, rule, density, body, info, headline, scale, padY, heroGrad, tone };
 }
 
 export function packFromCode(code: string): StylePack | null {

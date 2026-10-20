@@ -282,6 +282,8 @@ function buildAxes(input: DirectorInput, f: DirectorFeatures, rand: () => number
     rule: !bleed && (sharp || heading !== "center-stack") ? "hairline" : "none",
     density: calmDense ? "compact" : "full",
     body: sharp ? (calmDense ? { sizePx: 15, line: 1.7 } : { sizePx: 16, line: 1.8 }) : null,
+    // 415차: 패션 자동 적용의 인포 구간은 기본 bold, 무드가 강한 계열(bold-pop)은 dramatic
+    info: family === "bold-pop" ? "dramatic" : "bold",
     headline: type.headline,
     scale: type.scale,
     padY: Math.min(1.35, Math.max(0.9, padY)),

@@ -144,6 +144,7 @@ import { rhythmLiveVars } from "@/lib/rhythm-tokens";
 import { HERO_CAPTION, HERO_FRAME, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
+import { infoColorsOf, infoCss, infoData, infoOn, ipData, splitLead, INFO_CHECK_SVG } from "@/lib/info-style";
 import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
 import {
   applyPackTone,
@@ -1803,6 +1804,8 @@ function renderComparisonChartBody(params: {
   section: ComparisonChartSection;
   theme: CategoryTheme;
   productThumb?: string | null;
+  /** 415차 — 인포 bold/dramatic: 표 컨테이너에 CSS 훅을 단다(체크리스트형만) */
+  info?: boolean;
 }): ReactNode {
   const { theme } = params;
   const section = {
@@ -1854,6 +1857,7 @@ function renderComparisonChartBody(params: {
         className={`mx-auto max-w-md space-y-8 ${
           FLAT_SECTION_SURFACES && section.presentationStyle !== "checklist" ? "mt-7" : "mt-10"
         }`}
+        {...(params.info ? { "data-ip": "crows" } : {})}
       >
         {section.presentationStyle === "checklist"
           ? section.metrics.map((metric, metricIndex) => (
@@ -3656,8 +3660,9 @@ function renderSection(
           key={`comparison_chart-${index}`}
           className={getCategoryRhythm(category).generousPadClass}
           style={textSectionStyle(theme, pattern, category)}
+          {...(section.presentationStyle === "checklist" ? infoData(layout, "compare") : {})}
         >
-          {renderComparisonChartBody({ section, theme, productThumb: productThumbs?.compare })}
+          {renderComparisonChartBody({ section, theme, productThumb: productThumbs?.compare, info: infoOn(layout) && section.presentationStyle === "checklist" })}
         </section>
       );
 
@@ -3772,6 +3777,7 @@ function renderSection(
           key={`highlight_box-${index}`}
           className={`relative overflow-hidden ${getCategoryRhythm(category).generousPadClass}`}
           style={textSectionStyle(theme, boxPattern, category)}
+          {...(isTrustEvidence ? {} : infoData(layout, "points"))}
         >
           {!boldBlock ? <SectionBackdropAccent theme={theme} /> : null}
           {!boldBlock ? <SectionAccentHairline theme={theme} /> : null}
@@ -3806,7 +3812,7 @@ function renderSection(
               <img src={productThumbs.highlight} alt="" aria-hidden className="block h-full w-full object-cover" />
             </div>
           ) : null}
-          <div className={`relative mx-auto ${isTrustEvidence ? "mt-0" : "mt-10"} grid gap-4 ${gridCols}`}>
+          <div className={`relative mx-auto ${isTrustEvidence ? "mt-0" : "mt-10"} grid gap-4 ${gridCols}`} {...(isTrustEvidence ? {} : ipData(layout, "pgrid"))}>
             {cards.map((card, cardIndex) => {
               const emphasized = cardIndex === centerIdx;
               const lightEm = FLAT_SECTION_SURFACES && boldBlock && emphasized;
@@ -3817,6 +3823,7 @@ function renderSection(
                 <div
                   key={cardIndex}
                   data-preview-pulse={emphasized ? "true" : undefined}
+                  data-em={infoOn(layout) && !isTrustEvidence && emphasized ? "1" : undefined}
                   className={`@container flex flex-col gap-2 rounded-2xl px-6 py-8 text-center ${
                     !isTrustEvidence && FLAT_SECTION_SURFACES && benefitIcons && cards.length <= 3 ? "pagzly-hl-row" : ""
                   } ${
@@ -4060,21 +4067,7 @@ function renderSection(
               ? "max-w-xl grid-cols-2"
               : "max-w-2xl grid-cols-2 @min-[640px]/pz:grid-cols-3";
 
-      return (
-        <section
-          key={`stat_infographic-${index}`}
-          className={getCategoryRhythm(category).generousPadClass}
-          style={textSectionStyle(theme, pattern, category)}
-        >
-          <SectionAccentHairline theme={theme} />
-          <EditableText
-            as="h3"
-            enabled={edit?.enabled}
-            value={section.heading}
-            onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)} display={headlineKeywordNodes(section.heading, theme)}
-          />
-          {stripMetrics ? (
+      const numberBlock = stripMetrics ? (
             <div
               className={`mx-auto mt-10 flex items-stretch ${stripMetrics.length === 1 ? "max-w-xs" : stripMetrics.length === 2 ? "max-w-md" : "max-w-2xl"}`}
               style={{
@@ -4118,7 +4111,7 @@ function renderSection(
                 </div>
               ))}
             </div>
-          ) : numberMetrics.length > 0 && (
+          ) : numberMetrics.length > 0 ? (
             <div className={`mx-auto mt-10 grid gap-x-5 gap-y-6 ${numberGridCols}`}>
               {numberMetrics.map(({ metric, metricIndex }) => (
                 <LayeredPanel
@@ -4169,7 +4162,25 @@ function renderSection(
                 </LayeredPanel>
               ))}
             </div>
-          )}
+          ) : null;
+
+      return (
+        <>
+        <section
+          key={`stat_infographic-${index}`}
+          className={getCategoryRhythm(category).generousPadClass}
+          style={textSectionStyle(theme, pattern, category)}
+          {...infoData(layout, "stat")}
+        >
+          <SectionAccentHairline theme={theme} />
+          <EditableText
+            as="h3"
+            enabled={edit?.enabled}
+            value={section.heading}
+            onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+            className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)} display={headlineKeywordNodes(section.heading, theme)}
+          />
+          {infoOn(layout) ? null : numberBlock}
           {!stripMetrics && ringMetrics.length > 0 && (
             <div className={`mx-auto mt-10 grid gap-x-5 gap-y-8 ${ringGridCols}`}>
               {ringMetrics.map(({ metric, metricIndex }) => {
@@ -4202,11 +4213,14 @@ function renderSection(
             </div>
           )}
           {listBars.length > 0 && (
-            <div className="mx-auto mt-10 max-w-xl space-y-7">
+            <div className="mx-auto mt-10 max-w-xl space-y-7" {...ipData(layout, "bars")}>
               {listBars.map(({ metric, metricIndex }) => {
                 const percent = Math.min(100, Math.max(0, metric.percent ?? 0));
                 return (
-                  <div key={`${metric.label}-${metricIndex}`}>
+                  <div
+                    key={`${metric.label}-${metricIndex}`}
+                    data-top={infoOn(layout) && percent > 0 && percent === Math.max(...listBars.map((b) => b.metric.percent ?? 0)) ? "1" : undefined}
+                  >
                     <div className="flex items-baseline justify-between gap-4">
                       <div className="flex items-center gap-2.5">
                         {!FLAT_SECTION_SURFACES && (
@@ -4270,6 +4284,17 @@ function renderSection(
             </div>
           )}
         </section>
+        {infoOn(layout) && numberBlock ? (
+          <section
+            key={`stat_infographic-num-${index}`}
+            className={getCategoryRhythm(category).generousPadClass}
+            style={textSectionStyle(theme, pattern, category)}
+            {...infoData(layout, "statnum")}
+          >
+            {numberBlock}
+          </section>
+        ) : null}
+        </>
       );
     }
 
@@ -4386,6 +4411,7 @@ function renderSection(
           key={`usage_steps-${index}`}
           className={getCategoryRhythm(category).generousPadClass}
           style={textSectionStyle(theme, pattern, category)}
+          {...infoData(layout, "steps")}
         >
           <SectionAccentHairline theme={theme} />
           <EditableText
@@ -4442,6 +4468,18 @@ function renderSection(
                   >
                     STEP {String(stepIndex + 1).padStart(2, "0")}
                   </p>
+                  {infoOn(layout) && !edit?.enabled ? (
+                    <span className="block">
+                      {splitLead(step) ? (
+                        <>
+                          <b data-ip="lead">{splitLead(step)!.lead}</b>
+                          {splitLead(step)!.rest}
+                        </>
+                      ) : (
+                        step
+                      )}
+                    </span>
+                  ) : (
                   <EditableText
                     as="span"
                     enabled={edit?.enabled}
@@ -4457,6 +4495,7 @@ function renderSection(
                         : TYPO.stepItem
                     }
                   />
+                  )}
                 </div>
               </li>
             ))}
@@ -4689,6 +4728,7 @@ function renderSection(
             key={`caution-${index}`}
             className={getCategoryRhythm(category).trustPadClass}
             style={textSectionStyle(theme, pattern, category)}
+            {...infoData(layout, "care")}
           >
             <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}>
               {headlineKeywordNodes(section.heading, theme) ?? section.heading}
@@ -4701,12 +4741,25 @@ function renderSection(
               <ul className="space-y-2.5">
                 {cautionItems.map((item, i) => (
                   <li key={i} className="flex gap-3">
+                    {infoOn(layout) ? (
+                      <span aria-hidden="true" dangerouslySetInnerHTML={{ __html: INFO_CHECK_SVG }} />
+                    ) : (
                     <span
                       aria-hidden="true"
                       className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full"
                       style={{ backgroundColor: solidAccentOnPaper(theme) }}
                     />
-                    <span className="min-w-0">{item}</span>
+                    )}
+                    <span className="min-w-0">
+                      {infoOn(layout) && splitLead(item) ? (
+                        <>
+                          <b data-ip="lead">{splitLead(item)!.lead}</b>
+                          {splitLead(item)!.rest}
+                        </>
+                      ) : (
+                        item
+                      )}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -5864,7 +5917,7 @@ export default function DetailSectionRenderer({
       data-pz-pack={isClassicPack(pack) ? undefined : pack.id}
       style={packRootStyle(category, pack) as CSSProperties}
     >
-      {isClassicPack(pack) ? null : <style>{packStructureCss(packLayout, "[data-pz-pack]", "live")}</style>}
+      {isClassicPack(pack) ? null : <style>{packStructureCss(packLayout, "[data-pz-pack]", "live") + infoCss(packLayout.info, "[data-pz-pack]", infoColorsOf(baseTheme))}</style>}
       {sectionAnchors.length > 0 && !anchorNavAfterHero ? (
         <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} variant={packLayout.anchor} />
       ) : null}

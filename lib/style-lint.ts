@@ -7,6 +7,7 @@ import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import { contrastRatioToken, FLAT_PAPER, readableTextAccent, readableTextDeep } from "@/lib/design-tokens";
 import { HERO_CAPTION } from "@/lib/hero-variants";
 import { applyPackTone, packFromSpec, type SpecAxes } from "@/lib/style-packs";
+import { infoColorsOf } from "@/lib/info-style";
 
 const blend = (fg: [number, number, number, number], bg: string) => {
   const n = parseInt(bg.slice(1), 16);
@@ -41,3 +42,27 @@ export function contrastLint(axes: SpecAxes, hue: number): string[] {
 }
 
 export const HUES = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330] as const;
+
+/** 415차 — 인포 구간(info=bold|dramatic) 글자 대비: 스펙 × hue. info가 calm이면 점검 대상이 아니다 */
+export function infoContrastLint(axes: SpecAxes, hue: number): string[] {
+  if (axes.info === "calm") return [];
+  const pack = packFromSpec(axes);
+  const base = { ...getCategoryTheme("의류/패션"), ...buildThemeFromHueWithNeutral(hue, STUDIO_NEUTRAL_SAMPLE) } as CategoryTheme;
+  const t = applyPackTone(base, pack);
+  const c = infoColorsOf(t);
+  const W = c.paper;
+  const onDeep = blend([255, 255, 255, 0.92], c.deep);
+  const checks: Array<[string, number, number]> = [
+    ["인포 흰 글자 on 포인트색(비교 기둥·강조 카드)", contrastRatioToken(W, c.accent), 4.5],
+    ["인포 흰 글자 on 진한 색(포인트 카드·반전 카드)", contrastRatioToken(W, c.deep), 4.5],
+    ["인포 포인트 카드 본문 on 진한 색", contrastRatioToken(onDeep, c.deep), 4.5],
+    ["인포 본문(잉크) on 흰 카드", contrastRatioToken(c.ink, W), 4.5],
+    ["인포 본문(잉크) on 중립 띠", contrastRatioToken(c.ink, c.base), 4.5],
+    ["인포 본문(잉크) on 연한 포인트 띠", contrastRatioToken(c.ink, c.soft), 4.5],
+    ["인포 앞 절 굵은 글(진한 색) on 흰 카드", contrastRatioToken(c.deep, W), 4.5],
+    ["인포 큰 숫자(포인트색) on 중립 띠", contrastRatioToken(c.accent, c.base), 3],
+    ["인포 큰 숫자(포인트색) on 흰 카드", contrastRatioToken(c.accent, W), 3],
+    ["인포 숫자 칸(진한 색) on 중립 띠", contrastRatioToken(c.deep, c.base), 4.5],
+  ];
+  return checks.filter(([, r, min]) => r < min).map(([label, r, min]) => `${label} ${r.toFixed(2)} < ${min} (hue ${hue})`);
+}
