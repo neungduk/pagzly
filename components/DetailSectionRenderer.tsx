@@ -293,6 +293,8 @@ type DetailSectionRendererProps = {
   stylePackId?: string | null;
   /** 417차 — 인포 구간 AI 배경 슬롯(구간 → 이미지 URL). 없으면 코드 배경 그대로 */
   infoBackdrops?: InfoBackdropMap;
+  /** 419차 — 사진별 비전 태그(뷰티 글·사진 일치 게이트). imageUrls와 같은 인덱스 */
+  imageTags?: ReadonlyArray<ReadonlyArray<string> | undefined>;
 };
 
 /**
@@ -5848,6 +5850,7 @@ export default function DetailSectionRenderer({
   pendingHighlightIndex: inputHighlightIndex = null,
   stylePackId,
   infoBackdrops,
+  imageTags,
 }: DetailSectionRendererProps) {
   const pack = resolveStylePack(category, stylePackId);
   const packLayout = getPackLayout(pack);
@@ -5858,6 +5861,7 @@ export default function DetailSectionRenderer({
     origins: imageOrigins,
     category,
     flow: getPackLayout(resolveStylePack(category, stylePackId)).flow,
+    tags: imageTags,
   });
   const rawSections = display.sections;
   const toSource = (i: number) => display.sourceIndexes[i] ?? i;

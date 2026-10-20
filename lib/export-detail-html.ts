@@ -2105,6 +2105,8 @@ export function buildDetailPageHtml(opts: {
   stylePackId?: string | null;
   /** 417차 — 인포 구간 AI 배경 슬롯(라이브 infoBackdrops와 같은 값). 이미지 없는 export는 코드 배경 */
   infoBackdrops?: InfoBackdropMap;
+  /** 419차 — 사진별 비전 태그(라이브 imageTags와 같은 값) */
+  imageTags?: ReadonlyArray<ReadonlyArray<string> | undefined>;
 }): string {
   const pack = resolveStylePack(opts.category, opts.stylePackId);
   // 408차 — 팩 색 톤: hue는 세션 theme 그대로, 채도·밝기 곡선만 교체(기본 팩은 같은 객체)
@@ -2117,7 +2119,7 @@ export function buildDetailPageHtml(opts: {
       opts.sections.filter((_, i) => !hidden.has(i)),
     ),
     opts.imageUrls,
-    { imageHashByUrl: opts.imageHashByUrl, roles: opts.imageRoles, origins: opts.imageOrigins, category: opts.category, flow: getPackLayout(pack).flow },
+    { imageHashByUrl: opts.imageHashByUrl, roles: opts.imageRoles, origins: opts.imageOrigins, category: opts.category, flow: getPackLayout(pack).flow, tags: opts.imageTags },
   ).sections;
   const visibleSections = dropSpecEchoFaqItems(
     dropDuplicateRecommendColumn(

@@ -6,6 +6,7 @@ import { assignPersonaStrip, type StripImageHints } from "@/lib/persona-strip";
 import { imageSourceGroups, type ImageHashByUrl } from "@/lib/gallery-dedupe";
 import { FASHION_CATEGORY, isWornFashionPhoto } from "@/lib/fashion-composite-policy";
 import type { FlowVariant } from "@/lib/style-packs";
+import { insertCompositionGallery, matchPhotosToText } from "@/lib/photo-text-match";
 
 export type DisplaySections = {
   sections: DetailSection[];
@@ -267,7 +268,16 @@ export function photoLeadFlow(
 export function applyDisplayRules(
   sections: DetailSection[],
   imageUrls: readonly string[],
-  opts: { editing?: boolean; imageHashByUrl?: ImageHashByUrl; category?: string; flow?: FlowVariant } & StripImageHints = {},
+  opts: {
+    editing?: boolean;
+    imageHashByUrl?: ImageHashByUrl;
+    category?: string;
+    flow?: FlowVariant;
+    /** 419차 — 사진별 비전 태그(뷰티 글·사진 일치 게이트용). 없으면 게이트가 아무것도 바꾸지 않는다 */
+    tags?: ReadonlyArray<ReadonlyArray<string> | undefined>;
+    /** 419차 — 장면(합성) 이미지가 채워진 슬롯이 있는지 */
+    hasSceneImage?: boolean;
+  } & StripImageHints = {},
 ): DisplaySections {
   const ordered = storyAfterPhotoFlow(
     photoLeadFlow(
@@ -287,20 +297,24 @@ export function applyDisplayRules(
   const orderIndexes = ordered.map((s) => sections.indexOf(s));
   if (opts.editing) return { sections: ordered, sourceIndexes: orderIndexes };
   const sourceOf = imageSourceGroups(imageUrls, opts.imageHashByUrl);
-  const capped = enforceImageSourceCapIndexed(limitBoldBlocks(ordered), imageUrls.length, undefined, sourceOf);
+  // 419차 — 뷰티 글·사진 일치(개수·순서 불변이라 sourceIndexes가 그대로 맞는다)
+  const photoCtx = { category: opts.category, roles: opts.roles, origins: opts.origins, tags: opts.tags, hasSceneImage: opts.hasSceneImage };
+  const matched = matchPhotosToText(ordered, imageUrls.length, photoCtx).sections;
+  const capped = enforceImageSourceCapIndexed(limitBoldBlocks(matched), imageUrls.length, undefined, sourceOf);
   const echoes = echoSummaryIndexes(capped.sections);
   const kept = capped.sections.filter((_, i) => !echoes.has(i));
-  return {
-    // 패션 사람 사진 규칙(404~406차): STEP 태그를 사진 밖으로 → 착용컷 히어로 위쪽 기준 → 갤러리 착용컷 먼저
-    sections: [markStepBadgesOffPeople, anchorWornHeroTop, wornFirstInGallery].reduce(
-      (acc, rule) => rule(acc, opts.category, opts.roles),
-      hideRepeatedHeadings(
-        assignPersonaStrip(kept.map(trimCalloutTail), imageUrls.length, sourceOf, {
-          roles: opts.roles,
-          origins: opts.origins,
-        }),
-      ),
+  // 패션 사람 사진 규칙(404~406차): STEP 태그를 사진 밖으로 → 착용컷 히어로 위쪽 기준 → 갤러리 착용컷 먼저
+  const finalSections = [markStepBadgesOffPeople, anchorWornHeroTop, wornFirstInGallery].reduce(
+    (acc, rule) => rule(acc, opts.category, opts.roles),
+    hideRepeatedHeadings(
+      assignPersonaStrip(kept.map(trimCalloutTail), imageUrls.length, sourceOf, {
+        roles: opts.roles,
+        origins: opts.origins,
+      }),
     ),
-    sourceIndexes: capped.sourceIndexes.filter((_, i) => !echoes.has(i)).map((i) => orderIndexes[i]!),
-  };
+  );
+  const finalSources = capped.sourceIndexes.filter((_, i) => !echoes.has(i)).map((i) => orderIndexes[i]!);
+  // 419차 — 상자 컷이 있을 때만 뷰티 구성 갤러리(표시 전용, 편집 모드 아님)
+  const withComposition = insertCompositionGallery(finalSections, finalSources, imageUrls.length, photoCtx);
+  return { sections: withComposition.sections, sourceIndexes: withComposition.sourceIndexes };
 }

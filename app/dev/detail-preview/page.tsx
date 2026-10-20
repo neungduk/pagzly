@@ -1158,6 +1158,10 @@ type CapturePreset = {
   imageOrigins?: import("@/lib/image-origins").ProductImageOrigin[];
   /** 408차 — 스타일 팩 id(패션 세션 감사용) */
   stylePackId?: string;
+  /** 419차 — 사진별 비전 태그(뷰티 글·사진 일치 게이트) */
+  imageTags?: string[][];
+  /** 419차 — 인포 AI 배경 슬롯(417차) */
+  infoBackdrops?: import("@/lib/info-backdrop").InfoBackdropMap;
 };
 
 /** 281차 — capture=session: 저장된 실제 결과(sessionStorage)를 로그인 없이 재현 */
@@ -1181,6 +1185,8 @@ function readSessionPreset(): CapturePreset | null {
       imageRoles: parsed.imageRoles,
       imageOrigins: parsed.imageOrigins,
       stylePackId: parsed.stylePackId,
+      imageTags: parsed.imageTags,
+      infoBackdrops: parsed.infoBackdrops,
     };
   } catch {
     return null;
@@ -1664,6 +1670,8 @@ function DetailPreviewBody({ capture, budget }: { capture: string | null; budget
             imageRoles={capturePreset?.imageRoles}
             imageOrigins={capturePreset?.imageOrigins}
             stylePackId={previewPackId}
+            imageTags={capturePreset?.imageTags}
+            infoBackdrops={capturePreset?.infoBackdrops}
             category={previewCategory}
             brandName={previewBrandName}
             productName={previewProductName}

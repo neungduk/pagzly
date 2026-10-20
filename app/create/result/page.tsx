@@ -98,6 +98,14 @@ function remapHiddenAfterReorder(hidden: number[], from: number, to: number): nu
   });
 }
 
+/** 419차 — visionImageRoles(index·tags) → 사진 인덱스별 태그 배열 */
+function imageTagsOf(v: ProductResult["visionImageRoles"]): string[][] | undefined {
+  if (!v?.length) return undefined;
+  const out: string[][] = [];
+  for (const r of v) if (typeof r.index === "number") out[r.index] = r.tags ?? [];
+  return out;
+}
+
 /** 408차 — DB에서 불러온 상품은 세션 필드가 없어, 고른 스타일 팩을 이 브라우저에만 기억한다(스키마 변경 없음) */
 const STYLE_PACK_STORAGE_PREFIX = "pagzly-style-pack:";
 function readStoredStylePack(productId: string | undefined): string | undefined {
@@ -146,6 +154,8 @@ type ProductResult = {
   stylePackId?: string;
   /** 417차 — 인포 구간 AI 배경 URL 맵(세션 JSON에 실림, DB 불러오기에는 없음 → 코드 배경) */
   infoBackdrops?: import("@/lib/info-backdrop").InfoBackdropMap;
+  /** 419차 — 사진별 역할·태그(비전 분석). 세션 JSON에 실려 있으면 뷰티 글·사진 일치 게이트가 쓴다 */
+  visionImageRoles?: Array<{ index?: number; tags?: string[] }> | null;
   category: string;
   imageUrls: string[];
   imagePaths?: string[];
@@ -888,6 +898,7 @@ function CreateResultContent() {
         imageOrigins: data.imageOrigins,
         stylePackId: effectiveStylePackId(data),
         infoBackdrops: data.infoBackdrops,
+        imageTags: imageTagsOf(data.visionImageRoles),
       });
       const blob = new Blob([html], { type: "text/html;charset=utf-8" });
       const url = URL.createObjectURL(blob);
@@ -1061,6 +1072,7 @@ function CreateResultContent() {
           theme={theme}
           stylePackId={stylePackId}
           infoBackdrops={data.infoBackdrops}
+          imageTags={imageTagsOf(data.visionImageRoles)}
           conceptIcons={generated?.conceptIcons}
           pendingHighlightIndex={
             pendingPatch
