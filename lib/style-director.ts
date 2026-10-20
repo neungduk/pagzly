@@ -304,6 +304,8 @@ export function directStyle(input: DirectorInput, opts: { k?: number; seedSalt?:
     const decoded = decodeSpec(encodeSpec(axes));
     if (!decoded || !isAllowed(decoded, input)) continue;
     if (accepted.some((a) => structDistance(a.axes, decoded) < MIN_DIST)) continue;
+    // 413차 눈 감사: 후보의 첫 화면이 서로 구분되도록 앞쪽 시도에서는 히어로도 겹치지 않게 한다(찾지 못하면 뒤 시도에서 완화)
+    if (i < 50 && accepted.some((a) => a.axes.hero === decoded.hero)) continue;
     accepted.push({ axes: decoded, family });
   }
   if (accepted.length === 0) {
