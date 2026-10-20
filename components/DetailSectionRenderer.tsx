@@ -4704,7 +4704,7 @@ function renderSection(
                           : cell.natural
                             ? "block h-auto max-h-[585px] w-full object-cover object-top @min-[640px]/pz:max-h-[1125px]"
                             : cell.ratio
-                              ? "block h-full w-full object-cover object-top"
+                              ? "block h-full w-full object-cover [object-position:50%_35%]"
                               : "block aspect-[2/3] w-full object-cover object-top"
                         : `${oddLead && pairIndex === 0 ? "aspect-[4/3]" : ratioClass} w-full object-cover`
                     }

@@ -16,7 +16,9 @@ export const GALLERY_VARIANT = {
   /** 413차 mosaic — 10열 격자: 첫 장 6열 × 2행, 오른쪽 쌓는 두 장 4열(정사각), 나머지 5열씩 */
   mosaicColumns: 10,
   mosaicLeadCols: 6,
-  mosaicStackRatio: "1 / 1",
+  /** 415차: 작은 타일(오른쪽 쌓는 두 장) — 정사각 위쪽 기준이면 얼굴만 보였다(414차). 4:5로 세우고 가슴·몸판 쪽(세로 35%)을 중심으로 잘라 상품이 보이게 한다. 390폭에서 한 칸 약 154px */
+  mosaicStackRatio: "4 / 5",
+  mosaicStackPosition: "50% 35%",
 } as const;
 
 /**

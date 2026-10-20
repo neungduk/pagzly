@@ -1551,7 +1551,7 @@ function sectionHtml(
                   return `<div style="position:relative;grid-column:span ${cell.colSpan};grid-row:span ${cell.rowSpan}"><img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:${GALLERY_VARIANT.restPosition}"/></div>`;
                 }
                 return src
-                  ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;${cell.natural ? `height:auto;max-height:${GALLERY_VARIANT.capNarrowPx}px;object-fit:cover;object-position:${GALLERY_VARIANT.restPosition}` : `aspect-ratio:${cell.ratio ?? GALLERY_VARIANT.restRatio};object-fit:cover;object-position:${GALLERY_VARIANT.restPosition}`}${cell.span ? ";grid-column:1/-1" : cell.colSpan ? `;grid-column:span ${cell.colSpan}` : ""}"/>`
+                  ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;${cell.natural ? `height:auto;max-height:${GALLERY_VARIANT.capNarrowPx}px;object-fit:cover;object-position:${GALLERY_VARIANT.restPosition}` : `aspect-ratio:${cell.ratio ?? GALLERY_VARIANT.restRatio};object-fit:cover;object-position:${cell.ratio ? GALLERY_VARIANT.mosaicStackPosition : GALLERY_VARIANT.restPosition}`}${cell.span ? ";grid-column:1/-1" : cell.colSpan ? `;grid-column:span ${cell.colSpan}` : ""}"/>`
                   : "";
               }
               return src
