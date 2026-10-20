@@ -16,6 +16,16 @@ import { validateImageFile } from "@/lib/image-upload";
 import { resolveHeadlineFontKind } from "@/lib/detail-typography";
 import StylePackPicker from "@/components/StylePackPicker";
 import { stylePackOptions } from "@/lib/style-packs";
+
+/** 개발용 미리보기는 프리셋 3종만 고른다(자동 추천은 결과 화면 전용) */
+const DEV_PACK_RECOMMENDATION = {
+  code: "classic",
+  label: "클래식",
+  candidates: [
+    { code: "mono-minimal", label: "모노 미니멀" },
+    { code: "editorial", label: "에디토리얼" },
+  ],
+};
 import { computeDemotedSectionIndexes } from "@/lib/section-display-budget";
 import {
   capture128ChartThenCircleSections,
@@ -1639,7 +1649,7 @@ function DetailPreviewBody({ capture, budget }: { capture: string | null; budget
         <>
         {stylePackOptions(previewCategory).length > 1 ? (
           <div className="mx-auto max-w-[430px] px-4 pt-3">
-            <StylePackPicker category={previewCategory} value={previewPackId} onChange={setPreviewPackId} />
+            <StylePackPicker category={previewCategory} value={previewPackId} recommendation={DEV_PACK_RECOMMENDATION} onChange={setPreviewPackId} />
           </div>
         ) : null}
         <div

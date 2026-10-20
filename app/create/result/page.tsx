@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import DetailSectionRenderer from "@/components/DetailSectionRenderer";
 import GenerationCostStrip from "@/components/GenerationCostStrip";
 import { SHOW_COST_STRIP } from "@/lib/cost/cost-strip-visibility";
@@ -31,8 +31,9 @@ import type { PatchChatMessage } from "@/lib/patch-section-suggestions";
 import { getCategoryTheme } from "@/lib/category-theme";
 import { resolveHeadlineFontKind } from "@/lib/detail-typography";
 import { buildDetailPageHtml } from "@/lib/export-detail-html";
-import { resolveStylePack, stylePackOptions } from "@/lib/style-packs";
-import StylePackPicker from "@/components/StylePackPicker";
+import { resolveStylePack } from "@/lib/style-packs";
+import StylePackPicker, { type StyleRecommendation } from "@/components/StylePackPicker";
+import { FASHION, recommendForSession, STYLE_AUTO_ENABLED } from "@/lib/style-director";
 import { computeDemotedSectionIndexes } from "@/lib/section-display-budget";
 import { captureDetailToPngBlobs, downloadBlob, prepareCaptureRoot } from "@/lib/capture-detail-png";
 import { DEFAULT_SLICE_HEIGHT_PX, downloadPngPartsZip } from "@/lib/split-detail-download";
@@ -115,6 +116,30 @@ function storeStylePack(productId: string | undefined, id: string) {
     /* 저장 불가 환경(시크릿 창 등)은 이번 화면에서만 적용 */
   }
 }
+
+/** 413차 — 스타일 추천: 상품(productId, 없으면 상품명)당 이 화면을 여는 동안 한 번만 계산한다(글을 고치는 중에 추천이 흔들리지 않게). 패션만 */
+const recommendationCache = new Map<string, StyleRecommendation | null>();
+function styleRecommendation(data: ProductResult): StyleRecommendation | null {
+  if (data.category !== FASHION) return null;
+  const key = data.generated?.productId ?? `name:${data.productName}`;
+  if (!recommendationCache.has(key)) {
+    const r = recommendForSession(data);
+    recommendationCache.set(key, r ? { code: r.code, label: r.label, candidates: r.candidates.map((c) => ({ code: c.code, label: c.label })) } : null);
+  }
+  return recommendationCache.get(key) ?? null;
+}
+/** 화면·export·PNG가 모두 쓰는 현재 스타일 id: 판매자가 고른 것 → 없으면 자동 추천(STYLE_AUTO_ENABLED) → classic */
+function effectiveStylePackId(data: ProductResult): string {
+  const explicit = data.stylePackId ?? readStoredStylePack(data.generated?.productId);
+  if (explicit) return resolveStylePack(data.category, explicit).id;
+  const rec = STYLE_AUTO_ENABLED ? styleRecommendation(data) : null;
+  return resolveStylePack(data.category, rec?.code).id;
+}
+const subscribeDesktop = (cb: () => void) => {
+  const mq = window.matchMedia("(min-width: 1024px)");
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+};
 
 type ProductResult = {
   /** 408차 — 스타일 팩 id(패션만 유효). 없거나 모르는 값이면 classic. sessionStorage 세션 JSON에 그대로 실린다 */
@@ -269,6 +294,8 @@ function CreateResultContent() {
   );
   const [blogGlobalOverrides, setBlogGlobalOverrides] = useState<BlogPostGlobalOverride>({});
   const [detailExpanded, setDetailExpanded] = useState(false);
+  // 413차 — 데스크톱/모바일 미리보기가 둘 다 렌더되므로 선택칸은 보이는 쪽에만 그린다(중복 DOM 방지)
+  const isDesktop = useSyncExternalStore(subscribeDesktop, () => window.matchMedia("(min-width: 1024px)").matches, () => true);
 
   useEffect(() => {
     let cancelled = false;
@@ -857,7 +884,7 @@ function CreateResultContent() {
         imageHashByUrl: data.generated.imageHashByUrl,
         imageRoles: data.generated.imageRoles ?? data.imageRoles,
         imageOrigins: data.imageOrigins,
-        stylePackId: resolveStylePack(data.category, data.stylePackId ?? readStoredStylePack(data.generated.productId)).id,
+        stylePackId: effectiveStylePackId(data),
       });
       const blob = new Blob([html], { type: "text/html;charset=utf-8" });
       const url = URL.createObjectURL(blob);
@@ -934,8 +961,8 @@ function CreateResultContent() {
     sessionStorage.setItem(RETRY_PHOTO_ONLY_KEY, "1");
     router.push("/create/draft");
   }
-  const packChoices = stylePackOptions(data.category);
-  const stylePackId = packChoices.length > 0 ? resolveStylePack(data.category, data.stylePackId ?? readStoredStylePack(generated?.productId)).id : undefined;
+  const recommendation = styleRecommendation(data);
+  const stylePackId = recommendation ? effectiveStylePackId(data) : undefined;
   function handleStylePack(id: string) {
     if (!data) return;
     persist({ ...data, stylePackId: id });
@@ -1006,7 +1033,7 @@ function CreateResultContent() {
   const renderDetailPreview = (bindCaptureRef: boolean) =>
     visibleSections.length > 0 ? (
       <div>
-      <StylePackPicker category={data.category} value={stylePackId} onChange={handleStylePack} />
+      {bindCaptureRef === isDesktop ? <StylePackPicker category={data.category} value={stylePackId} recommendation={recommendation} onChange={handleStylePack} /> : null}
       <div
         ref={bindCaptureRef ? captureRef : undefined}
         data-testid="detail-preview"

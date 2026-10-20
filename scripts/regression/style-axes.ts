@@ -1,7 +1,8 @@
 /**
  * 회귀 — 413차 서체 프리셋·연속 톤: 모든 서체 프리셋이 허용 굵기(Noto 실제 로딩분)이고, 톤 파라미터 범위 끝값 × 중립 띠 4종 × hue 12개에서 글자 대비가 합격선(4.5:1, 큰 글자 3:1) 이상. 유료 호출 0.
  */
-import { contrastLint, HUES, makeTone, TYPE_PRESETS, type NeutralBand } from "../../lib/style-axes";
+import { makeTone, TYPE_PRESETS, type NeutralBand } from "../../lib/style-axes";
+import { contrastLint, HUES } from "../../lib/style-lint";
 import { decodeSpec, encodeSpec, specOfPack, resolveStylePack, TITLE_SCALES, type SpecAxes } from "../../lib/style-packs";
 
 export const name = "서체 프리셋·연속 톤 — 허용 굵기·대비(범위 끝값 × 중립 띠 × hue 12)";
