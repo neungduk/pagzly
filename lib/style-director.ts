@@ -151,6 +151,8 @@ export const WEIGHTS = {
     "caption-below": { base: 0.2, premium: 0.5, elegant: 0.6, calm: 0.15, heroWorn: 0.1 },
     "caption-above": { base: 0.15, calm: 0.8, premium: 0.1, mature: 0.1 },
     framed: { base: 0.1, premium: 0.4, elegant: 0.6, mature: 0.2, heroWorn: 0.2 },
+    // 415차: 글자 없이 모델 사진이 화면을 채우는 구조(벤치마크). 히어로가 인물이고 착용컷이 많을 때
+    "full-photo": { base: 0.2, heroWorn: 0.4, worn: 0.4, calm: 0.15, elegant: 0.1, young: 0.1 },
     split: { base: 0.1, young: 0.3, trendy: 0.3, calm: 0.2, textHeavy: 0.2 },
   },
   flow: {
@@ -196,7 +198,7 @@ export const WEIGHTS = {
 type FamilyName = keyof typeof WEIGHTS.family;
 /** 계열이 가리키는 축 값(여러 개면 모두 가산) */
 const FAMILY_VALUES: Record<FamilyName, Partial<Record<"hero" | "flow" | "gallery" | "summary" | "heading" | "type", string[]>>> = {
-  "bold-pop": { hero: ["bleed-bottom", "split"], flow: ["photo-lead", "default"], gallery: ["mosaic"], summary: ["icon-grid"], heading: ["center-stack"], type: ["sans-black"] },
+  "bold-pop": { hero: ["bleed-bottom", "full-photo", "split"], flow: ["photo-lead", "default"], gallery: ["mosaic"], summary: ["icon-grid"], heading: ["center-stack"], type: ["sans-black"] },
   editorial: { hero: ["caption-below", "framed"], flow: ["default", "photo-lead"], gallery: ["lead-plus-two"], summary: ["spec-list"], heading: ["center-rule"], type: ["serif-mid", "serif-bold"] },
   mono: { hero: ["caption-above"], flow: ["story-after-photo", "photo-first"], gallery: ["lookbook-stack"], summary: ["inline-strip"], heading: ["left-eyebrow"], type: ["sans-medium", "sans-semi"] },
   "soft-classic": { hero: ["bleed-bottom"], flow: ["default"], gallery: ["duo-grid"], summary: ["icon-grid"], heading: ["center-stack"], type: ["base", "serif-regular"] },
@@ -243,6 +245,7 @@ export function isAllowed(axes: SpecAxes, input: DirectorInput): boolean {
   const gal = p?.galleryCount ?? 0;
   if (!p || p.total < 1) return axes.hero === "bleed-bottom" && axes.gallery === "duo-grid" && axes.flow === "default";
   if (axes.hero === "framed" && !p.heroWorn) return false; // framed: 히어로가 인물 원본일 때만
+  if (axes.hero === "full-photo" && (!p.heroWorn || p.worn < 2)) return false; // full-photo: 히어로가 인물 원본이고 착용컷이 2장 이상일 때만(사진 크기 정보는 세션에 없다)
   // 413차 린트(콤보 23): 사진 위 제목(bleed-bottom)에 소제목 라벨·가는 선 규칙이 붙으면 사진 위 제목에 "01"·선이 생기고 라이브↔export 줄 수가 어긋난다 → 가운데 소제목·선 없음만 허용
   if (axes.hero === "bleed-bottom" && (axes.heading !== "center-stack" || axes.rule !== "none")) return false;
   if (axes.gallery === "mosaic" && gal < 3) return false;

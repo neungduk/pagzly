@@ -41,7 +41,11 @@ export const HERO_FRAME = {
 /** 넓은 폭에서 글 칸이 절반이라 제목은 부제 크기(--pz-t-subtitle)를 쓴다(긴 제목이 3줄 이상 되지 않게, 413차 린트) */
 export const HERO_SPLIT = { photoRatio: "4 / 5", minWidthPx: 640 } as const;
 
+/** 415차 — full-photo: 모델 사진을 화면 가득(세로 3:4), 사진 위에는 글자 없음, 제목은 사진 아래 작은 캡션(부제 크기). 벤치마크(글자 없는 모델 사진) 구조 */
+export const HERO_FULL = { photoRatio: "3 / 4" } as const;
+
 export function heroCaptionRatio(variant: HeroVariant): string {
+  if (variant === "full-photo") return HERO_FULL.photoRatio;
   if (variant === "framed") return HERO_CAPTION.photoRatio;
   if (variant === "split") return HERO_SPLIT.photoRatio;
   return variant === "caption-below" ? HERO_CAPTION.photoRatioBelow : HERO_CAPTION.photoRatio;

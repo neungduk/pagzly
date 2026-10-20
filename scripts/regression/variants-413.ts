@@ -64,14 +64,17 @@ export async function run(): Promise<string[]> {
 
   // 히어로
   const hero = () => ({ type: "hero", headline: "큰 제목", subheadline: "부제", imageIndex: 0 }) as unknown as DetailSection;
-  for (const v of ["framed", "split"] as const) {
+  for (const v of ["framed", "split", "full-photo"] as const) {
     const h = html([hero()], urls(1), code({ hero: v }));
     if (!h.includes(`data-hero-variant="${v}"`)) fails.push(`${v}: 히어로 표식 없음`);
     if (/text-shadow/.test(h.split("</section>")[0] ?? "")) fails.push(`${v}: 사진 위 글자 그림자가 남음`);
     if (v === "framed" && !h.includes("data-hero-frame")) fails.push("framed 액자 래퍼 없음");
     if (v === "split" && !h.includes('[data-hero-variant="split"]{display:flex}')) fails.push("split 넓은 폭 CSS 없음");
-    if (v === "split" && !h.includes("--pz-fs:var(--pz-t-subtitle)!important")) fails.push("split 넓은 폭 제목 크기(부제 크기) 규칙 없음");
+    if (v === "split" && !h.includes("--pz-fs:max(var(--pz-t-subtitle),1.75rem)!important")) fails.push("split 넓은 폭 제목 크기(부제 크기) 규칙 없음");
     if (v === "split" && html([hero()], urls(1), code({ hero: "caption-below" })).includes('[data-hero-variant="split"]')) fails.push("split CSS가 다른 히어로에도 들어감");
+    if (v === "full-photo" && !h.includes("--pz-fs:var(--pz-t-subtitle)!important")) fails.push("full-photo 캡션 제목 크기(부제 크기) 규칙 없음");
+    if (v === "full-photo" && !h.includes("aspect-ratio:3 / 4")) fails.push("full-photo 사진 비율(3:4) 없음");
+    if (v !== "full-photo" && h.includes('data-hero-variant="full-photo"]')) fails.push("full-photo CSS가 다른 히어로에도 들어감");
     if (resolveHeroVariant(getPackLayout(resolveStylePack("의류/패션", code({ hero: v }))), false) !== "bleed-bottom") fails.push(`${v}: 사진 없음 폴백`);
   }
   // 새 변형이 export에 새 CSS 기능을 들이지 않음(기준: 같은 조건의 에디토리얼 프리셋 export)

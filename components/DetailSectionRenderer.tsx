@@ -2225,7 +2225,7 @@ function renderSection(
               background: theme.baseNeutral,
               ...(heroVariant === "framed" ? { border: `${HERO_FRAME.borderPx}px solid ${HERO_FRAME.borderColor}`, boxSizing: "border-box" as const } : {}),
             }}
-            className={heroVariant === "split" ? "relative w-full overflow-hidden @min-[640px]/pz:w-1/2 @min-[640px]/pz:shrink-0" : "relative w-full overflow-hidden"}
+            className={heroVariant === "split" ? "relative w-full overflow-hidden @min-[640px]/pz:w-[58%] @min-[640px]/pz:shrink-0" : "relative w-full overflow-hidden"}
           >
             <SectionImage
               src={src}
@@ -2244,7 +2244,7 @@ function renderSection(
         const caption = (
           <div
             key="hero-caption"
-            className={heroVariant === "split" ? "px-6 @min-[640px]/pz:flex @min-[640px]/pz:w-1/2 @min-[640px]/pz:flex-col @min-[640px]/pz:justify-center @min-[640px]/pz:px-10" : "px-6 @min-[640px]/pz:px-10"}
+            className={heroVariant === "split" ? "px-6 @min-[640px]/pz:flex @min-[640px]/pz:w-[42%] @min-[640px]/pz:flex-col @min-[640px]/pz:justify-center @min-[640px]/pz:px-8" : "px-6 @min-[640px]/pz:px-10"}
             style={{ textAlign: align, background: heroCaptionBackground(heroVariant, theme), paddingTop: HERO_CAPTION.padYPx, paddingBottom: HERO_CAPTION.padYPx }}
             data-hero-caption
           >
@@ -2270,8 +2270,10 @@ function renderSection(
               value={section.headline}
               onChange={(headline) => edit?.onChange(index, { ...section, headline })}
               className={
-                heroVariant === "split"
-                  ? "pagzly-display-headline pz-fit font-heading [--pz-fs:var(--pz-t-hero-b)] font-extrabold @min-[640px]/pz:[--pz-fs:var(--pz-t-subtitle-w)]"
+                heroVariant === "full-photo"
+                  ? "pagzly-display-headline pz-fit font-heading [--pz-fs:var(--pz-t-subtitle-b)] font-extrabold @min-[640px]/pz:[--pz-fs:var(--pz-t-subtitle-w)]"
+                  : heroVariant === "split"
+                  ? "pagzly-display-headline pz-fit font-heading [--pz-fs:var(--pz-t-hero-b)] font-extrabold @min-[640px]/pz:[--pz-fs:max(var(--pz-t-subtitle-w),1.75rem)]"
                   : "pagzly-display-headline pz-fit font-heading [--pz-fs:var(--pz-t-hero-b)] font-extrabold @min-[640px]/pz:[--pz-fs:var(--pz-t-hero-w)]"
               }
               style={{

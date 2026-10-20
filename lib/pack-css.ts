@@ -72,7 +72,11 @@ export function packStructureCss(layout: PackLayout, scope: string, flavor: Flav
   }
   // 413차 — 히어로 split: 넓은 폭에서 사진 좌 / 글 우(라이브는 같은 일을 Tailwind 컨테이너 클래스가 한다). export는 기존 @media(min-width:640px) 기법만
   if (flavor === "export" && layout.hero === "split") {
-    out.push(`@media (min-width:640px){${S} [data-hero-variant="split"]{display:flex}${S} [data-hero-variant="split"]>div{width:50%;flex-shrink:0}${S} [data-hero-variant="split"]>[data-hero-caption]{display:flex;flex-direction:column;justify-content:center}${S} [data-hero-variant="split"] .pagzly-display-headline{--pz-fs:var(--pz-t-subtitle)!important}}`);
+    out.push(`@media (min-width:640px){${S} [data-hero-variant="split"]{display:flex}${S} [data-hero-variant="split"]>div{width:58%;flex-shrink:0}${S} [data-hero-variant="split"]>[data-hero-caption]{width:42%;padding-left:32px!important;padding-right:32px!important}${S} [data-hero-variant="split"]>[data-hero-caption]{display:flex;flex-direction:column;justify-content:center}${S} [data-hero-variant="split"] .pagzly-display-headline{--pz-fs:max(var(--pz-t-subtitle),1.75rem)!important}}`);
+  }
+  // 415차 — full-photo: 사진 아래 캡션 제목은 부제 크기(라이브는 같은 일을 클래스가 한다)
+  if (flavor === "export" && layout.hero === "full-photo") {
+    out.push(`${S} [data-hero-variant="full-photo"] .pagzly-display-headline{--pz-fs:var(--pz-t-subtitle)!important}`);
   }
   // 표 — 첫 열(라벨) 굵기·자간을 팩 토큰으로(행 사이 가는 선은 표가 원래 쓴다)
   if (layout.radius !== null) {
