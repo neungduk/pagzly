@@ -29,6 +29,9 @@ const arg = (name: string, def?: string) => {
 const SESSION = arg("--session", "review/411-live/fashion/session.json")!;
 const SUMMARY = arg("--summary", path.join(path.dirname(SESSION), "summary.json"))!;
 const SERVER_LOG = arg("--server-log");
+// 414차: 서버 로그에서 이번 실행 구간만 합산 (--since-line N: N번째 줄 이후 / --since-marker TEXT: 마지막으로 나온 TEXT 줄 이후)
+const SINCE_LINE = Number(arg("--since-line", "0")) || 0;
+const SINCE_MARKER = arg("--since-marker");
 const INPUT = arg("--input", "review/402-input/fashion/product-info.txt")!;
 const OUT = arg("--out", "review/411-verify-report.md")!;
 const LABEL = arg("--label", "411")!;
@@ -119,7 +122,19 @@ const sentences = allTexts.flatMap((t) => t.split(/(?<=[.!?。])\s+|\n+/)).map((
   const app = Number(sessionRaw.generationCost ?? 0);
   const draftText = sessionRaw.draftTextCost;
   const ev = [`앱 기록 generationCost = $${app.toFixed(5)}`, `draftTextCost(초안 DeepSeek) = ${draftText == null ? "(없음)" : `$${Number(draftText).toFixed(5)}`}`, `photoCostBreakdown = ${JSON.stringify(sessionRaw.photoCostBreakdown ?? {})}`];
-  const log = SERVER_LOG ? read(SERVER_LOG) : null;
+  let log = SERVER_LOG ? read(SERVER_LOG) : null;
+  if (log) {
+    let lines = log.split(/\r?\n/);
+    if (SINCE_MARKER) {
+      const at = lines.map((l, i) => (l.includes(SINCE_MARKER) ? i : -1)).filter((i) => i >= 0).pop();
+      if (at != null) lines = lines.slice(at + 1);
+      ev.push(at != null ? `서버 로그: 마커 "${SINCE_MARKER}" 이후 ${lines.length}줄만 합산` : `서버 로그: 마커 "${SINCE_MARKER}"를 못 찾아 전체 합산`);
+    } else if (SINCE_LINE > 0) {
+      lines = lines.slice(SINCE_LINE);
+      ev.push(`서버 로그: ${SINCE_LINE}번째 줄 이후 ${lines.length}줄만 합산`);
+    }
+    log = lines.join("\n");
+  }
   if (!log) {
     rows.push({ id: "4", title: "앱 기록 ↔ 서버 로그 합산(406차)", verdict: "manual", evidence: [...ev, SERVER_LOG ? `서버 로그를 못 읽음: ${SERVER_LOG}` : "--server-log 없음 — dev 서버 로그 파일을 지정"] });
   } else {
