@@ -141,7 +141,7 @@ import WeightComparisonDiagram from "@/components/WeightComparisonDiagram";
 import PowerConsumptionDiagram from "@/components/PowerConsumptionDiagram";
 import { headlineDisplayStyle, joinNumericSuffix, longestTokenEm, packHeadlineLiveVars } from "@/lib/detail-typography";
 import { rhythmLiveVars } from "@/lib/rhythm-tokens";
-import { HERO_CAPTION, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio } from "@/lib/hero-variants";
+import { HERO_CAPTION, HERO_FRAME, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroTitleKey } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
 import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
@@ -2216,8 +2216,12 @@ function renderSection(
         const photo = (
           <div
             key="hero-photo"
-            className="relative w-full overflow-hidden"
-            style={{ aspectRatio: heroCaptionRatio(heroVariant), background: theme.baseNeutral }}
+            style={{
+              aspectRatio: heroCaptionRatio(heroVariant),
+              background: theme.baseNeutral,
+              ...(heroVariant === "framed" ? { border: `${HERO_FRAME.borderPx}px solid ${HERO_FRAME.borderColor}`, boxSizing: "border-box" as const } : {}),
+            }}
+            className={heroVariant === "split" ? "relative w-full overflow-hidden @min-[640px]/pz:w-1/2 @min-[640px]/pz:shrink-0" : "relative w-full overflow-hidden"}
           >
             <SectionImage
               src={src}
@@ -2236,7 +2240,7 @@ function renderSection(
         const caption = (
           <div
             key="hero-caption"
-            className="px-6 @min-[640px]/pz:px-10"
+            className={heroVariant === "split" ? "px-6 @min-[640px]/pz:flex @min-[640px]/pz:w-1/2 @min-[640px]/pz:flex-col @min-[640px]/pz:justify-center @min-[640px]/pz:px-10" : "px-6 @min-[640px]/pz:px-10"}
             style={{ textAlign: align, background: heroCaptionBackground(heroVariant, theme), paddingTop: HERO_CAPTION.padYPx, paddingBottom: HERO_CAPTION.padYPx }}
             data-hero-caption
           >
@@ -2261,7 +2265,11 @@ function renderSection(
               enabled={edit?.enabled}
               value={section.headline}
               onChange={(headline) => edit?.onChange(index, { ...section, headline })}
-              className="pagzly-display-headline pz-fit font-heading [--pz-fs:var(--pz-t-hero-b)] font-extrabold @min-[640px]/pz:[--pz-fs:var(--pz-t-hero-w)]"
+              className={
+                heroTitleKey(heroVariant) === "section"
+                  ? "pagzly-display-headline pz-fit font-heading [--pz-fs:var(--pz-t-section-b)] font-extrabold @min-[640px]/pz:[--pz-fs:var(--pz-t-section-w)]"
+                  : "pagzly-display-headline pz-fit font-heading [--pz-fs:var(--pz-t-hero-b)] font-extrabold @min-[640px]/pz:[--pz-fs:var(--pz-t-hero-w)]"
+              }
               style={{
                 color: HERO_CAPTION.ink,
                 lineHeight: HERO_CAPTION.titleLine,
@@ -2301,8 +2309,17 @@ function renderSection(
           </div>
         );
         return (
-          <section key={`hero-wrap-${index}`} className="relative w-full" data-hero-variant={heroVariant}>
-            {heroVariant === "caption-above" ? [caption, photo] : [photo, caption]}
+          <section key={`hero-wrap-${index}`} className={heroVariant === "split" ? "relative w-full @min-[640px]/pz:flex" : "relative w-full"} data-hero-variant={heroVariant}>
+            {heroVariant === "caption-above"
+              ? [caption, photo]
+              : heroVariant === "framed"
+                ? [
+                    <div key="hero-frame" data-hero-frame style={{ background: theme.baseNeutral, padding: `${HERO_FRAME.topPx}px ${HERO_FRAME.insetPx}px 0` }}>
+                      {photo}
+                    </div>,
+                    caption,
+                  ]
+                : [photo, caption]}
           </section>
         );
       }
@@ -4628,16 +4645,26 @@ function renderSection(
                 <div
                   key={`${imageIndex}-${src}-${pairIndex}`}
                   className={variantGrid ? "relative" : oddLead && pairIndex === 0 ? "relative col-span-2" : "relative"}
-                  style={variantGrid && cell.span ? { gridColumn: "1 / -1" } : undefined}
+                  style={
+                    variantGrid && cell.span
+                      ? { gridColumn: "1 / -1" }
+                      : variantGrid && cell.colSpan
+                        ? { gridColumn: `span ${cell.colSpan}`, ...(cell.rowSpan ? { gridRow: `span ${cell.rowSpan}` } : {}), ...(cell.ratio ? { aspectRatio: cell.ratio } : {}) }
+                        : undefined
+                  }
                 >
                   <SectionImage
                     src={src}
                     alt={buildSectionImageAlt(productName ?? "", `${section.heading} ${imageIndex + 1}`, section.slot)}
                     className={
                       variantGrid
-                        ? cell.natural
-                          ? "block h-auto max-h-[585px] w-full object-cover object-top @min-[640px]/pz:max-h-[1125px]"
-                          : "block aspect-[2/3] w-full object-cover object-top"
+                        ? cell.fill
+                          ? "absolute inset-0 block h-full w-full object-cover object-top"
+                          : cell.natural
+                            ? "block h-auto max-h-[585px] w-full object-cover object-top @min-[640px]/pz:max-h-[1125px]"
+                            : cell.ratio
+                              ? "block h-full w-full object-cover object-top"
+                              : "block aspect-[2/3] w-full object-cover object-top"
                         : `${oddLead && pairIndex === 0 ? "aspect-[4/3]" : ratioClass} w-full object-cover`
                     }
                   />

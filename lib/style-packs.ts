@@ -27,9 +27,9 @@ type ToneSpec = {
 };
 
 /** 409차 — 구조 변형(열거값/숫자). classic 값 = 지금 화면과 같은 동작 */
-export type HeroVariant = "bleed-bottom" | "caption-below" | "caption-above";
-export type FlowVariant = "default" | "photo-first" | "story-after-photo";
-export type GalleryVariant = "duo-grid" | "lookbook-stack" | "lead-plus-two";
+export type HeroVariant = "bleed-bottom" | "caption-below" | "caption-above" | "framed" | "split";
+export type FlowVariant = "default" | "photo-first" | "story-after-photo" | "photo-lead";
+export type GalleryVariant = "duo-grid" | "lookbook-stack" | "lead-plus-two" | "mosaic";
 export type SummaryVariant = "icon-grid" | "spec-list" | "inline-strip";
 export type ChecklistVariant = "cards" | "plain-list";
 export type HeadingVariant = "center-stack" | "left-eyebrow" | "center-rule";
@@ -193,7 +193,7 @@ export function resolveHeroVariant(layout: PackLayout, hasPhoto: boolean): HeroV
 }
 export function resolveGalleryVariant(layout: PackLayout, photoCount: number): GalleryVariant {
   if (photoCount < 2) return "duo-grid";
-  if (layout.gallery === "lead-plus-two" && photoCount < 3) return "duo-grid";
+  if ((layout.gallery === "lead-plus-two" || layout.gallery === "mosaic") && photoCount < 3) return "duo-grid";
   return layout.gallery;
 }
 export function resolveHeadingVariant(layout: PackLayout, hasLabel: boolean): HeadingVariant {
@@ -316,6 +316,12 @@ export const TITLE_SCALES: Record<string, TitleScaleOverrides> = {
     section: { base: "2.125rem", wide: "2.75rem" },
     subtitle: { base: "1.25rem", wide: "1.5rem" },
   },
+  /** 413차 — 굵은 고딕용: 히어로 크게, 섹션 제목은 중간 */
+  bold: {
+    hero: { base: "3rem", wide: "4.75rem" },
+    section: { base: "1.875rem", wide: "2.5rem" },
+    subtitle: { base: "1.25rem", wide: "1.4rem" },
+  },
 };
 export type TitleScaleName = string;
 
@@ -341,9 +347,9 @@ export type SpecAxes = {
 };
 
 export const SPEC_ENUMS = {
-  hero: ["bleed-bottom", "caption-below", "caption-above"],
-  flow: ["default", "photo-first", "story-after-photo"],
-  gallery: ["duo-grid", "lookbook-stack", "lead-plus-two"],
+  hero: ["bleed-bottom", "caption-below", "caption-above", "framed", "split"],
+  flow: ["default", "photo-first", "story-after-photo", "photo-lead"],
+  gallery: ["duo-grid", "lookbook-stack", "lead-plus-two", "mosaic"],
   summary: ["icon-grid", "spec-list", "inline-strip"],
   summaryPlacement: ["after-hero", "after-gallery"],
   anchor: ["pills", "tabs"],
@@ -496,9 +502,9 @@ export function packFromCode(code: string): StylePack | null {
   return axes ? packFromSpec(axes) : null;
 }
 
-const HERO_LABEL: Record<string, string> = { "bleed-bottom": "사진 위 제목", "caption-below": "사진 아래 제목", "caption-above": "제목 먼저" };
-const FLOW_LABEL: Record<string, string> = { "photo-first": "사진 먼저", "story-after-photo": "사진 먼저" };
-const GALLERY_LABEL: Record<string, string> = { "lookbook-stack": "룩북", "lead-plus-two": "큰 컷+2열" };
+const HERO_LABEL: Record<string, string> = { "bleed-bottom": "사진 위 제목", "caption-below": "사진 아래 제목", "caption-above": "제목 먼저", framed: "액자형 사진", split: "사진·글 나란히" };
+const FLOW_LABEL: Record<string, string> = { "photo-first": "사진 먼저", "story-after-photo": "사진 먼저", "photo-lead": "사진 먼저" };
+const GALLERY_LABEL: Record<string, string> = { "lookbook-stack": "룩북", "lead-plus-two": "큰 컷+2열", mosaic: "모자이크" };
 /** 축 값으로 자동 서술하는 짧은 UI 라벨(새 문구가 아니라 축 이름의 조합) */
 export function specLabel(axes: SpecAxes): string {
   const face = axes.headline ? (axes.headline.kind === "serif" ? "명조" : "고딕") : "기본";

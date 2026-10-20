@@ -29,15 +29,33 @@ export const HERO_CAPTION = {
   subMaxWidth: "36rem",
 } as const;
 
+/** 413차 — framed: 사진을 좌우 여백 안에 가는 테두리로 넣는다(풀블리드 아님). 글자는 사진 위에 없다 */
+export const HERO_FRAME = {
+  insetPx: 20,
+  topPx: 20,
+  borderPx: 1,
+  borderColor: "rgba(27,27,24,0.18)",
+} as const;
+
+/** 413차 — split: 넓은 폭(≥640px)에서 사진 좌 / 글 우, 좁은 폭은 caption-below와 같은 위아래 */
+export const HERO_SPLIT = { photoRatio: "4 / 5", minWidthPx: 640 } as const;
+
 export function heroCaptionRatio(variant: HeroVariant): string {
+  if (variant === "framed") return HERO_CAPTION.photoRatio;
+  if (variant === "split") return HERO_SPLIT.photoRatio;
   return variant === "caption-below" ? HERO_CAPTION.photoRatioBelow : HERO_CAPTION.photoRatio;
 }
 
-export function heroCaptionAlign(variant: HeroVariant): "center" | "left" {
-  return variant === "caption-below" ? "center" : "left";
+/** 히어로 제목 크기 키 — split은 글 칸이 절반 폭이라 섹션 제목 크기를 쓴다 */
+export function heroTitleKey(variant: HeroVariant): "hero" | "section" {
+  return variant === "split" ? "section" : "hero";
 }
 
-/** caption-below = 중립 띠 색, caption-above = 흰 바탕 */
+export function heroCaptionAlign(variant: HeroVariant): "center" | "left" {
+  return variant === "caption-below" || variant === "framed" ? "center" : "left";
+}
+
+/** caption-below·framed·split = 중립 띠 색, caption-above = 흰 바탕 */
 export function heroCaptionBackground(variant: HeroVariant, theme: Pick<CategoryTheme, "baseNeutral">): string {
-  return variant === "caption-below" ? theme.baseNeutral : "#FFFFFF";
+  return variant === "caption-above" ? "#FFFFFF" : theme.baseNeutral;
 }

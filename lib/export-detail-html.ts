@@ -163,7 +163,7 @@ import {
 } from "@/lib/design-tokens";
 import { rhythmVarsCss } from "@/lib/rhythm-tokens";
 import { applyPackTone, classicFashionHeroStrength, isClassicPack, CLASSIC_LAYOUT, getPackLayout, packPadScale, packTitleScaleOverrides, resolveGalleryVariant, resolveHeroVariant, resolveStylePack, type PackLayout } from "@/lib/style-packs";
-import { HERO_CAPTION, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio } from "@/lib/hero-variants";
+import { HERO_CAPTION, HERO_FRAME, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroTitleKey } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
 import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
@@ -723,7 +723,7 @@ function sectionHtml(
         const mark = resolveHeroBrandMark({ logoUrl, brandName, productName });
         const eyebrowLabel = mark.kind === "none" ? "" : mark.displayName;
         const edge = align === "center" ? "auto" : "0";
-        const photoHtml = `<div style="position:relative;width:100%;overflow:hidden;aspect-ratio:${heroCaptionRatio(heroVariant)};background:${baseTheme.baseNeutral}"><img src="${esc(src)}" alt="${esc(alt)}" fetchPriority="high" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${HERO_CAPTION.photoPosition}"/></div>`;
+        const photoHtml = `<div style="position:relative;width:100%;overflow:hidden;aspect-ratio:${heroCaptionRatio(heroVariant)};background:${baseTheme.baseNeutral}${heroVariant === "framed" ? `;border:${HERO_FRAME.borderPx}px solid ${HERO_FRAME.borderColor};box-sizing:border-box` : ""}"><img src="${esc(src)}" alt="${esc(alt)}" fetchPriority="high" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${HERO_CAPTION.photoPosition}"/></div>`;
         const eyebrowHtml =
           eyebrowLabel || section.badge
             ? `<p style="margin:0 0 ${HERO_CAPTION.eyebrowGapPx}px;font-size:${HERO_CAPTION.eyebrowSizePx}px;font-weight:700;letter-spacing:${HERO_CAPTION.eyebrowTracking};text-transform:uppercase;color:${deepText}">${eyebrowLabel ? `<span>${esc(eyebrowLabel)}</span>` : ""}${eyebrowLabel && section.badge ? `<span aria-hidden="true"> · </span>` : ""}${section.badge ? `<span>${esc(section.badge)}</span>` : ""}</p>`
@@ -735,8 +735,9 @@ function sectionHtml(
           layout.rule === "hairline"
             ? `<div aria-hidden="true" style="width:${HERO_CAPTION.ruleWidthPx}px;height:1px;background:${HERO_CAPTION.ruleColor};margin:${HERO_CAPTION.ruleGapPx}px ${edge} 0"></div>`
             : "";
-        const captionHtml = `<div data-hero-caption style="padding:${HERO_CAPTION.padYPx}px var(--pz-pad-x,20px);text-align:${align};background:${heroCaptionBackground(heroVariant, baseTheme)}">${eyebrowHtml}<h1 class="pagzly-display-headline pz-fit" style="color:${HERO_CAPTION.ink};${titleFitCss("hero", section.headline, -0.03)};font-weight:800;line-height:${HERO_CAPTION.titleLine};margin:0;${displayHeadlineInlineCss(category)}">${esc(section.headline)}</h1>${subHtml}${ruleHtml}</div>`;
-        return `<section${sectionIdAttr} class="hero pagzly-hero" data-hero-variant="${heroVariant}" style="position:relative;width:100%">${heroVariant === "caption-above" ? captionHtml + photoHtml : photoHtml + captionHtml}</section>`;
+        const captionHtml = `<div data-hero-caption style="padding:${HERO_CAPTION.padYPx}px var(--pz-pad-x,20px);text-align:${align};background:${heroCaptionBackground(heroVariant, baseTheme)}">${eyebrowHtml}<h1 class="pagzly-display-headline pz-fit" style="color:${HERO_CAPTION.ink};${titleFitCss(heroTitleKey(heroVariant), section.headline, -0.03)};font-weight:800;line-height:${HERO_CAPTION.titleLine};margin:0;${displayHeadlineInlineCss(category)}">${esc(section.headline)}</h1>${subHtml}${ruleHtml}</div>`;
+        const framedPhotoHtml = heroVariant === "framed" ? `<div data-hero-frame style="background:${baseTheme.baseNeutral};padding:${HERO_FRAME.topPx}px ${HERO_FRAME.insetPx}px 0">${photoHtml}</div>` : photoHtml;
+        return `<section${sectionIdAttr} class="hero pagzly-hero" data-hero-variant="${heroVariant}" style="position:relative;width:100%">${heroVariant === "caption-above" ? captionHtml + photoHtml : framedPhotoHtml + captionHtml}</section>`;
       }
       return `<section${sectionIdAttr} class="hero pagzly-hero"${sectionIdAttr} style="${FLAT_SECTION_SURFACES ? "" : pad}position:relative;overflow:hidden;width:100%;box-sizing:border-box;aspect-ratio:4/5;min-height:var(--pz-hero-min,70vh);background:${baseTheme.baseNeutral}">
         ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" fetchPriority="high" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover${section.photoTopAnchored ? ";object-position:50% 0%" : ""}"/>` : ""}
@@ -1541,8 +1542,11 @@ function sectionHtml(
               const lead = oddLead && pos === 0;
               if (variantGrid) {
                 const cell = galleryCell(galleryVariant, pos, galleryIndexes.length);
+                if (src && cell.fill) {
+                  return `<div style="position:relative;grid-column:span ${cell.colSpan};grid-row:span ${cell.rowSpan}"><img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:${GALLERY_VARIANT.restPosition}"/></div>`;
+                }
                 return src
-                  ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;${cell.natural ? `height:auto;max-height:${GALLERY_VARIANT.capNarrowPx}px;object-fit:cover;object-position:${GALLERY_VARIANT.restPosition}` : `aspect-ratio:${GALLERY_VARIANT.restRatio};object-fit:cover;object-position:${GALLERY_VARIANT.restPosition}`}${cell.span ? ";grid-column:1/-1" : ""}"/>`
+                  ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;${cell.natural ? `height:auto;max-height:${GALLERY_VARIANT.capNarrowPx}px;object-fit:cover;object-position:${GALLERY_VARIANT.restPosition}` : `aspect-ratio:${cell.ratio ?? GALLERY_VARIANT.restRatio};object-fit:cover;object-position:${GALLERY_VARIANT.restPosition}`}${cell.span ? ";grid-column:1/-1" : cell.colSpan ? `;grid-column:span ${cell.colSpan}` : ""}"/>`
                   : "";
               }
               return src

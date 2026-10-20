@@ -231,14 +231,52 @@ export function storyAfterPhotoFlow(
   return rest;
 }
 
+/**
+ * 413차 — photo-lead: 사진 블록(착용 STEP 카드 또는 착용 코디·핏 사진) 하나만 갤러리 바로 뒤로 당긴다. 나머지 순서는 그대로.
+ * story-after-photo·photo-first보다 약한 변형이다. 고민 → 해결(target_persona → checklist·포인트 요약 카드) 짝은 쪼개지 않는다:
+ * 갤러리 바로 뒤가 체크리스트·요약 카드(짝의 뒤쪽)이면 옮기지 않는다. 섹션 추가·삭제·문구 변경 없음. 패션 외·갤러리 없음은 그대로.
+ */
+export function photoLeadFlow(
+  sections: DetailSection[],
+  category: string | undefined,
+  roles: StripImageHints["roles"],
+  flow: FlowVariant | undefined,
+): DetailSection[] {
+  if (flow !== "photo-lead" || category !== FASHION_CATEGORY || sections[0]?.type !== "hero") return sections;
+  const g = sections.findIndex((s, i) => i > 0 && s.type === "gallery");
+  if (g < 0) return sections;
+  const at = g + 1;
+  const next = sections[at];
+  if (!next) return sections;
+  // 짝의 뒤쪽(체크리스트·요약 카드)이 바로 뒤에 오면 짝 사이에 끼어들 수 있으니 그대로 둔다
+  if (next.type === "checklist" || (next.type === "image_text" && (next.layout === "compact" || next.slot === "quick_points"))) return sections;
+  const isWornPhotoBlock = (s: DetailSection): boolean =>
+    (s.type === "step_card" && s.steps.some((st) => typeof st.imageIndex === "number" && isWornFashionPhoto(category, roles?.[st.imageIndex]))) ||
+    (s.type === "image_text" &&
+      s.layout === "full" &&
+      PHOTO_FIRST_SLOTS.has(String(s.slot)) &&
+      typeof s.imageIndex === "number" &&
+      isWornFashionPhoto(category, roles?.[s.imageIndex]));
+  const pick = sections.findIndex((s, i) => i > at && isWornPhotoBlock(s));
+  if (pick < 0) return sections;
+  const rest = sections.filter((_, i) => i !== pick);
+  rest.splice(at, 0, sections[pick]!);
+  return rest;
+}
+
 export function applyDisplayRules(
   sections: DetailSection[],
   imageUrls: readonly string[],
   opts: { editing?: boolean; imageHashByUrl?: ImageHashByUrl; category?: string; flow?: FlowVariant } & StripImageHints = {},
 ): DisplaySections {
   const ordered = storyAfterPhotoFlow(
-    photoFirstFlow(
-      pullWornGalleryForward(orderSectionsForFlow(sections), opts.category, opts.roles),
+    photoLeadFlow(
+      photoFirstFlow(
+        pullWornGalleryForward(orderSectionsForFlow(sections), opts.category, opts.roles),
+        opts.category,
+        opts.roles,
+        opts.flow,
+      ),
       opts.category,
       opts.roles,
       opts.flow,
