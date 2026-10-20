@@ -189,3 +189,133 @@ export function infoBackdropCss(map: InfoBackdropMap | undefined, level: InfoLev
   }
   return out.join("");
 }
+
+// ── 417차: 모델 입력·출력 어댑터·호출 실행기(의존성 주입 — 단위 테스트는 모킹, 서버 라우트가 실제 Replicate를 꽂는다) ──
+/** 416차 실측으로 확인한 입력 이름만 쓴다(ideogram: seed·aspect_ratio·magic_prompt_option / flux-1.1-pro: seed·aspect_ratio·output_format·safety_tolerance·prompt_upsampling) */
+export function infoBackdropInput(kind: InfoBackdropKind, prompt: string, seed: number): Record<string, unknown> {
+  if (kind === "B") return { prompt, aspect_ratio: "3:4", seed, output_format: "png", safety_tolerance: 2, prompt_upsampling: false };
+  return { prompt, aspect_ratio: "3:4", seed, magic_prompt_option: "Off" };
+}
+
+/** 배경판 비율(너비/높이) 허용 범위 — 3:4 요청, 벗어나면 이상 비율로 보고 폴백 */
+export const INFO_BACKDROP_RATIO_RANGE = [0.6, 0.9] as const;
+
+export type FetchBuffer = (url: string) => Promise<Buffer | null>;
+/**
+ * Replicate 출력은 모델마다 다르다: 문자열 URL / 문자열 배열 / FileOutput(url()·blob()) / 바이트.
+ * 한 곳에서 모두 처리하고 알 수 없는 형식이면 null(호출부가 저장 없이 폴백한다). format은 로그용 라벨.
+ */
+export async function infoBackdropOutputToBuffer(out: unknown, fetchBuffer: FetchBuffer): Promise<{ buffer: Buffer | null; format: string }> {
+  if (Array.isArray(out)) {
+    if (out.length === 0) return { buffer: null, format: "array(empty)" };
+    const r = await infoBackdropOutputToBuffer(out[0], fetchBuffer);
+    return { buffer: r.buffer, format: `array>${r.format}` };
+  }
+  if (typeof out === "string") {
+    if (!/^(https:\/\/|data:image\/)/.test(out)) return { buffer: null, format: "string(unsupported)" };
+    return { buffer: await fetchBuffer(out), format: "string" };
+  }
+  if (out instanceof Uint8Array) return { buffer: Buffer.from(out), format: "bytes" };
+  if (out && typeof out === "object") {
+    const o = out as { url?: unknown; blob?: unknown };
+    if (typeof o.blob === "function") {
+      const blob = (await (o.blob as () => Promise<Blob>)()) as Blob;
+      return { buffer: Buffer.from(await blob.arrayBuffer()), format: "FileOutput(blob)" };
+    }
+    if (typeof o.url === "function") {
+      const u = (o.url as () => unknown)();
+      const href = u instanceof URL ? u.href : typeof u === "string" ? u : null;
+      return href ? { buffer: await fetchBuffer(href), format: "FileOutput(url)" } : { buffer: null, format: "FileOutput(url:bad)" };
+    }
+    if (typeof o.url === "string") return { buffer: await fetchBuffer(o.url), format: "object(url)" };
+  }
+  return { buffer: null, format: `unknown(${out === null ? "null" : typeof out})` };
+}
+
+export const isRateLimited = (e: unknown): boolean =>
+  (e as { response?: { status?: number } })?.response?.status === 429 || /\b429\b|too many requests|throttl/i.test(String((e as Error)?.message ?? e));
+export const isFatalAuth = (e: unknown): boolean => {
+  const status = (e as { response?: { status?: number } })?.response?.status;
+  return status === 401 || status === 402 || status === 403 || /\b(401|402|403)\b|unauthor|insufficient|payment required|billing/i.test(String((e as Error)?.message ?? e));
+};
+/** 429 응답의 retry_after(초)를 ms로. 없으면 기본 15초 */
+export function retryAfterMsOf(e: unknown): number {
+  const header = (e as { response?: { headers?: { get?: (k: string) => string | null } } })?.response?.headers?.get?.("retry-after");
+  const m = String((e as Error)?.message ?? e).match(/retry_after"?\s*[:=]\s*(\d+(?:\.\d+)?)/i);
+  const sec = m ? Number(m[1]) : header && Number.isFinite(Number(header)) ? Number(header) : INFO_BACKDROP_DEFAULT_RETRY_MS / 1000;
+  return Math.ceil(sec * 1000) + 500;
+}
+
+export type InfoBackdropDeps = {
+  run: (slug: string, input: Record<string, unknown>) => Promise<unknown>;
+  fetchBuffer: FetchBuffer;
+  /** 이미지 검증(비율 등). false면 이상 이미지로 보고 폴백 — 호출은 이미 과금됐다 */
+  validate?: (buffer: Buffer) => Promise<boolean>;
+  sleep: (ms: number) => Promise<void>;
+  now: () => number;
+  timeoutMs?: number;
+  log?: (line: string) => void;
+};
+export type InfoBackdropJobResult = {
+  zone: InfoZone;
+  kind: InfoBackdropKind;
+  ok: boolean;
+  billed: boolean;
+  seconds: number;
+  retries: number;
+  format?: string;
+  buffer?: Buffer;
+  /** 폴백 사유(로그용) */
+  reason?: "rate-limit" | "timeout" | "unknown-format" | "bad-image" | "error" | "auth";
+  fatal?: boolean;
+};
+
+/** 한 구간 호출. 429면 retry_after만큼 기다려 최대 3회 재전송(과금 없음), 40초 타임아웃, 그 외 오류는 재시도 없이 폴백. 401/402/403은 fatal */
+export async function runInfoBackdropJob(item: InfoBackdropPlanItem, prompt: string, seed: number, deps: InfoBackdropDeps): Promise<InfoBackdropJobResult> {
+  const t0 = deps.now();
+  const limit = deps.timeoutMs ?? INFO_BACKDROP_TIMEOUT_MS;
+  const base = { zone: item.zone, kind: item.kind };
+  let retries = 0;
+  const elapsed = () => (deps.now() - t0) / 1000;
+  const log = (s: string) => deps.log?.(`[info-backdrops] zone=${item.zone} model=${item.slug.split("/")[1]} ${s}`);
+  const timeoutP = deps.sleep(limit).then(() => "timeout" as const);
+  const work = (async (): Promise<InfoBackdropJobResult> => {
+    for (;;) {
+      let out: unknown;
+      try {
+        out = await deps.run(item.slug, infoBackdropInput(item.kind, prompt, seed));
+      } catch (e) {
+        if (isRateLimited(e)) {
+          if (retries >= INFO_BACKDROP_MAX_429_RETRY) return { ...base, ok: false, billed: false, seconds: elapsed(), retries, reason: "rate-limit" };
+          const wait = retryAfterMsOf(e);
+          retries += 1;
+          log(`429 — ${(wait / 1000).toFixed(1)}초 후 재전송 ${retries}/${INFO_BACKDROP_MAX_429_RETRY}(과금 없음)`);
+          await deps.sleep(wait);
+          continue;
+        }
+        if (isFatalAuth(e)) return { ...base, ok: false, billed: false, seconds: elapsed(), retries, reason: "auth", fatal: true };
+        return { ...base, ok: false, billed: false, seconds: elapsed(), retries, reason: "error" };
+      }
+      const { buffer, format } = await infoBackdropOutputToBuffer(out, deps.fetchBuffer);
+      if (!buffer) return { ...base, ok: false, billed: true, seconds: elapsed(), retries, format, reason: "unknown-format" };
+      if (deps.validate && !(await deps.validate(buffer))) return { ...base, ok: false, billed: true, seconds: elapsed(), retries, format, reason: "bad-image" };
+      return { ...base, ok: true, billed: true, seconds: elapsed(), retries, format, buffer };
+    }
+  })();
+  const winner = await Promise.race([work, timeoutP]);
+  const res: InfoBackdropJobResult = winner === "timeout" ? { ...base, ok: false, billed: true, seconds: elapsed(), retries, reason: "timeout" } : winner;
+  // 타임아웃 뒤 늦게 끝난 work의 거절을 삼킨다
+  void work.catch(() => undefined);
+  log(`${res.ok ? "OK" : `폴백(${res.reason})`} ${res.seconds.toFixed(1)}s retries=${res.retries} billed=${res.billed}${res.format ? ` format=${res.format}` : ""}`);
+  return res;
+}
+
+/** 계획의 모든 구간을 병렬로 호출 */
+export async function runInfoBackdropPlan(
+  plan: InfoBackdropPlan,
+  prompts: InfoBackdropPromptInput,
+  productKey: string,
+  deps: InfoBackdropDeps,
+): Promise<InfoBackdropJobResult[]> {
+  return Promise.all(plan.items.map((it) => runInfoBackdropJob(it, buildInfoBackdropPrompt(it.kind, prompts), infoBackdropSeed(productKey, it.kind), deps)));
+}
