@@ -141,7 +141,7 @@ import WeightComparisonDiagram from "@/components/WeightComparisonDiagram";
 import PowerConsumptionDiagram from "@/components/PowerConsumptionDiagram";
 import { headlineDisplayStyle, joinNumericSuffix, longestTokenEm, packHeadlineLiveVars } from "@/lib/detail-typography";
 import { rhythmLiveVars } from "@/lib/rhythm-tokens";
-import { HERO_CAPTION, HERO_FRAME, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio } from "@/lib/hero-variants";
+import { BEAUTY_HERO, HERO_CAPTION, HERO_FRAME, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
 import type { InfoBackdropMap } from "@/lib/info-backdrop";
@@ -2219,14 +2219,17 @@ function renderSection(
         productName,
       });
       // 409차 — 팩 히어로 변형: 사진과 글을 위아래로 나눠 글자가 인물을 가리지 않는다(사진이 없으면 classic)
-      const heroVariant = resolveHeroVariant(layout, Boolean(src));
+      const baseHeroVariant = resolveHeroVariant(layout, Boolean(src));
+      // 419차 — 뷰티 classic 히어로는 정사각 원본이 확대돼 병 윗부분이 잘렸다 → 1:1 caption-below(flag·뷰티 아니면 그대로)
+      const heroVariant = beautyHeroVariant(baseHeroVariant, category);
+      const beautyHero = heroVariant !== baseHeroVariant;
       if (heroVariant !== "bleed-bottom") {
         const align = heroCaptionAlign(heroVariant);
         const photo = (
           <div
             key="hero-photo"
             style={{
-              aspectRatio: heroCaptionRatio(heroVariant),
+              aspectRatio: beautyHero ? BEAUTY_HERO.photoRatio : heroCaptionRatio(heroVariant),
               background: theme.baseNeutral,
               ...(heroVariant === "framed" ? { border: `${HERO_FRAME.borderPx}px solid ${HERO_FRAME.borderColor}`, boxSizing: "border-box" as const } : {}),
             }}
@@ -2236,7 +2239,7 @@ function renderSection(
               src={src}
               alt={imgAlt}
               fallbackSrc={heroFallback}
-              className="pagzly-hero-photo absolute inset-0 h-full w-full object-cover object-top"
+              className={`pagzly-hero-photo absolute inset-0 h-full w-full object-cover${beautyHero ? "" : " object-top"}`}
               priority
             />
             <ImageReplaceHit

@@ -152,6 +152,8 @@ export async function generateBackdrop(params: {
       testMode: result.testMode ?? false,
       shadowAnalysis: result.shadowAnalysis,
       conceptBrief: result.conceptBrief,
+      // 419차 — 상품 사진에서 뽑은 테마를 버리지 않는다(406차 제안서 4절). 섹션 배경·합성 장식 색에 전달된다
+      theme: result.theme,
       productAlreadyComposited: result.productAlreadyComposited ?? false,
       backdropSkipped: result.backdropSkipped === true,
     };

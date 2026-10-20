@@ -5,6 +5,7 @@
  */
 import type { CategoryTheme } from "@/lib/category-theme";
 import type { HeroVariant } from "@/lib/style-packs";
+import { BEAUTY_STYLE_ENABLED, beautyStyleOn } from "@/lib/beauty-style";
 
 export const HERO_CAPTION = {
   /** 사진 블록 비율(4:5) — 지금 히어로와 같은 비율, 위쪽 기준으로 자르므로 얼굴·상체가 잘리지 않는다 */
@@ -59,4 +60,18 @@ export function heroCaptionAlign(variant: HeroVariant): "center" | "left" {
 /** caption-below·framed·split = 중립 띠 색, caption-above = 흰 바탕 */
 export function heroCaptionBackground(variant: HeroVariant, theme: Pick<CategoryTheme, "baseNeutral">): string {
   return variant === "caption-above" ? "#FFFFFF" : theme.baseNeutral;
+}
+
+/**
+ * 419차 3-4 — 뷰티 히어로: 사진 위에 글자를 얹는 classic(bleed-bottom)은 컨테이너가 화면 높이(85svh)라 정사각 원본이 1.85배까지 확대돼
+ * 병 윗부분(캡)이 잘렸다(418차). 뷰티는 사진을 1:1로 통째로 보여 주고 글은 아래 띠(caption-below)로 옮긴다.
+ *  - photoRatio 1:1 → 정사각 원본은 확대 0(제품 전체 + 원본이 가진 여백 그대로), 3:4·4:3 원본도 최대 4/3배.
+ *  - maxZoom: 이 변형이 만드는 최대 확대율(원본 짧은 변 대비). 회귀가 비율에서 계산한 값과 같은지 본다.
+ *  - 제품 영역 좌표(감지 결과)는 세션에 저장돼 있지 않아 상하 여유(8~12%) 확장은 하지 못했다 — 보고서 "남은 문제".
+ */
+export const BEAUTY_HERO = { photoRatio: "1 / 1", photoPosition: "50% 50%", maxZoom: 4 / 3 } as const;
+
+/** 뷰티 + flag on + 사진 있는 classic 히어로(bleed-bottom)면 caption-below로, 그 외는 그대로 */
+export function beautyHeroVariant(variant: HeroVariant, category: string | undefined | null, enabled: boolean = BEAUTY_STYLE_ENABLED): HeroVariant {
+  return variant === "bleed-bottom" && beautyStyleOn(category, enabled) ? "caption-below" : variant;
 }

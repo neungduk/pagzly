@@ -163,7 +163,7 @@ import {
 } from "@/lib/design-tokens";
 import { rhythmVarsCss } from "@/lib/rhythm-tokens";
 import { applyPackTone, classicFashionHeroStrength, isClassicPack, CLASSIC_LAYOUT, getPackLayout, packPadScale, packTitleScaleOverrides, resolveGalleryVariant, resolveHeroVariant, resolveStylePack, type PackLayout } from "@/lib/style-packs";
-import { HERO_CAPTION, HERO_FRAME, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio } from "@/lib/hero-variants";
+import { BEAUTY_HERO, HERO_CAPTION, HERO_FRAME, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
 import type { InfoBackdropMap } from "@/lib/info-backdrop";
@@ -720,13 +720,16 @@ function sectionHtml(
         productName,
       });
       // 409차 — 팩 히어로 변형(라이브 renderSection과 같은 DOM·같은 토큰). 사진이 없으면 classic
-      const heroVariant = resolveHeroVariant(layout, Boolean(src));
+      const baseHeroVariant = resolveHeroVariant(layout, Boolean(src));
+      // 419차 — 라이브와 같은 뷰티 히어로 규칙(1:1 caption-below)
+      const heroVariant = beautyHeroVariant(baseHeroVariant, category);
+      const beautyHero = heroVariant !== baseHeroVariant;
       if (heroVariant !== "bleed-bottom") {
         const align = heroCaptionAlign(heroVariant);
         const mark = resolveHeroBrandMark({ logoUrl, brandName, productName });
         const eyebrowLabel = mark.kind === "none" ? "" : mark.displayName;
         const edge = align === "center" ? "auto" : "0";
-        const photoHtml = `<div style="position:relative;width:100%;overflow:hidden;aspect-ratio:${heroCaptionRatio(heroVariant)};background:${baseTheme.baseNeutral}${heroVariant === "framed" ? `;border:${HERO_FRAME.borderPx}px solid ${HERO_FRAME.borderColor};box-sizing:border-box` : ""}"><img src="${esc(src)}" alt="${esc(alt)}" fetchPriority="high" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${HERO_CAPTION.photoPosition}"/></div>`;
+        const photoHtml = `<div style="position:relative;width:100%;overflow:hidden;aspect-ratio:${beautyHero ? BEAUTY_HERO.photoRatio : heroCaptionRatio(heroVariant)};background:${baseTheme.baseNeutral}${heroVariant === "framed" ? `;border:${HERO_FRAME.borderPx}px solid ${HERO_FRAME.borderColor};box-sizing:border-box` : ""}"><img src="${esc(src)}" alt="${esc(alt)}" fetchPriority="high" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${beautyHero ? BEAUTY_HERO.photoPosition : HERO_CAPTION.photoPosition}"/></div>`;
         const eyebrowHtml =
           eyebrowLabel || section.badge
             ? `<p style="margin:0 0 ${HERO_CAPTION.eyebrowGapPx}px;font-size:${HERO_CAPTION.eyebrowSizePx}px;font-weight:700;letter-spacing:${HERO_CAPTION.eyebrowTracking};text-transform:uppercase;color:${deepText}">${eyebrowLabel ? `<span>${esc(eyebrowLabel)}</span>` : ""}${eyebrowLabel && section.badge ? `<span aria-hidden="true"> · </span>` : ""}${section.badge ? `<span>${esc(section.badge)}</span>` : ""}</p>`
