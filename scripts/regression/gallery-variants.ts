@@ -3,6 +3,7 @@
  */
 import { buildDetailPageHtml } from "../../lib/export-detail-html";
 import { getCategoryTheme } from "../../lib/category-theme";
+import { galleryCell } from "../../lib/gallery-variants";
 import type { DetailSection } from "../../lib/types/generate";
 
 export const name = "갤러리 변형(export): 모노=1열 원본 비율, 에디토리얼=첫 장 크게+2열, 사진 부족 시 classic";
@@ -28,6 +29,14 @@ export async function run(): Promise<string[]> {
   // 폴백: lead-plus-two는 3장 미만 → classic, 1장 → classic
   if (html("editorial", 2).includes('data-gallery-variant="')) fails.push("editorial 2장인데 변형이 켜짐");
   if (html("mono-minimal", 1).includes('data-gallery-variant="')) fails.push("mono 1장인데 변형이 켜짐");
+  // 412차 — 장수 3~8 어디서도 2열 격자에 빈 칸이 없어야 한다: 전폭이 아닌 칸 수가 짝수
+  for (let n = 3; n <= 8; n++) {
+    const cells = Array.from({ length: n }, (_, pos) => galleryCell("lead-plus-two", pos, n));
+    const half = cells.filter((c) => !c.span).length;
+    if (half % 2 !== 0) fails.push(`editorial ${n}장: 2열 칸이 홀수(${half}) — 마지막 행에 빈 칸`);
+  }
+  // count를 안 주면 이전 동작 그대로
+  if (galleryCell("lead-plus-two", 3).span) fails.push("count 없이 호출해도 마지막 장이 전폭이 됨");
   // 패션 외는 그대로
   if (html("editorial", 5, "화장품/뷰티") !== html(null, 5, "화장품/뷰티")) fails.push("패션 외 갤러리가 팩 때문에 바뀜");
   return fails;

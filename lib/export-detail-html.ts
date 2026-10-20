@@ -1540,7 +1540,7 @@ function sectionHtml(
               const alt = buildSectionImageAlt(productName, `${section.heading} ${idx + 1}`, section.slot);
               const lead = oddLead && pos === 0;
               if (variantGrid) {
-                const cell = galleryCell(galleryVariant, pos);
+                const cell = galleryCell(galleryVariant, pos, galleryIndexes.length);
                 return src
                   ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;${cell.natural ? `height:auto;max-height:${GALLERY_VARIANT.capNarrowPx}px;object-fit:cover;object-position:${GALLERY_VARIANT.restPosition}` : `aspect-ratio:${GALLERY_VARIANT.restRatio};object-fit:cover;object-position:${GALLERY_VARIANT.restPosition}`}${cell.span ? ";grid-column:1/-1" : ""}"/>`
                   : "";

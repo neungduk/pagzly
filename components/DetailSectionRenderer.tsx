@@ -4623,7 +4623,7 @@ function renderSection(
           >
             {galleryIndexes.map((imageIndex, pairIndex) => {
               const src = resolveImage(imageUrls, imageIndex);
-              const cell = galleryCell(galleryVariant, pairIndex);
+              const cell = galleryCell(galleryVariant, pairIndex, galleryIndexes.length);
               return (
                 <div
                   key={`${imageIndex}-${src}-${pairIndex}`}

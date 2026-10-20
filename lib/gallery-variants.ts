@@ -18,10 +18,13 @@ export const GALLERY_VARIANT = {
 /** 한 칸의 모양 */
 export type GalleryCell = { span: boolean; natural: boolean };
 
-/** 변형별로 pos번째 사진 칸이 전폭인지·원본 비율인지(원본 비율 = 잘라 맞추지 않는다) */
-export function galleryCell(variant: GalleryVariant, pos: number): GalleryCell {
+/** 변형별로 pos번째 사진 칸이 전폭인지·원본 비율인지(원본 비율 = 잘라 맞추지 않는다). count는 갤러리 사진 수 — lead-plus-two에서 첫 장 뒤 나머지가 홀수(전체 짝수)면 마지막 장을 전폭으로 둬 빈 칸을 막는다(412차) */
+export function galleryCell(variant: GalleryVariant, pos: number, count?: number): GalleryCell {
   if (variant === "lookbook-stack") return { span: true, natural: true };
-  if (variant === "lead-plus-two") return pos === 0 ? { span: true, natural: true } : { span: false, natural: false };
+  if (variant === "lead-plus-two") {
+    if (pos === 0 || (count !== undefined && count % 2 === 0 && pos === count - 1)) return { span: true, natural: true };
+    return { span: false, natural: false };
+  }
   return { span: false, natural: false };
 }
 
