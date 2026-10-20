@@ -1,5 +1,7 @@
 "use client";
 
+import { infoZonesOfSections } from "@/lib/info-backdrop";
+import { FASHION, STYLE_AUTO_ENABLED } from "@/lib/style-director";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -331,6 +333,17 @@ export default function CreateDraftPage() {
       lifestyleImageUrl: (currentDraft.payload.lifestyleImageUrl as string | null) ?? null,
       draftToken: currentDraft.draftToken,
       imageRoles: (currentDraft.payload.imageRoles as string[] | undefined) ?? undefined,
+      // 417차 — 패션 + 스타일 자동 적용일 때만 인포 구간 AI 배경 요청(그 외 호출 0)
+      infoBackdrop:
+        snap.category === FASHION && STYLE_AUTO_ENABLED
+          ? {
+              zones: infoZonesOfSections(currentDraft.sections),
+              material: [snap.ingredients, snap.keyFeatures, snap.productName].filter(Boolean).join(" "),
+              color: [snap.keyFeatures, snap.productName].filter(Boolean).join(" "),
+              mood: "", // 컨셉 브리프(무드)는 파이프라인 안에서 채운다
+              productKey: String(snap.productName ?? ""),
+            }
+          : undefined,
       pickBackdrop: waitForBackdropPick,
       onStage: (event) => {
         setLoadingStage(mapProgressToStage(event));
@@ -378,6 +391,8 @@ export default function CreateDraftPage() {
         conceptBrief: photo.conceptBrief ?? currentDraft.payload.conceptBrief,
         referenceAnalysis: photo.referenceAnalysis ?? currentDraft.payload.referenceAnalysis,
         backdropFailed: photo.backdropFailed ?? false,
+        // 417차 — 인포 구간 AI 배경 URL 맵(세션 JSON에 그대로 실려 결과 화면·export가 읽는다. 없으면 코드 배경)
+        infoBackdrops: photo.infoBackdrops,
       },
       photoCostBreakdown,
       referenceAnalysis: photo.referenceAnalysis ?? currentDraft.referenceAnalysis,

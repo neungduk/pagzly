@@ -3,6 +3,7 @@
  * CreateProductForm(초안)에서는 쓰지 않고, draft 승인 시에만 호출한다.
  */
 
+import { INFO_BACKDROP_EXTRA_WAIT_MS, type InfoBackdropMap, type InfoZone } from "@/lib/info-backdrop";
 import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import type { ConceptBrief } from "@/lib/concept-brief";
 import { buildLifestyleCompositeRequestBody } from "@/lib/lifestyle-composite-request";
@@ -506,6 +507,8 @@ export async function runPhotoEnhancementPipeline(params: {
   draftToken?: string | null;
   /** 404차 — 사진별 역할(uploaded와 같은 순서). 패션 착장·코디(히어로 포함)는 합성하지 않고 원본을 쓴다 */
   imageRoles?: readonly string[];
+  /** 417차 — 인포 구간 AI 배경 요청(패션·스타일 자동 적용일 때만 호출부가 채운다). 없으면 호출 0 */
+  infoBackdrop?: { zones: InfoZone[]; material: string; color: string; mood: string; productKey: string };
   pickBackdrop: (urls: string[]) => Promise<string>;
   onStage?: PhotoPipelineProgressCallback;
 }): Promise<{
@@ -515,6 +518,8 @@ export async function runPhotoEnhancementPipeline(params: {
   conceptBrief?: ConceptBrief;
   referenceAnalysis?: ReferenceAnalysisInput;
   testMode: boolean;
+  /** 417차 — 인포 구간 AI 배경 URL 맵(성공한 구간만, 없으면 코드 배경) */
+  infoBackdrops?: InfoBackdropMap;
   /** 히어로 배경 실패로 enhance를 건너뛴 경우 */
   backdropFailed?: boolean;
   warning?: string;
@@ -682,6 +687,22 @@ export async function runPhotoEnhancementPipeline(params: {
       });
     }
   }
+
+  // 417차 — 인포 구간 AI 배경: 사진 보정과 병렬로 시작하고, 끝난 뒤 최대 25초만 더 기다린다(초과분은 코드 배경)
+  const infoBackdropJob: Promise<{ infoBackdrops: InfoBackdropMap; cost: number } | null> | null = params.infoBackdrop?.zones.length
+    ? fetch("/api/info-backdrops", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...params.infoBackdrop,
+          mood: params.infoBackdrop.mood || [backdropResult.conceptBrief?.mood, backdropResult.conceptBrief?.theme].filter(Boolean).join(" "),
+          category: params.category,
+        }),
+      })
+        .then(async (res) => (res.ok ? ((await res.json()) as { infoBackdrops?: InfoBackdropMap; cost?: number }) : null))
+        .then((j) => (j ? { infoBackdrops: j.infoBackdrops ?? {}, cost: j.cost ?? 0 } : null))
+        .catch(() => null)
+    : null;
 
   emit({
     stage: "enhancing",
@@ -881,6 +902,22 @@ export async function runPhotoEnhancementPipeline(params: {
     } // enableAiLifestyleShots
   }
 
+  let infoBackdrops: InfoBackdropMap | undefined;
+  if (infoBackdropJob) {
+    const waited = await Promise.race([
+      infoBackdropJob,
+      new Promise<"timeout">((r) => setTimeout(() => r("timeout"), INFO_BACKDROP_EXTRA_WAIT_MS)),
+    ]);
+    if (waited && waited !== "timeout") {
+      infoBackdrops = Object.keys(waited.infoBackdrops).length ? waited.infoBackdrops : undefined;
+      photoProcessingCost += waited.cost;
+      photoCostBreakdown = { ...photoCostBreakdown, infoBackdrops: waited.cost };
+    } else if (waited === "timeout") {
+      // 늦게 끝난 호출은 과금됐을 수 있으나 이 화면에는 쓰지 않는다(코드 배경). 비용은 서버 로그 [info-backdrops] done에 남는다
+      console.warn("[info-backdrops] 대기 25초 초과 — 코드 배경으로 진행");
+    }
+  }
+
   const uploadedCount = uploaded.length;
   const finalUnique = new Set(finalImages.map((i) => i.url)).size;
   if (finalUnique < finalImages.length) {
@@ -909,5 +946,6 @@ export async function runPhotoEnhancementPipeline(params: {
     conceptBrief: backdropResult.conceptBrief,
     referenceAnalysis: backdropResult.referenceAnalysis,
     testMode,
+    infoBackdrops,
   };
 }

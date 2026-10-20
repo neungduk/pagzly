@@ -319,3 +319,16 @@ export async function runInfoBackdropPlan(
 ): Promise<InfoBackdropJobResult[]> {
   return Promise.all(plan.items.map((it) => runInfoBackdropJob(it, buildInfoBackdropPrompt(it.kind, prompts), infoBackdropSeed(productKey, it.kind), deps)));
 }
+
+/** 섹션 목록에서 인포 구간(data-info 대상)을 뽑는다 — 렌더러·export와 같은 기준(포인트 카드=신뢰 근거 제외 highlight_box, 비교=checklist 표) */
+export function infoZonesOfSections(sections: ReadonlyArray<{ type: string; slot?: string; presentationStyle?: string }>): InfoZone[] {
+  const zones = new Set<InfoZone>();
+  for (const s of sections) {
+    if (s.type === "highlight_box" && s.slot !== "seller_trust_evidence") zones.add("points");
+    else if (s.type === "usage_steps") zones.add("steps");
+    else if (s.type === "stat_infographic") zones.add("stat");
+    else if (s.type === "comparison_chart" && s.presentationStyle === "checklist") zones.add("compare");
+    else if (s.type === "caution") zones.add("care");
+  }
+  return INFO_ZONE_PRIORITY.filter((z) => zones.has(z));
+}
