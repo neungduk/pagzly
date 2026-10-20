@@ -188,8 +188,10 @@ const sentences = allTexts.flatMap((t) => t.split(/(?<=[.!?。])\s+|\n+/)).map((
   // (a) 입력에 없는 수치
   // 단위 표기는 모델이 바꿔 쓰므로("21" → "21 cm") 숫자만 비교한다
   // 415차: 제목·부제·배너(allTexts에 모두 포함)의 "3분"·"두 개" 같은 수치도 잡는다. 단위 확장 + 한글 수사
+  // 시간·횟수·개수 단위(분·번·단계…)는 숫자+단위 쌍이 입력에 그대로 있어야 허용("3"이 "3,000원"에 있다고 "3분"이 허용되면 안 된다)
+  const STRICT_UNIT = /^(?:시간|분|초|회|번|단계|가지|벌|종|장|주|년|세|사이즈|개)$/;
   const numTok = (t: string) =>
-    [...t.matchAll(/\d+(?:[.,]\d+)?(?=\s*(?:%|수|cm|kg|g|mm|일|개|원|시|시간|분|초|회|번|단계|가지|벌|종|장|주|년|세|사이즈))/g)].map((m) => m[0]);
+    [...t.matchAll(/(\d+(?:[.,]\d+)?)\s*(%|수|cm|kg|g|mm|일|개|원|시간|시|분|초|회|번|단계|가지|벌|종|장|주|년|세|사이즈)/g)].map((m) => ({ n: m[1]!, unit: m[2]!, full: m[0].replace(/\s+/g, "") }));
   const KO_NUM: Record<string, number> = { 한: 1, 두: 2, 세: 3, 네: 4, 다섯: 5, 여섯: 6, 일곱: 7, 여덟: 8, 아홉: 9, 열: 10 };
   const koTok = (t: string) =>
     [...t.matchAll(/(두|세|네|다섯|여섯|일곱|여덟|아홉|열)\s*(개|가지|번|분|단계|장|벌|종|사이즈|시간)/g)].map((m) => ({ tok: m[0], n: KO_NUM[m[1]!]! }));
@@ -205,7 +207,10 @@ const sentences = allTexts.flatMap((t) => t.split(/(?<=[.!?。])\s+|\n+/)).map((
   const inputNums = new Set([...(inputText + " " + String(sessionRaw.keyFeatures ?? "") + " " + String(sessionRaw.ingredients ?? "")).matchAll(/\d+(?:[.,]\d+)?/g)].map((m) => m[0]));
   const outNums = new Map<string, string>();
   for (const t of allTexts) {
-    for (const n of numTok(t)) if (!inputNums.has(n) && Number(n) !== sizeRows && !outNums.has(n)) outNums.set(n, t);
+    for (const k of numTok(t)) {
+      const inInput = STRICT_UNIT.test(k.unit) ? inputText.replace(/\s+/g, "").includes(k.full) : inputNums.has(k.n);
+      if (!inInput && Number(k.n) !== sizeRows && !outNums.has(k.full)) outNums.set(k.full, t);
+    }
     for (const k of koTok(t)) if (!counted.has(k.n) && !inputText.includes(k.tok) && !outNums.has(k.tok)) outNums.set(k.tok, t);
   }
   if (outNums.size > 0) fail = true;
