@@ -38,6 +38,7 @@ export const HERO_FRAME = {
 } as const;
 
 /** 413차 — split: 넓은 폭(≥640px)에서 사진 좌 / 글 우, 좁은 폭은 caption-below와 같은 위아래 */
+/** 넓은 폭에서 글 칸이 절반이라 제목은 부제 크기(--pz-t-subtitle)를 쓴다(긴 제목이 3줄 이상 되지 않게, 413차 린트) */
 export const HERO_SPLIT = { photoRatio: "4 / 5", minWidthPx: 640 } as const;
 
 export function heroCaptionRatio(variant: HeroVariant): string {
@@ -46,10 +47,6 @@ export function heroCaptionRatio(variant: HeroVariant): string {
   return variant === "caption-below" ? HERO_CAPTION.photoRatioBelow : HERO_CAPTION.photoRatio;
 }
 
-/** 히어로 제목 크기 키 — split은 글 칸이 절반 폭이라 섹션 제목 크기를 쓴다 */
-export function heroTitleKey(variant: HeroVariant): "hero" | "section" {
-  return variant === "split" ? "section" : "hero";
-}
 
 export function heroCaptionAlign(variant: HeroVariant): "center" | "left" {
   return variant === "caption-below" || variant === "framed" ? "center" : "left";

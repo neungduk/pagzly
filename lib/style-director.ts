@@ -186,7 +186,7 @@ export const WEIGHTS = {
   },
   family: {
     "bold-pop": { base: 0, trendy: 0.6, young: 0.5, sat: 0.2, worn: 0.2 },
-    editorial: { base: 0, elegant: 0.6, premium: 0.5, mature: 0.2 },
+    editorial: { base: 0, elegant: 0.6, premium: 0.5, mature: 0.5 },
     mono: { base: 0, calm: 0.7, premium: 0.1 },
     "soft-classic": { base: 0.4, lowPhoto: 0.5, mature: 0.1 },
     "gallery-led": { base: 0, galleryRich: 0.5, worn: 0.4, elegant: 0.2, young: 0.1 },
@@ -221,6 +221,8 @@ export function isAllowed(axes: SpecAxes, input: DirectorInput): boolean {
   const gal = p?.galleryCount ?? 0;
   if (!p || p.total < 1) return axes.hero === "bleed-bottom" && axes.gallery === "duo-grid" && axes.flow === "default";
   if (axes.hero === "framed" && !p.heroWorn) return false; // framed: 히어로가 인물 원본일 때만
+  // 413차 린트(콤보 23): 사진 위 제목(bleed-bottom)에 소제목 라벨·가는 선 규칙이 붙으면 사진 위 제목에 "01"·선이 생기고 라이브↔export 줄 수가 어긋난다 → 가운데 소제목·선 없음만 허용
+  if (axes.hero === "bleed-bottom" && (axes.heading !== "center-stack" || axes.rule !== "none")) return false;
   if (axes.gallery === "mosaic" && gal < 3) return false;
   if (axes.gallery === "lead-plus-two" && gal < 3) return false;
   if (axes.gallery === "lookbook-stack" && gal < 2) return false;
@@ -258,9 +260,11 @@ function buildAxes(input: DirectorInput, f: DirectorFeatures, rand: () => number
   const type = TYPE_PRESETS[typeName];
 
   const sharp = family === "mono" || family === "editorial" || family === "gallery-led"; // 모서리 0·가는 선 계열
+  const bleed = hero === "bleed-bottom"; // 사진 위 제목에는 소제목 라벨·가는 선 규칙을 붙이지 않는다(isAllowed와 같은 규칙)
   const photoLed = hero === "caption-below" || hero === "framed" || hero === "split" || flow !== "default";
   // 연속 값
-  const sat = clamp01(0.25 + 0.45 * f.trendy + 0.2 * f.young + 0.1 * (1 - f.premium) + 0.15 * f.sat);
+  // 고가일수록 채도를 낮춘다(413차 타당성 점검: 고가인데 채도가 높게 나오던 것)
+  const sat = clamp01(0.25 + 0.45 * f.trendy + 0.2 * f.young + 0.1 * (1 - f.premium) + 0.15 * f.sat - 0.25 * f.premium);
   const depth = clamp01(0.3 + 0.5 * f.premium + 0.2 * f.elegant);
   const neutral: NeutralBand = f.elegant + f.premium > 0.9 ? "ivory" : f.calm > 0.6 && f.sat < 0.35 ? "plain" : f.calm > 0.5 ? "cool" : "tinted";
   const padY = Math.round((1 + 0.3 * f.premium + 0.15 * f.calm - 0.05 * f.young) * 20) / 20;
@@ -273,9 +277,9 @@ function buildAxes(input: DirectorInput, f: DirectorFeatures, rand: () => number
     summaryPlacement: photoLed && gallery !== "duo-grid" ? "after-gallery" : "after-hero",
     anchor: sharp ? "tabs" : "pills",
     checklist: sharp ? "plain-list" : "cards",
-    heading,
+    heading: bleed ? "center-stack" : heading,
     radius: sharp ? 0 : null,
-    rule: sharp || heading !== "center-stack" ? "hairline" : "none",
+    rule: !bleed && (sharp || heading !== "center-stack") ? "hairline" : "none",
     density: calmDense ? "compact" : "full",
     body: sharp ? (calmDense ? { sizePx: 15, line: 1.7 } : { sizePx: 16, line: 1.8 }) : null,
     headline: type.headline,

@@ -58,6 +58,12 @@ export async function run(): Promise<string[]> {
     const none = directStyle({ ...base, seed: `n${i}`, photos: { total: 0, worn: 0, detail: 0, flat: 0, other: 0, heroWorn: false, galleryCount: 0 } });
     for (const c of none.candidates) if (c.axes.hero !== "bleed-bottom" || c.axes.gallery !== "duo-grid" || c.axes.flow !== "default") fails.push("사진이 없는데 변형이 켜짐");
   }
+  // 린트 규칙(413차): 사진 위 제목(bleed-bottom)은 가운데 소제목·선 없음만
+  for (let i = 0; i < 80; i++) {
+    for (const c of directStyle({ ...base, seed: `b${i}` }).candidates) {
+      if (c.axes.hero === "bleed-bottom" && (c.axes.heading !== "center-stack" || c.axes.rule !== "none")) fails.push("bleed-bottom 히어로에 소제목 라벨·선 규칙이 붙은 후보");
+    }
+  }
   // 후보 다양성: 구조 서명이 서로 5축 중 2축 이상 다르다
   for (let i = 0; i < 30; i++) {
     const r = directStyle({ ...base, seed: `d${i}` });

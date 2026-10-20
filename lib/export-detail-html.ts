@@ -163,7 +163,7 @@ import {
 } from "@/lib/design-tokens";
 import { rhythmVarsCss } from "@/lib/rhythm-tokens";
 import { applyPackTone, classicFashionHeroStrength, isClassicPack, CLASSIC_LAYOUT, getPackLayout, packPadScale, packTitleScaleOverrides, resolveGalleryVariant, resolveHeroVariant, resolveStylePack, type PackLayout } from "@/lib/style-packs";
-import { HERO_CAPTION, HERO_FRAME, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroTitleKey } from "@/lib/hero-variants";
+import { HERO_CAPTION, HERO_FRAME, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
 import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
@@ -735,7 +735,7 @@ function sectionHtml(
           layout.rule === "hairline"
             ? `<div aria-hidden="true" style="width:${HERO_CAPTION.ruleWidthPx}px;height:1px;background:${HERO_CAPTION.ruleColor};margin:${HERO_CAPTION.ruleGapPx}px ${edge} 0"></div>`
             : "";
-        const captionHtml = `<div data-hero-caption style="padding:${HERO_CAPTION.padYPx}px var(--pz-pad-x,20px);text-align:${align};background:${heroCaptionBackground(heroVariant, baseTheme)}">${eyebrowHtml}<h1 class="pagzly-display-headline pz-fit" style="color:${HERO_CAPTION.ink};${titleFitCss(heroTitleKey(heroVariant), section.headline, -0.03)};font-weight:800;line-height:${HERO_CAPTION.titleLine};margin:0;${displayHeadlineInlineCss(category)}">${esc(section.headline)}</h1>${subHtml}${ruleHtml}</div>`;
+        const captionHtml = `<div data-hero-caption style="padding:${HERO_CAPTION.padYPx}px var(--pz-pad-x,20px);text-align:${align};background:${heroCaptionBackground(heroVariant, baseTheme)}">${eyebrowHtml}<h1 class="pagzly-display-headline pz-fit" style="color:${HERO_CAPTION.ink};${titleFitCss("hero", section.headline, -0.03)};font-weight:800;line-height:${HERO_CAPTION.titleLine};margin:0;${displayHeadlineInlineCss(category)}">${esc(section.headline)}</h1>${subHtml}${ruleHtml}</div>`;
         const framedPhotoHtml = heroVariant === "framed" ? `<div data-hero-frame style="background:${baseTheme.baseNeutral};padding:${HERO_FRAME.topPx}px ${HERO_FRAME.insetPx}px 0">${photoHtml}</div>` : photoHtml;
         return `<section${sectionIdAttr} class="hero pagzly-hero" data-hero-variant="${heroVariant}" style="position:relative;width:100%">${heroVariant === "caption-above" ? captionHtml + photoHtml : framedPhotoHtml + captionHtml}</section>`;
       }

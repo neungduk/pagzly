@@ -141,7 +141,7 @@ import WeightComparisonDiagram from "@/components/WeightComparisonDiagram";
 import PowerConsumptionDiagram from "@/components/PowerConsumptionDiagram";
 import { headlineDisplayStyle, joinNumericSuffix, longestTokenEm, packHeadlineLiveVars } from "@/lib/detail-typography";
 import { rhythmLiveVars } from "@/lib/rhythm-tokens";
-import { HERO_CAPTION, HERO_FRAME, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroTitleKey } from "@/lib/hero-variants";
+import { HERO_CAPTION, HERO_FRAME, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
 import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
@@ -2266,8 +2266,8 @@ function renderSection(
               value={section.headline}
               onChange={(headline) => edit?.onChange(index, { ...section, headline })}
               className={
-                heroTitleKey(heroVariant) === "section"
-                  ? "pagzly-display-headline pz-fit font-heading [--pz-fs:var(--pz-t-section-b)] font-extrabold @min-[640px]/pz:[--pz-fs:var(--pz-t-section-w)]"
+                heroVariant === "split"
+                  ? "pagzly-display-headline pz-fit font-heading [--pz-fs:var(--pz-t-hero-b)] font-extrabold @min-[640px]/pz:[--pz-fs:var(--pz-t-subtitle-w)]"
                   : "pagzly-display-headline pz-fit font-heading [--pz-fs:var(--pz-t-hero-b)] font-extrabold @min-[640px]/pz:[--pz-fs:var(--pz-t-hero-w)]"
               }
               style={{

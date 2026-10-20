@@ -70,6 +70,7 @@ export async function run(): Promise<string[]> {
     if (/text-shadow/.test(h.split("</section>")[0] ?? "")) fails.push(`${v}: 사진 위 글자 그림자가 남음`);
     if (v === "framed" && !h.includes("data-hero-frame")) fails.push("framed 액자 래퍼 없음");
     if (v === "split" && !h.includes('[data-hero-variant="split"]{display:flex}')) fails.push("split 넓은 폭 CSS 없음");
+    if (v === "split" && !h.includes("--pz-fs:var(--pz-t-subtitle)!important")) fails.push("split 넓은 폭 제목 크기(부제 크기) 규칙 없음");
     if (v === "split" && html([hero()], urls(1), code({ hero: "caption-below" })).includes('[data-hero-variant="split"]')) fails.push("split CSS가 다른 히어로에도 들어감");
     if (resolveHeroVariant(getPackLayout(resolveStylePack("의류/패션", code({ hero: v }))), false) !== "bleed-bottom") fails.push(`${v}: 사진 없음 폴백`);
   }
