@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import sharp from "sharp";
 import { calculateClaudeCost, logClaudeCost } from "@/lib/claude-cost";
 import { isTestMode } from "@/lib/test-mode";
+import { visionKey, withVisionCache } from "@/lib/vision-cache";
 
 /** Haiku 4.5 — 라벨 감지·QA 등 경량 비전 작업용 */
 export const HAIKU_VISION_MODEL = "claude-haiku-4-5-20251001";
@@ -138,7 +139,7 @@ function normalizeTextRegion(raw: unknown): TextRegion | null {
 }
 
 /** 상품 사진에서 라벨·로고·텍스트 영역을 Haiku 비전으로 감지한다. */
-export async function detectTextRegions(
+async function detectTextRegionsRaw(
   imageBuffer: Buffer,
   mediaType: "image/jpeg" | "image/png" = "image/jpeg",
 ): Promise<{ regions: TextRegion[]; cost: number }> {
@@ -224,7 +225,7 @@ export type ProductBoundingBox = {
  * 배경제거 재시도 시 상품 영역만 크롭해서 넘기는 용도.
  * TEST_MODE이거나 API키 없으면 null 반환.
  */
-export async function detectProductRegion(
+async function detectProductRegionRaw(
   imageBuffer: Buffer,
   productName: string,
   mediaType: "image/jpeg" | "image/png" = "image/jpeg",
@@ -313,7 +314,7 @@ JSON만 반환:
  * rembg 컷아웃(투명 배경)에 손·팔·사람 잔여가 있는지 빠르게 판별.
  * true면 재크롭 후 배경제거를 한 번 더 시도한다.
  */
-export async function detectCutoutHasHandOrPerson(
+async function detectCutoutHasHandOrPersonRaw(
   cutoutBuffer: Buffer,
 ): Promise<{ contaminated: boolean; cost: number }> {
   if (!process.env.ANTHROPIC_API_KEY || isTestMode()) {
@@ -587,4 +588,27 @@ export function computeSafeCanvasPlacement(
   }
 
   return { scale, left: Math.round(left), top: Math.round(top) };
+}
+
+// ── 419차 3-5: 같은 바이트·같은 옵션의 감지는 한 번만(lib/vision-cache.ts) ──
+export async function detectTextRegions(
+  imageBuffer: Buffer,
+  mediaType: "image/jpeg" | "image/png" = "image/jpeg",
+): Promise<{ regions: TextRegion[]; cost: number }> {
+  return withVisionCache(visionKey("text", imageBuffer, mediaType), () => detectTextRegionsRaw(imageBuffer, mediaType));
+}
+
+export async function detectProductRegion(
+  imageBuffer: Buffer,
+  productName: string,
+  mediaType: "image/jpeg" | "image/png" = "image/jpeg",
+  options?: { strict?: boolean },
+): Promise<{ box: ProductBoundingBox | null; cost: number }> {
+  return withVisionCache(visionKey("region", imageBuffer, `${productName}|${mediaType}|${options?.strict ? "strict" : "normal"}`), () =>
+    detectProductRegionRaw(imageBuffer, productName, mediaType, options),
+  );
+}
+
+export async function detectCutoutHasHandOrPerson(cutoutBuffer: Buffer): Promise<{ contaminated: boolean; cost: number }> {
+  return withVisionCache(visionKey("hand", cutoutBuffer), () => detectCutoutHasHandOrPersonRaw(cutoutBuffer));
 }
