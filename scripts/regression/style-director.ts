@@ -3,7 +3,7 @@
  * 후보 구조 서명 다양성·패션 외 카테고리는 null. 유료 호출 0.
  */
 import { decodeSpec, encodeSpec } from "../../lib/style-packs";
-import { directStyle, directorInputFromSession, isAllowed, recommendForSession, structDistance, type DirectorInput } from "../../lib/style-director";
+import { directStyle, directorInputFromSession, featuresOf, isAllowed, popSignal, recommendForSession, structDistance, type DirectorInput } from "../../lib/style-director";
 
 export const name = "스타일 디렉터 — 결정성·유효성·호환·후보 다양성";
 
@@ -72,6 +72,18 @@ export async function run(): Promise<string[]> {
     }
     if (r.code !== r.candidates[0]!.code) fails.push("추천이 후보 첫 번째가 아님");
   }
+  // 415차 — 히어로가 인물 원본이면 사진 위 제목(bleed-bottom)이 추천·후보에 없다(제목이 인물을 덮음), bold-pop은 팝 신호가 있을 때만
+  for (let i = 0; i < 60; i++) {
+    const inp: DirectorInput = { ...base, seed: `h${i}`, targetCustomer: i % 2 ? "30~40대 여성" : "20~30대 여성", moodText: i % 3 === 0 ? "우아하고 포근한" : "트렌디하고 경쾌한" };
+    const r = directStyle(inp);
+    for (const c of r.candidates) if (c.axes.hero === "bleed-bottom" && inp.photos?.heroWorn) fails.push("히어로가 인물인데 사진 위 제목 후보가 나옴");
+    if (r.family === "bold-pop" && !popSignal(featuresOf(inp).f)) fails.push("팝 신호 없이 bold-pop 계열");
+  }
+  // 히어로가 인물이 아니면(평면 컷) 사진 위 제목은 그대로 쓸 수 있다
+  const flatHero = { ...base, photos: { ...base.photos!, heroWorn: false } };
+  let sawBleed = false;
+  for (let i = 0; i < 60; i++) if (directStyle({ ...flatHero, seed: `f${i}` }).candidates.some((c) => c.axes.hero === "bleed-bottom")) sawBleed = true;
+  if (!sawBleed) fails.push("히어로가 인물이 아닐 때도 사진 위 제목이 전혀 안 나옴");
   // 패션 외 → null, 세션 변환이 빈 객체에서도 안 죽음
   if (recommendForSession({ category: "화장품/뷰티" }) !== null) fails.push("패션 외 카테고리가 추천을 받음");
   if (!recommendForSession({})) fails.push("빈 세션(카테고리 없음)이 추천을 못 받음");

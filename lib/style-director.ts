@@ -203,6 +203,28 @@ const FAMILY_VALUES: Record<FamilyName, Partial<Record<"hero" | "flow" | "galler
   "gallery-led": { hero: ["split", "framed"], flow: ["photo-lead"], gallery: ["mosaic", "lead-plus-two"], summary: ["inline-strip"], heading: ["center-rule"], type: ["serif-regular", "sans-semi"] },
 };
 const FAMILY_BONUS = 0.6;
+
+/**
+ * 415차 — bold-pop 계열은 트렌디·젊음·높은 채도 신호가 있을 때만 후보가 된다(414차: 우아·차분 신호의 상품에 "bold-pop"이 붙던 이름·결과 불일치).
+ * 내부 식별자만 다루며 화면 라벨(축 이름 조합)은 그대로다.
+ */
+export function popSignal(f: DirectorFeatures): boolean {
+  return f.trendy >= 0.34 || (f.young >= 0.5 && f.sat >= 0.45) || f.sat >= 0.7;
+}
+
+/**
+ * 415차 — 사진 위 제목(bleed-bottom)은 히어로가 인물 원본이면 제목이 인물 몸통을 지난다(414차 측정: 글-인물 겹침 0.36~0.44, 판정 기준 0.25).
+ * 그런 경우 같은 계열의 사진 아래 제목(caption-below)으로 자동 대체한다. 히어로가 인물이 아니면(평면·소품) 그대로 둔다.
+ */
+export const HERO_OVERLAP_LIMIT = 0.25;
+export const BLEED_WORN_OVERLAP = 0.36;
+export function heroOverlapRisk(axes: SpecAxes, input: DirectorInput): number {
+  return axes.hero === "bleed-bottom" && input.photos?.heroWorn ? BLEED_WORN_OVERLAP : 0;
+}
+export function repairHeroOverlap(axes: SpecAxes, input: DirectorInput): SpecAxes {
+  if (heroOverlapRisk(axes, input) < HERO_OVERLAP_LIMIT) return axes;
+  return { ...axes, hero: "caption-below", heroGrad: 0.85 };
+}
 const TEMP = 0.22;
 const FAMILY_TEMP = 0.3;
 
@@ -244,7 +266,14 @@ export function structDistance(a: SpecAxes, b: SpecAxes): number {
 function buildAxes(input: DirectorInput, f: DirectorFeatures, rand: () => number, familyPick?: FamilyName): { axes: SpecAxes; family: FamilyName; reasons: string[] } {
   const reasons: string[] = [];
   const family =
-    familyPick ?? softmaxPick(Object.entries(WEIGHTS.family).map(([k, w]) => [k as FamilyName, score(w as W, f)]), rand, FAMILY_TEMP);
+    familyPick ??
+    softmaxPick(
+      Object.entries(WEIGHTS.family)
+        .filter(([k]) => k !== "bold-pop" || popSignal(f))
+        .map(([k, w]) => [k as FamilyName, score(w as W, f)]),
+      rand,
+      FAMILY_TEMP,
+    );
   const fam = FAMILY_VALUES[family];
   const pick = <K extends "hero" | "flow" | "gallery" | "summary" | "heading" | "type">(axis: K): string => {
     const table = WEIGHTS[axis] as Record<string, W>;
@@ -303,7 +332,9 @@ export function directStyle(input: DirectorInput, opts: { k?: number; seedSalt?:
   const MIN_DIST = 0.4; // 5축 중 2축 이상 달라야 한다
   for (let i = 0; i < 80 && accepted.length < K; i++) {
     const { axes, family } = buildAxes(input, f, rng(`${baseSeed}#${i}`));
-    const decoded = decodeSpec(encodeSpec(axes));
+    const raw = decodeSpec(encodeSpec(axes));
+    // 415차: 제목이 인물을 덮는 사진 위 제목은 사진 아래 제목으로 대체(대체 후 호환 규칙을 다시 본다)
+    const decoded = raw ? decodeSpec(encodeSpec(repairHeroOverlap(raw, input))) : null;
     if (!decoded || !isAllowed(decoded, input)) continue;
     if (accepted.some((a) => structDistance(a.axes, decoded) < MIN_DIST)) continue;
     // 413차 눈 감사: 후보의 첫 화면이 서로 구분되도록 앞쪽 시도에서는 히어로도 겹치지 않게 한다(찾지 못하면 뒤 시도에서 완화)
