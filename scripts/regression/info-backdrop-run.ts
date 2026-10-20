@@ -31,8 +31,8 @@ function fakeClock() {
   return { now: () => t, sleep, pump };
 }
 
-const ITEM_A: InfoBackdropPlanItem = { zone: "points", kind: "A", slug: "ideogram-ai/ideogram-v3-turbo", unitUsd: 0.04 };
-const ITEM_B: InfoBackdropPlanItem = { zone: "stat", kind: "B", slug: "black-forest-labs/flux-1.1-pro", unitUsd: 0.05 };
+const ITEM_A: InfoBackdropPlanItem = { zone: "points", kind: "A", slug: "ideogram-ai/ideogram-v3-turbo", unitUsd: 0.03 };
+const ITEM_B: InfoBackdropPlanItem = { zone: "stat", kind: "B", slug: "black-forest-labs/flux-1.1-pro", unitUsd: 0.04 };
 const err429 = (after?: number) => Object.assign(new Error(`Request failed with status 429 Too Many Requests: {"detail":"throttled","status":429${after != null ? `,"retry_after":${after}` : ""}}`), { response: { status: 429 } });
 
 async function job(item: InfoBackdropPlanItem, run: InfoBackdropDeps["run"], extra: Partial<InfoBackdropDeps> = {}) {
@@ -139,8 +139,8 @@ export async function run(): Promise<string[]> {
   const m = infoBackdropMapFrom(results.map((x) => ({ zone: x.zone, ok: x.ok, url: x.ok ? "https://x/a.png" : null })));
   if (Object.keys(m).length !== 1) fails.push("맵에 실패 구간이 들어감");
   const cost = infoBackdropCostUsd(results);
-  // points(A) 성공 0.04 + steps(A) 이상 형식 0.04 + stat(B) 429 소진 0 = 0.08
-  if (cost !== 0.08) fails.push(`비용 합산 ${cost} ≠ 0.08(429는 $0)`);
+  // points(A) 성공 0.03 + steps(A) 이상 형식 0.03 + stat(B) 429 소진 0 = 0.06
+  if (cost !== 0.06) fails.push(`비용 합산 ${cost} ≠ 0.06(429는 $0)`);
   if (new Set(seen.filter((s) => s.startsWith("ideogram"))).size !== 1) fails.push("같은 상품·종류인데 시드가 다름");
 
   // 입력 파라미터 이름

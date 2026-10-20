@@ -3,7 +3,7 @@
  * 실제 생성 호출·출력 어댑터·저장은 417차에서 이 파일의 상수·계획 함수를 읽어 연결한다.
  *  - 슬롯: 구간(InfoZone) → 이미지 URL 맵. 맵에 없는 구간은 코드 배경(지금 모습) 그대로, 맵 자체가 없으면 CSS·마크업 바이트 불변.
  *    라이브·export는 같은 infoCss 한 벌에서 이 CSS를 받는다(스크림 위에 글자가 오므로 이미지 밝기와 무관하게 대비를 지킨다).
- *  - 상한: 페이지당 3장·추정 $0.18. 넘는 구간은 폴백(코드 배경). 비용 상수는 416차 실측(−$0.51 vs 추정 $0.33)을 반영해 보수적으로 잡는다.
+ *  - 상한: 페이지당 3장·추정 $0.18. 넘는 구간은 폴백(코드 배경). 단가는 417차 Replicate 잔액 대조(−$0.11, 앱 기록 $0.14)로 공개 단가에 맞췄다(ideogram $0.03 · flux-pro $0.04).
  *  - 프롬프트: 상품 소재·색·무드·톤을 사전(dictionary)으로만 영어 문구로 바꾼다. 판매자 입력 원문은 프롬프트에 넣지 않는다.
  * 모델 슬러그·단가·프롬프트 문구는 이 파일에만 둔다(다른 곳에 흩뿌리지 않는다).
  */
@@ -27,9 +27,9 @@ export const INFO_BACKDROP_MAX_429_RETRY = 3;
 export const INFO_BACKDROP_DEFAULT_RETRY_MS = 15_000;
 
 export const INFO_BACKDROP_MODELS: Record<InfoBackdropKind, { slug: `${string}/${string}`; unitUsd: number }> = {
-  A: { slug: "ideogram-ai/ideogram-v3-turbo", unitUsd: 0.04 },
-  B: { slug: "black-forest-labs/flux-1.1-pro", unitUsd: 0.05 },
-  C: { slug: "ideogram-ai/ideogram-v3-turbo", unitUsd: 0.04 },
+  A: { slug: "ideogram-ai/ideogram-v3-turbo", unitUsd: 0.03 },
+  B: { slug: "black-forest-labs/flux-1.1-pro", unitUsd: 0.04 },
+  C: { slug: "ideogram-ai/ideogram-v3-turbo", unitUsd: 0.03 },
 };
 
 /** 구간 → 띠 종류. 어두운 띠(포인트·단계)=A, 밝은 띠(혼방·비교)=B, 액센트 띠=C */
@@ -71,7 +71,7 @@ export function planInfoBackdrops(present: readonly InfoZone[]): InfoBackdropPla
  * 429·타임아웃 전 거절처럼 과금 안 된 호출만 billed=false.
  */
 export type InfoBackdropOutcome = { zone: InfoZone; kind: InfoBackdropKind; billed: boolean; ok: boolean };
-/** photoCostBreakdown.infoBackdrops에 들어갈 값 — 보수적 단가 × 과금 가능 호출 수 */
+/** photoCostBreakdown.infoBackdrops에 들어갈 값 — 416·417차 잔액 대조로 맞춘 단가 × 과금 가능 호출 수 */
 export function infoBackdropCostUsd(outcomes: readonly InfoBackdropOutcome[]): number {
   return +outcomes.reduce((s, o) => s + (o.billed ? INFO_BACKDROP_MODELS[o.kind].unitUsd : 0), 0).toFixed(4);
 }

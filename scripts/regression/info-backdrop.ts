@@ -45,14 +45,14 @@ export async function run(): Promise<string[]> {
   if (planInfoBackdrops([]).items.length !== 0 || planInfoBackdrops(["care"]).items.length !== 1) fails.push("구간이 적을 때 계획이 다름");
   if (INFO_ZONE_PRIORITY.length !== ALL.length) fails.push("우선순위 목록 누락");
 
-  // 비용 기록: 과금 가능 호출만, 보수적 단가(ideogram 0.04·flux-pro 0.05)
-  if (INFO_BACKDROP_MODELS.A.unitUsd !== 0.04 || INFO_BACKDROP_MODELS.B.unitUsd !== 0.05) fails.push("보수적 단가가 아님");
+  // 비용 기록: 과금 가능 호출만, 실제 단가(ideogram 0.03·flux-pro 0.04, 417차 잔액 대조)
+  if (INFO_BACKDROP_MODELS.A.unitUsd !== 0.03 || INFO_BACKDROP_MODELS.B.unitUsd !== 0.04) fails.push("단가가 417차 실측값이 아님");
   const c1 = infoBackdropCostUsd([
     { zone: "points", kind: "A", billed: true, ok: true },
     { zone: "stat", kind: "B", billed: true, ok: false }, // 생성됐으나 출력 형식 오류 → 폴백, 과금은 됨(416차 flux-schnell)
     { zone: "steps", kind: "A", billed: false, ok: false }, // 429 거절
   ]);
-  if (c1 !== 0.09) fails.push(`비용 합산 ${c1} ≠ 0.09`);
+  if (c1 !== 0.07) fails.push(`비용 합산 ${c1} ≠ 0.07`);
   if (infoBackdropCostUsd([]) !== 0) fails.push("빈 결과 비용이 0이 아님");
 
   // 슬롯 맵: 성공한 구간만, 위험한 주소는 폴백
