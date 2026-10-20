@@ -166,6 +166,7 @@ import { applyPackTone, classicFashionHeroStrength, isClassicPack, CLASSIC_LAYOU
 import { HERO_CAPTION, HERO_FRAME, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
+import type { InfoBackdropMap } from "@/lib/info-backdrop";
 import { infoAttr, infoColorsOf, infoCss, infoOn, ipAttr, splitLead, INFO_CHECK_SVG } from "@/lib/info-style";
 import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
 import { applySectionDisplayBudget } from "@/lib/section-display-budget";
@@ -2102,6 +2103,8 @@ export function buildDetailPageHtml(opts: {
   imageOrigins?: import("@/lib/image-origins").ProductImageOrigin[];
   /** 408차 — 스타일 팩 id(패션만 유효, 없거나 모르는 값이면 classic). 라이브 DetailSectionRenderer의 stylePackId와 같은 값 */
   stylePackId?: string | null;
+  /** 417차 — 인포 구간 AI 배경 슬롯(라이브 infoBackdrops와 같은 값). 이미지 없는 export는 코드 배경 */
+  infoBackdrops?: InfoBackdropMap;
 }): string {
   const pack = resolveStylePack(opts.category, opts.stylePackId);
   // 408차 — 팩 색 톤: hue는 세션 theme 그대로, 채도·밝기 곡선만 교체(기본 팩은 같은 객체)
@@ -2318,7 +2321,7 @@ ${jsonLd}
 <style>
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
-  ${buildDetailExportFontCss(opts.category)}${packHeadlineExportCss(pack)}${isClassicPack(pack) ? "" : packStructureCss(getPackLayout(pack), ".pagzly-wrap", "export") + infoCss(getPackLayout(pack).info, ".pagzly-wrap", infoColorsOf(opts.theme))}
+  ${buildDetailExportFontCss(opts.category)}${packHeadlineExportCss(pack)}${isClassicPack(pack) ? "" : packStructureCss(getPackLayout(pack), ".pagzly-wrap", "export") + infoCss(getPackLayout(pack).info, ".pagzly-wrap", infoColorsOf(opts.theme), opts.infoBackdrops)}
   .pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size;line-height:1.5;${sectionPadVarsCss(opts.category, false, packPadScale(pack))}}
   @media (min-width:640px){.pagzly-wrap{${sectionPadVarsCss(opts.category, true, packPadScale(pack))}}}
   .pagzly-wrap section>h2.pagzly-display-headline:first-child{margin-top:0}

@@ -144,6 +144,7 @@ import { rhythmLiveVars } from "@/lib/rhythm-tokens";
 import { HERO_CAPTION, HERO_FRAME, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
+import type { InfoBackdropMap } from "@/lib/info-backdrop";
 import { infoColorsOf, infoCss, infoData, infoOn, ipData, splitLead, INFO_CHECK_SVG } from "@/lib/info-style";
 import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
 import {
@@ -290,6 +291,8 @@ type DetailSectionRendererProps = {
   pendingHighlightIndex?: number | null;
   /** 408차 — 스타일 팩 id(패션만 유효, 없거나 모르는 값이면 classic). export의 stylePackId와 같은 값을 넘긴다 */
   stylePackId?: string | null;
+  /** 417차 — 인포 구간 AI 배경 슬롯(구간 → 이미지 URL). 없으면 코드 배경 그대로 */
+  infoBackdrops?: InfoBackdropMap;
 };
 
 /**
@@ -5844,6 +5847,7 @@ export default function DetailSectionRenderer({
   certifications,
   pendingHighlightIndex: inputHighlightIndex = null,
   stylePackId,
+  infoBackdrops,
 }: DetailSectionRendererProps) {
   const pack = resolveStylePack(category, stylePackId);
   const packLayout = getPackLayout(pack);
@@ -5919,7 +5923,7 @@ export default function DetailSectionRenderer({
       data-pz-pack={isClassicPack(pack) ? undefined : pack.id}
       style={packRootStyle(category, pack) as CSSProperties}
     >
-      {isClassicPack(pack) ? null : <style>{packStructureCss(packLayout, "[data-pz-pack]", "live") + infoCss(packLayout.info, "[data-pz-pack]", infoColorsOf(baseTheme))}</style>}
+      {isClassicPack(pack) ? null : <style>{packStructureCss(packLayout, "[data-pz-pack]", "live") + infoCss(packLayout.info, "[data-pz-pack]", infoColorsOf(baseTheme), infoBackdrops)}</style>}
       {sectionAnchors.length > 0 && !anchorNavAfterHero ? (
         <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} variant={packLayout.anchor} />
       ) : null}

@@ -5,6 +5,8 @@ export type PhotoCostBreakdown = {
   conceptBrief?: number;
   backdrop?: number;
   sectionBackdrops?: number;
+  /** 417차 — 인포 구간 AI 배경(보수적 단가 × 과금 가능 호출 수) */
+  infoBackdrops?: number;
   enhance?: number;
   decor?: number;
   lifestyle?: number;

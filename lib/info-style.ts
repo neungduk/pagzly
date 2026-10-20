@@ -7,6 +7,7 @@
  */
 import type { CategoryTheme } from "@/lib/category-theme";
 import { BRAND, ensureReadableOnPaper } from "@/lib/design-tokens";
+import { infoBackdropCss, type InfoBackdropMap } from "@/lib/info-backdrop";
 
 export type InfoLevel = "calm" | "bold" | "dramatic";
 export const INFO_LEVELS = ["calm", "bold", "dramatic"] as const;
@@ -66,7 +67,7 @@ export const INFO_BODY_MIN_PX = 15;
 const IMP = "!important";
 
 /** scope: 라이브 `[data-pz-pack]`, export `.pagzly-wrap`. calm이면 빈 문자열 */
-export function infoCss(level: InfoLevel | undefined, scope: string, c: InfoColors): string {
+export function infoCss(level: InfoLevel | undefined, scope: string, c: InfoColors, backdrops?: InfoBackdropMap): string {
   if (!level || level === "calm") return "";
   const dr = level === "dramatic";
   const S = scope;
@@ -188,6 +189,8 @@ export function infoCss(level: InfoLevel | undefined, scope: string, c: InfoColo
   rule(`${CL} li>span:first-child svg`, `display:block;width:24px;height:24px;color:${W};stroke:${W}`);
   rule(`${CL} li>span:last-child`, `display:block;min-width:0;font-size:16px;line-height:1.6;color:${c.ink}`);
 
+  // 417차 선행 — AI 배경 슬롯(맵이 없으면 빈 문자열이라 바이트 불변)
+  out.push(infoBackdropCss(backdrops, level, scope, c));
   return out.join("");
 }
 
