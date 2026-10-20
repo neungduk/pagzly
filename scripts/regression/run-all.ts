@@ -22,12 +22,13 @@ import * as packLayout from "./pack-layout";
 import * as heroVariants from "./hero-variants";
 import * as flowPhotoFirst from "./flow-photo-first";
 import * as galleryVariants from "./gallery-variants";
+import * as promptRules412 from "./prompt-rules-412";
 import * as packStructure from "./pack-structure";
 import * as packContrast from "./pack-contrast";
 import * as flowStory from "./flow-story-after-photo";
 import * as packFinish from "./pack-finish";
 
-const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip, fashionSpecFallback, specRowCap, rhythmTokens, stylePacks, packLayout, heroVariants, flowPhotoFirst, galleryVariants, packStructure, packContrast, flowStory, packFinish];
+const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip, fashionSpecFallback, specRowCap, rhythmTokens, stylePacks, packLayout, heroVariants, flowPhotoFirst, galleryVariants, packStructure, packContrast, flowStory, packFinish, promptRules412];
 
 async function main() {
   let failed = 0;
