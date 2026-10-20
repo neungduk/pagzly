@@ -69,7 +69,8 @@ export const CLASSIC_LAYOUT: PackLayout = {
 
 export type StylePack = {
   layout: PackLayout;
-  id: StylePackId;
+  /** 프리셋 id(StylePackId) 또는 조합 스펙 코드("x:{...}", 413차) */
+  id: string;
   label: string;
   blurb: string;
   /** 409차 — 선택칸 한 줄 설명(15자 안쪽, UI 라벨) */
@@ -166,11 +167,16 @@ export function stylePackOptions(category: string): StylePack[] {
   return category === PACK_CATEGORY ? FASHION_PACKS : [];
 }
 
-/** 없거나 모르는 id, 패션이 아닌 카테고리는 항상 classic */
+/** 없거나 모르는 id, 패션이 아닌 카테고리는 항상 classic. 프리셋 id 또는 413차 조합 스펙 코드("x:…")를 받는다 */
 export function resolveStylePack(category: string, id?: string | null): StylePack {
   if (category !== PACK_CATEGORY || !id) return CLASSIC_PACK;
-  return FASHION_PACKS.find((p) => p.id === id) ?? CLASSIC_PACK;
+  const preset = FASHION_PACKS.find((p) => p.id === id);
+  if (preset) return preset;
+  if (id.startsWith(SPEC_PREFIX)) return packFromCode(id) ?? CLASSIC_PACK;
+  return CLASSIC_PACK;
 }
+/** 413차 — resolveStylePack의 새 이름(같은 함수). 프리셋 id/스펙 코드를 해석된 스펙으로 푼다 */
+export const resolveStyleSpec = resolveStylePack;
 
 /** 라이브·export가 같은 곳에서 구조 변형 값을 받는다. 팩 없음 = classic */
 export function getPackLayout(pack: StylePack | undefined | null): PackLayout {
@@ -287,4 +293,214 @@ export function packTitleScaleOverrides(pack: StylePack | undefined | null): Tit
   if (!body) return base;
   const rem = `${body.sizePx / 16}rem`;
   return { ...base, body: { base: rem, wide: rem } };
+}
+
+// ---------------------------------------------------------------------------
+// 413차 — 조합형 스타일 스펙. 팩 = 축 값의 조합(SpecAxes). 기존 3팩은 프리셋이고, 조합은 문자열 코드("x:{…}")로
+// 같은 prop(stylePackId)에 실려 라이브·export·저장(sessionStorage)을 그대로 지난다. DB·서버에 저장하지 않는다.
+// 같은 축 값이면 같은 코드·같은 StylePack이다(프리셋과 같은 조합이면 프리셋 객체 그대로 돌려줘 바이트까지 같다).
+// ---------------------------------------------------------------------------
+
+export const SPEC_PREFIX = "x:";
+
+/** 제목 크기 묶음(이름으로 코드에 싣는다). base = 덮어쓰기 없음 */
+export const TITLE_SCALES: Record<string, TitleScaleOverrides> = {
+  base: {},
+  mono: {
+    hero: { base: "2.5rem", wide: "4rem" },
+    section: { base: "1.625rem", wide: "2.25rem" },
+    subtitle: { base: "1.125rem", wide: "1.25rem" },
+  },
+  editorial: {
+    hero: { base: "2.75rem", wide: "4.5rem" },
+    section: { base: "2.125rem", wide: "2.75rem" },
+    subtitle: { base: "1.25rem", wide: "1.5rem" },
+  },
+};
+export type TitleScaleName = string;
+
+export type SpecAxes = {
+  hero: HeroVariant;
+  flow: FlowVariant;
+  gallery: GalleryVariant;
+  summary: SummaryVariant;
+  summaryPlacement: PackLayout["summaryPlacement"];
+  anchor: PackLayout["anchor"];
+  checklist: ChecklistVariant;
+  heading: HeadingVariant;
+  radius: number | null;
+  rule: PackLayout["rule"];
+  density: PackLayout["density"];
+  body: PackLayout["body"];
+  /** 제목 서체: Noto Serif/Sans 2종 안의 굵기·자간(em). null = 지금 값 */
+  headline: { kind: "serif" | "sans-display"; weight: number; ls: number } | null;
+  scale: TitleScaleName;
+  padY: number;
+  heroGrad: number;
+  tone: ToneSpec | null;
+};
+
+export const SPEC_ENUMS = {
+  hero: ["bleed-bottom", "caption-below", "caption-above"],
+  flow: ["default", "photo-first", "story-after-photo"],
+  gallery: ["duo-grid", "lookbook-stack", "lead-plus-two"],
+  summary: ["icon-grid", "spec-list", "inline-strip"],
+  summaryPlacement: ["after-hero", "after-gallery"],
+  anchor: ["pills", "tabs"],
+  checklist: ["cards", "plain-list"],
+  heading: ["center-stack", "left-eyebrow", "center-rule"],
+  rule: ["none", "hairline"],
+  density: ["full", "compact"],
+} as const;
+
+/** 스펙 → StylePack(id는 코드). 프리셋과 같은 조합이면 프리셋 객체를 그대로 돌려준다 */
+export function packFromSpec(axes: SpecAxes): StylePack {
+  const code = encodeSpec(axes);
+  for (const p of FASHION_PACKS) if (encodeSpec(specOfPack(p)) === code) return p;
+  const layout: PackLayout = {
+    hero: axes.hero,
+    flow: axes.flow,
+    gallery: axes.gallery,
+    summary: axes.summary,
+    summaryPlacement: axes.summaryPlacement,
+    anchor: axes.anchor,
+    checklist: axes.checklist,
+    heading: axes.heading,
+    radius: axes.radius,
+    rule: axes.rule,
+    density: axes.density,
+    body: axes.body,
+  };
+  const label = specLabel(axes);
+  return {
+    id: code,
+    label,
+    blurb: label,
+    short: label,
+    headline: axes.headline ? { kind: axes.headline.kind, weight: axes.headline.weight, letterSpacing: `${axes.headline.ls}em` } : null,
+    titleScale: TITLE_SCALES[axes.scale] ?? {},
+    padYScale: axes.padY,
+    heroGradientStrength: axes.heroGrad,
+    layout,
+    tone: axes.tone,
+  };
+}
+
+/** StylePack(프리셋) → 축 값. 프리셋의 titleScale은 이름 표에서 같은 값을 찾는다 */
+export function specOfPack(pack: StylePack): SpecAxes {
+  const l = pack.layout;
+  const scale = Object.keys(TITLE_SCALES).find((k) => JSON.stringify(TITLE_SCALES[k]) === JSON.stringify(pack.titleScale)) ?? "base";
+  return {
+    hero: l.hero,
+    flow: l.flow,
+    gallery: l.gallery,
+    summary: l.summary,
+    summaryPlacement: l.summaryPlacement,
+    anchor: l.anchor,
+    checklist: l.checklist,
+    heading: l.heading,
+    radius: l.radius,
+    rule: l.rule,
+    density: l.density,
+    body: l.body,
+    headline: pack.headline ? { kind: pack.headline.kind, weight: pack.headline.weight, ls: parseFloat(pack.headline.letterSpacing) } : null,
+    scale,
+    padY: pack.padYScale,
+    heroGrad: pack.heroGradientStrength,
+    tone: pack.tone,
+  };
+}
+
+const KEYS: Array<keyof SpecAxes> = [
+  "hero", "flow", "gallery", "summary", "summaryPlacement", "anchor", "checklist", "heading",
+  "radius", "rule", "density", "body", "headline", "scale", "padY", "heroGrad", "tone",
+];
+/** 키 순서가 고정된 JSON → 같은 축 값이면 같은 문자열 */
+export function encodeSpec(axes: SpecAxes): string {
+  const o: Record<string, unknown> = {};
+  for (const k of KEYS) o[k] = axes[k];
+  return SPEC_PREFIX + JSON.stringify(o);
+}
+
+const num = (v: unknown, lo: number, hi: number): number | null => (typeof v === "number" && Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : null);
+const oneOf = <T extends string>(list: readonly T[], v: unknown): T | null => (typeof v === "string" && (list as readonly string[]).includes(v) ? (v as T) : null);
+
+/** 코드 → 축 값. 하나라도 열거값/숫자 범위를 벗어나면 null(호출부가 classic으로 폴백) */
+export function decodeSpec(code: string): SpecAxes | null {
+  if (!code.startsWith(SPEC_PREFIX) || code.length > 1200) return null;
+  let o: Record<string, unknown>;
+  try {
+    o = JSON.parse(code.slice(SPEC_PREFIX.length));
+  } catch {
+    return null;
+  }
+  if (!o || typeof o !== "object") return null;
+  const hero = oneOf(SPEC_ENUMS.hero, o.hero);
+  const flow = oneOf(SPEC_ENUMS.flow, o.flow);
+  const gallery = oneOf(SPEC_ENUMS.gallery, o.gallery);
+  const summary = oneOf(SPEC_ENUMS.summary, o.summary);
+  const summaryPlacement = oneOf(SPEC_ENUMS.summaryPlacement, o.summaryPlacement);
+  const anchor = oneOf(SPEC_ENUMS.anchor, o.anchor);
+  const checklist = oneOf(SPEC_ENUMS.checklist, o.checklist);
+  const heading = oneOf(SPEC_ENUMS.heading, o.heading);
+  const rule = oneOf(SPEC_ENUMS.rule, o.rule);
+  const density = oneOf(SPEC_ENUMS.density, o.density);
+  const scale = typeof o.scale === "string" && o.scale in TITLE_SCALES ? o.scale : null;
+  const padY = num(o.padY, 0.8, 1.6);
+  const heroGrad = num(o.heroGrad, 0, 1.2);
+  const radius = o.radius === null ? null : num(o.radius, 0, 24);
+  if (!hero || !flow || !gallery || !summary || !summaryPlacement || !anchor || !checklist || !heading || !rule || !density || !scale || padY === null || heroGrad === null) return null;
+  if (o.radius !== null && radius === null) return null;
+  let body: SpecAxes["body"] = null;
+  if (o.body !== null) {
+    const b = o.body as { sizePx?: unknown; line?: unknown } | undefined;
+    const sizePx = num(b?.sizePx, 14, 18);
+    const line = num(b?.line, 1.5, 2);
+    if (sizePx === null || line === null) return null;
+    body = { sizePx, line };
+  }
+  let headline: SpecAxes["headline"] = null;
+  if (o.headline !== null) {
+    const h = o.headline as { kind?: unknown; weight?: unknown; ls?: unknown } | undefined;
+    const kind = oneOf(["serif", "sans-display"] as const, h?.kind);
+    const weight = num(h?.weight, 400, 900);
+    const ls = num(h?.ls, -0.06, 0.04);
+    if (!kind || weight === null || ls === null) return null;
+    headline = { kind, weight, ls };
+  }
+  let tone: ToneSpec | null = null;
+  if (o.tone !== null) {
+    const t = o.tone as Record<string, unknown> | undefined;
+    const satMul = num(t?.satMul, 0, 1.4);
+    const accentL = num(t?.accentL, 0.15, 0.5);
+    const deepL = num(t?.deepL, 0.06, 0.3);
+    const softL = num(t?.softL, 0.85, 0.98);
+    const softSatMul = num(t?.softSatMul, 0, 1);
+    const baseL = num(t?.baseL, 0.9, 0.99);
+    const baseSatMul = num(t?.baseSatMul, 0, 1);
+    if (satMul === null || accentL === null || deepL === null || softL === null || softSatMul === null || baseL === null || baseSatMul === null) return null;
+    tone = { satMul, accentL, deepL, softL, softSatMul, baseL, baseSatMul };
+    if (t?.baseHue !== undefined || t?.baseSat !== undefined) {
+      const bh = num(t?.baseHue, 0, 360);
+      const bs = num(t?.baseSat, 0, 1);
+      if (bh === null || bs === null) return null;
+      tone.baseHue = bh;
+      tone.baseSat = bs;
+    }
+  }
+  return { hero, flow, gallery, summary, summaryPlacement, anchor, checklist, heading, radius, rule, density, body, headline, scale, padY, heroGrad, tone };
+}
+
+export function packFromCode(code: string): StylePack | null {
+  const axes = decodeSpec(code);
+  return axes ? packFromSpec(axes) : null;
+}
+
+const HERO_LABEL: Record<string, string> = { "bleed-bottom": "사진 위 제목", "caption-below": "사진 아래 제목", "caption-above": "제목 먼저" };
+const FLOW_LABEL: Record<string, string> = { "photo-first": "사진 먼저", "story-after-photo": "사진 먼저" };
+const GALLERY_LABEL: Record<string, string> = { "lookbook-stack": "룩북", "lead-plus-two": "큰 컷+2열" };
+/** 축 값으로 자동 서술하는 짧은 UI 라벨(새 문구가 아니라 축 이름의 조합) */
+export function specLabel(axes: SpecAxes): string {
+  const face = axes.headline ? (axes.headline.kind === "serif" ? "명조" : "고딕") : "기본";
+  return [HERO_LABEL[axes.hero] ?? axes.hero, FLOW_LABEL[axes.flow], GALLERY_LABEL[axes.gallery], face].filter(Boolean).join(" · ");
 }
