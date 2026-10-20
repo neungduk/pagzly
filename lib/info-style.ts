@@ -67,7 +67,7 @@ export const INFO_BODY_MIN_PX = 15;
 const IMP = "!important";
 
 /** scope: 라이브 `[data-pz-pack]`, export `.pagzly-wrap`. calm이면 빈 문자열 */
-export function infoCss(level: InfoLevel | undefined, scope: string, c: InfoColors, backdrops?: InfoBackdropMap): string {
+export function infoCss(level: InfoLevel | undefined, scope: string, c: InfoColors, backdrops?: InfoBackdropMap, opts?: { skipHeadline?: boolean }): string {
   if (!level || level === "calm") return "";
   const dr = level === "dramatic";
   const S = scope;
@@ -83,10 +83,13 @@ export function infoCss(level: InfoLevel | undefined, scope: string, c: InfoColo
     rule(sec(k), `border-top:${dr ? 8 : 6}px solid ${c.accent}`);
   }
   const head = ["steps", "points", "stat", "compare", "care"].map((k) => `${sec(k)} .pagzly-display-headline`).join(",");
-  rule(
-    head,
-    `font-size:max(min(calc(var(--pz-fs) * ${mult}),0.6875rem),min(calc(var(--pz-fs) * ${mult}),calc(100cqi / var(--pz-fit-em,0.01))));line-height:1.18`,
-  );
+  // 419차 — classic(뷰티)는 --pz-fs 변수가 없어 제목 규칙이 글자 크기를 무효로 만든다 → skipHeadline
+  if (!opts?.skipHeadline) {
+    rule(
+      head,
+      `font-size:max(min(calc(var(--pz-fs) * ${mult}),0.6875rem),min(calc(var(--pz-fs) * ${mult}),calc(100cqi / var(--pz-fit-em,0.01))));line-height:1.18`,
+    );
+  }
 
   // ── 1. 사용 3단계 ──
   rule(sec("steps"), `background:${c.base}`);

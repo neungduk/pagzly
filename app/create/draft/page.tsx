@@ -1,6 +1,7 @@
 "use client";
 
 import { infoZonesOfSections } from "@/lib/info-backdrop";
+import { beautyStyleOn } from "@/lib/beauty-style";
 import { FASHION, STYLE_AUTO_ENABLED } from "@/lib/style-director";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -335,7 +336,7 @@ export default function CreateDraftPage() {
       imageRoles: (currentDraft.payload.imageRoles as string[] | undefined) ?? undefined,
       // 417차 — 패션 + 스타일 자동 적용일 때만 인포 구간 AI 배경 요청(그 외 호출 0)
       infoBackdrop:
-        snap.category === FASHION && STYLE_AUTO_ENABLED
+        (snap.category === FASHION && STYLE_AUTO_ENABLED) || beautyStyleOn(snap.category)
           ? {
               zones: infoZonesOfSections(currentDraft.sections),
               material: [snap.ingredients, snap.keyFeatures, snap.productName].filter(Boolean).join(" "),

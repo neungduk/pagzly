@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isTestMode } from "@/lib/test-mode";
 import { isForceRegenerate } from "@/lib/force-regenerate";
 import { STYLE_AUTO_ENABLED } from "@/lib/style-director";
+import { beautyStyleOn } from "@/lib/beauty-style";
 import {
   INFO_BACKDROP_RATIO_RANGE,
   infoBackdropCostUsd,
@@ -43,7 +44,8 @@ export async function POST(request: Request) {
       mood?: unknown;
       productKey?: unknown;
     };
-    if (body.category !== FASHION || !STYLE_AUTO_ENABLED) return empty("not-eligible");
+    const beauty = beautyStyleOn(typeof body.category === "string" ? body.category : null);
+    if (!beauty && (body.category !== FASHION || !STYLE_AUTO_ENABLED)) return empty("not-eligible");
     const zones = Array.isArray(body.zones) ? ZONES.filter((z) => (body.zones as unknown[]).includes(z)) : [];
     if (zones.length === 0) return empty("no-zones");
     if (isTestMode() && !isForceRegenerate()) {
@@ -71,7 +73,7 @@ export async function POST(request: Request) {
     const [lo, hi] = INFO_BACKDROP_RATIO_RANGE;
     const results = await runInfoBackdropPlan(
       plan,
-      { material: clip(body.material, 400), color: clip(body.color, 400), mood: clip(body.mood, 400) },
+      { material: clip(body.material, 400), color: clip(body.color, 400), mood: clip(body.mood, 400), category: beauty ? body.category as string : null },
       clip(body.productKey, 120) || "product",
       {
         run: (slug, input) => replicate.run(slug as `${string}/${string}`, { input }),

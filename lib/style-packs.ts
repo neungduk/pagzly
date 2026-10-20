@@ -41,6 +41,8 @@ export type PackLayout = {
   summary: SummaryVariant;
   /** 410차 — 요약 띠 위치: 히어로 바로 뒤(classic) / 첫 갤러리 뒤(사진이 먼저 오게). 갤러리가 히어로 바로 뒤가 아니면 앞에 둔다 */
   summaryPlacement: "after-hero" | "after-gallery";
+  /** 419차 — 뷰티 인포 강화 표식(lib/beauty-style.ts의 beautyInfoLayout만 붙인다). 없으면 기존 그대로 */
+  beautyInfo?: boolean;
   /** 410차 — 앵커 내비: 알약(classic) / 밑줄 탭(글자 + 가는 선 구분) */
   anchor: "pills" | "tabs";
   checklist: ChecklistVariant;

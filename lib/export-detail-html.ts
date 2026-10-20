@@ -167,6 +167,7 @@ import { BEAUTY_HERO, HERO_CAPTION, HERO_FRAME, beautyHeroVariant, heroCaptionAl
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
 import type { InfoBackdropMap } from "@/lib/info-backdrop";
+import { beautyAttr, beautyInfoCss, beautyInfoLayout, beautyIpAttr } from "@/lib/beauty-style";
 import { infoAttr, infoColorsOf, infoCss, infoOn, ipAttr, splitLead, INFO_CHECK_SVG } from "@/lib/info-style";
 import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
 import { applySectionDisplayBudget } from "@/lib/section-display-budget";
@@ -1171,7 +1172,7 @@ function sectionHtml(
         const sectionStyle = FLAT_SECTION_SURFACES
           ? `padding:0 24px;${sectionInset}background:${FLAT_PAPER}`
           : `padding:20px 24px;${sectionInset}${bgCss}`;
-        return `<section${sectionIdAttr}${compactTail ? ` class="pagzly-compact-tail"` : ""} style="${sectionStyle}">
+        return `<section${sectionIdAttr}${beautyAttr(layout, "quick")}${compactTail ? ` class="pagzly-compact-tail"` : ""} style="${sectionStyle}">
           <div class="${FLAT_SECTION_SURFACES ? "pagzly-compact-row" : ""}" style="max-width:576px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-direction:${imageFirst ? "row" : "row-reverse"}${FLAT_SECTION_SURFACES ? ";padding:20px 0" : ""}${compactDivider ? `;border-bottom:1px solid ${hexToRgba(BRAND.ink, 0.08)}` : ""}">
             <div style="flex-shrink:0">
               ${src ? `<img class="pagzly-compact-thumb" src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="object-fit:cover;border-radius:${thumbRadius}px"/>` : ""}
@@ -1704,15 +1705,16 @@ function sectionHtml(
       </section>`;
     case "cta_price":
       if (FLAT_SECTION_SURFACES) {
-        return `<section${sectionIdAttr} class="pagzly-cta" style="${ctaPad}background:${flatAccentTint(theme)};border-top:1px solid ${hexToRgba(accent, 0.16)};color:${BRAND.ink};text-align:center">
-        ${productName.trim() ? `<p style="margin:0 0 12px;font-family:${DETAIL_FONT_STACK.heading};font-size:15px;font-weight:700;line-height:1.375;letter-spacing:-0.025em;color:rgba(27,27,24,.8);word-break:keep-all">${esc(productName.trim())}</p>` : ""}
-        <p style="font-family:${DETAIL_FONT_STACK.heading};font-size:${titleSizeCss("price")};font-weight:700;line-height:1;letter-spacing:-0.04em;margin:8px 0 0;color:${ensureReadableOnPaper(accent, 3)}">₩${section.price.toLocaleString("ko-KR")}</p>
-        ${shopperFacingTarget(section.targetCustomer) ? `<p style="display:inline-block;margin:16px 0 0;padding:6px 16px;border-radius:9999px;background:${hexToRgba(accent, 0.14)};color:${deepText};font-size:${FONT_SIZE.xs};font-weight:500">${esc(shopperFacingTarget(section.targetCustomer))}</p>` : ""}
-        ${section.badges?.length ? `<div${section.badges.length === 4 ? ` class="pagzly-badges4"` : ""} style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:16px">${section.badges.map((b) => `<span style="background:${FLAT_PAPER};border:1px solid ${hexToRgba(accent, 0.3)};border-radius:9999px;color:${deepText};padding:8px 16px;font-size:${FONT_SIZE.xs};font-weight:600">${esc(b)}</span>`).join("")}</div>` : ""}
-        <p style="margin-top:20px;font-size:${FONT_SIZE.xs};color:rgba(27,27,24,.5)">배송·교환·환불은 판매자 정책을 확인해 주세요.</p>
+        return `<section${sectionIdAttr}${beautyAttr(layout, "buy")} class="pagzly-cta" style="${ctaPad}background:${flatAccentTint(theme)};border-top:1px solid ${hexToRgba(accent, 0.16)};color:${BRAND.ink};text-align:center">
+        ${productName.trim() ? `<p${beautyIpAttr(layout, "name")} style="margin:0 0 12px;font-family:${DETAIL_FONT_STACK.heading};font-size:15px;font-weight:700;line-height:1.375;letter-spacing:-0.025em;color:rgba(27,27,24,.8);word-break:keep-all">${esc(productName.trim())}</p>` : ""}
+        <p${beautyIpAttr(layout, "price")} style="font-family:${DETAIL_FONT_STACK.heading};font-size:${titleSizeCss("price")};font-weight:700;line-height:1;letter-spacing:-0.04em;margin:8px 0 0;color:${ensureReadableOnPaper(accent, 3)}">₩${section.price.toLocaleString("ko-KR")}</p>
+        ${shopperFacingTarget(section.targetCustomer) ? `<p${beautyIpAttr(layout, "chip")} style="display:inline-block;margin:16px 0 0;padding:6px 16px;border-radius:9999px;background:${hexToRgba(accent, 0.14)};color:${deepText};font-size:${FONT_SIZE.xs};font-weight:500">${esc(shopperFacingTarget(section.targetCustomer))}</p>` : ""}
+        ${section.badges?.length ? `<div${beautyIpAttr(layout, "badges")}${section.badges.length === 4 ? ` class="pagzly-badges4"` : ""} style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:16px">${section.badges.map((b) => `<span style="background:${FLAT_PAPER};border:1px solid ${hexToRgba(accent, 0.3)};border-radius:9999px;color:${deepText};padding:8px 16px;font-size:${FONT_SIZE.xs};font-weight:600">${esc(b)}</span>`).join("")}</div>` : ""}
+        ${layout.beautyInfo ? `<span${beautyIpAttr(layout, "cta")} style="display:inline-block;margin-top:24px;padding:14px 28px;background:#1B1B18;color:#FAF8F3;font-weight:700">지금 구매하기</span>` : ""}
+        <p${beautyIpAttr(layout, "note")} style="margin-top:20px;font-size:${FONT_SIZE.xs};color:rgba(27,27,24,.5)">배송·교환·환불은 판매자 정책을 확인해 주세요.</p>
       </section>`;
       }
-      return `<section${sectionIdAttr} class="pagzly-cta" style="${ctaPad}background:${deepFill};color:#FAF8F3;text-align:center;clip-path:polygon(0 44px, 100% 0, 100% 100%, 0 100%);margin-top:-16px">
+      return `<section${sectionIdAttr}${beautyAttr(layout, "buy")} class="pagzly-cta" style="${ctaPad}background:${deepFill};color:#FAF8F3;text-align:center;clip-path:polygon(0 44px, 100% 0, 100% 100%, 0 100%);margin-top:-16px">
         ${kickerHtml(`<p style="font-size:${FONT_SIZE.caption};letter-spacing:.2em;opacity:.8">PRICE</p>`)}
         <p style="font-size:${titleSizeCss("price")};font-weight:700;line-height:1;margin:8px 0 0">₩${section.price.toLocaleString("ko-KR")}</p>
         ${shopperFacingTarget(section.targetCustomer) ? `<p style="opacity:.85;margin-top:8px">${esc(shopperFacingTarget(section.targetCustomer))}</p>` : ""}
@@ -2225,7 +2227,7 @@ export function buildDetailPageHtml(opts: {
         totalCompactImageTextCount,
         pointOrdinals[i],
         productThumbs,
-        getPackLayout(pack),
+        beautyInfoLayout(getPackLayout(pack), opts.category),
         classicFashionHeroStrength(opts.category, pack, opts.imageRoles),
       );
     }
@@ -2326,7 +2328,7 @@ ${jsonLd}
 <style>
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
-  ${buildDetailExportFontCss(opts.category)}${packHeadlineExportCss(pack)}${isClassicPack(pack) ? "" : packStructureCss(getPackLayout(pack), ".pagzly-wrap", "export") + infoCss(getPackLayout(pack).info, ".pagzly-wrap", infoColorsOf(opts.theme), opts.infoBackdrops)}
+  ${buildDetailExportFontCss(opts.category)}${packHeadlineExportCss(pack)}${isClassicPack(pack) ? (beautyInfoLayout(getPackLayout(pack), opts.category).beautyInfo ? infoCss(beautyInfoLayout(getPackLayout(pack), opts.category).info, ".pagzly-wrap", infoColorsOf(opts.theme), opts.infoBackdrops, { skipHeadline: true }) + beautyInfoCss(beautyInfoLayout(getPackLayout(pack), opts.category).info, ".pagzly-wrap", infoColorsOf(opts.theme)) : "") : packStructureCss(getPackLayout(pack), ".pagzly-wrap", "export") + infoCss(getPackLayout(pack).info, ".pagzly-wrap", infoColorsOf(opts.theme), opts.infoBackdrops)}
   .pagzly-wrap{max-width:750px;margin:0 auto;background:#FAF8F3;container-type:inline-size;line-height:1.5;${sectionPadVarsCss(opts.category, false, packPadScale(pack))}}
   @media (min-width:640px){.pagzly-wrap{${sectionPadVarsCss(opts.category, true, packPadScale(pack))}}}
   .pagzly-wrap section>h2.pagzly-display-headline:first-child{margin-top:0}

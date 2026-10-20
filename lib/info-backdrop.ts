@@ -9,6 +9,7 @@
  */
 import type { InfoColors, InfoLevel } from "@/lib/info-style";
 import { contrastRatioToken, hexToRgba, mixHex } from "@/lib/design-tokens";
+import { beautyStyleOn } from "@/lib/beauty-style";
 
 export type InfoZone = "steps" | "points" | "stat" | "compare" | "care";
 export type InfoBackdropMap = Partial<Record<InfoZone, string>>;
@@ -38,8 +39,11 @@ export const INFO_ZONE_KIND: Record<InfoZone, InfoBackdropKind> = { points: "A",
 export const INFO_ZONE_PRIORITY: readonly InfoZone[] = ["points", "steps", "stat", "compare", "care"];
 
 // ── 적용 조건 ──
-export function infoBackdropEligible(input: { category: string; info: InfoLevel | undefined; autoEnabled: boolean; hasSpec: boolean }): boolean {
-  return input.category === "의류/패션" && input.hasSpec && input.autoEnabled && (input.info === "bold" || input.info === "dramatic");
+/** 패션(스타일 자동 적용) 또는 419차부터 뷰티(BEAUTY_STYLE_ENABLED) — info가 bold/dramatic일 때만 */
+export function infoBackdropEligible(input: { category: string; info: InfoLevel | undefined; autoEnabled: boolean; hasSpec: boolean; beautyEnabled?: boolean }): boolean {
+  const level = input.info === "bold" || input.info === "dramatic";
+  if (beautyStyleOn(input.category, input.beautyEnabled)) return level;
+  return input.category === "의류/패션" && input.hasSpec && input.autoEnabled && level;
 }
 
 // ── 장수·비용 상한 계획 ──
@@ -111,6 +115,7 @@ const COLOR_WORDS: Array<[RegExp, string]> = [
   [/레드|버건디|와인|red|burgundy|wine/i, "muted burgundy"],
   [/핑크|로즈|pink|rose/i, "dusty rose"],
   [/블루|하늘|blue/i, "dusty blue"],
+  [/골드|노랑|옐로|황금|gold|yellow|amber/i, "soft gold"],
 ];
 const MOOD_WORDS: Array<[RegExp, string]> = [
   [/따뜻|포근|cozy|warm/i, "warm"],
@@ -126,15 +131,29 @@ const firstHit = (table: Array<[RegExp, string]>, text: string | null | undefine
   return null;
 };
 
-export type InfoBackdropPromptInput = { material?: string | null; color?: string | null; mood?: string | null };
+export type InfoBackdropPromptInput = { material?: string | null; color?: string | null; mood?: string | null; /** 419차 — 뷰티면 직물이 아닌 화장품 질감 사전을 쓴다 */ category?: string | null };
+
+/** 419차 뷰티 질감 사전 — 순서대로 첫 일치, 없으면 일반 폴백. 직물 단어(니트·린넨 등)는 쓰지 않는다 */
+const BEAUTY_TEXTURES: Array<[RegExp, string]> = [
+  [/미스트|토너|수분|워터|앰플|mist|toner|water/i, "fine water mist droplets on smooth frosted glass"],
+  [/크림|밤|로션|cream|balm|lotion/i, "soft whipped cream swirl texture"],
+  [/오일|세럼|에센스|serum|oil|essence/i, "glossy translucent serum droplets"],
+];
+const BEAUTY_GENERIC_TEXTURE = "soft pearly satin gradient with gentle light";
 
 /** 사전에 있는 값만 영어로 바꿔 넣는다 — 입력 원문(상품명·브랜드·인물 등)은 프롬프트에 들어가지 않는다 */
 export function buildInfoBackdropPrompt(kind: InfoBackdropKind, input: InfoBackdropPromptInput): string {
-  const texture = firstHit(MATERIAL_TEXTURES, input.material) ?? GENERIC_TEXTURE;
+  const beauty = beautyStyleOn(input.category);
+  const texture = beauty ? (firstHit(BEAUTY_TEXTURES, input.material) ?? BEAUTY_GENERIC_TEXTURE) : (firstHit(MATERIAL_TEXTURES, input.material) ?? GENERIC_TEXTURE);
   const color = firstHit(COLOR_WORDS, input.color);
   const mood = firstHit(MOOD_WORDS, input.mood);
   const tint = color ? `, ${color} tones` : "";
   const feel = mood ? `${mood} ` : "";
+  if (beauty) {
+    if (kind === "A") return `macro ${texture} in deep shadow, dramatic side light, moody cool tones${tint}, shallow depth of field, premium ${feel}skincare editorial, ${NEGATIVE_SUFFIX}`;
+    if (kind === "B") return `soft pearl white haze and pale glass reflections, gentle light streak, quiet gradient${tint}, clean ${feel}skincare backdrop, ${NEGATIVE_SUFFIX}`;
+    return `abstract translucent glass and water ripples in muted ${color ?? "soft gold"} tones, smooth gradient light, cinematic, ${feel}elegant, minimal, ${NEGATIVE_SUFFIX}`;
+  }
   if (kind === "A") {
     return `macro ${texture} in deep shadow, dramatic side light, moody warm tones${tint}, shallow depth of field, premium ${feel}fashion editorial, ${NEGATIVE_SUFFIX}`;
   }

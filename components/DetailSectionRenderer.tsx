@@ -145,6 +145,7 @@ import { BEAUTY_HERO, HERO_CAPTION, HERO_FRAME, beautyHeroVariant, heroCaptionAl
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
 import type { InfoBackdropMap } from "@/lib/info-backdrop";
+import { beautyData, beautyInfoCss, beautyInfoLayout, beautyIp } from "@/lib/beauty-style";
 import { infoColorsOf, infoCss, infoData, infoOn, ipData, splitLead, INFO_CHECK_SVG } from "@/lib/info-style";
 import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
 import {
@@ -2782,6 +2783,7 @@ function renderSection(
         return (
           <section
             key={`image_text-${index}`}
+            {...beautyData(layout, "quick")}
             className={
               FLAT_SECTION_SURFACES
                 ? `px-6 @min-[640px]/pz:px-10 ${compactTail ? SECTION_TAIL.compactList.className : ""}`
@@ -5740,6 +5742,7 @@ function renderSection(
       return (
         <section
           key={`cta_price-${index}`}
+          {...beautyData(layout, "buy")}
           className={`${FLAT_SECTION_SURFACES ? "relative" : "pagzly-ink-cta pagzly-ink-shimmer relative"} z-20 ${TW_ELEVATION.ctaSticky} ${FLAT_SECTION_SURFACES ? "" : CTA_TRANSITION_OVERLAP_CLASS} ${getCategoryRhythm(category).ctaPadClass}`}
           style={
             FLAT_SECTION_SURFACES
@@ -5754,15 +5757,16 @@ function renderSection(
           }
         >
           <div className={`${TEXT_COL_CLASS} relative z-10 space-y-5`}>
-            <p className={TYPO.sectionKicker} style={{ color: readableTextDeep(theme) }}>
+            <p className={TYPO.sectionKicker} style={{ color: readableTextDeep(theme) }} {...beautyIp(layout, "kicker")}>
               PRICE
             </p>
             {FLAT_SECTION_SURFACES && productName?.trim() ? (
-              <p className="font-heading text-[15px] font-bold leading-snug tracking-tight text-ink/80 [word-break:keep-all]">
+              <p className="font-heading text-[15px] font-bold leading-snug tracking-tight text-ink/80 [word-break:keep-all]" {...beautyIp(layout, "name")}>
                 {productName.trim()}
               </p>
             ) : null}
             <p
+              {...beautyIp(layout, "price")}
               className={`${FLAT_SECTION_SURFACES ? "" : "pagzly-ink-headline"} font-heading text-[length:var(--pz-t-price-b)] font-bold leading-none @min-[640px]/pz:text-[length:var(--pz-t-price-w)]`}
               style={{ color: readableTextAccent(theme, 3), letterSpacing: "-0.04em" }}
             >
@@ -5770,6 +5774,7 @@ function renderSection(
             </p>
             {shopperFacingTarget(section.targetCustomer) && (
               <span
+                {...beautyIp(layout, "chip")}
                 className="inline-block rounded-full px-4 py-1.5 text-xs font-medium"
                 style={{
                   backgroundColor: hexToRgba(theme.accent, 0.14),
@@ -5781,6 +5786,7 @@ function renderSection(
             )}
             {section.badges && section.badges.length > 0 && (
               <div
+                {...beautyIp(layout, "badges")}
                 className={`justify-center gap-2 pt-1 ${
                   section.badges.length === 4
                     ? "grid grid-cols-[repeat(2,max-content)] @min-[640px]/pz:flex @min-[640px]/pz:flex-wrap"
@@ -5813,13 +5819,14 @@ function renderSection(
             )}
             <div className="pt-4">
               <span
+                {...beautyIp(layout, "cta")}
                 className={`${getCategoryRhythm(category).ctaButtonClass} relative z-10 ${TW_ELEVATION.ctaButton}`}
                 style={{ backgroundColor: "#1B1B18", color: "#FAF8F3" }}
                 role="presentation"
               >
                 지금 구매하기
               </span>
-              <p className="mt-3 text-xs leading-relaxed text-ink/50">
+              <p className="mt-3 text-xs leading-relaxed text-ink/50" {...beautyIp(layout, "note")}>
                 배송·교환·환불은 판매자 정책을 확인해 주세요.
               </p>
             </div>
@@ -5856,7 +5863,7 @@ export default function DetailSectionRenderer({
   imageTags,
 }: DetailSectionRendererProps) {
   const pack = resolveStylePack(category, stylePackId);
-  const packLayout = getPackLayout(pack);
+  const packLayout = beautyInfoLayout(getPackLayout(pack), category);
   const display = applyDisplayRules(inputSections, imageUrls, {
     editing: inputEdit?.enabled,
     imageHashByUrl,
@@ -5928,9 +5935,14 @@ export default function DetailSectionRenderer({
     <div
       className="@container/pz overflow-hidden scroll-smooth"
       data-pz-pack={isClassicPack(pack) ? undefined : pack.id}
+      data-pz-info={packLayout.beautyInfo ? "1" : undefined}
       style={packRootStyle(category, pack) as CSSProperties}
     >
-      {isClassicPack(pack) ? null : <style>{packStructureCss(packLayout, "[data-pz-pack]", "live") + infoCss(packLayout.info, "[data-pz-pack]", infoColorsOf(baseTheme), infoBackdrops)}</style>}
+      {isClassicPack(pack) ? (
+        packLayout.beautyInfo ? <style>{infoCss(packLayout.info, "[data-pz-info]", infoColorsOf(baseTheme), infoBackdrops, { skipHeadline: true }) + beautyInfoCss(packLayout.info, "[data-pz-info]", infoColorsOf(baseTheme))}</style> : null
+      ) : (
+        <style>{packStructureCss(packLayout, "[data-pz-pack]", "live") + infoCss(packLayout.info, "[data-pz-pack]", infoColorsOf(baseTheme), infoBackdrops)}</style>
+      )}
       {sectionAnchors.length > 0 && !anchorNavAfterHero ? (
         <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} variant={packLayout.anchor} />
       ) : null}
