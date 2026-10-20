@@ -1920,7 +1920,7 @@ export async function enhanceProductImage(
       .png()
       .toBuffer();
 
-    const totalCost = cost + preCropCost;
+    const totalCost = cost; // 412차: preCrop 감지 비용은 claudeCost에만 담는다(호출부가 cost+claudeCost를 합산해 이중집계되던 것)
     return { buffer: croppedSource, cost: totalCost, claudeCost };
   }
 
@@ -2100,7 +2100,7 @@ export async function enhanceProductImage(
     console.warn("[composite] unify grain 실패 — 스킵", error);
   }
 
-  const totalCost = cost + decorCost + preCropCost;
+  const totalCost = cost + decorCost; // 412차: preCrop은 claudeCost에만(이중집계 제거, 기록 전용)
   if (decorCost > 0 || preCropCost > 0) {
     console.log(
       `[cost] enhanceProductImage total=$${totalCost.toFixed(5)} (enhance=$${cost.toFixed(5)} decor=$${decorCost.toFixed(4)} preCrop=$${preCropCost.toFixed(4)})`,

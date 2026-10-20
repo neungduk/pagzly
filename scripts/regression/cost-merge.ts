@@ -49,5 +49,14 @@ export async function run(): Promise<string[]> {
   if (!draftPage.includes("mergeDraftAndPhotoCost(")) fails.push("draft/page.tsx가 mergeDraftAndPhotoCost를 쓰지 않음");
   const route = fs.readFileSync(path.join(root, "app", "api", "generate", "route.ts"), "utf8");
   if (!route.includes("let claudeCost = body.photoCostBreakdown?.claude ?? 0;")) fails.push("route.ts의 claude 이어받기 식이 바뀜 — 이 점검 다시 확인");
+  // 412차 — preCrop 감지 비용은 enhanceProductImage 반환 cost에 들어가지 않는다(claudeCost에만). 호출부가 둘을 합산하므로 둘 다에 넣으면 이중집계
+  const enh = fs.readFileSync(path.join(root, "lib", "photo-enhance.ts"), "utf8");
+  if (/const totalCost = cost \+ (decorCost \+ )?preCropCost/.test(enh)) fails.push("photo-enhance.ts 반환 cost에 preCropCost가 들어 있음(이중집계)");
+  // 411차 실생성 값으로 재계산: 앱 0.21270 − preCrop(productRegionDetect 12회 0.0258) vs 서버 0.19123 → ±3%
+  const app411 = 0.2127;
+  const preCrop411 = 0.0258;
+  const server411 = 0.19123;
+  const fixed = app411 - preCrop411;
+  if (Math.abs(fixed - server411) / server411 > 0.03) fails.push(`411차 재계산이 서버 합산과 ±3% 밖: ${fixed.toFixed(5)} vs ${server411}`);
   return fails;
 }
