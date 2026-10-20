@@ -147,8 +147,17 @@ const sentences = allTexts.flatMap((t) => t.split(/(?<=[.!?。])\s+|\n+/)).map((
     const server = [...m.values()].reduce((s, v) => s + v, 0);
     const diff = app - server;
     ev.push(`서버 로그 합산 = $${server.toFixed(5)} (${m.size}개 항목)`, `차이(앱 − 서버) = $${diff.toFixed(5)} (${((diff / (server || 1)) * 100).toFixed(1)}%)`, `허용: 이중집계 약 $${KNOWN_DOUBLE_COUNT_USD} 감안해 −$0.03 ~ +$${(KNOWN_DOUBLE_COUNT_USD + 0.03).toFixed(3)}`);
-    const ok = diff >= -0.03 && diff <= KNOWN_DOUBLE_COUNT_USD + 0.03;
-    rows.push({ id: "4", title: "앱 기록 ↔ 서버 로그 합산(406차)", verdict: ok ? "pass" : "fail", evidence: ev });
+    const okRef = diff >= -0.03 && diff <= KNOWN_DOUBLE_COUNT_USD + 0.03;
+    // 415차: 앱 generationCost에는 초안 DeepSeek(draftTextCost)가 따로 기록되므로 둘을 합쳐 서버 합산과 비교한다(±3%)
+    const draftNum = Number(draftText ?? 0);
+    const appFull = app + (Number.isFinite(draftNum) ? draftNum : 0);
+    const pctFull = ((appFull - server) / (server || 1)) * 100;
+    ev.push(
+      `[415차 기준] generationCost + draftTextCost = $${appFull.toFixed(5)} → 서버 대비 ${pctFull.toFixed(1)}% (±3% 이내여야 pass)`,
+      `[참고] 기존 허용 범위(−0.03~+${(KNOWN_DOUBLE_COUNT_USD + 0.03).toFixed(3)}) 판정: ${okRef ? "통과" : "벗어남"}`,
+    );
+    const ok = Math.abs(pctFull) <= 3;
+    rows.push({ id: "4", title: "앱 기록(+초안) ↔ 서버 로그 합산 ±3%(415차 기준)", verdict: ok ? "pass" : "fail", evidence: ev });
   }
 }
 
@@ -178,10 +187,28 @@ const sentences = allTexts.flatMap((t) => t.split(/(?<=[.!?。])\s+|\n+/)).map((
   let fail = false;
   // (a) 입력에 없는 수치
   // 단위 표기는 모델이 바꿔 쓰므로("21" → "21 cm") 숫자만 비교한다
-  const numTok = (t: string) => [...t.matchAll(/\d+(?:[.,]\d+)?(?=\s*(?:%|수|cm|kg|g|mm|일|개|원|시|회|단계))/g)].map((m) => m[0]);
+  // 415차: 제목·부제·배너(allTexts에 모두 포함)의 "3분"·"두 개" 같은 수치도 잡는다. 단위 확장 + 한글 수사
+  const numTok = (t: string) =>
+    [...t.matchAll(/\d+(?:[.,]\d+)?(?=\s*(?:%|수|cm|kg|g|mm|일|개|원|시|시간|분|초|회|번|단계|가지|벌|종|장|주|년|세|사이즈))/g)].map((m) => m[0]);
+  const KO_NUM: Record<string, number> = { 한: 1, 두: 2, 세: 3, 네: 4, 다섯: 5, 여섯: 6, 일곱: 7, 여덟: 8, 아홉: 9, 열: 10 };
+  const koTok = (t: string) =>
+    [...t.matchAll(/(두|세|네|다섯|여섯|일곱|여덟|아홉|열)\s*(개|가지|번|분|단계|장|벌|종|사이즈|시간)/g)].map((m) => ({ tok: m[0], n: KO_NUM[m[1]!]! }));
+  // 입력·표에서 센 값은 허용 집합: 숫자 표기는 사이즈 행 수만("3"=단계 수까지 허용하면 "3분"을 놓친다), 한글 수사는 단계·카드·지표 개수까지. "한 장으로" 같은 관용구(한=하나)는 검사하지 않는다
+  const counted = new Set<number>();
+  const sizeRows =
+    (sections.find((x) => x.slot === "size_table") as (Section & { rows?: { label: string }[] }) | undefined)?.rows?.filter((r) => /^(XXS|XS|S|M|L|XL|[2-5]XL|FREE|프리)$/i.test(r.label.trim())).length ?? 0;
+  if (sizeRows) counted.add(sizeRows);
+  for (const x of sections) {
+    const o = x as Record<string, unknown>;
+    for (const k of ["steps", "cards", "metrics", "personas", "items", "imageIndexes"]) if (Array.isArray(o[k])) counted.add((o[k] as unknown[]).length);
+  }
   const inputNums = new Set([...(inputText + " " + String(sessionRaw.keyFeatures ?? "") + " " + String(sessionRaw.ingredients ?? "")).matchAll(/\d+(?:[.,]\d+)?/g)].map((m) => m[0]));
   const outNums = new Map<string, string>();
-  for (const t of allTexts) for (const n of numTok(t)) if (!inputNums.has(n) && !outNums.has(n)) outNums.set(n, t);
+  for (const t of allTexts) {
+    for (const n of numTok(t)) if (!inputNums.has(n) && Number(n) !== sizeRows && !outNums.has(n)) outNums.set(n, t);
+    for (const k of koTok(t)) if (!counted.has(k.n) && !inputText.includes(k.tok) && !outNums.has(k.tok)) outNums.set(k.tok, t);
+  }
+  if (outNums.size > 0) fail = true;
   ev.push(`입력에 없는 수치 토큰: ${outNums.size}개${outNums.size ? " → " + [...outNums.keys()].slice(0, 8).join(", ") : ""}`);
   for (const [n, t] of [...outNums].slice(0, 6)) manual.push(`입력에 없는 수치 "${n}": …${clip(t, 80)}`);
   // (b) 색 표기 일관
