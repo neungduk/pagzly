@@ -146,6 +146,7 @@ import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-vari
 import { packStructureCss } from "@/lib/pack-css";
 import type { InfoBackdropMap } from "@/lib/info-backdrop";
 import { beautyData, beautyInfoCss, beautyInfoLayout, beautyIp } from "@/lib/beauty-style";
+import { SCENE_NOTICE, safeSceneUrl, type SceneImageMap } from "@/lib/scene-images";
 import { infoColorsOf, infoCss, infoData, infoOn, ipData, splitLead, INFO_CHECK_SVG } from "@/lib/info-style";
 import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
 import {
@@ -296,6 +297,8 @@ type DetailSectionRendererProps = {
   infoBackdrops?: InfoBackdropMap;
   /** 419차 — 사진별 비전 태그(뷰티 글·사진 일치 게이트). imageUrls와 같은 인덱스 */
   imageTags?: ReadonlyArray<ReadonlyArray<string> | undefined>;
+  /** 419차 — 장면(합성) 이미지 슬롯(슬롯 키 → {url, role, aiGenerated}). 없으면 아무것도 끼우지 않는다 */
+  sceneImages?: SceneImageMap;
 };
 
 /**
@@ -5834,6 +5837,21 @@ function renderSection(
         </section>
       );
 
+    case "scene_image": {
+      // 419차 — 장면(합성) 이미지: 하단에 고정 고지를 항상 붙인다(export와 같은 마크업)
+      const sceneUrl = safeSceneUrl(section.url);
+      if (!sceneUrl) return null;
+      return (
+        <section key={`scene_image-${index}`} data-scene-slot={section.sceneSlot} className="px-6 py-6 @min-[640px]/pz:px-10" style={{ backgroundColor: FLAT_PAPER }}>
+          <figure className="mx-auto max-w-xl" style={{ margin: "0 auto" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={sceneUrl} alt={`${productName ?? category} 연출 이미지`} loading="lazy" decoding="async" className="block w-full object-cover" style={{ aspectRatio: "4 / 5", borderRadius: 16 }} />
+            <figcaption style={{ marginTop: 8, textAlign: "center", fontSize: 12, lineHeight: 1.5, color: "rgba(27,27,24,0.65)" }}>{SCENE_NOTICE}</figcaption>
+          </figure>
+        </section>
+      );
+    }
+
     default:
       return null;
   }
@@ -5861,6 +5879,7 @@ export default function DetailSectionRenderer({
   stylePackId,
   infoBackdrops,
   imageTags,
+  sceneImages,
 }: DetailSectionRendererProps) {
   const pack = resolveStylePack(category, stylePackId);
   const packLayout = beautyInfoLayout(getPackLayout(pack), category);
@@ -5872,6 +5891,7 @@ export default function DetailSectionRenderer({
     category,
     flow: getPackLayout(resolveStylePack(category, stylePackId)).flow,
     tags: imageTags,
+    sceneImages,
   });
   const rawSections = display.sections;
   const toSource = (i: number) => display.sourceIndexes[i] ?? i;

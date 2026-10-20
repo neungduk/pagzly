@@ -7,6 +7,7 @@ import { imageSourceGroups, type ImageHashByUrl } from "@/lib/gallery-dedupe";
 import { FASHION_CATEGORY, isWornFashionPhoto } from "@/lib/fashion-composite-policy";
 import type { FlowVariant } from "@/lib/style-packs";
 import { insertCompositionGallery, matchPhotosToText } from "@/lib/photo-text-match";
+import { insertSceneSlots, type SceneImageMap } from "@/lib/scene-images";
 
 export type DisplaySections = {
   sections: DetailSection[];
@@ -277,6 +278,8 @@ export function applyDisplayRules(
     tags?: ReadonlyArray<ReadonlyArray<string> | undefined>;
     /** 419차 — 장면(합성) 이미지가 채워진 슬롯이 있는지 */
     hasSceneImage?: boolean;
+    /** 419차 — 장면(합성) 이미지 슬롯(세션 sceneImages). 뷰티에서만 scene_image 섹션이 끼워진다 */
+    sceneImages?: SceneImageMap;
   } & StripImageHints = {},
 ): DisplaySections {
   const ordered = storyAfterPhotoFlow(
@@ -316,5 +319,6 @@ export function applyDisplayRules(
   const finalSources = capped.sourceIndexes.filter((_, i) => !echoes.has(i)).map((i) => orderIndexes[i]!);
   // 419차 — 상자 컷이 있을 때만 뷰티 구성 갤러리(표시 전용, 편집 모드 아님)
   const withComposition = insertCompositionGallery(finalSections, finalSources, imageUrls.length, photoCtx);
-  return { sections: withComposition.sections, sourceIndexes: withComposition.sourceIndexes };
+  const withScenes = insertSceneSlots(withComposition.sections, withComposition.sourceIndexes, opts.sceneImages, opts.category);
+  return { sections: withScenes.sections, sourceIndexes: withScenes.sourceIndexes };
 }

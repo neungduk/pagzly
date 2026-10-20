@@ -43,6 +43,9 @@ export default function GenerationCostStrip({
   if ((photoCostBreakdown?.infoBackdrops ?? 0) > 0) {
     parts.push(`인포배경 ${formatUsd(photoCostBreakdown!.infoBackdrops!)}`);
   }
+  if ((photoCostBreakdown?.sceneImages ?? 0) > 0) {
+    parts.push(`장면 ${formatUsd(photoCostBreakdown!.sceneImages!)}`);
+  }
   if ((photoCostBreakdown?.enhance ?? 0) > 0) {
     parts.push(`보정 ${formatUsd(photoCostBreakdown!.enhance!)}`);
   }

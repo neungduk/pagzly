@@ -5,6 +5,8 @@ export type PhotoCostBreakdown = {
   conceptBrief?: number;
   backdrop?: number;
   sectionBackdrops?: number;
+  /** 419차 — 장면(합성) 이미지(과금 가능 호출 수 × 단가). 생성 연결은 421차 */
+  sceneImages?: number;
   /** 417차 — 인포 구간 AI 배경(보수적 단가 × 과금 가능 호출 수) */
   infoBackdrops?: number;
   enhance?: number;
@@ -610,6 +612,14 @@ export type CanvasSection = {
   elements: CanvasElement[];
 };
 
+/** 419차 — 장면(합성) 이미지 표시 전용 섹션: 세션의 sceneImages 슬롯에서 display 단계가 끼워 넣는다(저장되지 않음). 이미지 하단 고정 고지 포함 */
+export type SceneImageSection = {
+  type: "scene_image";
+  slot: string;
+  sceneSlot: string;
+  url: string;
+};
+
 export type DetailSection =
   | HeroSection
   | ChecklistSection
@@ -635,7 +645,8 @@ export type DetailSection =
   | ReviewHighlightSection
   | BeforeAfterSection
   | CertificateEvidenceSection
-  | CanvasSection;
+  | CanvasSection
+  | SceneImageSection;
 
 export type GeneratedCopy = {
   sections: DetailSection[];

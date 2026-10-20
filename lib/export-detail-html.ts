@@ -168,6 +168,7 @@ import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-vari
 import { packStructureCss } from "@/lib/pack-css";
 import type { InfoBackdropMap } from "@/lib/info-backdrop";
 import { beautyAttr, beautyInfoCss, beautyInfoLayout, beautyIpAttr } from "@/lib/beauty-style";
+import { SCENE_NOTICE, safeSceneUrl, type SceneImageMap } from "@/lib/scene-images";
 import { infoAttr, infoColorsOf, infoCss, infoOn, ipAttr, splitLead, INFO_CHECK_SVG } from "@/lib/info-style";
 import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
 import { applySectionDisplayBudget } from "@/lib/section-display-budget";
@@ -1703,6 +1704,12 @@ function sectionHtml(
             : ""
         }
       </section>`;
+    case "scene_image": {
+      // 419차 — 장면(합성) 이미지: 하단 고정 고지(라이브와 같은 마크업)
+      const sceneUrl = safeSceneUrl(section.url);
+      if (!sceneUrl) return "";
+      return `<section${sectionIdAttr} data-scene-slot="${esc(section.sceneSlot)}" style="padding:24px;background:${FLAT_PAPER}"><figure style="max-width:576px;margin:0 auto"><img src="${esc(sceneUrl)}" alt="${esc(`${productName} 연출 이미지`)}" loading="lazy" decoding="async" style="display:block;width:100%;aspect-ratio:4 / 5;object-fit:cover;border-radius:16px"/><figcaption style="margin-top:8px;text-align:center;font-size:12px;line-height:1.5;color:rgba(27,27,24,.65)">${SCENE_NOTICE}</figcaption></figure></section>`;
+    }
     case "cta_price":
       if (FLAT_SECTION_SURFACES) {
         return `<section${sectionIdAttr}${beautyAttr(layout, "buy")} class="pagzly-cta" style="${ctaPad}background:${flatAccentTint(theme)};border-top:1px solid ${hexToRgba(accent, 0.16)};color:${BRAND.ink};text-align:center">
@@ -2112,6 +2119,8 @@ export function buildDetailPageHtml(opts: {
   infoBackdrops?: InfoBackdropMap;
   /** 419차 — 사진별 비전 태그(라이브 imageTags와 같은 값) */
   imageTags?: ReadonlyArray<ReadonlyArray<string> | undefined>;
+  /** 419차 — 장면(합성) 이미지 슬롯(라이브 sceneImages와 같은 값) */
+  sceneImages?: SceneImageMap;
 }): string {
   const pack = resolveStylePack(opts.category, opts.stylePackId);
   // 408차 — 팩 색 톤: hue는 세션 theme 그대로, 채도·밝기 곡선만 교체(기본 팩은 같은 객체)
@@ -2124,7 +2133,7 @@ export function buildDetailPageHtml(opts: {
       opts.sections.filter((_, i) => !hidden.has(i)),
     ),
     opts.imageUrls,
-    { imageHashByUrl: opts.imageHashByUrl, roles: opts.imageRoles, origins: opts.imageOrigins, category: opts.category, flow: getPackLayout(pack).flow, tags: opts.imageTags },
+    { imageHashByUrl: opts.imageHashByUrl, roles: opts.imageRoles, origins: opts.imageOrigins, category: opts.category, flow: getPackLayout(pack).flow, tags: opts.imageTags, sceneImages: opts.sceneImages },
   ).sections;
   const visibleSections = dropSpecEchoFaqItems(
     dropDuplicateRecommendColumn(

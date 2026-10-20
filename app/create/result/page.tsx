@@ -156,6 +156,8 @@ type ProductResult = {
   infoBackdrops?: import("@/lib/info-backdrop").InfoBackdropMap;
   /** 419차 — 사진별 역할·태그(비전 분석). 세션 JSON에 실려 있으면 뷰티 글·사진 일치 게이트가 쓴다 */
   visionImageRoles?: Array<{ index?: number; tags?: string[] }> | null;
+  /** 419차 — 장면(합성) 이미지 슬롯(세션 JSON, DB 불러오기에는 없음 → 폴백). 생성 연결은 421차 */
+  sceneImages?: import("@/lib/scene-images").SceneImageMap;
   category: string;
   imageUrls: string[];
   imagePaths?: string[];
@@ -899,6 +901,7 @@ function CreateResultContent() {
         stylePackId: effectiveStylePackId(data),
         infoBackdrops: data.infoBackdrops,
         imageTags: imageTagsOf(data.visionImageRoles),
+        sceneImages: data.sceneImages,
       });
       const blob = new Blob([html], { type: "text/html;charset=utf-8" });
       const url = URL.createObjectURL(blob);
@@ -1073,6 +1076,7 @@ function CreateResultContent() {
           stylePackId={stylePackId}
           infoBackdrops={data.infoBackdrops}
           imageTags={imageTagsOf(data.visionImageRoles)}
+          sceneImages={data.sceneImages}
           conceptIcons={generated?.conceptIcons}
           pendingHighlightIndex={
             pendingPatch
