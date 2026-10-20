@@ -155,6 +155,7 @@ export function infoCss(level: InfoLevel | undefined, scope: string, c: InfoColo
   rule(sec("statnum"), `background:${dr ? c.accent : c.base};padding-top:36px;padding-bottom:36px`);
   rule(`${sec("statnum")}>div`, `margin:0 auto;border-top:0;border-bottom:0`);
   rule(`${sec("statnum")} *`, `color:${dr ? W : c.deep}`);
+  rule(`${sec("statnum")}>div>div>:last-child`, "font-size:16px;font-weight:700");
 
   // ── 4. 비교표(우리 칸 = 세로 기둥) ──  (행 = crows의 직계 div: p(항목명) + span(우리) + span(일반))
   const CR = `${sec("compare")} ${ip("crows")}>div`;
@@ -174,6 +175,7 @@ export function infoCss(level: InfoLevel | undefined, scope: string, c: InfoColo
   rule(`${CR}>span:nth-child(2) svg`, `display:block;width:30px;height:30px;color:${W};stroke:${W};stroke-width:3.2`);
   rule(`${CR}>span:nth-child(3)`, `display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-width:0;padding:20px 8px;border:0;border-radius:0;background:transparent`);
   rule(`${CR}>span:nth-child(3)>span`, `font-size:13px;font-weight:600;line-height:1.3;color:rgba(27,27,24,0.62)`);
+  rule(`${sec("compare")}>p`, `font-size:13px;color:rgba(27,27,24,0.72)`);
   rule(`${CR}>span:nth-child(3) svg`, `display:block;width:24px;height:24px;color:rgba(27,27,24,0.55);stroke:rgba(27,27,24,0.55);stroke-width:2.6`);
 
   // ── 5. 세탁·관리 ──  (항목 li = 아이콘 span + 글 span)

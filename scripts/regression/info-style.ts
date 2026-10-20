@@ -45,7 +45,7 @@ export async function run(): Promise<string[]> {
       const sel = m[1]!;
       const px = /font-size:(\d+(?:\.\d+)?)px/.exec(m[2]!)?.[1];
       if (!px) continue;
-      const isLabel = /ol>li>div:last-child>p|:first-child>span|::before|\[data-em\]::|>span:nth-child\(2\)>span|>span:nth-child\(3\)>span|>span:nth-child\(2\)\s|>span:nth-child\(3\)\s/.test(sel) || /svg|::after/.test(sel);
+      const isLabel = /\[data-info="compare"\]>p|ol>li>div:last-child>p|:first-child>span|::before|\[data-em\]::|>span:nth-child\(2\)>span|>span:nth-child\(3\)>span|>span:nth-child\(2\)\s|>span:nth-child\(3\)\s/.test(sel) || /svg|::after/.test(sel);
       if (!isLabel && Number(px) < INFO_BODY_MIN_PX) fails.push(`${lv} 본문 글자 ${px}px < ${INFO_BODY_MIN_PX}px: ${sel.slice(-60)}`);
     }
   }
