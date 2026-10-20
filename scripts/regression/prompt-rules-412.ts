@@ -5,7 +5,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-export const name = "프롬프트: 입력 사실 규칙 5줄 유지 + 반복 방지 한 줄(412) + 415차 사실 규칙 6줄 추가";
+export const name = "프롬프트: 입력 사실 규칙 5줄 유지 + 반복 방지 한 줄(412) + 415차 사실 규칙 6줄 + 419차 8줄(뷰티 418차 위반 대응)";
 
 export async function run(): Promise<string[]> {
   const fails: string[] = [];
@@ -15,7 +15,7 @@ export async function run(): Promise<string[]> {
   if (start < 0 || end < start) return ["규칙 블록 위치를 못 찾음"];
   const block = src.slice(start, end);
   const lines = block.split("\n").filter((l) => l.startsWith("- "));
-  if (lines.length !== 12) fails.push(`규칙 줄 수가 12가 아님(${lines.length})`); // 406차 5줄 + 412차 1줄 + 415차 6줄
+  if (lines.length !== 20) fails.push(`규칙 줄 수가 20이 아님(${lines.length})`); // 406차 5줄 + 412차 1줄 + 415차 6줄 + 419차 8줄
   for (const k of ["모든** 사이즈", "판매자 확인 필요", "오프화이트", "일반화·단정", "글자 그대로 반복"]) {
     if (!block.includes(k)) fails.push(`기존 규칙 문구가 사라짐: ${k}`);
   }
@@ -23,6 +23,9 @@ export async function run(): Promise<string[]> {
   for (const k of ["입력에 없는 숫자(시간·횟수·개수)", "부속의 개수", "성능은 입력에 있을 때만", "계절·용도 표기를 그대로", "✓/–로만 표시", "같은 모티프 단어"]) {
     if (!block.includes(k)) fails.push(`415차 규칙이 없음: ${k}`);
   }
-  if (block.length > 2400) fails.push(`규칙 블록이 너무 김(${block.length}자, 상한 2400)`);
+  for (const k of ["입력에 없는 수치·용량·가격", "용기 흔들기, 눈 감기", "따옴표 인용문", "입력의 타깃·고민 범위 안에서만", "성분 이름만 쓰세요", "새 서술 금지", "한글 수사", "최대 2개 섹션"]) {
+    if (!block.includes(k)) fails.push(`419차 규칙이 없음: ${k}`);
+  }
+  if (block.length > 3200) fails.push(`규칙 블록이 너무 김(${block.length}자, 상한 3200)`);
   return fails;
 }
