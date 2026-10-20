@@ -2133,6 +2133,7 @@ export async function POST(request: Request) {
         ` conceptBrief=$${(photoCostBreakdown.conceptBrief ?? 0).toFixed(4)} ` +
         `backdrop=$${(photoCostBreakdown.backdrop ?? 0).toFixed(4)} ` +
         `sectionBackdrops=$${(photoCostBreakdown.sectionBackdrops ?? 0).toFixed(4)} ` +
+        `infoBackdrops=$${(photoCostBreakdown.infoBackdrops ?? 0).toFixed(4)} ` +
         `enhance=$${(photoCostBreakdown.enhance ?? 0).toFixed(4)} ` +
         `decor=$${(photoCostBreakdown.decor ?? 0).toFixed(4)} ` +
         `effects=$${effectsCost.toFixed(4)} ` +

@@ -361,6 +361,7 @@ const API_REPEAT_LIMIT: Record<string, number> = {
   "/api/generate": 2,
   "/api/generate-backdrop": 4,
   "/api/section-backdrops": 4,
+  "/api/info-backdrops": 2,
   "/api/protect-product-images": 2,
 };
 /** 승인되지 않은 사용 장면·일상샷 생성 경로 — 한 번이라도 불리면 멈춘다 */
