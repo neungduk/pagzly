@@ -9,6 +9,7 @@
 import type { DetailSection } from "@/lib/types/generate";
 import { BEAUTY_CATEGORY, beautyStyleOn } from "@/lib/beauty-style";
 import { sectionImageIndexes } from "@/lib/image-source-cap";
+import { comparisonSentence, type ProductDimensions, type SceneSizeMeta } from "@/lib/scene-size";
 
 // ── 슬롯 키(카테고리별 확장 가능한 구조) ──
 export const BEAUTY_SCENE_SLOTS = ["use-person", "use-hand-mist", "scene-desk", "scene-bag", "scene-vanity"] as const;
@@ -19,7 +20,8 @@ export const RESERVED_SCENE_SLOTS: Record<string, readonly string[]> = {
 };
 export const SCENE_NOTICE = "연출 이미지(AI 생성)";
 
-export type SceneImage = { url: string; role: "scene"; aiGenerated: true };
+/** sizeMeta: 프롬프트에 쓴 제품 실물 치수와 추정 여부(lib/scene-size.ts). 없으면 크기 문장을 쓰지 않은 슬롯 */
+export type SceneImage = { url: string; role: "scene"; aiGenerated: true; sizeMeta?: SceneSizeMeta };
 export type SceneImageMap = Partial<Record<string, SceneImage>>;
 
 /** https 주소만(CSS·HTML을 깰 문자 없음) */
@@ -33,9 +35,14 @@ export function normalizeSceneImages(raw: unknown): SceneImageMap {
   const out: SceneImageMap = {};
   if (!raw || typeof raw !== "object") return out;
   for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
-    const o = v as { url?: unknown; role?: unknown; aiGenerated?: unknown } | null;
+    const o = v as { url?: unknown; role?: unknown; aiGenerated?: unknown; sizeMeta?: { heightCm?: unknown; diameterCm?: unknown; estimated?: unknown } } | null;
     const url = safeSceneUrl(typeof o?.url === "string" ? o.url : null);
-    if (url && o?.role === "scene" && o?.aiGenerated === true && /^[a-z][a-z0-9-]{1,40}$/.test(k)) out[k] = { url, role: "scene", aiGenerated: true };
+    if (url && o?.role === "scene" && o?.aiGenerated === true && /^[a-z][a-z0-9-]{1,40}$/.test(k)) {
+      const m = o.sizeMeta;
+      const h = typeof m?.heightCm === "number" && m.heightCm > 0 && m.heightCm <= 60 ? m.heightCm : null;
+      const dia = typeof m?.diameterCm === "number" && m.diameterCm > 0 && m.diameterCm <= 60 ? m.diameterCm : undefined;
+      out[k] = { url, role: "scene", aiGenerated: true, ...(h && typeof m?.estimated === "boolean" ? { sizeMeta: { heightCm: h, ...(dia ? { diameterCm: dia } : {}), estimated: m.estimated } } : {}) };
+    }
   }
   return out;
 }
@@ -74,6 +81,8 @@ export type ScenePromptInput = {
   mood?: string | null;
   /** 타깃 입력(예: "20~30대 여성", "30~40대 여성", "남성") — 연령·성별만 읽는다 */
   target?: string | null;
+  /** 제품 실물 치수(lib/scene-size.ts resolveProductDimensions). 있으면 실제 크기·비교 문장이 들어간다. 없으면 크기 문장 없음(기존 출력 그대로) */
+  dimensions?: ProductDimensions | null;
 };
 
 export const SCENE_COMMON_DIRECTIVES =
@@ -101,7 +110,8 @@ export function buildScenePrompt(slot: BeautySceneSlot, input: ScenePromptInput)
     "scene-bag": `the ${product} beside an open tote bag on a light bench, travel-ready arrangement, soft daylight, lifestyle still life`,
     "scene-vanity": `the ${product} on a clean vanity table with a small mirror, soft light, minimal props, lifestyle still life`,
   };
-  return `${base[slot]}${color}${mood}, ${SCENE_COMMON_DIRECTIVES}`;
+  const size = input.dimensions ? comparisonSentence(slot, input.dimensions) : null;
+  return `${base[slot]}${color}${mood}${size ? `, ${size}` : ""}, ${SCENE_COMMON_DIRECTIVES}`;
 }
 
 // ── 표시: 슬롯 → scene_image 섹션을 알맞은 자리에 ──
