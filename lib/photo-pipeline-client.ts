@@ -519,6 +519,8 @@ export async function runPhotoEnhancementPipeline(params: {
     targetCustomer: string | null;
     sizeHint: string | null;
     productHeightCm: number | null;
+    /** 용량(mL)을 찾을 입력 원문(상품명·특징) */
+    volumeText?: string | null;
     /** 참조 후보(업로드 순서와 같음) */
     imageTags?: string[][];
     imageOrigins?: string[];
@@ -732,6 +734,7 @@ export async function runPhotoEnhancementPipeline(params: {
           targetCustomer: params.sceneImage.targetCustomer,
           sizeHint: params.sceneImage.sizeHint,
           productHeightCm: params.sceneImage.productHeightCm,
+          volumeText: params.sceneImage.volumeText,
           imageUrls: uploaded.map((item) => item.url),
           imageTags: params.sceneImage.imageTags,
           imageOrigins: params.sceneImage.imageOrigins,

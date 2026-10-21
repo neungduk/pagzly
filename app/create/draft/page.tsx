@@ -353,6 +353,7 @@ export default function CreateDraftPage() {
             targetCustomer: snap.targetCustomer || null,
             sizeHint: snap.productSizeHint || null,
             productHeightCm: snapHeight,
+            volumeText: [snap.productName, snap.keyFeatures].filter(Boolean).join(" ") || null,
             imageTags: expandVisionTagsByIndex(
               currentDraft.payload.visionImageRoles as Parameters<typeof expandVisionTagsByIndex>[0],
               uploaded.length,

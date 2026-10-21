@@ -17,7 +17,7 @@ import {
 } from "@/lib/info-backdrop";
 import { photoKinds } from "@/lib/photo-text-match";
 import { SCENE_COMMON_DIRECTIVES, SCENE_UNIT_USD, sceneImageCostUsd, type SceneImageMap } from "@/lib/scene-images";
-import { comparisonSentence, resolveProductDimensions, sizeMetaOf, type ProductDimensions } from "@/lib/scene-size";
+import { comparisonSentence, parseSizeHint, resolveProductDimensions, sizeMetaOf, type ProductDimensions } from "@/lib/scene-size";
 import type { PhotoCostBreakdown } from "@/lib/types/generate";
 
 export const SCENE_GEN_MODEL = "bytedance/seedream-4" as const;
@@ -132,6 +132,8 @@ export type SceneGenInput = {
   sizeHint: string | null | undefined;
   /** 폼 productHeightCm(숫자 cm) */
   heightCm: number | null | undefined;
+  /** 용량(mL)을 찾을 입력 원문(상품명·특징). sizeHint에 용량이 없을 때만 용량 숫자 하나를 읽는다(높이·치수는 읽지 않는다) */
+  volumeText?: string | null;
   hasToken: boolean;
   testMode: boolean;
   /** 참조 후보 사진 메타(업로드 순서) */
@@ -156,8 +158,9 @@ export function sceneGenBlockReason(i: Pick<SceneGenInput, "category" | "hasToke
 }
 
 /** 제품 실물 치수: 폼 높이(cm)가 있으면 그 값(추정 아님), 없으면 입력 힌트 → 사전 추정 → null */
-export function sceneDimensionsOf(i: Pick<SceneGenInput, "productName" | "sizeHint" | "heightCm">): ProductDimensions | null {
-  const base = resolveProductDimensions({ sizeHint: i.sizeHint, kindText: i.productName });
+export function sceneDimensionsOf(i: Pick<SceneGenInput, "productName" | "sizeHint" | "heightCm" | "volumeText">): ProductDimensions | null {
+  const volumeMl = parseSizeHint(i.sizeHint).volumeMl ?? parseSizeHint(i.volumeText).volumeMl;
+  const base = resolveProductDimensions({ sizeHint: i.sizeHint, kindText: i.productName, volumeMl });
   const h = typeof i.heightCm === "number" && Number.isFinite(i.heightCm) && i.heightCm >= 2 && i.heightCm <= 60 ? i.heightCm : null;
   if (h) return { ...(base ?? {}), heightCm: h, estimated: false };
   return base;

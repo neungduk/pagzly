@@ -142,6 +142,10 @@ export async function run(): Promise<string[]> {
     eq("용량만 있으면 사전 추정", planSceneGeneration(base({ sizeHint: "30mL" })).dims?.estimated, true);
     const h = planSceneGeneration(base({ sizeHint: null, heightCm: 11 }));
     eq("높이 입력은 추정 아님", [h.dims?.heightCm, h.dims?.estimated], [11, false]);
+    // 용량이 상품명·특징 입력에 있으면 사전 추정에 쓴다(높이·치수는 읽지 않음)
+    const v = planSceneGeneration(base({ sizeHint: null, volumeText: "휴대하기 좋은 30mL 미니 사이즈 용량: 30mL" }));
+    eq("특징 입력의 용량 → 사전 추정", [v.slots.length, v.dims?.heightCm, v.dims?.estimated, v.dims?.volumeMl], [2, 10, true, 30]);
+    eq("특징에 높이만 있어도 용량 없으면 비움", planSceneGeneration(base({ sizeHint: null, volumeText: "높이 약 9cm" })).skipped[0]?.reason, "no-size");
     eq("종류를 모르는 상품", planSceneGeneration(base({ productName: "무언가" })).skipped[0]?.reason, "unknown-product");
   }
 

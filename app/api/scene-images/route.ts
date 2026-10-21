@@ -53,6 +53,7 @@ export async function POST(request: Request) {
       targetCustomer?: unknown;
       sizeHint?: unknown;
       productHeightCm?: unknown;
+      volumeText?: unknown;
       imageUrls?: unknown;
       imageTags?: unknown;
       imageOrigins?: unknown;
@@ -70,6 +71,7 @@ export async function POST(request: Request) {
       targetCustomer: clip(body.targetCustomer, 200),
       sizeHint: clip(body.sizeHint, 200),
       heightCm: typeof body.productHeightCm === "number" ? body.productHeightCm : null,
+      volumeText: clip(body.volumeText, 600),
       hasToken: !!token,
       testMode: isTestMode() && !isForceRegenerate(),
       refs,
