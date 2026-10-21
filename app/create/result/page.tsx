@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { hasSizeHeight } from "@/lib/scene-size";
+import { displayStateOf } from "@/lib/saved-display";
 import { claimFactsOf, type ClaimInput } from "@/lib/numeric-claim-gate";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -257,6 +258,8 @@ function mapProductRow(row: ProductRow): ProductResult {
     generationCost: row.generation_cost != null ? Number(row.generation_cost) : undefined,
     photoCostBreakdown: row.photo_cost_breakdown ?? undefined,
     generated,
+    // 424차 — 저장해 둔 표시 상태 복원(인포 배경·장면 이미지·켬/끔·스타일 팩). 없으면 기존처럼 코드 배경
+    ...(displayStateOf(row.photo_cost_breakdown) ?? {}),
   };
 }
 
@@ -270,6 +273,16 @@ function resolvePipelineSummary(data: ProductResult): GenerationPipelineSummary 
     backdropFailed: data.backdropFailed,
     sectionCount: data.generated?.sections.length ?? 0,
   });
+}
+
+/** 424차 — 표시 상태(연출 이미지 켬/끔·스타일 팩)를 바로 저장한다. 실패해도 화면에는 이미 반영돼 있어 조용히 넘어간다 */
+async function saveDisplayQuietly(productId: string | undefined, display: Record<string, unknown>): Promise<void> {
+  if (!productId) return;
+  try {
+    await fetch(`/api/products/${productId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ display }) });
+  } catch {
+    /* 네트워크 오류 — 저장 버튼에서 다시 시도할 수 있다 */
+  }
 }
 
 function CreateResultContent() {
@@ -642,6 +655,7 @@ function CreateResultContent() {
           body: JSON.stringify({
             sections: data.generated?.sections ?? [],
             imageUrls: data.imageUrls,
+            display: { infoBackdrops: data.infoBackdrops, sceneImages: data.sceneImages, sceneImagesOn: data.sceneImagesOn, stylePackId: data.stylePackId },
           }),
         });
         const result = await response.json();
@@ -992,6 +1006,7 @@ function CreateResultContent() {
     if (!data) return;
     persist({ ...data, stylePackId: id });
     storeStylePack(generated?.productId, id);
+    void saveDisplayQuietly(generated?.productId, { stylePackId: id });
   }
   const categoryTheme = getCategoryTheme(data.category);
   const theme = generated?.theme
@@ -1064,7 +1079,10 @@ function CreateResultContent() {
           <input
             type="checkbox"
             checked={data.sceneImagesOn === true}
-            onChange={(e) => persist({ ...data, sceneImagesOn: e.target.checked })}
+            onChange={(e) => {
+              persist({ ...data, sceneImagesOn: e.target.checked });
+              void saveDisplayQuietly(data.generated?.productId, { sceneImagesOn: e.target.checked });
+            }}
           />
           <span>연출 이미지(AI 생성) 넣기</span>
         </label>

@@ -21,6 +21,8 @@ export type PhotoCostBreakdown = {
   reviewInsights?: number;
   /** Vision 역할이 user 잠금이 아닌 인덱스에 실제로 반영된 장수 (UI 배지) */
   visionRolesApplied?: number;
+  /** 424차 — 저장·재불러오기용 표시 상태(비용 아님). products.photo_cost_breakdown jsonb에 함께 저장(스키마 변경 없음). lib/saved-display.ts */
+  display?: import("@/lib/saved-display").DisplayState;
 };
 
 export type ReferenceAnalysisInput = {

@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { DetailSection } from "@/lib/types/generate";
+import { normalizeDisplayState, withDisplayState } from "@/lib/saved-display";
 
 type UpdateProductBody = {
   sections?: DetailSection[];
   imageUrls?: string[];
+  /** 424차 — 표시 상태(연출 이미지 켬/끔·스타일 팩 등). products.photo_cost_breakdown.display에 병합 저장 */
+  display?: unknown;
 };
 
 /**
@@ -46,6 +49,13 @@ export async function PATCH(
     }
     if (Array.isArray(body.imageUrls)) {
       update.image_urls = body.imageUrls;
+    }
+
+    // 424차: 표시 상태는 기존 비용 JSON에 병합(내 행만 읽고 씀 — 아래 update와 같은 user_id 조건)
+    const display = normalizeDisplayState(body.display);
+    if (display) {
+      const { data: existing } = await supabase.from("products").select("photo_cost_breakdown").eq("id", id).eq("user_id", user.id).maybeSingle();
+      if (existing) update.photo_cost_breakdown = withDisplayState(existing.photo_cost_breakdown, display);
     }
 
     if (Object.keys(update).length === 0) {

@@ -57,6 +57,7 @@ import {
 } from "@/lib/highlight-box-guard";
 import { enforceSplitZigzag, limitBoldBlocks } from "@/lib/detail-visual-rhythm";
 import { orderSectionsForFlow } from "@/lib/section-flow-order";
+import { normalizeDisplayState, withDisplayState } from "@/lib/saved-display";
 import {
   applyDesignerLayoutRhythm,
   buildDesignerPatternGuide,
@@ -2183,6 +2184,12 @@ export async function POST(request: Request) {
       imageUrls.flatMap((url, i) => (finalUrlHashes[i] ? [[url, finalUrlHashes[i]!]] : [])),
     );
 
+    // 424차 — 재불러오기에서도 같은 화면이 되도록 표시 상태(인포 배경·장면 이미지·스타일 팩)를 비용 JSON의 display 키에 함께 저장
+    const displayToSave = normalizeDisplayState({
+      infoBackdrops: (body as { infoBackdrops?: unknown }).infoBackdrops,
+      sceneImages: (body as { sceneImages?: unknown }).sceneImages,
+      stylePackId: (body as { stylePackId?: unknown }).stylePackId,
+    });
     const { data: savedProduct, error: insertError } = body.productId
       ? await supabase
           .from("products")
@@ -2213,7 +2220,7 @@ export async function POST(request: Request) {
                   deepAccent: theme.deepAccent,
                 }
               : null,
-            photo_cost_breakdown: photoCostBreakdown,
+            photo_cost_breakdown: withDisplayState(photoCostBreakdown, displayToSave),
             image_roles: resolvedImageRoles,
             mfds_reviewed: mfdsReviewed,
             replacements,
@@ -2254,7 +2261,7 @@ export async function POST(request: Request) {
                   deepAccent: theme.deepAccent,
                 }
               : null,
-            photo_cost_breakdown: photoCostBreakdown,
+            photo_cost_breakdown: withDisplayState(photoCostBreakdown, displayToSave),
             image_roles: resolvedImageRoles,
             mfds_reviewed: mfdsReviewed,
             replacements,
