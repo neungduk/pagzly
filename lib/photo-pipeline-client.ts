@@ -4,6 +4,8 @@
  */
 
 import { INFO_BACKDROP_EXTRA_WAIT_MS, type InfoBackdropMap, type InfoZone } from "@/lib/info-backdrop";
+import { SCENE_GEN_EXTRA_WAIT_MS, applySceneCost } from "@/lib/scene-image-gen";
+import { normalizeSceneImages, type SceneImageMap } from "@/lib/scene-images";
 import { getCategoryTheme, type CategoryTheme } from "@/lib/category-theme";
 import type { ConceptBrief } from "@/lib/concept-brief";
 import { buildLifestyleCompositeRequestBody } from "@/lib/lifestyle-composite-request";
@@ -511,6 +513,17 @@ export async function runPhotoEnhancementPipeline(params: {
   imageRoles?: readonly string[];
   /** 417차 — 인포 구간 AI 배경 요청(패션·스타일 자동 적용일 때만 호출부가 채운다). 없으면 호출 0 */
   infoBackdrop?: { zones: InfoZone[]; material: string; color: string; mood: string; productKey: string };
+  /** 422차 — 뷰티 인물 사용 컷 요청(뷰티·flag on일 때만 호출부가 채운다). 없으면 호출 0. 계획·조건은 서버(lib/scene-image-gen.ts)가 다시 판단 */
+  sceneImage?: {
+    productName: string;
+    targetCustomer: string | null;
+    sizeHint: string | null;
+    productHeightCm: number | null;
+    /** 참조 후보(업로드 순서와 같음) */
+    imageTags?: string[][];
+    imageOrigins?: string[];
+    imageRoles?: readonly string[];
+  };
   pickBackdrop: (urls: string[]) => Promise<string>;
   onStage?: PhotoPipelineProgressCallback;
 }): Promise<{
@@ -522,6 +535,8 @@ export async function runPhotoEnhancementPipeline(params: {
   testMode: boolean;
   /** 417차 — 인포 구간 AI 배경 URL 맵(성공한 구간만, 없으면 코드 배경) */
   infoBackdrops?: InfoBackdropMap;
+  /** 422차 — 뷰티 인물 사용 컷 슬롯 맵(성공한 슬롯만, 없으면 빈 슬롯) */
+  sceneImages?: SceneImageMap;
   /** 히어로 배경 실패로 enhance를 건너뛴 경우 */
   backdropFailed?: boolean;
   warning?: string;
@@ -703,6 +718,28 @@ export async function runPhotoEnhancementPipeline(params: {
       })
         .then(async (res) => (res.ok ? ((await res.json()) as { infoBackdrops?: InfoBackdropMap; cost?: number }) : null))
         .then((j) => (j ? { infoBackdrops: j.infoBackdrops ?? {}, cost: j.cost ?? 0 } : null))
+        .catch(() => null)
+    : null;
+
+  // 422차 — 뷰티 인물 사용 컷: 사진 보정과 병렬로 시작하고, 끝난 뒤 최대 45초만 더 기다린다(초과분은 빈 슬롯)
+  const sceneJob: Promise<{ sceneImages: SceneImageMap; cost: number } | null> | null = params.sceneImage
+    ? fetch("/api/scene-images", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: params.category,
+          productName: params.sceneImage.productName,
+          targetCustomer: params.sceneImage.targetCustomer,
+          sizeHint: params.sceneImage.sizeHint,
+          productHeightCm: params.sceneImage.productHeightCm,
+          imageUrls: uploaded.map((item) => item.url),
+          imageTags: params.sceneImage.imageTags,
+          imageOrigins: params.sceneImage.imageOrigins,
+          imageRoles: params.sceneImage.imageRoles,
+        }),
+      })
+        .then(async (res) => (res.ok ? ((await res.json()) as { sceneImages?: SceneImageMap; cost?: number }) : null))
+        .then((j) => (j ? { sceneImages: normalizeSceneImages(j.sceneImages), cost: j.cost ?? 0 } : null))
         .catch(() => null)
     : null;
 
@@ -920,6 +957,21 @@ export async function runPhotoEnhancementPipeline(params: {
     }
   }
 
+  let sceneImages: SceneImageMap | undefined;
+  if (sceneJob) {
+    const waited = await Promise.race([
+      sceneJob,
+      new Promise<"timeout">((r) => setTimeout(() => r("timeout"), SCENE_GEN_EXTRA_WAIT_MS)),
+    ]);
+    if (waited && waited !== "timeout") {
+      sceneImages = Object.keys(waited.sceneImages).length ? waited.sceneImages : undefined;
+      ({ photoProcessingCost, photoCostBreakdown } = applySceneCost(photoProcessingCost, photoCostBreakdown, waited.cost));
+    } else if (waited === "timeout") {
+      // 늦게 끝난 호출은 과금됐을 수 있으나 이 화면에는 쓰지 않는다(빈 슬롯). 비용은 서버 로그 [scene-images] done에 남는다
+      console.warn("[scene-images] 대기 45초 초과 — 장면 이미지 없이 진행");
+    }
+  }
+
   const uploadedCount = uploaded.length;
   const finalUnique = new Set(finalImages.map((i) => i.url)).size;
   if (finalUnique < finalImages.length) {
@@ -949,5 +1001,6 @@ export async function runPhotoEnhancementPipeline(params: {
     referenceAnalysis: backdropResult.referenceAnalysis,
     testMode,
     infoBackdrops,
+    sceneImages,
   };
 }

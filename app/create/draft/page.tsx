@@ -2,6 +2,7 @@
 
 import { infoZonesOfSections } from "@/lib/info-backdrop";
 import { beautyStyleOn } from "@/lib/beauty-style";
+import { expandVisionTagsByIndex } from "@/lib/image-roles";
 import { FASHION, STYLE_AUTO_ENABLED } from "@/lib/style-director";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -345,6 +346,21 @@ export default function CreateDraftPage() {
               productKey: String(snap.productName ?? ""),
             }
           : undefined,
+      // 422차 — 뷰티 + 스타일 flag on일 때만 인물 사용 컷 요청(그 외 호출 0). 조건·크기·성별 판단은 서버가 다시 한다
+      sceneImage: beautyStyleOn(snap.category)
+        ? {
+            productName: String(snap.productName ?? ""),
+            targetCustomer: snap.targetCustomer || null,
+            sizeHint: snap.productSizeHint || null,
+            productHeightCm: snapHeight,
+            imageTags: expandVisionTagsByIndex(
+              currentDraft.payload.visionImageRoles as Parameters<typeof expandVisionTagsByIndex>[0],
+              uploaded.length,
+            ).imageTags,
+            imageOrigins: uploaded.map((u) => u.origin ?? "original"),
+            imageRoles: (currentDraft.payload.imageRoles as string[] | undefined) ?? undefined,
+          }
+        : undefined,
       pickBackdrop: waitForBackdropPick,
       onStage: (event) => {
         setLoadingStage(mapProgressToStage(event));
@@ -394,6 +410,8 @@ export default function CreateDraftPage() {
         backdropFailed: photo.backdropFailed ?? false,
         // 417차 — 인포 구간 AI 배경 URL 맵(세션 JSON에 그대로 실려 결과 화면·export가 읽는다. 없으면 코드 배경)
         infoBackdrops: photo.infoBackdrops,
+        // 422차 — 뷰티 인물 사용 컷 슬롯 맵(세션 JSON에 그대로 실려 결과 화면·export가 읽는다. 없으면 빈 슬롯)
+        sceneImages: photo.sceneImages,
       },
       photoCostBreakdown,
       referenceAnalysis: photo.referenceAnalysis ?? currentDraft.referenceAnalysis,
