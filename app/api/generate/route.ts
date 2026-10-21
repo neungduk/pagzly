@@ -1377,7 +1377,8 @@ async function handlePost(request: Request, ctx: GenerateCtx) {
       type: typeof body.wholesaleUrl,
       isNull: body.wholesaleUrl == null,
       length: wholesale.length,
-      preview: wholesale.slice(0, 120),
+      // 426차 W8: 도매 주소 전문은 남기지 않고 호스트만(개인 판매자 링크일 수 있음)
+      host: (() => { try { return new URL(wholesale).host; } catch { return ""; } })(),
       mode,
       useDraftSections,
     });
@@ -1642,7 +1643,7 @@ async function handlePost(request: Request, ctx: GenerateCtx) {
           visionRolesApplied,
         };
         console.log(
-          `[cost] draft product="${body.productName}" deepSeek=$${totalDeepSeekCost.toFixed(4)} claude=$${claudeCost.toFixed(4)} visionRoles=${visionImageRoles.length} applied=${visionRolesApplied} token=${draftToken}`,
+          `[cost] draft product=${body.productId ?? "-"} deepSeek=$${totalDeepSeekCost.toFixed(4)} claude=$${claudeCost.toFixed(4)} visionRoles=${visionImageRoles.length} applied=${visionRolesApplied} token=${draftToken}`,
         );
         return NextResponse.json({
           ...savedCopy,
@@ -2089,11 +2090,11 @@ async function handlePost(request: Request, ctx: GenerateCtx) {
 
     if (!enrichedBody.conceptBrief) {
       console.warn(
-        `[concept-icons] conceptBrief 없음 — 아이콘 생략 product="${body.productName}"`,
+        `[concept-icons] conceptBrief 없음 — 아이콘 생략 product=${body.productId ?? "-"}`,
       );
     } else if (!shouldGenerateConceptIcons({ hasConceptBrief: true })) {
       // 403차 — 평면 표면에서는 렌더러·export가 개념 아이콘을 쓰지 않는다(원가만 들고 화면에 안 나옴). iconCost 0
-      console.log(`[concept-icons] 평면 표면 — 화면에 쓰이지 않아 생성 생략 product="${body.productName}"`);
+      console.log(`[concept-icons] 평면 표면 — 화면에 쓰이지 않아 생성 생략 product=${body.productId ?? "-"}`);
     } else {
       const checklistSection = savedCopy.sections.find((s) => s.type === "checklist");
       const usageSection = savedCopy.sections.find((s) => s.type === "usage_steps");
@@ -2177,7 +2178,7 @@ async function handlePost(request: Request, ctx: GenerateCtx) {
       reviewInsightsCost +
       auxConceptBriefCost;
     console.log(
-      `[cost] product="${body.productName}"` +
+      `[cost] product=${body.productId ?? "-"}` +
         (isTestMode() ? " (TEST_MODE)" : "") +
         ` conceptBrief=$${(photoCostBreakdown.conceptBrief ?? 0).toFixed(4)} ` +
         `backdrop=$${(photoCostBreakdown.backdrop ?? 0).toFixed(4)} ` +

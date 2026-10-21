@@ -82,7 +82,7 @@ export async function generateCanvasAiImage(params: {
   const useRef = Boolean(params.refImageUrl?.trim()) && !isTestMode();
 
   if (useRef && params.refImageUrl) {
-    console.log(`[canvas-ai-image] nano-banana ref — "${params.productName}"`);
+    console.log("[canvas-ai-image] nano-banana ref");
     const output = await withTimeout(
       replicate.run(NANO_BANANA_REF, {
         input: {
@@ -106,7 +106,7 @@ export async function generateCanvasAiImage(params: {
     };
   }
 
-  console.log(`[canvas-ai-image] flux-schnell — "${params.productName}" (TEST_MODE=${isTestMode()})`);
+  console.log(`[canvas-ai-image] flux-schnell (TEST_MODE=${isTestMode()})`);
   const output = await withTimeout(
     replicate.run(FLUX_SCHNELL_REF, {
       input: {

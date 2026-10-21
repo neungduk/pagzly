@@ -343,7 +343,7 @@ export async function runDetailPageQA(params: {
     ? `PASS (${issues.length} warning)`
     : `FAIL — critical ${critical.length}건: ${critical.map((i) => i.message).join("; ")}`;
 
-  console.log(`[qa] ${params.productName}: ${summary}`);
+  console.log(`[qa] ${summary}`);
   for (const issue of issues) {
     console.log(
       `[qa] [${issue.severity}] ${issue.category}${issue.slot ? `@${issue.slot}` : ""}${issue.imageIndex !== undefined ? `#img${issue.imageIndex}` : ""}: ${issue.message}`,

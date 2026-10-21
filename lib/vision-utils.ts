@@ -301,7 +301,7 @@ JSON만 반환:
     };
 
     console.log(
-      `[detectProductRegion] '${productName}' box: [${box.xMin.toFixed(2)},${box.yMin.toFixed(2)}]→[${box.xMax.toFixed(2)},${box.yMax.toFixed(2)}]`,
+      `[detectProductRegion] box: [${box.xMin.toFixed(2)},${box.yMin.toFixed(2)}]→[${box.xMax.toFixed(2)},${box.yMax.toFixed(2)}]`,
     );
     return { box, cost };
   } catch (error) {
