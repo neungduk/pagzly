@@ -299,6 +299,8 @@ type DetailSectionRendererProps = {
   imageTags?: ReadonlyArray<ReadonlyArray<string> | undefined>;
   /** 419차 — 장면(합성) 이미지 슬롯(슬롯 키 → {url, role, aiGenerated}). 없으면 아무것도 끼우지 않는다 */
   sceneImages?: SceneImageMap;
+  /** 422차 — 제품 높이(cm) 입력이 있는지(크기·휴대 카드의 손에 든 컷 허용 조건) */
+  hasSizeInfo?: boolean;
 };
 
 /**
@@ -5880,6 +5882,7 @@ export default function DetailSectionRenderer({
   infoBackdrops,
   imageTags,
   sceneImages,
+  hasSizeInfo,
 }: DetailSectionRendererProps) {
   const pack = resolveStylePack(category, stylePackId);
   const packLayout = beautyInfoLayout(getPackLayout(pack), category);
@@ -5892,6 +5895,7 @@ export default function DetailSectionRenderer({
     flow: getPackLayout(resolveStylePack(category, stylePackId)).flow,
     tags: imageTags,
     sceneImages,
+    hasSizeInfo,
   });
   const rawSections = display.sections;
   const toSource = (i: number) => display.sourceIndexes[i] ?? i;

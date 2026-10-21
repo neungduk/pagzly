@@ -278,6 +278,8 @@ export function applyDisplayRules(
     tags?: ReadonlyArray<ReadonlyArray<string> | undefined>;
     /** 419차 — 장면(합성) 이미지가 채워진 슬롯이 있는지 */
     hasSceneImage?: boolean;
+    /** 422차 — 제품 높이(cm) 입력이 있는지(크기·휴대 카드의 손에 든 컷 허용 조건) */
+    hasSizeInfo?: boolean;
     /** 419차 — 장면(합성) 이미지 슬롯(세션 sceneImages). 뷰티에서만 scene_image 섹션이 끼워진다 */
     sceneImages?: SceneImageMap;
   } & StripImageHints = {},
@@ -301,7 +303,7 @@ export function applyDisplayRules(
   if (opts.editing) return { sections: ordered, sourceIndexes: orderIndexes };
   const sourceOf = imageSourceGroups(imageUrls, opts.imageHashByUrl);
   // 419차 — 뷰티 글·사진 일치(개수·순서 불변이라 sourceIndexes가 그대로 맞는다)
-  const photoCtx = { category: opts.category, roles: opts.roles, origins: opts.origins, tags: opts.tags, hasSceneImage: opts.hasSceneImage };
+  const photoCtx = { category: opts.category, roles: opts.roles, origins: opts.origins, tags: opts.tags, hasSceneImage: opts.hasSceneImage, hasSizeInfo: opts.hasSizeInfo };
   const matched = matchPhotosToText(ordered, imageUrls.length, photoCtx).sections;
   const capped = enforceImageSourceCapIndexed(limitBoldBlocks(matched), imageUrls.length, undefined, sourceOf);
   const echoes = echoSummaryIndexes(capped.sections);

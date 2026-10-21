@@ -40,6 +40,10 @@ const HAND_WORDS = ["손에 쥐", "한 손", "손안", "손바닥", "쥐는 크�
 const SPRAY_WORDS = ["안개", "분사", "뿌리", "뿌린", "물방울"];
 const BOX_WORDS = ["상자", "박스", "구성품", "패키지", "포장"];
 
+/** 422차 — 글 의미가 크기·휴대인 카드(휴대 30mL, 파우치 한 칸 등). 제품 크기 정보 없이 손에 든 컷을 붙이면 크기를 암시하므로 제한한다 */
+const CARRY_WORDS = ["휴대", "파우치", "크기", "사이즈"];
+export const isCarryText = (heading: string, body = ""): boolean => CARRY_WORDS.some((w) => `${heading ?? ""} ${body ?? ""}`.includes(w));
+
 export function textNeed(heading: string, body = ""): TextNeed | null {
   const h = heading ?? "";
   const all = `${h} ${body ?? ""}`;
@@ -76,6 +80,8 @@ export type PhotoMatchContext = {
   tags?: ReadonlyArray<ReadonlyArray<string> | undefined>;
   /** 장면(합성) 이미지가 채워진 슬롯이 있으면 장면 제목을 유지한다(419차 3-6) */
   hasSceneImage?: boolean;
+  /** 422차 — 제품 높이(cm) 입력이 있는지. 크기·휴대 문구의 이미지+글 카드는 이것이 있을 때만 손에 든 컷을 허용한다(없으면 사진 없이 글만) */
+  hasSizeInfo?: boolean;
   enabled?: boolean;
 };
 export type PhotoMatchResult = { sections: DetailSection[]; changes: string[] };
@@ -136,9 +142,11 @@ export function matchPhotosToText(sections: DetailSection[], imageCount: number,
     if (s.type === "image_text" && typeof s.imageIndex === "number" && s.layout !== "text_only" && s.layout !== "circle-pair" && s.layout !== "circle-solo" && s.layout !== "annotated") {
       const need = textNeed(s.heading, s.body);
       if (!need) return s;
-      const ok = satisfies(kindsOf(s.imageIndex), need);
+      // 422차: 크기·휴대 문구는 제품 높이 입력이 없으면 손에 든 컷을 붙이지 않는다(맞든 틀리든 글만)
+      const carryWithoutSize = need === "hand" && isCarryText(s.heading, s.body) && ctx.hasSizeInfo !== true && satisfies(kindsOf(s.imageIndex), need) !== null;
+      const ok = carryWithoutSize ? false : satisfies(kindsOf(s.imageIndex), need);
       if (ok !== false) return s;
-      const alt = need === "scene" ? null : pick(need, [s.imageIndex]);
+      const alt = need === "scene" || carryWithoutSize ? null : pick(need, [s.imageIndex]);
       uses[s.imageIndex] = Math.max(0, (uses[s.imageIndex] ?? 0) - 1);
       if (alt != null) {
         uses[alt] = (uses[alt] ?? 0) + 1;

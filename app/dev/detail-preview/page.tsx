@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useSyncExternalStore } from "react";
+import { hasSizeHeight } from "@/lib/scene-size";
 import { notFound } from "next/navigation";
 import DetailActionBar, { type DetailToolTab } from "@/components/DetailActionBar";
 import DetailSectionRenderer from "@/components/DetailSectionRenderer";
@@ -1164,6 +1165,8 @@ type CapturePreset = {
   infoBackdrops?: import("@/lib/info-backdrop").InfoBackdropMap;
   /** 419차 — 장면(합성) 이미지 슬롯 */
   sceneImages?: import("@/lib/scene-images").SceneImageMap;
+  /** 422차 — 판매자 입력 크기 힌트(세션 payload) */
+  productSizeHint?: string | null;
 };
 
 /** 281차 — capture=session: 저장된 실제 결과(sessionStorage)를 로그인 없이 재현 */
@@ -1190,6 +1193,7 @@ function readSessionPreset(): CapturePreset | null {
       imageTags: parsed.imageTags,
       infoBackdrops: parsed.infoBackdrops,
       sceneImages: parsed.sceneImages,
+      productSizeHint: parsed.productSizeHint,
     };
   } catch {
     return null;
@@ -1676,6 +1680,7 @@ function DetailPreviewBody({ capture, budget }: { capture: string | null; budget
             imageTags={capturePreset?.imageTags}
             infoBackdrops={capturePreset?.infoBackdrops}
             sceneImages={capturePreset?.sceneImages}
+            hasSizeInfo={hasSizeHeight(capturePreset?.productSizeHint)}
             category={previewCategory}
             brandName={previewBrandName}
             productName={previewProductName}

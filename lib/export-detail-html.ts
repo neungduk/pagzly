@@ -2121,6 +2121,8 @@ export function buildDetailPageHtml(opts: {
   imageTags?: ReadonlyArray<ReadonlyArray<string> | undefined>;
   /** 419차 — 장면(합성) 이미지 슬롯(라이브 sceneImages와 같은 값) */
   sceneImages?: SceneImageMap;
+  /** 422차 — 제품 높이(cm) 입력이 있는지(라이브 hasSizeInfo와 같은 값) */
+  hasSizeInfo?: boolean;
 }): string {
   const pack = resolveStylePack(opts.category, opts.stylePackId);
   // 408차 — 팩 색 톤: hue는 세션 theme 그대로, 채도·밝기 곡선만 교체(기본 팩은 같은 객체)
@@ -2133,7 +2135,7 @@ export function buildDetailPageHtml(opts: {
       opts.sections.filter((_, i) => !hidden.has(i)),
     ),
     opts.imageUrls,
-    { imageHashByUrl: opts.imageHashByUrl, roles: opts.imageRoles, origins: opts.imageOrigins, category: opts.category, flow: getPackLayout(pack).flow, tags: opts.imageTags, sceneImages: opts.sceneImages },
+    { imageHashByUrl: opts.imageHashByUrl, roles: opts.imageRoles, origins: opts.imageOrigins, category: opts.category, flow: getPackLayout(pack).flow, tags: opts.imageTags, sceneImages: opts.sceneImages, hasSizeInfo: opts.hasSizeInfo },
   ).sections;
   const visibleSections = dropSpecEchoFaqItems(
     dropDuplicateRecommendColumn(

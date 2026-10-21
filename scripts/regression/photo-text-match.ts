@@ -4,7 +4,7 @@
  * 뷰티가 아니거나 flag off이거나 태그가 없으면 입력 그대로인지 점검한다.
  */
 import { applyDisplayRules } from "../../lib/display-sections";
-import { NEUTRAL_HEADING, insertCompositionGallery, matchPhotosToText, photoKinds, satisfies, textNeed } from "../../lib/photo-text-match";
+import { NEUTRAL_HEADING, insertCompositionGallery, matchPhotosToText, photoKinds, satisfies, textNeed, isCarryText } from "../../lib/photo-text-match";
 import { sectionImageIndexes } from "../../lib/image-source-cap";
 import type { DetailSection } from "../../lib/types/generate";
 
@@ -51,9 +51,17 @@ export async function run(): Promise<string[]> {
   const q1 = r.sections[1] as { layout?: string; imageIndex: number };
   if (q1.layout !== "text_only") fails.push("'미스트 안개'에 맞지 않는 손에 든 컷이 그대로 남음");
   const q2 = r.sections[2] as { layout?: string; imageIndex: number };
-  if (q2.layout === "text_only" || q2.imageIndex !== 2) fails.push("'휴대 30mL'의 손 사진이 빠짐(손 컷은 맞는 사진)");
-  const p = r.sections[4] as { imageIndex: number; heading: string };
+  // 422차: 제품 높이(cm) 입력이 없으면 크기·휴대 카드는 손에 든 컷 없이 글만(제품 크기를 암시하지 않게)
+  if (q2.layout !== "text_only") fails.push("'휴대 30mL'에 높이 입력 없이 손에 든 컷이 남음(422차 규칙)");
+  const p0 = r.sections[4] as { layout?: string };
+  if (p0.layout !== "text_only") fails.push("'손에 쥐는 크기'에 높이 입력 없이 사진이 남음(422차 규칙)");
+  // 높이 입력이 있으면 기존 419차 동작: 손 컷 유지·재배정
+  const rs = matchPhotosToText(sections(), URLS.length, { ...ctx(), hasSizeInfo: true });
+  const q2s = rs.sections[2] as { layout?: string; imageIndex: number };
+  if (q2s.layout === "text_only" || q2s.imageIndex !== 2) fails.push("높이 입력이 있는데 '휴대 30mL'의 손 사진이 빠짐");
+  const p = rs.sections[4] as { imageIndex: number; heading: string };
   if (!kinds(p.imageIndex).has("hand") || kinds(p.imageIndex).has("box")) fails.push(`'손에 쥐는 크기'에 손 컷이 아닌 사진: ${p.imageIndex}`);
+  if (isCarryText("미스트 안개", "퍼지는 물방울") || !isCarryText("휴대 30mL", "파우치") || !isCarryText("손에 쥐는 크기")) fails.push("크기·휴대 문구 판별이 다름");
   if (r.sections.length !== sections().length) fails.push("섹션 개수가 바뀜(1:1이어야 함)");
   for (const [i, s] of r.sections.entries()) if (s.type !== sections()[i]!.type) fails.push(`#${i} 섹션 종류가 바뀜`);
   // 사용 상한
