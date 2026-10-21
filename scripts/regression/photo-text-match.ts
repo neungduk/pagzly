@@ -49,10 +49,12 @@ export async function run(): Promise<string[]> {
   if (g.heading !== NEUTRAL_HEADING.gallery) fails.push(`갤러리 제목이 중립 문구가 아님: ${g.heading}`);
   if (g.imageIndexes.join() !== "8,11,14") fails.push("갤러리 사진이 바뀜(제목만 바뀌어야 함)");
   const q1 = r.sections[1] as { layout?: string; imageIndex: number };
-  if (q1.layout !== "text_only") fails.push("'미스트 안개'에 맞지 않는 손에 든 컷이 그대로 남음");
+  // 424차: 퀵포인트(compact) 카드는 사진을 잃어도 번호 목록(text_only 묶음)으로 합쳐지지 않고 카드 레이아웃 + 아이콘 타일(noPhoto)로 남는다
+  const noPhotoCard = (x: { layout?: string; noPhoto?: boolean }) => x.layout === "compact" && x.noPhoto === true;
+  if (!noPhotoCard(q1 as { layout?: string; noPhoto?: boolean })) fails.push("'미스트 안개'에 맞지 않는 손에 든 컷이 그대로 남거나 아이콘 카드가 아님");
   const q2 = r.sections[2] as { layout?: string; imageIndex: number };
   // 422차: 제품 높이(cm) 입력이 없으면 크기·휴대 카드는 손에 든 컷 없이 글만(제품 크기를 암시하지 않게)
-  if (q2.layout !== "text_only") fails.push("'휴대 30mL'에 높이 입력 없이 손에 든 컷이 남음(422차 규칙)");
+  if (!noPhotoCard(q2 as { layout?: string; noPhoto?: boolean })) fails.push("'휴대 30mL'에 높이 입력 없이 손에 든 컷이 남거나 아이콘 카드가 아님(422·424차 규칙)");
   const p0 = r.sections[4] as { layout?: string };
   if (p0.layout !== "text_only") fails.push("'손에 쥐는 크기'에 높이 입력 없이 사진이 남음(422차 규칙)");
   // 높이 입력이 있으면 기존 419차 동작: 손 컷 유지·재배정

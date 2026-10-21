@@ -32,6 +32,8 @@ export function personaStripIndexes(section: TargetPersonaSection, imageCount: n
 export type StripImageHints = {
   roles?: ReadonlyArray<ProductImageRole | undefined>;
   origins?: ReadonlyArray<ProductImageOrigin | undefined>;
+  /** 424차 — 칩에 쓸 수 있는 사진인지(뷰티: 제품 정면·근접만). 없으면 모든 사진이 후보. 후보가 모자라면 칩에 사진을 넣지 않는다 */
+  allow?: (i: number) => boolean;
 };
 
 /** 띠에 먼저 둘 사진 — 사용 장면 > 미분류 > 확대·효과 컷 > 박스·패키지 > 비교용 복제본 */
@@ -68,7 +70,7 @@ export function assignPersonaStrip(
   const left = (i: number) => IMAGE_SOURCE_CAP.maxUses - (uses.get(group(i)) ?? 0);
   const rank = (i: number) => stripPriority(i, hints);
   const candidates = Array.from({ length: imageCount }, (_, i) => i)
-    .filter((i) => group(i) === i && i !== heroGroup && left(i) > 0)
+    .filter((i) => group(i) === i && i !== heroGroup && left(i) > 0 && (hints?.allow ? hints.allow(i) : true))
     .sort((a, b) => rank(b) - rank(a) || left(b) - left(a) || a - b);
   if (candidates.length < persona.personas.length) return sections;
   const picked = candidates.slice(0, persona.personas.length).sort((a, b) => rank(b) - rank(a) || a - b);

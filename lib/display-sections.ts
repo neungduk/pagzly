@@ -6,7 +6,7 @@ import { assignPersonaStrip, type StripImageHints } from "@/lib/persona-strip";
 import { imageSourceGroups, type ImageHashByUrl } from "@/lib/gallery-dedupe";
 import { FASHION_CATEGORY, isWornFashionPhoto } from "@/lib/fashion-composite-policy";
 import type { FlowVariant } from "@/lib/style-packs";
-import { insertCompositionGallery, matchPhotosToText } from "@/lib/photo-text-match";
+import { insertCompositionGallery, matchPhotosToText, personaChipAllow } from "@/lib/photo-text-match";
 import { insertSceneSlots, type SceneImageMap } from "@/lib/scene-images";
 import { NUMERIC_GATE_ENABLED, numericClaimGate, type ClaimFacts } from "@/lib/numeric-claim-gate";
 
@@ -323,6 +323,7 @@ export function applyDisplayRules(
       assignPersonaStrip(kept.map(trimCalloutTail), imageUrls.length, sourceOf, {
         roles: opts.roles,
         origins: opts.origins,
+        allow: personaChipAllow(photoCtx),
       }),
     ),
   );

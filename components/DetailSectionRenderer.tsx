@@ -2809,11 +2809,25 @@ function renderSection(
               style={compactDivider ? { borderColor: hexToRgba(BRAND.ink, 0.08) } : undefined}
             >
               <div className="relative shrink-0">
-                <SectionImage
-                  src={src}
-                  alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
-                  className={`h-24 w-24 object-cover @min-[640px]/pz:h-[7.5rem] @min-[640px]/pz:w-[7.5rem] ${thumbRadius}`}
-                />
+                {section.noPhoto ? (
+                  <div
+                    aria-hidden="true"
+                    data-pz-icon-tile
+                    className={`flex h-24 w-24 items-center justify-center @min-[640px]/pz:h-[7.5rem] @min-[640px]/pz:w-[7.5rem] ${thumbRadius}`}
+                    style={{ backgroundColor: theme.accentSoft }}
+                  >
+                    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke={readableTextAccent(theme)} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="9" />
+                      <path d="m8 12.5 2.8 2.8L16 9.5" />
+                    </svg>
+                  </div>
+                ) : (
+                  <SectionImage
+                    src={src}
+                    alt={buildSectionImageAlt(productName ?? "", section.heading, section.slot)}
+                    className={`h-24 w-24 object-cover @min-[640px]/pz:h-[7.5rem] @min-[640px]/pz:w-[7.5rem] ${thumbRadius}`}
+                  />
+                )}
                 <ImageReplaceHit
                   enabled={edit?.enabled}
                   onReplace={() => edit?.onReplaceImage?.(section.imageIndex)}

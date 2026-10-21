@@ -153,6 +153,11 @@ export function matchPhotosToText(sections: DetailSection[], imageCount: number,
         changes.push(`#${si} ${s.slot} "${s.heading}": ${need} 요구 → 사진 ${s.imageIndex} 대신 ${alt}`);
         return { ...s, imageIndex: alt };
       }
+      // 424차: 퀵포인트(compact) 카드는 번호 목록(text_only 묶음)으로 합쳐지지 않게 레이아웃을 두고 썸네일 자리만 아이콘 타일로(noPhoto)
+      if (s.slot === "quick_points" && s.layout === "compact") {
+        changes.push(`#${si} ${s.slot} "${s.heading}": ${need} 요구에 맞는 사진 없음 → 아이콘 카드(번호 목록과 분리)`);
+        return { ...s, noPhoto: true };
+      }
       changes.push(`#${si} ${s.slot} "${s.heading}": ${need} 요구에 맞는 사진 없음 → 사진 빼고 글만`);
       return { ...s, layout: "text_only" as const };
     }
@@ -188,4 +193,17 @@ export function insertCompositionGallery(
   const nextSections = [...sections.slice(0, at), gallery, ...sections.slice(at)];
   const nextSources = [...sourceIndexes.slice(0, at), sourceIndexes[at - 1] ?? 0, ...sourceIndexes.slice(at)];
   return { sections: nextSections, sourceIndexes: nextSources, changes: [`구성 갤러리 추가: 상자 컷 ${free.join(",")} (spec_table 앞)`] };
+}
+
+/**
+ * 424차 — 페르소나 칩 썸네일에 쓸 수 있는 사진: 제품 정면·근접 컷만(손에 든 컷·분사·박스·여러 병·장면은 제외, 태그 없는 사진도 제외).
+ * 뷰티 + 태그가 있을 때만 판단하고, 그 밖에는 undefined(= 제한 없음, 기존 동작).
+ */
+export function personaChipAllow(ctx: PhotoMatchContext): ((i: number) => boolean) | undefined {
+  if (!beautyStyleOn(ctx.category, ctx.enabled) || !ctx.tags || ctx.tags.every((t) => !t?.length)) return undefined;
+  return (i) => {
+    const k = photoKinds(metaOf(ctx, i));
+    if (k.has("hand") || k.has("box") || k.has("multi") || k.has("spray") || k.has("scene")) return false;
+    return k.has("front") || k.has("closeup");
+  };
 }

@@ -211,6 +211,8 @@ export type ImageTextSection = {
   heading: string;
   body: string;
   imageIndex: number;
+  /** 424차 — 글 의미와 맞는 사진이 없어 뺀 퀵포인트(compact) 카드. 레이아웃은 그대로 두고 썸네일 자리에 아이콘 타일을 그린다(번호 목록으로 합쳐지지 않음) */
+  noPhoto?: boolean;
   imagePosition: "left" | "right";
   /** 기본 "full" = 기존 풀사이즈 이미지+텍스트. "compact" = 작은 썸네일+텍스트 한 줄. "callout" = 사진 위 말풍선 강조 */
   /** "text_only" = 맞는 사진이 없을 때 카피만 (104차 B/C) */

@@ -1176,7 +1176,7 @@ function sectionHtml(
         return `<section${sectionIdAttr}${beautyAttr(layout, "quick")}${compactTail ? ` class="pagzly-compact-tail"` : ""} style="${sectionStyle}">
           <div class="${FLAT_SECTION_SURFACES ? "pagzly-compact-row" : ""}" style="max-width:576px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-direction:${imageFirst ? "row" : "row-reverse"}${FLAT_SECTION_SURFACES ? ";padding:20px 0" : ""}${compactDivider ? `;border-bottom:1px solid ${hexToRgba(BRAND.ink, 0.08)}` : ""}">
             <div style="flex-shrink:0">
-              ${src ? `<img class="pagzly-compact-thumb" src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="object-fit:cover;border-radius:${thumbRadius}px"/>` : ""}
+              ${section.noPhoto ? `<div class="pagzly-compact-thumb" data-pz-icon-tile aria-hidden="true" style="display:flex;align-items:center;justify-content:center;border-radius:${thumbRadius}px;background:${theme.accentSoft}"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="${readableTextAccent(theme)}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8L16 9.5"/></svg></div>` : src ? `<img class="pagzly-compact-thumb" src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="object-fit:cover;border-radius:${thumbRadius}px"/>` : ""}
             </div>
             <div style="min-width:0;flex:1;text-align:${imageFirst ? "left" : "right"}">
               <h3 style="margin:0;font-family:${DETAIL_FONT_STACK.heading};font-size:${titleSizeCss("compact")};font-weight:600;line-height:1.35;letter-spacing:-0.02em;color:#1B1B18;overflow-wrap:anywhere">${esc(section.heading)}</h3>
