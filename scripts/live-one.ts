@@ -362,6 +362,8 @@ const API_REPEAT_LIMIT: Record<string, number> = {
   "/api/generate-backdrop": 4,
   "/api/section-backdrops": 4,
   "/api/info-backdrops": 2,
+  // 422차: 뷰티 인물 사용 컷(슬롯 2장 = 모델 호출 2회). 라우트 호출은 보통 1번, 이 이상이면 반복으로 보고 멈춘다
+  "/api/scene-images": 2,
   "/api/protect-product-images": 2,
 };
 /** 승인되지 않은 사용 장면·일상샷 생성 경로 — 한 번이라도 불리면 멈춘다 */

@@ -43,13 +43,14 @@ export async function run(): Promise<string[]> {
   const small = { heightCm: 10, diameterCm: 3.3, estimated: true };
   const big = { heightCm: 22, diameterCm: 6.5, estimated: true };
   const has = (label: string, text: string | null, ...parts: string[]) => { for (const p of parts) if (!text?.includes(p)) fails.push(`${label}: "${p}" 없음 → ${text}`); };
-  has("사람(작은 병)", comparisonSentence("use-person", small), "about half the height of her face from chin to forehead", "easily held in one hand", "never larger than her hand");
+  has("사람(작은 병)", comparisonSentence("use-person", small), "about half the height of her face from chin to forehead", "easily held in one hand with her fingers wrapping most of the bottle", "clearly smaller than her hand", "not larger than her cheek");
   has("책상(작은 병)", comparisonSentence("scene-desk", small), "A5 notebook", "clearly smaller than the laptop keyboard width");
   has("가방(작은 병)", comparisonSentence("scene-bag", small), "side pocket of a tote bag", "a fraction of the bag's width");
   has("화장대(작은 병)", comparisonSentence("scene-vanity", small), "similar in height to a lipstick or makeup brush handle");
-  has("분사", comparisonSentence("use-hand-mist", small), "the hand wraps around the bottle");
+  has("분사", comparisonSentence("use-hand-mist", small), "not larger than her cheek", "fine mist visible", "medium shot showing face and shoulders", "never a close-up");
+  if (/fine mist/.test(comparisonSentence("use-person", small) ?? "")) fails.push("인물 컷 문장에 분사 문구가 들어감");
   if (comparisonSentence("use-person", big) === comparisonSentence("use-person", small)) fails.push("큰 제품과 작은 제품의 비교 문장이 같음");
-  if (/never larger than her hand|travel-size/.test(comparisonSentence("use-person", big) ?? "")) fails.push("큰 제품에 작은 제품 문장이 들어감");
+  if (/not larger than her cheek|travel-size/.test(comparisonSentence("use-person", big) ?? "")) fails.push("큰 제품에 작은 제품 문장이 들어감");
   eq("모르는 슬롯", comparisonSentence("scene-x", small), null);
 
   // 프롬프트: 치수 없으면 기존 출력 그대로, 있으면 크기 문장이 공통 지시 앞에

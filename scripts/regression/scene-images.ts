@@ -53,7 +53,7 @@ export async function run(): Promise<string[]> {
   if (p.fallbacks.map((f) => `${f.slot}:${f.reason}`).join() !== "scene-vanity:count,weird-slot:unknown") fails.push(`폴백이 다름: ${JSON.stringify(p.fallbacks)}`);
   if (p.estimateUsd > SCENE_COST_CAP_USD) fails.push("추정이 상한 초과");
   if (planSceneImages(["scene-desk"], "의류/패션").slots.length !== 0) fails.push("뷰티 아닌 카테고리가 슬롯을 받음");
-  if (sceneImageCostUsd(2) !== 0.12 || sceneImageCostUsd(0) !== 0 || sceneImageCostUsd(-1) !== 0) fails.push("비용 합산이 다름");
+  if (sceneImageCostUsd(2) !== 0.1 || sceneImageCostUsd(0) !== 0 || sceneImageCostUsd(-1) !== 0) fails.push("비용 합산이 다름");
 
   // 프롬프트 빌더
   for (const slot of BEAUTY_SCENE_SLOTS) {

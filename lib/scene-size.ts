@@ -124,11 +124,14 @@ export function comparisonSentence(slot: string, d: ProductDimensions): string |
   const small = h <= 12;
   switch (slot) {
     case "use-person":
-      return small
-        ? `${sizeSentence(d)}, ${frac(h / REFERENCE_CM.face, "the height of her face from chin to forehead")}, easily held in one hand with fingers wrapping most of the bottle, never larger than her hand`
-        : `${sizeSentence(d)}, ${frac(h / REFERENCE_CM.face, "the height of her face from chin to forehead")}, held in one hand with a firm grip, roughly the length of her hand and wrist`;
-    case "use-hand-mist":
-      return `${sizeSentence(d)}, ${frac(h / REFERENCE_CM.hand, "the length of the hand holding it")}, the hand wraps around the bottle`;
+    case "use-hand-mist": {
+      // 421차 검증 문장: 얼굴 높이 절반·한 손에 쥐는 크기·손·뺨보다 크지 않게. 분사는 같은 문장 + 미스트·구도 지시
+      const face = frac(h / REFERENCE_CM.face, "the height of her face from chin to forehead");
+      const core = small
+        ? `${sizeSentence(d)}, ${face}, easily held in one hand with her fingers wrapping most of the bottle, clearly smaller than her hand, not larger than her cheek`
+        : `${sizeSentence(d)}, ${face}, held in one hand with a firm grip, roughly the length of her hand and wrist`;
+      return slot === "use-hand-mist" ? `${core}, fine mist visible, medium shot showing face and shoulders, never a close-up` : core;
+    }
     case "scene-desk":
       return small
         ? `${sizeSentence(d)}, ${frac(h / REFERENCE_CM.notebook, "the length of a standard A5 notebook")}, clearly smaller than the laptop keyboard width`
@@ -211,3 +214,6 @@ export function judgeSceneSize(i: SizeGateInput): SizeGateVerdict {
     observedRatio: observed,
   };
 }
+
+/** 422차 — 판매자가 제품 높이(cm)를 적었는지(크기·휴대 문구에 손 컷 썸네일을 허용하는 조건). 용량만 있는 경우는 크기 정보로 보지 않는다 */
+export const hasSizeHeight = (hint: string | null | undefined): boolean => parseSizeHint(hint).heightCm != null;

@@ -50,8 +50,8 @@ export function normalizeSceneImages(raw: unknown): SceneImageMap {
 // ── 장수·비용 상한(417차 인포 배경과 같은 구조) ──
 export const SCENE_MAX_COUNT = 4;
 export const SCENE_COST_CAP_USD = 0.24;
-/** 장당 보수적 단가 — 420차 모델 비교 뒤 실제 단가로 맞춘다 */
-export const SCENE_UNIT_USD = 0.06;
+/** 장당 보수적 단가(422차: seedream-4, 모델 페이지에 단가 미표기 — 실제 청구는 잔액 전후로 대조) */
+export const SCENE_UNIT_USD = 0.05;
 export type ScenePlan = { slots: string[]; fallbacks: Array<{ slot: string; reason: "count" | "cost" | "unknown" }>; estimateUsd: number };
 
 export function planSceneImages(requested: readonly string[], category: string | undefined | null = BEAUTY_CATEGORY): ScenePlan {

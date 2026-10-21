@@ -149,6 +149,11 @@ const sentences = allTexts.flatMap((t) => t.split(/(?<=[.!?。])\s+|\n+/)).map((
       const x = l.match(/\[info-backdrops\] done .*?cost=\$([0-9.]+)/);
       if (x) m.set("info-backdrops(추정 단가)", (m.get("info-backdrops(추정 단가)") ?? 0) + Number(x[1]));
     }
+    // 422차: 뷰티 인물 사용 컷도 서버가 "[scene-images] done ... cost=$X" 한 줄로 남긴다(보수적 단가 x 과금 가능 호출)
+    for (const l of log.split(/\r?\n/)) {
+      const x = l.match(/\[scene-images\] done .*?cost=\$([0-9.]+)/);
+      if (x) m.set("scene-images(추정 단가)", (m.get("scene-images(추정 단가)") ?? 0) + Number(x[1]));
+    }
     const server = [...m.values()].reduce((s, v) => s + v, 0);
     const diff = app - server;
     ev.push(`서버 로그 합산 = $${server.toFixed(5)} (${m.size}개 항목)`, `차이(앱 − 서버) = $${diff.toFixed(5)} (${((diff / (server || 1)) * 100).toFixed(1)}%)`, `허용: 이중집계 약 $${KNOWN_DOUBLE_COUNT_USD} 감안해 −$0.03 ~ +$${(KNOWN_DOUBLE_COUNT_USD + 0.03).toFixed(3)}`);
