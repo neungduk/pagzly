@@ -58,6 +58,7 @@ import {
 import { enforceSplitZigzag, limitBoldBlocks } from "@/lib/detail-visual-rhythm";
 import { orderSectionsForFlow } from "@/lib/section-flow-order";
 import { normalizeDisplayState, withDisplayState } from "@/lib/saved-display";
+import { applyProductAccent } from "@/lib/beauty-accent";
 import {
   applyDesignerLayoutRhythm,
   buildDesignerPatternGuide,
@@ -1465,6 +1466,8 @@ export async function POST(request: Request) {
         visionRoles: visionImageRoles,
       });
       theme = extractedTheme ?? theme;
+      // 424차 1-5: 뷰티 포인트색을 제품 주조색에서(BEAUTY_ACCENT_FROM_PRODUCT=on일 때만, 기본 꺼짐 — 이미지 분석 문장에서 읽고 새 호출 없음)
+      theme = applyProductAccent(theme, { category: body.category, imageAnalysis }).theme ?? theme;
       claudeCost += imageAnalysisResult.cost;
 
       const aux = await loadAuxiliaryInputs({
