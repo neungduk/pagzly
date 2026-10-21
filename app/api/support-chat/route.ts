@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { SUPPORT_CHAT_RULES, SlidingWindowLimiter, clientIpOf } from "@/lib/rate-limit";
+import { killSwitchGate } from "@/lib/usage-guard-server";
 import {
   buildSupportChatSystemPrompt,
   SUPPORT_CONTACT_EMAIL,
@@ -6,8 +8,10 @@ import {
 
 const DEEPSEEK_MODEL = "deepseek-v4-flash";
 const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
-const MAX_MESSAGES = 20;
-const MAX_CONTENT_LENGTH = 2000;
+// 426차 R2: 로그인 전 랜딩 챗봇이라 로그인 대신 IP 단위 제한을 둔다(메시지 ≤10개×1000자, 분당 5회·일 30회). 인메모리라 서버리스에서는 1차 완충 — Vercel WAF/Upstash 권장
+const MAX_MESSAGES = 10;
+const MAX_CONTENT_LENGTH = 1000;
+const chatLimiter = new SlidingWindowLimiter(SUPPORT_CHAT_RULES);
 
 type ChatRole = "user" | "assistant";
 
@@ -35,6 +39,16 @@ function isValidMessage(value: unknown): value is ChatMessage {
 
 export async function POST(request: Request) {
   try {
+    const killed = killSwitchGate();
+    if (killed) return killed;
+    const limited = chatLimiter.check(clientIpOf(request.headers));
+    if (!limited.allowed) {
+      return NextResponse.json(
+        { error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.", code: `rate-${limited.rule}` },
+        { status: 429, headers: { "Retry-After": String(limited.retryAfterSec) } },
+      );
+    }
+
     if (!process.env.DEEPSEEK_API_KEY) {
       return NextResponse.json(
         { error: "상담 서비스를 일시적으로 이용할 수 없습니다." },

@@ -8,8 +8,9 @@ import {
   LANDING_PRICING_INTRO,
   LANDING_PROCESS_STEPS,
 } from "@/lib/landing-content";
+import { CONTACT_EMAIL } from "@/lib/contact";
 
-export const SUPPORT_CONTACT_EMAIL = "tjsmdejr@gmail.com";
+export const SUPPORT_CONTACT_EMAIL = CONTACT_EMAIL;
 
 export function buildSupportChatSystemPrompt(): string {
   const featuresBlock = LANDING_FEATURES.map(

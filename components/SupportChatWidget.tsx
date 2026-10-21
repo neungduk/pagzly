@@ -74,7 +74,8 @@ export default function SupportChatWidget() {
       const response = await fetch("/api/support-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: nextMessages }),
+        // 서버 한도(10개×1000자)에 맞춰 최근 9개만, 길면 잘라서 보낸다
+        body: JSON.stringify({ messages: nextMessages.slice(-9).map((m) => ({ role: m.role, content: m.content.slice(0, 1000) })) }),
       });
 
       const data = (await response.json()) as { reply?: string; error?: string };
@@ -193,6 +194,7 @@ export default function SupportChatWidget() {
                   onChange={(event) => setInput(event.target.value)}
                   onKeyDown={handleKeyDown}
                   rows={2}
+                  maxLength={1000}
                   placeholder="메시지를 입력하세요"
                   disabled={loading}
                   className="min-h-[2.75rem] flex-1 resize-none border border-line bg-white px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-ink/40 disabled:opacity-60"

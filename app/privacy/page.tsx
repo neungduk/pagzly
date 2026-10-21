@@ -1,5 +1,6 @@
 import Link from "next/link";
 import PagzlyLogo from "@/components/PagzlyLogo";
+import { CONTACT_EMAIL } from "@/lib/contact";
 
 const ARTICLES: { title: string; body: string }[] = [
   {
@@ -52,7 +53,7 @@ const ARTICLES: { title: string; body: string }[] = [
     title: "제9조 (개인정보 보호책임자)",
     body: `회사는 개인정보 처리에 관한 업무를 총괄해서 책임지고, 개인정보 처리와 관련한 이용자의 불만 처리 및 피해 구제 등을 위하여 아래와 같이 개인정보 보호책임자를 지정하고 있습니다.
    - 담당자: [담당자명 입력]
-   - 이메일: tjsmdejr@gmail.com`,
+   - 이메일: ${CONTACT_EMAIL}`,
   },
   {
     title: "제10조 (고지의 의무)",
