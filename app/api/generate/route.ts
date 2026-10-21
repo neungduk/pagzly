@@ -2154,9 +2154,14 @@ export async function POST(request: Request) {
         `effects=$${effectsCost.toFixed(4)} ` +
         `icons=$${iconCost.toFixed(4)} ` +
         `claude=$${claudeCost.toFixed(4)} ` +
-        `deepSeek=$${totalDeepSeekCost.toFixed(4)} ` +
-        `total=$${generationCost.toFixed(4)}`,
+        `deepSeek=${totalDeepSeekCost.toFixed(4)} ` +
+        `total=${generationCost.toFixed(4)}`,
     );
+    // 425차 — 페이지 1건 비용 경보: 기준(COST_ALERT_PAGE_USD, 기본 $1)을 넘으면 운영 로그에서 찾을 수 있는 한 줄을 남긴다(차단·차감 로직과 무관)
+    const costAlertUsd = Number(process.env.COST_ALERT_PAGE_USD) > 0 ? Number(process.env.COST_ALERT_PAGE_USD) : 1;
+    if (generationCost > costAlertUsd) {
+      console.warn(`[cost-alert] page cost ${generationCost.toFixed(4)} exceeds ${costAlertUsd.toFixed(2)} user=${user.id} category=${body.category} mode=${mode}`);
+    }
 
     // 101차 — DB 기록 직전 최종 중복 제거 + 진단 로그
     {

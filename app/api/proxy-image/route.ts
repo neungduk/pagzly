@@ -11,7 +11,8 @@ function isAllowedImageUrl(raw: string): boolean {
     const u = new URL(raw);
     if (u.protocol !== "https:" && u.protocol !== "http:") return false;
     const host = u.hostname.toLowerCase();
-    if (host === "localhost" || host === "127.0.0.1") return true;
+    // 425차: 로컬 주소는 개발 환경에서만 허용(운영 서버가 자기 내부 주소를 대신 가져오지 않게)
+    if (host === "localhost" || host === "127.0.0.1") return process.env.NODE_ENV !== "production";
     return ALLOWED_HOST_SUFFIXES.some(
       (suffix) => host === suffix.slice(1) || host.endsWith(suffix),
     );
