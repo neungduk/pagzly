@@ -8,9 +8,9 @@ const TOP = [
   "DOWNLOAD",
   "SMARTSTORE",
   "COUPANG",
-  "2 MIN",
+  "5 MIN",
   "NO DESIGNER",
-  "SELL FASTER",
+  "7-10 PHOTOS",
 ] as const;
 
 const BOTTOM = [

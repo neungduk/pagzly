@@ -8,18 +8,19 @@ type Row = {
   pagzly: string;
 };
 
+// 427차: 시간·비용을 구체 숫자로 비교하지 않는다(근거 없는 수치는 표시광고 위험). 각 방식이 실제로 하는 일을 설명한다.
 const rows: Row[] = [
   {
-    label: "소요 시간",
-    outsourcing: "평균 3~7일",
-    template: "즉시 시작, 직접 편집에 수 시간",
-    pagzly: "약 5분 내외 (자동 생성)",
+    label: "진행 방식",
+    outsourcing: "디자이너에게 의뢰하고 시안과 수정을 주고받습니다",
+    template: "템플릿을 고른 뒤 사진과 문구를 직접 채웁니다",
+    pagzly: "사진과 상품 정보를 입력하면 자동으로 구성합니다",
   },
   {
-    label: "건당 비용",
-    outsourcing: "건당 5만~30만원대",
-    template: "월 구독료 별도 (직접 편집 필요)",
-    pagzly: "약 $0.16 (AI 파이프라인 원가)",
+    label: "비용 구조",
+    outsourcing: "의뢰 범위와 조건에 따라 달라집니다",
+    template: "서비스별 구독료 (직접 편집 필요)",
+    pagzly: "토큰 차감 방식 (요금제 참고)",
   },
   {
     label: "색·톤 매칭 방식",
@@ -28,10 +29,10 @@ const rows: Row[] = [
     pagzly: "상품 사진에서 색상 자동 추출",
   },
   {
-    label: "수정 가능 여부",
-    outsourcing: "추가 비용·시간 발생",
-    template: "가능 (직접 편집)",
-    pagzly: "정보만 바꿔 즉시 재생성",
+    label: "수정 방식",
+    outsourcing: "수정 요청을 전달해 반영받습니다",
+    template: "직접 편집",
+    pagzly: "정보를 바꿔 다시 생성하거나 직접 편집",
   },
 ];
 
@@ -122,9 +123,7 @@ export default function ComparisonTable() {
         </div>
       </div>
       <p className="mx-auto mt-8 max-w-4xl px-1 text-xs leading-relaxed text-ink/40">
-        * Pagzly의 소요 시간·비용은 사진 7~10장 기준 실제 파이프라인(배경 제거·화질
-        보정·배경 생성 + AI 카피 생성) 실행 원가를 집계한 값입니다. 디자인
-        외주·템플릿 툴 수치는 국내 셀러들이 일반적으로 겪는 시세 범위입니다.
+        * 일반적인 작업 방식을 설명한 것이며, 업체·서비스에 따라 다를 수 있습니다.
       </p>
     </div>
   );

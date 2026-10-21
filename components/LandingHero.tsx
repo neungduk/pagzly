@@ -182,8 +182,7 @@ export default function LandingHero({ startHref }: LandingHeroProps) {
           data-hero-sub
           className="mt-5 max-w-xl text-base leading-relaxed text-paper/72 sm:text-lg"
         >
-          AI가 색·카피·레이아웃까지 자동 완성합니다. 시안 기다리다 놓치는 주문을
-          끊으세요.
+          AI가 상품 사진과 정보로 색·카피·레이아웃까지 자동으로 구성합니다.
         </p>
 
         <div data-hero-cta className="mt-8 flex flex-wrap items-center gap-3">
