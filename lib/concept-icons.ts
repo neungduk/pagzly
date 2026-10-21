@@ -9,6 +9,7 @@
 import Replicate from "replicate";
 import sharp from "sharp";
 import { describeColorTone, hueShift } from "@/lib/color-extract";
+import { DESIGN_V2_ENABLED, designV2On } from "@/lib/design-v2";
 import type { CategoryTheme } from "@/lib/category-theme";
 import type { ConceptBrief } from "@/lib/concept-brief";
 import { isTestMode } from "@/lib/test-mode";
@@ -182,6 +183,16 @@ export function buildIconModelInput(
 // 색이 튀지 않도록 완만하게 퍼뜨리되, 세트 전체를 보면 색상환을 고르게
 // 돈다 — 순서대로 이어붙이면 30° 간격에 가깝다.
 const ICON_HUE_OFFSETS = [0, -50, 40, -25, 65, -75, 20, -40, 80, -15, 55, -60];
+
+/**
+ * 428차 2-6 — 디자인 V2(뷰티·패션): 아이콘 색을 3색 토큰(accent·deepAccent)에서 크게 벗어나지 않게 ±15° 안의 미세 변주만 둔다(위 표는 ±80°로 색상환을 도는 다색 세트라
+ * 한 페이지의 색 군집을 5~6개로 키웠다). 다음 생성부터 적용되며 저장된 세션의 아이콘은 그대로다. 비대상 카테고리·flag off는 위 표 그대로.
+ */
+export const ICON_HUE_OFFSETS_V2 = [0, -10, 8, -6, 12, -12, 5, -8, 10, -4, 7, -11];
+export function iconHueOffset(index: number, category?: string | null, enabled: boolean = DESIGN_V2_ENABLED): number {
+  const table = designV2On(category, enabled) ? ICON_HUE_OFFSETS_V2 : ICON_HUE_OFFSETS;
+  return table[index % table.length]!;
+}
 
 let replicateClient: Replicate | null = null;
 
@@ -514,6 +525,7 @@ export async function generateConceptIcons(
   specTableLabels: string[] = [],
   statLabels: string[] = [],
   highlightBoxLabels: string[] = [],
+  category?: string | null,
 ): Promise<{ icons: ConceptIconMap; cost: number }> {
   if (!process.env.REPLICATE_API_TOKEN) {
     console.warn("[concept-icons] REPLICATE_API_TOKEN 없음 — 아이콘 생성 생략");
@@ -566,7 +578,7 @@ export async function generateConceptIcons(
         key: group.key,
         label,
         motifIndex: globalIndex,
-        hueOffset: ICON_HUE_OFFSETS[globalIndex % ICON_HUE_OFFSETS.length],
+        hueOffset: iconHueOffset(globalIndex, category),
         model,
       });
       globalIndex += 1;

@@ -10,6 +10,7 @@ import { infoColorsOf, infoCss } from "../../lib/info-style";
 import { V2_MAX_HARD_FLIPS, V2_TITLE_SCALE, designV2Css, designV2On, designV2Typo, planBands, v2Tint, v2TitleOverrides } from "../../lib/design-v2";
 import { emphasisMarkerGradient } from "../../lib/body-emphasis";
 import { V2_MARKER, emphasisCss } from "../../lib/design-v2";
+import { ICON_HUE_OFFSETS_V2, iconHueOffset } from "../../lib/concept-icons";
 import { HERO_CAPTION, HERO_STAGE_ENABLED, HERO_STAGE_WIDTH_PCT, heroStageCss, heroStageOn } from "../../lib/hero-variants";
 import { PRICE_STRIP_HEIGHT_PX, buildPriceStrip, priceStripHtml, stripCss } from "../../lib/price-strip";
 import { buildClaimFacts } from "../../lib/numeric-claim-gate";
@@ -155,6 +156,15 @@ export async function run(): Promise<string[]> {
     // 켜면 마크업에 stage가 생기고 글자(h1)는 stage 밖(캡션 띠)에 있다 — 켠 상태는 함수 조건으로만 확인(환경 변수 의존 없이 export 마크업 구조를 검사)
     const exp = buildDetailPageHtml({ productName: "p", brandName: "b", category: "화장품/뷰티", sections: sections(), imageUrls: ["https://example.com/a.jpg"], theme: getCategoryTheme("화장품/뷰티") });
     if (exp.includes("<div data-hero-stage=")) fails.push("기본(꺼짐)에서 export에 stage 마크업이 있음");
+  }
+  // ── 2-6 아이콘 색: V2(뷰티·패션)는 ±15° 안 변주, 비대상·flag off는 기존 표 ──
+  {
+    const worst = Math.max(...ICON_HUE_OFFSETS_V2.map((v) => Math.abs(v)));
+    if (worst > 15) fails.push(`V2 아이콘 hue 변주 ${worst}° > 15°`);
+    eq("V2 대상은 좁은 표", [iconHueOffset(1, "화장품/뷰티", true), iconHueOffset(5, "의류/패션", true)], [ICON_HUE_OFFSETS_V2[1], ICON_HUE_OFFSETS_V2[5]]);
+    eq("비대상은 기존 표(±80°)", [iconHueOffset(1, "식품", true), iconHueOffset(8, "생활용품", true)], [-50, 80]);
+    eq("flag off는 기존 표", [iconHueOffset(1, "화장품/뷰티", false), iconHueOffset(8, "의류/패션", false)], [-50, 80]);
+    eq("순환", iconHueOffset(12, "화장품/뷰티", true), ICON_HUE_OFFSETS_V2[0]);
   }
   return fails;
 }

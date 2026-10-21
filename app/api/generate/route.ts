@@ -2130,6 +2130,7 @@ async function handlePost(request: Request, ctx: GenerateCtx) {
         specTableLabels,
         statLabels,
         highlightBoxLabels,
+        body.category,
       );
       conceptIcons = iconResult.icons;
       iconCost = iconResult.cost;
