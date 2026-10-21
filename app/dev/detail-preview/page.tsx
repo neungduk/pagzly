@@ -2,6 +2,7 @@
 
 import { useRef, useState, useSyncExternalStore } from "react";
 import { hasSizeHeight } from "@/lib/scene-size";
+import { claimFactsOf } from "@/lib/numeric-claim-gate";
 import { notFound } from "next/navigation";
 import DetailActionBar, { type DetailToolTab } from "@/components/DetailActionBar";
 import DetailSectionRenderer from "@/components/DetailSectionRenderer";
@@ -1167,6 +1168,8 @@ type CapturePreset = {
   sceneImages?: import("@/lib/scene-images").SceneImageMap;
   /** 422차 — 판매자 입력 크기 힌트(세션 payload) */
   productSizeHint?: string | null;
+  /** 424차 — 숫자 주장 게이트용 입력 필드(세션 payload의 입력 값 묶음) */
+  claimInput?: import("@/lib/numeric-claim-gate").ClaimInput;
 };
 
 /** 281차 — capture=session: 저장된 실제 결과(sessionStorage)를 로그인 없이 재현 */
@@ -1194,6 +1197,7 @@ function readSessionPreset(): CapturePreset | null {
       infoBackdrops: parsed.infoBackdrops,
       sceneImages: parsed.sceneImages,
       productSizeHint: parsed.productSizeHint,
+      claimInput: parsed.claimInput,
     };
   } catch {
     return null;
@@ -1681,6 +1685,7 @@ function DetailPreviewBody({ capture, budget }: { capture: string | null; budget
             infoBackdrops={capturePreset?.infoBackdrops}
             sceneImages={capturePreset?.sceneImages}
             hasSizeInfo={hasSizeHeight(capturePreset?.productSizeHint)}
+            claimFacts={claimFactsOf(capturePreset?.claimInput)}
             category={previewCategory}
             brandName={previewBrandName}
             productName={previewProductName}

@@ -2123,6 +2123,8 @@ export function buildDetailPageHtml(opts: {
   sceneImages?: SceneImageMap;
   /** 422차 — 제품 높이(cm) 입력이 있는지(라이브 hasSizeInfo와 같은 값) */
   hasSizeInfo?: boolean;
+  /** 424차 — 숫자 주장 게이트용 입력 사실(라이브 claimFacts와 같은 값) */
+  claimFacts?: import("@/lib/numeric-claim-gate").ClaimFacts;
 }): string {
   const pack = resolveStylePack(opts.category, opts.stylePackId);
   // 408차 — 팩 색 톤: hue는 세션 theme 그대로, 채도·밝기 곡선만 교체(기본 팩은 같은 객체)
@@ -2135,7 +2137,7 @@ export function buildDetailPageHtml(opts: {
       opts.sections.filter((_, i) => !hidden.has(i)),
     ),
     opts.imageUrls,
-    { imageHashByUrl: opts.imageHashByUrl, roles: opts.imageRoles, origins: opts.imageOrigins, category: opts.category, flow: getPackLayout(pack).flow, tags: opts.imageTags, sceneImages: opts.sceneImages, hasSizeInfo: opts.hasSizeInfo },
+    { imageHashByUrl: opts.imageHashByUrl, roles: opts.imageRoles, origins: opts.imageOrigins, category: opts.category, flow: getPackLayout(pack).flow, tags: opts.imageTags, sceneImages: opts.sceneImages, hasSizeInfo: opts.hasSizeInfo, claimFacts: opts.claimFacts },
   ).sections;
   const visibleSections = dropSpecEchoFaqItems(
     dropDuplicateRecommendColumn(

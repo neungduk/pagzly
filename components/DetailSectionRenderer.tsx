@@ -301,6 +301,8 @@ type DetailSectionRendererProps = {
   sceneImages?: SceneImageMap;
   /** 422차 — 제품 높이(cm) 입력이 있는지(크기·휴대 카드의 손에 든 컷 허용 조건) */
   hasSizeInfo?: boolean;
+  /** 424차 — 숫자 주장 게이트용 입력 사실(없으면 게이트 생략). 라이브·export가 같은 값을 쓴다 */
+  claimFacts?: import("@/lib/numeric-claim-gate").ClaimFacts;
 };
 
 /**
@@ -5883,6 +5885,7 @@ export default function DetailSectionRenderer({
   imageTags,
   sceneImages,
   hasSizeInfo,
+  claimFacts,
 }: DetailSectionRendererProps) {
   const pack = resolveStylePack(category, stylePackId);
   const packLayout = beautyInfoLayout(getPackLayout(pack), category);
@@ -5896,6 +5899,7 @@ export default function DetailSectionRenderer({
     tags: imageTags,
     sceneImages,
     hasSizeInfo,
+    claimFacts,
   });
   const rawSections = display.sections;
   const toSource = (i: number) => display.sourceIndexes[i] ?? i;

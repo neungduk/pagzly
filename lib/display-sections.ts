@@ -8,6 +8,7 @@ import { FASHION_CATEGORY, isWornFashionPhoto } from "@/lib/fashion-composite-po
 import type { FlowVariant } from "@/lib/style-packs";
 import { insertCompositionGallery, matchPhotosToText } from "@/lib/photo-text-match";
 import { insertSceneSlots, type SceneImageMap } from "@/lib/scene-images";
+import { NUMERIC_GATE_ENABLED, numericClaimGate, type ClaimFacts } from "@/lib/numeric-claim-gate";
 
 export type DisplaySections = {
   sections: DetailSection[];
@@ -267,7 +268,7 @@ export function photoLeadFlow(
 }
 
 export function applyDisplayRules(
-  sections: DetailSection[],
+  sectionsInput: DetailSection[],
   imageUrls: readonly string[],
   opts: {
     editing?: boolean;
@@ -280,10 +281,17 @@ export function applyDisplayRules(
     hasSceneImage?: boolean;
     /** 422차 — 제품 높이(cm) 입력이 있는지(크기·휴대 카드의 손에 든 컷 허용 조건) */
     hasSizeInfo?: boolean;
+    /** 424차 — 숫자 주장 게이트용 입력 사실(lib/numeric-claim-gate buildClaimFacts). 없으면 게이트를 건너뛴다(기존 출력 그대로) */
+    claimFacts?: ClaimFacts;
     /** 419차 — 장면(합성) 이미지 슬롯(세션 sceneImages). 뷰티에서만 scene_image 섹션이 끼워진다 */
     sceneImages?: SceneImageMap;
   } & StripImageHints = {},
 ): DisplaySections {
+  // 424차 — 숫자 주장 코드 게이트: 입력에 없는 수치·빈도·시간 문구를 지운다(편집 모드는 원문 그대로). 위반이 없으면 원본 배열을 그대로 쓴다
+  const gate = NUMERIC_GATE_ENABLED && opts.claimFacts && !opts.editing ? numericClaimGate(sectionsInput, opts.claimFacts) : null;
+  const gated = gate !== null && gate.violations.length > 0;
+  const sections = gated ? gate.sections : sectionsInput;
+  const keptMap = gated ? gate.keptIndexes : null;
   const ordered = storyAfterPhotoFlow(
     photoLeadFlow(
       photoFirstFlow(
@@ -322,5 +330,5 @@ export function applyDisplayRules(
   // 419차 — 상자 컷이 있을 때만 뷰티 구성 갤러리(표시 전용, 편집 모드 아님)
   const withComposition = insertCompositionGallery(finalSections, finalSources, imageUrls.length, photoCtx);
   const withScenes = insertSceneSlots(withComposition.sections, withComposition.sourceIndexes, opts.sceneImages, opts.category);
-  return { sections: withScenes.sections, sourceIndexes: withScenes.sourceIndexes };
+  return { sections: withScenes.sections, sourceIndexes: keptMap ? withScenes.sourceIndexes.map((i) => keptMap[i] ?? i) : withScenes.sourceIndexes };
 }

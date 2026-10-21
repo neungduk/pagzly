@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { hasSizeHeight } from "@/lib/scene-size";
+import { claimFactsOf, type ClaimInput } from "@/lib/numeric-claim-gate";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import DetailSectionRenderer from "@/components/DetailSectionRenderer";
@@ -908,6 +909,7 @@ function CreateResultContent() {
         imageTags: imageTagsOf(data.visionImageRoles),
         sceneImages: data.sceneImagesOff ? undefined : data.sceneImages,
         hasSizeInfo: hasSizeHeight(data.productSizeHint),
+        claimFacts: claimFactsOf(data as unknown as ClaimInput),
       });
       const blob = new Blob([html], { type: "text/html;charset=utf-8" });
       const url = URL.createObjectURL(blob);
@@ -1094,6 +1096,7 @@ function CreateResultContent() {
           imageTags={imageTagsOf(data.visionImageRoles)}
           sceneImages={data.sceneImagesOff ? undefined : data.sceneImages}
           hasSizeInfo={hasSizeHeight(data.productSizeHint)}
+          claimFacts={claimFactsOf(data as unknown as ClaimInput)}
           conceptIcons={generated?.conceptIcons}
           pendingHighlightIndex={
             pendingPatch
