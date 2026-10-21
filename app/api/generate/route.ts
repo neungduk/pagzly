@@ -2349,6 +2349,16 @@ async function handlePost(request: Request, ctx: GenerateCtx) {
         productId: savedProduct.id as string,
         requestStartedAt,
         maxDurationMs: maxDuration * 1000,
+        // 426차 W7: 같은 상품 id로 이미 차감됐으면 재차감하지 않는다(본인 원장 조회, RLS 허용)
+        hasCharged: () =>
+          supabase
+            .from("credit_ledger")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("reason", "completion")
+            .eq("reference_id", savedProduct.id as string)
+            .limit(1)
+            .then(({ data }) => (data?.length ?? 0) > 0),
       });
     }
 

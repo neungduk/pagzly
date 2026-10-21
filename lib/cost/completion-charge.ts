@@ -21,6 +21,7 @@ export type DeductCreditsRpc = (
 
 export type CompletionChargeResult =
   | { status: "charged"; elapsedMs: number }
+  | { status: "already_charged"; elapsedMs: number }
   | { status: "skipped_deadline"; elapsedMs: number }
   | { status: "failed"; elapsedMs: number; error: unknown };
 
@@ -33,6 +34,11 @@ export async function chargeCompletionCredits(opts: {
   maxDurationMs: number;
   marginMs?: number;
   now?: () => number;
+  /**
+   * 426차 W7 멱등성: 같은 productId로 이미 completion 차감이 기록돼 있는지 조회(없거나 조회 실패면 false로 간주해 기존 흐름 그대로).
+   * 조회가 true이면 RPC를 부르지 않는다. 최종 방어선은 credit_ledger (reference_id) where reason=completion 유니크 인덱스(마이그레이션, 적용은 사람).
+   */
+  hasCharged?: () => PromiseLike<boolean>;
 }): Promise<CompletionChargeResult> {
   const now = opts.now ?? Date.now;
   const margin = opts.marginMs ?? COMPLETION_CHARGE_DEADLINE_MARGIN_MS;
@@ -40,11 +46,22 @@ export async function chargeCompletionCredits(opts: {
 
   if (elapsedMs > opts.maxDurationMs - margin) {
     console.warn(
-      `[generate] completion charge skipped — elapsed=${Math.round(elapsedMs / 1000)}s ` +
+      `[charge-failed] completion charge skipped (deadline) — amount=${opts.amount} elapsed=${Math.round(elapsedMs / 1000)}s ` +
         `exceeds ${Math.round((opts.maxDurationMs - margin) / 1000)}s ` +
         `(user=${opts.userId} product=${opts.productId})`,
     );
     return { status: "skipped_deadline", elapsedMs };
+  }
+
+  if (opts.hasCharged) {
+    try {
+      if (await opts.hasCharged()) {
+        console.warn(`[charge-duplicate] already charged — product=${opts.productId} user=${opts.userId}`);
+        return { status: "already_charged", elapsedMs };
+      }
+    } catch {
+      /* 조회 실패는 무시하고 기존 차감 흐름으로 진행 */
+    }
   }
 
   try {
@@ -56,7 +73,7 @@ export async function chargeCompletionCredits(opts: {
     });
     if (error) {
       console.error(
-        `[generate] deduct_credits failed for user=${opts.userId} product=${opts.productId}:`,
+        `[charge-failed] deduct_credits failed user=${opts.userId} product=${opts.productId} amount=${opts.amount}:`,
         error,
       );
       return { status: "failed", elapsedMs, error };
@@ -64,7 +81,7 @@ export async function chargeCompletionCredits(opts: {
     return { status: "charged", elapsedMs };
   } catch (error) {
     console.error(
-      `[generate] deduct_credits threw for user=${opts.userId} product=${opts.productId}:`,
+      `[charge-failed] deduct_credits threw user=${opts.userId} product=${opts.productId} amount=${opts.amount}:`,
       error,
     );
     return { status: "failed", elapsedMs, error };
