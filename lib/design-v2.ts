@@ -6,12 +6,14 @@
  * 이 파일의 내용
  *  2-1 타이포 밀도: 큰 제목 크기·굵기 상한(제목 스케일 변수 덮어쓰기 + 인포 구간 큰 글자 축소) — 화면당 큰 글줄 수를 줄인다.
  *  2-2 배경 띠 전환 상한: 하드 색 면(진한/포인트색 채움) 반전을 페이지당 6회 이내로 두고, 나머지 인포 구간은 연한 틴트 그라데이션으로 바꾼다.
+ *  2-4 가격·혜택 스트립: 히어로 직후 한 줄(lib/price-strip) — CSS는 여기, 마크업은 라이브·export 공통 함수.
  *  2-3 강조 연출: 라벨 칩(STEP·포인트 번호)·형광펜 마커(핵심 구절 아래 40%)·큰 수치 배지 — 새 문구 없이 기존 라벨·본문 구절·입력 수치에만 스타일을 입힌다.
  */
 import type { InfoColors, InfoLevel } from "@/lib/info-style";
 import type { InfoBackdropMap, InfoZone } from "@/lib/info-backdrop";
 import { infoZonesOfSections } from "@/lib/info-backdrop";
 import { hexToRgba, mixHex, type TitleScaleOverrides } from "@/lib/design-tokens";
+import { stripCss } from "@/lib/price-strip";
 
 /** 기본 켬. 끄려면 NEXT_PUBLIC_DESIGN_V2=off 로 서버를 시작한다(427차와 같은 화면 — 전/후 캡처·되돌리기용) */
 export const DESIGN_V2_ENABLED = process.env.NEXT_PUBLIC_DESIGN_V2 !== "off";
@@ -203,6 +205,8 @@ export function designV2Css(o: V2CssOpts): string {
     }
   }
   out.push(emphasisCss(S, c, Boolean(info)));
+  // 2-4 가격·혜택 스트립 CSS(마크업은 라이브·export가 lib/price-strip으로 같이 만든다)
+  out.push(stripCss(S, c.ink, c.deep));
   return out.join("");
 }
 

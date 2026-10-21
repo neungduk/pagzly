@@ -10,6 +10,8 @@ import { infoColorsOf, infoCss } from "../../lib/info-style";
 import { V2_MAX_HARD_FLIPS, V2_TITLE_SCALE, designV2Css, designV2On, designV2Typo, planBands, v2Tint, v2TitleOverrides } from "../../lib/design-v2";
 import { emphasisMarkerGradient } from "../../lib/body-emphasis";
 import { V2_MARKER, emphasisCss } from "../../lib/design-v2";
+import { PRICE_STRIP_HEIGHT_PX, buildPriceStrip, priceStripHtml, stripCss } from "../../lib/price-strip";
+import { buildClaimFacts } from "../../lib/numeric-claim-gate";
 import type { DetailSection } from "../../lib/types/generate";
 
 export const name = "디자인 V2 — 플래그·대상·타이포 상한·하드 면 예산·틴트 대비·export 안전 CSS·라이브/export 동일";
@@ -112,6 +114,29 @@ export async function run(): Promise<string[]> {
     if (/content:/.test(on)) fails.push("강조 CSS가 새 문구(content)를 만듦");
     // 배지 글자 대비: 흰 글자 on 포인트색 4.5 이상
     if (contrastRatioToken(colors.paper, colors.accent) < 4.5) fails.push("수치 배지 대비 < 4.5");
+  }
+  // ── 2-4 가격·혜택 스트립: 입력만·가격 없으면 생략·높이 ≤64·게이트·export 위치 ──
+  {
+    const cta = (o: Record<string, unknown>) => S({ type: "cta_price", slot: "cta_price", price: 24000, ...o });
+    const facts = buildClaimFacts({ productName: "미스트", price: 24000, keyFeatures: "5만원 이상 무료배송", wholesaleUrl: "5만원 이상 무료배송 적립" });
+    eq("가격 없음 → 스트립 없음", [buildPriceStrip([S({ type: "hero", slot: "hero" })], "미스트"), buildPriceStrip([cta({ price: 0 })], "미스트")], [null, null]);
+    const full = buildPriceStrip([cta({ badges: ["5만원 이상 무료배송", "당일 출고", "적립 1%", "무료교환"] })], "  Dream Glow 미스트  ", facts);
+    eq("상품명 입력 그대로(공백만 정리)·가격", [full?.name, full?.price], ["Dream Glow 미스트", "₩24,000"]);
+    eq("혜택 칩: 혜택 말만·최대 2개·입력에 없는 수치(적립 1%)는 게이트로 제외", full?.chips, ["5만원 이상 무료배송", "무료교환"]);
+    eq("칩 없음도 허용", buildPriceStrip([cta({})], "미스트")?.chips, []);
+    eq("긴 칩 제외", buildPriceStrip([cta({ badges: ["무료배송 무료교환 무료반품 무료포장 서비스"] })], "x")?.chips, []);
+    if (PRICE_STRIP_HEIGHT_PX > 64) fails.push("스트립 높이 > 64px");
+    if (!stripCss("[data-pz-v2]", "#111111", "#333333").includes(`height:${PRICE_STRIP_HEIGHT_PX}px`)) fails.push("스트립 CSS 높이 미반영");
+    if (/:has\(|@container|text-wrap/.test(stripCss(".pagzly-wrap", "#111", "#333"))) fails.push("스트립 CSS에 export 금지 기법");
+    const html1 = priceStripHtml({ name: "상품<b>", price: "₩1,000", chips: ["무료배송"] }, (t) => t.replace(/</g, "&lt;"));
+    eq("마크업 구조", html1, "<div data-pz-strip><span data-pz-strip-price>₩1,000</span><span data-pz-strip-name>상품&lt;b></span><span data-pz-strip-chip>무료배송</span></div>");
+    const secs = sections([]).map((x) => (x.type === "cta_price" ? S({ ...(x as unknown as Record<string, unknown>), badges: ["무료배송"] }) : x));
+    const exp = (category: string, ss: DetailSection[]) => buildDetailPageHtml({ productName: "미스트", brandName: "b", category, sections: ss, imageUrls: ["https://example.com/a.jpg"], theme: getCategoryTheme(category) });
+    const countStrip = (h: string) => (h.match(/<div data-pz-strip>/g) ?? []).length;
+    eq("뷰티 export 스트립 1개", countStrip(exp("화장품/뷰티", secs)), 1);
+    eq("패션 export 스트립 1개", countStrip(exp("의류/패션", secs)), 1);
+    eq("식품 export 스트립 없음", countStrip(exp("식품", secs)), 0);
+    eq("가격 없으면 없음", countStrip(exp("화장품/뷰티", secs.filter((x) => x.type !== "cta_price"))), 0);
   }
   return fails;
 }

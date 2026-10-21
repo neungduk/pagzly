@@ -174,6 +174,7 @@ import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
 import { applySectionDisplayBudget } from "@/lib/section-display-budget";
 import { comparisonPolicyRemovesChart } from "@/lib/comparison-policy";
 import { designV2Css, designV2On, designV2Typo, planBands, v2TitleOverrides } from "@/lib/design-v2";
+import { buildPriceStrip, priceStripHtml } from "@/lib/price-strip";
 import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
 import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe";
 import {
@@ -2153,6 +2154,7 @@ export function buildDetailPageHtml(opts: {
   const v2Layout = beautyInfoLayout(getPackLayout(pack), opts.category);
   const v2Plan = designV2On(opts.category) ? planBands(visibleSections, v2Layout.info, opts.infoBackdrops, { buyCard: Boolean(v2Layout.beautyInfo) }) : undefined;
   const v2Typo = designV2Typo(opts.category, v2Layout.info);
+  const v2Strip = designV2On(opts.category) ? buildPriceStrip(visibleSections, opts.productName, opts.claimFacts) : null;
   const v2CssText = designV2Css({ scope: ".pagzly-wrap", colors: infoColorsOf(opts.theme), level: v2Layout.info, category: opts.category, beautyInfo: Boolean(v2Layout.beautyInfo), sections: visibleSections, backdrops: opts.infoBackdrops });
 
   const certTokens = parseCertificationTokens(opts.certifications);
@@ -2276,6 +2278,8 @@ export function buildDetailPageHtml(opts: {
       const next = visibleSections[i + 1];
       if (next) {
         const heroFollowParts: string[] = [];
+        // 428차 2-4 — 라이브와 같은 위치(히어로 직후, 요약 앞)의 가격·혜택 스트립
+        if (v2Strip) heroFollowParts.push(priceStripHtml(v2Strip, esc));
         // 165차 — "Bento 그리드 2.0" 스펙 하이라이트. 히어로 바로 아래(라이브 렌더러와 동일 위치).
         const bentoHtml = quickFacts.length > 0 ? buildSpecBentoGridHtml(quickFacts, opts.theme) : "";
         if (trustChips.length > 0) {

@@ -147,6 +147,7 @@ import { packStructureCss } from "@/lib/pack-css";
 import type { InfoBackdropMap } from "@/lib/info-backdrop";
 import { beautyData, beautyInfoCss, beautyInfoLayout, beautyIp } from "@/lib/beauty-style";
 import { designV2Css, designV2On, designV2Typo, planBands, v2TitleOverrides } from "@/lib/design-v2";
+import { buildPriceStrip } from "@/lib/price-strip";
 import { SCENE_NOTICE, safeSceneUrl, type SceneImageMap } from "@/lib/scene-images";
 import { infoColorsOf, infoCss, infoData, infoOn, ipData, splitLead, INFO_CHECK_SVG } from "@/lib/info-style";
 import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
@@ -5940,6 +5941,8 @@ export default function DetailSectionRenderer({
   const extendedTheme = extendTheme(baseTheme);
   // 428차 — 디자인 V2: 하드 색 면 예산(planBands)과 CSS 한 벌(라이브·export 공통)
   const v2Plan = v2On ? planBands(sections, packLayout.info, infoBackdrops, { buyCard: Boolean(packLayout.beautyInfo) }) : undefined;
+  // 428차 2-4 — 히어로 직후 가격·혜택 스트립(가격이 없으면 null)
+  const v2Strip = v2On && !edit?.enabled ? buildPriceStrip(sections, productName ?? "", claimFacts) : null;
   const v2Css = designV2Css({ scope: "[data-pz-v2]", colors: infoColorsOf(baseTheme), level: packLayout.info, category, beautyInfo: Boolean(packLayout.beautyInfo), sections, backdrops: infoBackdrops });
   const trustChips = extractTrustChips(sections);
   const certTokens = parseCertificationTokens(certifications);
@@ -6124,6 +6127,15 @@ export default function DetailSectionRenderer({
                   : { clipPath: getCategoryRhythm(category).heroTransitionClip }
               }
             >
+              {v2Strip ? (
+                <div data-pz-strip>
+                  <span data-pz-strip-price>{v2Strip.price}</span>
+                  {v2Strip.name ? <span data-pz-strip-name>{v2Strip.name}</span> : null}
+                  {v2Strip.chips.map((chip) => (
+                    <span key={chip} data-pz-strip-chip>{chip}</span>
+                  ))}
+                </div>
+              ) : null}
               {trustChips.length > 0 && !stripAfterContent ? trustStripEl : null}
               {/* 165차 — "Bento 그리드 2.0" 스펙 하이라이트. 히어로 바로 아래 위치에
                   카드형으로 핵심 스펙을 강조(기존 QuickFactStrip 평문 나열을 대체). */}
