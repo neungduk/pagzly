@@ -3,7 +3,7 @@
  * 비용 합산 단일 반영·상한(2장·$0.10)·크기 정보 없음→슬롯 비움·성별·타깃 매핑·참조 사진 선택·프롬프트 내용·호출 조건(뷰티·flag·토큰·TEST_MODE).
  */
 import {
-  GENERATED_SCENE_SLOTS, SCENE_GEN_CAP_USD, SCENE_GEN_EXTRA_WAIT_MS, SCENE_GEN_MAX_COUNT, SCENE_GEN_MODEL, SCENE_GEN_TIMEOUT_MS,
+  GENERATED_SCENE_SLOTS, SCENE_GEN_ENV_FLAG, SCENE_HAND_MIST_ENABLED, sceneGenEnabledFromEnv, SCENE_GEN_CAP_USD, SCENE_GEN_EXTRA_WAIT_MS, SCENE_GEN_MAX_COUNT, SCENE_GEN_MODEL, SCENE_GEN_TIMEOUT_MS,
   applySceneCost, buildGeneratedScenePrompt, pickSceneReferences, planSceneGeneration, runSceneGenJob, runSceneGeneration, sceneGenCostUsd,
   sceneGenInput, sceneImageMapFrom, sceneModelFromTarget, sceneProductOf, type SceneGenDeps, type SceneGenInput,
 } from "../../lib/scene-image-gen";
@@ -16,7 +16,7 @@ const PNG = Buffer.from("89504e470d0a1a0a", "hex");
 const BEAUTY = "화장품/뷰티";
 const base = (o: Partial<SceneGenInput> = {}): SceneGenInput => ({
   category: BEAUTY, productName: "카멜리아 에센스 미스트", targetCustomer: "20~30대 여성", sizeHint: "30mL", heightCm: null,
-  hasToken: true, testMode: false, styleEnabled: true,
+  hasToken: true, testMode: false, styleEnabled: true, enabled: true,
   refs: [{ tags: ["정면", "단독"] }, { tags: ["손", "들기"] }, { tags: ["클로즈업", "라벨"] }],
   ...o,
 });
@@ -129,10 +129,21 @@ export async function run(): Promise<string[]> {
 
   // 상한 — 2장·$0.10, 계획 추정
   {
+    // 424차 기본값: 분사 슬롯은 꺼져 있어 한 장(use-person)만 계획된다
     const p = planSceneGeneration(base());
-    eq("두 슬롯 계획", [p.slots.map((s) => s.slot), p.estimateUsd], [["use-person", "use-hand-mist"], 0.1]);
-    const res = await runSceneGeneration(p, ["r"], deps(async () => url));
+    eq("424차 기본 계획: 인물 1장·$0.05, 분사 슬롯은 비활성", [p.slots.map((s) => s.slot), p.estimateUsd, p.skipped.map((x) => `${x.slot}:${x.reason}`)], [["use-person"], 0.05, ["use-hand-mist:slot-disabled"]]);
+    if (SCENE_HAND_MIST_ENABLED !== false) fails.push("분사 슬롯 기본값이 꺼짐이 아님");
+    // 실행기·상한 검사는 두 슬롯 계획을 직접 구성해(상수를 되돌렸을 때를 대비) 확인
+    const two = { ...p, slots: [{ slot: "use-person" as const, prompt: "a" }, { slot: "use-hand-mist" as const, prompt: "b" }], estimateUsd: 0.1 };
+    const res = await runSceneGeneration(two, ["r"], deps(async () => url));
     eq("병렬 실행 2건", [res.length, sceneGenCostUsd(res)], [2, 0.1]);
+  }
+  // 424차: 환경 변수 USAGE_SCENE_GENERATION_ENABLED가 "true"일 때만 호출(기본 꺼짐)
+  eq("환경 변수 이름", SCENE_GEN_ENV_FLAG, "USAGE_SCENE_GENERATION_ENABLED");
+  eq("env 없음·false·1은 꺼짐, true만 켜짐", [sceneGenEnabledFromEnv({}), sceneGenEnabledFromEnv({ USAGE_SCENE_GENERATION_ENABLED: "false" }), sceneGenEnabledFromEnv({ USAGE_SCENE_GENERATION_ENABLED: "1" }), sceneGenEnabledFromEnv({ USAGE_SCENE_GENERATION_ENABLED: "true" })], [false, false, false, true]);
+  {
+    const off = planSceneGeneration(base({ enabled: false }));
+    eq("플래그 꺼짐 → 호출 0", [off.slots.length, off.skipped.every((x) => x.reason === "flag-off")], [0, true]);
   }
 
   // 크기 정보 없음 → 슬롯 비움(지어낸 크기 금지)
@@ -144,7 +155,10 @@ export async function run(): Promise<string[]> {
     eq("높이 입력은 추정 아님", [h.dims?.heightCm, h.dims?.estimated], [11, false]);
     // 용량이 상품명·특징 입력에 있으면 사전 추정에 쓴다(높이·치수는 읽지 않음)
     const v = planSceneGeneration(base({ sizeHint: null, volumeText: "휴대하기 좋은 30mL 미니 사이즈 용량: 30mL" }));
-    eq("특징 입력의 용량 → 사전 추정", [v.slots.length, v.dims?.heightCm, v.dims?.estimated, v.dims?.volumeMl], [2, 10, true, 30]);
+    eq("특징 입력의 용량 → 사전 추정", [v.slots.length, v.dims?.heightCm, v.dims?.estimated, v.dims?.volumeMl], [1, 10, true, 30]);
+    // 424차: 높이도 용량도 없으면 비움(립처럼 용량 없는 종류의 기본 높이도 쓰지 않는다)
+    const lip = planSceneGeneration(base({ productName: "촉촉 립밤", sizeHint: null }));
+    eq("립 + 크기 정보 없음 → 비움", [lip.slots.length, lip.skipped[0]?.reason], [0, "no-size"]);
     eq("특징에 높이만 있어도 용량 없으면 비움", planSceneGeneration(base({ sizeHint: null, volumeText: "높이 약 9cm" })).skipped[0]?.reason, "no-size");
     eq("종류를 모르는 상품", planSceneGeneration(base({ productName: "무언가" })).skipped[0]?.reason, "unknown-product");
   }
@@ -155,7 +169,7 @@ export async function run(): Promise<string[]> {
   eq("토큰 없음", planSceneGeneration(base({ hasToken: false })).skipped[0]?.reason, "no-token");
   eq("TEST_MODE", planSceneGeneration(base({ testMode: true })).skipped[0]?.reason, "test-mode");
   eq("참조 없음", planSceneGeneration(base({ refs: [] })).skipped[0]?.reason, "no-reference");
-  eq("분사 슬롯은 미스트만", planSceneGeneration(base({ productName: "수분 에센스 세럼" })).slots.map((s) => s.slot), ["use-person"]);
+  eq("분사 슬롯은 꺼져 있어 미스트도 인물 1장만", planSceneGeneration(base()).slots.map((s) => s.slot), ["use-person"]);
 
   // 성별·타깃 매핑(불분명하면 비움)
   eq("20~30대 여성", sceneModelFromTarget("20~30대 여성")?.plain, "a Korean woman in her twenties");
@@ -165,7 +179,7 @@ export async function run(): Promise<string[]> {
   for (const t of ["", null, "20~30대", "남녀공용", "남성 여성", "누구나", "건조한 피부"]) if (sceneModelFromTarget(t) !== null) fails.push(`모호한 타깃이 인물로 매핑됨: ${t}`);
   eq("모호한 타깃 → 슬롯 비움", planSceneGeneration(base({ targetCustomer: "20~30대" })).skipped[0]?.reason, "ambiguous-target");
   {
-    const man = planSceneGeneration(base({ targetCustomer: "30대 남성" })).slots.map((s) => s.prompt).join(" ");
+    const man = planSceneGeneration(base({ targetCustomer: "30대 남성" })).slots.map((s) => s.prompt).join(" ") + " " + buildGeneratedScenePrompt("use-hand-mist", sceneProductOf("카멜리아 에센스 미스트")!, sceneModelFromTarget("30대 남성")!, { heightCm: 10, estimated: true });
     if (!/his cheek/.test(man) || !/his face/.test(man) || /\bher\b/.test(man)) fails.push("남성 타깃 프롬프트의 호칭이 맞지 않음");
   }
 
@@ -178,7 +192,10 @@ export async function run(): Promise<string[]> {
 
   // 프롬프트 내용
   {
-    const [person, spray] = planSceneGeneration(base()).slots.map((s) => s.prompt) as [string, string];
+    const prod0 = sceneProductOf("카멜리아 에센스 미스트")!;
+    const model0 = sceneModelFromTarget("20~30대 여성")!;
+    const person = planSceneGeneration(base()).slots[0]!.prompt;
+    const spray = buildGeneratedScenePrompt("use-hand-mist", prod0, model0, { heightCm: 10, diameterCm: 3.3, estimated: true });
     for (const [label, t] of [["인물", person], ["분사", spray]] as const) {
       for (const must of ["about 10 cm tall", "3.3 cm wide", "about half the height of her face from chin to forehead", "easily held in one hand", "not larger than her cheek", "Medium shot showing face and shoulders", "do not alter text", "no celebrity likeness", "no before and after", "no skin close-up", "no text overlay", "same label text and logo"]) {
         if (!t.includes(must)) fails.push(`${label} 프롬프트에 "${must}" 없음`);

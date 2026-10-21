@@ -160,8 +160,8 @@ type ProductResult = {
   visionImageRoles?: Array<{ index?: number; tags?: string[] }> | null;
   /** 419차 — 장면(합성) 이미지 슬롯(세션 JSON, DB 불러오기에는 없음 → 폴백). 생성 연결은 421차 */
   sceneImages?: import("@/lib/scene-images").SceneImageMap;
-  /** 422차 — 판매자가 연출 이미지(AI 생성)를 뺐으면 true. URL은 지우지 않아 다시 켤 수 있다(세션 JSON) */
-  sceneImagesOff?: boolean;
+  /** 424차 — 판매자가 연출 이미지(AI 생성)를 `넣기`로 켰을 때만 true(기본 끔: 미리 보고 켠다). URL은 세션 JSON에 보존 */
+  sceneImagesOn?: boolean;
   /** 422차 — 판매자 입력 용량·크기 힌트(세션 payload에 이미 실려 있음). 높이(cm)가 있으면 크기·휴대 카드에 손에 든 컷을 허용 */
   productSizeHint?: string | null;
   category: string;
@@ -907,7 +907,7 @@ function CreateResultContent() {
         stylePackId: effectiveStylePackId(data),
         infoBackdrops: data.infoBackdrops,
         imageTags: imageTagsOf(data.visionImageRoles),
-        sceneImages: data.sceneImagesOff ? undefined : data.sceneImages,
+        sceneImages: data.sceneImagesOn ? data.sceneImages : undefined,
         hasSizeInfo: hasSizeHeight(data.productSizeHint),
         claimFacts: claimFactsOf(data as unknown as ClaimInput),
       });
@@ -1063,8 +1063,8 @@ function CreateResultContent() {
         <label className="mb-3 flex cursor-pointer items-center gap-2 text-sm text-ink" data-testid="scene-images-toggle">
           <input
             type="checkbox"
-            checked={!data.sceneImagesOff}
-            onChange={(e) => persist({ ...data, sceneImagesOff: !e.target.checked })}
+            checked={data.sceneImagesOn === true}
+            onChange={(e) => persist({ ...data, sceneImagesOn: e.target.checked })}
           />
           <span>연출 이미지(AI 생성) 넣기</span>
         </label>
@@ -1094,7 +1094,7 @@ function CreateResultContent() {
           stylePackId={stylePackId}
           infoBackdrops={data.infoBackdrops}
           imageTags={imageTagsOf(data.visionImageRoles)}
-          sceneImages={data.sceneImagesOff ? undefined : data.sceneImages}
+          sceneImages={data.sceneImagesOn ? data.sceneImages : undefined}
           hasSizeInfo={hasSizeHeight(data.productSizeHint)}
           claimFacts={claimFactsOf(data as unknown as ClaimInput)}
           conceptIcons={generated?.conceptIcons}

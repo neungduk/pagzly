@@ -28,6 +28,13 @@ export const SCENE_GEN_EXTRA_WAIT_MS = 45_000;
 export const SCENE_GEN_MAX_COUNT = 2;
 export const SCENE_GEN_CAP_USD = 0.1;
 export const GENERATED_SCENE_SLOTS = ["use-person", "use-hand-mist"] as const;
+/**
+ * 424차 안전 기본값. 장면 이미지 생성은 서버 환경 변수 USAGE_SCENE_GENERATION_ENABLED=true일 때만 호출한다(기본 꺼짐, 켜는 건 운영 설정으로만).
+ * 켜져 있어도 분사 슬롯(use-hand-mist)은 422차 실생성에서 병이 크고 분사 방향이 어긋나 비활성(되돌리려면 아래 상수를 true로).
+ */
+export const SCENE_GEN_ENV_FLAG = "USAGE_SCENE_GENERATION_ENABLED";
+export const sceneGenEnabledFromEnv = (env: Record<string, string | undefined> = process.env): boolean => env[SCENE_GEN_ENV_FLAG] === "true";
+export const SCENE_HAND_MIST_ENABLED = false;
 export type GeneratedSceneSlot = (typeof GENERATED_SCENE_SLOTS)[number];
 /** 참조 사진 최대 장수·전송 크기 */
 export const SCENE_REF_MAX = 2;
@@ -114,6 +121,8 @@ export function sceneGenKey(productKey: string, slot: string): string {
 
 // ── 계획 ──
 export type SceneGenSkipReason =
+  | "flag-off"
+  | "slot-disabled"
   | "not-eligible"
   | "no-token"
   | "test-mode"
@@ -140,6 +149,8 @@ export type SceneGenInput = {
   refs: readonly SceneRefMeta[];
   /** 뷰티 스타일 플래그(기본 현재 값) */
   styleEnabled?: boolean;
+  /** 424차 — 운영 환경 변수 USAGE_SCENE_GENERATION_ENABLED(sceneGenEnabledFromEnv). false면 호출 0 */
+  enabled: boolean;
 };
 export type SceneGenPlan = {
   slots: Array<{ slot: GeneratedSceneSlot; prompt: string }>;
@@ -150,7 +161,8 @@ export type SceneGenPlan = {
 };
 
 /** 호출 전체를 건너뛰는 조건. null이면 진행 */
-export function sceneGenBlockReason(i: Pick<SceneGenInput, "category" | "hasToken" | "testMode" | "styleEnabled">): SceneGenSkipReason | null {
+export function sceneGenBlockReason(i: Pick<SceneGenInput, "category" | "hasToken" | "testMode" | "styleEnabled" | "enabled">): SceneGenSkipReason | null {
+  if (!i.enabled) return "flag-off";
   if (!beautyStyleOn(i.category, i.styleEnabled)) return "not-eligible";
   if (i.testMode) return "test-mode";
   if (!i.hasToken) return "no-token";
@@ -160,6 +172,9 @@ export function sceneGenBlockReason(i: Pick<SceneGenInput, "category" | "hasToke
 /** 제품 실물 치수: 폼 높이(cm)가 있으면 그 값(추정 아님), 없으면 입력 힌트 → 사전 추정 → null */
 export function sceneDimensionsOf(i: Pick<SceneGenInput, "productName" | "sizeHint" | "heightCm" | "volumeText">): ProductDimensions | null {
   const volumeMl = parseSizeHint(i.sizeHint).volumeMl ?? parseSizeHint(i.volumeText).volumeMl;
+  // 424차: 높이 입력도 용량도 없으면 사전 추정을 쓰지 않고 비운다(립 등 용량 없는 종류의 기본 높이도 쓰지 않는다)
+  const hasHeight = (typeof i.heightCm === "number" && i.heightCm >= 2 && i.heightCm <= 60) || parseSizeHint(i.sizeHint).heightCm != null;
+  if (!hasHeight && !volumeMl) return null;
   const base = resolveProductDimensions({ sizeHint: i.sizeHint, kindText: i.productName, volumeMl });
   const h = typeof i.heightCm === "number" && Number.isFinite(i.heightCm) && i.heightCm >= 2 && i.heightCm <= 60 ? i.heightCm : null;
   if (h) return { ...(base ?? {}), heightCm: h, estimated: false };
@@ -182,6 +197,7 @@ export function planSceneGeneration(i: SceneGenInput): SceneGenPlan {
   const skipped: SceneGenPlan["skipped"] = [];
   let spend = 0;
   for (const slot of GENERATED_SCENE_SLOTS) {
+    if (slot === "use-hand-mist" && !SCENE_HAND_MIST_ENABLED) { skipped.push({ slot, reason: "slot-disabled" }); continue; }
     if (slot === "use-hand-mist" && !product.spray) { skipped.push({ slot, reason: "not-spray-product" }); continue; }
     if (slots.length >= SCENE_GEN_MAX_COUNT) { skipped.push({ slot, reason: "count" }); continue; }
     if (spend + SCENE_UNIT_USD > SCENE_GEN_CAP_USD + 1e-9) { skipped.push({ slot, reason: "cost" }); continue; }

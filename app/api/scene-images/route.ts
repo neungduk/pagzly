@@ -8,6 +8,7 @@ import {
   SCENE_GEN_RATIO_RANGE,
   planSceneGeneration,
   runSceneGeneration,
+  sceneGenEnabledFromEnv,
   sceneGenCostUsd,
   sceneImageMapFrom,
   sceneRefResizeSpec,
@@ -74,6 +75,7 @@ export async function POST(request: Request) {
       volumeText: clip(body.volumeText, 600),
       hasToken: !!token,
       testMode: isTestMode() && !isForceRegenerate(),
+      enabled: sceneGenEnabledFromEnv(),
       refs,
     });
     console.log(

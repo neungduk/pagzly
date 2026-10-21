@@ -44,6 +44,8 @@ export async function POST(request: Request) {
       mood?: unknown;
       productKey?: unknown;
     };
+    // 424차 운영 킬 스위치: INFO_BACKDROPS_ENABLED=false면 인포 AI 배경을 만들지 않는다(코드 배경으로 진행, 비용 0)
+    if (process.env.INFO_BACKDROPS_ENABLED === "false") return empty("disabled");
     const beauty = beautyStyleOn(typeof body.category === "string" ? body.category : null);
     if (!beauty && (body.category !== FASHION || !STYLE_AUTO_ENABLED)) return empty("not-eligible");
     const zones = Array.isArray(body.zones) ? ZONES.filter((z) => (body.zones as unknown[]).includes(z)) : [];
