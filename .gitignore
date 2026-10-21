@@ -20,6 +20,9 @@
 # production
 /build
 
+# 430차: 폰트 빌드 산출물(scripts/build-detail-fonts.mjs, 바이너리는 저장소에 넣지 않는다)
+/public/fonts
+
 # misc
 .DS_Store
 *.pem
