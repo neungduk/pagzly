@@ -128,8 +128,8 @@ export async function run(): Promise<string[]> {
   const root = path.join(__dirname, "..", "..");
   const live = fs.readFileSync(path.join(root, "components", "DetailSectionRenderer.tsx"), "utf8");
   const exp = fs.readFileSync(path.join(root, "lib", "export-detail-html.ts"), "utf8");
-  if (!/infoColorsOf\(baseTheme\), infoBackdrops\)/.test(live)) fails.push("라이브가 infoBackdrops를 infoCss에 넘기지 않음");
-  if (!/infoColorsOf\(opts\.theme\), opts\.infoBackdrops\)/.test(exp)) fails.push("export가 infoBackdrops를 infoCss에 넘기지 않음");
+  if (!/infoColorsOf\(baseTheme\), infoBackdrops[,)]/.test(live)) fails.push("라이브가 infoBackdrops를 infoCss에 넘기지 않음");
+  if (!/infoColorsOf\(opts\.theme\), opts\.infoBackdrops[,)]/.test(exp)) fails.push("export가 infoBackdrops를 infoCss에 넘기지 않음");
   for (const slug of ["ideogram-v3-turbo", "flux-1.1-pro"]) {
     for (const f of ["components/DetailSectionRenderer.tsx", "lib/export-detail-html.ts", "lib/info-style.ts", "app/api/generate/route.ts", "lib/photo-pipeline-client.ts"]) {
       if (fs.readFileSync(path.join(root, f), "utf8").includes(slug)) fails.push(`${f}에 모델 슬러그(${slug})가 있음 — info-backdrop.ts에만 둔다`);

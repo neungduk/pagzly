@@ -1,0 +1,181 @@
+/**
+ * 428차 — 디자인 V2(벤치마크 423차 §④⑤ 상위 개선). 모두 한 플래그로 감싼다: NEXT_PUBLIC_DESIGN_V2=off 로 서버를 시작하면 427차 결과와 같은 화면·HTML이 나온다.
+ * 대상 카테고리는 뷰티·패션뿐이고(그 밖은 출력 불변), 라이브(DetailSectionRenderer)와 export(buildDetailPageHtml)가 같은 함수·같은 CSS 한 벌을 쓴다.
+ * export에 쓰지 않던 CSS 기법(:has·컨테이너 쿼리·text-wrap)은 쓰지 않는다 — 속성 선택자·linear-gradient만.
+ *
+ * 이 파일의 내용
+ *  2-1 타이포 밀도: 큰 제목 크기·굵기 상한(제목 스케일 변수 덮어쓰기 + 인포 구간 큰 글자 축소) — 화면당 큰 글줄 수를 줄인다.
+ *  2-2 배경 띠 전환 상한: 하드 색 면(진한/포인트색 채움) 반전을 페이지당 6회 이내로 두고, 나머지 인포 구간은 연한 틴트 그라데이션으로 바꾼다.
+ */
+import type { InfoColors, InfoLevel } from "@/lib/info-style";
+import type { InfoBackdropMap, InfoZone } from "@/lib/info-backdrop";
+import { infoZonesOfSections } from "@/lib/info-backdrop";
+import { hexToRgba, mixHex, type TitleScaleOverrides } from "@/lib/design-tokens";
+
+/** 기본 켬. 끄려면 NEXT_PUBLIC_DESIGN_V2=off 로 서버를 시작한다(427차와 같은 화면 — 전/후 캡처·되돌리기용) */
+export const DESIGN_V2_ENABLED = process.env.NEXT_PUBLIC_DESIGN_V2 !== "off";
+
+export const V2_CATEGORIES = ["화장품/뷰티", "의류/패션"] as const;
+
+/** enabled는 테스트가 flag off를 흉내 낼 때만 넘긴다 */
+export const designV2On = (category: string | undefined | null, enabled: boolean = DESIGN_V2_ENABLED): boolean =>
+  enabled && !!category && (V2_CATEGORIES as readonly string[]).includes(category);
+
+/** 인포(bold/dramatic) 구간이 있는 레이아웃에서만 타이포 밀도 규칙을 건다 */
+export const designV2Typo = (category: string | undefined | null, info: InfoLevel | undefined, enabled: boolean = DESIGN_V2_ENABLED): boolean =>
+  designV2On(category, enabled) && !!info && info !== "calm";
+
+// ── 2-1 타이포 밀도 ──────────────────────────────────────────────────────────
+
+/**
+ * 구간 제목 크기 상한: base(칸 폭 640 미만) 2rem → 1.75rem(28px), wide 2.75rem → 2.25rem. 히어로·배너·가격 크기는 그대로.
+ * 423차 지표: 큰 글줄/화면 뷰티 1.9~2.1(레퍼런스 중앙 0.9). 390px에서 32px 제목은 거의 매 화면에 한 줄씩 들어와 있었다.
+ */
+export const V2_TITLE_SCALE: TitleScaleOverrides = {
+  section: { base: "1.75rem", wide: "2.25rem" },
+  statNumber: { base: "2.5rem", wide: "3.25rem" },
+};
+
+const remOf = (v: string | undefined): number => (v && v.endsWith("rem") ? parseFloat(v) : NaN);
+
+/** 팩이 이미 구간 제목을 더 작게 잡았으면 그 값을 존중하고, 더 크면 상한으로 줄인다 */
+export function v2TitleOverrides(base: TitleScaleOverrides): TitleScaleOverrides {
+  const out: TitleScaleOverrides = { ...base };
+  for (const key of Object.keys(V2_TITLE_SCALE) as Array<keyof typeof V2_TITLE_SCALE>) {
+    const cap = V2_TITLE_SCALE[key]!;
+    const cur = base[key];
+    const b = remOf(cur?.base), w = remOf(cur?.wide);
+    out[key] = {
+      base: Number.isFinite(b) && b < remOf(cap.base) ? cur!.base : cap.base,
+      wide: Number.isFinite(w) && w < remOf(cap.wide) ? cur!.wide : cap.wide,
+    };
+  }
+  return out;
+}
+
+/** 인포 구간의 큰 글자 크기 목표(px) — 회귀가 같은 값을 본다 */
+export const V2_TYPE = {
+  stepNumeral: 40,
+  pointTitle: 24,
+  statValue: 36,
+  statTopValue: 48,
+  buyPrice: 44,
+} as const;
+
+// ── 2-2 배경 띠 전환 상한 ────────────────────────────────────────────────────
+
+/** 하드 색 면 반전 상한(페이지당). 진한/포인트색 채움 한 덩어리 = 들어갈 때·나올 때 2회 */
+export const V2_MAX_HARD_FLIPS = 6;
+
+type SectionLike = { type: string; slot?: string; presentationStyle?: string };
+
+export type BandPlan = {
+  /** 색 면을 그대로 두는 구간(진한/포인트색 또는 AI 배경 이미지) */
+  hard: InfoZone[];
+  /** 연한 틴트 그라데이션으로 바꾸는 구간(밝은 면이라 반전이 아닌 구간 포함) */
+  tinted: InfoZone[];
+  /** dramatic에서 하드 면 예산을 넘겨 bold 표현으로 낮추는 구간 */
+  demoted: InfoZone[];
+  /** 페이지 전체 하드 반전 횟수(구매 카드 포함) */
+  flips: number;
+};
+
+/**
+ * 구간별로 "하드 면"인지 정한다. 하드 후보: points(진한 색, bold·dramatic), stat·statnum(dramatic만 진한/포인트색), 구매 카드(맨 끝, 항상 포인트색 — 뷰티 전용),
+ * 그리고 AI 배경 이미지가 있는 구간(이미지가 있는 구간은 반전 횟수에 포함하되 우선 유지, 417차).
+ * 우선순위: AI 배경 구간 → 구매 카드 → points → stat → statnum. 예산(6회)을 넘는 후보는 dramatic이면 bold 표현으로 낮추고 틴트로 바꾼다.
+ */
+export function planBands(sections: ReadonlyArray<SectionLike>, level: InfoLevel | undefined, backdrops: InfoBackdropMap | undefined, opts: { buyCard: boolean }): BandPlan {
+  if (!level || level === "calm") return { hard: [], tinted: [], demoted: [], flips: 0 };
+  const dr = level === "dramatic";
+  const zones = infoZonesOfSections(sections);
+  const hasBackdrop = (z: InfoZone) => !!backdrops?.[z];
+  const candidates: InfoZone[] = [];
+  const add = (z: InfoZone) => { if (zones.includes(z) && !candidates.includes(z)) candidates.push(z); };
+  for (const z of zones) if (hasBackdrop(z)) add(z);
+  add("points");
+  if (dr) add("stat");
+  const hard: InfoZone[] = [];
+  const demoted: InfoZone[] = [];
+  // 구매 카드는 맨 끝이라 들어갈 때 1회만 센다
+  let flips = opts.buyCard ? 1 : 0;
+  for (const z of candidates) {
+    if (flips + 2 <= V2_MAX_HARD_FLIPS || hasBackdrop(z)) { hard.push(z); flips += 2; }
+    else if (z === "stat") demoted.push(z);
+  }
+  // statnum(dramatic 포인트색 면)은 stat과 같이 움직인다: stat이 하드가 아니면 statnum도 bold 표현
+  if (dr && zones.includes("stat") && !hard.includes("stat")) demoted.push("stat");
+  const tinted = zones.filter((z) => !hard.includes(z) && z !== "compare");
+  return { hard, tinted, demoted: [...new Set(demoted)], flips };
+}
+
+/** 틴트 면 색 — 포인트 연한 색을 흰색과 섞어 밝기 L>205(밝은 면)로 둔다. 글자(잉크·진한 색) 대비는 더 좋아진다 */
+export function v2Tint(c: InfoColors, strength = 0.5): string {
+  return mixHex("#FFFFFF", c.soft, strength);
+}
+
+const IMP = "!important";
+const rule = (sel: string, decl: string) => `${sel}{${decl.split(";").filter(Boolean).map((d) => `${d}${IMP}`).join(";")}}`;
+
+/** 연한 틴트 그라데이션: 위는 흰색(앞 섹션과 부드럽게 이어짐), 아래는 틴트 */
+const tintGradient = (c: InfoColors, strength = 0.5) => `linear-gradient(180deg,#FFFFFF 0%,${v2Tint(c, strength)} 100%)`;
+
+export type V2CssOpts = {
+  scope: string;
+  colors: InfoColors;
+  level: InfoLevel | undefined;
+  category: string | undefined | null;
+  /** 구매 카드가 포인트색 채움인가(뷰티 인포 강화) */
+  beautyInfo: boolean;
+  sections: ReadonlyArray<SectionLike>;
+  backdrops?: InfoBackdropMap;
+  enabled?: boolean;
+};
+
+/** V2 CSS 한 벌(라이브 `<style>`·export `<style>` 공용). 대상이 아니거나 flag off면 빈 문자열 */
+export function designV2Css(o: V2CssOpts): string {
+  if (!designV2On(o.category, o.enabled)) return "";
+  const { scope: S, colors: c } = o;
+  const out: string[] = [];
+  const info = o.level && o.level !== "calm";
+
+  if (designV2Typo(o.category, o.level, o.enabled)) {
+    const dr = o.level === "dramatic";
+    const sec = (k: string) => `${S} [data-info="${k}"]`;
+    // 사용 단계 숫자·포인트 카드 제목·혼방 막대 수치는 굵기 900 → 700~800, 크기 한 단계 아래
+    out.push(rule(`${sec("steps")} ol>li>div:first-child>span,${sec("steps")} ol>li>span:first-child`, `font-size:${V2_TYPE.stepNumeral}px;font-weight:700`));
+    out.push(rule(`${sec("points")} [data-ip="pgrid"]>div>p:first-of-type`, `font-size:${V2_TYPE.pointTitle}px;font-weight:700;line-height:1.25`));
+    out.push(rule(`${sec("stat")} [data-ip="bars"]>div>div:first-child>span:last-child>*`, `font-size:${V2_TYPE.statValue}px;font-weight:800`));
+    out.push(rule(`${sec("stat")} [data-ip="bars"]>div[data-top]>div:first-child>span:last-child>*`, `font-size:${V2_TYPE.statTopValue}px`));
+    // 구간 제목 굵기: 인포 구간 안 제목은 700 이하(serif 600)로 — 굵은 제목이 줄마다 올라오는 느낌을 낮춘다
+    out.push(rule(`${S} .pagzly-display-headline`, `font-weight:${o.beautyInfo ? 600 : 700}`));
+    if (o.beautyInfo) out.push(rule(`${S} [data-info="buy"] [data-ip="price"]`, `font-size:${V2_TYPE.buyPrice}px;font-weight:800`));
+    void dr;
+  }
+
+  if (info) {
+    const plan = planBands(o.sections, o.level, o.backdrops, { buyCard: o.beautyInfo });
+    const sec = (k: string) => `${S} [data-info="${k}"]`;
+    const tint = tintGradient(c);
+    // AI 배경 이미지가 있는 구간은 건드리지 않는다(이미지 우선 유지)
+    const free = (z: InfoZone) => !o.backdrops?.[z];
+    if (plan.tinted.includes("steps") && free("steps")) out.push(rule(sec("steps"), `background:${tint}`));
+    if (plan.tinted.includes("care") && free("care")) out.push(rule(sec("care"), `background:${tint}`));
+    if (plan.tinted.includes("stat") && free("stat")) {
+      out.push(rule(sec("stat"), `background:${tint}`));
+      out.push(rule(sec("statnum"), `background:${tint}`));
+    } else if (free("stat")) {
+      out.push(rule(sec("statnum"), `background:${tint}`));
+    }
+    // 뷰티: 퀵포인트(옅은 포인트색 면)와 히어로 캡션 띠도 같은 틴트로 — 밝은 면이 띠마다 달라 보이던 것을 줄인다
+    if (o.beautyInfo) {
+      out.push(rule(sec("quick"), `background:${tintGradient(c, 0.6)}`));
+      out.push(rule(`${S} [data-hero-caption]`, `background:${tintGradient(c, 0.6)}`));
+    }
+  }
+  return out.join("");
+}
+
+/** 위 규칙과 같은 수치를 쓰는 기본 틴트 불투명도(회귀·문서용) */
+export const V2_TINT_ALPHA = 0.5;
+export const v2Rgba = hexToRgba;

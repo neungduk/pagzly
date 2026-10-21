@@ -146,6 +146,7 @@ import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-vari
 import { packStructureCss } from "@/lib/pack-css";
 import type { InfoBackdropMap } from "@/lib/info-backdrop";
 import { beautyData, beautyInfoCss, beautyInfoLayout, beautyIp } from "@/lib/beauty-style";
+import { designV2Css, designV2On, designV2Typo, planBands, v2TitleOverrides } from "@/lib/design-v2";
 import { SCENE_NOTICE, safeSceneUrl, type SceneImageMap } from "@/lib/scene-images";
 import { infoColorsOf, infoCss, infoData, infoOn, ipData, splitLead, INFO_CHECK_SVG } from "@/lib/info-style";
 import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
@@ -309,10 +310,11 @@ type DetailSectionRendererProps = {
  * 408차 — 라이브 루트 style. 기본 팩은 예전과 같은 제목 크기 변수만(속성·추가 변수 없음 = 화면 불변).
  * 팩이 있으면 제목 크기 덮어쓰기 + 세로 여백(rhythm-tokens) + 제목 서체 변수를 같은 숫자로 싣는다.
  */
-function packRootStyle(category: string, pack: StylePack): Record<string, string> {
-  if (isClassicPack(pack)) return titleScaleVars();
+function packRootStyle(category: string, pack: StylePack, v2Typo = false): Record<string, string> {
+  // 428차: 디자인 V2 타이포 밀도 — 구간 제목 크기 상한(플래그 off·비대상이면 기존 값 그대로)
+  if (isClassicPack(pack)) return titleScaleVars(v2Typo ? v2TitleOverrides({}) : {});
   return {
-    ...titleScaleVars(packTitleScaleOverrides(pack)),
+    ...titleScaleVars(v2Typo ? v2TitleOverrides(packTitleScaleOverrides(pack)) : packTitleScaleOverrides(pack)),
     ...rhythmLiveVars(category, packPadScale(pack)),
     ...packHeadlineLiveVars(pack),
   };
@@ -5903,6 +5905,8 @@ export default function DetailSectionRenderer({
 }: DetailSectionRendererProps) {
   const pack = resolveStylePack(category, stylePackId);
   const packLayout = beautyInfoLayout(getPackLayout(pack), category);
+  const v2On = designV2On(category);
+  const v2Typo = designV2Typo(category, packLayout.info);
   const display = applyDisplayRules(inputSections, imageUrls, {
     editing: inputEdit?.enabled,
     imageHashByUrl,
@@ -5934,6 +5938,9 @@ export default function DetailSectionRenderer({
   const productThumbs = resolveProductThumbs(rawSections, imageUrls, imageHashByUrl);
   const baseTheme = applyPackTone(themeOverride ?? getCategoryTheme(category), pack);
   const extendedTheme = extendTheme(baseTheme);
+  // 428차 — 디자인 V2: 하드 색 면 예산(planBands)과 CSS 한 벌(라이브·export 공통)
+  const v2Plan = v2On ? planBands(sections, packLayout.info, infoBackdrops, { buyCard: Boolean(packLayout.beautyInfo) }) : undefined;
+  const v2Css = designV2Css({ scope: "[data-pz-v2]", colors: infoColorsOf(baseTheme), level: packLayout.info, category, beautyInfo: Boolean(packLayout.beautyInfo), sections, backdrops: infoBackdrops });
   const trustChips = extractTrustChips(sections);
   const certTokens = parseCertificationTokens(certifications);
   const quickFacts = extractQuickFacts(sections, trustChips);
@@ -5978,13 +5985,15 @@ export default function DetailSectionRenderer({
       className="@container/pz overflow-hidden scroll-smooth"
       data-pz-pack={isClassicPack(pack) ? undefined : pack.id}
       data-pz-info={packLayout.beautyInfo ? "1" : undefined}
-      style={packRootStyle(category, pack) as CSSProperties}
+      data-pz-v2={v2On ? "1" : undefined}
+      style={packRootStyle(category, pack, v2Typo) as CSSProperties}
     >
       {isClassicPack(pack) ? (
-        packLayout.beautyInfo ? <style>{infoCss(packLayout.info, "[data-pz-info]", infoColorsOf(baseTheme), infoBackdrops, { skipHeadline: true }) + beautyInfoCss(packLayout.info, "[data-pz-info]", infoColorsOf(baseTheme))}</style> : null
+        packLayout.beautyInfo ? <style>{infoCss(packLayout.info, "[data-pz-info]", infoColorsOf(baseTheme), infoBackdrops, { skipHeadline: true, demote: v2Plan?.demoted }) + beautyInfoCss(packLayout.info, "[data-pz-info]", infoColorsOf(baseTheme))}</style> : null
       ) : (
-        <style>{packStructureCss(packLayout, "[data-pz-pack]", "live") + infoCss(packLayout.info, "[data-pz-pack]", infoColorsOf(baseTheme), infoBackdrops)}</style>
+        <style>{packStructureCss(packLayout, "[data-pz-pack]", "live") + infoCss(packLayout.info, "[data-pz-pack]", infoColorsOf(baseTheme), infoBackdrops, { demote: v2Plan?.demoted })}</style>
       )}
+      {v2Css ? <style>{v2Css}</style> : null}
       {sectionAnchors.length > 0 && !anchorNavAfterHero ? (
         <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} variant={packLayout.anchor} />
       ) : null}

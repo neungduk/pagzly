@@ -7,7 +7,7 @@
  */
 import type { CategoryTheme } from "@/lib/category-theme";
 import { BRAND, ensureReadableOnPaper } from "@/lib/design-tokens";
-import { infoBackdropCss, type InfoBackdropMap } from "@/lib/info-backdrop";
+import { infoBackdropCss, type InfoBackdropMap, type InfoZone } from "@/lib/info-backdrop";
 
 export type InfoLevel = "calm" | "bold" | "dramatic";
 export const INFO_LEVELS = ["calm", "bold", "dramatic"] as const;
@@ -67,7 +67,7 @@ export const INFO_BODY_MIN_PX = 15;
 const IMP = "!important";
 
 /** scope: 라이브 `[data-pz-pack]`, export `.pagzly-wrap`. calm이면 빈 문자열 */
-export function infoCss(level: InfoLevel | undefined, scope: string, c: InfoColors, backdrops?: InfoBackdropMap, opts?: { skipHeadline?: boolean }): string {
+export function infoCss(level: InfoLevel | undefined, scope: string, c: InfoColors, backdrops?: InfoBackdropMap, opts?: { skipHeadline?: boolean; demote?: InfoZone[] }): string {
   if (!level || level === "calm") return "";
   const dr = level === "dramatic";
   const S = scope;
@@ -135,30 +135,32 @@ export function infoCss(level: InfoLevel | undefined, scope: string, c: InfoColo
     );
   }
 
+  // 428차: 하드 면 예산을 넘으면 dramatic이어도 stat·statnum은 bold 표현(옅은 면)으로 그린다(lib/design-v2 planBands)
+  const drS = dr && !opts?.demote?.includes("stat");
   // ── 3. 혼방 비율(막대) ──  (행 = bars의 직계 자식: 첫 div = 라벨+수치, 둘째 div = 트랙)
-  const sBg = dr ? c.deep : c.soft;
-  const fg = dr ? W : c.ink;
-  const trackBg = dr ? "rgba(255,255,255,0.22)" : "rgba(27,27,24,0.12)";
-  const fillTop = dr ? `linear-gradient(90deg,${c.soft},${W})` : `linear-gradient(90deg,${c.deep},${c.accent})`;
-  const fillOther = dr ? "rgba(255,255,255,0.5)" : "rgba(27,27,24,0.38)";
-  const valTop = dr ? W : c.accent;
+  const sBg = drS ? c.deep : c.soft;
+  const fg = drS ? W : c.ink;
+  const trackBg = drS ? "rgba(255,255,255,0.22)" : "rgba(27,27,24,0.12)";
+  const fillTop = drS ? `linear-gradient(90deg,${c.soft},${W})` : `linear-gradient(90deg,${c.deep},${c.accent})`;
+  const fillOther = drS ? "rgba(255,255,255,0.5)" : "rgba(27,27,24,0.38)";
+  const valTop = drS ? W : c.accent;
   const BR = `${sec("stat")} ${ip("bars")}>div`;
   rule(sec("stat"), `background:${sBg}`);
-  if (dr) rule(`${sec("stat")} .pagzly-display-headline,${sec("stat")} .pagzly-display-headline span`, `color:${W}`);
+  if (drS) rule(`${sec("stat")} .pagzly-display-headline,${sec("stat")} .pagzly-display-headline span`, `color:${W}`);
   rule(`${sec("stat")} ${ip("bars")}`, `display:flex;flex-direction:column;gap:32px;max-width:36rem;margin:44px auto 0`);
   rule(BR, "margin:0");
   rule(`${BR}>div:first-child span:not(:last-child),${BR}>div:first-child>div span`, `font-size:18px;font-weight:700;color:${fg}`);
   rule(`${BR}>div:first-child>span:last-child>*`, `font-size:44px;font-weight:900;color:${fg}`);
-  rule(`${BR}[data-top]>div:first-child>span:last-child>*`, `font-size:${dr ? 72 : 64}px;color:${valTop}`);
+  rule(`${BR}[data-top]>div:first-child>span:last-child>*`, `font-size:${drS ? 72 : 64}px;color:${valTop}`);
   rule(`${BR}>div:nth-child(2)`, `height:24px;margin-top:12px;border-radius:999px;background:${trackBg}`);
   rule(`${BR}>div:nth-child(2)>div`, `background:${fillOther};box-shadow:none;border-radius:999px`);
   rule(`${BR}[data-top]>div:nth-child(2)>div`, `background:${fillTop}`);
-  if (dr) rule(`${sec("stat")}>p`, `color:rgba(255,255,255,0.75)`);
+  if (drS) rule(`${sec("stat")}>p`, `color:rgba(255,255,255,0.75)`);
 
   // 혼방 구간 밖으로 분리된 숫자 칸(사이즈 종수 등)
-  rule(sec("statnum"), `background:${dr ? c.accent : c.base};padding-top:36px;padding-bottom:36px`);
+  rule(sec("statnum"), `background:${drS ? c.accent : c.base};padding-top:36px;padding-bottom:36px`);
   rule(`${sec("statnum")}>div`, `margin:0 auto;border-top:0;border-bottom:0`);
-  rule(`${sec("statnum")} *`, `color:${dr ? W : c.deep}`);
+  rule(`${sec("statnum")} *`, `color:${drS ? W : c.deep}`);
   rule(`${sec("statnum")}>div>div>:last-child`, "font-size:16px;font-weight:700");
 
   // ── 4. 비교표(우리 칸 = 세로 기둥) ──  (행 = crows의 직계 div: p(항목명) + span(우리) + span(일반))
