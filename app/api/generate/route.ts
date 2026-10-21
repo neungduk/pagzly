@@ -59,6 +59,8 @@ import { enforceSplitZigzag, limitBoldBlocks } from "@/lib/detail-visual-rhythm"
 import { orderSectionsForFlow } from "@/lib/section-flow-order";
 import { normalizeDisplayState, withDisplayState } from "@/lib/saved-display";
 import { applyProductAccent } from "@/lib/beauty-accent";
+import { killSwitchGate, lockGeneration, unlockGeneration, usageGate } from "@/lib/usage-guard-server";
+import { USAGE_EST_COST_USD, draftCreditsVerdict } from "@/lib/usage-guard";
 import {
   applyDesignerLayoutRhythm,
   buildDesignerPatternGuide,
@@ -1332,7 +1334,19 @@ function normalizeSectionsToTemplate(
 // Vercel Hobby(Fluid compute) 함수 시간 상한이 300초라 더 올릴 수 없다. Pro 전환 시 최대 800.
 export const maxDuration = 300;
 
+type GenerateCtx = { userId?: string; locked?: boolean };
+
+/** 426차 R1: 사용자당 동시 생성 1건 락을 응답이 끝나면(성공·실패 모두) 해제한다. 락은 최대 10분 뒤 자동 만료 */
 export async function POST(request: Request) {
+  const ctx: GenerateCtx = {};
+  try {
+    return await handlePost(request, ctx);
+  } finally {
+    if (ctx.locked && ctx.userId) await unlockGeneration(ctx.userId);
+  }
+}
+
+async function handlePost(request: Request, ctx: GenerateCtx) {
   const requestStartedAt = Date.now();
   try {
     const supabase = await createClient();
@@ -1386,6 +1400,27 @@ export async function POST(request: Request) {
         { error: "상품 사진이 필요합니다." },
         { status: 400 },
       );
+    }
+
+    // 426차 R1 — 비용 방어: 킬 스위치 → 동시 생성 락 → (초안·전체 생성) 토큰 사전 확인 → 일일 한도. 완성 전 단계가 무제한 반복되지 않게 서버에서 강제한다.
+    const killed = killSwitchGate();
+    if (killed) return killed;
+    const lockDenied = await lockGeneration(user.id);
+    if (lockDenied) return lockDenied;
+    ctx.userId = user.id;
+    ctx.locked = true;
+    if (mode === "draft") {
+      const required = getCompletionTokenCost(body.length);
+      const { data: draftCredit } = await supabase.from("user_credits").select("balance").eq("user_id", user.id).maybeSingle();
+      const verdict = draftCreditsVerdict(draftCredit?.balance, required);
+      if (!verdict.ok) {
+        // 최종 완성에 필요한 토큰이 모자라면 새 초안을 만들지 않는다(기존 402 응답 형식 그대로 — 화면이 충전 안내를 띄운다)
+        return NextResponse.json({ error: "insufficient_credits", balance: verdict.balance, required: verdict.required }, { status: 402 });
+      }
+    }
+    if (mode === "draft" || !useDraftSections) {
+      const guarded = await usageGate(user.id, "draft", mode === "draft" ? USAGE_EST_COST_USD.draft : USAGE_EST_COST_USD.fullGenerate);
+      if (guarded) return guarded;
     }
 
     if (mode === "final") {

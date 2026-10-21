@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import Replicate from "replicate";
+import { usageGate } from "@/lib/usage-guard-server";
+import { USAGE_EST_COST_USD } from "@/lib/usage-guard";
 import sharp from "sharp";
 import { createClient } from "@/lib/supabase/server";
 import { isTestMode } from "@/lib/test-mode";
@@ -82,6 +84,9 @@ export async function POST(request: Request) {
       `[scene-images] plan slots=${plan.slots.map((s) => s.slot).join(",") || "-"} estimate=$${plan.estimateUsd.toFixed(3)} refs=${plan.refIndexes.join(",") || "-"} size=${plan.dims ? `${plan.dims.heightCm}cm${plan.dims.estimated ? "(추정)" : ""}` : "-"} skipped=${plan.skipped.map((s) => `${s.slot}:${s.reason}`).join(",") || "-"}`,
     );
     if (plan.slots.length === 0 || !token) return empty(plan.skipped[0]?.reason ?? "empty-plan");
+    // 426차 R1: 실제 호출이 확정된 뒤에만 한도를 예약한다
+    const blocked = await usageGate(user.id, "photo", USAGE_EST_COST_USD.sceneImages);
+    if (blocked) return blocked;
 
     // 참조 사진: 우리 Storage 주소만, 긴 변 1536px JPEG 90으로 줄여 data URI로 전송
     const refDataUris: string[] = [];

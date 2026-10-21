@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import Replicate from "replicate";
+import { usageGate } from "@/lib/usage-guard-server";
+import { USAGE_EST_COST_USD } from "@/lib/usage-guard";
 import sharp from "sharp";
 import { createClient } from "@/lib/supabase/server";
 import { isTestMode } from "@/lib/test-mode";
@@ -62,6 +64,9 @@ export async function POST(request: Request) {
       `[info-backdrops] plan zones=${plan.items.map((i) => i.zone).join(",") || "-"} estimate=$${plan.estimateUsd.toFixed(3)} fallback=${plan.fallbacks.map((f) => `${f.zone}:${f.reason}`).join(",") || "-"}`,
     );
     if (plan.items.length === 0) return empty("empty-plan");
+    // 426차 R1: 실제 호출이 확정된 뒤에만 한도를 예약한다(대상 아님·TEST_MODE는 세지 않음)
+    const blocked = await usageGate(user.id, "photo", USAGE_EST_COST_USD.infoBackdrops);
+    if (blocked) return blocked;
 
     const replicate = new Replicate({ auth: token });
     const fetchBuffer: FetchBuffer = async (u) => {

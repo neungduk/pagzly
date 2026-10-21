@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { usageGate } from "@/lib/usage-guard-server";
+import { USAGE_EST_COST_USD } from "@/lib/usage-guard";
 import { TOKEN_COST_CANVAS_AI_IMAGE } from "@/lib/cost/saas-pricing-config";
 import { generateCanvasAiImage } from "@/lib/canvas-ai-image";
 import { getCategoryTheme } from "@/lib/category-theme";
@@ -17,6 +19,10 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
     }
+
+    // 426차 R1: 일일 한도·킬 스위치(서버 강제, 한도 안이면 통과)
+    const blocked = await usageGate(user.id, "photo", USAGE_EST_COST_USD.canvasAiImage);
+    if (blocked) return blocked;
 
     if (!process.env.REPLICATE_API_TOKEN) {
       return NextResponse.json(
