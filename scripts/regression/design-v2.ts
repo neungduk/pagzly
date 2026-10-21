@@ -10,6 +10,7 @@ import { infoColorsOf, infoCss } from "../../lib/info-style";
 import { V2_MAX_HARD_FLIPS, V2_TITLE_SCALE, designV2Css, designV2On, designV2Typo, planBands, v2Tint, v2TitleOverrides } from "../../lib/design-v2";
 import { emphasisMarkerGradient } from "../../lib/body-emphasis";
 import { V2_MARKER, emphasisCss } from "../../lib/design-v2";
+import { HERO_CAPTION, HERO_STAGE_ENABLED, HERO_STAGE_WIDTH_PCT, heroStageCss, heroStageOn } from "../../lib/hero-variants";
 import { PRICE_STRIP_HEIGHT_PX, buildPriceStrip, priceStripHtml, stripCss } from "../../lib/price-strip";
 import { buildClaimFacts } from "../../lib/numeric-claim-gate";
 import type { DetailSection } from "../../lib/types/generate";
@@ -137,6 +138,23 @@ export async function run(): Promise<string[]> {
     eq("패션 export 스트립 1개", countStrip(exp("의류/패션", secs)), 1);
     eq("식품 export 스트립 없음", countStrip(exp("식품", secs)), 0);
     eq("가격 없으면 없음", countStrip(exp("화장품/뷰티", secs.filter((x) => x.type !== "cta_price"))), 0);
+  }
+  // ── 2-5 product-stage 히어로: 뷰티·V2·사진 있을 때만, 폭 60~70%, 기본 꺼짐, 캡션 글자 대비, 글자가 사진 위에 없음 ──
+  {
+    eq("stage 조건(뷰티·V2·사진·flag)", [heroStageOn("화장품/뷰티", true, true, true), heroStageOn("의류/패션", true, true, true), heroStageOn("화장품/뷰티", false, true, true), heroStageOn("화장품/뷰티", true, false, true), heroStageOn("화장품/뷰티", true, true, false)], [true, false, false, false, false]);
+    eq("기본값은 꺼짐(사람 결정 대기)", HERO_STAGE_ENABLED, false);
+    if (!(HERO_STAGE_WIDTH_PCT.card >= 60 && HERO_STAGE_WIDTH_PCT.card <= 70 && HERO_STAGE_WIDTH_PCT.disc >= 60 && HERO_STAGE_WIDTH_PCT.disc <= 70)) fails.push("stage 카드 폭이 60~70% 밖");
+    const css = heroStageCss("[data-pz-v2]", v2Tint(colors, 0.9), "#FFFFFF");
+    if (/:has\(|@container|text-wrap/.test(css)) fails.push("stage CSS에 export 금지 기법");
+    if (!css.includes("box-shadow:0 22px 34px -18px rgba(27,27,24,0.34)")) fails.push("stage 그림자(약하게) 없음");
+    // 캡션(제목 잉크·부제 70%)은 stage 면 위가 아니라 틴트 띠 위: 같은 틴트에서 4.5 이상
+    const tint = v2Tint(colors, 0.6);
+    if (contrastRatioToken(HERO_CAPTION.ink, tint) < 4.5) fails.push("히어로 제목 대비 < 4.5(틴트 띠)");
+    const subOnTint = (() => { const n = parseInt(tint.slice(1), 16); const bg = [(n >> 16) & 255, (n >> 8) & 255, n & 255]; const c = [27, 27, 24].map((v, i) => Math.round(v * 0.7 + bg[i]! * 0.3)); return `#${c.map((v) => v.toString(16).padStart(2, "0")).join("")}`; })();
+    if (contrastRatioToken(subOnTint, tint) < 4.5) fails.push("히어로 부제 대비 < 4.5(틴트 띠)");
+    // 켜면 마크업에 stage가 생기고 글자(h1)는 stage 밖(캡션 띠)에 있다 — 켠 상태는 함수 조건으로만 확인(환경 변수 의존 없이 export 마크업 구조를 검사)
+    const exp = buildDetailPageHtml({ productName: "p", brandName: "b", category: "화장품/뷰티", sections: sections(), imageUrls: ["https://example.com/a.jpg"], theme: getCategoryTheme("화장품/뷰티") });
+    if (exp.includes("<div data-hero-stage=")) fails.push("기본(꺼짐)에서 export에 stage 마크업이 있음");
   }
   return fails;
 }

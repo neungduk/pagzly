@@ -141,7 +141,7 @@ import WeightComparisonDiagram from "@/components/WeightComparisonDiagram";
 import PowerConsumptionDiagram from "@/components/PowerConsumptionDiagram";
 import { headlineDisplayStyle, joinNumericSuffix, longestTokenEm, packHeadlineLiveVars } from "@/lib/detail-typography";
 import { rhythmLiveVars } from "@/lib/rhythm-tokens";
-import { BEAUTY_HERO, HERO_CAPTION, HERO_FRAME, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio } from "@/lib/hero-variants";
+import { BEAUTY_HERO, HERO_CAPTION, HERO_FRAME, HERO_STAGE_VARIANT, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroStageOn } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
 import type { InfoBackdropMap } from "@/lib/info-backdrop";
@@ -2236,7 +2236,16 @@ function renderSection(
       const beautyHero = heroVariant !== baseHeroVariant;
       if (heroVariant !== "bleed-bottom") {
         const align = heroCaptionAlign(heroVariant);
-        const photo = (
+        // 428차 2-5 — 뷰티 product-stage: 그라데이션 면 위에 제품 사진을 크게(글자는 사진 위에 없음)
+        const stage = beautyHero && heroStageOn(category, Boolean(src), designV2On(category));
+        const photo = stage ? (
+          <div key="hero-photo" data-hero-stage={HERO_STAGE_VARIANT}>
+            <div data-hero-stage-card>
+              <SectionImage src={src} alt={imgAlt} fallbackSrc={heroFallback} className="pagzly-hero-photo absolute inset-0 h-full w-full object-cover" priority />
+              <ImageReplaceHit enabled={edit?.enabled} onReplace={() => edit?.onReplaceImage?.(section.imageIndex)} />
+            </div>
+          </div>
+        ) : (
           <div
             key="hero-photo"
             style={{

@@ -75,3 +75,38 @@ export const BEAUTY_HERO = { photoRatio: "1 / 1", photoPosition: "50% 50%", maxZ
 export function beautyHeroVariant(variant: HeroVariant, category: string | undefined | null, enabled: boolean = BEAUTY_STYLE_ENABLED): HeroVariant {
   return variant === "bleed-bottom" && beautyStyleOn(category, enabled) ? "caption-below" : variant;
 }
+
+/**
+ * 428차 2-5 — product-stage 히어로(디자인 V2, 뷰티): 사진 한 장을 풀블리드로 깔지 않고, 은은한 그라데이션 면(stage) 위에 제품 사진을 크게(화면 폭 60~70%) 놓고
+ * 하단 그림자를 약하게 준다. 글자는 사진 위에 없다(제목·부제는 아래 캡션 띠 그대로). 새 호출·새 이미지 없음 — 세션의 히어로 사진과 theme 색만 쓴다.
+ * 저장 세션에는 제품 컷아웃(투명 PNG)이 보존돼 있지 않다(스튜디오 합성 완성본만 저장). 그래서 컷아웃 대신 히어로 사진 전체를 "카드"로 올린다.
+ * 사진이 없으면(또는 flag off·뷰티 아님) 기존 caption-below로 폴백한다. 후보: card(68%·둥근 사각) · wide(82%) · disc(60%·원형 크롭).
+ */
+export type HeroStageVariant = "card" | "wide" | "disc";
+export const HERO_STAGE_VARIANTS: readonly HeroStageVariant[] = ["card", "wide", "disc"];
+/**
+ * 기본 **끔**(사람 결정 대기): 저장 세션에 제품 컷아웃이 없어 사진 카드로 올리는데, 428차 눈 검수에서 풀블리드 1:1 히어로보다 첫 인상이 약했다(review/428-verify/stage-*.png).
+ * NEXT_PUBLIC_HERO_STAGE=on 으로 서버를 시작하면 켜진다. 컷아웃이 보존되면(다음 라운드 데이터 과제) 기본 켬을 다시 검토한다.
+ */
+export const HERO_STAGE_ENABLED = process.env.NEXT_PUBLIC_HERO_STAGE === "on";
+const envVariant = process.env.NEXT_PUBLIC_HERO_STAGE_VARIANT as HeroStageVariant | undefined;
+export const HERO_STAGE_VARIANT: HeroStageVariant = envVariant && HERO_STAGE_VARIANTS.includes(envVariant) ? envVariant : "card";
+/** 카드 폭(%) — 회귀가 60~70(card·disc) 범위를 본다. wide는 비교 후보 */
+export const HERO_STAGE_WIDTH_PCT: Record<HeroStageVariant, number> = { card: 68, wide: 82, disc: 62 };
+
+/** 뷰티 + V2 + flag + 히어로 사진이 있을 때만 stage */
+export function heroStageOn(category: string | undefined | null, hasPhoto: boolean, v2On: boolean, enabled: boolean = HERO_STAGE_ENABLED): boolean {
+  return enabled && v2On && hasPhoto && category === "화장품/뷰티";
+}
+
+/** stage CSS(라이브·export 공용). scope = `[data-pz-v2]` 또는 `.pagzly-wrap` */
+export function heroStageCss(scope: string, tintTop: string, tintBottom: string): string {
+  const S = `${scope} [data-hero-stage]`;
+  const w = (v: HeroStageVariant) => `${HERO_STAGE_WIDTH_PCT[v]}%`;
+  return (
+    `${S}{display:block;background:linear-gradient(180deg,${tintTop} 0%,${tintBottom} 100%);padding:32px 0 20px;box-sizing:border-box}` +
+    `${S} [data-hero-stage-card]{position:relative;width:${w("card")};margin:0 auto;aspect-ratio:1/1;overflow:hidden;border-radius:22px;box-shadow:0 22px 34px -18px rgba(27,27,24,0.34)}` +
+    `${S}[data-hero-stage="wide"] [data-hero-stage-card]{width:${w("wide")};border-radius:18px}` +
+    `${S}[data-hero-stage="disc"] [data-hero-stage-card]{width:${w("disc")};border-radius:9999px;box-shadow:0 22px 34px -18px rgba(27,27,24,0.34),0 0 0 6px rgba(255,255,255,0.7)}`
+  );
+}

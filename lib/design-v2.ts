@@ -14,6 +14,7 @@ import type { InfoBackdropMap, InfoZone } from "@/lib/info-backdrop";
 import { infoZonesOfSections } from "@/lib/info-backdrop";
 import { hexToRgba, mixHex, type TitleScaleOverrides } from "@/lib/design-tokens";
 import { stripCss } from "@/lib/price-strip";
+import { heroStageCss } from "@/lib/hero-variants";
 
 /** 기본 켬. 끄려면 NEXT_PUBLIC_DESIGN_V2=off 로 서버를 시작한다(427차와 같은 화면 — 전/후 캡처·되돌리기용) */
 export const DESIGN_V2_ENABLED = process.env.NEXT_PUBLIC_DESIGN_V2 !== "off";
@@ -207,6 +208,8 @@ export function designV2Css(o: V2CssOpts): string {
   out.push(emphasisCss(S, c, Boolean(info)));
   // 2-4 가격·혜택 스트립 CSS(마크업은 라이브·export가 lib/price-strip으로 같이 만든다)
   out.push(stripCss(S, c.ink, c.deep));
+  // 2-5 product-stage 히어로 면(뷰티만 마크업이 생긴다; 규칙은 속성이 없으면 아무 데도 걸리지 않는다)
+  out.push(heroStageCss(S, v2Tint(c, 0.9), "#FFFFFF"));
   return out.join("");
 }
 
