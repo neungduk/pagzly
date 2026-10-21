@@ -15,6 +15,7 @@
 --   drop policy if exists "images_insert_own_folder" on storage.objects;
 --   drop policy if exists "images_update_own_folder" on storage.objects;
 --   drop policy if exists "images_delete_own_folder" on storage.objects;
+--   drop policy if exists "images_select_own_folder" on storage.objects;
 --   update storage.buckets set file_size_limit = null, allowed_mime_types = null where id = 'images';
 --   (기존에 있던 정책/제한은 적용 전에 기록해 두었다가 복구)
 
@@ -24,6 +25,8 @@ set file_size_limit = 10485760, -- 10MB
       'image/jpeg', 'image/png', 'image/webp', 'image/gif',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', -- xlsx
       'text/plain',
+      'image/svg+xml',      -- 429차: 로고 업로드(accept에 svg 포함)가 쓰는 형식 — 막으면 기능이 깨진다. 오픈 후 svg 제거를 검토
+      'application/vnd.ms-excel', -- 429차: 리뷰 파일 입력이 .xls를 받는다
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document' -- docx
     ]
@@ -44,4 +47,11 @@ create policy "images_delete_own_folder" on storage.objects
   for delete to authenticated
   using (bucket_id = 'images' and (storage.foldername(name))[1] = auth.uid()::text);
 
--- select 정책은 만들지 않는다(목록 조회 금지). 기존에 "bucket_id = 'images'"만 조건인 select 정책이 있다면 그것을 drop 해야 목록 노출이 막힌다 → 사람이 확인.
+-- 429차: 본인 폴더 select만 허용(upsert:true로 같은 경로를 덮어쓰는 업로드 — 예: enhance-image의 -enhanced.png 재시도 — 가 기존 행을 읽을 수 있어야 한다).
+-- 다른 사람 폴더는 목록·조회가 되지 않는다. 공개 URL 읽기는 버킷이 public이라 정책과 무관.
+drop policy if exists "images_select_own_folder" on storage.objects;
+create policy "images_select_own_folder" on storage.objects
+  for select to authenticated
+  using (bucket_id = 'images' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- (아래 문장은 기존 설명) select 정책은 만들지 않는다(목록 조회 금지). 기존에 "bucket_id = 'images'"만 조건인 select 정책이 있다면 그것을 drop 해야 목록 노출이 막힌다 → 사람이 확인.

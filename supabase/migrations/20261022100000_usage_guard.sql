@@ -20,6 +20,8 @@ comment on table public.user_daily_usage is
   '일일 유료 호출 횟수·추정 비용(USD). 증가는 usage_reserve RPC(service_role)로만. 클라이언트 insert/update 정책 없음.';
 
 alter table public.user_daily_usage enable row level security;
+-- 429차: 두 번 실행해도 에러가 나지 않게 정책을 먼저 지운다
+drop policy if exists "Users can view own daily usage" on public.user_daily_usage;
 create policy "Users can view own daily usage"
   on public.user_daily_usage for select to authenticated using (auth.uid() = user_id);
 -- insert/update/delete 정책 없음: service_role 함수로만 변경
@@ -176,3 +178,4 @@ grant execute on function public.generation_lock_release(uuid) to service_role;
 -- drop table if exists public.generation_locks;
 -- drop table if exists public.global_daily_usage;
 -- drop table if exists public.user_daily_usage;
+-- (정책은 테이블과 함께 삭제됨)
