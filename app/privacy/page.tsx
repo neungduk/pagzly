@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import PagzlyLogo from "@/components/PagzlyLogo";
 import { CONTACT_EMAIL } from "@/lib/contact";
@@ -60,6 +61,11 @@ const ARTICLES: { title: string; body: string }[] = [
     body: `이 개인정보처리방침의 내용 추가, 삭제 및 수정이 있는 경우 시행 최소 7일 전에 서비스 화면을 통해 공지합니다.`,
   },
 ];
+
+export const metadata: Metadata = {
+  title: "개인정보처리방침",
+  description: "Pagzly 개인정보처리방침",
+};
 
 export default function PrivacyPage() {
   return (

@@ -13,7 +13,7 @@ const rows: Row[] = [
     label: "소요 시간",
     outsourcing: "평균 3~7일",
     template: "즉시 시작, 직접 편집에 수 시간",
-    pagzly: "약 2~3분 (자동 생성)",
+    pagzly: "약 5분 내외 (자동 생성)",
   },
   {
     label: "건당 비용",

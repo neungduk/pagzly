@@ -174,7 +174,7 @@ export default function LandingHero({ startHref }: LandingHeroProps) {
           <br />
           팔리는 상세페이지를{" "}
           <span className="pagzly-landing-ink-underline relative inline-block text-registration-red">
-            2분 안에
+            약 5분 내외
           </span>
         </h1>
 
@@ -209,7 +209,7 @@ export default function LandingHero({ startHref }: LandingHeroProps) {
 
         <dl className="mt-10 flex flex-wrap gap-8 border-t border-paper/15 pt-6 sm:gap-12">
           {[
-            { value: "2–3분", label: "평균 생성" },
+            { value: "약 5분", label: "생성 소요" },
             { value: "5카테고리", label: "컬러 엔진" },
             { value: "PNG 즉시", label: "마켓 등록" },
           ].map((stat) => (

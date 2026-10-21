@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
 import { getSlotTemplate } from "@/lib/section-templates";
+import { LEAVE_WARNING_TEXT, useLeaveWarning } from "@/lib/use-leave-warning";
 
 export type GeneratingStage = "uploading" | "backdrop" | "enhancing" | "generating";
 
@@ -154,6 +155,8 @@ export default function GeneratingOverlay({
   snapComplete = false,
   progress,
 }: GeneratingOverlayProps) {
+  // 426차 W9: 생성 중 탭 닫기·새로고침 시 브라우저 확인창(완료 연출이 시작되면 해제)
+  useLeaveWarning(!snapComplete);
   const slots = useMemo(() => getSlotTemplate(category, length), [category, length]);
   const targetCompleted = useMemo(
     () => (snapComplete ? slots.length : slotProgressFromStage(stage, slots.length, progress)),
@@ -244,6 +247,7 @@ export default function GeneratingOverlay({
             <span className="font-mono">${progress.costUsdSoFar.toFixed(4)}</span>
           )}
         </div>
+        {!snapComplete && <p className="mt-1.5 text-xs text-ink/50">{LEAVE_WARNING_TEXT}</p>}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import PagzlyLogo from "@/components/PagzlyLogo";
 
@@ -67,6 +68,11 @@ const ARTICLES: { title: string; body: string }[] = [
     body: `이 약관과 관련하여 회사와 이용자 간에 발생한 분쟁에 대해서는 대한민국 법을 준거법으로 하며, 관할 법원은 민사소송법상의 관할 법원으로 합니다.`,
   },
 ];
+
+export const metadata: Metadata = {
+  title: "이용약관",
+  description: "Pagzly 서비스 이용약관",
+};
 
 export default function TermsPage() {
   return (

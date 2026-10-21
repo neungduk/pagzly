@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import LogoutButton from "@/components/LogoutButton";
@@ -89,6 +90,11 @@ const features = LANDING_FEATURES.map((feature) => ({
   ...feature,
   ...featureVisuals[feature.title],
 }));
+
+export const metadata: Metadata = {
+  title: "Pagzly(팩즐리) — 사진 한 장으로 AI 상세페이지",
+  description: "상품 사진과 정보만 넣으면 AI가 한국 이커머스 상세페이지를 만들어 드립니다. 가입하면 무료 토큰을 드립니다.",
+};
 
 export default async function Home() {
   const supabase = await createClient();
@@ -380,7 +386,7 @@ export default async function Home() {
               지금 바로 시작해 보세요
             </h2>
             <p className="mx-auto mt-5 max-w-xl text-lg text-paper/65">
-              상품 사진 하나만 있으면 2~3분 안에 팔리는 상세페이지가 완성됩니다.
+              상품 사진 하나만 있으면 약 5분 내외로 팔리는 상세페이지가 완성됩니다.
             </p>
             <Link
               href={startHref}
