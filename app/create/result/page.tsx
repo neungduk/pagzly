@@ -1257,7 +1257,7 @@ function CreateResultContent() {
             )}
             {generated?.mfdsReviewed && (
               <span className="inline-flex items-center gap-1 rounded-full bg-slate-blue/10 px-3 py-1 text-xs font-semibold text-slate-blue">
-                ✅ 식약처 광고 기준 검수 완료
+                표시광고 표현 점검(참고용)
               </span>
             )}
           </div>
@@ -1270,7 +1270,7 @@ function CreateResultContent() {
             {isTestMode &&
               " 테스트 모드로 생성되어 clarity-upscaler·장식·QA 등 일부 단계가 생략되었습니다. 합성(누끼·배경) 품질 확인은 TEST_MODE=false 실행 결과로만 판단하세요."}
             {generated?.mfdsReviewed &&
-              " 화장품/뷰티 카테고리 식약처 광고 기준이 적용되었습니다."}
+              " 주의가 필요한 표시광고 표현을 참고용으로 점검했습니다. 최종 표기 책임은 판매자에게 있습니다."}
           </p>
 
           {(generated?.sections.length ?? 0) > 0 &&

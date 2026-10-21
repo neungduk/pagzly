@@ -6,7 +6,7 @@ import fs from "node:fs";
 
 export const name = "랜딩 문구 — 근거 없는 수치·효과 단정 없음, 시간 '약 5분 내외'·무료 '첫 1회' 일치";
 
-const FILES = ["app/page.tsx", "lib/landing-content.ts", "components/LandingHero.tsx", "components/LandingMarquee.tsx", "components/ComparisonTable.tsx", "lib/support-chat-prompt.ts"];
+const FILES = ["app/create/result/page.tsx", "app/page.tsx", "lib/landing-content.ts", "components/LandingHero.tsx", "components/LandingMarquee.tsx", "components/ComparisonTable.tsx", "lib/support-chat-prompt.ts"];
 const BANNED: Array<[RegExp, string]> = [
   [/\$\s?0\.16/, "비교표 원가 $0.16"],
   [/3~7일/, "외주 소요일 수치"],
@@ -16,6 +16,8 @@ const BANNED: Array<[RegExp, string]> = [
   [/놓치는 주문|오늘의 매출|주문을\s*끊/, "매출·주문 효과 단정"],
   [/SELL FASTER/, "매출 효과 슬로건"],
   [/어떤 판매 채널/, "모든 채널 단정"],
+  [/표시광고 기준을 자동으로 검수/, "규제 준수 보장으로 읽히는 검수 문구"],
+  [/광고 기준 검수 완료|식약처 광고 기준이 적용/, "결과 화면의 규제 준수 단정"],
 ];
 
 export async function run(): Promise<string[]> {
@@ -29,5 +31,8 @@ export async function run(): Promise<string[]> {
   const table = fs.readFileSync("components/ComparisonTable.tsx", "utf8");
   const rows = table.slice(table.indexOf("const rows"), table.indexOf("];", table.indexOf("const rows")));
   if (/\d/.test(rows.replace(/\/\/.*$/gm, ""))) fails.push("비교표 행에 숫자가 있음");
+  // 429차: 식약처 점검 문구는 '참고용'·'판매자 책임'을 함께 말해야 한다
+  const lc = fs.readFileSync("lib/landing-content.ts", "utf8");
+  if (!/참고용으로 점검/.test(lc) || !/최종 표기 책임은 판매자/.test(lc)) fails.push("FAQ 규제 문구에 '참고용'·'판매자 책임'이 없음");
   return fails;
 }
