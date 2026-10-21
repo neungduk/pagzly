@@ -12,15 +12,15 @@ type Row = {
 const rows: Row[] = [
   {
     label: "진행 방식",
-    outsourcing: "디자이너에게 의뢰하고 시안과 수정을 주고받습니다",
-    template: "템플릿을 고른 뒤 사진과 문구를 직접 채웁니다",
-    pagzly: "사진과 상품 정보를 입력하면 자동으로 구성합니다",
+    outsourcing: "의뢰 후 시안·수정을 주고받음",
+    template: "템플릿에 직접 채움",
+    pagzly: "사진·정보 입력으로 자동 구성",
   },
   {
     label: "비용 구조",
-    outsourcing: "의뢰 범위와 조건에 따라 달라집니다",
-    template: "서비스별 구독료 (직접 편집 필요)",
-    pagzly: "토큰 차감 방식 (요금제 참고)",
+    outsourcing: "의뢰 조건에 따라 다름",
+    template: "구독료 (직접 편집 필요)",
+    pagzly: "토큰 차감 (요금제 참고)",
   },
   {
     label: "색·톤 매칭 방식",
@@ -30,14 +30,14 @@ const rows: Row[] = [
   },
   {
     label: "수정 방식",
-    outsourcing: "수정 요청을 전달해 반영받습니다",
+    outsourcing: "수정 요청을 전달",
     template: "직접 편집",
-    pagzly: "정보를 바꿔 다시 생성하거나 직접 편집",
+    pagzly: "정보 변경 후 재생성·직접 편집",
   },
 ];
 
 const cellClass = "px-3 py-5 align-top sm:px-5";
-const bodyTextClass = "font-mono text-[11px] leading-relaxed sm:text-sm";
+const bodyTextClass = "font-mono text-[11px] leading-relaxed break-keep sm:text-sm";
 
 function MinusCell({ children }: { children: string }) {
   return (
@@ -75,10 +75,10 @@ export default function ComparisonTable() {
                 <th className={`${cellClass} text-xs font-semibold text-ink/40 sm:text-sm`}>
                   <span className="sr-only">비교 항목</span>
                 </th>
-                <th className={`${cellClass} bg-white text-xs font-semibold text-ink sm:text-sm`}>
+                <th className={`${cellClass} bg-white text-xs font-semibold text-ink break-keep sm:text-sm`}>
                   디자인 외주
                 </th>
-                <th className={`${cellClass} bg-white text-xs font-semibold text-ink sm:text-sm`}>
+                <th className={`${cellClass} bg-white text-xs font-semibold text-ink break-keep sm:text-sm`}>
                   템플릿 툴
                 </th>
                 <th className={`${cellClass} bg-registration-red`}>
@@ -101,7 +101,7 @@ export default function ComparisonTable() {
                 >
                   <th
                     scope="row"
-                    className={`${cellClass} text-xs font-semibold text-ink sm:text-sm`}
+                    className={`${cellClass} text-xs font-semibold text-ink break-keep sm:text-sm`}
                   >
                     {row.label}
                   </th>
