@@ -173,7 +173,7 @@ import { infoAttr, infoColorsOf, infoCss, infoOn, ipAttr, splitLead, INFO_CHECK_
 import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
 import { applySectionDisplayBudget } from "@/lib/section-display-budget";
 import { comparisonPolicyRemovesChart } from "@/lib/comparison-policy";
-import { designV2Css, designV2On, designV2Typo, planBands, v2TitleOverrides } from "@/lib/design-v2";
+import { designV2ClassicFashionCap, designV2Css, designV2On, designV2Typo, planBands, v2TitleOverrides } from "@/lib/design-v2";
 import { buildPriceStrip, priceStripHtml } from "@/lib/price-strip";
 import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
 import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe";
@@ -2159,6 +2159,7 @@ export function buildDetailPageHtml(opts: {
   const v2Layout = beautyInfoLayout(getPackLayout(pack), opts.category);
   const v2Plan = designV2On(opts.category) ? planBands(visibleSections, v2Layout.info, opts.infoBackdrops, { buyCard: Boolean(v2Layout.beautyInfo) }) : undefined;
   const v2Typo = designV2Typo(opts.category, v2Layout.info);
+  const v2TitleOnly = designV2ClassicFashionCap(opts.category, isClassicPack(pack), v2Layout.info);
   const v2Strip = designV2On(opts.category) ? buildPriceStrip(visibleSections, opts.productName, opts.claimFacts) : null;
   const v2CssText = designV2Css({ scope: ".pagzly-wrap", colors: infoColorsOf(opts.theme), level: v2Layout.info, category: opts.category, beautyInfo: Boolean(v2Layout.beautyInfo), sections: visibleSections, backdrops: opts.infoBackdrops });
 
@@ -2392,7 +2393,7 @@ ${jsonLd}
   @media (max-width:639px){.pagzly-hl-row{display:grid!important;grid-template-columns:48px 1fr;column-gap:16px;row-gap:4px;align-items:start;text-align:left!important;padding:20px!important}.pagzly-hl-row>*{grid-column:2;margin-top:0!important;margin-bottom:0!important}.pagzly-hl-row>:first-child{grid-column:1;grid-row:1/span 4;display:block!important}}
   @media (min-width:640px){.pagzly-spec-grid tbody{display:grid;grid-template-columns:1fr 1fr;column-gap:32px}.pagzly-spec-grid tr{display:flex}.pagzly-spec-grid tr>:first-child{width:40%!important;flex-shrink:0}.pagzly-spec-grid tr>:last-child{flex:1}.pagzly-spec-grid tr:nth-last-child(2){border-bottom:none!important}}
   @media (min-width:640px){.pagzly-spec-thumbs{gap:16px!important}.pagzly-spec-thumb-m{width:96px!important;height:96px!important}.pagzly-spec-thumb-s{width:128px!important;height:128px!important}}
-  ${titleScaleExportCss(v2Typo ? v2TitleOverrides(packTitleScaleOverrides(pack)) : packTitleScaleOverrides(pack))}
+  ${titleScaleExportCss(v2Typo ? v2TitleOverrides(packTitleScaleOverrides(pack)) : v2TitleOnly ? v2TitleOverrides(packTitleScaleOverrides(pack), ["section"]) : packTitleScaleOverrides(pack))}
   ${v2CssText}
   @media (min-width:640px){.pagzly-usage{flex-direction:row!important;align-items:flex-start;gap:16px!important}.pagzly-usage-line{left:var(--pz-step-edge)!important;right:var(--pz-step-edge);bottom:auto!important;width:auto!important;height:1px}.pagzly-usage-step{flex:1;flex-direction:column;align-items:center!important;gap:12px!important;text-align:center}.pagzly-usage-step>div{flex:none!important;padding-top:0!important}.pagzly-usage-text{max-width:14rem;margin:0 auto}.pagzly-persona-pairs{grid-template-columns:repeat(2,1fr)!important}.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}.pagzly-hl-grid{grid-template-columns:var(--pz-hl-wide)!important}.pagzly-cl-grid{grid-template-columns:var(--pz-cl-wide)!important}.pagzly-step-rows{grid-template-columns:repeat(3,1fr)!important;gap:32px!important;margin-top:48px!important}.pagzly-step-pairs{gap:32px!important}.pagzly-step-row{display:block!important}.pagzly-step-row h3{margin-top:12px!important}.pagzly-step-row .pagzly-step-tag{margin-top:12px!important}.pagzly-step-row .pagzly-step-tag+h3{margin-top:0!important}.pagzly-step-row p,.pagzly-step-pairs p{font-size:14px!important}}
   .pagzly-wrap .pz-fit{font-size:max(min(var(--pz-fs),0.6875rem),min(var(--pz-fs),calc(100cqi / var(--pz-fit-em,0.01))))!important}

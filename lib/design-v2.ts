@@ -43,9 +43,9 @@ export const V2_TITLE_SCALE: TitleScaleOverrides = {
 const remOf = (v: string | undefined): number => (v && v.endsWith("rem") ? parseFloat(v) : NaN);
 
 /** 팩이 이미 구간 제목을 더 작게 잡았으면 그 값을 존중하고, 더 크면 상한으로 줄인다 */
-export function v2TitleOverrides(base: TitleScaleOverrides): TitleScaleOverrides {
+export function v2TitleOverrides(base: TitleScaleOverrides, only?: Array<keyof typeof V2_TITLE_SCALE>): TitleScaleOverrides {
   const out: TitleScaleOverrides = { ...base };
-  for (const key of Object.keys(V2_TITLE_SCALE) as Array<keyof typeof V2_TITLE_SCALE>) {
+  for (const key of (only ?? (Object.keys(V2_TITLE_SCALE) as Array<keyof typeof V2_TITLE_SCALE>))) {
     const cap = V2_TITLE_SCALE[key]!;
     const cur = base[key];
     const b = remOf(cur?.base), w = remOf(cur?.wide);
@@ -65,6 +65,13 @@ export const V2_TYPE = {
   statTopValue: 48,
   buyPrice: 44,
 } as const;
+
+/**
+ * 429차 — 패션 클래식(info calm)에도 구간 제목 크기 상한(28px)만 적용한다(굵기·막대 수치·그 밖의 요소는 기존 그대로).
+ * 428차: 411 큰 글줄/화면 2.2가 그대로였던 곳. 팩(모노·에디토리얼)·뷰티·비대상은 해당 없음(팩은 428차 규칙 또는 팩 자체 값).
+ */
+export const designV2ClassicFashionCap = (category: string | undefined | null, classicPack: boolean, info: InfoLevel | undefined, enabled: boolean = DESIGN_V2_ENABLED): boolean =>
+  designV2On(category, enabled) && category === "의류/패션" && classicPack && (!info || info === "calm");
 
 // ── 2-2 배경 띠 전환 상한 ────────────────────────────────────────────────────
 

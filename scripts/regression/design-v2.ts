@@ -7,7 +7,7 @@ import { buildDetailPageHtml } from "../../lib/export-detail-html";
 import { getCategoryTheme } from "../../lib/category-theme";
 import { contrastRatioToken } from "../../lib/design-tokens";
 import { infoColorsOf, infoCss } from "../../lib/info-style";
-import { V2_MAX_HARD_FLIPS, V2_TITLE_SCALE, designV2Css, designV2On, designV2Typo, planBands, v2Tint, v2TitleOverrides } from "../../lib/design-v2";
+import { designV2ClassicFashionCap, V2_MAX_HARD_FLIPS, V2_TITLE_SCALE, designV2Css, designV2On, designV2Typo, planBands, v2Tint, v2TitleOverrides } from "../../lib/design-v2";
 import { emphasisMarkerGradient } from "../../lib/body-emphasis";
 import { V2_MARKER, emphasisCss } from "../../lib/design-v2";
 import { ICON_HUE_OFFSETS_V2, iconHueOffset } from "../../lib/concept-icons";
@@ -165,6 +165,14 @@ export async function run(): Promise<string[]> {
     eq("비대상은 기존 표(±80°)", [iconHueOffset(1, "식품", true), iconHueOffset(8, "생활용품", true)], [-50, 80]);
     eq("flag off는 기존 표", [iconHueOffset(1, "화장품/뷰티", false), iconHueOffset(8, "의류/패션", false)], [-50, 80]);
     eq("순환", iconHueOffset(12, "화장품/뷰티", true), ICON_HUE_OFFSETS_V2[0]);
+  }
+  // ── 429차 패션 클래식(info calm): 구간 제목 상한만 ──
+  {
+    eq("패션 클래식 calm만 대상", [designV2ClassicFashionCap("의류/패션", true, "calm", true), designV2ClassicFashionCap("의류/패션", true, undefined, true), designV2ClassicFashionCap("의류/패션", false, "calm", true), designV2ClassicFashionCap("의류/패션", true, "bold", true), designV2ClassicFashionCap("화장품/뷰티", true, "calm", true), designV2ClassicFashionCap("의류/패션", true, "calm", false)], [true, true, false, false, false, false]);
+    const fx = buildDetailPageHtml({ productName: "p", brandName: "b", category: "의류/패션", sections: sections(), imageUrls: ["https://example.com/a.jpg"], theme: getCategoryTheme("의류/패션") });
+    if (!fx.includes("--pz-t-section:1.75rem")) fails.push("패션 클래식 export에 제목 상한 없음");
+    if (fx.includes("--pz-t-statNumber:2.5rem")) fails.push("패션 클래식에서 제목 외 크기(statNumber)까지 바뀜");
+    if (/\.pagzly-display-headline\{font-weight:700!important/.test(fx) || fx.includes('[data-info="steps"]')) fails.push("패션 클래식에 굵기·인포 규칙이 들어감");
   }
   return fails;
 }
