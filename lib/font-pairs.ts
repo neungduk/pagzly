@@ -17,13 +17,13 @@ const SYS = "system-ui, -apple-system, 'Malgun Gothic', 'Apple SD Gothic Neo', s
 /** key → public/fonts/<css>.css 와 font-family 이름 */
 export const FONT_FAMILIES: Record<FontFamilyKey, { css: string; name: string; display: boolean }> = {
   pretendard: { css: "pretendard", name: "Pretendard", display: false },
-  hahmlet: { css: "hahmlet", name: "Hahmlet", display: true },
+  hahmlet: { css: "hahmlet", name: "Hahmlet Variable", display: true },
   "gowun-batang": { css: "gowun-batang", name: "Gowun Batang", display: true },
   "black-han-sans": { css: "black-han-sans", name: "Black Han Sans", display: true },
   "do-hyeon": { css: "do-hyeon", name: "Do Hyeon", display: true },
   jua: { css: "jua", name: "Jua", display: true },
-  "playfair-display": { css: "playfair-display", name: "Playfair Display", display: false },
-  montserrat: { css: "montserrat", name: "Montserrat", display: false },
+  "playfair-display": { css: "playfair-display", name: "Playfair Display Variable", display: false },
+  montserrat: { css: "montserrat", name: "Montserrat Variable", display: false },
 };
 
 export type FontPairId =
