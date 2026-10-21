@@ -10,6 +10,7 @@ import type { DraftGenerateResponse } from "@/lib/types/generate";
 import { GENERATE_DELAYED_MESSAGE, readJsonResponse } from "@/lib/read-json-response";
 import type { UploadedImage } from "@/lib/photo-pipeline-client";
 import { MAX_PRODUCT_IMAGES, MIN_AI_USED_IMAGES } from "@/lib/assign-section-images";
+import { prepareUploadFile } from "@/lib/image-upload";
 import {
   defaultRoleForIndex,
   getUploadRoleGuide,
@@ -288,7 +289,9 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     const uploaded: UploadedImage[] = [];
     const uploadedAt = new Date().toISOString();
 
-    for (const file of files) {
+    for (const original of files) {
+      // 426차 W3: 업로드 전 재인코딩으로 EXIF·위치 정보 제거(실패하면 원본을 올리지 않고 오류)
+      const file = await prepareUploadFile(original);
       const ext = file.type === "image/png" ? "png" : "jpg";
       const path = `${userId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
 
@@ -323,8 +326,10 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     return uploaded;
   }
 
-  async function uploadAuxFile(file: File, prefix: string): Promise<string> {
+  async function uploadAuxFile(original: File, prefix: string): Promise<string> {
     const supabase = createClient();
+    // 426차 W3: 참조·로고·사용 사진 같은 이미지 보조 파일도 메타데이터 제거(엑셀·문서 등은 그대로)
+    const file = await prepareUploadFile(original);
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
     const path = `${userId}/aux/${prefix}-${Date.now()}-${crypto.randomUUID()}.${ext}`;
 

@@ -1,64 +1,54 @@
 import { NextResponse } from "next/server";
+import { PROXY_IMAGE_RULES, SlidingWindowLimiter, clientIpOf } from "@/lib/rate-limit";
+import { PROXY_MAX_BYTES, PROXY_TIMEOUT_MS, isAllowedImageType, isAllowedProxyUrl, readCapped } from "@/lib/proxy-image-policy";
 
-const ALLOWED_HOST_SUFFIXES = [
-  ".supabase.co",
-  ".replicate.delivery",
-  ".googleapis.com",
-];
-
-function isAllowedImageUrl(raw: string): boolean {
-  try {
-    const u = new URL(raw);
-    if (u.protocol !== "https:" && u.protocol !== "http:") return false;
-    const host = u.hostname.toLowerCase();
-    // 425차: 로컬 주소는 개발 환경에서만 허용(운영 서버가 자기 내부 주소를 대신 가져오지 않게)
-    if (host === "localhost" || host === "127.0.0.1") return process.env.NODE_ENV !== "production";
-    return ALLOWED_HOST_SUFFIXES.some(
-      (suffix) => host === suffix.slice(1) || host.endsWith(suffix),
-    );
-  } catch {
-    return false;
-  }
-}
+// 426차 W6: 무인증 프록시라 IP 단위 인메모리 제한(서버리스 1차 완충)과 호스트·타입·크기·시간 제한을 둔다. 정책은 lib/proxy-image-policy.ts
+const limiter = new SlidingWindowLimiter(PROXY_IMAGE_RULES);
 
 /**
  * 브라우저 CORS로 html-to-image가 이미지를 못 그릴 때 쓰는 same-origin 프록시.
  * GET /api/proxy-image?url=https%3A%2F%2F...
  */
 export async function GET(request: Request) {
+  const limited = limiter.check(clientIpOf(request.headers));
+  if (!limited.allowed) {
+    return NextResponse.json({ error: "too many requests" }, { status: 429, headers: { "Retry-After": String(limited.retryAfterSec) } });
+  }
   const url = new URL(request.url).searchParams.get("url");
-  if (!url || !isAllowedImageUrl(url)) {
+  if (!url || !isAllowedProxyUrl(url)) {
     return NextResponse.json({ error: "invalid url" }, { status: 400 });
   }
 
   try {
     const upstream = await fetch(url, {
-      headers: { Accept: "image/*,*/*" },
+      headers: { Accept: "image/*" },
       cache: "force-cache",
+      redirect: "error", // 허용 호스트 밖으로의 리다이렉트를 따라가지 않는다
+      signal: AbortSignal.timeout(PROXY_TIMEOUT_MS),
     });
     if (!upstream.ok) {
-      return NextResponse.json(
-        { error: `upstream ${upstream.status}` },
-        { status: 502 },
-      );
+      return NextResponse.json({ error: `upstream ${upstream.status}` }, { status: 502 });
     }
-    const contentType = upstream.headers.get("content-type") ?? "image/png";
-    if (!contentType.startsWith("image/") && !contentType.includes("octet-stream")) {
+    const contentType = upstream.headers.get("content-type");
+    if (!isAllowedImageType(contentType)) {
       return NextResponse.json({ error: "not an image" }, { status: 502 });
     }
-    const buffer = await upstream.arrayBuffer();
-    return new NextResponse(buffer, {
+    const declared = Number(upstream.headers.get("content-length"));
+    if (Number.isFinite(declared) && declared > PROXY_MAX_BYTES) {
+      return NextResponse.json({ error: "too large" }, { status: 413 });
+    }
+    const bytes = await readCapped(upstream.body, PROXY_MAX_BYTES);
+    if (!bytes) return NextResponse.json({ error: "too large" }, { status: 413 });
+    return new NextResponse(bytes as unknown as BodyInit, {
       status: 200,
       headers: {
-        "Content-Type": contentType.startsWith("image/")
-          ? contentType
-          : "image/png",
+        "Content-Type": contentType as string,
         "Cache-Control": "public, max-age=3600",
-        "Access-Control-Allow-Origin": "*",
+        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch (err) {
-    console.error("[proxy-image]", err);
+    console.error("[proxy-image]", err instanceof Error ? err.message : String(err));
     return NextResponse.json({ error: "fetch failed" }, { status: 502 });
   }
 }

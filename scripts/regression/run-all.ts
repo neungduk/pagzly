@@ -42,12 +42,13 @@ import * as sessionRoundtrip from "./session-roundtrip";
 import * as beautyQuickCards from "./beauty-quick-cards";
 import * as beautyAccent from "./beauty-accent";
 import * as usageGuard from "./usage-guard";
+import * as uploadSafety from "./upload-safety";
 import * as packStructure from "./pack-structure";
 import * as packContrast from "./pack-contrast";
 import * as flowStory from "./flow-story-after-photo";
 import * as packFinish from "./pack-finish";
 
-const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip, fashionSpecFallback, specRowCap, rhythmTokens, stylePacks, packLayout, heroVariants, flowPhotoFirst, galleryVariants, packStructure, packContrast, flowStory, packFinish, promptRules412, styleSpec, styleAxes, variants413, styleDirector, infoStyle, infoBackdrop, infoBackdropRun, photoTextMatch, beautyHeroTheme, visionCacheCalls, beautyInfo, sceneImages, sceneSize, sceneGen, numericClaimGate, sessionRoundtrip, beautyQuickCards, beautyAccent, usageGuard];
+const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip, fashionSpecFallback, specRowCap, rhythmTokens, stylePacks, packLayout, heroVariants, flowPhotoFirst, galleryVariants, packStructure, packContrast, flowStory, packFinish, promptRules412, styleSpec, styleAxes, variants413, styleDirector, infoStyle, infoBackdrop, infoBackdropRun, photoTextMatch, beautyHeroTheme, visionCacheCalls, beautyInfo, sceneImages, sceneSize, sceneGen, numericClaimGate, sessionRoundtrip, beautyQuickCards, beautyAccent, usageGuard, uploadSafety];
 
 async function main() {
   let failed = 0;

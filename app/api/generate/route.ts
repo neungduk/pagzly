@@ -68,7 +68,7 @@ import {
 import { formatConceptCopyBlock, generateConceptBrief } from "@/lib/concept-brief";
 import { generateConceptIcons, type ConceptIconMap } from "@/lib/concept-icons";
 import { shouldGenerateConceptIcons } from "@/lib/concept-icon-policy";
-import { fetchFileBuffer } from "@/lib/fetch-file-buffer";
+import { AUX_DOC_LIMITS, fetchFileBuffer } from "@/lib/fetch-file-buffer";
 import {
   analyzeReferenceImage,
   formatReferencePromptBlock,
@@ -685,7 +685,7 @@ async function loadAuxiliaryInputs(body: ProductInput): Promise<{
 
   if (body.reviewFileUrl && !body.reviewInsights) {
     try {
-      const buf = await fetchFileBuffer(body.reviewFileUrl);
+      const buf = await fetchFileBuffer(body.reviewFileUrl, { maxBytes: AUX_DOC_LIMITS.reviewMaxBytes, timeoutMs: AUX_DOC_LIMITS.timeoutMs, allowlistedHostOnly: true });
       const result = await extractReviewInsights(buf, inferReviewFileType(body.reviewFileUrl));
       enriched.reviewInsights = {
         commonPraises: result.commonPraises,
@@ -709,7 +709,7 @@ async function loadAuxiliaryInputs(body: ProductInput): Promise<{
 
   if (body.planningDocUrl && !body.planningDocText) {
     try {
-      const buf = await fetchFileBuffer(body.planningDocUrl);
+      const buf = await fetchFileBuffer(body.planningDocUrl, { maxBytes: AUX_DOC_LIMITS.planningMaxBytes, timeoutMs: AUX_DOC_LIMITS.timeoutMs, allowlistedHostOnly: true });
       const result = await extractPlanningDocText(
         buf,
         inferPlanningFileType(body.planningDocUrl),

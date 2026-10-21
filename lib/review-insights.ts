@@ -167,11 +167,15 @@ function calculateDeepSeekCost(usage: unknown): number {
   );
 }
 
+const XLSX_MAX_ROWS = 20_000;
+const XLSX_MAX_SHEETS = 5;
+
 /** xlsx 유효 행(셀 결합 후 길이≥4) 목록 */
 export function extractLinesFromXlsx(buffer: Buffer): string[] {
-  const workbook = XLSX.read(buffer, { type: "buffer" });
+  // 426차: 시트 5개·시트당 20000행까지만 읽는다(거대/악성 통합문서가 서버를 붙잡지 않게)
+  const workbook = XLSX.read(buffer, { type: "buffer", sheetRows: XLSX_MAX_ROWS, bookVBA: false });
   const chunks: string[] = [];
-  for (const sheetName of workbook.SheetNames) {
+  for (const sheetName of workbook.SheetNames.slice(0, XLSX_MAX_SHEETS)) {
     const sheet = workbook.Sheets[sheetName];
     const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" }) as unknown[][];
     for (const row of rows) {

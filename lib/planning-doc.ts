@@ -30,16 +30,19 @@ async function extractDocxText(buffer: Buffer): Promise<string> {
   return result.value ?? "";
 }
 
+/** 426차: 파서가 멈추거나 오래 걸리면 포기(빈 텍스트로 계속 진행). 파서는 취소되지 않고 결과만 버린다 */
+const PARSE_TIMEOUT_MS = 20_000;
+
 /** PDF/DOCX에서 순수 텍스트만 추출 */
 export async function extractPlanningDocText(
   fileBuffer: Buffer,
   fileType: "pdf" | "docx",
 ): Promise<PlanningDocResult> {
   try {
-    const raw =
-      fileType === "pdf"
-        ? await extractPdfText(fileBuffer)
-        : await extractDocxText(fileBuffer);
+    const raw = await Promise.race([
+      fileType === "pdf" ? extractPdfText(fileBuffer) : extractDocxText(fileBuffer),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("파싱 시간 초과")), PARSE_TIMEOUT_MS)),
+    ]);
     const text = samplePlanningText(raw);
     console.log(`[planning-doc] ${fileType} 추출 ${text.length}자`);
     return { text, cost: 0 };

@@ -40,7 +40,7 @@ import { FASHION, recommendForSession, STYLE_AUTO_ENABLED } from "@/lib/style-di
 import { computeDemotedSectionIndexes } from "@/lib/section-display-budget";
 import { captureDetailToPngBlobs, downloadBlob, prepareCaptureRoot } from "@/lib/capture-detail-png";
 import { DEFAULT_SLICE_HEIGHT_PX, downloadPngPartsZip } from "@/lib/split-detail-download";
-import { validateImageFile } from "@/lib/image-upload";
+import { prepareUploadFile, validateImageFile } from "@/lib/image-upload";
 import { computePreviewCollapseEnd } from "@/lib/detail-preview-collapse";
 import {
   buildGenerationPipelineSummary,
@@ -703,11 +703,13 @@ function CreateResultContent() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-      const ext = file.type === "image/png" ? "png" : "jpg";
+      // 426차 W3: 교체 사진도 메타데이터(위치 정보 등) 제거 후 업로드
+      const cleaned = await prepareUploadFile(file);
+      const ext = cleaned.type === "image/png" ? "png" : "jpg";
       const path = `${user.id}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from("images")
-        .upload(path, file, { contentType: file.type, upsert: false });
+        .upload(path, cleaned, { contentType: cleaned.type, upsert: false });
       if (uploadError) {
         setToast({ tone: "error", message: `업로드 실패: ${uploadError.message}` });
         return;

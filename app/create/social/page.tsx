@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import GeneratingOverlay, { type GeneratingStage, SNAP_HOLD_MS } from "@/components/GeneratingOverlay";
 import { createClient } from "@/lib/supabase";
+import { prepareUploadFile } from "@/lib/image-upload";
 import {
   SOCIAL_MINI_MAX_PHOTOS,
   SOCIAL_MINI_MIN_PHOTOS,
@@ -65,7 +66,9 @@ export default function CreateSocialPage() {
     const uploaded: UploadedImage[] = [];
     const uploadedAt = new Date().toISOString();
 
-    for (const file of files) {
+    for (const original of files) {
+      // 426차: 위치 정보(EXIF) 제거·크기 상한 재인코딩 후 업로드
+      const file = await prepareUploadFile(original);
       const ext = file.type === "image/png" ? "png" : "jpg";
       const path = `${uid}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
 
