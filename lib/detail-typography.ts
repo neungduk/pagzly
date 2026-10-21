@@ -14,13 +14,17 @@ export type HeadlineFontKind = "serif" | "sans-display";
 const SANS_FALLBACK =
   "'Noto Sans KR', system-ui, -apple-system, 'Malgun Gothic', sans-serif";
 
+/**
+ * 430차: 각 스택은 var(--pz-f-*, 기존 스택) 형태다. 디자인 V3 폰트가 켜지면 라이브·export가 같은 변수(lib/font-pairs fontPairCss)를 세워 새 조합이 적용되고,
+ * 변수가 없으면(플래그 off·다른 문서) 기존 Noto 스택 그대로라 429차와 같은 글꼴이다.
+ */
 export const DETAIL_FONT_STACK = {
-  sans: SANS_FALLBACK,
+  sans: `var(--pz-f-body, ${SANS_FALLBACK})`,
   /** @deprecated 카테고리 무관 기본 — resolveHeadlineFontStack 사용 */
-  heading: SANS_FALLBACK,
-  label: "'Noto Sans KR', system-ui, sans-serif",
-  serifHeadline: `'Noto Serif KR', ${SANS_FALLBACK}`,
-  sansDisplayHeadline: SANS_FALLBACK,
+  heading: `var(--pz-f-label, ${SANS_FALLBACK})`,
+  label: "var(--pz-f-label, 'Noto Sans KR', system-ui, sans-serif)",
+  serifHeadline: `var(--pz-f-title, 'Noto Serif KR', ${SANS_FALLBACK})`,
+  sansDisplayHeadline: `var(--pz-f-title, ${SANS_FALLBACK})`,
 } as const;
 
 /** Google Fonts — Sans + Serif, display=swap */

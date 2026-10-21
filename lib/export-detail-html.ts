@@ -175,6 +175,7 @@ import { applySectionDisplayBudget } from "@/lib/section-display-budget";
 import { comparisonPolicyRemovesChart } from "@/lib/comparison-policy";
 import { designV2ClassicFashionCap, designV2Css, designV2On, designV2Typo, planBands, v2TitleOverrides } from "@/lib/design-v2";
 import { buildPriceStrip, priceStripHtml } from "@/lib/price-strip";
+import { DESIGN_V3_FONTS_ENABLED, fontLinkHrefs, fontOrigin, fontPairCss, pickFontPair } from "@/lib/font-pairs";
 import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
 import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe";
 import {
@@ -2159,6 +2160,9 @@ export function buildDetailPageHtml(opts: {
   const v2Layout = beautyInfoLayout(getPackLayout(pack), opts.category);
   const v2Plan = designV2On(opts.category) ? planBands(visibleSections, v2Layout.info, opts.infoBackdrops, { buyCard: Boolean(v2Layout.beautyInfo) }) : undefined;
   const v2Typo = designV2Typo(opts.category, v2Layout.info);
+  // 430차 — 디자인 V3 폰트(라이브와 같은 조합 선택·같은 CSS). 켜면 Google Fonts 링크 대신 같은 출처 /fonts/*.css
+  const v3Pair = DESIGN_V3_FONTS_ENABLED ? pickFontPair({ category: opts.category, packHeadline: pack.headline ? { kind: pack.headline.kind, weight: pack.headline.weight } : null, productName: opts.productName, brandName: opts.brandName }) : null;
+  const v3Links = v3Pair ? fontLinkHrefs(v3Pair, fontOrigin()).map((h) => `<link rel="stylesheet" href="${esc(h)}"/>`).join("\n") : "";
   const v2TitleOnly = designV2ClassicFashionCap(opts.category, isClassicPack(pack), v2Layout.info);
   const v2Strip = designV2On(opts.category) ? buildPriceStrip(visibleSections, opts.productName, opts.claimFacts) : null;
   const v2CssText = designV2Css({ scope: ".pagzly-wrap", colors: infoColorsOf(opts.theme), level: v2Layout.info, category: opts.category, beautyInfo: Boolean(v2Layout.beautyInfo), sections: visibleSections, backdrops: opts.infoBackdrops });
@@ -2352,9 +2356,9 @@ export function buildDetailPageHtml(opts: {
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="description" content="${esc(metaDesc)}"/>
 <title>${esc(opts.productName)} — 상세페이지</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
+${v3Pair ? v3Links : `<link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link rel="stylesheet" href="${DETAIL_GOOGLE_FONTS_URL}"/>
+<link rel="stylesheet" href="${DETAIL_GOOGLE_FONTS_URL}"/>`}
 ${jsonLd}
 <style>
   *{box-sizing:border-box}
@@ -2395,6 +2399,7 @@ ${jsonLd}
   @media (min-width:640px){.pagzly-spec-thumbs{gap:16px!important}.pagzly-spec-thumb-m{width:96px!important;height:96px!important}.pagzly-spec-thumb-s{width:128px!important;height:128px!important}}
   ${titleScaleExportCss(v2Typo ? v2TitleOverrides(packTitleScaleOverrides(pack)) : v2TitleOnly ? v2TitleOverrides(packTitleScaleOverrides(pack), ["section"]) : packTitleScaleOverrides(pack))}
   ${v2CssText}
+  ${v3Pair ? fontPairCss(".pagzly-wrap", v3Pair) : ""}
   @media (min-width:640px){.pagzly-usage{flex-direction:row!important;align-items:flex-start;gap:16px!important}.pagzly-usage-line{left:var(--pz-step-edge)!important;right:var(--pz-step-edge);bottom:auto!important;width:auto!important;height:1px}.pagzly-usage-step{flex:1;flex-direction:column;align-items:center!important;gap:12px!important;text-align:center}.pagzly-usage-step>div{flex:none!important;padding-top:0!important}.pagzly-usage-text{max-width:14rem;margin:0 auto}.pagzly-persona-pairs{grid-template-columns:repeat(2,1fr)!important}.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}.pagzly-hl-grid{grid-template-columns:var(--pz-hl-wide)!important}.pagzly-cl-grid{grid-template-columns:var(--pz-cl-wide)!important}.pagzly-step-rows{grid-template-columns:repeat(3,1fr)!important;gap:32px!important;margin-top:48px!important}.pagzly-step-pairs{gap:32px!important}.pagzly-step-row{display:block!important}.pagzly-step-row h3{margin-top:12px!important}.pagzly-step-row .pagzly-step-tag{margin-top:12px!important}.pagzly-step-row .pagzly-step-tag+h3{margin-top:0!important}.pagzly-step-row p,.pagzly-step-pairs p{font-size:14px!important}}
   .pagzly-wrap .pz-fit{font-size:max(min(var(--pz-fs),0.6875rem),min(var(--pz-fs),calc(100cqi / var(--pz-fit-em,0.01))))!important}
   .pagzly-anchor-nav a{scroll-margin-top:52px}

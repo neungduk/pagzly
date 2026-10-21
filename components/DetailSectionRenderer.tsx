@@ -148,6 +148,7 @@ import type { InfoBackdropMap } from "@/lib/info-backdrop";
 import { beautyData, beautyInfoCss, beautyInfoLayout, beautyIp } from "@/lib/beauty-style";
 import { designV2ClassicFashionCap, designV2Css, designV2On, designV2Typo, planBands, v2TitleOverrides } from "@/lib/design-v2";
 import { buildPriceStrip } from "@/lib/price-strip";
+import { DESIGN_V3_FONTS_ENABLED, fontLinkHrefs, fontPairCss, pickFontPair } from "@/lib/font-pairs";
 import { SCENE_NOTICE, safeSceneUrl, type SceneImageMap } from "@/lib/scene-images";
 import { infoColorsOf, infoCss, infoData, infoOn, ipData, splitLead, INFO_CHECK_SVG } from "@/lib/info-style";
 import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
@@ -5916,6 +5917,8 @@ export default function DetailSectionRenderer({
   const pack = resolveStylePack(category, stylePackId);
   const packLayout = beautyInfoLayout(getPackLayout(pack), category);
   const v2On = designV2On(category);
+  // 430차 — 디자인 V3 폰트 조합(전 카테고리, 같은 입력 → 같은 세트)
+  const fontPair = DESIGN_V3_FONTS_ENABLED ? pickFontPair({ category, packHeadline: pack.headline ? { kind: pack.headline.kind, weight: pack.headline.weight } : null, productName, brandName }) : null;
   const v2Typo = designV2Typo(category, packLayout.info);
   const v2TitleOnly = designV2ClassicFashionCap(category, isClassicPack(pack), packLayout.info);
   const display = applyDisplayRules(inputSections, imageUrls, {
@@ -5999,6 +6002,7 @@ export default function DetailSectionRenderer({
       data-pz-pack={isClassicPack(pack) ? undefined : pack.id}
       data-pz-info={packLayout.beautyInfo ? "1" : undefined}
       data-pz-v2={v2On ? "1" : undefined}
+      data-pz-v3={fontPair?.id}
       style={packRootStyle(category, pack, v2Typo, v2TitleOnly) as CSSProperties}
     >
       {isClassicPack(pack) ? (
@@ -6007,6 +6011,14 @@ export default function DetailSectionRenderer({
         <style>{packStructureCss(packLayout, "[data-pz-pack]", "live") + infoCss(packLayout.info, "[data-pz-pack]", infoColorsOf(baseTheme), infoBackdrops, { demote: v2Plan?.demoted })}</style>
       )}
       {v2Css ? <style>{v2Css}</style> : null}
+      {fontPair ? (
+        <>
+          {fontLinkHrefs(fontPair).map((href) => (
+            <link key={href} rel="stylesheet" href={href} precedence="default" />
+          ))}
+          <style>{fontPairCss("[data-pz-v3]", fontPair)}</style>
+        </>
+      ) : null}
       {sectionAnchors.length > 0 && !anchorNavAfterHero ? (
         <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} variant={packLayout.anchor} />
       ) : null}

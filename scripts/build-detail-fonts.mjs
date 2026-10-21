@@ -19,11 +19,14 @@ function blocks(css) {
 }
 const keep = (c) => !/cyrillic|greek|vietnamese|math|symbols/i.test(c);
 
-const lines = [];
+/** 패밀리 CSS 파일(slug.css) → 줄 목록. 상세페이지는 고른 폰트 조합의 파일만 링크한다(전체 CSS는 수백 KB라 한 파일로 싣지 않는다) */
+const cssBySlug = new Map();
 let bytes = 0;
 const families = [];
 
-function addFamily(dirName, family, entries) {
+function addFamily(dirName, family, entries, slug = dirName.replace(/-(400|700)$/, "")) {
+  const lines = cssBySlug.get(slug) ?? [];
+  cssBySlug.set(slug, lines);
   const dest = path.join(out, dirName);
   fs.mkdirSync(dest, { recursive: true });
   let n = 0;
@@ -51,7 +54,7 @@ function addFamily(dirName, family, entries) {
   addFamily("pretendard", "Pretendard", [{
     css: path.join(base, "pretendard-dynamic-subset.css"),
     base,
-    filter: (b) => /font-weight:\s*(400|500|600|700|800)\b/.test(b.body),
+    filter: (b) => /font-weight:\s*(400|500|700|800)\b/.test(b.body),
   }]);
 }
 // 한글 디스플레이·명조(가변 또는 정적)
@@ -69,6 +72,6 @@ const header = `/* Pagzly 상세페이지 폰트(셀프 호스팅, 전부 SIL Op
  * Pretendard © Kil Hyung-jin · Hahmlet © The Hahmlet Project Authors · Gowun Batang © The Gowun Batang Project Authors · Black Han Sans © The Black Han Sans Project Authors
  * Do Hyeon © The Do Hyeon Project Authors · Jua © The BM JUA Project Authors · Playfair Display © The Playfair Display Project Authors · Montserrat © The Montserrat Project Authors
  * 라이선스 원문: review/430-font-licenses.md 에 정리, 각 npm 패키지의 LICENSE. build-detail-fonts.mjs 가 생성한 파일이라 직접 수정하지 않는다. */\n`;
-fs.writeFileSync(path.join(out, "detail-fonts.css"), header + lines.join("\n"));
+for (const [slug, lines] of cssBySlug) fs.writeFileSync(path.join(out, `${slug}.css`), header + lines.join("\n"));
 fs.writeFileSync(path.join(out, "manifest.json"), JSON.stringify({ families, totalMB: +(bytes / 1048576).toFixed(1) }, null, 1));
 console.log(`[fonts] ${families.map((f) => `${f.family}(${f.files})`).join(" ")} · ${(bytes / 1048576).toFixed(1)}MB → public/fonts`);
