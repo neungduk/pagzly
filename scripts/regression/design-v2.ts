@@ -8,6 +8,8 @@ import { getCategoryTheme } from "../../lib/category-theme";
 import { contrastRatioToken } from "../../lib/design-tokens";
 import { infoColorsOf, infoCss } from "../../lib/info-style";
 import { V2_MAX_HARD_FLIPS, V2_TITLE_SCALE, designV2Css, designV2On, designV2Typo, planBands, v2Tint, v2TitleOverrides } from "../../lib/design-v2";
+import { emphasisMarkerGradient } from "../../lib/body-emphasis";
+import { V2_MARKER, emphasisCss } from "../../lib/design-v2";
 import type { DetailSection } from "../../lib/types/generate";
 
 export const name = "디자인 V2 — 플래그·대상·타이포 상한·하드 면 예산·틴트 대비·export 안전 CSS·라이브/export 동일";
@@ -95,5 +97,21 @@ export async function run(): Promise<string[]> {
   if (!html.includes("--pz-t-section:1.75rem")) fails.push("export 제목 스케일에 상한이 반영되지 않음");
   const nonTarget = mk("식품");
   if (nonTarget.includes("--pz-t-section:1.75rem") || nonTarget.includes('[data-info="steps"]{background:linear-gradient')) fails.push("비대상 카테고리 export가 바뀜");
+
+  // ── 2-3 강조 연출: 기존 라벨·구절에만 스타일, 새 요소·문구 없음, 칩 상한 ──
+  {
+    const marker = emphasisMarkerGradient("#20547E");
+    const sel = emphasisCss("[data-pz-v2]", colors, false);
+    if (!sel.includes('strong[style*="linear-gradient(transparent 60%"]')) fails.push("마커 선택자 없음");
+    if (!marker.includes("linear-gradient(transparent 60%")) fails.push("기존 마커 값이 선택자와 맞지 않음(body-emphasis 변경 확인)");
+    if (!sel.includes(`${V2_MARKER.alpha}`)) fails.push("마커 진하기 상수 미반영");
+    eq("calm: 칩·배지 없음", [sel.includes("steps"), sel.includes("statnum")], [false, false]);
+    const on = emphasisCss("[data-pz-v2]", colors, true);
+    eq("인포: STEP 칩·수치 배지", [on.includes('[data-info="steps"] ol>li>div:last-child>p'), on.includes('[data-info="statnum"]>div>div>:first-child')], [true, true]);
+    // 칩 상한: 칩은 사용 단계 라벨뿐(마크업을 늘리지 않으므로 단계 수 이하)
+    if (/content:/.test(on)) fails.push("강조 CSS가 새 문구(content)를 만듦");
+    // 배지 글자 대비: 흰 글자 on 포인트색 4.5 이상
+    if (contrastRatioToken(colors.paper, colors.accent) < 4.5) fails.push("수치 배지 대비 < 4.5");
+  }
   return fails;
 }

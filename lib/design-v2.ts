@@ -6,6 +6,7 @@
  * 이 파일의 내용
  *  2-1 타이포 밀도: 큰 제목 크기·굵기 상한(제목 스케일 변수 덮어쓰기 + 인포 구간 큰 글자 축소) — 화면당 큰 글줄 수를 줄인다.
  *  2-2 배경 띠 전환 상한: 하드 색 면(진한/포인트색 채움) 반전을 페이지당 6회 이내로 두고, 나머지 인포 구간은 연한 틴트 그라데이션으로 바꾼다.
+ *  2-3 강조 연출: 라벨 칩(STEP·포인트 번호)·형광펜 마커(핵심 구절 아래 40%)·큰 수치 배지 — 새 문구 없이 기존 라벨·본문 구절·입력 수치에만 스타일을 입힌다.
  */
 import type { InfoColors, InfoLevel } from "@/lib/info-style";
 import type { InfoBackdropMap, InfoZone } from "@/lib/info-backdrop";
@@ -120,6 +121,34 @@ const rule = (sel: string, decl: string) => `${sel}{${decl.split(";").filter(Boo
 /** 연한 틴트 그라데이션: 위는 흰색(앞 섹션과 부드럽게 이어짐), 아래는 틴트 */
 const tintGradient = (c: InfoColors, strength = 0.5) => `linear-gradient(180deg,#FFFFFF 0%,${v2Tint(c, strength)} 100%)`;
 
+/** #RRGGBB → "r,g,b" */
+const rgbOf = (hex: string): string => {
+  const n = parseInt(hex.replace("#", "").slice(0, 6), 16);
+  return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
+};
+
+/** 형광펜 마커 상수: 본문 핵심 구절(생성 카피의 emphasis·수치 구절, lib/body-emphasis)의 아래쪽 48%를 포인트색 36%로 */
+export const V2_MARKER = { fromPct: 52, alpha: 0.36 } as const;
+
+/**
+ * 2-3 강조 연출(CSS만, 새 문구·새 요소 없음).
+ *  ① 라벨 칩 — 사용 단계의 "STEP 01" 라벨(기존 문구)을 포인트색 알약으로(단계 수 = 페이지당 최대 칩 수, 3~4개). POINT 알약은 이미 채움 알약이라 그대로.
+ *  ② 형광펜 마커 — 기존 emphasis 구절(섹션당 1개)의 마커를 더 진하고 두껍게. 인라인 style의 linear-gradient(transparent 60%…)를 속성 선택자로 덮는다(라이브·export 같은 값).
+ *  ③ 큰 수치 배지 — 숫자 칸(사이즈 종수·용량 등 입력 수치가 들어간 statnum 구간)의 숫자를 포인트색 알약 배지로. 숫자는 424차 숫자 게이트를 통과한 값만 화면에 있다.
+ */
+export function emphasisCss(S: string, c: InfoColors, info: boolean): string {
+  const out: string[] = [];
+  out.push(rule(`${S} strong[style*="linear-gradient(transparent 60%"]`, `background-image:linear-gradient(transparent ${V2_MARKER.fromPct}%,rgba(${rgbOf(c.accent)},${V2_MARKER.alpha}) ${V2_MARKER.fromPct}%);border-radius:2px`));
+  if (info) {
+    const st = `${S} [data-info="steps"] ol>li>div:last-child>p`;
+    out.push(rule(st, `display:inline-block;margin:0 0 8px;padding:4px 12px;border-radius:999px;background:${c.accent};color:${c.paper};font-size:12px;font-weight:700;letter-spacing:0.14em`));
+    const sn = `${S} [data-info="statnum"]>div>div>:first-child`;
+    out.push(rule(sn, `display:inline-block;padding:6px 18px;border-radius:999px;background:${c.accent};color:${c.paper}`));
+    out.push(rule(`${sn},${sn} *`, `color:${c.paper}`));
+  }
+  return out.join("");
+}
+
 export type V2CssOpts = {
   scope: string;
   colors: InfoColors;
@@ -173,6 +202,7 @@ export function designV2Css(o: V2CssOpts): string {
       out.push(rule(`${S} [data-hero-caption]`, `background:${tintGradient(c, 0.6)}`));
     }
   }
+  out.push(emphasisCss(S, c, Boolean(info)));
   return out.join("");
 }
 
