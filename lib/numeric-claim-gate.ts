@@ -14,6 +14,7 @@
  * 건드리지 않는 섹션: 상품 정보 표·배송 표·주의·가격 CTA·AI 고지·증빙(입력·법정 문구가 그대로 담기는 곳).
  */
 import type { DetailSection } from "@/lib/types/generate";
+import { normalizeComparisonRows, type ComparisonRow } from "@/lib/comparison-input";
 
 /** 기본 켬. 운영 중 오탐이 보이면 NEXT_PUBLIC_NUMERIC_GATE=off로 서버를 시작해 끈다(출력이 게이트 도입 전과 같아진다) */
 export const NUMERIC_GATE_ENABLED = process.env.NEXT_PUBLIC_NUMERIC_GATE !== "off";
@@ -27,6 +28,20 @@ export type ClaimFacts = {
   counts: Set<number>;
   /** 히어로 제목 대체용(입력 상품명) */
   productName: string;
+  /** 427차 — 비교 정책·백필이 쓰는 입력 원문(새 사실을 만들지 않기 위해 판매자가 넣은 값만 담는다) */
+  source: ClaimSource;
+};
+
+export type ClaimSource = {
+  /** 판매자가 직접 입력한 비교 행(2행 이상일 때만 비교표가 나온다) */
+  comparisonRows: ComparisonRow[];
+  ingredients: string;
+  targetCustomer: string;
+  keyFeatures: string;
+  /** 업로드한 리뷰에서 뽑은 장점·아쉬운 점 */
+  praises: string[];
+  complaints: string[];
+  reviewLineCount: number;
 };
 
 export type ClaimInput = {
@@ -42,6 +57,8 @@ export type ClaimInput = {
   wholesaleUrl?: string | null;
   reviewInsights?: unknown;
   planningDocText?: string | null;
+  /** 427차 — 판매자 비교 입력(lib/comparison-input) */
+  comparisonRows?: unknown;
 };
 
 export type ClaimViolation = {
@@ -88,7 +105,20 @@ export function buildClaimFacts(input: ClaimInput): ClaimFacts {
     const a = order.indexOf(m[1]!), b = order.indexOf(m[2]!);
     if (a >= 0 && b > a) counts.add(b - a + 1);
   }
-  return { numbers, hangul, counts, productName: (input.productName ?? "").trim() };
+  const ri = (input.reviewInsights && typeof input.reviewInsights === "object" ? input.reviewInsights : {}) as { commonPraises?: unknown; commonComplaints?: unknown; reviewLineCount?: unknown };
+  const strs = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.trim().length > 0).map((x) => x.trim()) : []);
+  const source: ClaimSource = {
+    comparisonRows: normalizeComparisonRows(input.comparisonRows),
+    ingredients: (input.ingredients ?? "").trim(),
+    targetCustomer: (input.targetCustomer ?? "").trim(),
+    keyFeatures: (input.keyFeatures ?? "").trim(),
+    praises: strs(ri.commonPraises),
+    complaints: strs(ri.commonComplaints),
+    reviewLineCount: typeof ri.reviewLineCount === "number" ? ri.reviewLineCount : 0,
+  };
+  // 비교 입력 값도 판매자가 쓴 사실이므로 숫자 허용 집합에 넣는다
+  for (const r of source.comparisonRows) for (const m of `${r.label} ${r.ours} ${r.other}`.matchAll(NUM_RE)) numbers.add(norm(m[0]));
+  return { numbers, hangul, counts, productName: (input.productName ?? "").trim(), source };
 }
 
 // ── 텍스트 검사 ──
@@ -132,13 +162,17 @@ export function checkText(text: string, facts: ClaimFacts, sectionCounts: Readon
 const SENT_SPLIT = /(?<=[.!?。…])\s+/;
 /** 위반 문장만 지운다. 문단(\n) 구조는 유지, 모두 지워지면 빈 문자열 */
 export function stripViolatingSentences(text: string, facts: ClaimFacts, sectionCounts: ReadonlySet<number>): { text: string; removed: string[] } {
+  return stripSentencesBy(text, (sentence) => checkText(sentence, facts, sectionCounts).bad);
+}
+
+/** 427차 — 문장 단위 삭제의 일반형: bad(문장)이 true인 문장을 지운다(비교 정책 등 다른 규칙이 같은 도구를 쓴다) */
+export function stripSentencesBy(text: string, bad: (sentence: string) => boolean): { text: string; removed: string[] } {
   const removed: string[] = [];
   const paras = text.split(/(\n+)/);
   const out = paras.map((p) => {
     if (/^\n+$/.test(p)) return p;
     const kept = p.split(SENT_SPLIT).filter((s) => {
-      const v = checkText(s, facts, sectionCounts);
-      if (v.bad) { removed.push(s); return false; }
+      if (bad(s)) { removed.push(s); return false; }
       return true;
     });
     return kept.join(" ");
@@ -186,21 +220,21 @@ function sectionCountsOf(s: AnyObj): Set<number> {
 /** 라벨만 남은 항목("단추 여밈:")은 내용 없음으로 본다 */
 const labelOnly = (t: string) => /[:：]\s*$/.test(t.trim()) || t.trim().length < 2;
 
-type Ctx = { facts: ClaimFacts; index: number; type: string; counts: Set<number>; violations: ClaimViolation[] };
+type Ctx = { facts: ClaimFacts; index: number; type: string; counts: Set<number>; violations: ClaimViolation[]; /** 427차: 숫자 검사 대신 쓰는 문장 규칙(비교 정책). 없으면 숫자 게이트 */ textRule?: (text: string) => boolean };
 const record = (c: Ctx, path: string, text: string, tokens: string[], action: ClaimViolation["action"]) => c.violations.push({ index: c.index, type: c.type, path, text: text.slice(0, 120), tokens, action });
 
 /** 문자열 하나: 위반 없으면 그대로, 있으면 문장 삭제(제목은 사전 대체) */
 function cleanString(c: Ctx, key: string, path: string, text: string): string {
   // "세 가지 …"처럼 섹션 항목 수를 말하는 건 제목·강조 문구뿐이다. 본문·단계 문장의 "두 개"는 항목 수가 아니다
   const counts = COUNT_KEYS.has(key) ? c.counts : NO_COUNTS;
-  const v = checkText(text, c.facts, counts);
+  const v = c.textRule ? { bad: c.textRule(text), tokens: [] as string[] } : checkText(text, c.facts, counts);
   if (!v.bad) return text;
   if (HEADING_KEYS.has(key)) {
     const fallback = c.type === "hero" ? c.facts.productName || "" : SAFE_HEADING[c.type] ?? "";
     record(c, path, text, v.tokens, "heading_replaced");
     return fallback;
   }
-  const r = stripViolatingSentences(text, c.facts, counts);
+  const r = c.textRule ? stripSentencesBy(text, c.textRule) : stripViolatingSentences(text, c.facts, counts);
   record(c, path, text, v.tokens, r.text ? "sentence_removed" : "field_cleared");
   return r.text;
 }
@@ -270,7 +304,7 @@ function cleanChart(c: Ctx, s: AnyObj): AnyObj | null {
 }
 
 /** 처리 후 섹션이 비었는지(핵심 항목이 없는지) */
-function isEmptySection(type: string, s: AnyObj): boolean {
+export function isEmptySection(type: string, s: AnyObj): boolean {
   const len = (k: string) => (Array.isArray(s[k]) ? (s[k] as unknown[]).length : 0);
   const has = (k: string) => typeof s[k] === "string" && (s[k] as string).trim().length > 0;
   switch (type) {
@@ -299,6 +333,15 @@ export type NumericGateResult = {
 };
 
 export function numericClaimGate(sections: DetailSection[], facts: ClaimFacts): NumericGateResult {
+  return runSectionClean(sections, facts, undefined);
+}
+
+/** 427차 — 섹션 문장 정리 일반형. textRule이 있으면 숫자 대신 그 규칙으로 문장을 지운다(차트 변환은 숫자 게이트 전용) */
+export function cleanSectionsByRule(sections: DetailSection[], facts: ClaimFacts, textRule: (text: string) => boolean): NumericGateResult {
+  return runSectionClean(sections, facts, textRule);
+}
+
+function runSectionClean(sections: DetailSection[], facts: ClaimFacts, textRule: ((text: string) => boolean) | undefined): NumericGateResult {
   const out: DetailSection[] = [];
   const keptIndexes: number[] = [];
   const violations: ClaimViolation[] = [];
@@ -306,9 +349,9 @@ export function numericClaimGate(sections: DetailSection[], facts: ClaimFacts): 
     const s = section as unknown as AnyObj;
     const type = String(s.type);
     if (SKIP_TYPES.has(type)) { out.push(section); keptIndexes.push(index); return; }
-    const ctx: Ctx = { facts, index, type, counts: sectionCountsOf(s), violations };
+    const ctx: Ctx = { facts, index, type, counts: sectionCountsOf(s), violations, textRule };
     let cleaned: AnyObj | null;
-    if (type === "comparison_chart") cleaned = cleanChart(ctx, s);
+    if (type === "comparison_chart" && !textRule) cleaned = cleanChart(ctx, s);
     else cleaned = cleanObject(ctx, "", s) ?? { ...s };
     // 문장 일부가 지워져 본문과 강조 문구가 어긋나면 강조를 뺀다
     if (cleaned && typeof cleaned.body === "string") {

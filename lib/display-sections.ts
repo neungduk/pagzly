@@ -9,11 +9,15 @@ import type { FlowVariant } from "@/lib/style-packs";
 import { insertCompositionGallery, matchPhotosToText, personaChipAllow } from "@/lib/photo-text-match";
 import { insertSceneSlots, type SceneImageMap } from "@/lib/scene-images";
 import { NUMERIC_GATE_ENABLED, numericClaimGate, type ClaimFacts } from "@/lib/numeric-claim-gate";
+import { COMPARISON_POLICY_ENABLED, applyComparisonPolicy, type PolicyChange } from "@/lib/comparison-policy";
+import { backfillPhotoGallery } from "@/lib/section-backfill";
 
 export type DisplaySections = {
   sections: DetailSection[];
   /** sourceIndexes[i] = 표시 i번째 섹션의 입력 인덱스 (편집 콜백을 원본 위치로 되돌릴 때) */
   sourceIndexes: number[];
+  /** 427차 — 비교 정책이 한 일(제거·문장 삭제·판매자 표·대체·사진 갤러리). 보고·검증용, 렌더에는 쓰지 않는다 */
+  policyChanges?: PolicyChange[];
 };
 
 const DANGLING_TAIL = /[\s,，、·;:\-–—]+$/u;
@@ -287,11 +291,15 @@ export function applyDisplayRules(
     sceneImages?: SceneImageMap;
   } & StripImageHints = {},
 ): DisplaySections {
+  // 427차 — 비교 정책: 판매자가 비교 데이터를 넣지 않았으면 비교 차트·표를 빼고 입력 근거가 있는 섹션으로 채운다(편집 모드·claimFacts 없음은 그대로)
+  const policy = COMPARISON_POLICY_ENABLED && opts.claimFacts && !opts.editing ? applyComparisonPolicy(sectionsInput, opts.claimFacts, { category: opts.category, imageCount: imageUrls.length }) : null;
+  const gateInput = policy ? policy.sections : sectionsInput;
   // 424차 — 숫자 주장 코드 게이트: 입력에 없는 수치·빈도·시간 문구를 지운다(편집 모드는 원문 그대로). 위반이 없으면 원본 배열을 그대로 쓴다
-  const gate = NUMERIC_GATE_ENABLED && opts.claimFacts && !opts.editing ? numericClaimGate(sectionsInput, opts.claimFacts) : null;
+  const gate = NUMERIC_GATE_ENABLED && opts.claimFacts && !opts.editing ? numericClaimGate(gateInput, opts.claimFacts) : null;
   const gated = gate !== null && gate.violations.length > 0;
-  const sections = gated ? gate.sections : sectionsInput;
-  const keptMap = gated ? gate.keptIndexes : null;
+  const sections = gated ? gate.sections : gateInput;
+  // 표시 번호 → 입력 번호: 게이트가 뺀 섹션과 정책이 끼운·뺀 섹션을 차례로 되돌린다
+  const keptMap = gated || policy ? (i: number) => { const a = gated ? gate.keptIndexes[i] ?? i : i; return policy ? policy.sourceIndexes[a] ?? a : a; } : null;
   const ordered = storyAfterPhotoFlow(
     photoLeadFlow(
       photoFirstFlow(
@@ -331,5 +339,11 @@ export function applyDisplayRules(
   // 419차 — 상자 컷이 있을 때만 뷰티 구성 갤러리(표시 전용, 편집 모드 아님)
   const withComposition = insertCompositionGallery(finalSections, finalSources, imageUrls.length, photoCtx);
   const withScenes = insertSceneSlots(withComposition.sections, withComposition.sourceIndexes, opts.sceneImages, opts.category);
-  return { sections: withScenes.sections, sourceIndexes: keptMap ? withScenes.sourceIndexes.map((i) => keptMap[i] ?? i) : withScenes.sourceIndexes };
+  // 427차 — 비교 차트 자리를 텍스트 근거로 못 채웠으면, 어떤 섹션도 쓰지 않은 사진이 2장 이상일 때만 갤러리로 채운다(뷰티 태그가 있으면 정면·근접 컷만)
+  const photo = policy?.pendingPhotos
+    ? backfillPhotoGallery(withScenes.sections, withScenes.sourceIndexes, imageUrls.length, { anchorKey: policy.pendingPhotos.anchorKey, sourceOf, allow: personaChipAllow(photoCtx) })
+    : null;
+  const finalOut = photo ?? withScenes;
+  const policyChanges = policy ? [...policy.changes, ...(photo ? [{ type: "filled" as const, index: 0, kind: "photos" as const, reason: `사용하지 않은 사진 ${photo.indexes.join(",")}번`, slot: "backfill_photos" }] : [])] : undefined;
+  return { sections: finalOut.sections, sourceIndexes: keptMap ? finalOut.sourceIndexes.map((i) => keptMap(i)) : finalOut.sourceIndexes, ...(policyChanges ? { policyChanges } : {}) };
 }

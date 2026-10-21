@@ -172,6 +172,7 @@ import { SCENE_NOTICE, safeSceneUrl, type SceneImageMap } from "@/lib/scene-imag
 import { infoAttr, infoColorsOf, infoCss, infoOn, ipAttr, splitLead, INFO_CHECK_SVG } from "@/lib/info-style";
 import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
 import { applySectionDisplayBudget } from "@/lib/section-display-budget";
+import { comparisonPolicyRemovesChart } from "@/lib/comparison-policy";
 import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
 import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe";
 import {
@@ -2135,6 +2136,7 @@ export function buildDetailPageHtml(opts: {
     applySectionDisplayBudget(
       opts.category,
       opts.sections.filter((_, i) => !hidden.has(i)),
+      { chartRemoved: comparisonPolicyRemovesChart(opts.claimFacts) },
     ),
     opts.imageUrls,
     { imageHashByUrl: opts.imageHashByUrl, roles: opts.imageRoles, origins: opts.imageOrigins, category: opts.category, flow: getPackLayout(pack).flow, tags: opts.imageTags, sceneImages: opts.sceneImages, hasSizeInfo: opts.hasSizeInfo, claimFacts: opts.claimFacts },

@@ -81,6 +81,8 @@ function computeRedundantSectionIndexes(sections: DetailSection[]): number[] {
 export function computeDemotedSectionIndexes(
   category: string,
   sections: DetailSection[],
+  /** 427차: 비교 정책이 차트를 뺄 입력이면 차트를 근거 후보로 세지 않는다(남는 근거 1자리를 다음 순위 섹션이 쓴다) */
+  opts: { chartRemoved?: boolean } = {},
 ): number[] {
   const redundant = computeRedundantSectionIndexes(sections);
   if (!isLowInvolvementCategory(category)) return redundant;
@@ -97,7 +99,7 @@ export function computeDemotedSectionIndexes(
   // 2) evidence cap (keep highest priority first)
   const evidenceIdx = sections
     .map((s, i) => ({ s, i }))
-    .filter(({ s }) => (EVIDENCE_TYPES as readonly string[]).includes(s.type))
+    .filter(({ s }) => (EVIDENCE_TYPES as readonly string[]).includes(s.type) && !(opts.chartRemoved && s.type === "comparison_chart"))
     .sort(
       (a, b) =>
         (EVIDENCE_PRIORITY[a.s.type] ?? 99) - (EVIDENCE_PRIORITY[b.s.type] ?? 99),
@@ -124,8 +126,9 @@ export function computeDemotedSectionIndexes(
 export function applySectionDisplayBudget(
   category: string,
   sections: DetailSection[],
+  opts: { chartRemoved?: boolean } = {},
 ): DetailSection[] {
-  const demoted = new Set(computeDemotedSectionIndexes(category, sections));
+  const demoted = new Set(computeDemotedSectionIndexes(category, sections, opts));
   if (demoted.size === 0) return sections;
   return sections.filter((_, i) => !demoted.has(i));
 }

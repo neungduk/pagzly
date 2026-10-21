@@ -11,6 +11,7 @@ import { GENERATE_DELAYED_MESSAGE, readJsonResponse } from "@/lib/read-json-resp
 import type { UploadedImage } from "@/lib/photo-pipeline-client";
 import { MAX_PRODUCT_IMAGES, MIN_AI_USED_IMAGES } from "@/lib/assign-section-images";
 import { prepareUploadFile } from "@/lib/image-upload";
+import { COMPARISON_MAX_ROWS, normalizeComparisonRows, type ComparisonRow } from "@/lib/comparison-input";
 import {
   defaultRoleForIndex,
   getUploadRoleGuide,
@@ -93,6 +94,7 @@ export type DraftSessionPayload = {
     competitorUrl: string;
     wholesaleUrl: string;
     sellerTrustEvidence: string;
+    comparisonRows?: ComparisonRow[];
   };
 };
 
@@ -134,6 +136,8 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
   const [ingredients, setIngredients] = useState("");
   const [certifications, setCertifications] = useState("");
   const [competitorUrl, setCompetitorUrl] = useState("");
+  /** 427차: 판매자가 직접 입력한 비교(항목·우리 제품·일반 제품). 2행 이상 채웠을 때만 상세페이지에 비교표가 들어간다 */
+  const [comparisonInputs, setComparisonInputs] = useState<ComparisonRow[]>([]);
   const [wholesaleUrl, setWholesaleUrl] = useState("");
   const [sellerTrustEvidence, setSellerTrustEvidence] = useState("");
   type BeforeAfterInput = { before: File | null; after: File | null; caption: string };
@@ -194,6 +198,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       setIngredients(snap.ingredients ?? "");
       setCertifications(snap.certifications ?? "");
       setCompetitorUrl(snap.competitorUrl ?? "");
+      setComparisonInputs(snap.comparisonRows ?? []);
       setWholesaleUrl(snap.wholesaleUrl ?? "");
       setSellerTrustEvidence(snap.sellerTrustEvidence ?? "");
       const urls = (draft.payload.imageUrls as string[] | undefined) ?? [];
@@ -625,6 +630,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
         ingredients: ingredients.trim() || null,
         certifications: certifications.trim() || null,
         competitorUrl: competitorUrl.trim() || null,
+        comparisonRows: normalizeComparisonRows(comparisonInputs),
         wholesaleUrl: wholesaleUrl.trim() || null,
         sellerTrustEvidence: sellerTrustEvidence.trim() || null,
         beforeAfterPairs,
@@ -719,6 +725,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
           ingredients: ingredients.trim(),
           certifications: certifications.trim(),
           competitorUrl: competitorUrl.trim(),
+          comparisonRows: comparisonInputs,
           wholesaleUrl: wholesaleUrl.trim(),
           sellerTrustEvidence: sellerTrustEvidence.trim(),
         },
@@ -1668,6 +1675,48 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
                     </button>
                   ) : null}
                 </div>
+              </div>
+
+              <div>
+                <p className={labelClass}>비교 정보 (선택)</p>
+                <p className="mt-1 text-xs text-ink/40">
+                  직접 확인한 비교만 입력하세요. 2개 이상 채우면 입력한 그대로 비교표가 들어가고, 입력하지 않으면 비교표 없이 다른 내용으로 채워집니다.
+                </p>
+                <div className="mt-2 space-y-2">
+                  {comparisonInputs.map((row, i) => (
+                    <div key={i} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
+                      {(["label", "ours", "other"] as const).map((k) => (
+                        <input
+                          key={k}
+                          type="text"
+                          maxLength={k === "label" ? 20 : 30}
+                          value={row[k]}
+                          aria-label={k === "label" ? "비교 항목" : k === "ours" ? "우리 제품" : "일반 제품"}
+                          placeholder={k === "label" ? "항목" : k === "ours" ? "우리 제품" : "일반 제품"}
+                          onChange={(e) => setComparisonInputs((prev) => prev.map((r, j) => (j === i ? { ...r, [k]: e.target.value } : r)))}
+                          className={inputClass}
+                        />
+                      ))}
+                      <button
+                        type="button"
+                        aria-label="비교 행 삭제"
+                        onClick={() => setComparisonInputs((prev) => prev.filter((_, j) => j !== i))}
+                        className="px-2 text-sm text-ink/40 hover:text-ink"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                {comparisonInputs.length < COMPARISON_MAX_ROWS ? (
+                  <button
+                    type="button"
+                    onClick={() => setComparisonInputs((prev) => [...prev, { label: "", ours: "", other: "" }])}
+                    className="mt-2 text-xs font-medium text-registration-red hover:underline"
+                  >
+                    + 비교 행 추가
+                  </button>
+                ) : null}
               </div>
 
               <div>

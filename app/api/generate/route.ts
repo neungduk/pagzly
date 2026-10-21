@@ -2233,6 +2233,7 @@ async function handlePost(request: Request, ctx: GenerateCtx) {
       infoBackdrops: (body as { infoBackdrops?: unknown }).infoBackdrops,
       sceneImages: (body as { sceneImages?: unknown }).sceneImages,
       stylePackId: (body as { stylePackId?: unknown }).stylePackId,
+      comparisonRows: (body as { comparisonRows?: unknown }).comparisonRows,
     });
     const { data: savedProduct, error: insertError } = body.productId
       ? await supabase

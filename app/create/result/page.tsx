@@ -38,6 +38,7 @@ import { resolveStylePack } from "@/lib/style-packs";
 import StylePackPicker, { type StyleRecommendation } from "@/components/StylePackPicker";
 import { FASHION, recommendForSession, STYLE_AUTO_ENABLED } from "@/lib/style-director";
 import { computeDemotedSectionIndexes } from "@/lib/section-display-budget";
+import { comparisonPolicyRemovesChart } from "@/lib/comparison-policy";
 import { captureDetailToPngBlobs, downloadBlob, prepareCaptureRoot } from "@/lib/capture-detail-png";
 import { DEFAULT_SLICE_HEIGHT_PX, downloadPngPartsZip } from "@/lib/split-detail-download";
 import { prepareUploadFile, validateImageFile } from "@/lib/image-upload";
@@ -157,6 +158,8 @@ type ProductResult = {
   stylePackId?: string;
   /** 417차 — 인포 구간 AI 배경 URL 맵(세션 JSON에 실림, DB 불러오기에는 없음 → 코드 배경) */
   infoBackdrops?: import("@/lib/info-backdrop").InfoBackdropMap;
+  /** 427차 — 판매자가 입력한 비교 행(없으면 비교 차트·표를 만들지 않는다) */
+  comparisonRows?: import("@/lib/comparison-input").ComparisonRow[];
   /** 419차 — 사진별 역할·태그(비전 분석). 세션 JSON에 실려 있으면 뷰티 글·사진 일치 게이트가 쓴다 */
   visionImageRoles?: Array<{ index?: number; tags?: string[] }> | null;
   /** 419차 — 장면(합성) 이미지 슬롯(세션 JSON, DB 불러오기에는 없음 → 폴백). 생성 연결은 421차 */
@@ -655,7 +658,7 @@ function CreateResultContent() {
           body: JSON.stringify({
             sections: data.generated?.sections ?? [],
             imageUrls: data.imageUrls,
-            display: { infoBackdrops: data.infoBackdrops, sceneImages: data.sceneImages, sceneImagesOn: data.sceneImagesOn, stylePackId: data.stylePackId },
+            display: { infoBackdrops: data.infoBackdrops, sceneImages: data.sceneImages, sceneImagesOn: data.sceneImagesOn, stylePackId: data.stylePackId, comparisonRows: data.comparisonRows },
           }),
         });
         const result = await response.json();
@@ -1021,7 +1024,7 @@ function CreateResultContent() {
     generated?.sections.map((_, i) => i).filter((i) => !hiddenSet.has(i)) ?? [];
   // 183차 — 저관여 카테고리 표시 예산 (세션 JSON 유지, 프리뷰·export 노출만)
   const demotedRel = new Set(
-    computeDemotedSectionIndexes(data.category, afterUserHidden),
+    computeDemotedSectionIndexes(data.category, afterUserHidden, { chartRemoved: !editMode && comparisonPolicyRemovesChart(claimFactsOf(data as unknown as ClaimInput)) }),
   );
   const visibleOriginalIndexes = afterUserHiddenIndexes.filter(
     (_, rel) => !demotedRel.has(rel),

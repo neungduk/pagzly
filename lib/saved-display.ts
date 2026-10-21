@@ -8,6 +8,7 @@
  */
 import { safeBackdropUrl, type InfoBackdropMap } from "@/lib/info-backdrop";
 import { normalizeSceneImages, type SceneImageMap } from "@/lib/scene-images";
+import { normalizeComparisonRows, type ComparisonRow } from "@/lib/comparison-input";
 import type { PhotoCostBreakdown } from "@/lib/types/generate";
 
 export type DisplayState = {
@@ -16,6 +17,8 @@ export type DisplayState = {
   /** 판매자가 연출 이미지(AI 생성)를 넣기로 켰는지(기본 꺼짐) */
   sceneImagesOn?: boolean;
   stylePackId?: string;
+  /** 427차 — 판매자가 입력한 비교 행(있을 때만 비교표가 나온다). 재불러오기 후에도 같은 비교표가 되도록 함께 저장 */
+  comparisonRows?: ComparisonRow[];
 };
 
 const INFO_ZONES = ["steps", "points", "stat", "compare", "care"] as const;
@@ -38,6 +41,8 @@ export function normalizeDisplayState(raw: unknown): DisplayState | undefined {
   if (Object.keys(scenes).length > 0) out.sceneImages = scenes;
   if (typeof o.sceneImagesOn === "boolean") out.sceneImagesOn = o.sceneImagesOn;
   if (typeof o.stylePackId === "string" && PACK_ID_RE.test(o.stylePackId)) out.stylePackId = o.stylePackId;
+  const rows = normalizeComparisonRows(o.comparisonRows);
+  if (rows.length > 0) out.comparisonRows = rows;
   return Object.keys(out).length > 0 ? out : undefined;
 }
 

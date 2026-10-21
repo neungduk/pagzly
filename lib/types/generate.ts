@@ -134,6 +134,8 @@ export type ProductInput = {
   reviewInsights?: ReviewInsightsInput | null;
   planningDocText?: string | null;
   competitorDifferentiation?: CompetitorDifferentiationInput | null;
+  /** 427차 — 판매자가 직접 입력한 비교 행(항목·우리·일반 제품, 2행 이상일 때만 비교표가 나온다). lib/comparison-input */
+  comparisonRows?: import("@/lib/comparison-input").ComparisonRow[];
   photoProcessingCost?: number;
   conceptBrief?: ConceptBrief;
   photoCostBreakdown?: PhotoCostBreakdown;
