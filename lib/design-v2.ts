@@ -12,7 +12,7 @@
 import type { InfoColors, InfoLevel } from "@/lib/info-style";
 import type { InfoBackdropMap, InfoZone } from "@/lib/info-backdrop";
 import { infoZonesOfSections } from "@/lib/info-backdrop";
-import { hexToRgba, mixHex, type TitleScaleOverrides } from "@/lib/design-tokens";
+import { V3_COLOR_TINT, hexToRgba, mixHex, type TitleScaleOverrides } from "@/lib/design-tokens";
 import { stripCss } from "@/lib/price-strip";
 import { heroStageCss } from "@/lib/hero-variants";
 
@@ -148,7 +148,12 @@ export const V2_MARKER = { fromPct: 52, alpha: 0.36 } as const;
  */
 export function emphasisCss(S: string, c: InfoColors, info: boolean): string {
   const out: string[] = [];
-  out.push(rule(`${S} strong[style*="linear-gradient(transparent 60%"]`, `background-image:linear-gradient(transparent ${V2_MARKER.fromPct}%,rgba(${rgbOf(c.accent)},${V2_MARKER.alpha}) ${V2_MARKER.fromPct}%);border-radius:2px`));
+  if (V3_COLOR_TINT) {
+    // 430차: 마커 색은 섹션 슬롯 색(인라인)이므로 건드리지 않고, 마커 띠만 40% → 50%로 키운다(그라데이션을 125%로 늘려 아래에 맞춤)
+    out.push(rule(`${S} strong[style*="linear-gradient(transparent 60%"]`, `background-size:100% 125%;background-position:0 100%;background-repeat:no-repeat;border-radius:2px`));
+  } else {
+    out.push(rule(`${S} strong[style*="linear-gradient(transparent 60%"]`, `background-image:linear-gradient(transparent ${V2_MARKER.fromPct}%,rgba(${rgbOf(c.accent)},${V2_MARKER.alpha}) ${V2_MARKER.fromPct}%);border-radius:2px`));
+  }
   if (info) {
     const st = `${S} [data-info="steps"] ol>li>div:last-child>p`;
     out.push(rule(st, `display:inline-block;margin:0 0 8px;padding:4px 12px;border-radius:999px;background:${c.accent};color:${c.paper};font-size:12px;font-weight:700;letter-spacing:0.14em`));

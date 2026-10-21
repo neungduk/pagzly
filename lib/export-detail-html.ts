@@ -176,6 +176,7 @@ import { comparisonPolicyRemovesChart } from "@/lib/comparison-policy";
 import { designV2ClassicFashionCap, designV2Css, designV2On, designV2Typo, planBands, v2TitleOverrides } from "@/lib/design-v2";
 import { buildPriceStrip, priceStripHtml } from "@/lib/price-strip";
 import { DESIGN_V3_FONTS_ENABLED, fontLinkHrefs, fontOrigin, fontPairCss, pickFontPair } from "@/lib/font-pairs";
+import { DESIGN_V3_COLOR_ENABLED, extendThemeFor, paletteInfoCss } from "@/lib/palette-harmony";
 import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
 import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe";
 import {
@@ -2155,7 +2156,8 @@ export function buildDetailPageHtml(opts: {
     ),
   );
   const trustChips = extractTrustChips(visibleSections);
-  const extended = extendTheme(opts.theme);
+  // 430차 — 라이브와 같은 조화형 팔레트(같은 함수·같은 입력)
+  const extended = extendThemeFor(opts.theme, { category: opts.category, productName: opts.productName, brandName: opts.brandName, packHeadline: pack.headline ? { kind: pack.headline.kind, weight: pack.headline.weight } : null });
   // 428차 — 디자인 V2(라이브와 같은 함수): 하드 색 면 예산·타이포 상한·CSS 한 벌
   const v2Layout = beautyInfoLayout(getPackLayout(pack), opts.category);
   const v2Plan = designV2On(opts.category) ? planBands(visibleSections, v2Layout.info, opts.infoBackdrops, { buyCard: Boolean(v2Layout.beautyInfo) }) : undefined;
@@ -2399,6 +2401,7 @@ ${jsonLd}
   @media (min-width:640px){.pagzly-spec-thumbs{gap:16px!important}.pagzly-spec-thumb-m{width:96px!important;height:96px!important}.pagzly-spec-thumb-s{width:128px!important;height:128px!important}}
   ${titleScaleExportCss(v2Typo ? v2TitleOverrides(packTitleScaleOverrides(pack)) : v2TitleOnly ? v2TitleOverrides(packTitleScaleOverrides(pack), ["section"]) : packTitleScaleOverrides(pack))}
   ${v2CssText}
+  ${DESIGN_V3_COLOR_ENABLED && designV2On(opts.category) ? paletteInfoCss(".pagzly-wrap", extended, v2Layout.info) : ""}
   ${v3Pair ? fontPairCss(".pagzly-wrap", v3Pair) : ""}
   @media (min-width:640px){.pagzly-usage{flex-direction:row!important;align-items:flex-start;gap:16px!important}.pagzly-usage-line{left:var(--pz-step-edge)!important;right:var(--pz-step-edge);bottom:auto!important;width:auto!important;height:1px}.pagzly-usage-step{flex:1;flex-direction:column;align-items:center!important;gap:12px!important;text-align:center}.pagzly-usage-step>div{flex:none!important;padding-top:0!important}.pagzly-usage-text{max-width:14rem;margin:0 auto}.pagzly-persona-pairs{grid-template-columns:repeat(2,1fr)!important}.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}.pagzly-hl-grid{grid-template-columns:var(--pz-hl-wide)!important}.pagzly-cl-grid{grid-template-columns:var(--pz-cl-wide)!important}.pagzly-step-rows{grid-template-columns:repeat(3,1fr)!important;gap:32px!important;margin-top:48px!important}.pagzly-step-pairs{gap:32px!important}.pagzly-step-row{display:block!important}.pagzly-step-row h3{margin-top:12px!important}.pagzly-step-row .pagzly-step-tag{margin-top:12px!important}.pagzly-step-row .pagzly-step-tag+h3{margin-top:0!important}.pagzly-step-row p,.pagzly-step-pairs p{font-size:14px!important}}
   .pagzly-wrap .pz-fit{font-size:max(min(var(--pz-fs),0.6875rem),min(var(--pz-fs),calc(100cqi / var(--pz-fit-em,0.01))))!important}

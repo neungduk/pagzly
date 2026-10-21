@@ -147,7 +147,8 @@ export function getSectionBackground(
   }
   // 290차 — 흰 바탕 ↔ 포인트색 옅은 틴트 단색 교대 (그라데이션·질감 없음)
   if (pattern === "A" || pattern === "D") return FLAT_PAPER;
-  return flatAccentTint(theme, pattern === "B" ? 1 : 0.6, fashionMinimal);
+  // 430차: 조화형 색(V3)이 켜지면 틴트를 2배로 — 슬롯마다 색상이 다르므로 7%(패션 4%) 틴트는 구분되지 않아 면 색이 같아 보였다
+  return flatAccentTint(theme, (pattern === "B" ? 1 : 0.6) * (V3_COLOR_TINT ? 2 : 1), fashionMinimal);
 }
 
 /**
@@ -156,6 +157,8 @@ export function getSectionBackground(
  */
 export const FLAT_SECTION_SURFACES = true;
 export const FLAT_PAPER = "#FFFFFF";
+/** NEXT_PUBLIC_DESIGN_V3_COLOR=off 면 429차 틴트 세기(palette-harmony.ts와 같은 플래그) */
+export const V3_COLOR_TINT = process.env.NEXT_PUBLIC_DESIGN_V3_COLOR !== "off";
 
 /** 흰 바탕에 포인트색을 7%(패션 4%) 섞은 단색 틴트 */
 export function flatAccentTint(theme: CategoryTheme, strength = 1, fashionMinimal = false): string {
@@ -534,7 +537,7 @@ export function getHeroGradient(theme: CategoryTheme, strength?: number): string
 //    sharp를 끌어들이면 안 되므로 순수 색상 변환만 이 파일에 독립적으로 둔다.
 // ---------------------------------------------------------------------------
 
-function tokenRgbToHsl(r: number, g: number, b: number) {
+export function tokenRgbToHsl(r: number, g: number, b: number) {
   const rn = r / 255;
   const gn = g / 255;
   const bn = b / 255;
@@ -551,7 +554,7 @@ function tokenRgbToHsl(r: number, g: number, b: number) {
   return { h: h * 360, s, l };
 }
 
-function tokenHslToRgb(h: number, s: number, l: number): [number, number, number] {
+export function tokenHslToRgb(h: number, s: number, l: number): [number, number, number] {
   const c = (1 - Math.abs(2 * l - 1)) * s;
   const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
   const m = l - c / 2;
@@ -569,7 +572,7 @@ function tokenHslToRgb(h: number, s: number, l: number): [number, number, number
   ];
 }
 
-function tokenRgbToHex(r: number, g: number, b: number) {
+export function tokenRgbToHex(r: number, g: number, b: number) {
   const toHex = (v: number) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, "0");
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
 }
@@ -752,6 +755,9 @@ export type ExtendedTheme = Record<ThemeVariantKey, CategoryTheme>;
 // baseNeutral은 ...base로 그대로 복사돼, warm/cool/bold 어떤 변형이든
 // 배경 그라데이션의 절반(패턴 A/B/D/E 전부 baseNeutral을 포함)은 항상 같은
 // 추출 hue를 유지했다 — "포인트 색만 바뀌고 배경은 계속 파랗다"의 실제 원인.
+/** 430차: 조화형 팔레트(lib/palette-harmony)가 쓰는 공개 이름 */
+export const hueShiftThemeToken = (base: CategoryTheme, degrees: number): CategoryTheme => hueShiftTheme(base, degrees);
+
 function hueShiftTheme(base: CategoryTheme, degrees: number): CategoryTheme {
   const deepShift = Math.round(degrees * 0.55);
   const baseNeutralHue = extractHueFromHex(base.baseNeutral);
@@ -823,13 +829,21 @@ const THEME_VARIANT_CYCLE: ThemeVariantKey[] = ["base"];
  * 100% 동일한 모양이라, 호출부(렌더러)는 이 결과를 기존 theme 자리에 그대로
  * 꽂아 넣기만 하면 된다 — 개별 섹션 렌더링 코드는 변경 불필요.
  */
+/** 430차: ExtendedTheme마다 본문 섹션 순환(조화형 팔레트 슬롯 순서)을 따로 달 수 있다. 없으면 290차 기존 순환(base 하나) */
+const THEME_CYCLES = new WeakMap<ExtendedTheme, ThemeVariantKey[]>();
+export function setThemeCycle(extended: ExtendedTheme, cycle: ThemeVariantKey[]): ExtendedTheme {
+  THEME_CYCLES.set(extended, cycle);
+  return extended;
+}
+
 export function getSectionTheme(
   extended: ExtendedTheme,
   sectionType: string,
   bodyIndexZeroBased: number,
 ): CategoryTheme {
   if (THEME_VARIANT_LOCKED_SECTION_TYPES.has(sectionType)) return extended.base;
-  const key = THEME_VARIANT_CYCLE[bodyIndexZeroBased % THEME_VARIANT_CYCLE.length];
+  const cycle = THEME_CYCLES.get(extended) ?? THEME_VARIANT_CYCLE;
+  const key = cycle[bodyIndexZeroBased % cycle.length];
   return extended[key];
 }
 

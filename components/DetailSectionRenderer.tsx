@@ -149,6 +149,7 @@ import { beautyData, beautyInfoCss, beautyInfoLayout, beautyIp } from "@/lib/bea
 import { designV2ClassicFashionCap, designV2Css, designV2On, designV2Typo, planBands, v2TitleOverrides } from "@/lib/design-v2";
 import { buildPriceStrip } from "@/lib/price-strip";
 import { DESIGN_V3_FONTS_ENABLED, fontLinkHrefs, fontPairCss, pickFontPair } from "@/lib/font-pairs";
+import { DESIGN_V3_COLOR_ENABLED, extendThemeFor, paletteInfoCss } from "@/lib/palette-harmony";
 import { SCENE_NOTICE, safeSceneUrl, type SceneImageMap } from "@/lib/scene-images";
 import { infoColorsOf, infoCss, infoData, infoOn, ipData, splitLead, INFO_CHECK_SVG } from "@/lib/info-style";
 import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
@@ -5951,7 +5952,8 @@ export default function DetailSectionRenderer({
   const pointOrdinals = buildPointOrdinals(sections);
   const productThumbs = resolveProductThumbs(rawSections, imageUrls, imageHashByUrl);
   const baseTheme = applyPackTone(themeOverride ?? getCategoryTheme(category), pack);
-  const extendedTheme = extendTheme(baseTheme);
+  // 430차 — 조화형 멀티 컬러(V3 색): 섹션마다 팔레트 슬롯을 순환(off면 기존 extendTheme과 같다)
+  const extendedTheme = extendThemeFor(baseTheme, { category, productName, brandName, packHeadline: pack.headline ? { kind: pack.headline.kind, weight: pack.headline.weight } : null });
   // 428차 — 디자인 V2: 하드 색 면 예산(planBands)과 CSS 한 벌(라이브·export 공통)
   const v2Plan = v2On ? planBands(sections, packLayout.info, infoBackdrops, { buyCard: Boolean(packLayout.beautyInfo) }) : undefined;
   // 428차 2-4 — 히어로 직후 가격·혜택 스트립(가격이 없으면 null)
@@ -6011,6 +6013,7 @@ export default function DetailSectionRenderer({
         <style>{packStructureCss(packLayout, "[data-pz-pack]", "live") + infoCss(packLayout.info, "[data-pz-pack]", infoColorsOf(baseTheme), infoBackdrops, { demote: v2Plan?.demoted })}</style>
       )}
       {v2Css ? <style>{v2Css}</style> : null}
+      {DESIGN_V3_COLOR_ENABLED && v2On ? <style>{paletteInfoCss("[data-pz-v2]", extendedTheme, packLayout.info)}</style> : null}
       {fontPair ? (
         <>
           {fontLinkHrefs(fontPair).map((href) => (

@@ -108,7 +108,8 @@ export async function run(): Promise<string[]> {
     const sel = emphasisCss("[data-pz-v2]", colors, false);
     if (!sel.includes('strong[style*="linear-gradient(transparent 60%"]')) fails.push("마커 선택자 없음");
     if (!marker.includes("linear-gradient(transparent 60%")) fails.push("기존 마커 값이 선택자와 맞지 않음(body-emphasis 변경 확인)");
-    if (!sel.includes(`${V2_MARKER.alpha}`)) fails.push("마커 진하기 상수 미반영");
+    // 430차: V3 색이 켜지면 마커 색은 섹션 슬롯 색(인라인)에 맡기고 띠 두께(125% 확대)만 바꾼다. 꺼지면 428차 진하기 상수
+    if (!sel.includes(`${V2_MARKER.alpha}`) && !sel.includes("background-size:100% 125%")) fails.push("마커 진하기/두께 미반영");
     eq("calm: 칩·배지 없음", [sel.includes("steps"), sel.includes("statnum")], [false, false]);
     const on = emphasisCss("[data-pz-v2]", colors, true);
     eq("인포: STEP 칩·수치 배지", [on.includes('[data-info="steps"] ol>li>div:last-child>p'), on.includes('[data-info="statnum"]>div>div>:first-child')], [true, true]);
