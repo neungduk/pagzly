@@ -33,7 +33,7 @@ export const LANDING_PIPELINE_DESCRIPTION =
   "색 추출, 카피 작성, 레이아웃 구성까지 2~3분. 디자이너 시안을 기다리는 동안 놓치는 주문을 줄이세요.";
 
 export const LANDING_PRICING_INTRO =
-  "규모에 맞는 플랜을 선택하세요. 언제든 업그레이드할 수 있습니다.";
+  "규모에 맞는 플랜을 선택하세요. 언제든 업그레이드할 수 있습니다. 가입 시 첫 1회 무료 생성이 제공되며, 이후에는 구독 또는 토큰 팩이 필요합니다.";
 
 export const LANDING_CTA_NOTE = "신용카드 없이 시작 · 언제든 해지 가능";
 

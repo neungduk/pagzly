@@ -75,8 +75,14 @@ export const CREDIT_PACKS: CreditPack[] = [
   { id: "pack_15", label: "1,500토큰 팩", priceKrw: 44900, tokens: 1500 },
 ];
 
-/** 가입 시 무료 지급 토큰 수 */
-export const SIGNUP_FREE_TOKENS = 500;
+/**
+ * 가입 시 무료 지급 토큰 수 — 427차: 첫 1회 무료 생성까지만(= 완성 1건 최대 차감량, 긴 구성 100).
+ * DB 트리거 handle_new_user_credits(supabase/migrations/20261022130000_signup_free_one_generation.sql)와 같은 값이어야 한다.
+ */
+export const SIGNUP_FREE_TOKENS = 100;
+
+/** 가입 무료 혜택 문구(랜딩·상담봇·약관 초안 공통) */
+export const SIGNUP_FREE_NOTE = "가입 시 첫 1회 무료 생성";
 
 /** 완성(승인 후 최종 저장) 1건 차감 토큰 — 짧은/긴 구성 차등 */
 export const TOKEN_COST_PER_COMPLETION = {

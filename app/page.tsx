@@ -93,7 +93,7 @@ const features = LANDING_FEATURES.map((feature) => ({
 
 export const metadata: Metadata = {
   title: "Pagzly(팩즐리) — 사진 한 장으로 AI 상세페이지",
-  description: "상품 사진과 정보만 넣으면 AI가 한국 이커머스 상세페이지를 만들어 드립니다. 가입하면 무료 토큰을 드립니다.",
+  description: "상품 사진과 정보만 넣으면 AI가 한국 이커머스 상세페이지를 만들어 드립니다. 가입 시 첫 1회 무료 생성을 드립니다.",
 };
 
 export default async function Home() {
@@ -363,11 +363,11 @@ export default async function Home() {
               ))}
             </RevealOnScroll>
             <p className="mt-10 text-center text-sm text-ink/50">
-              가입하면 무료 토큰 500개를 드립니다.{" "}
+              가입 시 첫 1회 무료 생성을 드립니다. 이후에는 구독 또는{" "}
               <Link href="/billing/packs" className="underline underline-offset-2 hover:text-ink">
                 구독 없이 토큰만 추가 구매
               </Link>
-              하는 것도 가능해요 (500토큰 ₩16,900 · 1,500토큰 ₩44,900).
+              도 가능해요 (500토큰 ₩16,900 · 1,500토큰 ₩44,900).
             </p>
           </div>
         </section>
