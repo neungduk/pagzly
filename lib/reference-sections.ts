@@ -27,7 +27,6 @@ const esc = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;"
 const title = `font-family:${DETAIL_FONT_STACK.sansDisplayHeadline}`;
 const sans = `font-family:${DETAIL_FONT_STACK.sans}`;
 
-const CHECK = `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" style="display:block"><path d="M5 12.5 L10 17 L19 7" fill="none" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const CHECK_DARK = (c: string): string => `<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" style="display:block"><path d="M5 12.5 L10 17 L19 7" fill="none" stroke="${c}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const QUOTE = `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" style="display:block"><path d="M5 17 C5 12 6 9 9 7 L10 9 C8.5 10 8 11.5 8 13 H11 V18 H5 Z M14 17 C14 12 15 9 18 7 L19 9 C17.5 10 17 11.5 17 13 H20 V18 H14 Z" fill="#FFFFFF"/></svg>`;
 const PERSON = `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" style="display:block"><circle cx="12" cy="9" r="4" fill="#FFFFFF"/><path d="M4 20 C4 15 8 13.5 12 13.5 C16 13.5 20 15 20 20 Z" fill="#FFFFFF"/></svg>`;

@@ -66,6 +66,11 @@ export async function run(): Promise<string[]> {
     const r = contrastRatioToken("#FFFFFF", face);
     if (r < 4.5) fails.push(`포화 면 ${accent}→${face} 흰 글자 대비 ${r.toFixed(2)} < 4.5`);
   }
+  // B 변형 글자는 순백(알파 1) — 포화 면 위 15px 보조 글자도 4.5:1이 되도록
+  const bHtml = heroV2Html(hero, plan({ variant: "B", nameSub: "SUB" }), heroPalette(getCategoryTheme("화장품/뷰티"), "화장품/뷰티"), "a");
+  const hookColor = /data-hero-hook style="[^"]*color:([^;"]+)/.exec(bHtml)?.[1];
+  const subColor = /font-size:15px;font-weight:500;line-height:1.6;color:([^;"]+)/.exec(bHtml)?.[1];
+  eq("B 훅·부제 글자는 순백", [hookColor, subColor], ["#FFFFFF", "#FFFFFF"]);
   // 마크업: 5변형 공통 점검
   const pal = heroPalette(getCategoryTheme("화장품/뷰티"), "화장품/뷰티");
   for (const v of HERO_V2_VARIANTS) {
