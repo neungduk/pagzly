@@ -123,7 +123,7 @@ export const pairStacks = (_p: FontPair) => ({ body: NOTO_STACK, title: NOTO_STA
  * 값은 이 기계(Windows·Chromium)에서 같은 한글·영숫자 문장을 Noto Sans KR 400과 Malgun Gothic으로 그려 폭 비율을 측정해 정한다(scripts/_432-measure.ts).
  * 맥(Apple SD Gothic Neo)·리눅스 폴백은 측정하지 못해 같은 값을 근사로 쓴다.
  */
-export const NOTO_FALLBACK_SIZE_ADJUST = 0.925; // 575.9→609.7 / 658.8: Noto 609.7px ÷ Malgun 658.8px = 0.925
+export const NOTO_FALLBACK_SIZE_ADJUST = 0.925; // 측정: Noto Sans KR 609.7px ÷ Malgun Gothic 658.8px = 0.925
 export const NOTO_FALLBACK_CSS = `@font-face{font-family:'Noto Sans KR Fallback';src:local('Malgun Gothic'),local('Apple SD Gothic Neo'),local('Noto Sans CJK KR');size-adjust:${(NOTO_FALLBACK_SIZE_ADJUST * 100).toFixed(1)}%}`;
 
 /**
