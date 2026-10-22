@@ -1,30 +1,27 @@
 /**
- * 430차 — 상세페이지 폰트 조합(디자인 V3 폰트). 제목 폰트 + 본문 폰트 + 숫자·영문 라벨 폰트 3종을 한 세트로 토큰화한다.
- * 모두 SIL OFL 1.1(상업 이용·임베드 허용, review/430-font-licenses.md)이고 셀프 호스팅(public/fonts, scripts/build-detail-fonts.mjs)이다 — 외부 CDN 호출 없음.
- *  - 한 페이지에서 쓰는 폰트 패밀리는 최대 3종(회귀가 확인). 디스플레이 폰트는 큰 제목에만, 본문은 항상 본문 폰트(Pretendard).
- *  - 카테고리당 2~3세트. 선택은 결정적이다(같은 입력 → 같은 세트): 패션은 스타일 팩의 제목 성격(세리프/굵은 고딕/가는 고딕)으로, 그 밖은 상품명·브랜드 시드로.
- *  - 라이브(DetailSectionRenderer)와 export(buildDetailPageHtml)가 같은 세트·같은 CSS 한 벌(fontPairCss)을 쓴다. export에 :has·컨테이너 쿼리·text-wrap 없음.
- * 플래그: NEXT_PUBLIC_DESIGN_V3_FONTS=off 면 429차 폰트(Noto)로 돌아간다(픽셀 동일).
+ * 432차 — 상세페이지 폰트는 **Noto Sans KR 하나**다(사용자 결정 2026-10-22). 제목·본문·라벨·숫자·가격·버튼·표 전부 같은 폰트이고,
+ * 430·430B에서 도입한 Pretendard·Hahmlet·Gowun Batang·Black Han Sans·Do Hyeon·Jua·Playfair·Montserrat는 상세 경로에서 쓰지 않는다.
+ * 폰트가 하나이므로 개성은 **굵기·자간·줄간격 프리셋**으로만 낸다(카테고리당 2~3세트, 선택 로직·세트 이름은 430차 그대로 유지).
+ *  - 굵기는 Noto Sans KR 파일이 있는 400·500·700·900만 쓴다(public/fonts의 @font-face가 300→400, 600·800→700 범위로 받아 합성 굵기가 생기지 않는다, scripts/build-detail-fonts.mjs).
+ *  - 라이브(DetailSectionRenderer)와 export(buildDetailPageHtml)가 같은 세트·같은 CSS 한 벌(fontPairCss)을 쓴다. export에 :has·컨테이너 쿼리·text-wrap 없음. 외부 CDN 호출 없음(같은 출처 /fonts).
+ * 플래그: NEXT_PUBLIC_DESIGN_V3_FONTS=off 면 429차 폰트(Noto Sans/Serif)로 돌아간다(픽셀 동일).
  */
 import { resolveTemplateCategory, type TemplateCategory } from "@/lib/section-templates";
 
 export const DESIGN_V3_FONTS_ENABLED = process.env.NEXT_PUBLIC_DESIGN_V3_FONTS !== "off";
 
-export type FontFamilyKey = "pretendard" | "hahmlet" | "gowun-batang" | "black-han-sans" | "do-hyeon" | "jua" | "playfair-display" | "montserrat";
+/** 상세페이지가 쓰는 폰트 패밀리는 이것 하나 */
+export type FontFamilyKey = "noto-sans-kr";
 
 const SYS = "system-ui, -apple-system, 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif";
 
 /** key → public/fonts/<css>.css 와 font-family 이름 */
 export const FONT_FAMILIES: Record<FontFamilyKey, { css: string; name: string; display: boolean }> = {
-  pretendard: { css: "pretendard", name: "Pretendard", display: false },
-  hahmlet: { css: "hahmlet", name: "Hahmlet Variable", display: true },
-  "gowun-batang": { css: "gowun-batang", name: "Gowun Batang", display: true },
-  "black-han-sans": { css: "black-han-sans", name: "Black Han Sans", display: true },
-  "do-hyeon": { css: "do-hyeon", name: "Do Hyeon", display: true },
-  jua: { css: "jua", name: "Jua", display: true },
-  "playfair-display": { css: "playfair-display", name: "Playfair Display Variable", display: false },
-  montserrat: { css: "montserrat", name: "Montserrat Variable", display: false },
+  "noto-sans-kr": { css: "noto-sans-kr", name: "Noto Sans KR", display: false },
 };
+
+/** 파일이 있는 굵기(이 값만 토큰에서 쓴다) */
+export const NOTO_WEIGHTS = [400, 500, 700, 900] as const;
 
 export type FontPairId =
   | "beauty-elegant" | "beauty-soft" | "beauty-modern"
@@ -35,25 +32,36 @@ export type FontPairId =
 export type FontPair = {
   id: FontPairId;
   label: string;
-  title: { family: FontFamilyKey; weight: number; letterSpacing: string; serif: boolean };
-  body: { family: "pretendard" };
-  /** 숫자·영문 라벨(한글은 본문 폰트로 이어진다) */
-  label_: { family: "playfair-display" | "montserrat" | "pretendard" };
+  /** 대제목(.pagzly-display-headline): 700~900(강한 스타일) 또는 400~500(부드러운 스타일) */
+  title: { family: FontFamilyKey; weight: number; letterSpacing: string; lineHeight: number; soft: boolean };
+  body: { family: FontFamilyKey; weight: number };
+  /** 숫자·가격·STEP/POINT·영문 라벨: 자간 +0.02~0.06em */
+  label_: { family: FontFamilyKey; letterSpacing: string };
 };
 
-const pair = (id: FontPairId, label: string, title: FontPair["title"], labelFamily: FontPair["label_"]["family"]): FontPair => ({ id, label, title, body: { family: "pretendard" }, label_: { family: labelFamily } });
+const NOTO: FontFamilyKey = "noto-sans-kr";
+const pair = (id: FontPairId, label: string, weight: number, letterSpacing: string, lineHeight: number, labelSpacing: string): FontPair => ({
+  id,
+  label,
+  title: { family: NOTO, weight, letterSpacing, lineHeight, soft: weight <= 500 },
+  body: { family: NOTO, weight: 400 },
+  label_: { family: NOTO, letterSpacing: labelSpacing },
+});
 
 export const FONT_PAIRS: Record<FontPairId, FontPair> = {
-  "beauty-elegant": pair("beauty-elegant", "뷰티 · 우아한 세리프", { family: "hahmlet", weight: 700, letterSpacing: "-0.015em", serif: true }, "playfair-display"),
-  "beauty-soft": pair("beauty-soft", "뷰티 · 부드러운 바탕체", { family: "gowun-batang", weight: 700, letterSpacing: "-0.01em", serif: true }, "playfair-display"),
-  "beauty-modern": pair("beauty-modern", "뷰티 · 모던 고딕", { family: "pretendard", weight: 700, letterSpacing: "-0.03em", serif: false }, "montserrat"),
-  "fashion-classic": pair("fashion-classic", "패션 · 클래식 세리프", { family: "hahmlet", weight: 700, letterSpacing: "-0.01em", serif: true }, "playfair-display"),
-  "fashion-bold": pair("fashion-bold", "패션 · 볼드 디스플레이", { family: "black-han-sans", weight: 400, letterSpacing: "-0.01em", serif: false }, "montserrat"),
-  "fashion-mono": pair("fashion-mono", "패션 · 모노 고딕", { family: "pretendard", weight: 700, letterSpacing: "-0.035em", serif: false }, "montserrat"),
-  "tech-clean": pair("tech-clean", "전자·생활 · 클린 고딕", { family: "pretendard", weight: 800, letterSpacing: "-0.04em", serif: false }, "montserrat"),
-  "tech-display": pair("tech-display", "전자·생활 · 디스플레이", { family: "do-hyeon", weight: 400, letterSpacing: "-0.01em", serif: false }, "montserrat"),
-  "food-warm": pair("food-warm", "식품·반려 · 둥근 따뜻함", { family: "jua", weight: 400, letterSpacing: "-0.01em", serif: false }, "montserrat"),
-  "food-batang": pair("food-batang", "식품·반려 · 바탕체", { family: "gowun-batang", weight: 700, letterSpacing: "-0.01em", serif: true }, "playfair-display"),
+  // 뷰티: 소프트·엘레강스는 얇은 굵기(400·500)와 넓은 자간, 모던은 또렷한 700
+  "beauty-elegant": pair("beauty-elegant", "뷰티 · 엘레강스(500·넓은 자간)", 500, "0.01em", 1.3, "0.06em"),
+  "beauty-soft": pair("beauty-soft", "뷰티 · 소프트(400·넓은 자간)", 400, "0.02em", 1.3, "0.06em"),
+  "beauty-modern": pair("beauty-modern", "뷰티 · 모던(700)", 700, "-0.02em", 1.28, "0.04em"),
+  // 패션: 클래식 700, 볼드 900(큰 크기 대비), 모노 500
+  "fashion-classic": pair("fashion-classic", "패션 · 클래식(700)", 700, "-0.02em", 1.28, "0.04em"),
+  "fashion-bold": pair("fashion-bold", "패션 · 볼드(900)", 900, "-0.03em", 1.25, "0.04em"),
+  "fashion-mono": pair("fashion-mono", "패션 · 모노(500)", 500, "-0.02em", 1.28, "0.04em"),
+  // 전자·생활: 900/700, 식품·반려: 700/500(따뜻한 자간)
+  "tech-clean": pair("tech-clean", "전자·생활 · 클린(900)", 900, "-0.03em", 1.25, "0.04em"),
+  "tech-display": pair("tech-display", "전자·생활 · 디스플레이(700)", 700, "-0.02em", 1.25, "0.04em"),
+  "food-warm": pair("food-warm", "식품·반려 · 따뜻함(700)", 700, "-0.01em", 1.3, "0.03em"),
+  "food-batang": pair("food-batang", "식품·반려 · 부드러움(500)", 500, "0.01em", 1.3, "0.04em"),
 };
 
 /** 카테고리당 후보 세트(2~3개). 첫 번째가 기본 */
@@ -81,7 +89,7 @@ export function fontSeed(...parts: Array<string | null | undefined>): number {
 
 export type FontPairInput = {
   category: string | undefined | null;
-  /** 패션 스타일 팩의 제목 성격(없으면 클래식=세리프) */
+  /** 패션 스타일 팩의 제목 성격(없으면 클래식) */
   packHeadline?: { kind: "serif" | "sans-display"; weight: number } | null;
   productName?: string | null;
   brandName?: string | null;
@@ -102,45 +110,52 @@ export function pickFontPair(input: FontPairInput): FontPair {
   return FONT_PAIRS[ids[fontSeed(input.productName, input.brandName) % ids.length]!];
 }
 
-/** 한 페이지에서 쓰는 패밀리(본문·제목·라벨, 중복 제거) — 3종 이하여야 한다 */
+/** 한 페이지에서 쓰는 패밀리(1종) */
 export function pairFamilies(p: FontPair): FontFamilyKey[] {
   return [...new Set<FontFamilyKey>([p.body.family, p.title.family, p.label_.family])];
 }
 
-const q = (key: FontFamilyKey) => `'${FONT_FAMILIES[key].name}'`;
-// 430B: Pretendard가 늦게 오는 동안 쓰는 폴백(Pretendard Fallback = 시스템 한글 폰트를 폭 보정)을 바로 뒤에 둔다
-const bodyStack = () => `${q("pretendard")}, 'Pretendard Fallback', 'Noto Sans KR', ${SYS}`;
-export const pairStacks = (p: FontPair) => ({
-  body: bodyStack(),
-  title: `${q(p.title.family)}, ${p.title.family === "pretendard" ? "'Noto Sans KR'" : p.title.serif ? "'Noto Serif KR'" : "'Noto Sans KR'"}, ${p.title.serif ? "serif" : SYS}`,
-  label: `${q(p.label_.family)}, ${bodyStack()}`,
-});
+const NOTO_STACK = `'Noto Sans KR', 'Noto Sans KR Fallback', ${SYS}`;
+export const pairStacks = (_p: FontPair) => ({ body: NOTO_STACK, title: NOTO_STACK, label: NOTO_STACK });
 
 /**
- * 430B CLS 완화 — 폰트별 폴백 메트릭 보정. Pretendard는 Malgun Gothic보다 한글 폭이 약 12.6% 좁다(Windows·Chromium에서 같은 한글·영숫자 문장 폭을 측정: 575.9px / 658.8px = 0.874).
- * 로드 전 폴백이 같은 폭으로 그려지게 size-adjust 87.4%를 준다. Apple SD Gothic Neo·Noto Sans CJK KR의 폭은 이 기계에서 측정하지 못해 같은 값을 근사로 쓴다(맥·리눅스는 확인 못 함).
+ * 로드 전 폴백 폭 보정 — 'Noto Sans KR Fallback'(시스템 한글 폰트를 Noto 폭에 맞춤)을 Noto 바로 뒤에 둔다.
+ * 값은 이 기계(Windows·Chromium)에서 같은 한글·영숫자 문장을 Noto Sans KR 400과 Malgun Gothic으로 그려 폭 비율을 측정해 정한다(scripts/_432-measure.ts).
+ * 맥(Apple SD Gothic Neo)·리눅스 폴백은 측정하지 못해 같은 값을 근사로 쓴다.
  */
-export const PRETENDARD_FALLBACK_CSS =
-  "@font-face{font-family:'Pretendard Fallback';src:local('Malgun Gothic'),local('Apple SD Gothic Neo'),local('Noto Sans CJK KR');size-adjust:87.4%}";
+export const NOTO_FALLBACK_SIZE_ADJUST = 0.925; // 575.9→609.7 / 658.8: Noto 609.7px ÷ Malgun 658.8px = 0.925
+export const NOTO_FALLBACK_CSS = `@font-face{font-family:'Noto Sans KR Fallback';src:local('Malgun Gothic'),local('Apple SD Gothic Neo'),local('Noto Sans CJK KR');size-adjust:${(NOTO_FALLBACK_SIZE_ADJUST * 100).toFixed(1)}%}`;
 
-/** 첫 화면 라틴 글자(가격·영문 라벨·숫자)용 Pretendard Regular·Bold 라틴 서브셋(각 약 20KB) — preload 주소(같은 출처). 한글은 글 내용마다 조각이 달라 preload하지 않는다 */
-export const PRETENDARD_PRELOAD_FILES = ["Pretendard-Regular.subset.91.woff2", "Pretendard-Bold.subset.91.woff2"] as const;
+/**
+ * 첫 화면 preload(같은 출처): 라틴(가격·숫자·영문 라벨) 400·700 + **자주 쓰는 한글 조각**(Noto 한글 조각 116~119번이 저장 세션 5종·랜딩 문구의 한글 음절 87%를 덮는다,
+ * scripts/_432-chunks.mjs로 계산). 히어로 제목·가격 스트립·요약 문구의 조각을 글자마다 서버에서 계산하는 것은 클라이언트 렌더라 하지 않았다.
+ */
+export const NOTO_PRELOAD_FILES = [
+  "noto-sans-kr-latin-400-normal.woff2",
+  "noto-sans-kr-latin-700-normal.woff2",
+  "noto-sans-kr-118-400-normal.woff2",
+  "noto-sans-kr-119-400-normal.woff2",
+  "noto-sans-kr-117-400-normal.woff2",
+  "noto-sans-kr-118-700-normal.woff2",
+  "noto-sans-kr-119-700-normal.woff2",
+  "noto-sans-kr-117-700-normal.woff2",
+] as const;
 export function fontPreloadHrefs(origin = ""): string[] {
-  return PRETENDARD_PRELOAD_FILES.map((f) => `${origin.replace(/\/+$/, "")}/fonts/pretendard/${f}`);
+  return NOTO_PRELOAD_FILES.map((f) => `${origin.replace(/\/+$/, "")}/fonts/noto-sans-kr/${f}`);
 }
 
-/** 같은 CSS 한 벌(라이브 `[data-pz-v3]`·export `.pagzly-wrap`/`:root` 공용). 본문 15px·줄간격은 건드리지 않는다 */
+/** 같은 CSS 한 벌(라이브 `[data-pz-v3]`·export `.pagzly-wrap` 공용). 본문 15px는 건드리지 않는다 */
 export function fontPairCss(scope: string, p: FontPair): string {
   const s = pairStacks(p);
   const t = p.title;
   return (
-    PRETENDARD_FALLBACK_CSS +
+    NOTO_FALLBACK_CSS +
     `${scope}{--pz-f-title:${s.title};--pz-f-body:${s.body};--pz-f-label:${s.label};font-family:var(--pz-f-body)}` +
-    `${scope} .font-sans{font-family:var(--pz-f-body)!important}` +
-    `${scope} .font-heading,${scope} .font-mono{font-family:var(--pz-f-label)!important}` +
-    // 430B: 세리프 라벨(Playfair)은 x-height가 작아 영문·숫자 라벨이 작아 보인다 — 영문 라벨(.font-mono)만 크기 +4%·자간 +0.06em로 키워 Noto와 구분되게
-    (p.label_.family === "playfair-display" ? `${scope} .font-mono{letter-spacing:0.06em!important;font-size:1.04em}` : "") +
-    `${scope} .pagzly-display-headline{font-family:var(--pz-f-title)!important;font-weight:${t.weight}!important;letter-spacing:${t.letterSpacing}!important}`
+    `${scope} .font-sans,${scope} .font-heading,${scope} .font-mono{font-family:var(--pz-f-body)!important}` +
+    // 숫자·가격은 같은 폭 숫자(tabular-nums), 영문 라벨(.font-mono)은 자간을 넓힌다
+    `${scope} .font-heading{font-variant-numeric:tabular-nums}` +
+    `${scope} .font-mono{letter-spacing:${p.label_.letterSpacing}!important}` +
+    `${scope} .pagzly-display-headline{font-family:var(--pz-f-title)!important;font-weight:${t.weight}!important;letter-spacing:${t.letterSpacing}!important;line-height:${t.lineHeight}!important}`
   );
 }
 
