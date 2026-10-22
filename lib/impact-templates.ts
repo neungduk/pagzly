@@ -48,11 +48,11 @@ export function impactHtml(s: ImpactSection, pal: ImpactPalette, alt: string): s
     }
     case "number": {
       const chars = s.text.replace(/[,.]/g, "").length + (s.text.match(/[,.]/g)?.length ?? 0) * 0.4;
-      const units = Math.max(2, chars);
+      const units = Math.max(2.6, chars);
       return (
         `<section data-pz-impact="number" style="padding:56px 24px;background:#FFFFFF">` +
         `<div style="max-width:576px;margin:0 auto">` +
-        `<p style="margin:0;display:flex;align-items:baseline;gap:6px;${title};font-weight:900;letter-spacing:-0.04em;line-height:0.95;font-size:min(calc(80vw / ${units.toFixed(1)}),200px);color:${pal.accent};font-variant-numeric:tabular-nums"><span>${e(s.text)}</span>` +
+        `<p style="margin:0;display:flex;align-items:baseline;gap:6px;${title};font-weight:900;letter-spacing:-0.04em;line-height:0.95;font-size:min(calc(62vw / ${units.toFixed(1)}),160px);color:${pal.accent};font-variant-numeric:tabular-nums"><span>${e(s.text)}</span>` +
         (s.unit ? `<span style="font-size:0.28em;font-weight:700;letter-spacing:0;color:${pal.ink}">${e(s.unit)}</span>` : "") +
         `</p>` +
         (s.sub ? `<p style="margin:20px 0 0;${sans};font-size:16px;font-weight:500;line-height:1.6;color:${hexToRgba(pal.ink, 0.8)};word-break:keep-all">${e(s.sub)}</p>` : "") +
@@ -65,7 +65,7 @@ export function impactHtml(s: ImpactSection, pal: ImpactPalette, alt: string): s
         `<div style="position:relative;width:100%;aspect-ratio:4 / 5;overflow:hidden;background:${pal.tint}">` +
         `<img src="${e(s.imageUrl ?? "")}" alt="${e(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover;object-position:${pos}"/>` +
         `<div aria-hidden="true" style="position:absolute;left:0;right:0;bottom:0;height:58%;background:linear-gradient(0deg,rgba(27,27,24,0.86) 0%,rgba(27,27,24,0.72) 22%,rgba(27,27,24,0) 100%)"></div>` +
-        `<p style="position:absolute;left:0;right:0;bottom:0;margin:0;padding:0 24px 24px;${title};font-size:clamp(20px,5.6vw,28px);font-weight:700;letter-spacing:-0.02em;line-height:1.3;color:#FFFFFF;word-break:keep-all">${e(s.text)}</p>` +
+        `<p style="position:absolute;left:0;right:0;bottom:0;margin:0;padding:0 24px 24px;${title};font-size:clamp(20px,5.2vw,24px);font-weight:700;letter-spacing:-0.02em;line-height:1.3;color:#FFFFFF;word-break:keep-all">${e(s.text)}</p>` +
         `</div>` +
         (s.body ? `<div style="padding:28px 24px 8px"><p style="max-width:576px;margin:0 auto;${sans};font-size:15px;line-height:1.85;color:${hexToRgba(pal.ink, 0.78)};white-space:pre-line;word-break:keep-all">${e(s.body)}</p></div>` : "") +
         `</section>`
