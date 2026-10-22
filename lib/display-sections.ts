@@ -11,6 +11,7 @@ import { insertSceneSlots, type SceneImageMap } from "@/lib/scene-images";
 import { NUMERIC_GATE_ENABLED, numericClaimGate, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import { COMPARISON_POLICY_ENABLED, applyComparisonPolicy, type PolicyChange } from "@/lib/comparison-policy";
 import { backfillPhotoGallery } from "@/lib/section-backfill";
+import { applyStoryOrder, storyOrderOn } from "@/lib/detail-story-order";
 
 export type DisplaySections = {
   sections: DetailSection[];
@@ -300,10 +301,12 @@ export function applyDisplayRules(
   const sections = gated ? gate.sections : gateInput;
   // 표시 번호 → 입력 번호: 게이트가 뺀 섹션과 정책이 끼운·뺀 섹션을 차례로 되돌린다
   const keptMap = gated || policy ? (i: number) => { const a = gated ? gate.keptIndexes[i] ?? i : i; return policy ? policy.sourceIndexes[a] ?? a : a; } : null;
+  // 433차 — 스토리 순서(훅 → 공감 → 해결 → 근거 → 사용 → 정보 → 신뢰 → 구매). 뷰티·패션만, 편집 모드·claimFacts 없음은 그대로. 순서만 바꾸고 섹션 객체는 같은 참조
+  const storyOrdered = opts.claimFacts && !opts.editing && storyOrderOn(opts.category) ? applyStoryOrder(sections).sections : sections;
   const ordered = storyAfterPhotoFlow(
     photoLeadFlow(
       photoFirstFlow(
-        pullWornGalleryForward(orderSectionsForFlow(sections), opts.category, opts.roles),
+        pullWornGalleryForward(orderSectionsForFlow(storyOrdered), opts.category, opts.roles),
         opts.category,
         opts.roles,
         opts.flow,
