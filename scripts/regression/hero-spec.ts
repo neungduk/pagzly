@@ -6,7 +6,7 @@ import { applyDisplayRules } from "../../lib/display-sections";
 import { buildDetailPageHtml } from "../../lib/export-detail-html";
 import { getCategoryTheme } from "../../lib/category-theme";
 import { buildClaimFacts } from "../../lib/numeric-claim-gate";
-import { HERO_FAIL_CSS, HERO_V2_TUNED, HERO_SPEC, HERO_V2_VARIANTS, estimatePhotoKind, hashtagsFrom, heroBadgesFrom, heroNameSizePx, heroPalette, heroV2Html, saturatedFace, scrimGradient, selectHeroVariant, splitProductName, worstCaseScrimContrast, type HeroV2Plan } from "../../lib/hero-spec";
+import { heroFaceColor, hueHintOf, isNearNeutral, HERO_FAIL_CSS, HERO_V2_TUNED, HERO_SPEC, HERO_V2_VARIANTS, estimatePhotoKind, hashtagsFrom, heroBadgesFrom, heroNameSizePx, heroPalette, heroV2Html, saturatedFace, scrimGradient, selectHeroVariant, splitProductName, worstCaseScrimContrast, type HeroV2Plan } from "../../lib/hero-spec";
 import { contrastRatioToken } from "../../lib/design-tokens";
 import type { DetailSection, HeroSection } from "../../lib/types/generate";
 
@@ -110,6 +110,16 @@ export async function run(): Promise<string[]> {
     const imgs = exp2.match(/<img [^>]*>/g) ?? [];
     if (imgs.length === 0 || imgs.some((x) => !/onerror=/.test(x))) fails.push("export 이미지에 실패 시 숨김 없음");
   }
+  // 438차 1-3 색 신호 우선순위: 유채색 대표색(사진 지배색) 우선 → 무채색이면 색상어 → mood, 신호 없으면 437차 동작(대표색 그대로)
+  eq("유채색 대표색은 그대로(사진)", heroFaceColor("#20547E", { hue: 128, source: "mood" }).source, "photo");
+  eq("힌트 없으면 대표색", heroFaceColor("#9C8F7E", undefined), { face: saturatedFace("#9C8F7E"), source: "accent" });
+  eq("무채색 판별", [isNearNeutral("#9C9C9C"), isNearNeutral("#FAFAFA"), isNearNeutral("#20547E")], [true, true, false]);
+  eq("색상어 우선", hueHintOf("코랄 핑크 틴트", "natural").hueHint?.source, "keyword");
+  eq("색상어 없으면 mood", hueHintOf("수분 크림", "natural").hueHint, { hue: 128, source: "mood" });
+  eq("신호 없으면 힌트 없음", hueHintOf("수분 크림", null), {});
+  const kw = heroFaceColor("#9C9C9C", hueHintOf("민트 쿨링 젤", null).hueHint);
+  if (kw.source !== "keyword" || contrastRatioToken("#FFFFFF", kw.face) < 4.5) fails.push(`색상어 면 ${kw.face} 대비 부족/출처 ${kw.source}`);
+  eq("다크 힌트", heroFaceColor("#F5F5F5", { hue: "dark", source: "mood" }).face, "#1F2026");
   // export: 같은 마크업
   const html = buildDetailPageHtml({ productName: "수분 에센스 미스트", brandName: "glowiest", category: "화장품/뷰티", sections: base(), imageUrls: urls, theme: getCategoryTheme("화장품/뷰티"), claimFacts: F(), imageTags: [["정면", "단독"]], imageRoles: ["hero"] });
   if (!/data-hero-v2="B"/.test(html)) fails.push("export에 히어로 v2 마크업 없음");

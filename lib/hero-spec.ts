@@ -19,6 +19,7 @@ import { DETAIL_FONT_STACK } from "@/lib/detail-typography";
 import type { CategoryTheme } from "@/lib/category-theme";
 import { buildProofRows } from "@/lib/evidence-modules";
 import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
+import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 
 export const HERO_V2_ENABLED = process.env.NEXT_PUBLIC_HERO_V2 !== "off";
 /** 438차 조정(사진 면적 확보·텍스트 압축·스크림·실패 폴백). NEXT_PUBLIC_HERO_V2=prev 이면 437차 사양 그대로, off 이면 436차 히어로 */
@@ -40,7 +41,12 @@ export const HERO_V2_LABEL: Record<HeroV2Variant, string> = { A: "라이프스�
 
 export type HeroPhotoKind = "person" | "product" | "unknown";
 
+/** 438차 1-3 — 포화 면 색 힌트: 사진 지배색(테마 대표색)이 무채색에 가까울 때만 쓰는 색상(상품명·브랜드·키워드의 색상어 → mood 순) */
+export type HeroHueHint = { hue: number | "dark"; source: "keyword" | "mood" };
+
 export type HeroV2Plan = {
+  /** 438차 — 포화 면 색 힌트(DESIGN_POLISH). 없으면 대표색 그대로 */
+  hueHint?: HeroHueHint;
   variant: HeroV2Variant;
   photoKind: HeroPhotoKind;
   /** 사진 종류 판별 신뢰도(0~1) — 낮으면 안전 변형 */
@@ -177,6 +183,34 @@ export function saturatedFace(accent: string): string {
   return hslToHex(h, s, 0.2);
 }
 
+/** 색상어 → 색상(도). 무채색어는 dark만 */
+const COLOR_WORDS: Array<[RegExp, number | "dark"]> = [
+  [/코랄/, 10], [/체리|레드|빨강|버건디|와인/, 352], [/핑크|로즈|장미/, 338], [/오렌지|주황|살구/, 24], [/옐로|노랑|레몬|머스터드/, 46],
+  [/올리브|카키/, 75], [/민트/, 165], [/그린|초록|녹차|말차|쑥/, 128], [/스카이|하늘/, 200], [/네이비|남색/, 225], [/블루|파랑/, 212],
+  [/라벤더|퍼플|보라|바이올렛/, 270], [/브라운|갈색|카멜|모카|초코|커피/, 26], [/블랙|검정|차콜/, "dark"],
+];
+const MOOD_HUE: Record<string, number | "dark"> = { natural: 128, clinic: 205, playful: 336, warm: 24, street: "dark", "minimal-luxe": "dark" };
+
+/** 입력 문구의 색상어 → mood 순으로 색 힌트(둘 다 없으면 없음) */
+export function hueHintOf(text: string, mood: string | null | undefined): { hueHint?: HeroHueHint } {
+  for (const [re, hue] of COLOR_WORDS) if (re.test(text)) return { hueHint: { hue, source: "keyword" } };
+  if (mood && mood in MOOD_HUE) return { hueHint: { hue: MOOD_HUE[mood]!, source: "mood" } };
+  return {};
+}
+
+/** 대표색이 무채색에 가깝다(채도 낮음·너무 밝음·너무 어두움) */
+export function isNearNeutral(hex: string): boolean {
+  const [, s, l] = hexToHsl(hex);
+  return s < 0.22 || l > 0.88 || l < 0.1;
+}
+
+/** 포화 면 색 결정: ① 사진 지배색(테마 대표색)이 유채색이면 그것 ② 아니면 색상어 ③ 아니면 mood ④ 신호 없으면 대표색 그대로(437차 동작) */
+export function heroFaceColor(accent: string, hint: HeroHueHint | undefined): { face: string; source: "photo" | "keyword" | "mood" | "accent" } {
+  if (!hint || !isNearNeutral(accent)) return { face: saturatedFace(accent), source: hint ? "photo" : "accent" };
+  if (hint.hue === "dark") return { face: "#1F2026", source: hint.source };
+  return { face: saturatedFace(hslToHex(hint.hue, 0.7, 0.45)), source: hint.source };
+}
+
 /** 사진 위 스크림 불투명도 곡선(0=아래 끝). 텍스트 영역(아래 약 45%)에서 최소 scrimTextAlpha 이상 */
 export function scrimGradient(tuned: boolean = HERO_V2_TUNED): string {
   // 438차: 알파 ≥0.6 구간을 텍스트 영역(하단 약 44%)에만 두고 그 위는 빠르게 투명하게 — 얼굴·상체가 덜 가려진다(대비는 텍스트 영역 기준 유지)
@@ -234,7 +268,7 @@ export function heroV2Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, a
     );
   }
   if (p.variant === "B") {
-    const face = saturatedFace(pal.accent);
+    const face = heroFaceColor(pal.accent, p.hueHint).face;
     const photo = p.whiteBg
       ? `<div data-hero-photo style="position:relative;margin:24px auto 0;width:84%;aspect-ratio:4 / 4.6">${img("position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply")}</div>`
       : `<div data-hero-photo style="position:relative;margin:${HERO_V2_TUNED ? 16 : 20}px auto 0;width:${HERO_V2_TUNED ? 96 : 90}%;aspect-ratio:${HERO_V2_TUNED ? "4 / 5.2" : "4 / 4.9"};border-radius:999px 999px 0 0;overflow:hidden;box-shadow:0 -10px 30px rgba(10,10,10,0.25);background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`;
@@ -310,6 +344,7 @@ export function planHeroV2(i: HeroPlanInput): HeroV2Plan | null {
   const { main, sub } = splitProductName(raw);
   const brand = (i.brandName ?? "").trim();
   return {
+    ...(DESIGN_POLISH_ENABLED ? hueHintOf(`${raw} ${brand} ${i.keyFeatures}`, i.mood) : {}),
     variant, photoKind: est.kind, confidence: est.confidence, name: main, ...(sub ? { nameSub: sub } : {}), ...(brand && brand.length <= 24 ? { brand } : {}),
     imageUrl: url, whiteBg: est.whiteBg && variant === "B",
     badges: heroBadgesFrom(i.hero, i.certifications, i.category, i.facts),
