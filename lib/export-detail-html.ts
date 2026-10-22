@@ -164,6 +164,7 @@ import {
 import { rhythmVarsCss } from "@/lib/rhythm-tokens";
 import { applyPackTone, classicFashionHeroStrength, isClassicPack, CLASSIC_LAYOUT, getPackLayout, packPadScale, packTitleScaleOverrides, resolveGalleryVariant, resolveHeroVariant, resolveStylePack, type PackLayout } from "@/lib/style-packs";
 import { archetypeHeroLayout } from "@/lib/archetype-recipes";
+import { heroPalette, heroV2Html } from "@/lib/hero-spec";
 import { BEAUTY_HERO, HERO_ARCH, HERO_CAPTION, HERO_FRAME, HERO_STAGE_VARIANT, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroStageOn } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
@@ -724,6 +725,8 @@ function sectionHtml(
     case "hero": {
       const src = resolveExportImage(imageUrls, section.imageIndex);
       const alt = buildSectionImageAlt(productName, section.headline, "hero");
+      // 437차 — 라이브와 같은 첫 화면 히어로(lib/hero-spec 한 벌)
+      if (section.v2) return heroV2Html(section, section.v2, heroPalette(baseTheme, category), alt);
       const brandMarkHtml = buildHeroBrandMarkHtml({
         logoUrl,
         brandName,

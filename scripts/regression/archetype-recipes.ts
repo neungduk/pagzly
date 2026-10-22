@@ -10,6 +10,7 @@ import { NEUTRAL_MOOD, applyMood } from "../../lib/mood";
 import { buildClaimFacts } from "../../lib/numeric-claim-gate";
 import { buildDetailPageHtml } from "../../lib/export-detail-html";
 import { getCategoryTheme } from "../../lib/category-theme";
+import { HERO_V2_ENABLED } from "../../lib/hero-spec";
 import { CLASSIC_LAYOUT } from "../../lib/style-packs";
 import type { DetailSection } from "../../lib/types/generate";
 
@@ -100,6 +101,8 @@ export async function run(): Promise<string[]> {
   eq("레시피 히어로 없음(null)은 불변", archetypeHeroLayout({ ...CLASSIC_LAYOUT, hero: "bleed-bottom" }, null).hero, "bleed-bottom");
   const outerFacts = buildClaimFacts({ productName: "브이넥 니트 가디건", brandName: "b", price: 1000, keyFeatures: "가을 아우터" } as never);
   const outerHtml = buildDetailPageHtml({ productName: "브이넥 니트 가디건", brandName: "b", category: "의류/패션", sections: gen(), imageUrls: urls, theme: getCategoryTheme("의류/패션"), claimFacts: outerFacts });
-  if (!/data-hero-variant="arch"/.test(outerHtml) || !/999px 999px 24px 24px/.test(outerHtml)) fails.push("export 히어로에 arch 마크업 없음");
+  // 437차: 히어로 v2가 켜져 있으면 첫 화면은 v2 히어로가 대신한다(arch는 v2 off일 때의 히어로)
+  if (!HERO_V2_ENABLED && (!/data-hero-variant="arch"/.test(outerHtml) || !/999px 999px 24px 24px/.test(outerHtml))) fails.push("export 히어로에 arch 마크업 없음");
+  if (HERO_V2_ENABLED && !/data-hero-v2="/.test(outerHtml)) fails.push("export 히어로 v2 마크업 없음");
   return fails;
 }

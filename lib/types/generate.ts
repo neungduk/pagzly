@@ -187,6 +187,8 @@ export type HeroSection = {
    * 패션 착용컷(원본, 머리가 사진 위쪽)이 히어로일 때 — 가운데 기준이면 넓은 폭에서 위가 잘려 브랜드 알약이 머리에 걸친다.
    */
   photoTopAnchored?: boolean;
+  /** 437차 — 표시 단계 전용(applyDisplayRules가 붙임, 저장하지 않음): 첫 화면 히어로 재설계 계획(변형·제품명·배지·해시태그). 없으면 기존 히어로 */
+  v2?: import("@/lib/hero-spec").HeroV2Plan;
 };
 
 export type ChecklistSection = {

@@ -144,6 +144,7 @@ import PowerConsumptionDiagram from "@/components/PowerConsumptionDiagram";
 import { headlineDisplayStyle, joinNumericSuffix, longestTokenEm, packHeadlineLiveVars } from "@/lib/detail-typography";
 import { rhythmLiveVars } from "@/lib/rhythm-tokens";
 import { archetypeHeroLayout } from "@/lib/archetype-recipes";
+import { heroPalette, heroV2Html } from "@/lib/hero-spec";
 import { BEAUTY_HERO, HERO_ARCH, HERO_CAPTION, HERO_FRAME, HERO_STAGE_VARIANT, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroStageOn } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
@@ -2233,6 +2234,10 @@ function renderSection(
     case "hero": {
       const src = resolveImage(imageUrls, section.imageIndex);
       const imgAlt = buildSectionImageAlt(productName ?? category, section.headline, "hero");
+      // 437차 — 첫 화면 히어로 재설계(제품명 대형·사진 지배·배지·해시태그). 편집 모드·계획 없음은 기존 히어로. 마크업은 export와 같은 lib/hero-spec 한 벌
+      if (section.v2 && !edit?.enabled) {
+        return <div key={`hero-v2-${index}`} data-hero-v2-wrap dangerouslySetInnerHTML={{ __html: heroV2Html(section, section.v2, heroPalette(theme, category), imgAlt) }} />;
+      }
       const brandMark = resolveHeroBrandMark({
         logoUrl,
         brandName,
