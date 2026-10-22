@@ -21,6 +21,7 @@ import { buildProofRows } from "@/lib/evidence-modules";
 import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 import { polishTitles } from "@/lib/typo-rhythm";
+import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
 
 export const HERO_V2_ENABLED = process.env.NEXT_PUBLIC_HERO_V2 !== "off";
 /** 438차 조정(사진 면적 확보·텍스트 압축·스크림·실패 폴백). NEXT_PUBLIC_HERO_V2=prev 이면 437차 사양 그대로, off 이면 436차 히어로 */
@@ -252,6 +253,8 @@ const STRIP_OVERLAP_CSS_TUNED = `<style>[data-pz-strip]{position:relative;z-inde
 export const HERO_FAIL_ONERROR = "var s=this.closest('[data-hero-v2]');if(s)s.setAttribute('data-hero-fail','1');this.style.display='none'";
 export const HERO_FAIL_ONLOAD = "if(this.naturalWidth<240||this.naturalHeight<240||this.naturalWidth/this.naturalHeight>3||this.naturalHeight/this.naturalWidth>3){this.onerror()}";
 export const HERO_FAIL_CSS = `<style>[data-hero-fail] [data-hero-scrim],[data-hero-fail] [data-hero-photo]{display:none}[data-hero-v2="A"][data-hero-fail]{aspect-ratio:auto!important;max-height:none!important;padding:0 0 8px}[data-hero-v2="A"][data-hero-fail] [data-hero-a-text]{position:static!important;padding-bottom:0!important}[data-hero-v2="A"][data-hero-fail] [data-hero-a-text]:last-child{padding:24px 24px 44px!important}[data-hero-v2="D"][data-hero-fail]{background:transparent!important}</style>`;
+/** 439차 1-(d) — D형은 브랜드 알약이 사진 위에 있어 사진 실패 시 함께 사라졌다 → 글 블록에 숨겨 둔 알약을 실패 때만 보인다(DESIGN_V4) */
+const HERO_FAIL_CSS_V4 = `<style>[data-hero-brand-fallback]{display:none}[data-hero-fail] [data-hero-brand-fallback]{display:block}</style>`;
 
 /** 히어로 마크업(438차: 제목 줄 끝 고아 줄이기를 함께 적용 — DESIGN_POLISH) */
 export function heroV2Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: string): string {
@@ -262,7 +265,7 @@ function heroV2HtmlBase(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt:
   const size = heroNameSizePx(p.name);
   const failAttrs = HERO_V2_TUNED ? ` onerror="${HERO_FAIL_ONERROR}" onload="${HERO_FAIL_ONLOAD}"` : "";
   const img = (extra: string) => `<img src="${esc(p.imageUrl)}" alt="${esc(alt)}" fetchpriority="high" decoding="async"${failAttrs} style="${extra}"/>`;
-  const wrapOpen = (v: HeroV2Variant, style: string) => `${HERO_V2_TUNED ? STRIP_OVERLAP_CSS_TUNED + HERO_FAIL_CSS : STRIP_OVERLAP_CSS}<section data-hero-v2="${v}" class="hero pagzly-hero" style="position:relative;width:100%;box-sizing:border-box;overflow:hidden;border-radius:0 0 24px 24px;${style}">`;
+  const wrapOpen = (v: HeroV2Variant, style: string) => `${HERO_V2_TUNED ? STRIP_OVERLAP_CSS_TUNED + HERO_FAIL_CSS + (DESIGN_V4_ENABLED && v === "D" && p.brand ? HERO_FAIL_CSS_V4 : "") : STRIP_OVERLAP_CSS}<section data-hero-v2="${v}" class="hero pagzly-hero" style="position:relative;width:100%;box-sizing:border-box;overflow:hidden;border-radius:0 0 24px 24px;${style}">`;
   if (p.variant === "A") {
     return (
       wrapOpen("A", "aspect-ratio:4 / 5.4;max-height:760px;background:#1B1B18") +
@@ -298,7 +301,7 @@ function heroV2HtmlBase(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt:
     return (
       wrapOpen("D", "background:#FFFFFF") +
       `<div data-hero-photo style="position:relative;width:100%;aspect-ratio:${HERO_V2_TUNED ? "4 / 4.8" : "4 / 4.2"};overflow:hidden;background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}<div style="position:absolute;left:0;top:0;padding:18px 20px">${brandPill(p, "rgba(255,255,255,0.9)", "#1B1B18")}</div></div>` +
-      `<div style="background:${face};padding:28px 24px 44px">${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, deep, hexToRgba("#1B1B18", 0.78))}${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "#FFFFFF", "#1B1B18", hexToRgba("#1B1B18", 0.2))}</div>` : ""}${tagRow(p, "#1B1B18", hexToRgba("#1B1B18", 0.3))}</div></section>`
+      `<div style="background:${face};padding:28px 24px 44px">${DESIGN_V4_ENABLED && p.brand ? `<div data-hero-brand-fallback style="margin:0 0 14px">${brandPill(p, "#FFFFFF", "#1B1B18")}</div>` : ""}${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, deep, hexToRgba("#1B1B18", 0.78))}${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "#FFFFFF", "#1B1B18", hexToRgba("#1B1B18", 0.2))}</div>` : ""}${tagRow(p, "#1B1B18", hexToRgba("#1B1B18", 0.3))}</div></section>`
     );
   }
   // E 타이포: 큰 제품명·훅 중심 + 사진 작게(원형)

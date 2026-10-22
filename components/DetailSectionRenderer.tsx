@@ -246,6 +246,7 @@ import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/li
 import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe";
 import { applyDisplayRules } from "@/lib/display-sections";
 import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
+import { hideImgOnError } from "@/lib/design-v4";
 
 export type SectionEditApi = {
   enabled: boolean;
@@ -470,7 +471,7 @@ function ConceptBadgeIcon({
   if (src) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img
+      <img onError={hideImgOnError}
         src={src}
         alt=""
         className={`${sizeClass} shrink-0 rounded-full ring-2 ring-white/80 ${inverted ? "object-contain p-1.5" : "object-cover"}`}
@@ -1772,7 +1773,7 @@ function ComparisonVersusHeader({
     >
       <div className="flex flex-col items-center" style={{ width: v.colPx, gap: 8 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <img onError={hideImgOnError}
           src={productThumb}
           alt=""
           aria-hidden
@@ -2415,7 +2416,7 @@ function renderSection(
                 data-hero-brand-mark="logo"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <img onError={hideImgOnError}
                   src={logoUrl}
                   alt={brandMark.displayName ? `${brandMark.displayName} 로고` : "브랜드 로고"}
                   className="block h-auto max-h-16 w-auto max-w-full object-contain"
@@ -3869,7 +3870,7 @@ function renderSection(
               }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={productThumbs.highlight} alt="" aria-hidden className="block h-full w-full object-cover" />
+              <img onError={hideImgOnError} src={productThumbs.highlight} alt="" aria-hidden className="block h-full w-full object-cover" />
             </div>
           ) : null}
           <div className={`relative mx-auto ${isTrustEvidence ? "mt-0" : "mt-10"} grid gap-4 ${gridCols}`} {...(isTrustEvidence ? {} : ipData(layout, "pgrid"))}>
@@ -4368,7 +4369,7 @@ function renderSection(
         >
           {bgSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <img onError={hideImgOnError}
               src={bgSrc}
               alt={section.heading ?? "컨셉 배너"}
               className="absolute inset-0 h-full w-full object-cover"
@@ -4439,7 +4440,7 @@ function renderSection(
           className="relative aspect-video w-full overflow-hidden"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <img onError={hideImgOnError}
             src={section.gifUrl}
             alt={section.heading ?? "판매자 제공 GIF"}
             className="absolute inset-0 h-full w-full object-cover"
@@ -5169,7 +5170,7 @@ function renderSection(
                 <div className="grid grid-cols-2 gap-2">
                   <div className="relative overflow-hidden rounded-2xl">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <img onError={hideImgOnError}
                       src={pair.beforeUrl}
                       alt={`${section.heading} Before ${i + 1}`}
                       loading="lazy"
@@ -5185,7 +5186,7 @@ function renderSection(
                   </div>
                   <div className="relative overflow-hidden rounded-2xl">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <img onError={hideImgOnError}
                       src={pair.afterUrl}
                       alt={`${section.heading} After ${i + 1}`}
                       loading="lazy"
@@ -5236,7 +5237,7 @@ function renderSection(
                 {/* 서류 스캔본은 잘리면 글자가 사라지므로 object-contain + 문서 비율 3:4 */}
                 <div className="overflow-hidden rounded-2xl border border-line">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <img onError={hideImgOnError}
                     src={cert.imageUrl}
                     alt={`${section.heading} ${i + 1}`}
                     loading="lazy"
@@ -5891,7 +5892,7 @@ function renderSection(
         <section key={`scene_image-${index}`} data-scene-slot={section.sceneSlot} className="px-6 py-6 @min-[640px]/pz:px-10" style={{ backgroundColor: FLAT_PAPER }}>
           <figure className="mx-auto max-w-xl" style={{ margin: "0 auto" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={sceneUrl} alt={`${productName ?? category} 연출 이미지`} loading="lazy" decoding="async" className="block w-full object-cover" style={{ aspectRatio: "4 / 5", borderRadius: 16 }} />
+            <img onError={hideImgOnError} src={sceneUrl} alt={`${productName ?? category} 연출 이미지`} loading="lazy" decoding="async" className="block w-full object-cover" style={{ aspectRatio: "4 / 5", borderRadius: 16 }} />
             <figcaption style={{ marginTop: 8, textAlign: "center", fontSize: 12, lineHeight: 1.5, color: "rgba(27,27,24,0.65)" }}>{SCENE_NOTICE}</figcaption>
           </figure>
         </section>

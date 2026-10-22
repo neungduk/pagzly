@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { CategoryTheme } from "@/lib/category-theme";
 import type { ColorVariationSection } from "@/lib/types/generate";
+import { hideImgOnError } from "@/lib/design-v4";
 
 type Props = {
   section: ColorVariationSection;
@@ -86,7 +87,7 @@ export default function ColorVariationInteractive({
       {activeOption && (
         <div className="mx-auto mt-8 max-w-sm">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <img onError={hideImgOnError}
             src={resolveImage(imageUrls, activeOption.imageIndex)}
             alt={activeOption.label}
             className={`${ratioClass} w-full object-cover`}
