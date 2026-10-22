@@ -150,6 +150,7 @@ import { designV2ClassicFashionCap, designV2Css, designV2On, designV2Typo, planB
 import { buildPriceStrip } from "@/lib/price-strip";
 import { DESIGN_V3_FONTS_ENABLED, fontLinkHrefs, fontPairCss, pickFontPair } from "@/lib/font-pairs";
 import { DESIGN_V3_COLOR_ENABLED, extendThemeFor, paletteInfoCss } from "@/lib/palette-harmony";
+import { dividerCss } from "@/lib/section-dividers";
 import { SCENE_NOTICE, safeSceneUrl, type SceneImageMap } from "@/lib/scene-images";
 import { infoColorsOf, infoCss, infoData, infoOn, ipData, splitLead, INFO_CHECK_SVG } from "@/lib/info-style";
 import { resolveSummaryVariant, SUMMARY_VARIANT } from "@/lib/summary-variants";
@@ -6014,6 +6015,7 @@ export default function DetailSectionRenderer({
       )}
       {v2Css ? <style>{v2Css}</style> : null}
       {DESIGN_V3_COLOR_ENABLED && v2On ? <style>{paletteInfoCss("[data-pz-v2]", extendedTheme, packLayout.info)}</style> : null}
+      {DESIGN_V3_COLOR_ENABLED && !edit?.enabled ? <style>{dividerCss({ scope: "[data-pz-v2]", mode: "live", sections, ext: extendedTheme, category, info: packLayout.info })}</style> : null}
       {fontPair ? (
         <>
           {fontLinkHrefs(fontPair).map((href) => (

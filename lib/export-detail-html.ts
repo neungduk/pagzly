@@ -177,6 +177,7 @@ import { designV2ClassicFashionCap, designV2Css, designV2On, designV2Typo, planB
 import { buildPriceStrip, priceStripHtml } from "@/lib/price-strip";
 import { DESIGN_V3_FONTS_ENABLED, fontLinkHrefs, fontOrigin, fontPairCss, pickFontPair } from "@/lib/font-pairs";
 import { DESIGN_V3_COLOR_ENABLED, extendThemeFor, paletteInfoCss } from "@/lib/palette-harmony";
+import { dividerCss, dividerStyleFor } from "@/lib/section-dividers";
 import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
 import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe";
 import {
@@ -2279,7 +2280,8 @@ export function buildDetailPageHtml(opts: {
             `</div>`,
         );
       }
-      bodyParts.push(html);
+      // 430B: 면 전환 구분선(곡선/사선)이 걸릴 섹션 위치 표식(라이브 data-section-index와 같은 번호)
+      bodyParts.push(DESIGN_V3_COLOR_ENABLED && dividerStyleFor(opts.category) ? html.replace(/^(\s*)<section/, `$1<section data-pz-i="${i}"`) : html);
       lastRenderedSection = section;
     }
     if (deferredStripHtml && i === 1) {
@@ -2402,6 +2404,7 @@ ${jsonLd}
   ${titleScaleExportCss(v2Typo ? v2TitleOverrides(packTitleScaleOverrides(pack)) : v2TitleOnly ? v2TitleOverrides(packTitleScaleOverrides(pack), ["section"]) : packTitleScaleOverrides(pack))}
   ${v2CssText}
   ${DESIGN_V3_COLOR_ENABLED && designV2On(opts.category) ? paletteInfoCss(".pagzly-wrap", extended, v2Layout.info) : ""}
+  ${DESIGN_V3_COLOR_ENABLED ? dividerCss({ scope: ".pagzly-wrap", mode: "export", sections: visibleSections, ext: extended, category: opts.category, info: v2Layout.info }) : ""}
   ${v3Pair ? fontPairCss(".pagzly-wrap", v3Pair) : ""}
   @media (min-width:640px){.pagzly-usage{flex-direction:row!important;align-items:flex-start;gap:16px!important}.pagzly-usage-line{left:var(--pz-step-edge)!important;right:var(--pz-step-edge);bottom:auto!important;width:auto!important;height:1px}.pagzly-usage-step{flex:1;flex-direction:column;align-items:center!important;gap:12px!important;text-align:center}.pagzly-usage-step>div{flex:none!important;padding-top:0!important}.pagzly-usage-text{max-width:14rem;margin:0 auto}.pagzly-persona-pairs{grid-template-columns:repeat(2,1fr)!important}.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}.pagzly-hl-grid{grid-template-columns:var(--pz-hl-wide)!important}.pagzly-cl-grid{grid-template-columns:var(--pz-cl-wide)!important}.pagzly-step-rows{grid-template-columns:repeat(3,1fr)!important;gap:32px!important;margin-top:48px!important}.pagzly-step-pairs{gap:32px!important}.pagzly-step-row{display:block!important}.pagzly-step-row h3{margin-top:12px!important}.pagzly-step-row .pagzly-step-tag{margin-top:12px!important}.pagzly-step-row .pagzly-step-tag+h3{margin-top:0!important}.pagzly-step-row p,.pagzly-step-pairs p{font-size:14px!important}}
   .pagzly-wrap .pz-fit{font-size:max(min(var(--pz-fs),0.6875rem),min(var(--pz-fs),calc(100cqi / var(--pz-fit-em,0.01))))!important}

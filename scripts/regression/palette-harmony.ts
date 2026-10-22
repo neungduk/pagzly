@@ -8,6 +8,8 @@ import { getCategoryTheme, type CategoryTheme } from "../../lib/category-theme";
 import { contrastRatioToken, FLAT_PAPER, getSectionTheme, readableTextAccent, readableTextDeep, tokenHslToRgb, tokenRgbToHex } from "../../lib/design-tokens";
 import { HARMONY_RULES, PALETTE_CYCLE, derivePalette, extendThemeFor, harmonyRuleFor, hueGroupCount, minColorblindDeltaE, type HarmonyRule } from "../../lib/palette-harmony";
 import { BRAND } from "../../lib/design-tokens";
+import { pastelFace } from "../../lib/design-tokens";
+import { dividerCss, dividerStyleFor, faceSequence } from "../../lib/section-dividers";
 
 export const name = "조화형 멀티 컬러 — 규칙·채도 상한·대비·색약 구분·인접 같은 슬롯 0·페이지 슬롯 ≤4·flag off 기존·결정성";
 
@@ -87,5 +89,34 @@ export async function run(): Promise<string[]> {
   const on2 = extendThemeFor(th, { category: "화장품/뷰티", productName: "p", brandName: "b" }, true);
   eq("결정성", [0, 1, 2, 3].map((i) => getSectionTheme(on1, "checklist", i).accent), [0, 1, 2, 3].map((i) => getSectionTheme(on2, "checklist", i).accent));
   eq("순환 길이", PALETTE_CYCLE.length, 4);
+
+  // ── 430B 슬롯 파스텔 면: 명도 L≥0.92(또는 흰색 폴백), 그 면 위 글자 대비 통과, 인접 면이 서로 다름, 구분선은 안전한 CSS만 ──
+  const hslL = (hex: string) => { const n = parseInt(hex.slice(1), 16); const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255; return (Math.max(r, g, b) + Math.min(r, g, b)) / 2; };
+  for (const cat of ["화장품/뷰티", "의류/패션", "식품", "전자제품", "생활용품", "반려동물"]) {
+    for (let hue = 0; hue < 360; hue += 30) {
+      const ext = extendThemeFor(hueTheme(hue), { category: cat, productName: "p", brandName: "b" }, true);
+      for (const t of [ext.base, ext.warm, ext.cool, ext.bold]) {
+        const face = pastelFace(t, cat);
+        if (face !== FLAT_PAPER) {
+          if (hslL(face) < 0.915) fails.push(`${cat}/${hue}: 파스텔 명도 ${hslL(face).toFixed(2)} < 0.92`);
+          if (contrastRatioToken(readableTextDeep(t), face) < 4.5) fails.push(`${cat}/${hue}: 파스텔 위 진한 글자 대비 < 4.5`);
+          if (contrastRatioToken(readableTextAccent(t, 3), face) < 3) fails.push(`${cat}/${hue}: 파스텔 위 큰 글자 대비 < 3`);
+          if (contrastRatioToken(BRAND.ink, face) < 4.5) fails.push(`${cat}/${hue}: 파스텔 위 본문 대비 < 4.5`);
+        }
+      }
+    }
+  }
+  // 합성 페이지: 연속한 단색 면이 같은 색이면(흰색 제외) 안 된다
+  const plain = ["hero", ...Array.from({ length: 14 }, (_, i) => "checklist"), "cta_price"].map((type) => ({ type }));
+  for (const cat of ["화장품/뷰티", "식품/건강기능식품", "전자제품"]) {
+    const ext = extendThemeFor(getCategoryTheme(cat === "전자제품" ? "전자제품" : cat), { category: cat, productName: "p", brandName: "b" }, true);
+    const faces = faceSequence(plain, ext, cat, "calm");
+    for (let i = 1; i < faces.length; i += 1) if (faces[i] && faces[i] === faces[i - 1] && faces[i] !== FLAT_PAPER) fails.push(`${cat}: 인접 같은 색 면 (${i})`);
+    const css = dividerCss({ scope: ".pagzly-wrap", mode: "export", sections: plain, ext, category: cat, info: "calm" });
+    if (/:has\(|@container|text-wrap/.test(css)) fails.push(`${cat}: 구분선 CSS에 export 금지 기법`);
+    if (!css.includes("::before")) fails.push(`${cat}: 구분선이 하나도 없음`);
+  }
+  eq("구분선 종류(뷰티 곡선·식품 곡선·전자 사선·패션 없음)", [dividerStyleFor("화장품/뷰티"), dividerStyleFor("식품/건강기능식품"), dividerStyleFor("전자제품"), dividerStyleFor("의류/패션")], ["wave", "wave", "slant", null]);
+  eq("패션 구분선 CSS 없음", dividerCss({ scope: "x", mode: "live", sections: plain, ext: extendThemeFor(getCategoryTheme("의류/패션"), { category: "의류/패션" }, true), category: "의류/패션", info: "calm" }), "");
   return fails;
 }

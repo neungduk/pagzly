@@ -147,8 +147,9 @@ export function getSectionBackground(
   }
   // 290차 — 흰 바탕 ↔ 포인트색 옅은 틴트 단색 교대 (그라데이션·질감 없음)
   if (pattern === "A" || pattern === "D") return FLAT_PAPER;
-  // 430차: 조화형 색(V3)이 켜지면 틴트를 2배로 — 슬롯마다 색상이 다르므로 7%(패션 4%) 틴트는 구분되지 않아 면 색이 같아 보였다
-  return flatAccentTint(theme, (pattern === "B" ? 1 : 0.6) * (V3_COLOR_TINT ? 2 : 1), fashionMinimal);
+  // 430B: 조화형 색(V3)이 켜지면 슬롯 색의 연한 솔리드 파스텔(명도 L≥0.92, 글자 대비 자동 보정)로 — 14% 틴트는 변화가 보이지 않았다. 패션은 채도를 낮춘 파스텔
+  if (V3_COLOR_TINT) return pastelFace(theme, category, pattern === "E" ? 0.012 : 0);
+  return flatAccentTint(theme, pattern === "B" ? 1 : 0.6, fashionMinimal);
 }
 
 /**
@@ -159,6 +160,25 @@ export const FLAT_SECTION_SURFACES = true;
 export const FLAT_PAPER = "#FFFFFF";
 /** NEXT_PUBLIC_DESIGN_V3_COLOR=off 면 429차 틴트 세기(palette-harmony.ts와 같은 플래그) */
 export const V3_COLOR_TINT = process.env.NEXT_PUBLIC_DESIGN_V3_COLOR !== "off";
+
+/** 카테고리별 파스텔 채도(HSL s). 패션은 차분하게, 식품·뷰티는 또렷하게 */
+const PASTEL_SAT: Record<string, number> = { "화장품/뷰티": 0.55, "의류/패션": 0.3, "식품": 0.6, "식품/건강기능식품": 0.6, "전자제품": 0.5, "생활용품": 0.5, "반려동물": 0.55 };
+
+/**
+ * 430B — 슬롯 테마의 색상으로 만든 연한 솔리드 파스텔 면. 명도 L은 0.92에서 시작해(+lift) 그 면 위에서 이 테마의 글자색(readableTextDeep 4.5:1,
+ * readableTextAccent 3:1)이 통과할 때까지 0.97까지 올린다. 끝까지 못 맞추면 흰색(= 변화 없음, 안전).
+ */
+export function pastelFace(theme: CategoryTheme, category?: string, lift = 0): string {
+  const n = parseInt(theme.accent.replace("#", ""), 16);
+  const { h } = tokenRgbToHsl((n >> 16) & 255, (n >> 8) & 255, n & 255);
+  const sat = PASTEL_SAT[category ?? ""] ?? 0.5;
+  for (let l = 0.92 + lift; l <= 0.975; l += 0.01) {
+    const [r, g, b] = tokenHslToRgb(h, sat, l);
+    const face = tokenRgbToHex(r, g, b);
+    if (contrastRatioToken(readableTextDeep(theme), face) >= 4.5 && contrastRatioToken(readableTextAccent(theme, 3), face) >= 3) return face;
+  }
+  return FLAT_PAPER;
+}
 
 /** 흰 바탕에 포인트색을 7%(패션 4%) 섞은 단색 틴트 */
 export function flatAccentTint(theme: CategoryTheme, strength = 1, fashionMinimal = false): string {
