@@ -64,10 +64,13 @@ export async function run(): Promise<string[]> {
     eq("정규화(빈 칸 행 제외)", rows.length, 2);
     const facts = F({ comparisonRows: rows });
     const on = applyDisplayRules(base(), urls, { category: "화장품/뷰티", claimFacts: facts });
-    eq("판매자 표 위치", types(on), ["hero", "stat_infographic", "comparison_table", "faq", "cta_price"]);
-    const t = on.sections[2] as unknown as { rows: Array<{ label: string; values: string[] }> };
+    // 436차: 아키타입 레시피가 같은 단계 안 순서를 바꿀 수 있어 위치 대신 구성(집합)과 히어로·구매 카드 위치를 본다
+    eq("판매자 표 구성", [...types(on)].sort(), ["comparison_table", "cta_price", "faq", "hero", "stat_infographic"]);
+    eq("히어로·구매 카드 위치", [types(on)[0], types(on)[types(on).length - 1]], ["hero", "cta_price"]);
+    const cmpIdx = on.sections.findIndex((s) => s.type === "comparison_table");
+    const t = on.sections[cmpIdx] as unknown as { rows: Array<{ label: string; values: string[] }> };
     eq("입력 그대로(비교 대상, 우리 제품 순)", t.rows.map((r) => [r.label, ...r.values]), [["무향료", "없음", "있음"], ["용량", "50mL", "30mL"]]);
-    eq("강조 열은 우리 제품", (on.sections[2] as unknown as { columns: string[] }).columns, ["일반 제품", "우리 제품"]);
+    eq("강조 열은 우리 제품", (on.sections[cmpIdx] as unknown as { columns: string[] }).columns, ["일반 제품", "우리 제품"]);
     if (JSON.stringify(on.sections).includes("85") || JSON.stringify(on.sections).includes("일반 제품과 비교")) fails.push("AI 차트 수치/제목이 남음");
     const mk = (facts2: ReturnType<typeof F>) =>
       buildDetailPageHtml({ productName: "p", brandName: "b", category: "화장품/뷰티", sections: base(), imageUrls: urls, theme: getCategoryTheme("화장품/뷰티"), claimFacts: facts2 });

@@ -6,6 +6,7 @@ import { ILLUST_IDS, illustrationSvg } from "../../lib/illustrations/library";
 import { ILLUST_STYLES } from "../../lib/illustrations/core";
 import { applyDisplayRules } from "../../lib/display-sections";
 import { buildClaimFacts } from "../../lib/numeric-claim-gate";
+import { MOODS } from "../../lib/archetype-recipes";
 import { IMPACT_BOOST_ENABLED } from "../../lib/impact-boost";
 import { ILLUST_MAX_PER_PAGE } from "../../lib/illust-sections";
 import type { DetailSection } from "../../lib/types/generate";
@@ -79,7 +80,9 @@ export async function run(): Promise<string[]> {
   if (ill.some((s) => s.text === "자연스러운 선택")) fails.push("키워드 없는 구간이 일러스트로 바뀜");
   const pool = JSON.stringify(secs);
   for (const s of ill) for (const x of [s.text, s.body, ...(s.labels ?? [])]) if (x && !pool.includes(x)) fails.push(`일러스트 구간에 입력에 없는 글 "${x}"`);
-  eq("스타일(뷰티)", ill.every((s) => s.illust?.style === (IMPACT_BOOST_ENABLED ? "solid" : "line")), true);
+  // 436차: 유형이 정해지면 스타일은 mood가 고른다(유형 미정이면 카테고리 기본)
+  const wantStyle = out.archetype?.mood ? MOODS[out.archetype.mood].illust : IMPACT_BOOST_ENABLED ? "solid" : "line";
+  eq("스타일(뷰티)", ill.every((s) => s.illust?.style === wantStyle), true);
   eq("claimFacts 없으면 일러스트 없음", applyDisplayRules(secs, ["https://example.com/a.jpg"], { category: "화장품/뷰티" }).sections.some((s) => s.type === "impact"), false);
   eq("편집 모드 일러스트 없음", applyDisplayRules(secs, ["https://example.com/a.jpg"], { category: "화장품/뷰티", claimFacts: facts, editing: true }).sections.some((s) => s.type === "impact"), false);
   eq("sourceIndexes 길이", out.sourceIndexes.length, out.sections.length);

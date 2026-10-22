@@ -564,6 +564,8 @@ export type ImpactSection = {
   /** 435차 — story: 브랜드 라벨 칩(입력 브랜드명)·큰 인용문(본문 첫 문장 그대로) */
   chip?: string;
   quote?: string;
+  /** 436차 — 아키타입 mood(여백·반경·그림자·구분선·제목 굵기 토큰). 없으면 지금 화면과 같다 */
+  mood?: string;
 };
 
 export type CanvasElement =

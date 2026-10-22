@@ -20,6 +20,7 @@ import { DETAIL_FONT_STACK } from "@/lib/detail-typography";
 import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import type { IllustColors } from "@/lib/illustrations/core";
 import { illustFor, illustHtml } from "@/lib/illust-sections";
+import { applyMood, moodOf } from "@/lib/mood";
 import { PHOTO_LAYOUT_V2_ENABLED, photoLayoutHtml } from "@/lib/photo-layouts";
 import { ILLUSTRATION_V1_ENABLED, illustStyleFor, pickIllustration } from "@/lib/illustration-map";
 import { isWornFashionPhoto } from "@/lib/fashion-composite-policy";
@@ -51,6 +52,12 @@ export function boostIllustColors(theme: CategoryTheme, face: string): IllustCol
 
 /** 마크업 한 벌(라이브 dangerouslySetInnerHTML·export 문자열 공용) */
 export function impactHtml(s: ImpactSection, pal: ImpactPalette, alt: string): string {
+  const html = impactHtmlBase(s, pal, alt);
+  // 436차 — 아키타입 mood 토큰(여백·반경·그림자·제목 굵기). mood가 없으면 지금 마크업 그대로
+  return s.mood ? applyMood(html, moodOf(s.mood)) : html;
+}
+
+function impactHtmlBase(s: ImpactSection, pal: ImpactPalette, alt: string): string {
   const title = `font-family:${DETAIL_FONT_STACK.sansDisplayHeadline}`;
   const sans = `font-family:${DETAIL_FONT_STACK.sans}`;
   const e = escapeHtml;
@@ -224,6 +231,9 @@ export type ImpactCtx = {
   facts: ClaimFacts;
   origins?: ReadonlyArray<ProductImageOrigin | undefined>;
   roles?: StripImageHints["roles"];
+  /** 436차 — 아키타입 레시피의 임팩트·사진 템플릿 선호(순서·상한·제외)와 mood의 일러스트 스타일 */
+  recipe?: { rotation: ImpactKind[]; maxPerKind: Partial<Record<ImpactKind, number>>; skip: ImpactKind[] } | null;
+  illustStyle?: "solid" | "flat" | "line" | null;
 };
 
 type Cand =
@@ -318,7 +328,9 @@ export function planImpact(sections: DetailSection[], sourceIndexes: number[], c
   for (const s of sections) { ys.push(acc); acc += estimateSectionHeight(s); }
   const tone: "thin" | "bold" = ctx.category === "화장품/뷰티" ? "thin" : "bold";
   const counts: Record<ImpactKind, number> = { statement: 0, number: 0, callout: 0, bleed: 0, split: 0, inset: 0, frame: 0, zoom: 0 };
-  const rotation = ctx.category === "화장품/뷰티" ? PHOTO_ROTATION_BEAUTY : PHOTO_ROTATION_DEFAULT;
+  const rotation = ctx.recipe ? ctx.recipe.rotation.filter((k) => !ctx.recipe!.skip.includes(k)) : ctx.category === "화장품/뷰티" ? PHOTO_ROTATION_BEAUTY : PHOTO_ROTATION_DEFAULT;
+  const maxOf = (k: ImpactKind): number => ctx.recipe?.maxPerKind[k] ?? MAX_PER_KIND[k];
+  const skipped = (k: ImpactKind): boolean => !!ctx.recipe?.skip.includes(k);
   let rotIdx = 0;
   let lastKind: ImpactKind | null = null;
   let lastY = ys[1] ?? 720; // 히어로 바로 뒤를 기준점으로
@@ -333,17 +345,17 @@ export function planImpact(sections: DetailSection[], sourceIndexes: number[], c
     if (kind === lastKind && c.kind === "photo") kind = kind === "bleed" ? "split" : "bleed";
     if (c.kind === "photo" && PHOTO_LAYOUT_V2_ENABLED) {
       // 431차 — 6종 회전(프레임·인셋·확대 포함). 연속 같은 템플릿·종류별 상한을 지키는 다음 템플릿
-      const pick = [0, 1, 2, 3, 4].map((o) => (rotIdx + o) % rotation.length).find((k) => rotation[k] !== lastKind && counts[rotation[k]!] < MAX_PER_KIND[rotation[k]!]);
+      const pick = [0, 1, 2, 3, 4].map((o) => (rotIdx + o) % rotation.length).find((k) => rotation[k] !== lastKind && counts[rotation[k]!] < maxOf(rotation[k]!));
       if (pick === undefined) continue;
       kind = rotation[pick]!;
       rotIdx = pick + 1;
     }
-    if (kind === lastKind || counts[kind] >= MAX_PER_KIND[kind]) continue;
+    if (kind === lastKind || counts[kind] >= maxOf(kind) || skipped(kind)) continue;
     let section: ImpactSection;
     if (c.kind === "statement") section = { type: "impact", slot: "impact", kind: "statement", text: c.text, tone };
     else if (c.kind === "number") {
       const ip = ILLUSTRATION_V1_ENABLED ? pickIllustration(c.sub) : null;
-      section = { type: "impact", slot: "impact", kind: "number", text: c.num, unit: c.unit, sub: c.sub, ...(ip ? { illust: { id: ip.id, variant: 1, style: illustStyleFor(ctx.category) } } : {}) };
+      section = { type: "impact", slot: "impact", kind: "number", text: c.num, unit: c.unit, sub: c.sub, ...(ip ? { illust: { id: ip.id, variant: 1, style: ctx.illustStyle ?? illustStyleFor(ctx.category) } } : {}) };
     }
     else if (c.kind === "callout") section = { type: "impact", slot: "impact", kind: "callout", text: "", imageUrl: c.url, labels: c.labels };
     else if (kind === "inset" || kind === "frame" || kind === "zoom") section = { type: "impact", slot: "impact", kind, text: c.text, body: c.body, images: [{ url: c.url, pos: c.anchorTop ? "50% 20%" : "50% 40%" }], ...(kind === "frame" ? { shape: ctx.category === "화장품/뷰티" ? "arch" : "round" } : {}) };

@@ -122,6 +122,54 @@ function disperseListCards(list: DetailSection[]): DetailSection[] {
   return out;
 }
 
+/**
+ * 436차 1-2 — 아키타입 레시피 순서: 레시피가 이름 붙인 섹션(stageOverride·priority의 슬롯/종류)만 단계 위치로 옮긴다.
+ * 나머지 섹션의 순서·사진 흐름(405~413차)은 그대로 둔다. priority>0은 단계 맨 앞(큰 값이 더 앞), 0은 단계 끝, 음수는 단계 끝에 둔다. 장식(단계를 모르는 섹션)은 앞 섹션과 같이 움직인다.
+ */
+export function applyRecipeOrder(sections: DetailSection[], recipe: { stageOverride: Record<string, StoryStage>; priority: Record<string, number> }): DetailSection[] {
+  if (sections.length < 4 || sections[0]!.type !== "hero") return sections;
+  const keyOf = (s: DetailSection): string | null => {
+    const slot = slotOf(s);
+    if (slot && (slot in recipe.stageOverride || slot in recipe.priority)) return slot;
+    // 종류로 찾는 건 슬롯이 종류와 같거나 없을 때만(예: spec_table 종류의 배송 안내 슬롯은 제외)
+    if ((!slot || slot === s.type) && (s.type in recipe.stageOverride || s.type in recipe.priority)) return s.type;
+    if ((s.type === "usage_steps" || s.type === "step_card") && slot === "step_card" && (s.type in recipe.stageOverride || s.type in recipe.priority)) return s.type;
+    return null;
+  };
+  const stageOf = (s: DetailSection): StoryStage | null => {
+    const k = keyOf(s);
+    if (k && k in recipe.stageOverride) return recipe.stageOverride[k]!;
+    return storyStageOf(s);
+  };
+  // 이동 단위: 레시피 섹션 + 바로 뒤의 장식(단계 모름)
+  type Unit = { members: DetailSection[]; pri: number; stage: StoryStage };
+  const units: Unit[] = [];
+  const base: DetailSection[] = [];
+  for (let i = 0; i < sections.length; i += 1) {
+    const s = sections[i]!;
+    const k = i > 0 ? keyOf(s) : null;
+    const st = k ? stageOf(s) : null;
+    if (k && st && s.type !== "cta_price") {
+      const members: DetailSection[] = [s];
+      while (i + 1 < sections.length && storyStageOf(sections[i + 1]!) == null && keyOf(sections[i + 1]!) == null) { members.push(sections[i + 1]!); i += 1; }
+      units.push({ members, pri: recipe.priority[k] ?? 0, stage: st });
+    } else base.push(s);
+  }
+  if (units.length === 0) return sections;
+  const out = [...base];
+  const stageAt = (s: DetailSection): number => storyStageOf(s) ?? 0;
+  // 우선순위 오름차순으로 넣어 큰 값이 가장 앞에 오게 한다
+  for (const u of [...units].sort((a, b) => a.pri - b.pri)) {
+    let at: number;
+    if (u.pri > 0) at = out.findIndex((s, i) => i >= 1 && stageAt(s) >= u.stage);
+    else at = out.findIndex((s, i) => i >= 1 && stageAt(s) > u.stage);
+    if (at < 0) at = out.findIndex((s) => s.type === "cta_price");
+    if (at < 0) at = out.length;
+    out.splice(at, 0, ...u.members);
+  }
+  return out.every((s, i) => s === sections[i]) ? sections : out;
+}
+
 export type StoryOrderResult = { sections: DetailSection[]; moves: number };
 
 /**

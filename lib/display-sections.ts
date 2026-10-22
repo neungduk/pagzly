@@ -11,17 +11,21 @@ import { insertSceneSlots, type SceneImageMap } from "@/lib/scene-images";
 import { NUMERIC_GATE_ENABLED, numericClaimGate, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import { COMPARISON_POLICY_ENABLED, applyComparisonPolicy, type PolicyChange } from "@/lib/comparison-policy";
 import { backfillPhotoGallery } from "@/lib/section-backfill";
-import { COMPOSITION_V2_ENABLED, applyStoryOrder, storyOrderOn } from "@/lib/detail-story-order";
+import { COMPOSITION_V2_ENABLED, applyRecipeOrder, applyStoryOrder, storyOrderOn } from "@/lib/detail-story-order";
 import { planImpact } from "@/lib/impact-templates";
 import { planEvidence } from "@/lib/evidence-modules";
 import { planIllustrations } from "@/lib/illust-sections";
 import { planBoost } from "@/lib/impact-boost";
+import { ARCHETYPE_V1_ENABLED, detectArchetype, type ArchetypeResult } from "@/lib/product-archetype";
+import { MOODS, pickMood, recipeFor, type MoodId } from "@/lib/archetype-recipes";
 import { planPhotoLayouts } from "@/lib/photo-layouts";
 
 export type DisplaySections = {
   sections: DetailSection[];
   /** sourceIndexes[i] = 표시 i번째 섹션의 입력 인덱스 (편집 콜백을 원본 위치로 되돌릴 때) */
   sourceIndexes: number[];
+  /** 436차 — 판별한 제품 유형(아키타입)과 mood. 보고·검증용, 렌더에는 쓰지 않는다 */
+  archetype?: { result: ArchetypeResult; mood: MoodId | null };
   /** 427차 — 비교 정책이 한 일(제거·문장 삭제·판매자 표·대체·사진 갤러리). 보고·검증용, 렌더에는 쓰지 않는다 */
   policyChanges?: PolicyChange[];
 };
@@ -325,12 +329,17 @@ export function applyDisplayRules(
     opts.category,
     opts.flow,
   );
-  const orderIndexes = ordered.map((s) => sections.indexOf(s));
-  if (opts.editing) return { sections: ordered, sourceIndexes: orderIndexes };
+  // 436차 — 제품 유형(아키타입): 규칙 기반 판별 → 레시피(섹션 우선순위·임팩트/사진 선호)·mood. 못 정하면(폴백) 현재 구성 그대로
+  const arche = ARCHETYPE_V1_ENABLED && opts.claimFacts && !opts.editing ? detectArchetype({ category: opts.category, productName: opts.claimFacts.productName, brandName: opts.brandName, keyFeatures: opts.claimFacts.source.keyFeatures, targetCustomer: opts.claimFacts.source.targetCustomer, ingredients: opts.claimFacts.source.ingredients }) : null;
+  const recipe = arche && !arche.fallback ? recipeFor(arche.id) : null;
+  const mood: MoodId | null = recipe ? pickMood(recipe, `${opts.claimFacts?.productName ?? ""} ${opts.brandName ?? ""} ${opts.claimFacts?.source.keyFeatures ?? ""}`) : null;
+  const recipeOrdered = recipe ? applyRecipeOrder(ordered, recipe) : ordered;
+  const orderIndexes = recipeOrdered.map((s) => sections.indexOf(s));
+  if (opts.editing) return { sections: recipeOrdered, sourceIndexes: orderIndexes };
   const sourceOf = imageSourceGroups(imageUrls, opts.imageHashByUrl);
   // 419차 — 뷰티 글·사진 일치(개수·순서 불변이라 sourceIndexes가 그대로 맞는다)
   const photoCtx = { category: opts.category, roles: opts.roles, origins: opts.origins, tags: opts.tags, hasSceneImage: opts.hasSceneImage, hasSizeInfo: opts.hasSizeInfo };
-  const matched = matchPhotosToText(ordered, imageUrls.length, photoCtx).sections;
+  const matched = matchPhotosToText(recipeOrdered, imageUrls.length, photoCtx).sections;
   const capped = enforceImageSourceCapIndexed(limitBoldBlocks(matched), imageUrls.length, undefined, sourceOf);
   const echoes = echoSummaryIndexes(capped.sections);
   const kept = capped.sections.filter((_, i) => !echoes.has(i));
@@ -361,7 +370,7 @@ export function applyDisplayRules(
   // 431차 1-3 — 인포 구간 SVG 일러스트(키워드가 매핑되는 구간만)
   // 435차 — 브랜드 스토리·추천/참고 카드 임팩트 보강(제목-내용 일치)
   // 431차 1-3 — 인포 구간 SVG 일러스트(키워드가 매핑되는 구간만). 435차: 일러스트가 글 카드 후보를 먼저 가져가도록 보강보다 앞에서 한다
-  const illust = opts.claimFacts && COMPOSITION_V2_ENABLED ? planIllustrations(withEvidence.sections, withEvidence.sourceIndexes, { category: opts.category }) : null;
+  const illust = opts.claimFacts && COMPOSITION_V2_ENABLED ? planIllustrations(withEvidence.sections, withEvidence.sourceIndexes, { category: opts.category, style: mood ? MOODS[mood].illust : null }) : null;
   const withIllust0 = illust && illust.placed.length > 0 ? illust : withEvidence;
   // 435차 — 브랜드 스토리·추천/참고 카드·주의 카드·글 카드 임팩트 보강(제목-내용 일치)
   const boost = opts.claimFacts && COMPOSITION_V2_ENABLED ? planBoost(withIllust0.sections, withIllust0.sourceIndexes, { brandName: opts.brandName, imageUrls, origins: opts.origins }) : null;
@@ -369,8 +378,10 @@ export function applyDisplayRules(
   // 431차 2-2 — 갤러리를 사진 수에 맞는 새 레이아웃(비대칭 2장·모자이크 3장·스태거 2열)으로
   const photos = opts.claimFacts && COMPOSITION_V2_ENABLED ? planPhotoLayouts(withIllust.sections, withIllust.sourceIndexes, { category: opts.category, imageUrls, roles: opts.roles, origins: opts.origins }) : null;
   const withPhotos = photos && photos.placed.length > 0 ? photos : withIllust;
-  const impact = opts.claimFacts && COMPOSITION_V2_ENABLED ? planImpact(withPhotos.sections, withPhotos.sourceIndexes, { category: opts.category, imageUrls, facts: opts.claimFacts, origins: opts.origins, roles: opts.roles }) : null;
-  const finalOut = impact && impact.placed.length > 0 ? { sections: impact.sections, sourceIndexes: impact.sourceIndexes } : withPhotos;
+  const impact = opts.claimFacts && COMPOSITION_V2_ENABLED ? planImpact(withPhotos.sections, withPhotos.sourceIndexes, { category: opts.category, imageUrls, facts: opts.claimFacts, origins: opts.origins, roles: opts.roles, recipe, illustStyle: mood ? MOODS[mood].illust : null }) : null;
+  const finalOut0 = impact && impact.placed.length > 0 ? { sections: impact.sections, sourceIndexes: impact.sourceIndexes } : withPhotos;
+  // 436차 — mood를 모든 임팩트 블록에 찍는다(여백·반경·그림자·구분선·제목 굵기 토큰). mood가 없으면(유형 미정·플래그 off) 지금 화면 그대로
+  const finalOut = mood ? { sections: finalOut0.sections.map((s) => (s.type === "impact" && !s.mood ? ({ ...s, mood } as DetailSection) : s)), sourceIndexes: finalOut0.sourceIndexes } : finalOut0;
   const policyChanges = policy ? [...policy.changes, ...(photo ? [{ type: "filled" as const, index: 0, kind: "photos" as const, reason: `사용하지 않은 사진 ${photo.indexes.join(",")}번`, slot: "backfill_photos" }] : [])] : undefined;
-  return { sections: finalOut.sections, sourceIndexes: keptMap ? finalOut.sourceIndexes.map((i) => keptMap(i)) : finalOut.sourceIndexes, ...(policyChanges ? { policyChanges } : {}) };
+  return { sections: finalOut.sections, sourceIndexes: keptMap ? finalOut.sourceIndexes.map((i) => keptMap(i)) : finalOut.sourceIndexes, ...(policyChanges ? { policyChanges } : {}), ...(arche ? { archetype: { result: arche, mood } } : {}) };
 }

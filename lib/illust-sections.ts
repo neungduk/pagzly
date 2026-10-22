@@ -129,14 +129,14 @@ function candidates(secs: DetailSection[], used: Set<IllustId>): Cand[] {
 export function planIllustrations(
   sections: DetailSection[],
   sourceIndexes: number[],
-  ctx: { category?: string },
+  ctx: { category?: string; style?: "solid" | "flat" | "line" | null },
 ): { sections: DetailSection[]; sourceIndexes: number[]; placed: Array<{ id: IllustId; layout: string; at: number }> } {
   const none = { sections, sourceIndexes, placed: [] as Array<{ id: IllustId; layout: string; at: number }> };
   if (!ILLUSTRATION_V1_ENABLED || sections.length < 6 || sections[0]!.type !== "hero") return none;
   const ys: number[] = [];
   let acc = 0;
   for (const s of sections) { ys.push(acc); acc += estimateSectionHeight(s); }
-  const style = illustStyleFor(ctx.category);
+  const style = ctx.style ?? illustStyleFor(ctx.category);
   const used = new Set<IllustId>();
   const chosen = new Map<number, ImpactSection>();
   const placed: Array<{ id: IllustId; layout: string; at: number }> = [];

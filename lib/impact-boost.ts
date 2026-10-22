@@ -19,6 +19,7 @@ import { dropDuplicateRecommendColumn } from "@/lib/detail-visual-rhythm";
 import { emphasisMarkerGradient } from "@/lib/body-emphasis";
 import { hexToRgba } from "@/lib/design-tokens";
 import { DETAIL_FONT_STACK } from "@/lib/detail-typography";
+import { moodOf } from "@/lib/mood";
 
 /** 기본 켬. 끄려면 NEXT_PUBLIC_IMPACT_BOOST=off 로 서버를 시작한다(433·431차와 같은 화면) */
 export const IMPACT_BOOST_ENABLED = process.env.NEXT_PUBLIC_IMPACT_BOOST !== "off";
@@ -62,9 +63,10 @@ export function markHeading(text: string, keyword: RegExp | null, accent: string
 const CHECK_SVG = `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><path d="M5 12.5 L10 17 L19 7" fill="none" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const BANG_SVG = `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="display:block"><path d="M12 5 V14" stroke="#FFFFFF" stroke-width="3.4" stroke-linecap="round"/><circle cx="12" cy="19" r="1.9" fill="#FFFFFF"/></svg>`;
 
-/** 상·하단 곡선(색 면이 이웃 섹션 위로 살짝 번지는 아치). CSS·SVG path만 */
-function curve(face: string, where: "top" | "bottom"): string {
-  const d = where === "top" ? "M0 20 Q50 -6 100 20 Z" : "M0 0 Q50 26 100 0 Z";
+/** 상·하단 구분선(mood): wave=곡선 아치 · slant=사선 · line=가는 선 · none=없음. 색 면이 이웃 섹션 위로 살짝 번진다. SVG path만 */
+function curve(face: string, where: "top" | "bottom", kind: "wave" | "slant" | "line" | "none" = "wave"): string {
+  if (kind === "none" || kind === "line") return "";
+  const d = kind === "slant" ? (where === "top" ? "M0 20 L100 0 L100 20 Z" : "M0 0 L100 20 L0 0 Z") : where === "top" ? "M0 20 Q50 -6 100 20 Z" : "M0 0 Q50 26 100 0 Z";
   return `<svg aria-hidden="true" viewBox="0 0 100 20" preserveAspectRatio="none" style="position:absolute;left:0;width:100%;height:18px;display:block;${where === "top" ? "top:0;transform:translateY(-99%)" : "bottom:0;transform:translateY(99%)"}"><path d="${d}" fill="${face}"/></svg>`;
 }
 
@@ -73,8 +75,9 @@ export function boostHtml(s: ImpactSection, pal: ImpactPalette, alt: string): st
   const e = esc;
   if (s.kind === "story") {
     const photo = s.images?.[0];
+    const dv = moodOf(s.mood).divider;
     return (
-      `<section data-pz-impact="story" style="position:relative;z-index:1;padding:56px 24px 48px;background:${pal.face}">${curve(pal.face, "top")}${curve(pal.face, "bottom")}` +
+      `<section data-pz-impact="story" style="position:relative;z-index:1;padding:56px 24px 48px;background:${pal.face}${dv === "line" ? `;border-top:1px solid ${hexToRgba(pal.ink, 0.14)};border-bottom:1px solid ${hexToRgba(pal.ink, 0.14)}` : ""}">${curve(pal.face, "top", dv)}${curve(pal.face, "bottom", dv)}` +
       `<div style="max-width:576px;margin:0 auto">` +
       (s.chip ? `<span style="display:inline-block;padding:6px 14px;border-radius:999px;background:${pal.deep};color:#FFFFFF;${sans};font-size:12px;font-weight:700;letter-spacing:0.06em;line-height:1.2">${e(s.chip)}</span>` : "") +
       (s.text ? `<p style="margin:${s.chip ? "16px" : "0"} 0 0;${title};font-size:18px;font-weight:700;letter-spacing:-0.01em;line-height:1.4;color:${pal.deep};word-break:keep-all">${e(s.text)}</p>` : "") +
