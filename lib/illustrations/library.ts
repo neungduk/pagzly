@@ -105,15 +105,18 @@ const clock: Draw = (c) => {
 };
 
 const tape: Draw = (c) => {
-  const ticks = Array.from({ length: 8 }, (_, i) => `<line x1="${104 + i * 11}" y1="94" x2="${104 + i * 11}" y2="${i % 2 ? 102 : 106}" stroke="${c.style === "line" ? lineColor(c, "s") : W}" stroke-width="2.5" stroke-linecap="round"/>`).join("");
+  const tk = c.style === "line" ? lineColor(c, "s") : W;
+  const ticks = Array.from({ length: 9 }, (_, i) => `<line x1="${112 + i * 8}" y1="92" x2="${112 + i * 8}" y2="${i % 4 === 0 ? 106 : 100}" stroke="${tk}" stroke-width="2.5" stroke-linecap="round"/>`).join("");
   return (
     back(c) +
-    shadow(c, 100, 160, 62) +
-    `<g transform="rotate(${c.v === 1 ? -10 : c.v === 2 ? 8 : 0} 100 110)">` +
-    `<rect x="84" y="92" width="92" height="30" rx="4" ${paint(c, "s")}/>` + ticks +
-    `<circle cx="84" cy="108" r="46" ${paint(c, "p")}/><circle cx="84" cy="108" r="26" ${paint(c, "t", { soft: 0.3 })}/><circle cx="84" cy="108" r="9" fill="${W}" fill-opacity="0.9"/>` +
-    shine(c, "M50 96 C54 76 70 66 88 64 C72 70 62 82 58 100 Z") +
-    `</g>` + dot(c, 154, 58, 7, "t") + dot(c, 40, 60, 5, "s")
+    shadow(c, 100, 162, 60) +
+    `<g transform="rotate(${c.v === 1 ? -12 : c.v === 2 ? 9 : -4} 100 110)">` +
+    `<path d="M96 92 H184 a4 4 0 0 1 4 4 V124 a4 4 0 0 1 -4 4 H96 Z" ${paint(c, "s")}/>` + ticks +
+    `<rect x="38" y="70" width="72" height="72" rx="18" ${paint(c, "p")}/>` +
+    `<rect x="50" y="94" width="48" height="26" rx="7" fill="${W}" fill-opacity="${c.style === "line" ? 0.6 : 0.9}"/><line x1="58" y1="107" x2="90" y2="107" stroke="${lineColor(c, "s")}" stroke-width="4" stroke-linecap="round"/>` +
+    `<rect x="84" y="74" width="18" height="9" rx="4" ${paint(c, "t", { soft: 0.4 })}/>` +
+    shine(c, "M46 82 C48 74 56 72 66 72 C56 76 52 82 50 90 Z") +
+    `</g>` + dot(c, 156, 56, 7, "t") + dot(c, 40, 58, 5, "s")
   );
 };
 

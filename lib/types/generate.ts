@@ -537,7 +537,7 @@ export type CertificateEvidenceSection = {
 export type ImpactSection = {
   type: "impact";
   slot: "impact";
-  kind: "statement" | "number" | "bleed" | "split" | "callout" | "proof" | "reviewstat";
+  kind: "statement" | "number" | "bleed" | "split" | "callout" | "proof" | "reviewstat" | "illust-side" | "illust-center" | "asym2" | "mosaic3" | "inset" | "frame" | "stagger" | "zoom";
   /** statement 문장 · number 숫자 · bleed/split 제목(캡션). callout은 빈 문자열 */
   text: string;
   /** number 단위 */
@@ -555,6 +555,12 @@ export type ImpactSection = {
   anchorTop?: boolean;
   /** proof(시험·인증 카드) 행 / reviewstat(후기 통계) 키워드 행 — 모두 판매자 입력·업로드 후기에서 온 값 */
   stats?: { tag?: string; label: string; value: string }[];
+  /** 431차 — SVG 일러스트(illust-side·illust-center, number에 곁들일 때): 개념 id·변형(구도+색 슬롯 회전)·스타일 */
+  illust?: { id: string; variant: number; style: "solid" | "flat" | "line" };
+  /** 431차 — 사진 레이아웃(asym2·mosaic3·stagger·frame·zoom·inset): 기존 사진 주소와 초점(object-position) */
+  images?: { url: string; pos?: string }[];
+  /** 431차 — 사진 레이아웃 모양 변주(frame: arch|circle|round) */
+  shape?: string;
 };
 
 export type CanvasElement =

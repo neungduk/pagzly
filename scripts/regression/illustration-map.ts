@@ -4,6 +4,10 @@
  */
 import { ILLUST_IDS, illustrationSvg } from "../../lib/illustrations/library";
 import { ILLUST_STYLES } from "../../lib/illustrations/core";
+import { applyDisplayRules } from "../../lib/display-sections";
+import { buildClaimFacts } from "../../lib/numeric-claim-gate";
+import { ILLUST_MAX_PER_PAGE } from "../../lib/illust-sections";
+import type { DetailSection } from "../../lib/types/generate";
 import { ILLUSTRATION_RULE_IDS, illustStyleFor, pickIllustration } from "../../lib/illustration-map";
 
 export const name = "일러스트 라이브러리·매핑 — 15종×스타일3×변형3·결정적·금지 요소 없음·색 슬롯 회전·키워드 매핑·스타일 선택";
@@ -48,5 +52,34 @@ export async function run(): Promise<string[]> {
   eq("제외 목록 존중", pickIllustration("수분 보호", new Set(["drop"]))?.id, "shield");
   // 스타일 선택
   eq("스타일 선택", [illustStyleFor("화장품/뷰티"), illustStyleFor("의류/패션"), illustStyleFor("전자제품"), illustStyleFor(undefined)], ["line", "flat", "solid", "solid"]);
+  // 섹션 적용(1-3): 키워드가 매핑되는 구간만·상한·인접 중복 금지·텍스트 그대로·편집/claimFacts 없음 불변
+  const S = (o: Record<string, unknown>) => o as unknown as DetailSection;
+  const txt = (h: string, b: string, slot = "texture_feel") => S({ type: "image_text", slot, heading: h, body: b, imageIndex: 0, imagePosition: "left", layout: "text_only" });
+  const secs: DetailSection[] = [
+    S({ type: "hero", slot: "hero", headline: "제목", subheadline: "부제", imageIndex: 0 }),
+    S({ type: "target_persona", slot: "target_persona", heading: "고민", personas: ["a", "b", "c"] }),
+    S({ type: "brand_story", slot: "brand_story", heading: "브랜드", body: "본문" }),
+    txt("수분 가득", "뿌리면 촉촉하게 수분이 차오릅니다."),
+    S({ type: "image_text", slot: "how_it_works", heading: "또 수분", body: "물방울처럼 촉촉합니다", imageIndex: 0, imagePosition: "left", layout: "text_only" }),
+    txt("자연스러운 선택", "특별한 키워드가 없는 문장입니다."),
+    S({ type: "checklist", slot: "checklist", heading: "보호 포인트", items: ["자외선 차단", "방수 마감", "보송한 마무리"] }),
+    S({ type: "usage_steps", slot: "step_card", heading: "사용", steps: ["1", "2"] }),
+    S({ type: "faq", slot: "faq", heading: "FAQ", items: [{ question: "q", answer: "a" }] }),
+    S({ type: "cta_price", slot: "cta_price", price: 1000 }),
+  ];
+  const facts = buildClaimFacts({ productName: "미스트", brandName: "b", price: 1000, keyFeatures: "미스트" } as never);
+  const out = applyDisplayRules(secs, ["https://example.com/a.jpg"], { category: "화장품/뷰티", claimFacts: facts });
+  const ill = out.sections.filter((s) => s.type === "impact" && (s.kind === "illust-side" || s.kind === "illust-center")) as Array<Extract<DetailSection, { type: "impact" }>>;
+  if (ill.length === 0) fails.push("키워드 구간에 일러스트가 안 들어감");
+  if (ill.length > ILLUST_MAX_PER_PAGE) fails.push("일러스트 상한 초과");
+  const ids = ill.map((s) => s.illust?.id);
+  ids.forEach((x, i) => { if (i > 0 && x === ids[i - 1]) fails.push("인접 일러스트 중복"); });
+  if (out.sections.some((s) => s.type === "image_text" && s.heading === "자연스러운 선택") === false) fails.push("키워드 없는 구간이 바뀜");
+  const pool = JSON.stringify(secs);
+  for (const s of ill) for (const x of [s.text, s.body, ...(s.labels ?? [])]) if (x && !pool.includes(x)) fails.push(`일러스트 구간에 입력에 없는 글 "${x}"`);
+  eq("스타일(뷰티=line)", ill.every((s) => s.illust?.style === "line"), true);
+  eq("claimFacts 없으면 일러스트 없음", applyDisplayRules(secs, ["https://example.com/a.jpg"], { category: "화장품/뷰티" }).sections.some((s) => s.type === "impact"), false);
+  eq("편집 모드 일러스트 없음", applyDisplayRules(secs, ["https://example.com/a.jpg"], { category: "화장품/뷰티", claimFacts: facts, editing: true }).sections.some((s) => s.type === "impact"), false);
+  eq("sourceIndexes 길이", out.sourceIndexes.length, out.sections.length);
   return fails;
 }

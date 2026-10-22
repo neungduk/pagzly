@@ -17,16 +17,20 @@ import type { ProductImageOrigin } from "@/lib/image-origins";
 import { BRAND, flatAccentTint, hexToRgba, readableTextAccent, readableTextDeep } from "@/lib/design-tokens";
 import { DETAIL_FONT_STACK } from "@/lib/detail-typography";
 import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
+import type { IllustColors } from "@/lib/illustrations/core";
+import { illustFor, illustHtml } from "@/lib/illust-sections";
+import { photoLayoutHtml } from "@/lib/photo-layouts";
+import { ILLUSTRATION_V1_ENABLED, illustStyleFor, pickIllustration } from "@/lib/illustration-map";
 import { isWornFashionPhoto } from "@/lib/fashion-composite-policy";
 import type { StripImageHints } from "@/lib/persona-strip";
 
-export type ImpactKind = Exclude<ImpactSection["kind"], "proof" | "reviewstat">;
+export type ImpactKind = "statement" | "number" | "bleed" | "split" | "callout";
 
 const escapeHtml = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-export type ImpactPalette = { ink: string; deep: string; accent: string; tint: string };
+export type ImpactPalette = { ink: string; deep: string; accent: string; tint: string; /** 431차 — 일러스트용 팔레트 슬롯 4색(해당 섹션 슬롯 테마) */ illust: IllustColors };
 export function impactPalette(theme: CategoryTheme): ImpactPalette {
-  return { ink: BRAND.ink, deep: readableTextDeep(theme, 4.5), accent: readableTextAccent(theme, 3), tint: flatAccentTint(theme, 0.6) };
+  return { ink: BRAND.ink, deep: readableTextDeep(theme, 4.5), accent: readableTextAccent(theme, 3), tint: flatAccentTint(theme, 0.6), illust: { a: theme.accent, b: theme.deepAccent, c: theme.accentSoft, n: theme.baseNeutral } };
 }
 
 /** 마크업 한 벌(라이브 dangerouslySetInnerHTML·export 문자열 공용) */
@@ -36,6 +40,9 @@ export function impactHtml(s: ImpactSection, pal: ImpactPalette, alt: string): s
   const e = escapeHtml;
   const pos = s.anchorTop ? "50% 20%" : "50% 50%";
   switch (s.kind) {
+    case "illust-side":
+    case "illust-center":
+      return illustHtml(s, pal);
     case "statement": {
       const thin = s.tone === "thin";
       return (
@@ -49,15 +56,17 @@ export function impactHtml(s: ImpactSection, pal: ImpactPalette, alt: string): s
     case "number": {
       const chars = s.text.replace(/[,.]/g, "").length + (s.text.match(/[,.]/g)?.length ?? 0) * 0.4;
       const units = Math.max(2.6, chars);
-      return (
-        `<section data-pz-impact="number" style="padding:56px 24px;background:#FFFFFF">` +
-        `<div style="max-width:576px;margin:0 auto">` +
-        `<p style="margin:0;display:flex;align-items:baseline;gap:6px;${title};font-weight:900;letter-spacing:-0.04em;line-height:0.95;font-size:min(calc(62vw / ${units.toFixed(1)}),160px);color:${pal.accent};font-variant-numeric:tabular-nums"><span>${e(s.text)}</span>` +
+      const vw = s.illust ? 40 : 62;
+      const inner =
+        `<p style="margin:0;display:flex;align-items:baseline;gap:6px;${title};font-weight:900;letter-spacing:-0.04em;line-height:0.95;font-size:min(calc(${vw}vw / ${units.toFixed(1)}),160px);color:${pal.accent};font-variant-numeric:tabular-nums"><span>${e(s.text)}</span>` +
         (s.unit ? `<span style="font-size:0.28em;font-weight:700;letter-spacing:0;color:${pal.ink}">${e(s.unit)}</span>` : "") +
         `</p>` +
-        (s.sub ? `<p style="margin:20px 0 0;${sans};font-size:16px;font-weight:500;line-height:1.6;color:${hexToRgba(pal.ink, 0.8)};word-break:keep-all">${e(s.sub)}</p>` : "") +
-        `</div></section>`
-      );
+        (s.sub ? `<p style="margin:20px 0 0;${sans};font-size:16px;font-weight:500;line-height:1.6;color:${hexToRgba(pal.ink, 0.8)};word-break:keep-all">${e(s.sub)}</p>` : "");
+      // 431차 — 숫자 배지와 일러스트 조합: 같은 키워드 일러스트를 오른쪽에 곁들인다
+      const body = s.illust
+        ? `<div style="display:flex;align-items:center;gap:16px;max-width:576px;margin:0 auto"><div style="flex:1 1 0%;min-width:0">${inner}</div><div style="flex:0 0 36%;max-width:180px;min-width:0">${illustFor(s, pal)}</div></div>`
+        : `<div style="max-width:576px;margin:0 auto">${inner}</div>`;
+      return `<section data-pz-impact="number" style="padding:56px 24px;background:#FFFFFF">${body}</section>`;
     }
     case "bleed":
       return (
@@ -138,6 +147,8 @@ export function impactHtml(s: ImpactSection, pal: ImpactPalette, alt: string): s
         `</div></section>`
       );
     }
+    default:
+      return photoLayoutHtml(s, pal, alt);
   }
 }
 
@@ -145,6 +156,8 @@ export function impactHtml(s: ImpactSection, pal: ImpactPalette, alt: string): s
 export const impactAlt = (productName: string | undefined | null, s: ImpactSection): string => `${(productName ?? "").trim()} ${s.text}`.trim();
 
 // ── 배치 계획 ──────────────────────────────────────────────────────────────
+
+const IMPACT_HEIGHT: Partial<Record<ImpactSection["kind"], number>> = { statement: 300, number: 330, bleed: 780, split: 380, callout: 420, proof: 420, reviewstat: 460, "illust-side": 300, "illust-center": 520, asym2: 600, mosaic3: 640, inset: 700, frame: 560, stagger: 800, zoom: 600 };
 
 /** 섹션 높이 추정(px, 390 폭 기준 대략) — 간격 규칙용. 정확할 필요는 없고 같은 입력이면 같은 결과가 나오면 된다 */
 export function estimateSectionHeight(s: DetailSection): number {
@@ -169,7 +182,7 @@ export function estimateSectionHeight(s: DetailSection): number {
     case "image_text":
       return s.layout === "compact" ? 190 : s.layout === "text_only" ? 330 : s.layout === "annotated" ? 600 : 680;
     case "impact":
-      return s.kind === "statement" ? 300 : s.kind === "number" ? 330 : s.kind === "bleed" ? 780 : s.kind === "split" ? 380 : s.kind === "proof" ? 420 : s.kind === "reviewstat" ? 460 : 420;
+      return IMPACT_HEIGHT[s.kind] ?? 420;
     default: return 400;
   }
 }
@@ -206,6 +219,7 @@ function findCandidates(secs: DetailSection[], ctx: ImpactCtx): Cand[] {
   const heroBadge = secs[0]?.type === "hero" ? (secs[0].badge ?? "") : "";
   secs.forEach((s, i) => {
     if (i < 2) return; // 히어로·바로 뒤 구간은 건드리지 않는다
+    if (secs[i - 1]?.type === "impact" || secs[i + 1]?.type === "impact" || s.type === "impact") return; // 431차 — 일러스트·증빙 구간과 붙이지 않는다
     if (s.type === "image_text") {
       // statement: 화면에 나오지 않는 말풍선 문구(text_only 카드의 callout)
       if (s.slot === "feature_callout" && s.layout === "text_only" && typeof s.callout === "string" && !isQuickPoint(secs[i - 1])) {
@@ -294,7 +308,10 @@ export function planImpact(sections: DetailSection[], sourceIndexes: number[], c
     if (kind === lastKind || counts[kind] >= MAX_PER_KIND[kind]) continue;
     let section: ImpactSection;
     if (c.kind === "statement") section = { type: "impact", slot: "impact", kind: "statement", text: c.text, tone };
-    else if (c.kind === "number") section = { type: "impact", slot: "impact", kind: "number", text: c.num, unit: c.unit, sub: c.sub };
+    else if (c.kind === "number") {
+      const ip = ILLUSTRATION_V1_ENABLED ? pickIllustration(c.sub) : null;
+      section = { type: "impact", slot: "impact", kind: "number", text: c.num, unit: c.unit, sub: c.sub, ...(ip ? { illust: { id: ip.id, variant: 1, style: illustStyleFor(ctx.category) } } : {}) };
+    }
     else if (c.kind === "callout") section = { type: "impact", slot: "impact", kind: "callout", text: "", imageUrl: c.url, labels: c.labels };
     else if (kind === "bleed") section = { type: "impact", slot: "impact", kind: "bleed", text: c.text, body: c.body, imageUrl: c.url, anchorTop: c.anchorTop };
     else { splitRight = !splitRight; section = { type: "impact", slot: "impact", kind: "split", text: c.text, body: c.body, imageUrl: c.url, imagePosition: splitRight ? "left" : "right", anchorTop: c.anchorTop }; }

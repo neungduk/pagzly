@@ -14,6 +14,7 @@ import { backfillPhotoGallery } from "@/lib/section-backfill";
 import { COMPOSITION_V2_ENABLED, applyStoryOrder, storyOrderOn } from "@/lib/detail-story-order";
 import { planImpact } from "@/lib/impact-templates";
 import { planEvidence } from "@/lib/evidence-modules";
+import { planIllustrations } from "@/lib/illust-sections";
 
 export type DisplaySections = {
   sections: DetailSection[];
@@ -353,8 +354,11 @@ export function applyDisplayRules(
   // 433차 1-4 — 증빙 모듈(시험·인증 카드·후기 통계 카드): 판매자 입력이 있을 때만
   const evidence = opts.claimFacts && !opts.editing && COMPOSITION_V2_ENABLED ? planEvidence(afterBackfill.sections, afterBackfill.sourceIndexes, { category: opts.category, facts: opts.claimFacts }) : null;
   const withEvidence = evidence && evidence.added.length > 0 ? evidence : afterBackfill;
-  const impact = opts.claimFacts && COMPOSITION_V2_ENABLED ? planImpact(withEvidence.sections, withEvidence.sourceIndexes, { category: opts.category, imageUrls, facts: opts.claimFacts, origins: opts.origins, roles: opts.roles }) : null;
-  const finalOut = impact && impact.placed.length > 0 ? { sections: impact.sections, sourceIndexes: impact.sourceIndexes } : withEvidence;
+  // 431차 1-3 — 인포 구간 SVG 일러스트(키워드가 매핑되는 구간만)
+  const illust = opts.claimFacts && COMPOSITION_V2_ENABLED ? planIllustrations(withEvidence.sections, withEvidence.sourceIndexes, { category: opts.category }) : null;
+  const withIllust = illust && illust.placed.length > 0 ? illust : withEvidence;
+  const impact = opts.claimFacts && COMPOSITION_V2_ENABLED ? planImpact(withIllust.sections, withIllust.sourceIndexes, { category: opts.category, imageUrls, facts: opts.claimFacts, origins: opts.origins, roles: opts.roles }) : null;
+  const finalOut = impact && impact.placed.length > 0 ? { sections: impact.sections, sourceIndexes: impact.sourceIndexes } : withIllust;
   const policyChanges = policy ? [...policy.changes, ...(photo ? [{ type: "filled" as const, index: 0, kind: "photos" as const, reason: `사용하지 않은 사진 ${photo.indexes.join(",")}번`, slot: "backfill_photos" }] : [])] : undefined;
   return { sections: finalOut.sections, sourceIndexes: keptMap ? finalOut.sourceIndexes.map((i) => keptMap(i)) : finalOut.sourceIndexes, ...(policyChanges ? { policyChanges } : {}) };
 }
