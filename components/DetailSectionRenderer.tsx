@@ -148,7 +148,7 @@ import type { InfoBackdropMap } from "@/lib/info-backdrop";
 import { beautyData, beautyInfoCss, beautyInfoLayout, beautyIp } from "@/lib/beauty-style";
 import { designV2ClassicFashionCap, designV2Css, designV2On, designV2Typo, planBands, v2TitleOverrides } from "@/lib/design-v2";
 import { buildPriceStrip } from "@/lib/price-strip";
-import { DESIGN_V3_FONTS_ENABLED, fontLinkHrefs, fontPairCss, pickFontPair } from "@/lib/font-pairs";
+import { DESIGN_V3_FONTS_ENABLED, fontLinkHrefs, fontPairCss, fontPreloadHrefs, pickFontPair } from "@/lib/font-pairs";
 import { DESIGN_V3_COLOR_ENABLED, extendThemeFor, paletteInfoCss } from "@/lib/palette-harmony";
 import { dividerCss } from "@/lib/section-dividers";
 import { SCENE_NOTICE, safeSceneUrl, type SceneImageMap } from "@/lib/scene-images";
@@ -6018,6 +6018,9 @@ export default function DetailSectionRenderer({
       {DESIGN_V3_COLOR_ENABLED && !edit?.enabled ? <style>{dividerCss({ scope: "[data-pz-v2]", mode: "live", sections, ext: extendedTheme, category, info: packLayout.info })}</style> : null}
       {fontPair ? (
         <>
+          {fontPreloadHrefs().map((href) => (
+            <link key={`pre-${href}`} rel="preload" as="font" type="font/woff2" href={href} crossOrigin="anonymous" />
+          ))}
           {fontLinkHrefs(fontPair).map((href) => (
             <link key={href} rel="stylesheet" href={href} precedence="default" />
           ))}

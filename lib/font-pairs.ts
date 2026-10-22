@@ -44,7 +44,7 @@ export type FontPair = {
 const pair = (id: FontPairId, label: string, title: FontPair["title"], labelFamily: FontPair["label_"]["family"]): FontPair => ({ id, label, title, body: { family: "pretendard" }, label_: { family: labelFamily } });
 
 export const FONT_PAIRS: Record<FontPairId, FontPair> = {
-  "beauty-elegant": pair("beauty-elegant", "뷰티 · 우아한 세리프", { family: "hahmlet", weight: 600, letterSpacing: "-0.01em", serif: true }, "playfair-display"),
+  "beauty-elegant": pair("beauty-elegant", "뷰티 · 우아한 세리프", { family: "hahmlet", weight: 700, letterSpacing: "-0.015em", serif: true }, "playfair-display"),
   "beauty-soft": pair("beauty-soft", "뷰티 · 부드러운 바탕체", { family: "gowun-batang", weight: 700, letterSpacing: "-0.01em", serif: true }, "playfair-display"),
   "beauty-modern": pair("beauty-modern", "뷰티 · 모던 고딕", { family: "pretendard", weight: 700, letterSpacing: "-0.03em", serif: false }, "montserrat"),
   "fashion-classic": pair("fashion-classic", "패션 · 클래식 세리프", { family: "hahmlet", weight: 700, letterSpacing: "-0.01em", serif: true }, "playfair-display"),
@@ -108,21 +108,38 @@ export function pairFamilies(p: FontPair): FontFamilyKey[] {
 }
 
 const q = (key: FontFamilyKey) => `'${FONT_FAMILIES[key].name}'`;
-const bodyStack = () => `${q("pretendard")}, 'Noto Sans KR', ${SYS}`;
+// 430B: Pretendard가 늦게 오는 동안 쓰는 폴백(Pretendard Fallback = 시스템 한글 폰트를 폭 보정)을 바로 뒤에 둔다
+const bodyStack = () => `${q("pretendard")}, 'Pretendard Fallback', 'Noto Sans KR', ${SYS}`;
 export const pairStacks = (p: FontPair) => ({
   body: bodyStack(),
   title: `${q(p.title.family)}, ${p.title.family === "pretendard" ? "'Noto Sans KR'" : p.title.serif ? "'Noto Serif KR'" : "'Noto Sans KR'"}, ${p.title.serif ? "serif" : SYS}`,
   label: `${q(p.label_.family)}, ${bodyStack()}`,
 });
 
+/**
+ * 430B CLS 완화 — 폰트별 폴백 메트릭 보정. Pretendard는 Malgun Gothic보다 한글 폭이 약 12.6% 좁다(Windows·Chromium에서 같은 한글·영숫자 문장 폭을 측정: 575.9px / 658.8px = 0.874).
+ * 로드 전 폴백이 같은 폭으로 그려지게 size-adjust 87.4%를 준다. Apple SD Gothic Neo·Noto Sans CJK KR의 폭은 이 기계에서 측정하지 못해 같은 값을 근사로 쓴다(맥·리눅스는 확인 못 함).
+ */
+export const PRETENDARD_FALLBACK_CSS =
+  "@font-face{font-family:'Pretendard Fallback';src:local('Malgun Gothic'),local('Apple SD Gothic Neo'),local('Noto Sans CJK KR');size-adjust:87.4%}";
+
+/** 첫 화면 라틴 글자(가격·영문 라벨·숫자)용 Pretendard Regular·Bold 라틴 서브셋(각 약 20KB) — preload 주소(같은 출처). 한글은 글 내용마다 조각이 달라 preload하지 않는다 */
+export const PRETENDARD_PRELOAD_FILES = ["Pretendard-Regular.subset.91.woff2", "Pretendard-Bold.subset.91.woff2"] as const;
+export function fontPreloadHrefs(origin = ""): string[] {
+  return PRETENDARD_PRELOAD_FILES.map((f) => `${origin.replace(/\/+$/, "")}/fonts/pretendard/${f}`);
+}
+
 /** 같은 CSS 한 벌(라이브 `[data-pz-v3]`·export `.pagzly-wrap`/`:root` 공용). 본문 15px·줄간격은 건드리지 않는다 */
 export function fontPairCss(scope: string, p: FontPair): string {
   const s = pairStacks(p);
   const t = p.title;
   return (
+    PRETENDARD_FALLBACK_CSS +
     `${scope}{--pz-f-title:${s.title};--pz-f-body:${s.body};--pz-f-label:${s.label};font-family:var(--pz-f-body)}` +
     `${scope} .font-sans{font-family:var(--pz-f-body)!important}` +
     `${scope} .font-heading,${scope} .font-mono{font-family:var(--pz-f-label)!important}` +
+    // 430B: 세리프 라벨(Playfair)은 x-height가 작아 영문·숫자 라벨이 작아 보인다 — 영문 라벨(.font-mono)만 크기 +4%·자간 +0.06em로 키워 Noto와 구분되게
+    (p.label_.family === "playfair-display" ? `${scope} .font-mono{letter-spacing:0.06em!important;font-size:1.04em}` : "") +
     `${scope} .pagzly-display-headline{font-family:var(--pz-f-title)!important;font-weight:${t.weight}!important;letter-spacing:${t.letterSpacing}!important}`
   );
 }

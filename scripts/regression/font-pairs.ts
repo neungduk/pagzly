@@ -6,7 +6,7 @@ import fs from "node:fs";
 import { buildDetailPageHtml } from "../../lib/export-detail-html";
 import { getCategoryTheme } from "../../lib/category-theme";
 import { DETAIL_FONT_STACK } from "../../lib/detail-typography";
-import { CATEGORY_FONT_PAIRS, FONT_FAMILIES, FONT_PAIRS, fontLinkHrefs, fontPairCss, fontSeed, pairFamilies, pairStacks, pickFontPair } from "../../lib/font-pairs";
+import { PRETENDARD_FALLBACK_CSS, PRETENDARD_PRELOAD_FILES, fontPreloadHrefs, CATEGORY_FONT_PAIRS, FONT_FAMILIES, FONT_PAIRS, fontLinkHrefs, fontPairCss, fontSeed, pairFamilies, pairStacks, pickFontPair } from "../../lib/font-pairs";
 import type { DetailSection } from "../../lib/types/generate";
 
 export const name = "폰트 조합 — 카테고리당 2~3세트·페이지 폰트 3종 이하·결정적·팩 연동·var 폴백(off=429차)·셀프 호스팅 링크·안전 CSS";
@@ -75,5 +75,11 @@ export async function run(): Promise<string[]> {
   if (fs.existsSync("public/fonts/pretendard.css")) {
     for (const f of Object.values(FONT_FAMILIES)) if (!fs.existsSync(`public/fonts/${f.css}.css`)) fails.push(`public/fonts/${f.css}.css 없음`);
   }
+  // 430B CLS 완화: 폴백 보정 @font-face·preload(라틴 서브셋 2개)가 export에 들어가고, 빌드 산출물이 있으면 파일이 존재
+  if (!/size-adjust:87.4%/.test(PRETENDARD_FALLBACK_CSS)) fails.push("폴백 size-adjust 없음");
+  const hx = exp("화장품/뷰티");
+  if (!hx.includes("@font-face{font-family:'Pretendard Fallback'")) fails.push("export에 폴백 보정 @font-face 없음");
+  for (const href of fontPreloadHrefs()) if (!hx.includes(`rel="preload" as="font" type="font/woff2" href="${href}"`)) fails.push(`export에 preload ${href} 없음`);
+  if (fs.existsSync("public/fonts/pretendard")) for (const f of PRETENDARD_PRELOAD_FILES) if (!fs.existsSync(`public/fonts/pretendard/${f}`)) fails.push(`preload 파일 없음: ${f}`);
   return fails;
 }
