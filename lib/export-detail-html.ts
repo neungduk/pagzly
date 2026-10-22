@@ -164,7 +164,7 @@ import {
 import { rhythmVarsCss } from "@/lib/rhythm-tokens";
 import { applyPackTone, classicFashionHeroStrength, isClassicPack, CLASSIC_LAYOUT, getPackLayout, packPadScale, packTitleScaleOverrides, resolveGalleryVariant, resolveHeroVariant, resolveStylePack, type PackLayout } from "@/lib/style-packs";
 import { archetypeHeroLayout } from "@/lib/archetype-recipes";
-import { heroPalette, heroV2Html } from "@/lib/hero-spec";
+import { HERO_V2_TUNED, heroPalette, heroV2Html } from "@/lib/hero-spec";
 import { BEAUTY_HERO, HERO_ARCH, HERO_CAPTION, HERO_FRAME, HERO_STAGE_VARIANT, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroStageOn } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
@@ -2362,7 +2362,9 @@ export function buildDetailPageHtml(opts: {
 
   const metaDesc = (opts.description ?? opts.productName).trim().slice(0, 160);
 
-  return `<!DOCTYPE html>
+  // 438차 — 본문 사진 로드 실패 시 깨진 이미지·alt 텍스트가 보이지 않게(export 전체 <img>에 오류 시 숨김)
+  const finalHtml = (html: string): string => (HERO_V2_TUNED ? html.replace(/<img (?![^>]*onerror)([^>]*?)(\s*\/?>)/g,"<img $1 onerror=\"this.style.display='none'\"$2") : html);
+  return finalHtml(`<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
@@ -2449,5 +2451,5 @@ ${seoBlock}
 <footer style="padding:28px 20px;text-align:center;font-size:${FONT_SIZE.caption};opacity:.45">Pagzly HTML export · 마켓·자사몰용 (통이미지와 별도 텍스트·스키마 포함)</footer>
 </div>
 </body>
-</html>`;
+</html>`);
 }

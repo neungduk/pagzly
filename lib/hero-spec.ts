@@ -213,25 +213,31 @@ const tagRow = (p: HeroV2Plan, color: string, border: string): string =>
 const STRIP_OVERLAP_CSS = `<style>[data-pz-strip]{position:relative;z-index:2;margin-top:-20px;border-radius:20px 20px 0 0;box-shadow:0 -6px 16px rgba(27,27,24,0.08)}</style>`;
 const STRIP_OVERLAP_CSS_TUNED = `<style>[data-pz-strip]{position:relative;z-index:2;margin-top:-12px;border-radius:16px 16px 0 0;box-shadow:0 -4px 12px rgba(27,27,24,0.08)}</style>`;
 
+/** 438차 1-2 — 사진 실패 안전 폴백. onerror(로드 실패)·onload 검사(초소형 240px 미만·종횡비 3:1 초과)면 히어로에 data-hero-fail을 달고 이미지를 숨긴다(alt는 접근성용으로 남지만 시각 노출 없음). CSS가 변형별로 사진 자리를 접어 타이포 히어로처럼 남긴다 */
+export const HERO_FAIL_ONERROR = "var s=this.closest('[data-hero-v2]');if(s)s.setAttribute('data-hero-fail','1');this.style.display='none'";
+export const HERO_FAIL_ONLOAD = "if(this.naturalWidth<240||this.naturalHeight<240||this.naturalWidth/this.naturalHeight>3||this.naturalHeight/this.naturalWidth>3){this.onerror()}";
+export const HERO_FAIL_CSS = `<style>[data-hero-fail] [data-hero-scrim],[data-hero-fail] [data-hero-photo]{display:none}[data-hero-v2="A"][data-hero-fail]{aspect-ratio:auto!important;max-height:none!important;padding:0 0 8px}[data-hero-v2="A"][data-hero-fail] [data-hero-a-text]{position:static!important;padding-bottom:0!important}[data-hero-v2="A"][data-hero-fail] [data-hero-a-text]:last-child{padding:24px 24px 44px!important}[data-hero-v2="D"][data-hero-fail]{background:transparent!important}</style>`;
+
 export function heroV2Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: string): string {
   const size = heroNameSizePx(p.name);
-  const img = (extra: string) => `<img src="${esc(p.imageUrl)}" alt="${esc(alt)}" fetchpriority="high" decoding="async" style="${extra}"/>`;
-  const wrapOpen = (v: HeroV2Variant, style: string) => `${HERO_V2_TUNED ? STRIP_OVERLAP_CSS_TUNED : STRIP_OVERLAP_CSS}<section data-hero-v2="${v}" class="hero pagzly-hero" style="position:relative;width:100%;box-sizing:border-box;overflow:hidden;border-radius:0 0 24px 24px;${style}">`;
+  const failAttrs = HERO_V2_TUNED ? ` onerror="${HERO_FAIL_ONERROR}" onload="${HERO_FAIL_ONLOAD}"` : "";
+  const img = (extra: string) => `<img src="${esc(p.imageUrl)}" alt="${esc(alt)}" fetchpriority="high" decoding="async"${failAttrs} style="${extra}"/>`;
+  const wrapOpen = (v: HeroV2Variant, style: string) => `${HERO_V2_TUNED ? STRIP_OVERLAP_CSS_TUNED + HERO_FAIL_CSS : STRIP_OVERLAP_CSS}<section data-hero-v2="${v}" class="hero pagzly-hero" style="position:relative;width:100%;box-sizing:border-box;overflow:hidden;border-radius:0 0 24px 24px;${style}">`;
   if (p.variant === "A") {
     return (
       wrapOpen("A", "aspect-ratio:4 / 5.4;max-height:760px;background:#1B1B18") +
       img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`) +
-      `<div aria-hidden="true" style="position:absolute;left:0;right:0;top:0;height:${HERO_V2_TUNED ? 14 : 22}%;background:linear-gradient(180deg,rgba(10,10,10,${HERO_V2_TUNED ? 0.3 : 0.5}),rgba(10,10,10,0))"></div>` +
-      `<div aria-hidden="true" style="position:absolute;left:0;right:0;bottom:0;height:${HERO_V2_TUNED ? 62 : 68}%;background:${scrimGradient()}"></div>` +
-      `<div style="position:absolute;left:0;right:0;top:0;padding:20px 20px 0">${brandPill(p, "rgba(10,10,10,0.5)", "#FFFFFF")}${p.badges.length ? `<div style="margin-top:10px">${badgeRow(p, "rgba(10,10,10,0.38)", "#FFFFFF", "rgba(255,255,255,0.55)")}</div>` : ""}</div>` +
-      `<div style="position:absolute;left:0;right:0;bottom:0;padding:0 24px 44px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.92)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.96)")}${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.55)")}</div></section>`
+      `<div aria-hidden="true" data-hero-scrim style="position:absolute;left:0;right:0;top:0;height:${HERO_V2_TUNED ? 14 : 22}%;background:linear-gradient(180deg,rgba(10,10,10,${HERO_V2_TUNED ? 0.3 : 0.5}),rgba(10,10,10,0))"></div>` +
+      `<div aria-hidden="true" data-hero-scrim style="position:absolute;left:0;right:0;bottom:0;height:${HERO_V2_TUNED ? 62 : 68}%;background:${scrimGradient()}"></div>` +
+      `<div data-hero-a-text style="position:absolute;left:0;right:0;top:0;padding:20px 20px 0">${brandPill(p, "rgba(10,10,10,0.5)", "#FFFFFF")}${p.badges.length ? `<div style="margin-top:10px">${badgeRow(p, "rgba(10,10,10,0.38)", "#FFFFFF", "rgba(255,255,255,0.55)")}</div>` : ""}</div>` +
+      `<div data-hero-a-text style="position:absolute;left:0;right:0;bottom:0;padding:0 24px 44px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.92)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.96)")}${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.55)")}</div></section>`
     );
   }
   if (p.variant === "B") {
     const face = saturatedFace(pal.accent);
     const photo = p.whiteBg
-      ? `<div style="position:relative;margin:24px auto 0;width:84%;aspect-ratio:4 / 4.6">${img("position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply")}</div>`
-      : `<div style="position:relative;margin:${HERO_V2_TUNED ? 16 : 20}px auto 0;width:${HERO_V2_TUNED ? 96 : 90}%;aspect-ratio:${HERO_V2_TUNED ? "4 / 5.2" : "4 / 4.9"};border-radius:999px 999px 0 0;overflow:hidden;box-shadow:0 -10px 30px rgba(10,10,10,0.25);background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`;
+      ? `<div data-hero-photo style="position:relative;margin:24px auto 0;width:84%;aspect-ratio:4 / 4.6">${img("position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply")}</div>`
+      : `<div data-hero-photo style="position:relative;margin:${HERO_V2_TUNED ? 16 : 20}px auto 0;width:${HERO_V2_TUNED ? 96 : 90}%;aspect-ratio:${HERO_V2_TUNED ? "4 / 5.2" : "4 / 4.9"};border-radius:999px 999px 0 0;overflow:hidden;box-shadow:0 -10px 30px rgba(10,10,10,0.25);background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`;
     return (
       wrapOpen("B", `background:${face};isolation:isolate`) +
       `<div style="padding:28px 24px 0">${brandPill(p, "rgba(255,255,255,0.2)", "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "#FFFFFF")}${hookHtml(hero, "#FFFFFF", "#FFFFFF")}${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.6)")}</div>${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "rgba(255,255,255,0.18)", "#FFFFFF", "rgba(255,255,255,0.55)")}</div>` : ""}</div>` +
@@ -243,7 +249,7 @@ export function heroV2Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, a
     return (
       wrapOpen("C", `background:#0E0E10 radial-gradient(60% 45% at 50% 66%,${hexToRgba(pal.accent, 0.4)},rgba(14,14,16,0) 70%)`) +
       `<div style="padding:28px 24px 0;text-align:center">${brandPill(p, "rgba(255,255,255,0.14)", "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.75)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.82)")}<div style="display:flex;justify-content:center">${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.5)")}</div></div>${p.badges.length ? `<div style="margin-top:14px;display:flex;justify-content:center">${badgeRow(p, "rgba(255,255,255,0.12)", "#FFFFFF", "rgba(255,255,255,0.45)")}</div>` : ""}</div>` +
-      `<div style="position:relative;margin:${HERO_V2_TUNED ? 16 : 24}px auto ${HERO_V2_TUNED ? 32 : 44}px;width:${HERO_V2_TUNED ? 96 : 92}%;aspect-ratio:${HERO_V2_TUNED ? "1 / 1.3" : "1 / 1"};border-radius:24px;overflow:hidden;box-shadow:0 0 70px ${glow};background:#1B1B18">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div></section>`
+      `<div data-hero-photo style="position:relative;margin:${HERO_V2_TUNED ? 16 : 24}px auto ${HERO_V2_TUNED ? 32 : 44}px;width:${HERO_V2_TUNED ? 96 : 92}%;aspect-ratio:${HERO_V2_TUNED ? "1 / 1.3" : "1 / 1"};border-radius:24px;overflow:hidden;box-shadow:0 0 70px ${glow};background:#1B1B18">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div></section>`
     );
   }
   if (p.variant === "D") {
@@ -251,7 +257,7 @@ export function heroV2Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, a
     const deep = mixHex(pal.deepAccent, "#000000", 0.35);
     return (
       wrapOpen("D", "background:#FFFFFF") +
-      `<div style="position:relative;width:100%;aspect-ratio:${HERO_V2_TUNED ? "4 / 4.8" : "4 / 4.2"};overflow:hidden;background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}<div style="position:absolute;left:0;top:0;padding:18px 20px">${brandPill(p, "rgba(255,255,255,0.9)", "#1B1B18")}</div></div>` +
+      `<div data-hero-photo style="position:relative;width:100%;aspect-ratio:${HERO_V2_TUNED ? "4 / 4.8" : "4 / 4.2"};overflow:hidden;background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}<div style="position:absolute;left:0;top:0;padding:18px 20px">${brandPill(p, "rgba(255,255,255,0.9)", "#1B1B18")}</div></div>` +
       `<div style="background:${face};padding:28px 24px 44px">${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, deep, hexToRgba("#1B1B18", 0.78))}${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "#FFFFFF", "#1B1B18", hexToRgba("#1B1B18", 0.2))}</div>` : ""}${tagRow(p, "#1B1B18", hexToRgba("#1B1B18", 0.3))}</div></section>`
     );
   }
@@ -261,7 +267,7 @@ export function heroV2Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, a
     wrapOpen("E", `background:${face};padding:36px 24px 52px`) +
     `<div>${brandPill(p, "#FFFFFF", "#1B1B18")}</div><div style="margin-top:20px">${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, mixHex(pal.deepAccent, "#000000", 0.35), hexToRgba("#1B1B18", 0.78))}</div>` +
     `<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-top:24px"><div style="flex:1 1 0%;min-width:0">${badgeRow(p, "#FFFFFF", "#1B1B18", hexToRgba("#1B1B18", 0.2))}${tagRow(p, "#1B1B18", hexToRgba("#1B1B18", 0.3))}</div>` +
-    (p.imageUrl ? `<div style="flex:0 0 36%;max-width:180px;aspect-ratio:1 / 1;border-radius:50%;overflow:hidden;box-shadow:0 10px 24px rgba(10,10,10,0.18);background:${pal.baseNeutral}">${img(`display:block;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>` : "") +
+    (p.imageUrl ? `<div data-hero-photo style="flex:0 0 36%;max-width:180px;aspect-ratio:1 / 1;border-radius:50%;overflow:hidden;box-shadow:0 10px 24px rgba(10,10,10,0.18);background:${pal.baseNeutral}">${img(`display:block;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>` : "") +
     `</div></section>`
   );
 }

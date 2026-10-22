@@ -6,7 +6,7 @@ import { applyDisplayRules } from "../../lib/display-sections";
 import { buildDetailPageHtml } from "../../lib/export-detail-html";
 import { getCategoryTheme } from "../../lib/category-theme";
 import { buildClaimFacts } from "../../lib/numeric-claim-gate";
-import { HERO_SPEC, HERO_V2_VARIANTS, estimatePhotoKind, hashtagsFrom, heroBadgesFrom, heroNameSizePx, heroPalette, heroV2Html, saturatedFace, scrimGradient, selectHeroVariant, splitProductName, worstCaseScrimContrast, type HeroV2Plan } from "../../lib/hero-spec";
+import { HERO_FAIL_CSS, HERO_V2_TUNED, HERO_SPEC, HERO_V2_VARIANTS, estimatePhotoKind, hashtagsFrom, heroBadgesFrom, heroNameSizePx, heroPalette, heroV2Html, saturatedFace, scrimGradient, selectHeroVariant, splitProductName, worstCaseScrimContrast, type HeroV2Plan } from "../../lib/hero-spec";
 import { contrastRatioToken } from "../../lib/design-tokens";
 import type { DetailSection, HeroSection } from "../../lib/types/generate";
 
@@ -98,6 +98,18 @@ export async function run(): Promise<string[]> {
   eq("제품명 없음 → 기존 히어로", (applyDisplayRules(base(), urls, { category: "화장품/뷰티", claimFacts: F({ productName: "" }), brandName: "g" }).sections[0] as HeroSection).v2, undefined);
   eq("편집 모드 → 기존 히어로", (applyDisplayRules(base(), urls, { category: "화장품/뷰티", claimFacts: F(), editing: true }).sections[0] as HeroSection).v2, undefined);
   eq("claimFacts 없음 → 기존 히어로", (applyDisplayRules(base(), urls, { category: "화장품/뷰티" }).sections[0] as HeroSection).v2, undefined);
+  // 438차 1-2 사진 실패 폴백(조정판): 사진 없음 → E, 히어로 이미지에 onerror·onload(초소형·극단 종횡비) 검사, 실패 CSS(사진 자리 접기), 본문·export 이미지도 실패 시 숨김
+  if (HERO_V2_TUNED) {
+    eq("사진 없음 → E", selectHeroVariant({ hasPhoto: false, kind: "unknown", confidence: 0, archetype: null, mood: null }), "E");
+    for (const v of ["A", "B", "C", "D"] as const) {
+      const hv = heroV2Html(hero, plan({ variant: v }), pal, "alt");
+      if (!/<img[^>]*onerror="[^"]*data-hero-fail/.test(hv) || !/onload="[^"]*naturalWidth<240[^"]*>3/.test(hv)) fails.push(`${v}: 실패 처리 속성 없음`);
+      if (!hv.includes(HERO_FAIL_CSS) || !/data-hero-photo|data-hero-scrim/.test(hv)) fails.push(`${v}: 실패 CSS·표식 없음`);
+    }
+    const exp2 = buildDetailPageHtml({ productName: "수분 에센스 미스트", brandName: "glowiest", category: "화장품/뷰티", sections: base(), imageUrls: urls, theme: getCategoryTheme("화장품/뷰티"), claimFacts: F() });
+    const imgs = exp2.match(/<img [^>]*>/g) ?? [];
+    if (imgs.length === 0 || imgs.some((x) => !/onerror=/.test(x))) fails.push("export 이미지에 실패 시 숨김 없음");
+  }
   // export: 같은 마크업
   const html = buildDetailPageHtml({ productName: "수분 에센스 미스트", brandName: "glowiest", category: "화장품/뷰티", sections: base(), imageUrls: urls, theme: getCategoryTheme("화장품/뷰티"), claimFacts: F(), imageTags: [["정면", "단독"]], imageRoles: ["hero"] });
   if (!/data-hero-v2="B"/.test(html)) fails.push("export에 히어로 v2 마크업 없음");

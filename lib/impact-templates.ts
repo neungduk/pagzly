@@ -21,6 +21,7 @@ import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import type { IllustColors } from "@/lib/illustrations/core";
 import { illustFor, illustHtml } from "@/lib/illust-sections";
 import { applyMood, moodOf } from "@/lib/mood";
+import { HERO_V2_TUNED } from "@/lib/hero-spec";
 import { specialHtml } from "@/lib/special-sections";
 import { referenceHtml } from "@/lib/reference-sections";
 import { PHOTO_LAYOUT_V2_ENABLED, photoLayoutHtml } from "@/lib/photo-layouts";
@@ -54,7 +55,9 @@ export function boostIllustColors(theme: CategoryTheme, face: string): IllustCol
 
 /** 마크업 한 벌(라이브 dangerouslySetInnerHTML·export 문자열 공용) */
 export function impactHtml(s: ImpactSection, pal: ImpactPalette, alt: string): string {
-  const html = impactHtmlBase(s, pal, alt);
+  const html0 = impactHtmlBase(s, pal, alt);
+  // 438차 — 본문 사진 실패 폴백: 로드 실패 시 사진을 숨겨(alt 텍스트 노출 금지) 컨테이너의 색 면만 남긴다
+  const html = HERO_V2_TUNED ? html0.replace(/<img (?![^>]*onerror)([^>]*?)(\s*\/?>)/g,"<img $1 onerror=\"this.style.display='none'\"$2") : html0;
   // 436차 — 아키타입 mood 토큰(여백·반경·그림자·제목 굵기). mood가 없으면 지금 마크업 그대로
   return s.mood ? applyMood(html, moodOf(s.mood)) : html;
 }
