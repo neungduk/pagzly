@@ -24,6 +24,8 @@ import { ARCHETYPE_V1_ENABLED, detectArchetype, type ArchetypeResult } from "@/l
 import { MOODS, pickMood, recipeFor, type MoodId } from "@/lib/archetype-recipes";
 import type { HeroVariant } from "@/lib/style-packs";
 import { planPhotoLayouts } from "@/lib/photo-layouts";
+import { planV4 } from "@/lib/layout-variants";
+import { estimateSectionHeight } from "@/lib/impact-templates";
 
 export type DisplaySections = {
   sections: DetailSection[];
@@ -395,7 +397,10 @@ export function applyDisplayRules(
   const impact = opts.claimFacts && COMPOSITION_V2_ENABLED ? planImpact(withPhotos.sections, withPhotos.sourceIndexes, { category: opts.category, imageUrls, facts: opts.claimFacts, origins: opts.origins, roles: opts.roles, recipe, illustStyle: mood ? MOODS[mood].illust : null }) : null;
   const finalOut0 = impact && impact.placed.length > 0 ? { sections: impact.sections, sourceIndexes: impact.sourceIndexes } : withPhotos;
   // 436차 — mood를 모든 임팩트 블록에 찍는다(여백·반경·그림자·구분선·제목 굵기 토큰). mood가 없으면(유형 미정·플래그 off) 지금 화면 그대로
-  const finalOut1 = mood ? { sections: finalOut0.sections.map((s) => (s.type === "impact" && !s.mood ? ({ ...s, mood } as DetailSection) : s)), sourceIndexes: finalOut0.sourceIndexes } : finalOut0;
+  const finalOut1a = mood ? { sections: finalOut0.sections.map((s) => (s.type === "impact" && !s.mood ? ({ ...s, mood } as DetailSection) : s)), sourceIndexes: finalOut0.sourceIndexes } : finalOut0;
+  // 439차 — 디자인 엔진 v4(레이아웃 변주·후킹 구조·모티프·타이포 연출). DESIGN_V4=off면 입력 그대로(438차와 같은 화면)
+  const v4 = opts.claimFacts && COMPOSITION_V2_ENABLED ? planV4(finalOut1a.sections, finalOut1a.sourceIndexes, { mood, seedKey: `${opts.claimFacts.productName}|${opts.category ?? ""}`, imageUrls, origins: opts.origins, facts: opts.claimFacts, category: opts.category, height: estimateSectionHeight }) : null;
+  const finalOut1 = v4 && (v4.placed.length > 0 || v4.moved.length > 0 || v4.inserted.length > 0) ? { sections: v4.sections, sourceIndexes: v4.sourceIndexes } : finalOut1a;
   // 437차 — 첫 화면 히어로 재설계 계획(제품명이 입력에 있을 때만, 편집 모드·claimFacts 없음은 기존 히어로)
   const heroSec = finalOut1.sections[0];
   const heroPlan = opts.claimFacts && !opts.editing && heroSec?.type === "hero" ? planHeroV2({ hero: heroSec, productName: opts.claimFacts.productName, brandName: opts.brandName, imageUrls, origins: opts.origins, tags: opts.tags, roles: opts.roles, category: opts.category, archetype: arche && !arche.fallback ? arche.id : null, mood, facts: opts.claimFacts, certifications: opts.claimFacts.source.certifications, keyFeatures: opts.claimFacts.source.keyFeatures, wornTop: heroSec.photoTopAnchored === true }) : null;

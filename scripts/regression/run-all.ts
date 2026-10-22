@@ -69,17 +69,28 @@ import * as packContrast from "./pack-contrast";
 import * as flowStory from "./flow-story-after-photo";
 import * as packFinish from "./pack-finish";
 import * as checkV4Off from "../check-v4-off";
+import { DESIGN_V4_ENABLED, setDesignV4ForTests } from "../../lib/design-v4";
+import * as layoutVariants from "./layout-variants";
+import * as motifs from "./motifs";
+import * as typeTreatments from "./type-treatments";
+import * as paletteV4 from "./palette-v4";
 
-const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip, fashionSpecFallback, specRowCap, rhythmTokens, stylePacks, packLayout, heroVariants, flowPhotoFirst, galleryVariants, packStructure, packContrast, flowStory, packFinish, promptRules412, styleSpec, styleAxes, variants413, styleDirector, infoStyle, infoBackdrop, infoBackdropRun, photoTextMatch, beautyHeroTheme, visionCacheCalls, beautyInfo, sceneImages, sceneSize, sceneGen, numericClaimGate, sessionRoundtrip, beautyQuickCards, beautyAccent, usageGuard, uploadSafety, completionCharge, logPolicy, signupFree, comparisonPolicy, landingClaims, designV2, designMetrics, fontPairs, paletteHarmony, storyOrder, impactTemplates, evidenceModules, illustrationMap, photoLayouts, impactBoost, productArchetype, archetypeRecipes, specialSections, heroSpec, referenceSections, typoRhythm, checkV4Off];
+const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip, fashionSpecFallback, specRowCap, rhythmTokens, stylePacks, packLayout, heroVariants, flowPhotoFirst, galleryVariants, packStructure, packContrast, flowStory, packFinish, promptRules412, styleSpec, styleAxes, variants413, styleDirector, infoStyle, infoBackdrop, infoBackdropRun, photoTextMatch, beautyHeroTheme, visionCacheCalls, beautyInfo, sceneImages, sceneSize, sceneGen, numericClaimGate, sessionRoundtrip, beautyQuickCards, beautyAccent, usageGuard, uploadSafety, completionCharge, logPolicy, signupFree, comparisonPolicy, landingClaims, designV2, designMetrics, fontPairs, paletteHarmony, storyOrder, impactTemplates, evidenceModules, illustrationMap, photoLayouts, impactBoost, productArchetype, archetypeRecipes, specialSections, heroSpec, referenceSections, typoRhythm, checkV4Off, paletteV4, motifs, typeTreatments, layoutVariants];
+
+/** 439차 — 이전 차수 단계(스토리 순서·임팩트·사진 레이아웃·보강·비교 정책)를 검사하는 묶음은 v4 레이아웃 계획 없이 돌린다(v4는 자기 묶음이 검사) */
+const V4_OFF_SUITES = new Set<unknown>([storyOrder, impactTemplates, photoLayouts, impactBoost, comparisonPolicy]);
 
 async function main() {
   let failed = 0;
   for (const suite of SUITES) {
     let fails: string[];
     try {
+      if (V4_OFF_SUITES.has(suite)) setDesignV4ForTests(false);
       fails = await suite.run();
     } catch (e) {
       fails = [`실행 오류: ${e instanceof Error ? e.message : String(e)}`];
+    } finally {
+      setDesignV4ForTests(DESIGN_V4_ENABLED);
     }
     console.log(`${fails.length ? "실패" : "통과"}  ${suite.name}`);
     for (const f of fails) console.log(`      - ${f}`);

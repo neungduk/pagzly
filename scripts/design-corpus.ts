@@ -11,6 +11,8 @@ import { claimFactsOf, type ClaimInput } from "../lib/numeric-claim-gate";
 import { hasSizeHeight } from "../lib/scene-size";
 import { resolveStylePack } from "../lib/style-packs";
 import { applyDisplayRules } from "../lib/display-sections";
+import { applySectionDisplayBudget } from "../lib/section-display-budget";
+import { comparisonPolicyRemovesChart } from "../lib/comparison-policy";
 
 export const SAVED_SESSIONS: Array<[string, string]> = [
   ["s411", "review/411-live/fashion/session.json"],
@@ -30,6 +32,7 @@ export function corpus(opts: { only?: string[] } = {}): Array<[string, string]> 
   return opts.only?.length ? all.filter(([id]) => opts.only!.includes(id)) : all;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- 저장 세션 JSON(필드가 차수마다 다름)을 그대로 넘긴다
 type Session = Record<string, any>;
 const tagsOf = (s: Session): string[][] | undefined => {
   const v = s.visionImageRoles as Array<{ index?: number; tags?: string[] }> | undefined;
@@ -55,8 +58,8 @@ export function exportArgsOf(s: Session): Parameters<typeof buildDetailPageHtml>
 export const readSession = (file: string): Session => JSON.parse(fs.readFileSync(file, "utf8"));
 export const exportHtmlOf = (file: string): string => buildDetailPageHtml(exportArgsOf(readSession(file)));
 
-/** 표시 규칙만 돌린 섹션 목록(린트·분포 보고용) */
+/** export와 같은 순서(표시 예산 → 표시 규칙)로 돌린 섹션 목록(린트·분포 보고용) */
 export function displayOf(file: string) {
   const a = exportArgsOf(readSession(file));
-  return applyDisplayRules(a.sections, a.imageUrls, { imageHashByUrl: a.imageHashByUrl, roles: a.imageRoles, origins: a.imageOrigins, category: a.category, tags: a.imageTags, hasSizeInfo: a.hasSizeInfo, claimFacts: a.claimFacts, brandName: a.brandName });
+  return applyDisplayRules(applySectionDisplayBudget(a.category, a.sections, { chartRemoved: comparisonPolicyRemovesChart(a.claimFacts) }), a.imageUrls, { imageHashByUrl: a.imageHashByUrl, roles: a.imageRoles, origins: a.imageOrigins, category: a.category, tags: a.imageTags, hasSizeInfo: a.hasSizeInfo, claimFacts: a.claimFacts, brandName: a.brandName });
 }

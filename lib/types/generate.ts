@@ -539,7 +539,7 @@ export type CertificateEvidenceSection = {
 export type ImpactSection = {
   type: "impact";
   slot: "impact";
-  kind: "statement" | "number" | "bleed" | "split" | "callout" | "proof" | "reviewstat" | "illust-side" | "illust-center" | "asym2" | "mosaic3" | "inset" | "frame" | "stagger" | "zoom" | "story" | "fit" | "note" | "textboost" | "swatch" | "timeline" | "chipwall" | "specstrip" | "sizebars" | "checkgrid" | "bubbles" | "chat" | "faqcards" | "spectable" | "checkrows";
+  kind: "statement" | "number" | "bleed" | "split" | "callout" | "proof" | "reviewstat" | "illust-side" | "illust-center" | "asym2" | "mosaic3" | "inset" | "frame" | "stagger" | "zoom" | "story" | "fit" | "note" | "textboost" | "swatch" | "timeline" | "chipwall" | "specstrip" | "sizebars" | "checkgrid" | "bubbles" | "chat" | "faqcards" | "spectable" | "checkrows" | "v4";
   /** statement 문장 · number 숫자 · bleed/split 제목(캡션). callout은 빈 문자열 */
   text: string;
   /** number 단위 */
@@ -572,6 +572,29 @@ export type ImpactSection = {
   origin?: { type: string; slot?: string };
   /** 436차 — 아키타입 mood(여백·반경·그림자·구분선·제목 굵기 토큰). 없으면 지금 화면과 같다 */
   mood?: string;
+  /** 439차 — 디자인 엔진 v4 블록(kind "v4"): 레이아웃 계열·변형·항목·모티프·타이포 연출(lib/layout-variants.ts) */
+  v4?: V4Block;
+};
+
+/** 439차 — v4 블록 데이터(문구는 모두 기존 섹션·입력 원문) */
+export type V4Block = {
+  family: "benefits" | "concern" | "story" | "spec" | "phototext" | "touch" | "breather";
+  variant: string;
+  /** 아이브로우 순번(1부터) */
+  no: number;
+  items?: { title: string; body?: string; img?: { url: string; pos?: string } }[];
+  /** 면 역할(lib/palette-v4 FaceRole) 또는 그라데이션 프리셋 0·1 */
+  face?: "bgA" | "bgB" | "emphasis" | "card" | "grad0" | "grad1";
+  /** 강조 후보 어절(입력 키워드·제품명 어절·입력 수치) */
+  keywords?: string[];
+  motifs?: { id: string; anchor: "top" | "bottom"; side: "left" | "right" | "center"; offset: number; inset: number; w: number; h: number; variant: number }[];
+  preset?: "enlabel" | "number" | "pill";
+  /** 고스트 글자(번호·입력 수치·영문 제품명) */
+  ghost?: string;
+  /** touch: 가격 표기(입력 가격) */
+  price?: string;
+  /** 한눈에 보기(첫 3화면 규칙으로 앞당긴 블록) */
+  glance?: boolean;
 };
 
 export type CanvasElement =
