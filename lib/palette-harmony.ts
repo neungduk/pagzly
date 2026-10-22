@@ -14,7 +14,7 @@ import { fontSeed } from "@/lib/font-pairs";
 
 export const DESIGN_V3_COLOR_ENABLED = process.env.NEXT_PUBLIC_DESIGN_V3_COLOR !== "off";
 
-export type HarmonyRule = "analogous" | "split" | "triad" | "cool-point";
+export type HarmonyRule = "analogous" | "split" | "triad" | "cool-point" | "photo-tonal" | "photo-tonal-bold" | "mono-neutral";
 
 /** 규칙 → 보조·3차·포인트 색상 이동(도)과 채도 상한(0~1) */
 export const HARMONY_RULES: Record<HarmonyRule, { secondary: number; tertiary: number; accent: number; satCap: number; label: string }> = {
@@ -22,6 +22,10 @@ export const HARMONY_RULES: Record<HarmonyRule, { secondary: number; tertiary: n
   split: { secondary: 28, tertiary: -28, accent: 180, satCap: 0.62, label: "유사색 ±28° + 보색 포인트" },
   triad: { secondary: 120, tertiary: -120, accent: 60, satCap: 0.72, label: "삼각(±120°) 대비 + 포인트" },
   "cool-point": { secondary: 24, tertiary: -24, accent: 180, satCap: 0.55, label: "쿨 톤 유사색 + 포인트 1" },
+  // 430B: 패션은 보색·삼각을 쓰지 않는다. 사진 톤(대표색·배경 중립색) 안의 명도·채도 변주 + 포인트 1(같은 계열 고채도 또는 골드·브론즈)
+  "photo-tonal": { secondary: 20, tertiary: -20, accent: 0, satCap: 0.55, label: "사진 톤 변주(같은 계열 ±20°) + 포인트 1" },
+  "photo-tonal-bold": { secondary: 20, tertiary: -20, accent: 0, satCap: 0.7, label: "사진 톤 변주 + 고채도 포인트 1" },
+  "mono-neutral": { secondary: 0, tertiary: 0, accent: 0, satCap: 0.12, label: "무채색 + 대표색 1개" },
 };
 
 export type PaletteSlot = "primary" | "secondary" | "tertiary" | "accent";
@@ -42,8 +46,8 @@ export function harmonyRuleFor(input: PaletteInput): HarmonyRule {
   if (cat === "화장품/뷰티") return "analogous";
   if (cat === "패션/의류") {
     const h = input.packHeadline;
-    if (!h || h.kind === "serif") return "split";
-    return h.weight >= 800 ? "triad" : "analogous";
+    if (!h || h.kind === "serif") return "photo-tonal";
+    return h.weight >= 800 ? "photo-tonal-bold" : "mono-neutral";
   }
   if (cat === "전자/가전" || cat === "생활/리빙") return "cool-point";
   return "split";
@@ -106,7 +110,61 @@ function capTheme(t: CategoryTheme, satCap: number): CategoryTheme {
 }
 
 /** 제품 대표색 테마에서 슬롯 4개를 파생한다. 사진 대표색(primary)은 그대로 두고 나머지만 규칙대로 이동·채도 상한 */
+/** 색상환 거리(0~180) */
+const hueDist = (a: number, b: number) => { const d = Math.abs(((a - b) % 360 + 360) % 360); return d > 180 ? 360 - d : d; };
+
+/** 색상환 계열(군) 수: 45° 이상 떨어진 색상끼리 다른 군. 무채색(채도<0.1)은 세지 않는다 */
+export function hueGroupCount(hexes: string[]): number {
+  const hs = hexes.map(hexHsl).filter((c) => c.s >= 0.1).map((c) => c.h);
+  const groups: number[] = [];
+  for (const h of hs) if (!groups.some((g) => hueDist(g, h) < 45)) groups.push(h);
+  return groups.length;
+}
+
+/** 테마의 accent 계열을 HSL 값으로 다시 맞춘다(soft·text·deep은 같은 색상으로 따라감) */
+function themeWithAccentHsl(t: CategoryTheme, h: number, s: number, l: number): CategoryTheme {
+  return {
+    ...t,
+    accent: hslHex(h, s, l),
+    accentText: hslHex(h, s, Math.max(0.2, l - 0.08)),
+    deepAccent: hslHex(h, Math.min(1, s * 0.9), Math.max(0.12, Math.min(l - 0.14, 0.24))),
+    accentSoft: hslHex(h, Math.min(0.6, s), 0.95),
+  };
+}
+
+/**
+ * 패션 팔레트(430B): 보색·삼각 없이 제품 사진 톤 안에서만 변주한다.
+ *  - 사진에서 실제로 뽑힌 색은 테마에 대표색(accent)과 배경 중립색(baseNeutral) 둘뿐이다(2~3번째 지배색은 세션에 저장돼 있지 않다).
+ *    중립색 색상이 대표색과 12~45° 떨어져 있으면 그 색상을 보조색 1의 방향으로 쓴다(사진의 실제 색). 아니면 대표색 ±20° 변주.
+ *  - 보조·3차는 같은 계열 ±20° + 명도(보조 +0.06, 3차 −0.05)·채도(×0.85) 단계. 사진 톤을 못 읽으면(대표색뿐) 대표색 단일 계열 변주로 폴백.
+ *  - 포인트 1개: 대표색이 따뜻하면(15~60°) 같은 색상에서 채도만 높임, 아니면 골드·브론즈 중립 금속톤. 한 페이지 색상환 계열 ≤2.
+ *  - mono-neutral: 보조·3차는 무채색(채도 0.06), 포인트 = 대표색.
+ */
+function deriveFashionPalette(base: CategoryTheme, rule: "photo-tonal" | "photo-tonal-bold" | "mono-neutral"): Palette {
+  const { h, s, l } = hexHsl(base.accent);
+  let secondary: CategoryTheme, tertiary: CategoryTheme, accent: CategoryTheme;
+  if (rule === "mono-neutral") {
+    const grey = (lightness: number) => themeWithAccentHsl(base, h, 0.06, lightness);
+    secondary = { ...grey(0.36), baseNeutral: hslHex(h, 0.04, 0.94) };
+    tertiary = { ...grey(0.28), baseNeutral: hslHex(h, 0.03, 0.95) };
+    accent = base;
+  } else {
+    const neutralH = hexHsl(base.baseNeutral);
+    const d = ((neutralH.h - h + 540) % 360) - 180; // -180..180
+    const photoShift = neutralH.s >= 0.08 && Math.abs(d) >= 12 && Math.abs(d) <= 45 ? d : 20;
+    const sat = Math.min(HARMONY_RULES[rule].satCap, s * 0.85);
+    secondary = capTheme(themeWithAccentHsl(hueShiftThemeToken(base, photoShift), h + photoShift, sat, Math.min(0.52, l + 0.06)), HARMONY_RULES[rule].satCap);
+    tertiary = capTheme(themeWithAccentHsl(hueShiftThemeToken(base, -Math.sign(photoShift || 1) * 20), h - Math.sign(photoShift || 1) * 20, sat, Math.max(0.24, l - 0.05)), HARMONY_RULES[rule].satCap);
+    const warm = h >= 15 && h <= 60;
+    const boost = rule === "photo-tonal-bold" ? 1.45 : 1.25;
+    accent = warm ? themeWithAccentHsl(base, h, Math.min(0.82, s * boost), Math.max(0.3, l - 0.02)) : themeWithAccentHsl(base, 38, 0.55, 0.38);
+  }
+  const themes: Record<PaletteSlot, CategoryTheme> = { primary: base, secondary, tertiary, accent };
+  return { rule, slots: { primary: base.accent, secondary: secondary.accent, tertiary: tertiary.accent, accent: accent.accent }, themes };
+}
+
 export function derivePalette(base: CategoryTheme, rule: HarmonyRule): Palette {
+  if (rule === "photo-tonal" || rule === "photo-tonal-bold" || rule === "mono-neutral") return deriveFashionPalette(base, rule);
   const r = HARMONY_RULES[rule];
   const themes: Record<PaletteSlot, CategoryTheme> = {
     primary: base,

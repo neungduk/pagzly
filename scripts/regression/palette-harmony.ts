@@ -6,7 +6,7 @@
 import fs from "node:fs";
 import { getCategoryTheme, type CategoryTheme } from "../../lib/category-theme";
 import { contrastRatioToken, FLAT_PAPER, getSectionTheme, readableTextAccent, readableTextDeep, tokenHslToRgb, tokenRgbToHex } from "../../lib/design-tokens";
-import { HARMONY_RULES, PALETTE_CYCLE, derivePalette, extendThemeFor, harmonyRuleFor, minColorblindDeltaE, type HarmonyRule } from "../../lib/palette-harmony";
+import { HARMONY_RULES, PALETTE_CYCLE, derivePalette, extendThemeFor, harmonyRuleFor, hueGroupCount, minColorblindDeltaE, type HarmonyRule } from "../../lib/palette-harmony";
 import { BRAND } from "../../lib/design-tokens";
 
 export const name = "조화형 멀티 컬러 — 규칙·채도 상한·대비·색약 구분·인접 같은 슬롯 0·페이지 슬롯 ≤4·flag off 기존·결정성";
@@ -27,7 +27,7 @@ export async function run(): Promise<string[]> {
 
   // 규칙 선택
   eq("뷰티 analogous", harmonyRuleFor({ category: "화장품/뷰티" }), "analogous");
-  eq("패션 클래식 split·볼드 triad·모노 analogous", [harmonyRuleFor({ category: "의류/패션" }), harmonyRuleFor({ category: "의류/패션", packHeadline: { kind: "sans-display", weight: 900 } }), harmonyRuleFor({ category: "의류/패션", packHeadline: { kind: "sans-display", weight: 600 } })], ["split", "triad", "analogous"]);
+  eq("패션 클래식 photo-tonal·볼드 photo-tonal-bold·모노 mono-neutral(보색·삼각 폐기)", [harmonyRuleFor({ category: "의류/패션" }), harmonyRuleFor({ category: "의류/패션", packHeadline: { kind: "sans-display", weight: 900 } }), harmonyRuleFor({ category: "의류/패션", packHeadline: { kind: "sans-display", weight: 600 } })], ["photo-tonal", "photo-tonal-bold", "mono-neutral"]);
   eq("전자 cool-point", harmonyRuleFor({ category: "전자제품" }), "cool-point");
 
   // 슬롯·대비·색약: 12색상 × 4규칙
@@ -43,7 +43,10 @@ export async function run(): Promise<string[]> {
       // 보조·3차 슬롯 채도는 상한 이하(+허용오차)
       const sat = (hex: string) => { const n = parseInt(hex.slice(1), 16); const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b); const l = (mx + mn) / 2; return mx === mn ? 0 : (mx - mn) / (1 - Math.abs(2 * l - 1)); };
       if (sat(pal.themes.secondary.accent) > HARMONY_RULES[rule].satCap + 0.03) fails.push(`${rule}/${hue}: 보조색 채도 상한 초과`);
-      worstCb = Math.min(worstCb, minColorblindDeltaE(pal.slots));
+      // 430B: 패션 규칙은 같은 계열의 명도·채도 변주가 목적이라 색약 ΔE 기준에서 제외하고, 대신 색상환 계열 수(≤2)를 점검한다
+      const fashionRule = rule === "photo-tonal" || rule === "photo-tonal-bold" || rule === "mono-neutral";
+      if (fashionRule) { const g = hueGroupCount(Object.values(pal.slots)); if (g > 2) fails.push(`${rule}/${hue}: 색상환 계열 ${g}개 > 2`); if (rule === "mono-neutral" && g > 1) fails.push(`mono-neutral/${hue}: 무채색+대표색 1개가 아님(계열 ${g})`); }
+      else worstCb = Math.min(worstCb, minColorblindDeltaE(pal.slots));
     }
   }
   if (worstCb < 8) fails.push(`색약 시뮬레이션 슬롯 최소 ΔE ${worstCb.toFixed(1)} < 8`);
