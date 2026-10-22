@@ -17,7 +17,7 @@ const urls = Array.from({ length: 10 }, (_, i) => `https://example.com/p${i}.jpg
 const gal = (h: string, idx: number[]) => S({ type: "gallery", slot: "gallery", heading: h, imageIndexes: idx });
 const full = (h: string, i: number) => S({ type: "image_text", slot: "detail_zoom", heading: h, body: `${h} 본문입니다.`, imageIndex: i, imagePosition: "left", layout: "full" });
 const filler = (n: number) => S({ type: "highlight_box", slot: "highlight_box", heading: `요약${n}`, body: "본문" });
-const page = (cat: string): DetailSection[] => [
+const page = (_cat: string): DetailSection[] => [
   S({ type: "hero", slot: "hero", headline: "제목", subheadline: "부제", imageIndex: 0 }),
   gal("첫 갤러리", [0, 1, 2, 3]),
   S({ type: "target_persona", slot: "target_persona", heading: "고민", personas: ["a", "b", "c"] }),

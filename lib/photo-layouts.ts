@@ -136,7 +136,7 @@ export function planPhotoLayouts(
       .filter((idx) => (ctx.origins?.[idx] ?? "original") !== "ai-lifestyle" && okUrl(ctx.imageUrls[idx]))
       .map((idx) => ({ url: okUrl(ctx.imageUrls[idx]), pos: focusPos(ctx.category, ctx.roles?.[idx]) }));
     if (picks.length < 2) return s;
-    let kind: ImpactSection["kind"] = picks.length === 2 ? "asym2" : picks.length === 3 ? "mosaic3" : "stagger";
+    const kind: ImpactSection["kind"] = picks.length === 2 ? "asym2" : picks.length === 3 ? "mosaic3" : "stagger";
     let images = picks;
     if (kind === "stagger") images = picks.slice(0, picks.length % 2 === 0 ? picks.length : picks.length - 1).slice(0, 6);
     if (kind === last) return s; // 같은 레이아웃 연속 금지
