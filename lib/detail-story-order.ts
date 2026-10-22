@@ -90,6 +90,38 @@ export function storyStageOf(s: DetailSection): StoryStage | null {
   return null;
 }
 
+/** "가운데 제목 + 카드 목록" 구조로 보이는 섹션 — 이 구조가 이어서 2번 나오면 리듬이 단조롭다 */
+const LIST_CARD_TYPES = new Set(["target_persona", "checklist", "highlight_box", "tradeoff_card", "step_card", "usage_steps", "faq"]);
+export const isListCardSection = (s: DetailSection): boolean => LIST_CARD_TYPES.has(s.type);
+/** 같은 구조가 바로 이어진 쌍의 수(리듬 지표) */
+export function countListCardRuns(sections: ReadonlyArray<DetailSection>): number {
+  return sections.reduce((n, s, i) => (i > 0 && isListCardSection(s) && isListCardSection(sections[i - 1]!) ? n + 1 : n), 0);
+}
+
+/**
+ * 433차 1-3 — 같은 구조 분산: 목록 카드형 섹션이 바로 이어지면, 뒤에 오는 다른 구조 섹션(단계 차이 ≤1, 정보·신뢰·구매 단계 제외)을 둘 사이로 당긴다.
+ * 단계 순서를 최대 한 단계만 어긋나게 하고(고민 → 브랜드 → 체크리스트 같은 원래 생성 순서), 섹션 추가·삭제·문구 변경은 없다.
+ */
+function disperseListCards(list: DetailSection[]): DetailSection[] {
+  const out = [...list];
+  for (let i = 1; i < out.length - 2; i += 1) {
+    if (!(isListCardSection(out[i]!) && isListCardSection(out[i - 1]!))) continue;
+    const stage = storyStageOf(out[i]!);
+    if (stage == null || stage >= 6) continue;
+    // 당겨 올 후보: 바로 뒤 4개 안에서 목록 카드가 아니고 단계 차이 ≤1인 첫 섹션(같은 묶음 장식은 따라 움직이지 않으므로 단독 단계 섹션만)
+    for (let j = i + 1; j < Math.min(out.length - 1, i + 5); j += 1) {
+      const c = out[j]!;
+      const cs = storyStageOf(c);
+      if (cs == null || isListCardSection(c) || cs > stage + 1 || cs >= 6) continue;
+      if (out[j + 1] && storyStageOf(out[j + 1]!) == null) break; // 뒤에 장식이 붙은 섹션은 건드리지 않는다
+      out.splice(j, 1);
+      out.splice(i, 0, c);
+      break;
+    }
+  }
+  return out;
+}
+
 export type StoryOrderResult = { sections: DetailSection[]; moves: number };
 
 /**
@@ -124,7 +156,7 @@ export function applyStoryOrder(sections: DetailSection[]): StoryOrderResult {
     const firstSolution = sorted.findIndex((g, i) => i >= qi && g.rank >= 3);
     sorted.splice(firstSolution < 0 ? qi : firstSolution + 1, 0, q!);
   }
-  const out = sorted.flatMap((g) => g.members);
+  const out = disperseListCards(sorted.flatMap((g) => g.members));
   const moves = out.reduce((n, s, i) => (s !== sections[i] ? n + 1 : n), 0);
   return moves === 0 ? { sections, moves: 0 } : { sections: out, moves };
 }

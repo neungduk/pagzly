@@ -2,7 +2,7 @@
  * 회귀 — 433차 1-1 스토리 순서 엔진: 단계 순서(훅→공감→해결→근거→사용→정보→신뢰→구매), 질문형 체크리스트는 히어로 직후 금지,
  * 섹션 추가·삭제·문구 변경 없음(같은 객체 참조), 단계 모르는 섹션은 앞 묶음에 붙음, 편집 모드·claimFacts 없음·비대상 카테고리·flag off는 불변. 호출 0.
  */
-import { applyStoryOrder, isQuestionChecklist, storyOrderOn, storyStageOf } from "../../lib/detail-story-order";
+import { applyStoryOrder, countListCardRuns, isQuestionChecklist, storyOrderOn, storyStageOf } from "../../lib/detail-story-order";
 import { applyDisplayRules } from "../../lib/display-sections";
 import { buildClaimFacts } from "../../lib/numeric-claim-gate";
 import type { DetailSection } from "../../lib/types/generate";
@@ -42,15 +42,16 @@ export async function run(): Promise<string[]> {
   eq("질문형 판별", [isQuestionChecklist(qcheck), isQuestionChecklist(check)], [true, false]);
   const noPersona = applyStoryOrder([hero, qcheck, point("p1"), point("p2"), cta]).sections;
   eq("공감 없으면 해결 첫 섹션 뒤", noPersona.map((s) => (s.type === "checklist" ? "Q" : s.type)), ["hero", "image_text", "Q", "image_text", "cta_price"]);
-  const withPersona = applyStoryOrder([hero, brand, qcheck, persona, cta]).sections;
-  eq("공감 뒤 질문형 체크리스트", withPersona.map((s) => s.type), ["hero", "target_persona", "checklist", "brand_story", "cta_price"]);
+  const withPersona = applyStoryOrder([hero, brand, qcheck, persona, point("p9"), cta]).sections;
+  eq("공감 뒤 질문형 체크리스트(같은 구조 분산: 사이에 브랜드)", withPersona.map((s) => s.type), ["hero", "target_persona", "brand_story", "checklist", "image_text", "cta_price"]);
+  eq("같은 구조 연속 0", countListCardRuns(withPersona), 0);
   // 3) 단계 모르는 섹션은 앞 묶음에 붙어 같이 움직임
   const stick = applyStoryOrder([hero, point("p1"), banner, persona, cta]).sections;
   eq("장식 배너는 앞 묶음", stick.map((s) => s.type), ["hero", "target_persona", "image_text", "illustration_banner", "cta_price"]);
   // 4) 건너뜀: 해당 단계 섹션이 없어도 오류 없이 나머지 순서만
   eq("빈 단계 건너뜀", applyStoryOrder([hero, spec, point("p1"), cta]).sections.map((s) => s.type), ["hero", "image_text", "spec_table", "cta_price"]);
   // 5) 이미 순서가 맞으면 입력 배열 그대로(moves 0)
-  const ok = [hero, persona, check, brand, point("p1"), evidence, usage, spec, faq, cta];
+  const ok = [hero, persona, brand, check, point("p1"), evidence, usage, spec, faq, cta];
   const same = applyStoryOrder(ok);
   eq("이미 정렬됨", [same.sections === ok, same.moves], [true, 0]);
   // 6) 히어로가 맨 앞이 아니면 불변
