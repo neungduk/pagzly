@@ -1,4 +1,6 @@
 import { Fragment, useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import StickyBuyBar from "@/components/StickyBuyBar";
+import { COMPOSITION_V2_ENABLED } from "@/lib/detail-story-order";
 import {
   Check,
   CheckCircle2,
@@ -276,6 +278,8 @@ type DetailSectionRendererProps = {
   imageRoles?: import("@/lib/image-roles").ProductImageRole[];
   /** true면 ai-lifestyle 컷에 배지 표시 (캡처/내보내기 시 false) */
   sellerAiBadges?: boolean;
+  /** 433차 — 스크롤 시 하단에 가격 + 구매 버튼을 고정(라이브 결과 화면 전용, export에는 없음). 가격이 있고 편집·다운로드 중이 아닐 때만 호출부가 켠다 */
+  stickyBuyBar?: boolean;
   category: string;
   productName?: string;
   theme?: CategoryTheme;
@@ -5780,6 +5784,7 @@ function renderSection(
         <section
           key={`cta_price-${index}`}
           {...beautyData(layout, "buy")}
+          data-pz-buy="1"
           className={`${FLAT_SECTION_SURFACES ? "relative" : "pagzly-ink-cta pagzly-ink-shimmer relative"} z-20 ${TW_ELEVATION.ctaSticky} ${FLAT_SECTION_SURFACES ? "" : CTA_TRANSITION_OVERLAP_CLASS} ${getCategoryRhythm(category).ctaPadClass}`}
           style={
             FLAT_SECTION_SURFACES
@@ -5920,7 +5925,9 @@ export default function DetailSectionRenderer({
   sceneImages,
   hasSizeInfo,
   claimFacts,
+  stickyBuyBar = false,
 }: DetailSectionRendererProps) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const pack = resolveStylePack(category, stylePackId);
   const packLayout = beautyInfoLayout(getPackLayout(pack), category);
   const v2On = designV2On(category);
@@ -6006,6 +6013,7 @@ export default function DetailSectionRenderer({
     {/* 반응형은 뷰포트가 아니라 이 컨테이너(프리뷰 칼럼) 폭 기준 — 결과 페이지 데스크톱 3단 레이아웃에서
         좁은 가운데 칼럼에 sm: 폰트·그리드가 켜져 글자가 음절 단위로 쪼개지던 문제 방지 */}
     <div
+      ref={rootRef}
       className="@container/pz overflow-hidden scroll-smooth"
       data-pz-pack={isClassicPack(pack) ? undefined : pack.id}
       data-pz-info={packLayout.beautyInfo ? "1" : undefined}
@@ -6236,6 +6244,13 @@ export default function DetailSectionRenderer({
         );
       })}
     </div>
+    {stickyBuyBar && !edit?.enabled && COMPOSITION_V2_ENABLED
+      ? (() => {
+          const cta = sections.find((s) => s.type === "cta_price");
+          const price = cta && cta.type === "cta_price" && typeof cta.price === "number" && cta.price > 0 ? cta.price : 0;
+          return price > 0 ? <StickyBuyBar rootRef={rootRef} price={`₩${price.toLocaleString("ko-KR")}`} name={productName?.trim() || undefined} /> : null;
+        })()
+      : null}
     </SellerImageMetaContext.Provider>
   );
 }

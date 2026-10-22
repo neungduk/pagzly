@@ -1106,6 +1106,7 @@ function CreateResultContent() {
           imageHashByUrl={generated?.imageHashByUrl}
           imageRoles={generated?.imageRoles ?? data.imageRoles}
           sellerAiBadges={!downloading && !downloadingSplit}
+          stickyBuyBar={!downloading && !downloadingSplit && !downloadingHtml}
           category={data.category}
           productName={data.productName}
           brandName={data.brandName}

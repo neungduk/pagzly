@@ -1686,6 +1686,7 @@ function DetailPreviewBody({ capture, budget }: { capture: string | null; budget
             sceneImages={capturePreset?.sceneImages}
             hasSizeInfo={hasSizeHeight(capturePreset?.productSizeHint)}
             claimFacts={claimFactsOf(capturePreset?.claimInput)}
+            stickyBuyBar={typeof window !== "undefined" && new URLSearchParams(window.location.search).get("bar") === "1"}
             category={previewCategory}
             brandName={previewBrandName}
             productName={previewProductName}

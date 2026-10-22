@@ -6,6 +6,7 @@ import { applyDisplayRules } from "../../lib/display-sections";
 import { buildDetailPageHtml } from "../../lib/export-detail-html";
 import { getCategoryTheme } from "../../lib/category-theme";
 import { buildClaimFacts } from "../../lib/numeric-claim-gate";
+import { STICKY_BUY_BAR_HEIGHT_PX } from "../../components/StickyBuyBar";
 import { IMPACT_MIN_GAP_PX, estimateSectionHeight } from "../../lib/impact-templates";
 import type { DetailSection } from "../../lib/types/generate";
 
@@ -67,5 +68,8 @@ export async function run(): Promise<string[]> {
   if (!/data-pz-impact="/.test(html)) fails.push("export에 임팩트 마크업 없음");
   const impactHtmlText = [...html.matchAll(/<section data-pz-impact[\s\S]*?<\/section>/g)].map((m) => m[0]).join("");
   if (/:has\(|@container|text-wrap/.test(impactHtmlText)) fails.push("임팩트 마크업에 export 금지 기법");
+  // 고정 구매 바(1-5): export에는 없고(라이브 전용 패리티 예외), 높이 ≤64px
+  if (/data-pz-sticky-buy|StickyBuyBar/.test(html)) fails.push("export에 고정 구매 바");
+  if (STICKY_BUY_BAR_HEIGHT_PX > 64) fails.push(`고정 구매 바 높이 ${STICKY_BUY_BAR_HEIGHT_PX}px > 64`);
   return fails;
 }
