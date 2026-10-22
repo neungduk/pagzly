@@ -88,7 +88,9 @@ export async function run(): Promise<string[]> {
     }
     const secs = [...base().slice(0, 2), S({ type: "brand_story", slot: "brand_story", heading: "소개", body: "수분을 담았어요. 일반 제품보다 가볍습니다. 매일 쓰기 좋아요." }), ...base().slice(3)];
     const out = applyDisplayRules(secs, urls, { category: "화장품/뷰티", claimFacts: F() });
-    const bs = out.sections.find((s) => s.type === "brand_story") as unknown as { body: string };
+    // 435차: 짧은 브랜드 스토리는 Big statement(impact)로 바뀌어 본문이 text에 담긴다
+    const bsRaw = out.sections.find((s) => s.type === "brand_story" || (s.type === "impact" && s.kind === "statement")) as unknown as { body?: string; text?: string };
+    const bs = { body: bsRaw.body ?? bsRaw.text ?? "" };
     eq("비교 문장만 삭제", bs.body, "수분을 담았어요. 매일 쓰기 좋아요.");
   }
 

@@ -12,7 +12,8 @@ import type { DetailSection, ImpactSection } from "@/lib/types/generate";
 import type { ImpactPalette } from "@/lib/impact-templates";
 import { estimateSectionHeight } from "@/lib/impact-templates";
 import { illustrationSvg, type IllustId } from "@/lib/illustrations/library";
-import { ILLUSTRATION_V1_ENABLED, illustStyleFor, pickIllustration } from "@/lib/illustration-map";
+import { ILLUSTRATION_V1_ENABLED, illustKeyword, illustStyleFor, pickIllustration } from "@/lib/illustration-map";
+import { IMPACT_BOOST_ENABLED, markHeading } from "@/lib/impact-boost";
 import { hexToRgba } from "@/lib/design-tokens";
 import { DETAIL_FONT_STACK } from "@/lib/detail-typography";
 
@@ -29,7 +30,47 @@ export function illustFor(s: ImpactSection, pal: ImpactPalette): string {
   return illustrationSvg(s.illust.id as IllustId, s.illust.style, pal.illust, s.illust.variant, `${s.kind}|${s.text}`);
 }
 
+/** 435차 — 일러스트 구간 강화: 파스텔 면 위 진한 오브젝트(대비 ≥3:1)·큰 그림·채움 알약 라벨+연결선·큰 제목+마커 */
+function illustBoostHtml(s: ImpactSection, pal: ImpactPalette): string {
+  const title = `font-family:${DETAIL_FONT_STACK.sansDisplayHeadline}`;
+  const sans = `font-family:${DETAIL_FONT_STACK.sans}`;
+  const svg = illustFor(s, pal);
+  const head = s.text ? `<p style="margin:0;${title};font-size:26px;font-weight:800;letter-spacing:-0.02em;line-height:1.3;color:${pal.ink};word-break:keep-all">${markHeading(s.text, s.illust ? illustKeyword(s.illust.id as IllustId) : null, pal.accent)}</p>` : "";
+  if (s.kind === "illust-side") {
+    const first = s.imagePosition === "left";
+    return (
+      `<section data-pz-impact="illust-side" style="padding:32px 20px;background:${pal.face}">` +
+      `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:16px 20px;max-width:576px;margin:0 auto">` +
+      `<div style="flex:1 1 240px;max-width:300px;min-width:0;margin:0 auto;order:${first ? 0 : 1}">${svg}</div>` +
+      `<div style="flex:1 1 240px;min-width:0;order:${first ? 1 : 0}">${head}` +
+      (s.body ? `<p style="margin:12px 0 0;${sans};font-size:16px;line-height:1.7;color:${hexToRgba(pal.ink, 0.84)};white-space:pre-line;word-break:keep-all">${esc(s.body)}</p>` : "") +
+      `</div></div></section>`
+    );
+  }
+  // illust-center: 큰 그림 + 모서리 채움 알약(번호) + 연결선(SVG 직선·점, 고정 좌표)
+  const labels = (s.labels ?? []).slice(0, 4);
+  const slots = [
+    { box: "top:0;left:0", from: [22, 11], to: [38, 33] },
+    { box: "top:0;right:0", from: [78, 11], to: [62, 33] },
+    { box: "bottom:0;left:0", from: [22, 89], to: [38, 67] },
+    { box: "bottom:0;right:0", from: [78, 89], to: [62, 67] },
+  ];
+  const lines = labels.map((_, i) => `<line x1="${slots[i]!.from[0]}" y1="${slots[i]!.from[1]}" x2="${slots[i]!.to[0]}" y2="${slots[i]!.to[1]}" stroke="${pal.deep}" stroke-opacity="0.6" stroke-width="1.5" vector-effect="non-scaling-stroke"/>`).join("");
+  const dots = labels.map((_, i) => `<span style="position:absolute;left:${slots[i]!.to[0]}%;top:${slots[i]!.to[1]}%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:${pal.deep}"></span>`).join("");
+  const pills = labels
+    .map((l, i) => `<span style="position:absolute;${slots[i]!.box};max-width:46%;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:7px 12px 7px 7px;border-radius:999px;background:${pal.deep};box-shadow:0 4px 10px ${hexToRgba(pal.ink, 0.16)};${sans};font-size:14px;font-weight:700;line-height:1.3;color:#FFFFFF;word-break:keep-all"><span style="flex:none;display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#FFFFFF;color:${pal.deep};font-size:12px;font-weight:800">${i + 1}</span><span style="min-width:0">${esc(l)}</span></span>`)
+    .join("");
+  return (
+    `<section data-pz-impact="illust-center" style="padding:32px 20px;background:${pal.face}"><div style="max-width:576px;margin:0 auto">` +
+    (head ? `<div style="text-align:center;margin:0 0 16px">${head}</div>` : "") +
+    `<div style="position:relative;width:100%;max-width:420px;margin:0 auto;aspect-ratio:1 / 1"><div style="position:absolute;left:8%;right:8%;top:8%;bottom:8%">${svg}</div>` +
+    `<svg aria-hidden="true" viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;left:0;top:0;width:100%;height:100%;display:block">${lines}</svg>${dots}${pills}</div>` +
+    `</div></section>`
+  );
+}
+
 export function illustHtml(s: ImpactSection, pal: ImpactPalette): string {
+  if (IMPACT_BOOST_ENABLED) return illustBoostHtml(s, pal);
   const title = `font-family:${DETAIL_FONT_STACK.sansDisplayHeadline}`;
   const sans = `font-family:${DETAIL_FONT_STACK.sans}`;
   const svg = illustFor(s, pal);

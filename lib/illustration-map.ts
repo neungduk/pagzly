@@ -4,6 +4,7 @@
  */
 import type { IllustId } from "@/lib/illustrations/library";
 import type { IllustStyle } from "@/lib/illustrations/core";
+import { IMPACT_BOOST_ENABLED } from "@/lib/impact-boost";
 
 /** 기본 켬. 끄려면 NEXT_PUBLIC_ILLUSTRATION_V1=off 로 서버를 시작한다(433차와 같은 화면) */
 export const ILLUSTRATION_V1_ENABLED = process.env.NEXT_PUBLIC_ILLUSTRATION_V1 !== "off";
@@ -42,12 +43,16 @@ export function pickIllustration(text: string, exclude: ReadonlySet<IllustId> = 
   return best;
 }
 
+/** 일러스트 id의 키워드 정규식(제목 마커 강조용) */
+export const illustKeyword = (id: IllustId): RegExp | null => { const r = RULES.find(([i]) => i === id); return r ? new RegExp(r[1].source) : null; };
+
 /** 모든 키워드 규칙(회귀가 15종 전부 매핑 가능한지 확인) */
 export const ILLUSTRATION_RULE_IDS: readonly IllustId[] = RULES.map(([id]) => id);
 
 /** 스타일 선택: 뷰티=라인+소프트 필, 패션=플랫+레이어, 그 밖(전자·생활·식품…)=입체 오브젝트 */
 export function illustStyleFor(category: string | undefined | null): IllustStyle {
-  if (category === "화장품/뷰티") return "line";
+  // 435차 — 진한 오브젝트를 파스텔 면 위에 올리므로 뷰티도 채움이 있는 solid(옅게 뜨던 line 소프트 필은 사용하지 않음)
+  if (category === "화장품/뷰티") return IMPACT_BOOST_ENABLED ? "solid" : "line";
   if (category === "의류/패션") return "flat";
   return "solid";
 }

@@ -1724,7 +1724,7 @@ function sectionHtml(
     }
     case "impact":
       // 433차 — 라이브와 같은 마크업 한 벌(lib/impact-templates)
-      return impactHtml(section, impactPalette(theme), impactAlt(productName, section));
+      return impactHtml(section, impactPalette(theme, category), impactAlt(productName, section));
     case "cta_price":
       if (FLAT_SECTION_SURFACES) {
         return `<section${sectionIdAttr}${beautyAttr(layout, "buy")} class="pagzly-cta" style="${ctaPad}background:${flatAccentTint(theme)};border-top:1px solid ${hexToRgba(accent, 0.16)};color:${BRAND.ink};text-align:center">
@@ -2153,7 +2153,7 @@ export function buildDetailPageHtml(opts: {
       { chartRemoved: comparisonPolicyRemovesChart(opts.claimFacts) },
     ),
     opts.imageUrls,
-    { imageHashByUrl: opts.imageHashByUrl, roles: opts.imageRoles, origins: opts.imageOrigins, category: opts.category, flow: getPackLayout(pack).flow, tags: opts.imageTags, sceneImages: opts.sceneImages, hasSizeInfo: opts.hasSizeInfo, claimFacts: opts.claimFacts },
+    { imageHashByUrl: opts.imageHashByUrl, roles: opts.imageRoles, origins: opts.imageOrigins, category: opts.category, flow: getPackLayout(pack).flow, tags: opts.imageTags, sceneImages: opts.sceneImages, hasSizeInfo: opts.hasSizeInfo, claimFacts: opts.claimFacts, brandName: opts.brandName },
   ).sections;
   const visibleSections = dropSpecEchoFaqItems(
     dropDuplicateRecommendColumn(

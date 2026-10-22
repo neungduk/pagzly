@@ -5893,7 +5893,7 @@ function renderSection(
 
     case "impact":
       // 433차 — 임팩트 화면 템플릿(표시 전용). 마크업은 export와 같은 lib/impact-templates 한 벌
-      return <div key={`impact-${index}`} data-impact-wrap dangerouslySetInnerHTML={{ __html: impactHtml(section, impactPalette(theme), impactAlt(productName, section)) }} />;
+      return <div key={`impact-${index}`} data-impact-wrap dangerouslySetInnerHTML={{ __html: impactHtml(section, impactPalette(theme, category), impactAlt(productName, section)) }} />;
 
     default:
       return null;
@@ -5946,6 +5946,7 @@ export default function DetailSectionRenderer({
     sceneImages,
     hasSizeInfo,
     claimFacts,
+    brandName,
   });
   const rawSections = display.sections;
   const toSource = (i: number) => display.sourceIndexes[i] ?? i;

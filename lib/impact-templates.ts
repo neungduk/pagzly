@@ -14,7 +14,8 @@
 import type { DetailSection, ImpactSection } from "@/lib/types/generate";
 import type { CategoryTheme } from "@/lib/category-theme";
 import type { ProductImageOrigin } from "@/lib/image-origins";
-import { BRAND, flatAccentTint, hexToRgba, readableTextAccent, readableTextDeep } from "@/lib/design-tokens";
+import { BRAND, contrastRatioToken, flatAccentTint, hexToRgba, mixHex, pastelFace, readableTextAccent, readableTextDeep } from "@/lib/design-tokens";
+import { IMPACT_BOOST_ENABLED, boostHtml } from "@/lib/impact-boost";
 import { DETAIL_FONT_STACK } from "@/lib/detail-typography";
 import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import type { IllustColors } from "@/lib/illustrations/core";
@@ -28,9 +29,19 @@ export type ImpactKind = "statement" | "number" | "bleed" | "split" | "callout" 
 
 const escapeHtml = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-export type ImpactPalette = { ink: string; deep: string; accent: string; tint: string; /** 431차 — 일러스트용 팔레트 슬롯 4색(해당 섹션 슬롯 테마) */ illust: IllustColors };
-export function impactPalette(theme: CategoryTheme): ImpactPalette {
-  return { ink: BRAND.ink, deep: readableTextDeep(theme, 4.5), accent: readableTextAccent(theme, 3), tint: flatAccentTint(theme, 0.6), illust: { a: theme.accent, b: theme.deepAccent, c: theme.accentSoft, n: theme.baseNeutral } };
+export type ImpactPalette = { ink: string; deep: string; accent: string; tint: string; /** 435차 — 슬롯 파스텔 면·따뜻한 중립 면 */ face: string; warm: string; /** 431차 — 일러스트용 팔레트 슬롯 4색(해당 섹션 슬롯 테마) */ illust: IllustColors };
+export function impactPalette(theme: CategoryTheme, category?: string): ImpactPalette {
+  const face = pastelFace(theme, category);
+  return {
+    ink: BRAND.ink, deep: readableTextDeep(theme, 4.5), accent: readableTextAccent(theme, 3), tint: flatAccentTint(theme, 0.6), face, warm: mixHex(theme.baseNeutral, "#FFFFFF", 0.55),
+    illust: IMPACT_BOOST_ENABLED ? boostIllustColors(theme, face) : { a: theme.accent, b: theme.deepAccent, c: theme.accentSoft, n: theme.baseNeutral },
+  };
+}
+
+/** 435차 — 일러스트 오브젝트는 파스텔 면 위에서 읽히도록 진한 색(면 대비 ≥3:1)을 주색으로 쓴다 */
+export function boostIllustColors(theme: CategoryTheme, face: string): IllustColors {
+  const dark = [theme.deepAccent, readableTextDeep(theme, 4.5), "#1B1B18"].find((c) => contrastRatioToken(c, face) >= 3) ?? "#1B1B18";
+  return { a: dark, b: theme.accent, c: mixHex(theme.accent, "#FFFFFF", 0.5), n: theme.baseNeutral };
 }
 
 /** 마크업 한 벌(라이브 dangerouslySetInnerHTML·export 문자열 공용) */
@@ -43,6 +54,11 @@ export function impactHtml(s: ImpactSection, pal: ImpactPalette, alt: string): s
     case "illust-side":
     case "illust-center":
       return illustHtml(s, pal);
+    case "story":
+    case "fit":
+    case "note":
+    case "textboost":
+      return boostHtml(s, pal, alt);
     case "statement": {
       const thin = s.tone === "thin";
       return (
@@ -157,7 +173,7 @@ export const impactAlt = (productName: string | undefined | null, s: ImpactSecti
 
 // ── 배치 계획 ──────────────────────────────────────────────────────────────
 
-const IMPACT_HEIGHT: Partial<Record<ImpactSection["kind"], number>> = { statement: 300, number: 330, bleed: 780, split: 380, callout: 420, proof: 420, reviewstat: 460, "illust-side": 300, "illust-center": 520, asym2: 600, mosaic3: 640, inset: 700, frame: 560, stagger: 800, zoom: 600 };
+const IMPACT_HEIGHT: Partial<Record<ImpactSection["kind"], number>> = { statement: 300, number: 330, bleed: 780, split: 380, callout: 420, proof: 420, reviewstat: 460, "illust-side": 300, "illust-center": 520, story: 640, fit: 420, note: 360, textboost: 420, asym2: 600, mosaic3: 640, inset: 700, frame: 560, stagger: 800, zoom: 600 };
 
 /** 섹션 높이 추정(px, 390 폭 기준 대략) — 간격 규칙용. 정확할 필요는 없고 같은 입력이면 같은 결과가 나오면 된다 */
 export function estimateSectionHeight(s: DetailSection): number {

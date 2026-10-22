@@ -15,6 +15,7 @@ import { COMPOSITION_V2_ENABLED, applyStoryOrder, storyOrderOn } from "@/lib/det
 import { planImpact } from "@/lib/impact-templates";
 import { planEvidence } from "@/lib/evidence-modules";
 import { planIllustrations } from "@/lib/illust-sections";
+import { planBoost } from "@/lib/impact-boost";
 import { planPhotoLayouts } from "@/lib/photo-layouts";
 
 export type DisplaySections = {
@@ -294,6 +295,8 @@ export function applyDisplayRules(
     claimFacts?: ClaimFacts;
     /** 419차 — 장면(합성) 이미지 슬롯(세션 sceneImages). 뷰티에서만 scene_image 섹션이 끼워진다 */
     sceneImages?: SceneImageMap;
+    /** 435차 — 브랜드 스토리 라벨 칩용 브랜드명(입력) */
+    brandName?: string | null;
   } & StripImageHints = {},
 ): DisplaySections {
   // 427차 — 비교 정책: 판매자가 비교 데이터를 넣지 않았으면 비교 차트·표를 빼고 입력 근거가 있는 섹션으로 채운다(편집 모드·claimFacts 없음은 그대로)
@@ -356,8 +359,11 @@ export function applyDisplayRules(
   const evidence = opts.claimFacts && !opts.editing && COMPOSITION_V2_ENABLED ? planEvidence(afterBackfill.sections, afterBackfill.sourceIndexes, { category: opts.category, facts: opts.claimFacts }) : null;
   const withEvidence = evidence && evidence.added.length > 0 ? evidence : afterBackfill;
   // 431차 1-3 — 인포 구간 SVG 일러스트(키워드가 매핑되는 구간만)
-  const illust = opts.claimFacts && COMPOSITION_V2_ENABLED ? planIllustrations(withEvidence.sections, withEvidence.sourceIndexes, { category: opts.category }) : null;
-  const withIllust = illust && illust.placed.length > 0 ? illust : withEvidence;
+  // 435차 — 브랜드 스토리·추천/참고 카드 임팩트 보강(제목-내용 일치)
+  const boost = opts.claimFacts && COMPOSITION_V2_ENABLED ? planBoost(withEvidence.sections, withEvidence.sourceIndexes, { brandName: opts.brandName, imageUrls, origins: opts.origins }) : null;
+  const withBoost = boost && boost.placed.length > 0 ? boost : withEvidence;
+  const illust = opts.claimFacts && COMPOSITION_V2_ENABLED ? planIllustrations(withBoost.sections, withBoost.sourceIndexes, { category: opts.category }) : null;
+  const withIllust = illust && illust.placed.length > 0 ? illust : withBoost;
   // 431차 2-2 — 갤러리를 사진 수에 맞는 새 레이아웃(비대칭 2장·모자이크 3장·스태거 2열)으로
   const photos = opts.claimFacts && COMPOSITION_V2_ENABLED ? planPhotoLayouts(withIllust.sections, withIllust.sourceIndexes, { category: opts.category, imageUrls, roles: opts.roles, origins: opts.origins }) : null;
   const withPhotos = photos && photos.placed.length > 0 ? photos : withIllust;

@@ -537,7 +537,7 @@ export type CertificateEvidenceSection = {
 export type ImpactSection = {
   type: "impact";
   slot: "impact";
-  kind: "statement" | "number" | "bleed" | "split" | "callout" | "proof" | "reviewstat" | "illust-side" | "illust-center" | "asym2" | "mosaic3" | "inset" | "frame" | "stagger" | "zoom";
+  kind: "statement" | "number" | "bleed" | "split" | "callout" | "proof" | "reviewstat" | "illust-side" | "illust-center" | "asym2" | "mosaic3" | "inset" | "frame" | "stagger" | "zoom" | "story" | "fit" | "note" | "textboost";
   /** statement 문장 · number 숫자 · bleed/split 제목(캡션). callout은 빈 문자열 */
   text: string;
   /** number 단위 */
@@ -561,6 +561,9 @@ export type ImpactSection = {
   images?: { url: string; pos?: string }[];
   /** 431차 — 사진 레이아웃 모양 변주(frame: arch|circle|round) */
   shape?: string;
+  /** 435차 — story: 브랜드 라벨 칩(입력 브랜드명)·큰 인용문(본문 첫 문장 그대로) */
+  chip?: string;
+  quote?: string;
 };
 
 export type CanvasElement =

@@ -6,6 +6,7 @@ import { ILLUST_IDS, illustrationSvg } from "../../lib/illustrations/library";
 import { ILLUST_STYLES } from "../../lib/illustrations/core";
 import { applyDisplayRules } from "../../lib/display-sections";
 import { buildClaimFacts } from "../../lib/numeric-claim-gate";
+import { IMPACT_BOOST_ENABLED } from "../../lib/impact-boost";
 import { ILLUST_MAX_PER_PAGE } from "../../lib/illust-sections";
 import type { DetailSection } from "../../lib/types/generate";
 import { ILLUSTRATION_RULE_IDS, illustStyleFor, pickIllustration } from "../../lib/illustration-map";
@@ -51,7 +52,7 @@ export async function run(): Promise<string[]> {
   eq("키워드 없음 → null", pickIllustration("자연스럽게 어울리는 선택입니다"), null);
   eq("제외 목록 존중", pickIllustration("수분 보호", new Set(["drop"]))?.id, "shield");
   // 스타일 선택
-  eq("스타일 선택", [illustStyleFor("화장품/뷰티"), illustStyleFor("의류/패션"), illustStyleFor("전자제품"), illustStyleFor(undefined)], ["line", "flat", "solid", "solid"]);
+  eq("스타일 선택", [illustStyleFor("화장품/뷰티"), illustStyleFor("의류/패션"), illustStyleFor("전자제품"), illustStyleFor(undefined)], [IMPACT_BOOST_ENABLED ? "solid" : "line", "flat", "solid", "solid"]);
   // 섹션 적용(1-3): 키워드가 매핑되는 구간만·상한·인접 중복 금지·텍스트 그대로·편집/claimFacts 없음 불변
   const S = (o: Record<string, unknown>) => o as unknown as DetailSection;
   const txt = (h: string, b: string, slot = "texture_feel") => S({ type: "image_text", slot, heading: h, body: b, imageIndex: 0, imagePosition: "left", layout: "text_only" });
@@ -77,7 +78,7 @@ export async function run(): Promise<string[]> {
   if (out.sections.some((s) => s.type === "image_text" && s.heading === "자연스러운 선택") === false) fails.push("키워드 없는 구간이 바뀜");
   const pool = JSON.stringify(secs);
   for (const s of ill) for (const x of [s.text, s.body, ...(s.labels ?? [])]) if (x && !pool.includes(x)) fails.push(`일러스트 구간에 입력에 없는 글 "${x}"`);
-  eq("스타일(뷰티=line)", ill.every((s) => s.illust?.style === "line"), true);
+  eq("스타일(뷰티)", ill.every((s) => s.illust?.style === (IMPACT_BOOST_ENABLED ? "solid" : "line")), true);
   eq("claimFacts 없으면 일러스트 없음", applyDisplayRules(secs, ["https://example.com/a.jpg"], { category: "화장품/뷰티" }).sections.some((s) => s.type === "impact"), false);
   eq("편집 모드 일러스트 없음", applyDisplayRules(secs, ["https://example.com/a.jpg"], { category: "화장품/뷰티", claimFacts: facts, editing: true }).sections.some((s) => s.type === "impact"), false);
   eq("sourceIndexes 길이", out.sourceIndexes.length, out.sections.length);
