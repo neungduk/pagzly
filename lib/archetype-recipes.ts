@@ -87,7 +87,7 @@ export const RECIPES: Record<Exclude<ArchetypeId, "default">, Recipe> = {
     stageOverride: { color_variation: 3 },
     priority: { color_variation: 3, texture_feel: 2, detail_zoom: 1, usage_steps: 1 },
     rotation: ["zoom", "bleed", "split", "frame", "inset"], maxPerKind: { zoom: 2 }, skip: ["callout"],
-    hero: "split", specials: ["swatch", "timeline"],
+    hero: "framed", specials: ["swatch", "timeline"],
     note: "색상·발색 앞세움, 확대 컷·큰 사진 선호",
   }),
   "beauty-hairbody": R({
