@@ -19,6 +19,7 @@ import { planBoost } from "@/lib/impact-boost";
 import { planSpecials } from "@/lib/special-sections";
 import { planHeroV2 } from "@/lib/hero-spec";
 import { planReference } from "@/lib/reference-sections";
+import { planPolish } from "@/lib/polish-sections";
 import { ARCHETYPE_V1_ENABLED, detectArchetype, type ArchetypeResult } from "@/lib/product-archetype";
 import { MOODS, pickMood, recipeFor, type MoodId } from "@/lib/archetype-recipes";
 import type { HeroVariant } from "@/lib/style-packs";
@@ -384,7 +385,10 @@ export function applyDisplayRules(
   const withSpecials = specials && specials.placed.length > 0 ? specials : withBoost;
   // 437차 1-4 — 레퍼런스 반영 섹션(체크포인트 그리드·고민 말풍선·후기 요약 채팅): 입력 요건이 맞을 때만
   const reference = opts.claimFacts && COMPOSITION_V2_ENABLED ? planReference(withSpecials.sections, withSpecials.sourceIndexes, { facts: opts.claimFacts }) : null;
-  const withIllust = reference && reference.placed.length > 0 ? reference : withSpecials;
+  const withReference = reference && reference.placed.length > 0 ? reference : withSpecials;
+  // 438차 1-4 — 기존 섹션(FAQ·표·체크리스트·사용 단계)을 mood 디자인 언어 블록으로(DESIGN_POLISH, 문구 원문)
+  const polish = opts.claimFacts && COMPOSITION_V2_ENABLED ? planPolish(withReference.sections, withReference.sourceIndexes) : null;
+  const withIllust = polish && polish.placed.length > 0 ? polish : withReference;
   // 431차 2-2 — 갤러리를 사진 수에 맞는 새 레이아웃(비대칭 2장·모자이크 3장·스태거 2열)으로
   const photos = opts.claimFacts && COMPOSITION_V2_ENABLED ? planPhotoLayouts(withIllust.sections, withIllust.sourceIndexes, { category: opts.category, imageUrls, roles: opts.roles, origins: opts.origins }) : null;
   const withPhotos = photos && photos.placed.length > 0 ? photos : withIllust;

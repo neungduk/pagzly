@@ -179,7 +179,7 @@ export function planBoost(
     // 주의 카드(caution): 규제 문구는 한 글자도 바꾸지 않고 줄 단위로 나열(느낌표 아이콘+따뜻한 중립 면)
     if (orig.type === "caution" && i > 0) {
       const lines = (orig.body ?? "").split(/\n+/).map((x) => x.trim()).filter(Boolean);
-      if (lines.length > 0 && lines.length <= 6) { push({ type: "impact", slot: "impact", kind: "note", text: (orig.heading ?? "").trim(), labels: lines }); return; }
+      if (lines.length > 0 && lines.length <= 6) { push({ type: "impact", slot: "impact", kind: "note", text: (orig.heading ?? "").trim(), labels: lines, origin: { type: "caution", slot: orig.slot } }); return; }
     }
     // 글만 있는 카드(text_only): 제목 크게 + 좌측 강조 선 + 슬롯 파스텔 면. 연속으로 같은 모양이 나오지 않게 바로 앞이 글 카드면 그대로 둔다
     if (orig.type === "image_text" && orig.layout === "text_only" && orig.slot !== "feature_callout" && orig.slot !== "quick_points" && i > 1 && (orig.heading ?? "").trim() && (orig.body ?? "").trim() && placed.every((p) => p.at !== outS.length - 1 || p.kind !== "textboost")) {

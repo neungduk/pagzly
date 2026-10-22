@@ -24,6 +24,7 @@ import { applyMood, moodOf } from "@/lib/mood";
 import { HERO_V2_TUNED } from "@/lib/hero-spec";
 import { specialHtml } from "@/lib/special-sections";
 import { referenceHtml } from "@/lib/reference-sections";
+import { polishHtml } from "@/lib/polish-sections";
 import { PHOTO_LAYOUT_V2_ENABLED, photoLayoutHtml } from "@/lib/photo-layouts";
 import { ILLUSTRATION_V1_ENABLED, illustStyleFor, pickIllustration } from "@/lib/illustration-map";
 import { isWornFashionPhoto } from "@/lib/fashion-composite-policy";
@@ -80,6 +81,10 @@ function impactHtmlBase(s: ImpactSection, pal: ImpactPalette, alt: string): stri
     case "bubbles":
     case "chat":
       return referenceHtml(s, pal);
+    case "faqcards":
+    case "spectable":
+    case "checkrows":
+      return polishHtml(s, pal);
     case "swatch":
     case "timeline":
     case "chipwall":
@@ -200,7 +205,7 @@ export const impactAlt = (productName: string | undefined | null, s: ImpactSecti
 
 // ── 배치 계획 ──────────────────────────────────────────────────────────────
 
-const IMPACT_HEIGHT: Partial<Record<ImpactSection["kind"], number>> = { statement: 300, number: 330, bleed: 780, split: 380, callout: 420, proof: 420, reviewstat: 460, "illust-side": 300, "illust-center": 520, story: 640, fit: 420, note: 360, textboost: 420, swatch: 300, timeline: 520, chipwall: 320, specstrip: 300, sizebars: 520, checkgrid: 640, bubbles: 460, chat: 420, asym2: 600, mosaic3: 640, inset: 700, frame: 560, stagger: 800, zoom: 600 };
+const IMPACT_HEIGHT: Partial<Record<ImpactSection["kind"], number>> = { statement: 300, number: 330, bleed: 780, split: 380, callout: 420, proof: 420, reviewstat: 460, "illust-side": 300, "illust-center": 520, story: 640, fit: 420, note: 360, textboost: 420, swatch: 300, timeline: 520, chipwall: 320, specstrip: 300, sizebars: 520, checkgrid: 640, bubbles: 460, chat: 420, faqcards: 700, spectable: 560, checkrows: 400, asym2: 600, mosaic3: 640, inset: 700, frame: 560, stagger: 800, zoom: 600 };
 
 /** 섹션 높이 추정(px, 390 폭 기준 대략) — 간격 규칙용. 정확할 필요는 없고 같은 입력이면 같은 결과가 나오면 된다 */
 export function estimateSectionHeight(s: DetailSection): number {

@@ -37,7 +37,8 @@ export async function run(): Promise<string[]> {
   const eq = (label: string, got: unknown, want: unknown) => {
     if (JSON.stringify(got) !== JSON.stringify(want)) fails.push(`${label}: ${JSON.stringify(got)} ≠ ${JSON.stringify(want)}`);
   };
-  const types = (x: { sections: DetailSection[] }) => x.sections.map((s) => s.type);
+  // 438차: 디자인 언어 블록(impact)은 대신한 원래 섹션 종류로 센다
+  const types = (x: { sections: DetailSection[] }) => x.sections.map((s) => (s.type === "impact" && s.origin ? s.origin.type : s.type));
   const kindOf = (r: ReturnType<typeof pickBackfill>) => (r && "kind" in r ? r.kind : null);
   const sectionOf = (r: ReturnType<typeof pickBackfill>) => (r && "section" in r ? (r.section as unknown as Record<string, unknown>) : null);
 

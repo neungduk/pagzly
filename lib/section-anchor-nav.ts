@@ -3,6 +3,7 @@
 import type { DetailSection } from "@/lib/types/generate";
 import { FLAT_SECTION_SURFACES } from "@/lib/design-tokens";
 import { isEmptySizeTable } from "@/lib/spec-placeholder";
+import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 
 export type SectionAnchor = {
   sectionIndex: number;
@@ -71,7 +72,9 @@ export function buildSectionAnchors(sections: DetailSection[]): SectionAnchor[] 
   const usedIds = new Set<string>();
 
   for (let i = 0; i < sections.length; i += 1) {
-    const section = sections[i]!;
+    const raw = sections[i]!;
+    // 438차 — 디자인 언어 블록(impact)은 원래 섹션 종류로 앵커를 단다(DESIGN_POLISH)
+    const section = (DESIGN_POLISH_ENABLED && raw.type === "impact" && raw.origin ? { ...raw, type: raw.origin.type, slot: raw.origin.slot ?? "", rows: (raw as { stats?: Array<{ label: string; value: string }> }).stats ?? [] } : raw) as DetailSection;
     for (const rule of ANCHOR_RULES) {
       if (usedIds.has(rule.id)) continue;
       if (!rule.match(section)) continue;

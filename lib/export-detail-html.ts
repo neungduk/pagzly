@@ -165,6 +165,7 @@ import { rhythmVarsCss } from "@/lib/rhythm-tokens";
 import { applyPackTone, classicFashionHeroStrength, isClassicPack, CLASSIC_LAYOUT, getPackLayout, packPadScale, packTitleScaleOverrides, resolveGalleryVariant, resolveHeroVariant, resolveStylePack, type PackLayout } from "@/lib/style-packs";
 import { archetypeHeroLayout } from "@/lib/archetype-recipes";
 import { HERO_V2_TUNED, heroPalette, heroV2Html } from "@/lib/hero-spec";
+import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 import { BEAUTY_HERO, HERO_ARCH, HERO_CAPTION, HERO_FRAME, HERO_STAGE_VARIANT, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroStageOn } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
@@ -1728,7 +1729,8 @@ function sectionHtml(
     }
     case "impact":
       // 433차 — 라이브와 같은 마크업 한 벌(lib/impact-templates)
-      return impactHtml(section, impactPalette(theme, category), impactAlt(productName, section));
+      // 438차 — 앵커 대상이면 id를 단다(라이브는 래퍼에 id)
+      return sectionIdAttr && DESIGN_POLISH_ENABLED ? impactHtml(section, impactPalette(theme, category), impactAlt(productName, section)).replace(/<section /, `<section${sectionIdAttr} `) : impactHtml(section, impactPalette(theme, category), impactAlt(productName, section));
     case "cta_price":
       if (FLAT_SECTION_SURFACES) {
         return `<section${sectionIdAttr}${beautyAttr(layout, "buy")} class="pagzly-cta" style="${ctaPad}background:${flatAccentTint(theme)};border-top:1px solid ${hexToRgba(accent, 0.16)};color:${BRAND.ink};text-align:center">

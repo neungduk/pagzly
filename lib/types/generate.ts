@@ -539,7 +539,7 @@ export type CertificateEvidenceSection = {
 export type ImpactSection = {
   type: "impact";
   slot: "impact";
-  kind: "statement" | "number" | "bleed" | "split" | "callout" | "proof" | "reviewstat" | "illust-side" | "illust-center" | "asym2" | "mosaic3" | "inset" | "frame" | "stagger" | "zoom" | "story" | "fit" | "note" | "textboost" | "swatch" | "timeline" | "chipwall" | "specstrip" | "sizebars" | "checkgrid" | "bubbles" | "chat";
+  kind: "statement" | "number" | "bleed" | "split" | "callout" | "proof" | "reviewstat" | "illust-side" | "illust-center" | "asym2" | "mosaic3" | "inset" | "frame" | "stagger" | "zoom" | "story" | "fit" | "note" | "textboost" | "swatch" | "timeline" | "chipwall" | "specstrip" | "sizebars" | "checkgrid" | "bubbles" | "chat" | "faqcards" | "spectable" | "checkrows";
   /** statement 문장 · number 숫자 · bleed/split 제목(캡션). callout은 빈 문자열 */
   text: string;
   /** number 단위 */
@@ -568,6 +568,8 @@ export type ImpactSection = {
   quote?: string;
   /** 436차 — sizebars: 측정 항목별 사이즈 막대(값 글자는 입력 원문, 막대 길이만 비율) */
   bars?: { metric: string; rows: { size: string; v: number; raw: string }[] }[];
+  /** 438차 — 이 블록이 대신한 원래 섹션(앵커 내비 FAQ·사이즈·배송·주의 등이 그대로 동작하도록) */
+  origin?: { type: string; slot?: string };
   /** 436차 — 아키타입 mood(여백·반경·그림자·구분선·제목 굵기 토큰). 없으면 지금 화면과 같다 */
   mood?: string;
 };
