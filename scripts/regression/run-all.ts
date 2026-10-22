@@ -62,13 +62,14 @@ import * as archetypeRecipes from "./archetype-recipes";
 import * as specialSections from "./special-sections";
 import * as heroSpec from "./hero-spec";
 import * as referenceSections from "./reference-sections";
+import * as typoRhythm from "./typo-rhythm";
 import * as paletteHarmony from "./palette-harmony";
 import * as packStructure from "./pack-structure";
 import * as packContrast from "./pack-contrast";
 import * as flowStory from "./flow-story-after-photo";
 import * as packFinish from "./pack-finish";
 
-const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip, fashionSpecFallback, specRowCap, rhythmTokens, stylePacks, packLayout, heroVariants, flowPhotoFirst, galleryVariants, packStructure, packContrast, flowStory, packFinish, promptRules412, styleSpec, styleAxes, variants413, styleDirector, infoStyle, infoBackdrop, infoBackdropRun, photoTextMatch, beautyHeroTheme, visionCacheCalls, beautyInfo, sceneImages, sceneSize, sceneGen, numericClaimGate, sessionRoundtrip, beautyQuickCards, beautyAccent, usageGuard, uploadSafety, completionCharge, logPolicy, signupFree, comparisonPolicy, landingClaims, designV2, designMetrics, fontPairs, paletteHarmony, storyOrder, impactTemplates, evidenceModules, illustrationMap, photoLayouts, impactBoost, productArchetype, archetypeRecipes, specialSections, heroSpec, referenceSections];
+const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip, fashionSpecFallback, specRowCap, rhythmTokens, stylePacks, packLayout, heroVariants, flowPhotoFirst, galleryVariants, packStructure, packContrast, flowStory, packFinish, promptRules412, styleSpec, styleAxes, variants413, styleDirector, infoStyle, infoBackdrop, infoBackdropRun, photoTextMatch, beautyHeroTheme, visionCacheCalls, beautyInfo, sceneImages, sceneSize, sceneGen, numericClaimGate, sessionRoundtrip, beautyQuickCards, beautyAccent, usageGuard, uploadSafety, completionCharge, logPolicy, signupFree, comparisonPolicy, landingClaims, designV2, designMetrics, fontPairs, paletteHarmony, storyOrder, impactTemplates, evidenceModules, illustrationMap, photoLayouts, impactBoost, productArchetype, archetypeRecipes, specialSections, heroSpec, referenceSections, typoRhythm];
 
 async function main() {
   let failed = 0;

@@ -20,6 +20,7 @@ import type { CategoryTheme } from "@/lib/category-theme";
 import { buildProofRows } from "@/lib/evidence-modules";
 import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
+import { polishTitles } from "@/lib/typo-rhythm";
 
 export const HERO_V2_ENABLED = process.env.NEXT_PUBLIC_HERO_V2 !== "off";
 /** 438차 조정(사진 면적 확보·텍스트 압축·스크림·실패 폴백). NEXT_PUBLIC_HERO_V2=prev 이면 437차 사양 그대로, off 이면 436차 히어로 */
@@ -252,7 +253,12 @@ export const HERO_FAIL_ONERROR = "var s=this.closest('[data-hero-v2]');if(s)s.se
 export const HERO_FAIL_ONLOAD = "if(this.naturalWidth<240||this.naturalHeight<240||this.naturalWidth/this.naturalHeight>3||this.naturalHeight/this.naturalWidth>3){this.onerror()}";
 export const HERO_FAIL_CSS = `<style>[data-hero-fail] [data-hero-scrim],[data-hero-fail] [data-hero-photo]{display:none}[data-hero-v2="A"][data-hero-fail]{aspect-ratio:auto!important;max-height:none!important;padding:0 0 8px}[data-hero-v2="A"][data-hero-fail] [data-hero-a-text]{position:static!important;padding-bottom:0!important}[data-hero-v2="A"][data-hero-fail] [data-hero-a-text]:last-child{padding:24px 24px 44px!important}[data-hero-v2="D"][data-hero-fail]{background:transparent!important}</style>`;
 
+/** 히어로 마크업(438차: 제목 줄 끝 고아 줄이기를 함께 적용 — DESIGN_POLISH) */
 export function heroV2Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: string): string {
+  return polishTitles(heroV2HtmlBase(hero, p, pal, alt));
+}
+
+function heroV2HtmlBase(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: string): string {
   const size = heroNameSizePx(p.name);
   const failAttrs = HERO_V2_TUNED ? ` onerror="${HERO_FAIL_ONERROR}" onload="${HERO_FAIL_ONLOAD}"` : "";
   const img = (extra: string) => `<img src="${esc(p.imageUrl)}" alt="${esc(alt)}" fetchpriority="high" decoding="async"${failAttrs} style="${extra}"/>`;

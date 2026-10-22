@@ -83,7 +83,8 @@ export async function run(): Promise<string[]> {
     if (!(hookSize >= HERO_SPEC.hookMinPx && hookSize <= HERO_SPEC.hookMaxPx)) fails.push(`${v}: 훅 ${hookSize}px`);
     if (!(size > hookSize)) fails.push(`${v}: 제품명이 훅보다 크지 않음`);
     if (/:has\(|@container|text-wrap|<foreignObject|filter:/.test(html)) fails.push(`${v}: 금지 기법`);
-    if (!html.includes("수분 에센스 미스트") || !html.includes("15cm 거리, 촉촉함 한 겹") || !html.includes("#건조함") || !html.includes("DREAM GLOW")) fails.push(`${v}: 입력 문구 누락`);
+    const plain = html.replace(/<[^>]+>/g, "");
+    if (!plain.includes("수분 에센스 미스트") || !plain.includes("15cm 거리, 촉촉함 한 겹") || !plain.includes("#건조함") || !plain.includes("DREAM GLOW")) fails.push(`${v}: 입력 문구 누락`);
     if (v !== "E" && !html.includes(urls[0]!)) fails.push(`${v}: 사진 주소 없음`);
   }
   // multiply: 흰 배경 B에서만

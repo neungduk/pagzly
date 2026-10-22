@@ -21,6 +21,7 @@ import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import type { IllustColors } from "@/lib/illustrations/core";
 import { illustFor, illustHtml } from "@/lib/illust-sections";
 import { applyMood, moodOf } from "@/lib/mood";
+import { polishTitles } from "@/lib/typo-rhythm";
 import { HERO_V2_TUNED } from "@/lib/hero-spec";
 import { specialHtml } from "@/lib/special-sections";
 import { referenceHtml } from "@/lib/reference-sections";
@@ -60,7 +61,9 @@ export function impactHtml(s: ImpactSection, pal: ImpactPalette, alt: string): s
   // 438차 — 본문 사진 실패 폴백: 로드 실패 시 사진을 숨겨(alt 텍스트 노출 금지) 컨테이너의 색 면만 남긴다
   const html = HERO_V2_TUNED ? html0.replace(/<img (?![^>]*onerror)([^>]*?)(\s*\/?>)/g,"<img $1 onerror=\"this.style.display='none'\"$2") : html0;
   // 436차 — 아키타입 mood 토큰(여백·반경·그림자·제목 굵기). mood가 없으면 지금 마크업 그대로
-  return s.mood ? applyMood(html, moodOf(s.mood)) : html;
+  const moodHtml = s.mood ? applyMood(html, moodOf(s.mood)) : html;
+  // 438차 1-5 — 제목 줄 끝 고아 줄이기(DESIGN_POLISH)
+  return polishTitles(moodHtml);
 }
 
 function impactHtmlBase(s: ImpactSection, pal: ImpactPalette, alt: string): string {
