@@ -25,7 +25,7 @@ export const IMPACT_BOOST_ENABLED = process.env.NEXT_PUBLIC_IMPACT_BOOST !== "of
 
 export const STORY_QUOTE_MIN = 12;
 export const STORY_QUOTE_MAX = 40;
-export const STORY_SHORT_MAX = 70;
+export const STORY_SHORT_MAX = 44;
 /** 기존 라벨(렌더러 tradeoff 카드가 쓰던 문구)만 쓴다 */
 export const NOTE_LABEL = "이런 점은 참고하세요";
 
@@ -107,12 +107,12 @@ export function boostHtml(s: ImpactSection, pal: ImpactPalette, alt: string): st
         (l, i) =>
           `<div style="display:flex;align-items:flex-start;gap:12px;${i > 0 ? `margin-top:14px;padding-top:14px;border-top:1px solid ${hexToRgba(pal.ink, 0.1)}` : ""}">` +
           `<span style="flex:none;display:flex;align-items:center;justify-content:center;width:26px;height:26px;margin-top:1px;border-radius:999px;background:${pal.deep}">${BANG_SVG}</span>` +
-          `<span style="min-width:0;${sans};font-size:15.5px;font-weight:500;line-height:1.65;color:${pal.ink};word-break:keep-all">${e(l)}</span></div>`,
+          `<span style="min-width:0;${sans};font-size:16px;font-weight:600;line-height:1.6;color:${pal.ink};word-break:keep-all">${e(l)}</span></div>`,
       )
       .join("");
     return (
       `<section data-pz-impact="note" style="padding:40px 24px;background:#FFFFFF"><div style="max-width:576px;margin:0 auto;box-sizing:border-box;padding:22px 22px 24px;border-radius:14px;border-left:6px solid ${pal.deep};background:${pal.warm}">` +
-      (s.text ? `<p style="margin:0 0 16px;${title};font-size:18px;font-weight:800;letter-spacing:-0.01em;line-height:1.35;color:${pal.deep};word-break:keep-all">${e(s.text)}</p>` : "") +
+      (s.text ? `<p style="margin:0 0 16px;${title};font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.3;color:${pal.deep};word-break:keep-all">${e(s.text)}</p>` : "") +
       `${rows}</div></section>`
     );
   }
@@ -171,6 +171,16 @@ export function planBoost(
       if (rec.length === 0 && con.length === 0) { outS.push(orig); outI.push(sourceIndexes[i]!); return; }
       if (rec.length > 0) push({ type: "impact", slot: "impact", kind: "fit", text: (orig.heading ?? "").trim(), labels: rec });
       if (con.length > 0) push({ type: "impact", slot: "impact", kind: "note", text: NOTE_LABEL, labels: con });
+      return;
+    }
+    // 주의 카드(caution): 규제 문구는 한 글자도 바꾸지 않고 줄 단위로 나열(느낌표 아이콘+따뜻한 중립 면)
+    if (orig.type === "caution" && i > 0) {
+      const lines = (orig.body ?? "").split(/\n+/).map((x) => x.trim()).filter(Boolean);
+      if (lines.length > 0 && lines.length <= 6) { push({ type: "impact", slot: "impact", kind: "note", text: (orig.heading ?? "").trim(), labels: lines }); return; }
+    }
+    // 글만 있는 카드(text_only): 제목 크게 + 좌측 강조 선 + 슬롯 파스텔 면. 연속으로 같은 모양이 나오지 않게 바로 앞이 글 카드면 그대로 둔다
+    if (orig.type === "image_text" && orig.layout === "text_only" && orig.slot !== "feature_callout" && orig.slot !== "quick_points" && i > 1 && (orig.heading ?? "").trim() && (orig.body ?? "").trim() && placed.every((p) => p.at !== outS.length - 1 || p.kind !== "textboost")) {
+      push({ type: "impact", slot: "impact", kind: "textboost", text: orig.heading.trim(), body: orig.body.trim() });
       return;
     }
     outS.push(orig);

@@ -65,13 +65,26 @@ export async function run(): Promise<string[]> {
   for (const s of impacts(run1(base(LONG, trade, true)).sections)) if (s.kind === "fit" && (s.labels ?? []).some((l) => trade.considerIf.includes(l))) fails.push("추천 블록에 참고 항목이 섞임");
   const empty = run1(base(LONG, { recommendFor: [], considerIf: [] }, true));
   eq("둘 다 비면 보강 블록 없음", impacts(empty.sections).some((s) => s.kind === "fit" || s.kind === "note"), false);
+  // 1-4 주의 카드·글 카드: 규제 문구 줄 단위 그대로·글 카드 연속 변환 금지·feature_callout 불변
+  const CAUTION = "사용 중 이상이 있으면 중단하십시오.\n어린이 손이 닿지 않는 곳에 보관하십시오.";
+  const tx = (h: string, slot = "texture_feel") => S({ type: "image_text", slot, heading: h, body: `${h} 본문 설명입니다.`, imageIndex: 0, imagePosition: "left", layout: "text_only" });
+  const secs4: DetailSection[] = [S({ type: "hero", slot: "hero", headline: "제목", subheadline: "부제", imageIndex: 0 }), S({ type: "target_persona", slot: "target_persona", heading: "고민", personas: ["a 고민", "b 고민", "c 고민"] }), tx("글 카드 하나"), tx("글 카드 둘"), tx("글 카드 셋"), tx("말풍선", "feature_callout"), S({ type: "caution", slot: "caution", heading: "사용 시 참고하세요", body: CAUTION }), S({ type: "faq", slot: "faq", heading: "FAQ", items: [{ question: "q", answer: "a" }] }), S({ type: "cta_price", slot: "cta_price", price: 1000 })];
+  const o4 = run1(secs4).sections;
+  const cautionNote = impacts(o4).find((s) => s.kind === "note");
+  eq("주의 문구 줄 단위 그대로", cautionNote?.labels?.join("\n"), CAUTION);
+  eq("주의 카드 제목 그대로", cautionNote?.text, "사용 시 참고하세요");
+  o4.forEach((s, i) => { if (i > 0 && s.type === "impact" && s.kind === "textboost" && o4[i - 1]!.type === "impact" && (o4[i - 1] as Imp).kind === "textboost") fails.push("글 카드 연속 변환"); });
+  if (!impacts(o4).some((s) => s.kind === "textboost")) fails.push("글 카드가 textboost로 안 바뀜");
+  if (!o4.some((s) => s.type === "image_text" && s.slot === "feature_callout")) fails.push("feature_callout이 바뀜");
   // 1-2 일러스트 면 대비: 전 카테고리 테마에서 주색-면 ≥3:1
   for (const cat of ["화장품/뷰티", "의류/패션", "전자제품", "식품", "생활용품", "반려동물"]) {
     const th = getCategoryTheme(cat);
     const face = pastelFace(th, cat);
     const c = boostIllustColors(th, face);
-    const r = contrastRatioToken(c.a, face);
-    if (r < 3) fails.push(`${cat}: 일러스트 주색-면 대비 ${r.toFixed(2)} < 3`);
+    for (const [k, col] of [["a", c.a], ["b", c.b], ["c", c.c]] as const) {
+      const r = contrastRatioToken(col, face);
+      if (r < 3) fails.push(`${cat}: 일러스트 ${k}색-면 대비 ${r.toFixed(2)} < 3(변형 회전 시 주색이 됨)`);
+    }
   }
   // 글자 크기 하한: 본문 ≥15px, 라벨 칩 ≥14px
   const pal = impactPalette(getCategoryTheme("화장품/뷰티"), "화장품/뷰티");

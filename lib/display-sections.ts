@@ -360,10 +360,12 @@ export function applyDisplayRules(
   const withEvidence = evidence && evidence.added.length > 0 ? evidence : afterBackfill;
   // 431차 1-3 — 인포 구간 SVG 일러스트(키워드가 매핑되는 구간만)
   // 435차 — 브랜드 스토리·추천/참고 카드 임팩트 보강(제목-내용 일치)
-  const boost = opts.claimFacts && COMPOSITION_V2_ENABLED ? planBoost(withEvidence.sections, withEvidence.sourceIndexes, { brandName: opts.brandName, imageUrls, origins: opts.origins }) : null;
-  const withBoost = boost && boost.placed.length > 0 ? boost : withEvidence;
-  const illust = opts.claimFacts && COMPOSITION_V2_ENABLED ? planIllustrations(withBoost.sections, withBoost.sourceIndexes, { category: opts.category }) : null;
-  const withIllust = illust && illust.placed.length > 0 ? illust : withBoost;
+  // 431차 1-3 — 인포 구간 SVG 일러스트(키워드가 매핑되는 구간만). 435차: 일러스트가 글 카드 후보를 먼저 가져가도록 보강보다 앞에서 한다
+  const illust = opts.claimFacts && COMPOSITION_V2_ENABLED ? planIllustrations(withEvidence.sections, withEvidence.sourceIndexes, { category: opts.category }) : null;
+  const withIllust0 = illust && illust.placed.length > 0 ? illust : withEvidence;
+  // 435차 — 브랜드 스토리·추천/참고 카드·주의 카드·글 카드 임팩트 보강(제목-내용 일치)
+  const boost = opts.claimFacts && COMPOSITION_V2_ENABLED ? planBoost(withIllust0.sections, withIllust0.sourceIndexes, { brandName: opts.brandName, imageUrls, origins: opts.origins }) : null;
+  const withIllust = boost && boost.placed.length > 0 ? boost : withIllust0;
   // 431차 2-2 — 갤러리를 사진 수에 맞는 새 레이아웃(비대칭 2장·모자이크 3장·스태거 2열)으로
   const photos = opts.claimFacts && COMPOSITION_V2_ENABLED ? planPhotoLayouts(withIllust.sections, withIllust.sourceIndexes, { category: opts.category, imageUrls, roles: opts.roles, origins: opts.origins }) : null;
   const withPhotos = photos && photos.placed.length > 0 ? photos : withIllust;

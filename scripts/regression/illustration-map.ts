@@ -75,7 +75,8 @@ export async function run(): Promise<string[]> {
   if (ill.length > ILLUST_MAX_PER_PAGE) fails.push("일러스트 상한 초과");
   const ids = ill.map((s) => s.illust?.id);
   ids.forEach((x, i) => { if (i > 0 && x === ids[i - 1]) fails.push("인접 일러스트 중복"); });
-  if (out.sections.some((s) => s.type === "image_text" && s.heading === "자연스러운 선택") === false) fails.push("키워드 없는 구간이 바뀜");
+  // 키워드가 없는 구간은 일러스트로 바뀌지 않는다(435차: 글 카드 보강 textboost로는 바뀔 수 있음)
+  if (ill.some((s) => s.text === "자연스러운 선택")) fails.push("키워드 없는 구간이 일러스트로 바뀜");
   const pool = JSON.stringify(secs);
   for (const s of ill) for (const x of [s.text, s.body, ...(s.labels ?? [])]) if (x && !pool.includes(x)) fails.push(`일러스트 구간에 입력에 없는 글 "${x}"`);
   eq("스타일(뷰티)", ill.every((s) => s.illust?.style === (IMPACT_BOOST_ENABLED ? "solid" : "line")), true);

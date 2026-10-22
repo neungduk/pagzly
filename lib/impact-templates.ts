@@ -41,7 +41,12 @@ export function impactPalette(theme: CategoryTheme, category?: string): ImpactPa
 /** 435차 — 일러스트 오브젝트는 파스텔 면 위에서 읽히도록 진한 색(면 대비 ≥3:1)을 주색으로 쓴다 */
 export function boostIllustColors(theme: CategoryTheme, face: string): IllustColors {
   const dark = [theme.deepAccent, readableTextDeep(theme, 4.5), "#1B1B18"].find((c) => contrastRatioToken(c, face) >= 3) ?? "#1B1B18";
-  return { a: dark, b: theme.accent, c: mixHex(theme.accent, "#FFFFFF", 0.5), n: theme.baseNeutral };
+  // 변형 1·2는 b·c가 주색이 되므로 셋 다 면 대비 3:1 이상을 보장한다(포인트색을 어둡게 눌러 후보를 만든다)
+  const ok = (c: string) => contrastRatioToken(c, face) >= 3;
+  const pick = (cands: string[]) => cands.find(ok) ?? dark;
+  const b = pick([theme.accent, mixHex(theme.accent, "#000000", 0.25), mixHex(theme.accent, "#000000", 0.45)]);
+  const c = pick([mixHex(theme.accent, "#000000", 0.15), mixHex(theme.accent, "#000000", 0.35), mixHex(theme.accent, "#000000", 0.5)]);
+  return { a: dark, b, c, n: theme.baseNeutral };
 }
 
 /** 마크업 한 벌(라이브 dangerouslySetInnerHTML·export 문자열 공용) */
