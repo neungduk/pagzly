@@ -68,13 +68,15 @@ function candidates(secs: DetailSection[], used: Set<IllustId>): Cand[] {
       const heading = s.heading.trim();
       const body = (s.body ?? "").trim();
       if (!heading || heading.length > 24 || !body || body.length > SIDE_BODY_MAX) return;
-      const pick = pickIllustration(`${heading} ${body}`, used);
+      const pick = pickIllustration(`${heading} ${heading} ${body}`, used);
       if (pick) out.push({ at: i, layout: "side", id: pick.id, text: heading, body, labels: [] });
     } else if (s.type === "checklist") {
       const items = s.items.map((x) => x.trim()).filter(Boolean);
       const heading = (s.heading ?? "").trim();
       if (items.length < 3 || items.length > 4 || items.some((x) => x.length > CHIP_MAX) || heading.length > 24) return;
-      const pick = pickIllustration(`${heading} ${items.join(" ")}`, used);
+      // 체크리스트는 제목 자체가 개념 키워드일 때만(항목이 고민 나열이면 그림이 의미 없다)
+      if (!pickIllustration(heading)) return;
+      const pick = pickIllustration(`${heading} ${heading} ${items.join(" ")}`, used);
       if (pick) out.push({ at: i, layout: "center", id: pick.id, text: heading, body: "", labels: items });
     }
   });

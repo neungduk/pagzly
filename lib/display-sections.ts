@@ -15,6 +15,7 @@ import { COMPOSITION_V2_ENABLED, applyStoryOrder, storyOrderOn } from "@/lib/det
 import { planImpact } from "@/lib/impact-templates";
 import { planEvidence } from "@/lib/evidence-modules";
 import { planIllustrations } from "@/lib/illust-sections";
+import { planPhotoLayouts } from "@/lib/photo-layouts";
 
 export type DisplaySections = {
   sections: DetailSection[];
@@ -357,8 +358,11 @@ export function applyDisplayRules(
   // 431차 1-3 — 인포 구간 SVG 일러스트(키워드가 매핑되는 구간만)
   const illust = opts.claimFacts && COMPOSITION_V2_ENABLED ? planIllustrations(withEvidence.sections, withEvidence.sourceIndexes, { category: opts.category }) : null;
   const withIllust = illust && illust.placed.length > 0 ? illust : withEvidence;
-  const impact = opts.claimFacts && COMPOSITION_V2_ENABLED ? planImpact(withIllust.sections, withIllust.sourceIndexes, { category: opts.category, imageUrls, facts: opts.claimFacts, origins: opts.origins, roles: opts.roles }) : null;
-  const finalOut = impact && impact.placed.length > 0 ? { sections: impact.sections, sourceIndexes: impact.sourceIndexes } : withIllust;
+  // 431차 2-2 — 갤러리를 사진 수에 맞는 새 레이아웃(비대칭 2장·모자이크 3장·스태거 2열)으로
+  const photos = opts.claimFacts && COMPOSITION_V2_ENABLED ? planPhotoLayouts(withIllust.sections, withIllust.sourceIndexes, { category: opts.category, imageUrls, roles: opts.roles, origins: opts.origins }) : null;
+  const withPhotos = photos && photos.placed.length > 0 ? photos : withIllust;
+  const impact = opts.claimFacts && COMPOSITION_V2_ENABLED ? planImpact(withPhotos.sections, withPhotos.sourceIndexes, { category: opts.category, imageUrls, facts: opts.claimFacts, origins: opts.origins, roles: opts.roles }) : null;
+  const finalOut = impact && impact.placed.length > 0 ? { sections: impact.sections, sourceIndexes: impact.sourceIndexes } : withPhotos;
   const policyChanges = policy ? [...policy.changes, ...(photo ? [{ type: "filled" as const, index: 0, kind: "photos" as const, reason: `사용하지 않은 사진 ${photo.indexes.join(",")}번`, slot: "backfill_photos" }] : [])] : undefined;
   return { sections: finalOut.sections, sourceIndexes: keptMap ? finalOut.sourceIndexes.map((i) => keptMap(i)) : finalOut.sourceIndexes, ...(policyChanges ? { policyChanges } : {}) };
 }

@@ -19,12 +19,12 @@ import { DETAIL_FONT_STACK } from "@/lib/detail-typography";
 import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import type { IllustColors } from "@/lib/illustrations/core";
 import { illustFor, illustHtml } from "@/lib/illust-sections";
-import { photoLayoutHtml } from "@/lib/photo-layouts";
+import { PHOTO_LAYOUT_V2_ENABLED, photoLayoutHtml } from "@/lib/photo-layouts";
 import { ILLUSTRATION_V1_ENABLED, illustStyleFor, pickIllustration } from "@/lib/illustration-map";
 import { isWornFashionPhoto } from "@/lib/fashion-composite-policy";
 import type { StripImageHints } from "@/lib/persona-strip";
 
-export type ImpactKind = "statement" | "number" | "bleed" | "split" | "callout";
+export type ImpactKind = "statement" | "number" | "bleed" | "split" | "callout" | "inset" | "frame" | "zoom";
 
 const escapeHtml = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -190,7 +190,10 @@ export function estimateSectionHeight(s: DetailSection): number {
 /** 임팩트 사이 최소 간격과, 이 값을 넘기면 "비어 있는 구간"으로 보고하는 상한(약 4화면) */
 export const IMPACT_MIN_GAP_PX = 1500;
 export const IMPACT_WINDOW_PX = 3400;
-const MAX_PER_KIND: Record<ImpactKind, number> = { statement: 2, number: 1, callout: 1, bleed: 2, split: 2 };
+const MAX_PER_KIND: Record<ImpactKind, number> = { statement: 2, number: 1, callout: 1, bleed: 2, split: 2, inset: 1, frame: 1, zoom: 1 };
+/** 431차 — 사진 한 장 템플릿 회전 순서(뷰티는 프레임부터, 그 밖은 풀블리드부터). 연속 같은 템플릿 금지 */
+const PHOTO_ROTATION_BEAUTY: ImpactKind[] = ["frame", "bleed", "zoom", "split", "inset"];
+const PHOTO_ROTATION_DEFAULT: ImpactKind[] = ["bleed", "inset", "split", "zoom", "frame"];
 
 const NUM_UNIT_RE = /(\d[\d,]*(?:\.\d+)?)\s*(mL|ml|ML|L|g|kg|cm|mm|%|종|개|매|W|시간|분|색|가지|사이즈|인치|oz|cc|GB|TB|mAh|Wh)/;
 
@@ -293,7 +296,9 @@ export function planImpact(sections: DetailSection[], sourceIndexes: number[], c
   let acc = 0;
   for (const s of sections) { ys.push(acc); acc += estimateSectionHeight(s); }
   const tone: "thin" | "bold" = ctx.category === "화장품/뷰티" ? "thin" : "bold";
-  const counts: Record<ImpactKind, number> = { statement: 0, number: 0, callout: 0, bleed: 0, split: 0 };
+  const counts: Record<ImpactKind, number> = { statement: 0, number: 0, callout: 0, bleed: 0, split: 0, inset: 0, frame: 0, zoom: 0 };
+  const rotation = ctx.category === "화장품/뷰티" ? PHOTO_ROTATION_BEAUTY : PHOTO_ROTATION_DEFAULT;
+  let rotIdx = 0;
   let lastKind: ImpactKind | null = null;
   let lastY = ys[1] ?? 720; // 히어로 바로 뒤를 기준점으로
   let lastPhoto: "bleed" | "split" | null = null;
@@ -305,6 +310,13 @@ export function planImpact(sections: DetailSection[], sourceIndexes: number[], c
     // 사진 템플릿은 풀폭·분할을 번갈아(같은 템플릿 연속 금지)
     let kind: ImpactKind = c.kind === "photo" ? (lastPhoto === "bleed" ? "split" : "bleed") : c.kind;
     if (kind === lastKind && c.kind === "photo") kind = kind === "bleed" ? "split" : "bleed";
+    if (c.kind === "photo" && PHOTO_LAYOUT_V2_ENABLED) {
+      // 431차 — 6종 회전(프레임·인셋·확대 포함). 연속 같은 템플릿·종류별 상한을 지키는 다음 템플릿
+      const pick = [0, 1, 2, 3, 4].map((o) => (rotIdx + o) % rotation.length).find((k) => rotation[k] !== lastKind && counts[rotation[k]!] < MAX_PER_KIND[rotation[k]!]);
+      if (pick === undefined) continue;
+      kind = rotation[pick]!;
+      rotIdx = pick + 1;
+    }
     if (kind === lastKind || counts[kind] >= MAX_PER_KIND[kind]) continue;
     let section: ImpactSection;
     if (c.kind === "statement") section = { type: "impact", slot: "impact", kind: "statement", text: c.text, tone };
@@ -313,6 +325,7 @@ export function planImpact(sections: DetailSection[], sourceIndexes: number[], c
       section = { type: "impact", slot: "impact", kind: "number", text: c.num, unit: c.unit, sub: c.sub, ...(ip ? { illust: { id: ip.id, variant: 1, style: illustStyleFor(ctx.category) } } : {}) };
     }
     else if (c.kind === "callout") section = { type: "impact", slot: "impact", kind: "callout", text: "", imageUrl: c.url, labels: c.labels };
+    else if (kind === "inset" || kind === "frame" || kind === "zoom") section = { type: "impact", slot: "impact", kind, text: c.text, body: c.body, images: [{ url: c.url, pos: c.anchorTop ? "50% 20%" : "50% 40%" }], ...(kind === "frame" ? { shape: ctx.category === "화장품/뷰티" ? "arch" : "round" } : {}) };
     else if (kind === "bleed") section = { type: "impact", slot: "impact", kind: "bleed", text: c.text, body: c.body, imageUrl: c.url, anchorTop: c.anchorTop };
     else { splitRight = !splitRight; section = { type: "impact", slot: "impact", kind: "split", text: c.text, body: c.body, imageUrl: c.url, imagePosition: splitRight ? "left" : "right", anchorTop: c.anchorTop }; }
     counts[kind] += 1;
