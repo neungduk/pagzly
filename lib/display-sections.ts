@@ -16,6 +16,7 @@ import { planImpact } from "@/lib/impact-templates";
 import { planEvidence } from "@/lib/evidence-modules";
 import { planIllustrations } from "@/lib/illust-sections";
 import { planBoost } from "@/lib/impact-boost";
+import { planSpecials } from "@/lib/special-sections";
 import { ARCHETYPE_V1_ENABLED, detectArchetype, type ArchetypeResult } from "@/lib/product-archetype";
 import { MOODS, pickMood, recipeFor, type MoodId } from "@/lib/archetype-recipes";
 import { planPhotoLayouts } from "@/lib/photo-layouts";
@@ -374,7 +375,10 @@ export function applyDisplayRules(
   const withIllust0 = illust && illust.placed.length > 0 ? illust : withEvidence;
   // 435차 — 브랜드 스토리·추천/참고 카드·주의 카드·글 카드 임팩트 보강(제목-내용 일치)
   const boost = opts.claimFacts && COMPOSITION_V2_ENABLED ? planBoost(withIllust0.sections, withIllust0.sourceIndexes, { brandName: opts.brandName, imageUrls, origins: opts.origins }) : null;
-  const withIllust = boost && boost.placed.length > 0 ? boost : withIllust0;
+  const withBoost = boost && boost.placed.length > 0 ? boost : withIllust0;
+  // 436차 1-3 — 아키타입 특화 섹션(스와치·타임라인·칩 월·스펙 스트립·사이즈 막대): 레시피가 허용하고 입력 요건이 맞을 때만
+  const specials = opts.claimFacts && COMPOSITION_V2_ENABLED && recipe ? planSpecials(withBoost.sections, withBoost.sourceIndexes, { recipe, facts: opts.claimFacts }) : null;
+  const withIllust = specials && specials.placed.length > 0 ? specials : withBoost;
   // 431차 2-2 — 갤러리를 사진 수에 맞는 새 레이아웃(비대칭 2장·모자이크 3장·스태거 2열)으로
   const photos = opts.claimFacts && COMPOSITION_V2_ENABLED ? planPhotoLayouts(withIllust.sections, withIllust.sourceIndexes, { category: opts.category, imageUrls, roles: opts.roles, origins: opts.origins }) : null;
   const withPhotos = photos && photos.placed.length > 0 ? photos : withIllust;

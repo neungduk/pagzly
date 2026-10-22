@@ -537,7 +537,7 @@ export type CertificateEvidenceSection = {
 export type ImpactSection = {
   type: "impact";
   slot: "impact";
-  kind: "statement" | "number" | "bleed" | "split" | "callout" | "proof" | "reviewstat" | "illust-side" | "illust-center" | "asym2" | "mosaic3" | "inset" | "frame" | "stagger" | "zoom" | "story" | "fit" | "note" | "textboost";
+  kind: "statement" | "number" | "bleed" | "split" | "callout" | "proof" | "reviewstat" | "illust-side" | "illust-center" | "asym2" | "mosaic3" | "inset" | "frame" | "stagger" | "zoom" | "story" | "fit" | "note" | "textboost" | "swatch" | "timeline" | "chipwall" | "specstrip" | "sizebars";
   /** statement 문장 · number 숫자 · bleed/split 제목(캡션). callout은 빈 문자열 */
   text: string;
   /** number 단위 */
@@ -564,6 +564,8 @@ export type ImpactSection = {
   /** 435차 — story: 브랜드 라벨 칩(입력 브랜드명)·큰 인용문(본문 첫 문장 그대로) */
   chip?: string;
   quote?: string;
+  /** 436차 — sizebars: 측정 항목별 사이즈 막대(값 글자는 입력 원문, 막대 길이만 비율) */
+  bars?: { metric: string; rows: { size: string; v: number; raw: string }[] }[];
   /** 436차 — 아키타입 mood(여백·반경·그림자·구분선·제목 굵기 토큰). 없으면 지금 화면과 같다 */
   mood?: string;
 };
