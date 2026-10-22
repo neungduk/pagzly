@@ -533,6 +533,28 @@ export type CertificateEvidenceSection = {
   certificates: { imageUrl: string; caption?: string | null }[];
 };
 
+/** 433차 — 임팩트 화면 템플릿 표시 전용 섹션(applyDisplayRules가 끼움, 저장하지 않음). 기존 문구·입력 수치·사진을 재배치할 뿐 새 문구는 없다 — lib/impact-templates */
+export type ImpactSection = {
+  type: "impact";
+  slot: "impact";
+  kind: "statement" | "number" | "bleed" | "split" | "callout";
+  /** statement 문장 · number 숫자 · bleed/split 제목(캡션). callout은 빈 문자열 */
+  text: string;
+  /** number 단위 */
+  unit?: string;
+  /** number 설명 한 줄 */
+  sub?: string;
+  /** bleed/split 본문 */
+  body?: string;
+  imageUrl?: string;
+  imagePosition?: "left" | "right";
+  /** callout 번호 목록: "제목
+본문" */
+  labels?: string[];
+  tone?: "thin" | "bold";
+  anchorTop?: boolean;
+};
+
 export type CanvasElement =
   | {
       id: string;
@@ -652,7 +674,8 @@ export type DetailSection =
   | BeforeAfterSection
   | CertificateEvidenceSection
   | CanvasSection
-  | SceneImageSection;
+  | SceneImageSection
+  | ImpactSection;
 
 export type GeneratedCopy = {
   sections: DetailSection[];

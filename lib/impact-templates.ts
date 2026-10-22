@@ -1,0 +1,294 @@
+/**
+ * 433차 1-2 — 임팩트 화면 템플릿 5종(표시 전용). 같은 모양의 카드가 이어지는 스크롤에 "멈추게 하는 장면"을 끼운다.
+ * 새 문구·수치·사진을 만들지 않는다: 기존 섹션의 문구·입력 수치·사진을 재배치할 뿐이다. 입력 요건이 안 맞으면 그 템플릿은 건너뛴다.
+ *
+ *  statement  Big statement    — feature_callout(text_only)의 말풍선 문구(callout, 화면에 안 나오던 문구) 한 문장을 큰 글자로. (삽입)
+ *  number     Number hero      — 입력 수치(424 숫자 게이트 통과)를 거대한 숫자로 + 그 수치가 든 기존 한 줄. (삽입)
+ *  bleed      Full-bleed photo — 사진이 든 image_text(full)를 풀폭 사진 + 하단 그라데이션 + 제목 한 줄 캡션으로. 본문은 그 아래에 그대로. (교체)
+ *  split      Split 50/50      — 같은 조건의 image_text(full)를 사진 반 + 텍스트 반(연한 색 면)으로, 좌우 번갈아. (교체)
+ *  callout    Callout 사진     — 이어진 퀵포인트 카드 3~4장을 사진 한 장 + 번호 붙은 특징 목록으로. 점선·좌표 없이 번호만. (교체)
+ *
+ * 마크업은 라이브(DetailSectionRenderer)와 export(buildDetailPageHtml)가 이 파일의 impactHtml 한 벌을 그대로 쓴다(패리티 0).
+ * 인라인 스타일 + flex·aspect-ratio·position·min()만 — :has·컨테이너 쿼리·text-wrap 없음. 색 면은 연한 틴트(하드 면 아님)라 428차 하드 면 예산에 영향 없다.
+ */
+import type { DetailSection, ImpactSection } from "@/lib/types/generate";
+import type { CategoryTheme } from "@/lib/category-theme";
+import type { ProductImageOrigin } from "@/lib/image-origins";
+import { BRAND, flatAccentTint, hexToRgba, readableTextAccent, readableTextDeep } from "@/lib/design-tokens";
+import { DETAIL_FONT_STACK } from "@/lib/detail-typography";
+import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
+import { isWornFashionPhoto } from "@/lib/fashion-composite-policy";
+import type { StripImageHints } from "@/lib/persona-strip";
+
+export type ImpactKind = ImpactSection["kind"];
+
+const escapeHtml = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+export type ImpactPalette = { ink: string; deep: string; accent: string; tint: string };
+export function impactPalette(theme: CategoryTheme): ImpactPalette {
+  return { ink: BRAND.ink, deep: readableTextDeep(theme, 4.5), accent: readableTextAccent(theme, 3), tint: flatAccentTint(theme, 0.6) };
+}
+
+/** 마크업 한 벌(라이브 dangerouslySetInnerHTML·export 문자열 공용) */
+export function impactHtml(s: ImpactSection, pal: ImpactPalette, alt: string): string {
+  const title = `font-family:${DETAIL_FONT_STACK.sansDisplayHeadline}`;
+  const sans = `font-family:${DETAIL_FONT_STACK.sans}`;
+  const e = escapeHtml;
+  const pos = s.anchorTop ? "50% 20%" : "50% 50%";
+  switch (s.kind) {
+    case "statement": {
+      const thin = s.tone === "thin";
+      return (
+        `<section data-pz-impact="statement" style="padding:64px 24px;background:#FFFFFF">` +
+        `<div style="max-width:576px;margin:0 auto">` +
+        `<span aria-hidden="true" style="display:block;width:40px;height:3px;background:${pal.accent};margin:0 0 24px"></span>` +
+        `<p style="margin:0;${title};font-size:clamp(28px,8.6vw,44px);font-weight:${thin ? 500 : 900};letter-spacing:${thin ? "-0.01em" : "-0.02em"};line-height:1.25;color:${pal.ink};word-break:keep-all">${e(s.text)}</p>` +
+        `</div></section>`
+      );
+    }
+    case "number": {
+      const chars = s.text.replace(/[,.]/g, "").length + (s.text.match(/[,.]/g)?.length ?? 0) * 0.4;
+      const units = Math.max(2, chars);
+      return (
+        `<section data-pz-impact="number" style="padding:56px 24px;background:#FFFFFF">` +
+        `<div style="max-width:576px;margin:0 auto">` +
+        `<p style="margin:0;display:flex;align-items:baseline;gap:6px;${title};font-weight:900;letter-spacing:-0.04em;line-height:0.95;font-size:min(calc(80vw / ${units.toFixed(1)}),200px);color:${pal.accent};font-variant-numeric:tabular-nums"><span>${e(s.text)}</span>` +
+        (s.unit ? `<span style="font-size:0.28em;font-weight:700;letter-spacing:0;color:${pal.ink}">${e(s.unit)}</span>` : "") +
+        `</p>` +
+        (s.sub ? `<p style="margin:20px 0 0;${sans};font-size:16px;font-weight:500;line-height:1.6;color:${hexToRgba(pal.ink, 0.8)};word-break:keep-all">${e(s.sub)}</p>` : "") +
+        `</div></section>`
+      );
+    }
+    case "bleed":
+      return (
+        `<section data-pz-impact="bleed" style="background:#FFFFFF">` +
+        `<div style="position:relative;width:100%;aspect-ratio:4 / 5;overflow:hidden;background:${pal.tint}">` +
+        `<img src="${e(s.imageUrl ?? "")}" alt="${e(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover;object-position:${pos}"/>` +
+        `<div aria-hidden="true" style="position:absolute;left:0;right:0;bottom:0;height:58%;background:linear-gradient(0deg,rgba(27,27,24,0.86) 0%,rgba(27,27,24,0.72) 22%,rgba(27,27,24,0) 100%)"></div>` +
+        `<p style="position:absolute;left:0;right:0;bottom:0;margin:0;padding:0 24px 24px;${title};font-size:clamp(20px,5.6vw,28px);font-weight:700;letter-spacing:-0.02em;line-height:1.3;color:#FFFFFF;word-break:keep-all">${e(s.text)}</p>` +
+        `</div>` +
+        (s.body ? `<div style="padding:28px 24px 8px"><p style="max-width:576px;margin:0 auto;${sans};font-size:15px;line-height:1.85;color:${hexToRgba(pal.ink, 0.78)};white-space:pre-line;word-break:keep-all">${e(s.body)}</p></div>` : "") +
+        `</section>`
+      );
+    case "split": {
+      const right = s.imagePosition === "right";
+      return (
+        `<section data-pz-impact="split" style="display:flex;flex-direction:${right ? "row-reverse" : "row"};align-items:stretch;min-height:380px;background:${pal.tint}">` +
+        `<div style="position:relative;flex:0 0 50%;min-width:0;overflow:hidden"><img src="${e(s.imageUrl ?? "")}" alt="${e(alt)}" loading="lazy" decoding="async" style="position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${pos}"/></div>` +
+        `<div style="flex:1 1 50%;min-width:0;box-sizing:border-box;padding:32px 20px;display:flex;flex-direction:column;justify-content:center">` +
+        `<p style="margin:0;${title};font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.3;color:${pal.deep};word-break:keep-all">${e(s.text)}</p>` +
+        (s.body ? `<p style="margin:14px 0 0;${sans};font-size:14px;line-height:1.8;color:${hexToRgba(pal.ink, 0.78)};white-space:pre-line;word-break:keep-all">${e(s.body)}</p>` : "") +
+        `</div></section>`
+      );
+    }
+    case "callout": {
+      const items = s.labels ?? [];
+      const n = Math.max(1, items.length);
+      const chips = items
+        .map((_, i) => `<span style="position:absolute;right:10px;top:calc(${(((i + 0.5) / n) * 100).toFixed(2)}% - 13px);width:26px;height:26px;border-radius:999px;background:${pal.deep};color:#FFFFFF;${sans};font-size:13px;font-weight:700;line-height:26px;text-align:center">${i + 1}</span>`)
+        .join("");
+      const rows = items
+        .map((l, i) => {
+          const [head, ...rest] = l.split("\n");
+          const body = rest.join("\n");
+          return (
+            `<div style="flex:1 1 0%;min-height:0;display:flex;flex-direction:column;justify-content:center;padding:10px 0;${i < n - 1 ? `border-bottom:1px solid ${hexToRgba(pal.ink, 0.1)}` : ""}">` +
+            `<p style="margin:0;${sans};font-size:15px;font-weight:700;line-height:1.35;color:${pal.ink};word-break:keep-all"><span style="color:${pal.deep};margin-right:6px">${i + 1}</span>${e(head ?? "")}</p>` +
+            (body ? `<p style="margin:6px 0 0;${sans};font-size:13px;line-height:1.65;color:${hexToRgba(pal.ink, 0.72)};word-break:keep-all">${e(body)}</p>` : "") +
+            `</div>`
+          );
+        })
+        .join("");
+      return (
+        `<section data-pz-impact="callout" style="padding:40px 20px;background:#FFFFFF">` +
+        `<div style="display:flex;align-items:stretch;gap:16px;max-width:576px;margin:0 auto;min-height:340px">` +
+        `<div style="position:relative;flex:0 0 52%;min-width:0;overflow:hidden;border-radius:12px;background:${pal.tint}"><img src="${e(s.imageUrl ?? "")}" alt="${e(alt)}" loading="lazy" decoding="async" style="position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover"/>${chips}</div>` +
+        `<div style="flex:1 1 0%;min-width:0;display:flex;flex-direction:column">${rows}</div>` +
+        `</div></section>`
+      );
+    }
+  }
+}
+
+/** 이미지 대체 텍스트(라이브·export 공통) */
+export const impactAlt = (productName: string | undefined | null, s: ImpactSection): string => `${(productName ?? "").trim()} ${s.text}`.trim();
+
+// ── 배치 계획 ──────────────────────────────────────────────────────────────
+
+/** 섹션 높이 추정(px, 390 폭 기준 대략) — 간격 규칙용. 정확할 필요는 없고 같은 입력이면 같은 결과가 나오면 된다 */
+export function estimateSectionHeight(s: DetailSection): number {
+  switch (s.type) {
+    case "hero": return 720;
+    case "gallery": return 560;
+    case "target_persona": return 440;
+    case "brand_story": return 520;
+    case "checklist": return 400;
+    case "highlight_box": return 360;
+    case "step_card": return 560;
+    case "usage_steps": return 460;
+    case "stat_infographic": return 480;
+    case "comparison_chart": case "comparison_table": case "tradeoff_card": return 520;
+    case "spec_table": return 560;
+    case "faq": return 700;
+    case "caution": return 360;
+    case "cta_price": return 520;
+    case "ai_disclosure": return 160;
+    case "illustration_banner": return 300;
+    case "scene_image": return 640;
+    case "image_text":
+      return s.layout === "compact" ? 190 : s.layout === "text_only" ? 330 : s.layout === "annotated" ? 600 : 680;
+    case "impact":
+      return s.kind === "statement" ? 300 : s.kind === "number" ? 330 : s.kind === "bleed" ? 780 : s.kind === "split" ? 380 : 420;
+    default: return 400;
+  }
+}
+
+/** 임팩트 사이 최소 간격과, 이 값을 넘기면 "비어 있는 구간"으로 보고하는 상한(약 4화면) */
+export const IMPACT_MIN_GAP_PX = 1500;
+export const IMPACT_WINDOW_PX = 3400;
+const MAX_PER_KIND: Record<ImpactKind, number> = { statement: 2, number: 1, callout: 1, bleed: 2, split: 2 };
+
+const NUM_UNIT_RE = /(\d[\d,]*(?:\.\d+)?)\s*(mL|ml|ML|L|g|kg|cm|mm|%|종|개|매|W|시간|분|색|가지|사이즈|인치|oz|cc|GB|TB|mAh|Wh)/;
+
+export type ImpactCtx = {
+  category?: string;
+  imageUrls: readonly string[];
+  facts: ClaimFacts;
+  origins?: ReadonlyArray<ProductImageOrigin | undefined>;
+  roles?: StripImageHints["roles"];
+};
+
+type Cand =
+  | { kind: "statement"; at: number; text: string }
+  | { kind: "number"; at: number; num: string; unit: string; sub: string }
+  | { kind: "photo"; at: number; text: string; body: string; url: string; anchorTop: boolean }
+  | { kind: "callout"; at: number; len: number; url: string; labels: string[] };
+
+const isQuickPoint = (s: DetailSection | undefined): boolean => s?.type === "image_text" && s.slot === "quick_points";
+const safeUrl = (u: string | undefined): string => (u && /^(https?:)?\/\//i.test(u) ? u : u && u.startsWith("/") ? u : "");
+
+function findCandidates(secs: DetailSection[], ctx: ImpactCtx): Cand[] {
+  const out: Cand[] = [];
+  const urlOf = (idx: unknown): string => (typeof idx === "number" ? safeUrl(ctx.imageUrls[idx]) : "");
+  const originOk = (idx: unknown): boolean => typeof idx !== "number" || (ctx.origins?.[idx] ?? "original") !== "ai-lifestyle";
+  let numberFound = false;
+  const heroBadge = secs[0]?.type === "hero" ? (secs[0].badge ?? "") : "";
+  secs.forEach((s, i) => {
+    if (i < 2) return; // 히어로·바로 뒤 구간은 건드리지 않는다
+    if (s.type === "image_text") {
+      // statement: 화면에 나오지 않는 말풍선 문구(text_only 카드의 callout)
+      if (s.slot === "feature_callout" && s.layout === "text_only" && typeof s.callout === "string" && !isQuickPoint(secs[i - 1])) {
+        const t = s.callout.trim();
+        if (t.length >= 6 && t.length <= 30 && !checkText(t, ctx.facts).bad) out.push({ kind: "statement", at: i, text: t });
+      }
+      // photo: 사진이 든 full 카드
+      if (s.layout === "full" && !s.imageCrop && !s.sceneCrop && originOk(s.imageIndex) && urlOf(s.imageIndex) && s.heading.trim() && s.heading.trim().length <= 28 && !s.heading.trim().startsWith("#")) {
+        out.push({ kind: "photo", at: i, text: s.heading.trim(), body: s.body ?? "", url: urlOf(s.imageIndex), anchorTop: isWornFashionPhoto(ctx.category, typeof s.imageIndex === "number" ? ctx.roles?.[s.imageIndex] : undefined) });
+      }
+      // callout: 이어진 퀵포인트 3~4장(첫 카드에 사진)
+      if (s.slot === "quick_points" && (s.layout === "compact" || s.layout === "text_only") && !(secs[i - 1]?.type === "image_text" && (secs[i - 1] as { slot?: string }).slot === "quick_points")) {
+        let j = i;
+        while (j < secs.length && j - i < 4) {
+          const t = secs[j]!;
+          if (!(t.type === "image_text" && t.slot === "quick_points" && (t.layout === "compact" || t.layout === "text_only"))) break;
+          j += 1;
+        }
+        const first = s;
+        const runLen = j - i;
+        const after = secs[j];
+        const runEndsClean = !(after?.type === "image_text" && after.slot === "quick_points");
+        if (runLen >= 3 && runEndsClean && first.layout === "compact" && !first.noPhoto && originOk(first.imageIndex) && urlOf(first.imageIndex)) {
+          const labels = secs.slice(i, j).map((t) => (t.type === "image_text" ? (t.body?.trim() ? `${t.heading.trim()}\n${t.body.trim()}` : t.heading.trim()) : ""));
+          if (labels.every((l) => l.length > 0)) out.push({ kind: "callout", at: i, len: runLen, url: urlOf(first.imageIndex), labels });
+        }
+      }
+    }
+    // number: 입력 수치(히어로 배지·체크리스트 항목·카드 제목)와 그 수치가 든 한 줄
+    if (!numberFound) {
+      const texts: string[] =
+        s.type === "checklist" ? s.items : [];
+      for (const t of texts) {
+        const m = NUM_UNIT_RE.exec(t);
+        if (!m || t.length > 32 || checkText(m[0], ctx.facts).bad) continue;
+        const fromBadge = heroBadge && NUM_UNIT_RE.exec(heroBadge)?.[0] === m[0];
+        // 입력에서 센 개수(사이즈·종 등)와 히어로 배지 수치만 인정(본문 속 임의 숫자는 쓰지 않는다)
+        if (!fromBadge && !/사이즈|종|개|색|가지/.test(m[2]!)) continue;
+        out.push({ kind: "number", at: i, num: m[1]!, unit: m[2]!, sub: t });
+        numberFound = true;
+        break;
+      }
+    }
+  });
+  // 폴백: 히어로 배지 수치가 히어로 부제에도 있으면(둘 다 입력 문구) 그 부제를 설명 줄로 쓴다. 퀵포인트 묶음 한가운데는 피한다
+  const hero = secs[0];
+  if (!numberFound && hero?.type === "hero" && heroBadge) {
+    const m = NUM_UNIT_RE.exec(heroBadge);
+    const sub = (hero.subheadline ?? "").trim();
+    if (m && sub && sub.length <= 48 && sub.includes(m[0]) && !checkText(m[0], ctx.facts).bad) {
+      let y = 0;
+      for (let k = 0; k < secs.length; k += 1) {
+        if (k >= 3 && y >= 2300 && !(isQuickPoint(secs[k - 1]) && isQuickPoint(secs[k])) && secs[k]!.type !== "cta_price") { out.push({ kind: "number", at: k, num: m[1]!, unit: m[2]!, sub }); break; }
+        y += estimateSectionHeight(secs[k]!);
+      }
+    }
+  }
+  return out.sort((a, b) => a.at - b.at);
+}
+
+export type ImpactPlacement = { kind: ImpactKind; at: number; mode: "insert" | "replace"; y: number };
+export type ImpactPlan = { sections: DetailSection[]; sourceIndexes: number[]; placed: ImpactPlacement[]; maxGapPx: number };
+
+/** 표시 규칙의 마지막 단계에서 부른다. 입력 수치·문구가 요건에 맞는 템플릿만 끼우고, 아니면 입력을 그대로 돌려준다 */
+export function planImpact(sections: DetailSection[], sourceIndexes: number[], ctx: ImpactCtx): ImpactPlan {
+  const none: ImpactPlan = { sections, sourceIndexes, placed: [], maxGapPx: 0 };
+  if (sections.length < 6 || sections[0]!.type !== "hero") return none;
+  const cands = findCandidates(sections, ctx);
+  if (cands.length === 0) return none;
+  const ys: number[] = [];
+  let acc = 0;
+  for (const s of sections) { ys.push(acc); acc += estimateSectionHeight(s); }
+  const tone: "thin" | "bold" = ctx.category === "화장품/뷰티" ? "thin" : "bold";
+  const counts: Record<ImpactKind, number> = { statement: 0, number: 0, callout: 0, bleed: 0, split: 0 };
+  let lastKind: ImpactKind | null = null;
+  let lastY = ys[1] ?? 720; // 히어로 바로 뒤를 기준점으로
+  let lastPhoto: "bleed" | "split" | null = null;
+  let splitRight = false;
+  const chosen: Array<{ cand: Cand; kind: ImpactKind; y: number; section: ImpactSection }> = [];
+  for (const c of cands) {
+    const y = ys[c.at]!;
+    if (y - lastY < IMPACT_MIN_GAP_PX) continue;
+    // 사진 템플릿은 풀폭·분할을 번갈아(같은 템플릿 연속 금지)
+    let kind: ImpactKind = c.kind === "photo" ? (lastPhoto === "bleed" ? "split" : "bleed") : c.kind;
+    if (kind === lastKind && c.kind === "photo") kind = kind === "bleed" ? "split" : "bleed";
+    if (kind === lastKind || counts[kind] >= MAX_PER_KIND[kind]) continue;
+    let section: ImpactSection;
+    if (c.kind === "statement") section = { type: "impact", slot: "impact", kind: "statement", text: c.text, tone };
+    else if (c.kind === "number") section = { type: "impact", slot: "impact", kind: "number", text: c.num, unit: c.unit, sub: c.sub };
+    else if (c.kind === "callout") section = { type: "impact", slot: "impact", kind: "callout", text: "", imageUrl: c.url, labels: c.labels };
+    else if (kind === "bleed") section = { type: "impact", slot: "impact", kind: "bleed", text: c.text, body: c.body, imageUrl: c.url, anchorTop: c.anchorTop };
+    else { splitRight = !splitRight; section = { type: "impact", slot: "impact", kind: "split", text: c.text, body: c.body, imageUrl: c.url, imagePosition: splitRight ? "left" : "right", anchorTop: c.anchorTop }; }
+    counts[kind] += 1;
+    lastKind = kind;
+    lastY = y;
+    if (kind === "bleed" || kind === "split") lastPhoto = kind;
+    chosen.push({ cand: c, kind, y, section });
+  }
+  if (chosen.length === 0) return none;
+  const outS: DetailSection[] = [];
+  const outI: number[] = [];
+  const placed: ImpactPlacement[] = [];
+  const byAt = new Map(chosen.map((c) => [c.cand.at, c]));
+  for (let i = 0; i < sections.length; i += 1) {
+    const hit = byAt.get(i);
+    if (!hit) { outS.push(sections[i]!); outI.push(sourceIndexes[i]!); continue; }
+    const insert = hit.cand.kind === "statement" || hit.cand.kind === "number";
+    placed.push({ kind: hit.kind, at: outS.length, mode: insert ? "insert" : "replace", y: hit.y });
+    outS.push(hit.section);
+    outI.push(sourceIndexes[i]!);
+    if (hit.cand.kind === "callout") { i += hit.cand.len - 1; continue; }
+    if (insert) { outS.push(sections[i]!); outI.push(sourceIndexes[i]!); }
+  }
+  const stops = [ys[1] ?? 720, ...chosen.map((c) => c.y), acc];
+  const maxGapPx = stops.slice(1).reduce((m, v, i) => Math.max(m, v - stops[i]!), 0);
+  return { sections: outS, sourceIndexes: outI, placed, maxGapPx };
+}

@@ -148,6 +148,7 @@ import type { InfoBackdropMap } from "@/lib/info-backdrop";
 import { beautyData, beautyInfoCss, beautyInfoLayout, beautyIp } from "@/lib/beauty-style";
 import { designV2ClassicFashionCap, designV2Css, designV2On, designV2Typo, planBands, v2TitleOverrides } from "@/lib/design-v2";
 import { buildPriceStrip } from "@/lib/price-strip";
+import { impactAlt, impactHtml, impactPalette } from "@/lib/impact-templates";
 import { DESIGN_V3_FONTS_ENABLED, fontLinkHrefs, fontPairCss, fontPreloadHrefs, pickFontPair } from "@/lib/font-pairs";
 import { DESIGN_V3_COLOR_ENABLED, extendThemeFor, paletteInfoCss } from "@/lib/palette-harmony";
 import { dividerCss } from "@/lib/section-dividers";
@@ -5884,6 +5885,10 @@ function renderSection(
         </section>
       );
     }
+
+    case "impact":
+      // 433차 — 임팩트 화면 템플릿(표시 전용). 마크업은 export와 같은 lib/impact-templates 한 벌
+      return <div key={`impact-${index}`} data-impact-wrap dangerouslySetInnerHTML={{ __html: impactHtml(section, impactPalette(theme), impactAlt(productName, section)) }} />;
 
     default:
       return null;

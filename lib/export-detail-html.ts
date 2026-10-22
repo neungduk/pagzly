@@ -175,6 +175,7 @@ import { applySectionDisplayBudget } from "@/lib/section-display-budget";
 import { comparisonPolicyRemovesChart } from "@/lib/comparison-policy";
 import { designV2ClassicFashionCap, designV2Css, designV2On, designV2Typo, planBands, v2TitleOverrides } from "@/lib/design-v2";
 import { buildPriceStrip, priceStripHtml } from "@/lib/price-strip";
+import { impactAlt, impactHtml, impactPalette } from "@/lib/impact-templates";
 import { DESIGN_V3_FONTS_ENABLED, fontLinkHrefs, fontOrigin, fontPairCss, fontPreloadHrefs, pickFontPair } from "@/lib/font-pairs";
 import { DESIGN_V3_COLOR_ENABLED, extendThemeFor, paletteInfoCss } from "@/lib/palette-harmony";
 import { dividerCss, dividerStyleFor } from "@/lib/section-dividers";
@@ -1721,6 +1722,9 @@ function sectionHtml(
       if (!sceneUrl) return "";
       return `<section${sectionIdAttr} data-scene-slot="${esc(section.sceneSlot)}" style="padding:24px;background:${FLAT_PAPER}"><figure style="max-width:576px;margin:0 auto"><img src="${esc(sceneUrl)}" alt="${esc(`${productName} 연출 이미지`)}" loading="lazy" decoding="async" style="display:block;width:100%;aspect-ratio:4 / 5;object-fit:cover;border-radius:16px"/><figcaption style="margin-top:8px;text-align:center;font-size:12px;line-height:1.5;color:rgba(27,27,24,.65)">${SCENE_NOTICE}</figcaption></figure></section>`;
     }
+    case "impact":
+      // 433차 — 라이브와 같은 마크업 한 벌(lib/impact-templates)
+      return impactHtml(section, impactPalette(theme), impactAlt(productName, section));
     case "cta_price":
       if (FLAT_SECTION_SURFACES) {
         return `<section${sectionIdAttr}${beautyAttr(layout, "buy")} class="pagzly-cta" style="${ctaPad}background:${flatAccentTint(theme)};border-top:1px solid ${hexToRgba(accent, 0.16)};color:${BRAND.ink};text-align:center">

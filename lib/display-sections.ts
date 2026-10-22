@@ -11,7 +11,8 @@ import { insertSceneSlots, type SceneImageMap } from "@/lib/scene-images";
 import { NUMERIC_GATE_ENABLED, numericClaimGate, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import { COMPARISON_POLICY_ENABLED, applyComparisonPolicy, type PolicyChange } from "@/lib/comparison-policy";
 import { backfillPhotoGallery } from "@/lib/section-backfill";
-import { applyStoryOrder, storyOrderOn } from "@/lib/detail-story-order";
+import { COMPOSITION_V2_ENABLED, applyStoryOrder, storyOrderOn } from "@/lib/detail-story-order";
+import { planImpact } from "@/lib/impact-templates";
 
 export type DisplaySections = {
   sections: DetailSection[];
@@ -346,7 +347,10 @@ export function applyDisplayRules(
   const photo = policy?.pendingPhotos
     ? backfillPhotoGallery(withScenes.sections, withScenes.sourceIndexes, imageUrls.length, { anchorKey: policy.pendingPhotos.anchorKey, sourceOf, allow: personaChipAllow(photoCtx) })
     : null;
-  const finalOut = photo ?? withScenes;
+  const afterBackfill = photo ?? withScenes;
+  // 433차 — 임팩트 화면 템플릿(표시 전용, 편집 모드·claimFacts 없음은 그대로). 기존 문구·입력 수치·사진만 재배치
+  const impact = opts.claimFacts && COMPOSITION_V2_ENABLED ? planImpact(afterBackfill.sections, afterBackfill.sourceIndexes, { category: opts.category, imageUrls, facts: opts.claimFacts, origins: opts.origins, roles: opts.roles }) : null;
+  const finalOut = impact && impact.placed.length > 0 ? { sections: impact.sections, sourceIndexes: impact.sourceIndexes } : afterBackfill;
   const policyChanges = policy ? [...policy.changes, ...(photo ? [{ type: "filled" as const, index: 0, kind: "photos" as const, reason: `사용하지 않은 사진 ${photo.indexes.join(",")}번`, slot: "backfill_photos" }] : [])] : undefined;
   return { sections: finalOut.sections, sourceIndexes: keptMap ? finalOut.sourceIndexes.map((i) => keptMap(i)) : finalOut.sourceIndexes, ...(policyChanges ? { policyChanges } : {}) };
 }
