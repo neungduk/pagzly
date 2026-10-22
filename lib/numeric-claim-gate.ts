@@ -42,6 +42,9 @@ export type ClaimSource = {
   praises: string[];
   complaints: string[];
   reviewLineCount: number;
+  /** 433차 — 증빙 모듈용: 판매자 입력 인증·시험 문구 원문, 각 장점이 후기 몇 줄에서 매칭됐는지(praises와 같은 순서) */
+  certifications: string;
+  praiseMatchCounts: number[];
 };
 
 export type ClaimInput = {
@@ -105,7 +108,7 @@ export function buildClaimFacts(input: ClaimInput): ClaimFacts {
     const a = order.indexOf(m[1]!), b = order.indexOf(m[2]!);
     if (a >= 0 && b > a) counts.add(b - a + 1);
   }
-  const ri = (input.reviewInsights && typeof input.reviewInsights === "object" ? input.reviewInsights : {}) as { commonPraises?: unknown; commonComplaints?: unknown; reviewLineCount?: unknown };
+  const ri = (input.reviewInsights && typeof input.reviewInsights === "object" ? input.reviewInsights : {}) as { commonPraises?: unknown; commonComplaints?: unknown; reviewLineCount?: unknown; praiseMatchCounts?: unknown };
   const strs = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.trim().length > 0).map((x) => x.trim()) : []);
   const source: ClaimSource = {
     comparisonRows: normalizeComparisonRows(input.comparisonRows),
@@ -115,6 +118,8 @@ export function buildClaimFacts(input: ClaimInput): ClaimFacts {
     praises: strs(ri.commonPraises),
     complaints: strs(ri.commonComplaints),
     reviewLineCount: typeof ri.reviewLineCount === "number" ? ri.reviewLineCount : 0,
+    certifications: (input.certifications ?? "").trim(),
+    praiseMatchCounts: Array.isArray(ri.praiseMatchCounts) ? (ri.praiseMatchCounts as unknown[]).map((n) => (typeof n === "number" && Number.isFinite(n) ? n : 0)) : [],
   };
   // 비교 입력 값도 판매자가 쓴 사실이므로 숫자 허용 집합에 넣는다
   for (const r of source.comparisonRows) for (const m of `${r.label} ${r.ours} ${r.other}`.matchAll(NUM_RE)) numbers.add(norm(m[0]));

@@ -20,7 +20,7 @@ import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import { isWornFashionPhoto } from "@/lib/fashion-composite-policy";
 import type { StripImageHints } from "@/lib/persona-strip";
 
-export type ImpactKind = ImpactSection["kind"];
+export type ImpactKind = Exclude<ImpactSection["kind"], "proof" | "reviewstat">;
 
 const escapeHtml = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -81,6 +81,37 @@ export function impactHtml(s: ImpactSection, pal: ImpactPalette, alt: string): s
         `</div></section>`
       );
     }
+    case "proof": {
+      // 433차 1-4 — 시험·인증 카드: 라벨 칩 + 판매자 입력 문구(그대로) + 출처 칸. 출처가 없으면 "판매자 제공 정보"
+      const rows = (s.stats ?? [])
+        .map(
+          (r, i) =>
+            `<div style="padding:18px 0;${i > 0 ? `border-top:1px solid ${hexToRgba(pal.ink, 0.1)}` : ""}">` +
+            (r.tag ? `<span style="display:inline-block;padding:4px 10px;border-radius:999px;background:${pal.deep};color:#FFFFFF;${sans};font-size:11px;font-weight:700;letter-spacing:0.04em">${e(r.tag)}</span>` : "") +
+            `<p style="margin:10px 0 0;${title};font-size:clamp(20px,5.6vw,26px);font-weight:700;letter-spacing:-0.02em;line-height:1.35;color:${pal.ink};word-break:keep-all">${e(r.label)}</p>` +
+            `<p style="margin:8px 0 0;${sans};font-size:12px;line-height:1.5;color:${hexToRgba(pal.ink, 0.66)}">출처 · ${e(r.value)}</p></div>`,
+        )
+        .join("");
+      return `<section data-pz-impact="proof" style="padding:40px 24px;background:${pal.tint}"><div style="max-width:576px;margin:0 auto">${rows}</div></section>`;
+    }
+    case "reviewstat": {
+      // 433차 1-4 — 후기 통계 카드: 업로드한 후기에서 센 건수와 장점 키워드별 언급 건수(새 문구·별점·비율 없음)
+      const rows = (s.stats ?? [])
+        .map(
+          (r, i) =>
+            `<div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:12px 0;${i > 0 ? `border-top:1px solid ${hexToRgba(pal.ink, 0.1)}` : ""}">` +
+            `<span style="min-width:0;${sans};font-size:15px;font-weight:500;line-height:1.5;color:${pal.ink};word-break:keep-all">${e(r.label)}</span>` +
+            `<span style="flex:none;${sans};font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:${pal.deep}">${e(r.value)}</span></div>`,
+        )
+        .join("");
+      return (
+        `<section data-pz-impact="reviewstat" style="padding:48px 24px;background:#FFFFFF"><div style="max-width:576px;margin:0 auto">` +
+        `<p style="margin:0;display:flex;align-items:baseline;gap:6px;${title};font-weight:900;letter-spacing:-0.04em;line-height:0.95;font-size:min(calc(70vw / ${Math.max(2, s.text.length).toFixed(1)}),150px);color:${pal.accent};font-variant-numeric:tabular-nums"><span>${e(s.text)}</span><span style="font-size:0.28em;font-weight:700;letter-spacing:0;color:${pal.ink}">${e(s.unit ?? "")}</span></p>` +
+        (s.sub ? `<p style="margin:16px 0 0;${sans};font-size:14px;line-height:1.6;color:${hexToRgba(pal.ink, 0.72)}">${e(s.sub)}</p>` : "") +
+        (rows ? `<div style="margin-top:24px">${rows}</div>` : "") +
+        `</div></section>`
+      );
+    }
     case "callout": {
       const items = s.labels ?? [];
       const n = Math.max(1, items.length);
@@ -138,7 +169,7 @@ export function estimateSectionHeight(s: DetailSection): number {
     case "image_text":
       return s.layout === "compact" ? 190 : s.layout === "text_only" ? 330 : s.layout === "annotated" ? 600 : 680;
     case "impact":
-      return s.kind === "statement" ? 300 : s.kind === "number" ? 330 : s.kind === "bleed" ? 780 : s.kind === "split" ? 380 : 420;
+      return s.kind === "statement" ? 300 : s.kind === "number" ? 330 : s.kind === "bleed" ? 780 : s.kind === "split" ? 380 : s.kind === "proof" ? 420 : s.kind === "reviewstat" ? 460 : 420;
     default: return 400;
   }
 }

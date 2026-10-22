@@ -13,6 +13,7 @@ import { COMPARISON_POLICY_ENABLED, applyComparisonPolicy, type PolicyChange } f
 import { backfillPhotoGallery } from "@/lib/section-backfill";
 import { COMPOSITION_V2_ENABLED, applyStoryOrder, storyOrderOn } from "@/lib/detail-story-order";
 import { planImpact } from "@/lib/impact-templates";
+import { planEvidence } from "@/lib/evidence-modules";
 
 export type DisplaySections = {
   sections: DetailSection[];
@@ -349,8 +350,11 @@ export function applyDisplayRules(
     : null;
   const afterBackfill = photo ?? withScenes;
   // 433차 — 임팩트 화면 템플릿(표시 전용, 편집 모드·claimFacts 없음은 그대로). 기존 문구·입력 수치·사진만 재배치
-  const impact = opts.claimFacts && COMPOSITION_V2_ENABLED ? planImpact(afterBackfill.sections, afterBackfill.sourceIndexes, { category: opts.category, imageUrls, facts: opts.claimFacts, origins: opts.origins, roles: opts.roles }) : null;
-  const finalOut = impact && impact.placed.length > 0 ? { sections: impact.sections, sourceIndexes: impact.sourceIndexes } : afterBackfill;
+  // 433차 1-4 — 증빙 모듈(시험·인증 카드·후기 통계 카드): 판매자 입력이 있을 때만
+  const evidence = opts.claimFacts && !opts.editing && COMPOSITION_V2_ENABLED ? planEvidence(afterBackfill.sections, afterBackfill.sourceIndexes, { category: opts.category, facts: opts.claimFacts }) : null;
+  const withEvidence = evidence && evidence.added.length > 0 ? evidence : afterBackfill;
+  const impact = opts.claimFacts && COMPOSITION_V2_ENABLED ? planImpact(withEvidence.sections, withEvidence.sourceIndexes, { category: opts.category, imageUrls, facts: opts.claimFacts, origins: opts.origins, roles: opts.roles }) : null;
+  const finalOut = impact && impact.placed.length > 0 ? { sections: impact.sections, sourceIndexes: impact.sourceIndexes } : withEvidence;
   const policyChanges = policy ? [...policy.changes, ...(photo ? [{ type: "filled" as const, index: 0, kind: "photos" as const, reason: `사용하지 않은 사진 ${photo.indexes.join(",")}번`, slot: "backfill_photos" }] : [])] : undefined;
   return { sections: finalOut.sections, sourceIndexes: keptMap ? finalOut.sourceIndexes.map((i) => keptMap(i)) : finalOut.sourceIndexes, ...(policyChanges ? { policyChanges } : {}) };
 }

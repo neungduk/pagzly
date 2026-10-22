@@ -537,7 +537,7 @@ export type CertificateEvidenceSection = {
 export type ImpactSection = {
   type: "impact";
   slot: "impact";
-  kind: "statement" | "number" | "bleed" | "split" | "callout";
+  kind: "statement" | "number" | "bleed" | "split" | "callout" | "proof" | "reviewstat";
   /** statement 문장 · number 숫자 · bleed/split 제목(캡션). callout은 빈 문자열 */
   text: string;
   /** number 단위 */
@@ -553,6 +553,8 @@ export type ImpactSection = {
   labels?: string[];
   tone?: "thin" | "bold";
   anchorTop?: boolean;
+  /** proof(시험·인증 카드) 행 / reviewstat(후기 통계) 키워드 행 — 모두 판매자 입력·업로드 후기에서 온 값 */
+  stats?: { tag?: string; label: string; value: string }[];
 };
 
 export type CanvasElement =
