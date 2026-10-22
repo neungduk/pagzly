@@ -143,7 +143,8 @@ import WeightComparisonDiagram from "@/components/WeightComparisonDiagram";
 import PowerConsumptionDiagram from "@/components/PowerConsumptionDiagram";
 import { headlineDisplayStyle, joinNumericSuffix, longestTokenEm, packHeadlineLiveVars } from "@/lib/detail-typography";
 import { rhythmLiveVars } from "@/lib/rhythm-tokens";
-import { BEAUTY_HERO, HERO_CAPTION, HERO_FRAME, HERO_STAGE_VARIANT, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroStageOn } from "@/lib/hero-variants";
+import { archetypeHeroLayout } from "@/lib/archetype-recipes";
+import { BEAUTY_HERO, HERO_ARCH, HERO_CAPTION, HERO_FRAME, HERO_STAGE_VARIANT, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroStageOn } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
 import type { InfoBackdropMap } from "@/lib/info-backdrop";
@@ -2260,6 +2261,7 @@ function renderSection(
               aspectRatio: beautyHero ? BEAUTY_HERO.photoRatio : heroCaptionRatio(heroVariant),
               background: theme.baseNeutral,
               ...(heroVariant === "framed" ? { border: `${HERO_FRAME.borderPx}px solid ${HERO_FRAME.borderColor}`, boxSizing: "border-box" as const } : {}),
+              ...(heroVariant === "arch" ? { width: `${HERO_ARCH.widthPct}%`, margin: "0 auto", borderRadius: HERO_ARCH.radius, boxShadow: HERO_ARCH.shadow } : {}),
             }}
             className={heroVariant === "split" ? "relative w-full overflow-hidden @min-[640px]/pz:w-[58%] @min-[640px]/pz:shrink-0" : "relative w-full overflow-hidden"}
           >
@@ -2281,7 +2283,7 @@ function renderSection(
           <div
             key="hero-caption"
             className={heroVariant === "split" ? "px-6 @min-[640px]/pz:flex @min-[640px]/pz:w-[42%] @min-[640px]/pz:flex-col @min-[640px]/pz:justify-center @min-[640px]/pz:px-8" : "px-6 @min-[640px]/pz:px-10"}
-            style={{ textAlign: align, background: heroCaptionBackground(heroVariant, theme), paddingTop: HERO_CAPTION.padYPx, paddingBottom: HERO_CAPTION.padYPx }}
+            style={{ textAlign: align, background: heroCaptionBackground(heroVariant, theme), paddingTop: heroVariant === "arch" ? HERO_ARCH.captionPadYPx : HERO_CAPTION.padYPx, paddingBottom: heroVariant === "arch" ? HERO_ARCH.captionPadYPx : HERO_CAPTION.padYPx }}
             data-hero-caption
           >
             {eyebrowLabel || section.badge ? (
@@ -2354,9 +2356,9 @@ function renderSection(
           <section key={`hero-wrap-${index}`} className={heroVariant === "split" ? "relative w-full @min-[640px]/pz:flex" : "relative w-full"} data-hero-variant={heroVariant}>
             {heroVariant === "caption-above"
               ? [caption, photo]
-              : heroVariant === "framed"
+              : heroVariant === "framed" || heroVariant === "arch"
                 ? [
-                    <div key="hero-frame" data-hero-frame style={{ background: theme.baseNeutral, padding: `${HERO_FRAME.topPx}px ${HERO_FRAME.insetPx}px 0` }}>
+                    <div key="hero-frame" data-hero-frame style={{ background: theme.baseNeutral, padding: heroVariant === "arch" ? `${HERO_ARCH.padTopPx}px 0 0` : `${HERO_FRAME.topPx}px ${HERO_FRAME.insetPx}px 0` }}>
                       {photo}
                     </div>,
                     caption,
@@ -6135,7 +6137,7 @@ export default function DetailSectionRenderer({
             keyFeatures,
             pointOrdinals[index],
             productThumbs,
-            packLayout,
+            archetypeHeroLayout(packLayout, display.archetype?.hero),
             classicFashionHeroStrength(category, pack, imageRoles),
           );
         }

@@ -19,6 +19,7 @@ import { planBoost } from "@/lib/impact-boost";
 import { planSpecials } from "@/lib/special-sections";
 import { ARCHETYPE_V1_ENABLED, detectArchetype, type ArchetypeResult } from "@/lib/product-archetype";
 import { MOODS, pickMood, recipeFor, type MoodId } from "@/lib/archetype-recipes";
+import type { HeroVariant } from "@/lib/style-packs";
 import { planPhotoLayouts } from "@/lib/photo-layouts";
 
 export type DisplaySections = {
@@ -26,7 +27,7 @@ export type DisplaySections = {
   /** sourceIndexes[i] = 표시 i번째 섹션의 입력 인덱스 (편집 콜백을 원본 위치로 되돌릴 때) */
   sourceIndexes: number[];
   /** 436차 — 판별한 제품 유형(아키타입)과 mood. 보고·검증용, 렌더에는 쓰지 않는다 */
-  archetype?: { result: ArchetypeResult; mood: MoodId | null };
+  archetype?: { result: ArchetypeResult; mood: MoodId | null; hero: HeroVariant | null };
   /** 427차 — 비교 정책이 한 일(제거·문장 삭제·판매자 표·대체·사진 갤러리). 보고·검증용, 렌더에는 쓰지 않는다 */
   policyChanges?: PolicyChange[];
 };
@@ -387,5 +388,5 @@ export function applyDisplayRules(
   // 436차 — mood를 모든 임팩트 블록에 찍는다(여백·반경·그림자·구분선·제목 굵기 토큰). mood가 없으면(유형 미정·플래그 off) 지금 화면 그대로
   const finalOut = mood ? { sections: finalOut0.sections.map((s) => (s.type === "impact" && !s.mood ? ({ ...s, mood } as DetailSection) : s)), sourceIndexes: finalOut0.sourceIndexes } : finalOut0;
   const policyChanges = policy ? [...policy.changes, ...(photo ? [{ type: "filled" as const, index: 0, kind: "photos" as const, reason: `사용하지 않은 사진 ${photo.indexes.join(",")}번`, slot: "backfill_photos" }] : [])] : undefined;
-  return { sections: finalOut.sections, sourceIndexes: keptMap ? finalOut.sourceIndexes.map((i) => keptMap(i)) : finalOut.sourceIndexes, ...(policyChanges ? { policyChanges } : {}), ...(arche ? { archetype: { result: arche, mood } } : {}) };
+  return { sections: finalOut.sections, sourceIndexes: keptMap ? finalOut.sourceIndexes.map((i) => keptMap(i)) : finalOut.sourceIndexes, ...(policyChanges ? { policyChanges } : {}), ...(arche ? { archetype: { result: arche, mood, hero: recipe?.hero ?? null } } : {}) };
 }

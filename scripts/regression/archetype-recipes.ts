@@ -5,9 +5,12 @@
 import { applyDisplayRules } from "../../lib/display-sections";
 import { applyRecipeOrder } from "../../lib/detail-story-order";
 import { ARCHETYPE_IDS } from "../../lib/product-archetype";
-import { MOODS, MOOD_IDS, RECIPES, pickMood, recipeFor } from "../../lib/archetype-recipes";
+import { MOODS, MOOD_IDS, RECIPES, archetypeHeroLayout, pickMood, recipeFor } from "../../lib/archetype-recipes";
 import { NEUTRAL_MOOD, applyMood } from "../../lib/mood";
 import { buildClaimFacts } from "../../lib/numeric-claim-gate";
+import { buildDetailPageHtml } from "../../lib/export-detail-html";
+import { getCategoryTheme } from "../../lib/category-theme";
+import { CLASSIC_LAYOUT } from "../../lib/style-packs";
 import type { DetailSection } from "../../lib/types/generate";
 
 export const name = "아키타입 레시피·mood — 16유형 레시피·토큰 범위·레시피 순서·미정 불변·유형별 순서 편차·applyMood";
@@ -87,5 +90,12 @@ export async function run(): Promise<string[]> {
   eq("중립 mood는 항등", applyMood(html, NEUTRAL_MOOD), html);
   const airy = applyMood(html, { ...NEUTRAL_MOOD, pad: 1.2, r: 0.5, sh: 0.5, titleWeight: 700, titleTracking: "0.005em" });
   if (!airy.includes("padding:48px 24px") || !airy.includes("border-radius:7px") || !airy.includes("rgba(27, 27, 24, 0.1)") || !airy.includes("font-weight:700;letter-spacing:0.005em")) fails.push(`applyMood 변환: ${airy}`);
+  // 히어로(1-4): 팩이 히어로를 정하지 않은 classic일 때만 아키타입 히어로, 팩이 정한 히어로는 그대로, export에 arch 마크업
+  eq("classic이면 아키타입 히어로", archetypeHeroLayout({ ...CLASSIC_LAYOUT, hero: "bleed-bottom" }, "arch").hero, "arch");
+  eq("팩이 정한 히어로는 유지", archetypeHeroLayout({ ...CLASSIC_LAYOUT, hero: "full-photo" }, "arch").hero, "full-photo");
+  eq("레시피 히어로 없음(null)은 불변", archetypeHeroLayout({ ...CLASSIC_LAYOUT, hero: "bleed-bottom" }, null).hero, "bleed-bottom");
+  const outerFacts = buildClaimFacts({ productName: "브이넥 니트 가디건", brandName: "b", price: 1000, keyFeatures: "가을 아우터" } as never);
+  const outerHtml = buildDetailPageHtml({ productName: "브이넥 니트 가디건", brandName: "b", category: "의류/패션", sections: gen(), imageUrls: urls, theme: getCategoryTheme("의류/패션"), claimFacts: outerFacts });
+  if (!/data-hero-variant="arch"/.test(outerHtml) || !/999px 999px 24px 24px/.test(outerHtml)) fails.push("export 히어로에 arch 마크업 없음");
   return fails;
 }

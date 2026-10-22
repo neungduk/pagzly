@@ -28,7 +28,7 @@ type ToneSpec = {
 };
 
 /** 409차 — 구조 변형(열거값/숫자). classic 값 = 지금 화면과 같은 동작 */
-export type HeroVariant = "bleed-bottom" | "caption-below" | "caption-above" | "framed" | "split" | "full-photo";
+export type HeroVariant = "bleed-bottom" | "caption-below" | "caption-above" | "framed" | "split" | "full-photo" | "arch";
 export type FlowVariant = "default" | "photo-first" | "story-after-photo" | "photo-lead";
 export type GalleryVariant = "duo-grid" | "lookbook-stack" | "lead-plus-two" | "mosaic";
 export type SummaryVariant = "icon-grid" | "spec-list" | "inline-strip";

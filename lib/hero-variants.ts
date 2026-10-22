@@ -53,8 +53,14 @@ export function heroCaptionRatio(variant: HeroVariant): string {
 }
 
 
+/**
+ * 436차 1-4 — arch(센터 스테이지): 제품 사진을 아치 프레임(위가 둥근 4:5)·그림자로 중앙에 세우고 글은 아래 중앙 띠에. 아치 안은 사진 전체(컷아웃 아님)라 어색하지 않다.
+ * 아키타입 레시피가 고르는 변형이며(팩이 히어로를 정하지 않은 classic일 때만), 새 문구 없음 — 기존 히어로 제목·부제·배지만 쓴다.
+ */
+export const HERO_ARCH = { widthPct: 78, radius: "999px 999px 24px 24px", shadow: "0 14px 32px rgba(27,27,24,0.16)", padTopPx: 32, captionPadYPx: 40 } as const;
+
 export function heroCaptionAlign(variant: HeroVariant): "center" | "left" {
-  return variant === "caption-below" || variant === "framed" ? "center" : "left";
+  return variant === "caption-below" || variant === "framed" || variant === "arch" ? "center" : "left";
 }
 
 /** caption-below·framed·split = 중립 띠 색, caption-above = 흰 바탕 */

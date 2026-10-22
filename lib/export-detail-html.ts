@@ -163,7 +163,8 @@ import {
 } from "@/lib/design-tokens";
 import { rhythmVarsCss } from "@/lib/rhythm-tokens";
 import { applyPackTone, classicFashionHeroStrength, isClassicPack, CLASSIC_LAYOUT, getPackLayout, packPadScale, packTitleScaleOverrides, resolveGalleryVariant, resolveHeroVariant, resolveStylePack, type PackLayout } from "@/lib/style-packs";
-import { BEAUTY_HERO, HERO_CAPTION, HERO_FRAME, HERO_STAGE_VARIANT, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroStageOn } from "@/lib/hero-variants";
+import { archetypeHeroLayout } from "@/lib/archetype-recipes";
+import { BEAUTY_HERO, HERO_ARCH, HERO_CAPTION, HERO_FRAME, HERO_STAGE_VARIANT, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroStageOn } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
 import type { InfoBackdropMap } from "@/lib/info-backdrop";
@@ -740,7 +741,7 @@ function sectionHtml(
         const edge = align === "center" ? "auto" : "0";
         // 428차 2-5 — 라이브와 같은 뷰티 product-stage(그라데이션 면 위 제품 사진 카드)
         const stage = beautyHero && heroStageOn(category, Boolean(src), designV2On(category));
-        const plainPhotoHtml = `<div style="position:relative;width:100%;overflow:hidden;aspect-ratio:${beautyHero ? BEAUTY_HERO.photoRatio : heroCaptionRatio(heroVariant)};background:${baseTheme.baseNeutral}${heroVariant === "framed" ? `;border:${HERO_FRAME.borderPx}px solid ${HERO_FRAME.borderColor};box-sizing:border-box` : ""}"><img src="${esc(src)}" alt="${esc(alt)}" fetchPriority="high" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${beautyHero ? BEAUTY_HERO.photoPosition : HERO_CAPTION.photoPosition}"/></div>`;
+        const plainPhotoHtml = `<div style="position:relative;width:100%;overflow:hidden;aspect-ratio:${beautyHero ? BEAUTY_HERO.photoRatio : heroCaptionRatio(heroVariant)};background:${baseTheme.baseNeutral}${heroVariant === "framed" ? `;border:${HERO_FRAME.borderPx}px solid ${HERO_FRAME.borderColor};box-sizing:border-box` : ""}${heroVariant === "arch" ? `;width:${HERO_ARCH.widthPct}%;margin:0 auto;border-radius:${HERO_ARCH.radius};box-shadow:${HERO_ARCH.shadow}` : ""}"><img src="${esc(src)}" alt="${esc(alt)}" fetchPriority="high" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${beautyHero ? BEAUTY_HERO.photoPosition : HERO_CAPTION.photoPosition}"/></div>`;
         const photoHtml = stage
           ? `<div data-hero-stage="${HERO_STAGE_VARIANT}"><div data-hero-stage-card><img src="${esc(src)}" alt="${esc(alt)}" fetchPriority="high" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"/></div></div>`
           : plainPhotoHtml;
@@ -755,8 +756,8 @@ function sectionHtml(
           layout.rule === "hairline"
             ? `<div aria-hidden="true" style="width:${HERO_CAPTION.ruleWidthPx}px;height:1px;background:${HERO_CAPTION.ruleColor};margin:${HERO_CAPTION.ruleGapPx}px ${edge} 0"></div>`
             : "";
-        const captionHtml = `<div data-hero-caption style="padding:${HERO_CAPTION.padYPx}px var(--pz-pad-x,20px);text-align:${align};background:${heroCaptionBackground(heroVariant, baseTheme)}">${eyebrowHtml}<h1 class="pagzly-display-headline pz-fit" style="color:${HERO_CAPTION.ink};${titleFitCss("hero", section.headline, -0.03)};font-weight:800;line-height:${HERO_CAPTION.titleLine};margin:0;${displayHeadlineInlineCss(category)}">${esc(section.headline)}</h1>${subHtml}${ruleHtml}</div>`;
-        const framedPhotoHtml = heroVariant === "framed" ? `<div data-hero-frame style="background:${baseTheme.baseNeutral};padding:${HERO_FRAME.topPx}px ${HERO_FRAME.insetPx}px 0">${photoHtml}</div>` : photoHtml;
+        const captionHtml = `<div data-hero-caption style="padding:${heroVariant === "arch" ? HERO_ARCH.captionPadYPx : HERO_CAPTION.padYPx}px var(--pz-pad-x,20px);text-align:${align};background:${heroCaptionBackground(heroVariant, baseTheme)}">${eyebrowHtml}<h1 class="pagzly-display-headline pz-fit" style="color:${HERO_CAPTION.ink};${titleFitCss("hero", section.headline, -0.03)};font-weight:800;line-height:${HERO_CAPTION.titleLine};margin:0;${displayHeadlineInlineCss(category)}">${esc(section.headline)}</h1>${subHtml}${ruleHtml}</div>`;
+        const framedPhotoHtml = heroVariant === "framed" ? `<div data-hero-frame style="background:${baseTheme.baseNeutral};padding:${HERO_FRAME.topPx}px ${HERO_FRAME.insetPx}px 0">${photoHtml}</div>` : heroVariant === "arch" ? `<div data-hero-frame style="background:${baseTheme.baseNeutral};padding:${HERO_ARCH.padTopPx}px 0 0">${photoHtml}</div>` : photoHtml;
         return `<section${sectionIdAttr} class="hero pagzly-hero" data-hero-variant="${heroVariant}" style="position:relative;width:100%">${heroVariant === "caption-above" ? captionHtml + photoHtml : framedPhotoHtml + captionHtml}</section>`;
       }
       return `<section${sectionIdAttr} class="hero pagzly-hero"${sectionIdAttr} style="${FLAT_SECTION_SURFACES ? "" : pad}position:relative;overflow:hidden;width:100%;box-sizing:border-box;aspect-ratio:4/5;min-height:var(--pz-hero-min,70vh);background:${baseTheme.baseNeutral}">
@@ -2146,7 +2147,7 @@ export function buildDetailPageHtml(opts: {
   opts = { ...opts, theme: applyPackTone(opts.theme, pack) };
   const hidden = new Set(opts.hiddenIndexes ?? []);
   // 183차 표시 예산은 결과 페이지(라이브)와 같은 순서 — 사용자 숨김 → 예산 → 표시 규칙(상한·사진 띠)
-  const afterUserHidden = applyDisplayRules(
+  const displayRes = applyDisplayRules(
     applySectionDisplayBudget(
       opts.category,
       opts.sections.filter((_, i) => !hidden.has(i)),
@@ -2154,7 +2155,8 @@ export function buildDetailPageHtml(opts: {
     ),
     opts.imageUrls,
     { imageHashByUrl: opts.imageHashByUrl, roles: opts.imageRoles, origins: opts.imageOrigins, category: opts.category, flow: getPackLayout(pack).flow, tags: opts.imageTags, sceneImages: opts.sceneImages, hasSizeInfo: opts.hasSizeInfo, claimFacts: opts.claimFacts, brandName: opts.brandName },
-  ).sections;
+  );
+  const afterUserHidden = displayRes.sections;
   const visibleSections = dropSpecEchoFaqItems(
     dropDuplicateRecommendColumn(
       restoreHashtagHeadingUnits(limitBoldBlocks(afterUserHidden)),
@@ -2267,7 +2269,7 @@ export function buildDetailPageHtml(opts: {
         totalCompactImageTextCount,
         pointOrdinals[i],
         productThumbs,
-        beautyInfoLayout(getPackLayout(pack), opts.category),
+        archetypeHeroLayout(beautyInfoLayout(getPackLayout(pack), opts.category), displayRes.archetype?.hero),
         classicFashionHeroStrength(opts.category, pack, opts.imageRoles),
       );
     }

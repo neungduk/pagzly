@@ -10,7 +10,7 @@
 import type { ArchetypeId } from "@/lib/product-archetype";
 import type { StoryStage } from "@/lib/detail-story-order";
 import type { IllustStyle } from "@/lib/illustrations/core";
-import type { HeroVariant } from "@/lib/style-packs";
+import type { HeroVariant, PackLayout } from "@/lib/style-packs";
 
 export type MoodId = "minimal-luxe" | "natural" | "clinic" | "playful" | "street" | "warm";
 export const MOOD_IDS: readonly MoodId[] = ["minimal-luxe", "natural", "clinic", "playful", "street", "warm"];
@@ -79,7 +79,7 @@ export const RECIPES: Record<Exclude<ArchetypeId, "default">, Recipe> = {
     stageOverride: { usage_steps: 4, step_card: 4 },
     priority: { ingredient_highlight: 3, texture_feel: 2, usage_steps: 1, step_card: 1, how_it_works: 0, stat_infographic: -1 },
     rotation: ["frame", "zoom", "bleed", "split", "inset"], maxPerKind: { frame: 2, zoom: 1 }, skip: [],
-    hero: "caption-below", specials: ["timeline", "chipwall"],
+    hero: null, specials: ["timeline", "chipwall"],
     note: "성분·사용감·루틴 앞세움, 프레임·확대 컷 선호",
   }),
   "beauty-makeup": R({
@@ -95,7 +95,7 @@ export const RECIPES: Record<Exclude<ArchetypeId, "default">, Recipe> = {
     stageOverride: { usage_steps: 4, step_card: 4 },
     priority: { ingredient_highlight: 2, texture_feel: 2, usage_steps: 2 },
     rotation: ["frame", "split", "bleed", "zoom", "inset"], maxPerKind: {}, skip: [],
-    hero: "caption-below", specials: ["timeline", "chipwall"],
+    hero: "arch", specials: ["timeline", "chipwall"],
     note: "사용 루틴·성분, 프레임·분할",
   }),
   "beauty-inner": R({
@@ -103,7 +103,7 @@ export const RECIPES: Record<Exclude<ArchetypeId, "default">, Recipe> = {
     stageOverride: { usage_steps: 4, step_card: 4, certificate_evidence: 3 },
     priority: { ingredient_highlight: 3, certificate_evidence: 2, usage_steps: 1 },
     rotation: ["inset", "frame", "bleed", "split", "zoom"], maxPerKind: { number: 2 }, skip: [],
-    hero: "caption-below", specials: ["chipwall", "timeline"],
+    hero: "arch", specials: ["chipwall", "timeline"],
     note: "성분·섭취법·인증 앞세움, 신뢰 톤",
   }),
   "fashion-top": R({
@@ -111,7 +111,7 @@ export const RECIPES: Record<Exclude<ArchetypeId, "default">, Recipe> = {
     stageOverride: { fabric_composition: 4, fit_guide: 4 },
     priority: { detail_zoom: 3, texture_feel: 2, fabric_composition: 2, fit_guide: 1 },
     rotation: ["bleed", "zoom", "inset", "split", "frame"], maxPerKind: { zoom: 2 }, skip: ["callout"],
-    hero: "full-photo", specials: ["sizebars", "swatch"],
+    hero: null, specials: ["sizebars", "swatch"],
     note: "질감 클로즈업·소재·핏 앞세움, 풀블리드·확대",
   }),
   "fashion-bottom": R({
@@ -127,7 +127,7 @@ export const RECIPES: Record<Exclude<ArchetypeId, "default">, Recipe> = {
     stageOverride: { fabric_composition: 4 },
     priority: { detail_zoom: 3, fabric_composition: 2, seasonal_styling: 1, coordination: 1 },
     rotation: ["bleed", "inset", "zoom", "split", "frame"], maxPerKind: { bleed: 3 }, skip: ["callout"],
-    hero: "full-photo", specials: ["sizebars", "swatch"],
+    hero: "arch", specials: ["sizebars", "swatch"],
     note: "소재·디테일·계절 코디 앞세움, 풀블리드",
   }),
   "fashion-dress": R({
@@ -183,7 +183,7 @@ export const RECIPES: Record<Exclude<ArchetypeId, "default">, Recipe> = {
     stageOverride: {},
     priority: { ingredient_highlight: 3, texture_feel: 3 },
     rotation: ["bleed", "zoom", "frame", "split", "inset"], maxPerKind: { zoom: 2 }, skip: ["callout"],
-    hero: "bleed-bottom", specials: ["chipwall", "specstrip"],
+    hero: "arch", specials: ["chipwall", "specstrip"],
     note: "맛·원재료, 확대 컷",
   }),
   "living-home": R({
@@ -199,10 +199,15 @@ export const RECIPES: Record<Exclude<ArchetypeId, "default">, Recipe> = {
     stageOverride: { certificate_evidence: 3 },
     priority: { ingredient_highlight: 3, certificate_evidence: 2 },
     rotation: ["frame", "inset", "bleed", "zoom", "split"], maxPerKind: { frame: 2 }, skip: [],
-    hero: "caption-below", specials: ["chipwall", "swatch"],
+    hero: "arch", specials: ["chipwall", "swatch"],
     note: "안전·성분 앞세움, 프레임",
   }),
 };
+
+/** 팩이 히어로를 정하지 않은 classic(bleed-bottom)일 때만 아키타입 히어로로 바꾼다. 팩이 정한 히어로(패션 스타일 디렉터)는 그대로 */
+export function archetypeHeroLayout(layout: PackLayout, hero: HeroVariant | null | undefined): PackLayout {
+  return hero && layout.hero === "bleed-bottom" ? { ...layout, hero } : layout;
+}
 
 export function recipeFor(id: ArchetypeId): Recipe | null {
   return id === "default" ? null : RECIPES[id];
