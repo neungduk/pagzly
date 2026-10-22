@@ -539,7 +539,7 @@ export type CertificateEvidenceSection = {
 export type ImpactSection = {
   type: "impact";
   slot: "impact";
-  kind: "statement" | "number" | "bleed" | "split" | "callout" | "proof" | "reviewstat" | "illust-side" | "illust-center" | "asym2" | "mosaic3" | "inset" | "frame" | "stagger" | "zoom" | "story" | "fit" | "note" | "textboost" | "swatch" | "timeline" | "chipwall" | "specstrip" | "sizebars";
+  kind: "statement" | "number" | "bleed" | "split" | "callout" | "proof" | "reviewstat" | "illust-side" | "illust-center" | "asym2" | "mosaic3" | "inset" | "frame" | "stagger" | "zoom" | "story" | "fit" | "note" | "textboost" | "swatch" | "timeline" | "chipwall" | "specstrip" | "sizebars" | "checkgrid" | "bubbles" | "chat";
   /** statement 문장 · number 숫자 · bleed/split 제목(캡션). callout은 빈 문자열 */
   text: string;
   /** number 단위 */

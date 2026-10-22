@@ -18,6 +18,7 @@ import { planIllustrations } from "@/lib/illust-sections";
 import { planBoost } from "@/lib/impact-boost";
 import { planSpecials } from "@/lib/special-sections";
 import { planHeroV2 } from "@/lib/hero-spec";
+import { planReference } from "@/lib/reference-sections";
 import { ARCHETYPE_V1_ENABLED, detectArchetype, type ArchetypeResult } from "@/lib/product-archetype";
 import { MOODS, pickMood, recipeFor, type MoodId } from "@/lib/archetype-recipes";
 import type { HeroVariant } from "@/lib/style-packs";
@@ -380,7 +381,10 @@ export function applyDisplayRules(
   const withBoost = boost && boost.placed.length > 0 ? boost : withIllust0;
   // 436차 1-3 — 아키타입 특화 섹션(스와치·타임라인·칩 월·스펙 스트립·사이즈 막대): 레시피가 허용하고 입력 요건이 맞을 때만
   const specials = opts.claimFacts && COMPOSITION_V2_ENABLED && recipe ? planSpecials(withBoost.sections, withBoost.sourceIndexes, { recipe, facts: opts.claimFacts }) : null;
-  const withIllust = specials && specials.placed.length > 0 ? specials : withBoost;
+  const withSpecials = specials && specials.placed.length > 0 ? specials : withBoost;
+  // 437차 1-4 — 레퍼런스 반영 섹션(체크포인트 그리드·고민 말풍선·후기 요약 채팅): 입력 요건이 맞을 때만
+  const reference = opts.claimFacts && COMPOSITION_V2_ENABLED ? planReference(withSpecials.sections, withSpecials.sourceIndexes, { facts: opts.claimFacts }) : null;
+  const withIllust = reference && reference.placed.length > 0 ? reference : withSpecials;
   // 431차 2-2 — 갤러리를 사진 수에 맞는 새 레이아웃(비대칭 2장·모자이크 3장·스태거 2열)으로
   const photos = opts.claimFacts && COMPOSITION_V2_ENABLED ? planPhotoLayouts(withIllust.sections, withIllust.sourceIndexes, { category: opts.category, imageUrls, roles: opts.roles, origins: opts.origins }) : null;
   const withPhotos = photos && photos.placed.length > 0 ? photos : withIllust;

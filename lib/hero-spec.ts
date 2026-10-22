@@ -217,7 +217,7 @@ export function heroV2Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, a
       img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`) +
       `<div aria-hidden="true" style="position:absolute;left:0;right:0;top:0;height:22%;background:linear-gradient(180deg,rgba(10,10,10,0.5),rgba(10,10,10,0))"></div>` +
       `<div aria-hidden="true" style="position:absolute;left:0;right:0;bottom:0;height:68%;background:${scrimGradient()}"></div>` +
-      `<div style="position:absolute;left:0;right:0;top:0;padding:20px 20px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:8px">${brandPill(p, "rgba(10,10,10,0.5)", "#FFFFFF")}${badgeRow(p, "rgba(255,255,255,0.18)", "#FFFFFF", "rgba(255,255,255,0.5)")}</div>` +
+      `<div style="position:absolute;left:0;right:0;top:0;padding:20px 20px 0">${brandPill(p, "rgba(10,10,10,0.5)", "#FFFFFF")}${p.badges.length ? `<div style="margin-top:10px">${badgeRow(p, "rgba(10,10,10,0.38)", "#FFFFFF", "rgba(255,255,255,0.55)")}</div>` : ""}</div>` +
       `<div style="position:absolute;left:0;right:0;bottom:0;padding:0 24px 44px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.8)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.88)")}${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.55)")}</div></section>`
     );
   }
@@ -225,7 +225,7 @@ export function heroV2Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, a
     const face = saturatedFace(pal.accent);
     const photo = p.whiteBg
       ? `<div style="position:relative;margin:24px auto 0;width:84%;aspect-ratio:4 / 4.6">${img("position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply")}</div>`
-      : `<div style="position:relative;margin:24px auto 0;width:84%;aspect-ratio:4 / 4.9;border-radius:999px 999px 0 0;overflow:hidden;box-shadow:0 -10px 30px rgba(10,10,10,0.25);background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`;
+      : `<div style="position:relative;margin:20px auto 0;width:90%;aspect-ratio:4 / 4.9;border-radius:999px 999px 0 0;overflow:hidden;box-shadow:0 -10px 30px rgba(10,10,10,0.25);background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`;
     return (
       wrapOpen("B", `background:${face};isolation:isolate`) +
       `<div style="padding:28px 24px 0">${brandPill(p, "rgba(255,255,255,0.2)", "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.85)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.9)")}${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.6)")}</div>${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "rgba(255,255,255,0.18)", "#FFFFFF", "rgba(255,255,255,0.55)")}</div>` : ""}</div>` +
@@ -237,7 +237,7 @@ export function heroV2Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, a
     return (
       wrapOpen("C", `background:#0E0E10 radial-gradient(60% 45% at 50% 66%,${hexToRgba(pal.accent, 0.4)},rgba(14,14,16,0) 70%)`) +
       `<div style="padding:28px 24px 0;text-align:center">${brandPill(p, "rgba(255,255,255,0.14)", "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.75)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.82)")}<div style="display:flex;justify-content:center">${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.5)")}</div></div>${p.badges.length ? `<div style="margin-top:14px;display:flex;justify-content:center">${badgeRow(p, "rgba(255,255,255,0.12)", "#FFFFFF", "rgba(255,255,255,0.45)")}</div>` : ""}</div>` +
-      `<div style="position:relative;margin:28px auto 44px;width:80%;aspect-ratio:1 / 1;border-radius:24px;overflow:hidden;box-shadow:0 0 70px ${glow};background:#1B1B18">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div></section>`
+      `<div style="position:relative;margin:24px auto 44px;width:92%;aspect-ratio:1 / 1;border-radius:24px;overflow:hidden;box-shadow:0 0 70px ${glow};background:#1B1B18">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div></section>`
     );
   }
   if (p.variant === "D") {
@@ -245,7 +245,7 @@ export function heroV2Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, a
     const deep = mixHex(pal.deepAccent, "#000000", 0.35);
     return (
       wrapOpen("D", "background:#FFFFFF") +
-      `<div style="position:relative;width:100%;aspect-ratio:4 / 3.4;overflow:hidden;background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}<div style="position:absolute;left:0;top:0;padding:18px 20px">${brandPill(p, "rgba(255,255,255,0.9)", "#1B1B18")}</div></div>` +
+      `<div style="position:relative;width:100%;aspect-ratio:4 / 4.2;overflow:hidden;background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}<div style="position:absolute;left:0;top:0;padding:18px 20px">${brandPill(p, "rgba(255,255,255,0.9)", "#1B1B18")}</div></div>` +
       `<div style="background:${face};padding:28px 24px 44px">${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, deep, hexToRgba("#1B1B18", 0.78))}${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "#FFFFFF", "#1B1B18", hexToRgba("#1B1B18", 0.2))}</div>` : ""}${tagRow(p, "#1B1B18", hexToRgba("#1B1B18", 0.3))}</div></section>`
     );
   }
@@ -253,7 +253,7 @@ export function heroV2Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, a
   const face = pal.face;
   return (
     wrapOpen("E", `background:${face};padding:36px 24px 52px`) +
-    `<div>${brandPill(p, "#FFFFFF", "#1B1B18")}</div><div style="margin-top:20px">${nameHtml(p, "#1B1B18", Math.min(44, size + 4), 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, mixHex(pal.deepAccent, "#000000", 0.35), hexToRgba("#1B1B18", 0.78))}</div>` +
+    `<div>${brandPill(p, "#FFFFFF", "#1B1B18")}</div><div style="margin-top:20px">${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, mixHex(pal.deepAccent, "#000000", 0.35), hexToRgba("#1B1B18", 0.78))}</div>` +
     `<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-top:24px"><div style="flex:1 1 0%;min-width:0">${badgeRow(p, "#FFFFFF", "#1B1B18", hexToRgba("#1B1B18", 0.2))}${tagRow(p, "#1B1B18", hexToRgba("#1B1B18", 0.3))}</div>` +
     (p.imageUrl ? `<div style="flex:0 0 36%;max-width:180px;aspect-ratio:1 / 1;border-radius:50%;overflow:hidden;box-shadow:0 10px 24px rgba(10,10,10,0.18);background:${pal.baseNeutral}">${img(`display:block;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>` : "") +
     `</div></section>`

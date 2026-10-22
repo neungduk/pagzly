@@ -40,7 +40,7 @@ export async function run(): Promise<string[]> {
   const p = proofOf(withCert.sections);
   eq("인증 행", p?.stats?.map((r) => [r.tag, r.label, r.value]), [["시험 결과", "피부자극 테스트 완료", "자체, n=32"], ["인증", "비건 인증", "판매자 제공 정보"]]);
   // 위치: 근거 단계 앞(해결 구간 뒤), 히어로 직후 아님
-  const at = withCert.sections.findIndex((s) => s.type === "impact");
+  const at = withCert.sections.findIndex((s) => s.type === "impact" && s.kind === "proof");
   if (at < 2) fails.push("증빙 카드가 히어로 직후");
   // 규제 표현: 치료·완치 표현이 든 항목은 제외
   eq("규제 표현 제외", buildProofRows("여드름 치료 시험 결과, 피부자극 테스트 완료", "화장품/뷰티", F()).map((r) => r.label), ["피부자극 테스트 완료"]);

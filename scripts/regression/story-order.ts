@@ -61,7 +61,8 @@ export async function run(): Promise<string[]> {
   // 7) applyDisplayRules: 뷰티는 재정렬, 편집 모드·claimFacts 없음·전자(비대상)·flag off(storyOrderOn)는 불변
   const facts = buildClaimFacts({ productName: "미스트", brandName: "b", price: 1000, targetCustomer: "", keyFeatures: "미스트", ingredients: "" } as never);
   const input = [hero, brand, persona, qcheck, point("p1"), cta].map((s) => ({ ...s })) as DetailSection[];
-  const kinds = (xs: DetailSection[]) => xs.map((s) => s.type);
+  // 437차: 고민 말풍선(impact bubbles)은 target_persona를 표시만 바꾼 것이라 같은 종류로 센다
+  const kinds = (xs: DetailSection[]) => xs.map((s) => (s.type === "impact" && s.kind === "bubbles" ? "target_persona" : s.type));
   const beauty = applyDisplayRules(input, ["https://example.com/a.jpg", "https://example.com/b.jpg"], { category: "화장품/뷰티", claimFacts: facts });
   const kb = kinds(beauty.sections);
   if (kb.indexOf("target_persona") > kb.indexOf("brand_story")) fails.push("뷰티: 공감이 해결보다 먼저여야 함");
