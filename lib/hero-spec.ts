@@ -21,6 +21,8 @@ import { buildProofRows } from "@/lib/evidence-modules";
 import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 
 export const HERO_V2_ENABLED = process.env.NEXT_PUBLIC_HERO_V2 !== "off";
+/** 438차 조정(사진 면적 확보·텍스트 압축·스크림·실패 폴백). NEXT_PUBLIC_HERO_V2=prev 이면 437차 사양 그대로, off 이면 436차 히어로 */
+export const HERO_V2_TUNED = process.env.NEXT_PUBLIC_HERO_V2 !== "off" && process.env.NEXT_PUBLIC_HERO_V2 !== "prev";
 
 export const HERO_SPEC = {
   nameMinPx: 32, nameMaxPx: 44, nameWeights: [800, 900] as const, nameMaxLines: 2,
@@ -176,7 +178,9 @@ export function saturatedFace(accent: string): string {
 }
 
 /** 사진 위 스크림 불투명도 곡선(0=아래 끝). 텍스트 영역(아래 약 45%)에서 최소 scrimTextAlpha 이상 */
-export function scrimGradient(): string {
+export function scrimGradient(tuned: boolean = HERO_V2_TUNED): string {
+  // 438차: 알파 ≥0.6 구간을 텍스트 영역(하단 약 44%)에만 두고 그 위는 빠르게 투명하게 — 얼굴·상체가 덜 가려진다(대비는 텍스트 영역 기준 유지)
+  if (tuned) return "linear-gradient(0deg,rgba(10,10,10,0.9) 0%,rgba(10,10,10,0.74) 30%,rgba(10,10,10,0.6) 46%,rgba(10,10,10,0) 100%)";
   return "linear-gradient(0deg,rgba(10,10,10,0.9) 0%,rgba(10,10,10,0.78) 34%,rgba(10,10,10,0.62) 48%,rgba(10,10,10,0) 78%)";
 }
 /** 최악의 사진(흰색) 위 스크림 알파 a에서 흰 글자의 대비 — 회귀가 ≥4.5를 확인 */
@@ -194,29 +198,31 @@ const sans = `font-family:${DETAIL_FONT_STACK.sans}`;
 
 const nameHtml = (p: HeroV2Plan, color: string, size: number, weight: number): string =>
   `<h1 data-hero-name="${size}" style="margin:0;${title};font-size:${size}px;font-weight:${weight};letter-spacing:-0.03em;line-height:1.14;color:${color};word-break:keep-all;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:${HERO_SPEC.nameMaxLines};overflow:hidden">${esc(p.name)}</h1>`;
-const subNameHtml = (p: HeroV2Plan, color: string): string => (p.nameSub ? `<p style="margin:8px 0 0;${sans};font-size:12px;font-weight:600;letter-spacing:0.08em;line-height:1.3;color:${color};text-transform:uppercase">${esc(p.nameSub)}</p>` : "");
+const ONE_LINE = "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
+const subNameHtml = (p: HeroV2Plan, color: string): string => (p.nameSub ? `<p style="margin:8px 0 0;${HERO_V2_TUNED ? ONE_LINE : ""}${sans};font-size:12px;font-weight:600;letter-spacing:0.08em;line-height:1.3;color:${color};text-transform:uppercase">${esc(p.nameSub)}</p>` : "");
 const hookHtml = (hero: HeroSection, color: string, sub: string): string =>
   `<p data-hero-hook style="margin:14px 0 0;${title};font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.35;color:${color};word-break:keep-all">${esc(hero.headline)}</p>` +
-  (hero.subheadline ? `<p style="margin:8px 0 0;${sans};font-size:15px;font-weight:500;line-height:1.6;color:${sub};word-break:keep-all">${esc(hero.subheadline)}</p>` : "");
+  (hero.subheadline ? `<p style="margin:8px 0 0;${HERO_V2_TUNED ? ONE_LINE : ""}${sans};font-size:15px;font-weight:500;line-height:1.6;color:${sub};word-break:keep-all">${esc(hero.subheadline)}</p>` : "");
 const brandPill = (p: HeroV2Plan, bg: string, color: string): string =>
   p.brand ? `<span style="display:inline-block;padding:6px 12px;border-radius:999px;background:${bg};color:${color};${sans};font-size:12px;font-weight:700;letter-spacing:0.08em;line-height:1.2;text-transform:uppercase">${esc(p.brand)}</span>` : "";
 const badgeRow = (p: HeroV2Plan, bg: string, color: string, border: string): string =>
   p.badges.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${p.badges.map((b) => `<span style="display:inline-block;padding:5px 10px;border-radius:999px;background:${bg};border:1px solid ${border};color:${color};${sans};font-size:12px;font-weight:700;line-height:1.2">${esc(b)}</span>`).join("")}</div>` : "";
 const tagRow = (p: HeroV2Plan, color: string, border: string): string =>
-  p.tags.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:16px">${p.tags.map((t) => `<span style="display:inline-block;padding:6px 12px;border-radius:999px;border:1px solid ${border};color:${color};${sans};font-size:13px;font-weight:600;line-height:1.2">#${esc(t)}</span>`).join("")}</div>` : "";
+  p.tags.length ? `<div style="display:flex;flex-wrap:${HERO_V2_TUNED ? "nowrap;overflow:hidden" : "wrap"};gap:6px;margin-top:${HERO_V2_TUNED ? 12 : 16}px">${p.tags.map((t) => `<span style="display:inline-block;padding:6px 12px;border-radius:999px;border:1px solid ${border};color:${color};${sans};font-size:13px;font-weight:600;line-height:1.2">#${esc(t)}</span>`).join("")}</div>` : "";
 /** 가격 스트립(428)이 히어로 하단 경계에 걸쳐 한 덩어리로 보이게: 위로 20px 올리고 위쪽 모서리를 둥글게 */
 const STRIP_OVERLAP_CSS = `<style>[data-pz-strip]{position:relative;z-index:2;margin-top:-20px;border-radius:20px 20px 0 0;box-shadow:0 -6px 16px rgba(27,27,24,0.08)}</style>`;
+const STRIP_OVERLAP_CSS_TUNED = `<style>[data-pz-strip]{position:relative;z-index:2;margin-top:-12px;border-radius:16px 16px 0 0;box-shadow:0 -4px 12px rgba(27,27,24,0.08)}</style>`;
 
 export function heroV2Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: string): string {
   const size = heroNameSizePx(p.name);
   const img = (extra: string) => `<img src="${esc(p.imageUrl)}" alt="${esc(alt)}" fetchpriority="high" decoding="async" style="${extra}"/>`;
-  const wrapOpen = (v: HeroV2Variant, style: string) => `${STRIP_OVERLAP_CSS}<section data-hero-v2="${v}" class="hero pagzly-hero" style="position:relative;width:100%;box-sizing:border-box;overflow:hidden;border-radius:0 0 24px 24px;${style}">`;
+  const wrapOpen = (v: HeroV2Variant, style: string) => `${HERO_V2_TUNED ? STRIP_OVERLAP_CSS_TUNED : STRIP_OVERLAP_CSS}<section data-hero-v2="${v}" class="hero pagzly-hero" style="position:relative;width:100%;box-sizing:border-box;overflow:hidden;border-radius:0 0 24px 24px;${style}">`;
   if (p.variant === "A") {
     return (
       wrapOpen("A", "aspect-ratio:4 / 5.4;max-height:760px;background:#1B1B18") +
       img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`) +
-      `<div aria-hidden="true" style="position:absolute;left:0;right:0;top:0;height:22%;background:linear-gradient(180deg,rgba(10,10,10,0.5),rgba(10,10,10,0))"></div>` +
-      `<div aria-hidden="true" style="position:absolute;left:0;right:0;bottom:0;height:68%;background:${scrimGradient()}"></div>` +
+      `<div aria-hidden="true" style="position:absolute;left:0;right:0;top:0;height:${HERO_V2_TUNED ? 14 : 22}%;background:linear-gradient(180deg,rgba(10,10,10,${HERO_V2_TUNED ? 0.3 : 0.5}),rgba(10,10,10,0))"></div>` +
+      `<div aria-hidden="true" style="position:absolute;left:0;right:0;bottom:0;height:${HERO_V2_TUNED ? 62 : 68}%;background:${scrimGradient()}"></div>` +
       `<div style="position:absolute;left:0;right:0;top:0;padding:20px 20px 0">${brandPill(p, "rgba(10,10,10,0.5)", "#FFFFFF")}${p.badges.length ? `<div style="margin-top:10px">${badgeRow(p, "rgba(10,10,10,0.38)", "#FFFFFF", "rgba(255,255,255,0.55)")}</div>` : ""}</div>` +
       `<div style="position:absolute;left:0;right:0;bottom:0;padding:0 24px 44px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.92)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.96)")}${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.55)")}</div></section>`
     );
@@ -225,7 +231,7 @@ export function heroV2Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, a
     const face = saturatedFace(pal.accent);
     const photo = p.whiteBg
       ? `<div style="position:relative;margin:24px auto 0;width:84%;aspect-ratio:4 / 4.6">${img("position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply")}</div>`
-      : `<div style="position:relative;margin:20px auto 0;width:90%;aspect-ratio:4 / 4.9;border-radius:999px 999px 0 0;overflow:hidden;box-shadow:0 -10px 30px rgba(10,10,10,0.25);background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`;
+      : `<div style="position:relative;margin:${HERO_V2_TUNED ? 16 : 20}px auto 0;width:${HERO_V2_TUNED ? 96 : 90}%;aspect-ratio:${HERO_V2_TUNED ? "4 / 5.2" : "4 / 4.9"};border-radius:999px 999px 0 0;overflow:hidden;box-shadow:0 -10px 30px rgba(10,10,10,0.25);background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`;
     return (
       wrapOpen("B", `background:${face};isolation:isolate`) +
       `<div style="padding:28px 24px 0">${brandPill(p, "rgba(255,255,255,0.2)", "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "#FFFFFF")}${hookHtml(hero, "#FFFFFF", "#FFFFFF")}${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.6)")}</div>${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "rgba(255,255,255,0.18)", "#FFFFFF", "rgba(255,255,255,0.55)")}</div>` : ""}</div>` +
@@ -237,7 +243,7 @@ export function heroV2Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, a
     return (
       wrapOpen("C", `background:#0E0E10 radial-gradient(60% 45% at 50% 66%,${hexToRgba(pal.accent, 0.4)},rgba(14,14,16,0) 70%)`) +
       `<div style="padding:28px 24px 0;text-align:center">${brandPill(p, "rgba(255,255,255,0.14)", "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.75)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.82)")}<div style="display:flex;justify-content:center">${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.5)")}</div></div>${p.badges.length ? `<div style="margin-top:14px;display:flex;justify-content:center">${badgeRow(p, "rgba(255,255,255,0.12)", "#FFFFFF", "rgba(255,255,255,0.45)")}</div>` : ""}</div>` +
-      `<div style="position:relative;margin:24px auto 44px;width:92%;aspect-ratio:1 / 1;border-radius:24px;overflow:hidden;box-shadow:0 0 70px ${glow};background:#1B1B18">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div></section>`
+      `<div style="position:relative;margin:${HERO_V2_TUNED ? 16 : 24}px auto ${HERO_V2_TUNED ? 32 : 44}px;width:${HERO_V2_TUNED ? 96 : 92}%;aspect-ratio:${HERO_V2_TUNED ? "1 / 1.3" : "1 / 1"};border-radius:24px;overflow:hidden;box-shadow:0 0 70px ${glow};background:#1B1B18">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div></section>`
     );
   }
   if (p.variant === "D") {
@@ -245,7 +251,7 @@ export function heroV2Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, a
     const deep = mixHex(pal.deepAccent, "#000000", 0.35);
     return (
       wrapOpen("D", "background:#FFFFFF") +
-      `<div style="position:relative;width:100%;aspect-ratio:4 / 4.2;overflow:hidden;background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}<div style="position:absolute;left:0;top:0;padding:18px 20px">${brandPill(p, "rgba(255,255,255,0.9)", "#1B1B18")}</div></div>` +
+      `<div style="position:relative;width:100%;aspect-ratio:${HERO_V2_TUNED ? "4 / 4.8" : "4 / 4.2"};overflow:hidden;background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}<div style="position:absolute;left:0;top:0;padding:18px 20px">${brandPill(p, "rgba(255,255,255,0.9)", "#1B1B18")}</div></div>` +
       `<div style="background:${face};padding:28px 24px 44px">${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, deep, hexToRgba("#1B1B18", 0.78))}${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "#FFFFFF", "#1B1B18", hexToRgba("#1B1B18", 0.2))}</div>` : ""}${tagRow(p, "#1B1B18", hexToRgba("#1B1B18", 0.3))}</div></section>`
     );
   }
@@ -258,6 +264,13 @@ export function heroV2Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, a
     (p.imageUrl ? `<div style="flex:0 0 36%;max-width:180px;aspect-ratio:1 / 1;border-radius:50%;overflow:hidden;box-shadow:0 10px 24px rgba(10,10,10,0.18);background:${pal.baseNeutral}">${img(`display:block;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>` : "") +
     `</div></section>`
   );
+}
+
+/** 438차: 배지+해시태그 합쳐 최대 3개(배지 우선), 모델 사진 풀블리드(A)는 태그 최대 2개 — 줄바꿈 없이 한 줄 */
+function tunedTags(tags: string[], badgeCount: number, variant: HeroV2Variant, kind: HeroPhotoKind): string[] {
+  if (!HERO_V2_TUNED) return tags;
+  const room = Math.max(0, 3 - badgeCount);
+  return tags.slice(0, variant === "A" && kind === "person" ? Math.min(2, room) : room);
 }
 
 // ── 계획 만들기 ─────────────────────────────────────────────────────────────
@@ -294,8 +307,8 @@ export function planHeroV2(i: HeroPlanInput): HeroV2Plan | null {
     variant, photoKind: est.kind, confidence: est.confidence, name: main, ...(sub ? { nameSub: sub } : {}), ...(brand && brand.length <= 24 ? { brand } : {}),
     imageUrl: url, whiteBg: est.whiteBg && variant === "B",
     badges: heroBadgesFrom(i.hero, i.certifications, i.category, i.facts),
-    tags: hashtagsFrom(i.keyFeatures, i.facts),
-    pos: i.wornTop ? "50% 18%" : "50% 40%",
+    tags: tunedTags(hashtagsFrom(i.keyFeatures, i.facts), heroBadgesFrom(i.hero, i.certifications, i.category, i.facts).length, variant, est.kind),
+    pos: i.wornTop ? "50% 18%" : HERO_V2_TUNED && est.kind === "product" ? "50% 28%" : "50% 40%",
   };
 }
 

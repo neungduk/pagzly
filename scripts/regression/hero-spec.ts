@@ -60,7 +60,8 @@ export async function run(): Promise<string[]> {
   eq("인증 입력은 원문 그대로(최대 3개)", heroBadgesFrom({ ...hero, badge: "30mL" }, "피부자극 테스트 완료(자체, n=32), 비건 인증", "화장품/뷰티", F({ certifications: "피부자극 테스트 완료(자체, n=32), 비건 인증" })), ["30mL", "피부자극 테스트 완료", "비건 인증"]);
   // 대비
   if (worstCaseScrimContrast(HERO_SPEC.scrimTextAlpha) < 4.5) fails.push(`스크림 최악 대비 ${worstCaseScrimContrast(HERO_SPEC.scrimTextAlpha).toFixed(2)} < 4.5`);
-  if (!/rgba\(10,10,10,0\.78\) 34%/.test(scrimGradient())) fails.push("스크림 곡선 변경됨(텍스트 영역 알파 ≥0.6 확인 필요)");
+  // 438차: 알파 ≥0.6 구간(하단 46%)이 텍스트 영역(약 44%)을 덮는지(조정판), 437차 곡선은 그대로(prev)
+  if (!/rgba\(10,10,10,0\.6\) 46%/.test(scrimGradient(true)) || !/rgba\(10,10,10,0\.78\) 34%/.test(scrimGradient(false))) fails.push("스크림 곡선 변경됨(텍스트 영역 알파 ≥0.6 확인 필요)");
   for (const accent of ["#2B6CB0", "#F0B6C6", "#E3A72E", "#F5F5DC", "#1F4E5F", "#C22A3A", "#7FA38A"]) {
     const face = saturatedFace(accent);
     const r = contrastRatioToken("#FFFFFF", face);
