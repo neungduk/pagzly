@@ -16,21 +16,28 @@ export function moodOf(id: string | undefined | null): MoodTokens {
 
 const TITLE_FF = `font-family:${DETAIL_FONT_STACK.sansDisplayHeadline}`;
 const scaleRadius = (v: string, r: number): string =>
-  v.replace(/(\d+(?:\.\d+)?)px/g, (m, n: string) => (Number(n) >= 100 ? m : `${Math.max(0, Math.round(Number(n) * r))}px`));
+  v.replace(/(\d+(?:\.\d+)?)px/g, (m, n: string) => (Number(n) >= 100 || Number(n) === 0 ? m : `${Math.max(1, Math.round(snapRadius(Number(n)) * r))}px`));
+
+/** 436차 1-5 — 토큰 단계: 임팩트 블록마다 제각각이던 값(여백 32/40/44/48/56/64, 반경 6/10/12/14/18/28, 그림자 알파 0.06~0.28)을 단계로 맞춘다 */
+export const PAD_TIERS = [32, 48, 64] as const; // 조밀 · 보통 · 여유
+export const RADIUS_TIERS = [8, 16, 24] as const; // 작게 · 보통 · 크게(알약 999px·원 50%는 그대로)
+export const SHADOW_ALPHA_TIERS = [0.1, 0.18] as const; // 약 · 강
+const snapPad = (n: number): number => (n <= 36 ? PAD_TIERS[0] : n <= 52 ? PAD_TIERS[1] : PAD_TIERS[2]);
+const snapRadius = (n: number): number => (n <= 9 ? RADIUS_TIERS[0] : n <= 20 ? RADIUS_TIERS[1] : RADIUS_TIERS[2]);
+const snapAlpha = (a: number): number => (a <= 0.12 ? SHADOW_ALPHA_TIERS[0] : SHADOW_ALPHA_TIERS[1]);
 
 export function applyMood(html: string, k: MoodTokens): string {
   let out = html;
-  if (k.pad !== 1) {
+  {
     // 첫 태그(섹션)의 상하 여백만 배율 적용: padding:Apx Bpx(Cpx) 형태의 첫 값(상)과 마지막 값(하)
     out = out.replace(/^(<section[^>]*?style="[^"]*?padding:)(\d+)px(?: (\d+)px)?(?: (\d+)px)?(?: (\d+)px)?/, (_m, pre: string, a: string, b?: string, c?: string, d?: string) => {
-      const sc = (v: string) => `${Math.round(Number(v) * k.pad)}px`;
+      const sc = (v: string) => `${Math.round(snapPad(Number(v)) * k.pad)}px`;
       return `${pre}${sc(a)}${b ? ` ${b}px` : ""}${c ? ` ${sc(c)}` : ""}${d ? ` ${d}px` : ""}`;
     });
   }
-  if (k.r !== 1) out = out.replace(/border-radius:([^;"]+)/g, (_m, v: string) => `border-radius:${/%|999px/.test(v) ? v : scaleRadius(v, k.r)}`);
-  if (k.sh !== 1) {
-    out = out.replace(/box-shadow:([^;"]+)/g, (_m, v: string) => `box-shadow:${v.replace(/rgba\(([^)]*?),\s*([\d.]+)\)/g, (_x, rgb: string, a: string) => `rgba(${rgb}, ${Math.min(0.5, Number(a) * k.sh).toFixed(3).replace(/0+$/, "").replace(/\.$/, "")})`)}`);
-  }
+  out = out.replace(/border-radius:([^;"]+)/g, (_m, v: string) => `border-radius:${/%|999px/.test(v) ? v : scaleRadius(v, k.r)}`);
+  // 그림자 알파를 약(0.10)·강(0.18) 두 단계로 맞춘 뒤 mood 세기를 곱한다(0.3 이상인 진한 그림자는 확대 배지 등 의도된 값이라 그대로)
+  out = out.replace(/box-shadow:([^;"]+)/g, (_m, v: string) => `box-shadow:${v.replace(/rgba\(([^)]*?),\s*([\d.]+)\)/g, (x, rgb: string, a: string) => (Number(a) >= 0.3 || Number(a) === 0 ? x : `rgba(${rgb}, ${(snapAlpha(Number(a)) * k.sh).toFixed(3).replace(/0+$/, "").replace(/\.$/, "")})`))}`);
   // 제목 굵기·자간(굵기 700 이상인 제목 글꼴 요소만)
   if (k.titleWeight !== 800 || k.titleTracking !== "-0.02em") {
     const re = new RegExp(`(${TITLE_FF.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")};font-size:[^;]+;font-weight:)(\\d+)(;letter-spacing:)([^;"]+)`, "g");

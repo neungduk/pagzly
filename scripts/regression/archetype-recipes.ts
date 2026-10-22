@@ -86,10 +86,14 @@ export async function run(): Promise<string[]> {
   if (moods.length > 0 && moods.some((m) => m !== typed.archetype?.mood)) fails.push("임팩트 블록에 mood가 안 찍힘");
   eq("편집 모드는 archetype 없음", applyDisplayRules(gen(), urls, { category: "전자제품", claimFacts: facts("블루투스 이어버드", "ANC"), editing: true }).archetype, undefined);
   // applyMood: 항등·변환
-  const html = `<section data-pz-impact="x" style="padding:40px 24px;background:#fff"><div style="border-radius:14px;box-shadow:0 4px 12px rgba(27, 27, 24, 0.2)"></div><p style="font-family:var(--pz-f-title, 'Noto Sans KR', system-ui, -apple-system, 'Malgun Gothic', sans-serif);font-size:22px;font-weight:800;letter-spacing:-0.02em">제목</p></section>`;
-  eq("중립 mood는 항등", applyMood(html, NEUTRAL_MOOD), html);
+  const html = `<section data-pz-impact="x" style="padding:48px 24px;background:#fff"><div style="border-radius:16px;box-shadow:0 4px 12px rgba(27, 27, 24, 0.18)"></div><p style="font-family:var(--pz-f-title, 'Noto Sans KR', system-ui, -apple-system, 'Malgun Gothic', sans-serif);font-size:22px;font-weight:800;letter-spacing:-0.02em">제목</p></section>`;
+  eq("단계에 맞는 입력 + 중립 mood는 항등", applyMood(html, NEUTRAL_MOOD), html);
+  // 토큰 단계 스냅(1-5): 여백 32/48/64·반경 8/16/24·그림자 알파 0.10/0.18, 알약·원·진한 그림자는 그대로
+  const odd = html.replace("padding:48px", "padding:44px").replace("border-radius:16px", "border-radius:14px").replace("0.18", "0.2");
+  eq("임의 값이 단계로 맞춰짐", applyMood(odd, NEUTRAL_MOOD), html);
+  eq("알약·원은 그대로", applyMood(`<section style="padding:48px 24px"><span style="border-radius:999px"></span><i style="border-radius:50%"></i></section>`, { ...NEUTRAL_MOOD, r: 0.5 }), `<section style="padding:48px 24px"><span style="border-radius:999px"></span><i style="border-radius:50%"></i></section>`);
   const airy = applyMood(html, { ...NEUTRAL_MOOD, pad: 1.2, r: 0.5, sh: 0.5, titleWeight: 700, titleTracking: "0.005em" });
-  if (!airy.includes("padding:48px 24px") || !airy.includes("border-radius:7px") || !airy.includes("rgba(27, 27, 24, 0.1)") || !airy.includes("font-weight:700;letter-spacing:0.005em")) fails.push(`applyMood 변환: ${airy}`);
+  if (!airy.includes("padding:58px 24px") || !airy.includes("border-radius:8px") || !airy.includes("rgba(27, 27, 24, 0.09)") || !airy.includes("font-weight:700;letter-spacing:0.005em")) fails.push(`applyMood 변환: ${airy}`);
   // 히어로(1-4): 팩이 히어로를 정하지 않은 classic일 때만 아키타입 히어로, 팩이 정한 히어로는 그대로, export에 arch 마크업
   eq("classic이면 아키타입 히어로", archetypeHeroLayout({ ...CLASSIC_LAYOUT, hero: "bleed-bottom" }, "arch").hero, "arch");
   eq("팩이 정한 히어로는 유지", archetypeHeroLayout({ ...CLASSIC_LAYOUT, hero: "full-photo" }, "arch").hero, "full-photo");
