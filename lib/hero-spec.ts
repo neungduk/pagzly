@@ -21,7 +21,10 @@ import { buildProofRows } from "@/lib/evidence-modules";
 import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 import { polishTitles } from "@/lib/typo-rhythm";
-import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
+import { DESIGN_V4_ENABLED, designV4On } from "@/lib/design-v4";
+import { designV2On } from "@/lib/design-v2";
+import { motifSvg } from "@/lib/motifs";
+import { v4Palette } from "@/lib/palette-v4";
 
 export const HERO_V2_ENABLED = process.env.NEXT_PUBLIC_HERO_V2 !== "off";
 /** 438차 조정(사진 면적 확보·텍스트 압축·스크림·실패 폴백). NEXT_PUBLIC_HERO_V2=prev 이면 437차 사양 그대로, off 이면 436차 히어로 */
@@ -64,7 +67,52 @@ export type HeroV2Plan = {
   tags: string[];
   /** 사진 object-position */
   pos: string;
+  /** 439차 2-4 — 히어로 v3 레이어(DESIGN_V4). 없으면 438차 히어로 */
+  v3?: HeroV3;
 };
+
+/**
+ * 439차 2-4 — 히어로 v3: 레이어 합성. 레이어 순서(아래 → 위)를 데이터로 두고 변형 A~E에 매핑한다.
+ *  face(배경 면) → motif(모티프) → ghost(거대 고스트 제품명, 옅게) → photo(제품 사진: 고스트 글자 앞으로 겹쳐 올라옴) → name·hook(제품명·훅) → chips·price(칩·가격 태그) → sticker(원형 스티커 배지)
+ * 장식 레이어(motif·ghost·sticker)는 사진 영역에만 겹치고(sticker는 사진 위, ghost·motif는 사진 뒤), 글 블록은 그보다 위 z에 있어 가려지지 않는다.
+ * 글자는 모두 입력: 고스트=제품명(영문/한글 중 짧은 쪽), 스티커=입력 배지(인증·시험) 또는 구매 혜택 한 개, 가격=입력 가격(가격 스트립이 없는 카테고리에서만 — 중복 방지).
+ * 사진 실패 폴백(438)은 그대로: 사진·스티커가 함께 접히고(data-hero-photo), 고스트·글은 남는다.
+ */
+export type HeroLayerId = "face" | "motif" | "ghost" | "photo" | "name" | "hook" | "chips" | "price" | "sticker";
+export const HERO_LAYER_ORDER: readonly HeroLayerId[] = ["face", "motif", "ghost", "photo", "name", "hook", "chips", "price", "sticker"];
+/** 레이어 z(같은 값은 같은 층) */
+export const HERO_LAYER_Z: Record<HeroLayerId, number> = { face: 0, motif: 1, ghost: 2, photo: 3, name: 4, hook: 4, chips: 5, price: 5, sticker: 6 };
+/** 변형별로 쓰는 v3 레이어와 그 영역(photo = 사진 영역에만 겹침, text = 글 블록 안 흐름) */
+export const HERO_V3_LAYERS: Record<HeroV2Variant, Array<{ id: "motif" | "ghost" | "sticker" | "price"; region: "photo" | "text" }>> = {
+  A: [{ id: "sticker", region: "photo" }, { id: "price", region: "text" }],
+  B: [{ id: "motif", region: "photo" }, { id: "ghost", region: "photo" }, { id: "sticker", region: "photo" }, { id: "price", region: "text" }],
+  C: [{ id: "motif", region: "photo" }, { id: "ghost", region: "photo" }, { id: "sticker", region: "photo" }, { id: "price", region: "text" }],
+  D: [{ id: "ghost", region: "text" }, { id: "sticker", region: "photo" }, { id: "price", region: "text" }],
+  E: [{ id: "motif", region: "text" }, { id: "ghost", region: "text" }, { id: "sticker", region: "photo" }, { id: "price", region: "text" }],
+};
+export type HeroV3 = { ghost?: string; sticker?: string; price?: string; motifVariant: number; mood: string | null };
+
+/** 고스트 글자: 영문 보조줄과 한글 주 제품명 중 짧은 쪽(2자 이상) */
+export function ghostWordOf(name: string, nameSub?: string): string {
+  const cands = [name, nameSub ?? ""].map((s) => s.trim()).filter((s) => [...s].length >= 2);
+  if (!cands.length) return "";
+  const best = cands.reduce((a, b) => ([...b].length < [...a].length ? b : a));
+  return /[가-힣]/.test(best) ? best : best.toUpperCase();
+}
+
+/** 스티커 글: 12자 이하 한 개 */
+export const STICKER_MAX = 12;
+
+/** 흰 글자가 4.5:1 이상이 될 때까지 검정 쪽으로 섞은 면(스티커·가격 태그 바탕) */
+export function darkenForWhite(hex: string, min = 4.5): string {
+  for (let k = 0; k <= 1.0001; k += 0.05) { const c = mixHex(hex, "#000000", k); if (contrastRatioToken("#FFFFFF", c) >= min) return c; }
+  return "#000000";
+}
+/** 글자색 fg가 고스트 위에서도 4.5:1이 되는 가장 진한 고스트 섞기(면에서 흰색/잉크 쪽으로 t만큼) */
+export function ghostColor(face: string, fg: string, toward: string): string {
+  for (const t of [0.16, 0.12, 0.08, 0.05, 0.03]) { const c = mixHex(face, toward, t); if (contrastRatioToken(fg, c) >= 4.5) return c; }
+  return face;
+}
 
 const esc = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -261,7 +309,36 @@ export function heroV2Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, a
   return polishTitles(heroV2HtmlBase(hero, p, pal, alt));
 }
 
+// ── 439차 2-4 히어로 v3 레이어 마크업 ─────────────────────────────────────────
+/** 고스트 글자 크기(px): 짧을수록 크게 */
+export const ghostPx = (word: string): number => { const n = [...word].length; return n <= 4 ? 120 : n <= 6 ? 96 : n <= 9 ? 76 : 60; };
+const layerAttrs = (id: HeroLayerId) => `data-hl="${id}" data-hz="${HERO_LAYER_Z[id]}"`;
+function v3Ghost(p: HeroV2Plan, color: string, place: string): string {
+  const g = p.v3?.ghost;
+  return g ? `<span aria-hidden="true" ${layerAttrs("ghost")} style="position:absolute;${place};${title};font-size:${ghostPx(g)}px;font-weight:900;letter-spacing:-0.05em;line-height:0.9;color:${color};white-space:nowrap;pointer-events:none">${esc(g)}</span>` : "";
+}
+function v3Motif(p: HeroV2Plan, pal: HeroPalette, color: string, place: string, id: "blob" | "rings" | "dots", w: number, h: number): string {
+  if (!p.v3) return "";
+  return `<span aria-hidden="true" ${layerAttrs("motif")} style="position:absolute;${place};width:${w}px;height:${h}px;pointer-events:none">${motifSvg(id, w, h, { a: color, b: color, c: color }, p.v3.motifVariant)}</span>`;
+}
+function v3Sticker(p: HeroV2Plan, pal: HeroPalette, place: string): string {
+  const s = p.v3?.sticker;
+  if (!s) return "";
+  const bg = darkenForWhite(v4Palette({ accent: pal.accent, deep: pal.deepAccent }, p.v3!.mood).point);
+  const words = s.split(/\s+/);
+  const half = Math.ceil(words.length / 2);
+  const lines = words.length >= 2 ? [words.slice(0, half).join(" "), words.slice(half).join(" ")] : [s];
+  return (
+    `<span data-hero-photo ${layerAttrs("sticker")} style="position:absolute;${place};width:84px;height:84px;transform:rotate(-8deg)">${motifSvg("sticker", 84, 84, { a: bg, b: bg, c: bg })}` +
+    `<span style="position:absolute;left:0;top:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;padding:12px;text-align:center;${sans};font-size:12px;font-weight:800;line-height:1.2;color:#FFFFFF;word-break:keep-all">${lines.map(esc).join("<br/>")}</span></span>`
+  );
+}
+function v3Price(p: HeroV2Plan, bg: string, fg: string): string {
+  return p.v3?.price ? `<div style="margin-top:14px"><span ${layerAttrs("price")} style="display:inline-block;padding:7px 18px 7px 12px;border-radius:4px 999px 999px 4px;background:${bg};${title};font-size:18px;font-weight:900;letter-spacing:-0.01em;line-height:1.2;color:${fg};white-space:nowrap">${esc(p.v3.price)}</span></div>` : "";
+}
+
 function heroV2HtmlBase(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: string): string {
+  if (p.v3) return heroV3Html(hero, p, pal, alt);
   const size = heroNameSizePx(p.name);
   const failAttrs = HERO_V2_TUNED ? ` onerror="${HERO_FAIL_ONERROR}" onload="${HERO_FAIL_ONLOAD}"` : "";
   const img = (extra: string) => `<img src="${esc(p.imageUrl)}" alt="${esc(alt)}" fetchpriority="high" decoding="async"${failAttrs} style="${extra}"/>`;
@@ -315,6 +392,71 @@ function heroV2HtmlBase(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt:
   );
 }
 
+/**
+ * 439차 2-4 — 히어로 v3 마크업. 438차 변형 A~E의 글·사진 배치를 그대로 두고 레이어(모티프·고스트·스티커·가격 태그)를 얹는다.
+ * z 규칙: 사진 감싸개(z 3) 안에서 모티프(-2) < 고스트(-1) < 사진(흐름) < 스티커(6) · 글 블록(z 4) — 장식은 글 위로 올라오지 않는다.
+ */
+function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: string): string {
+  const size = heroNameSizePx(p.name);
+  const failAttrs = ` onerror="${HERO_FAIL_ONERROR}" onload="${HERO_FAIL_ONLOAD}"`;
+  const img = (extra: string) => `<img src="${esc(p.imageUrl)}" alt="${esc(alt)}" fetchpriority="high" decoding="async"${failAttrs} style="${extra}"/>`;
+  const wrapOpen = (v: HeroV2Variant, style: string) => `${STRIP_OVERLAP_CSS_TUNED + HERO_FAIL_CSS + (v === "D" && p.brand ? HERO_FAIL_CSS_V4 : "")}<section data-hero-v2="${v}" data-hero-v3 class="hero pagzly-hero" style="position:relative;width:100%;box-sizing:border-box;overflow:hidden;border-radius:0 0 24px 24px;${style}">`;
+  const vp = v4Palette({ accent: pal.accent, deep: pal.deepAccent }, p.v3!.mood);
+  const priceBg = "#FFFFFF";
+  const priceFg = "#1B1B18";
+  if (p.variant === "A") {
+    return (
+      wrapOpen("A", "aspect-ratio:4 / 5.4;max-height:760px;background:#1B1B18") +
+      img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`) +
+      `<div aria-hidden="true" data-hero-scrim style="position:absolute;left:0;right:0;top:0;height:14%;background:linear-gradient(180deg,rgba(10,10,10,0.3),rgba(10,10,10,0))"></div>` +
+      `<div aria-hidden="true" data-hero-scrim style="position:absolute;left:0;right:0;bottom:0;height:62%;background:${scrimGradient(true)}"></div>` +
+      `<div data-hero-a-text style="position:absolute;left:0;right:0;top:0;padding:20px ${p.v3!.sticker ? 112 : 20}px 0 20px">${brandPill(p, "rgba(10,10,10,0.5)", "#FFFFFF")}${p.badges.length ? `<div style="margin-top:10px">${badgeRow(p, "rgba(10,10,10,0.38)", "#FFFFFF", "rgba(255,255,255,0.55)")}</div>` : ""}</div>` +
+      v3Sticker(p, pal, "top:18px;right:18px;z-index:6") +
+      `<div data-hero-a-text style="position:absolute;left:0;right:0;bottom:0;z-index:4;padding:0 24px 44px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.92)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.96)")}${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.55)")}${v3Price(p, priceBg, priceFg)}</div></section>`
+    );
+  }
+  if (p.variant === "B" || p.variant === "C") {
+    const isB = p.variant === "B";
+    const face = isB ? heroFaceColor(pal.accent, p.hueHint).face : "#0E0E10";
+    const ghost = v3Ghost(p, ghostColor(isB ? face : mixHex(face, pal.accent, 0.22), "#FFFFFF", "#FFFFFF"), "left:-2%;right:-2%;top:-0.55em;text-align:center;overflow:hidden;z-index:-1");
+    const motif = v3Motif(p, pal, isB ? mixHex(face, "#FFFFFF", 0.1) : mixHex("#0E0E10", pal.accent, 0.35), "left:50%;top:14%;margin-left:-230px;z-index:-2", "blob", 460, 380);
+    const photo = isB
+      ? p.whiteBg
+        ? `<div data-hero-photo style="position:relative;margin:24px auto 0;width:84%;aspect-ratio:4 / 4.6">${img("position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply")}</div>`
+        : `<div data-hero-photo style="position:relative;margin:16px auto 0;width:96%;aspect-ratio:4 / 5.2;border-radius:999px 999px 0 0;overflow:hidden;box-shadow:0 -10px 30px rgba(10,10,10,0.25);background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`
+      : `<div data-hero-photo style="position:relative;margin:16px auto 32px;width:96%;aspect-ratio:1 / 1.3;border-radius:24px;overflow:hidden;box-shadow:0 0 70px ${hexToRgba(pal.accent, 0.5)};background:#1B1B18">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`;
+    const text = isB
+      ? `<div style="position:relative;z-index:4;padding:28px 24px 0">${brandPill(p, "rgba(255,255,255,0.2)", "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "#FFFFFF")}${hookHtml(hero, "#FFFFFF", "#FFFFFF")}${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.6)")}</div>${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "rgba(255,255,255,0.18)", "#FFFFFF", "rgba(255,255,255,0.55)")}</div>` : ""}${v3Price(p, priceBg, priceFg)}</div>`
+      : `<div style="position:relative;z-index:4;padding:28px 24px 0;text-align:center">${brandPill(p, "rgba(255,255,255,0.14)", "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.75)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.82)")}<div style="display:flex;justify-content:center">${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.5)")}</div></div>${p.badges.length ? `<div style="margin-top:14px;display:flex;justify-content:center">${badgeRow(p, "rgba(255,255,255,0.12)", "#FFFFFF", "rgba(255,255,255,0.45)")}</div>` : ""}${v3Price(p, priceBg, priceFg)}</div>`;
+    return (
+      wrapOpen(p.variant, isB ? `background:${face};isolation:isolate` : `background:#0E0E10 radial-gradient(60% 45% at 50% 66%,${hexToRgba(pal.accent, 0.4)},rgba(14,14,16,0) 70%);isolation:isolate`) +
+      text +
+      `<div style="position:relative;z-index:3">${motif}${ghost}${photo}${v3Sticker(p, pal, `top:${isB ? -10 : 2}px;right:5%;z-index:6`)}</div></section>`
+    );
+  }
+  if (p.variant === "D") {
+    const face = pal.face;
+    const deep = mixHex(pal.deepAccent, "#000000", 0.35);
+    return (
+      wrapOpen("D", "background:#FFFFFF") +
+      `<div data-hero-photo style="position:relative;width:100%;aspect-ratio:4 / 4.8;overflow:hidden;background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}<div style="position:absolute;left:0;top:0;padding:18px 20px">${brandPill(p, "rgba(255,255,255,0.9)", "#1B1B18")}</div>${v3Sticker(p, pal, "right:16px;bottom:16px;z-index:6")}</div>` +
+      `<div style="position:relative;overflow:hidden;background:${face};padding:28px 24px 44px">${v3Ghost(p, ghostColor(face, "#1B1B18", vp.deep), "right:-6px;bottom:-0.1em;z-index:0")}` +
+      `<div style="position:relative;z-index:4">${p.brand ? `<div data-hero-brand-fallback style="margin:0 0 14px">${brandPill(p, "#FFFFFF", "#1B1B18")}</div>` : ""}${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, deep, hexToRgba("#1B1B18", 0.78))}${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "#FFFFFF", "#1B1B18", hexToRgba("#1B1B18", 0.2))}</div>` : ""}${tagRow(p, "#1B1B18", hexToRgba("#1B1B18", 0.3))}${v3Price(p, darkenForWhite(vp.deep), "#FFFFFF")}</div></div></section>`
+    );
+  }
+  // E 타이포
+  const face = pal.face;
+  return (
+    wrapOpen("E", `background:${face};padding:36px 24px 52px`) +
+    v3Motif(p, pal, vp.tints[3], "top:-18px;right:-18px;z-index:1", "rings", 96, 96) +
+    v3Ghost(p, ghostColor(face, "#1B1B18", vp.deep), "left:16px;bottom:-0.12em;z-index:2") +
+    `<div style="position:relative;z-index:4"><div>${brandPill(p, "#FFFFFF", "#1B1B18")}</div><div style="margin-top:20px">${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, mixHex(pal.deepAccent, "#000000", 0.35), hexToRgba("#1B1B18", 0.78))}</div>` +
+    `<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-top:24px"><div style="flex:1 1 0%;min-width:0">${badgeRow(p, "#FFFFFF", "#1B1B18", hexToRgba("#1B1B18", 0.2))}${tagRow(p, "#1B1B18", hexToRgba("#1B1B18", 0.3))}${v3Price(p, darkenForWhite(vp.deep), "#FFFFFF")}</div>` +
+    (p.imageUrl ? `<div style="position:relative;flex:0 0 36%;max-width:180px"><div data-hero-photo style="aspect-ratio:1 / 1;border-radius:50%;overflow:hidden;box-shadow:0 10px 24px rgba(10,10,10,0.18);background:${pal.baseNeutral}">${img(`display:block;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>${v3Sticker(p, pal, "top:-26px;left:-26px;z-index:6")}</div>` : "") +
+    `</div></div></section>`
+  );
+}
+
 /** 438차: 배지+해시태그 합쳐 최대 3개(배지 우선), 모델 사진 풀블리드(A)는 태그 최대 2개 — 줄바꿈 없이 한 줄 */
 function tunedTags(tags: string[], badgeCount: number, variant: HeroV2Variant, kind: HeroPhotoKind): string[] {
   if (!HERO_V2_TUNED) return tags;
@@ -338,6 +480,9 @@ export type HeroPlanInput = {
   certifications: string;
   keyFeatures: string;
   wornTop: boolean;
+  /** 439차 — 입력 가격(cta_price)·구매 혜택 배지(cta_price.badges). v3 가격 태그·스티커용 */
+  price?: number;
+  ctaBadges?: string[];
 };
 
 const okUrl = (u: string | undefined): string => (u && (/^(https?:)?\/\//i.test(u) || u.startsWith("/")) ? u : "");
@@ -352,14 +497,29 @@ export function planHeroV2(i: HeroPlanInput): HeroV2Plan | null {
   const variant = selectHeroVariant({ hasPhoto: Boolean(url), kind: est.kind, confidence: est.confidence, archetype: i.archetype, mood: i.mood, category: i.category });
   const { main, sub } = splitProductName(raw);
   const brand = (i.brandName ?? "").trim();
+  const badges = heroBadgesFrom(i.hero, i.certifications, i.category, i.facts);
+  const v3 = designV4On() && HERO_V2_TUNED ? heroV3Of(i, main, sub, badges) : null;
   return {
     ...(DESIGN_POLISH_ENABLED ? hueHintOf(`${raw} ${brand} ${i.keyFeatures}`, i.mood) : {}),
     variant, photoKind: est.kind, confidence: est.confidence, name: main, ...(sub ? { nameSub: sub } : {}), ...(brand && brand.length <= 24 ? { brand } : {}),
     imageUrl: url, whiteBg: est.whiteBg && variant === "B",
-    badges: heroBadgesFrom(i.hero, i.certifications, i.category, i.facts),
-    tags: tunedTags(hashtagsFrom(i.keyFeatures, i.facts), heroBadgesFrom(i.hero, i.certifications, i.category, i.facts).length, variant, est.kind),
+    badges: v3?.sticker && badges[0] === v3.sticker ? badges.slice(1) : badges,
+    tags: tunedTags(hashtagsFrom(i.keyFeatures, i.facts), badges.length, variant, est.kind),
     pos: i.wornTop ? "50% 18%" : HERO_V2_TUNED && est.kind === "product" ? "50% 28%" : "50% 40%",
+    ...(v3 ? { v3 } : {}),
   };
+}
+
+/** 439차 2-4 — v3 레이어 내용(모두 입력): 고스트 제품명·스티커(입력 배지 → 혜택 배지 한 개, 12자 이하)·가격 태그(가격 스트립이 없는 카테고리) */
+export function heroV3Of(i: HeroPlanInput, main: string, sub: string | undefined, badges: string[]): HeroV3 {
+  const strip = designV2On(i.category);
+  const benefit = strip ? undefined : (i.ctaBadges ?? []).map((b) => b.trim()).find((b) => b && [...b].length <= STICKER_MAX && !checkText(b, i.facts).bad);
+  const sticker = badges[0] && [...badges[0]].length <= STICKER_MAX ? badges[0] : benefit;
+  const price = !strip && typeof i.price === "number" && i.price > 0 ? `${i.price.toLocaleString("ko-KR")}원` : undefined;
+  const ghost = ghostWordOf(main, sub);
+  let seed = 0;
+  for (const ch of main) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
+  return { ...(ghost ? { ghost } : {}), ...(sticker ? { sticker } : {}), ...(price ? { price } : {}), motifVariant: seed % 8, mood: i.mood };
 }
 
 export const isHero = (s: DetailSection): s is HeroSection => s.type === "hero";

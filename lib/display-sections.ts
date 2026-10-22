@@ -288,6 +288,13 @@ export function photoLeadFlow(
   return rest;
 }
 
+/** 439차 — 히어로 v3 가격 태그·스티커용 입력(cta_price 가격·혜택 배지) */
+function ctaOf(sections: DetailSection[]): { price?: number; ctaBadges?: string[] } {
+  const cta = sections.find((s) => s.type === "cta_price");
+  if (!cta || cta.type !== "cta_price") return {};
+  return { ...(typeof cta.price === "number" ? { price: cta.price } : {}), ...(Array.isArray(cta.badges) ? { ctaBadges: cta.badges.filter((b): b is string => typeof b === "string") } : {}) };
+}
+
 export function applyDisplayRules(
   sectionsInput: DetailSection[],
   imageUrls: readonly string[],
@@ -403,7 +410,7 @@ export function applyDisplayRules(
   const finalOut1 = v4 && (v4.placed.length > 0 || v4.moved.length > 0 || v4.inserted.length > 0) ? { sections: v4.sections, sourceIndexes: v4.sourceIndexes } : finalOut1a;
   // 437차 — 첫 화면 히어로 재설계 계획(제품명이 입력에 있을 때만, 편집 모드·claimFacts 없음은 기존 히어로)
   const heroSec = finalOut1.sections[0];
-  const heroPlan = opts.claimFacts && !opts.editing && heroSec?.type === "hero" ? planHeroV2({ hero: heroSec, productName: opts.claimFacts.productName, brandName: opts.brandName, imageUrls, origins: opts.origins, tags: opts.tags, roles: opts.roles, category: opts.category, archetype: arche && !arche.fallback ? arche.id : null, mood, facts: opts.claimFacts, certifications: opts.claimFacts.source.certifications, keyFeatures: opts.claimFacts.source.keyFeatures, wornTop: heroSec.photoTopAnchored === true }) : null;
+  const heroPlan = opts.claimFacts && !opts.editing && heroSec?.type === "hero" ? planHeroV2({ hero: heroSec, productName: opts.claimFacts.productName, brandName: opts.brandName, imageUrls, origins: opts.origins, tags: opts.tags, roles: opts.roles, category: opts.category, archetype: arche && !arche.fallback ? arche.id : null, mood, facts: opts.claimFacts, certifications: opts.claimFacts.source.certifications, keyFeatures: opts.claimFacts.source.keyFeatures, wornTop: heroSec.photoTopAnchored === true, ...ctaOf(finalOut1.sections) }) : null;
   const finalOut = heroPlan && heroSec?.type === "hero" ? { sections: [({ ...heroSec, v2: heroPlan } as DetailSection), ...finalOut1.sections.slice(1)], sourceIndexes: finalOut1.sourceIndexes } : finalOut1;
   const policyChanges = policy ? [...policy.changes, ...(photo ? [{ type: "filled" as const, index: 0, kind: "photos" as const, reason: `사용하지 않은 사진 ${photo.indexes.join(",")}번`, slot: "backfill_photos" }] : [])] : undefined;
   return { sections: finalOut.sections, sourceIndexes: keptMap ? finalOut.sourceIndexes.map((i) => keptMap(i)) : finalOut.sourceIndexes, ...(policyChanges ? { policyChanges } : {}), ...(arche ? { archetype: { result: arche, mood, hero: recipe?.hero ?? null } } : {}) };
