@@ -2,6 +2,8 @@
  * 회귀 — 441차 1-1 제목 시스템(DESIGN_V4): 제목 CSS가 섹션 제목 26px·800을 서체 짝 규칙보다 높은 구체도로 지정,
  * 임팩트 카드 제목 굵기 3단(중 20~22 → 800, 소 18~19 → 700, 그 밖 불변), v4 title 26px, export에 제목 CSS 포함. 호출 0.
  */
+import fs from "node:fs";
+import { PERSONA_SINGLE } from "../../lib/design-tokens";
 import { HEADING_SECTION_PX, TYPE_SCALE_V4, headingSystemCss, tierHeadingWeights } from "../../lib/type-treatments";
 import { corpus, exportHtmlOf } from "../design-corpus";
 
@@ -20,6 +22,12 @@ export async function run(): Promise<string[]> {
   eq("소 600→700", tierHeadingWeights('<p style="font-size:18px;font-weight:600">a</p>'), '<p style="font-size:18px;font-weight:700">a</p>');
   eq("본문 400 불변", tierHeadingWeights('<p style="font-size:20px;font-weight:400">a</p>'), '<p style="font-size:20px;font-weight:400">a</p>');
   eq("큰 숫자 900 불변", tierHeadingWeights('<p style="font-size:22px;font-weight:900">a</p>'), '<p style="font-size:22px;font-weight:900">a</p>');
+  // 442차 — 페르소나 단일 라벨은 라이브·export가 같은 토큰을 읽는다: v4에서 20px·800(제목 위계 '중'), 두 렌더러가 토큰을 쓰는지 소스로 확인
+  if (PERSONA_SINGLE.fontPx !== 20 || PERSONA_SINGLE.weight !== 800) fails.push(`페르소나 라벨 토큰 ${PERSONA_SINGLE.fontPx}/${PERSONA_SINGLE.weight} ≠ 20/800`);
+  const liveSrc = fs.readFileSync("components/DetailSectionRenderer.tsx", "utf8");
+  const expSrc = fs.readFileSync("lib/export-detail-html.ts", "utf8");
+  if (!/fontSize: PERSONA_SINGLE\.fontPx/.test(liveSrc) || !/fontWeight: PERSONA_SINGLE\.weight/.test(liveSrc)) fails.push("라이브가 페르소나 토큰을 쓰지 않음");
+  if (!/font-size:\$\{one\.fontPx\}px;font-weight:\$\{one\.weight\}/.test(expSrc)) fails.push("export가 페르소나 토큰을 쓰지 않음");
   const [, f] = corpus()[0] ?? [];
   if (f && !exportHtmlOf(f).includes("section .pagzly-display-headline{font-weight:800!important}")) fails.push("export에 제목 CSS 없음");
   return fails;

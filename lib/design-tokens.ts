@@ -4,6 +4,7 @@
 // 배경색/여백/이미지 비율을 결정해야 한다.
 
 import type { CategoryTheme } from "@/lib/category-theme";
+import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
 
 // ---------------------------------------------------------------------------
 // 0. 브랜드 팔레트 — globals.css @theme 와 1:1 대응
@@ -1254,8 +1255,9 @@ export const PERSONA_SINGLE = {
   maxWidthPx: 480,
   ruleWidthPx: 32,
   ruleGapPx: 20,
-  fontPx: 18,
-  weight: 600,
+  // 442차 — v4에서는 제목 위계 '중'(20px·800)에 편입(R16 잔여: 18px/600 라벨). 라이브·export가 같은 토큰을 읽는다
+  fontPx: DESIGN_V4_ENABLED ? 20 : 18,
+  weight: DESIGN_V4_ENABLED ? 800 : 600,
   lineHeight: 1.5,
 } as const;
 
