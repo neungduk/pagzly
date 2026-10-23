@@ -5,7 +5,7 @@
  */
 import { BRAND, FLAT_PAPER, INFO_TABLE, hexToRgba } from "@/lib/design-tokens";
 import { classifyBoolishCell } from "@/lib/comparison-cell-classify";
-import { SPACE_V4, tokenDecl, type Decl } from "@/lib/design-tokens-v4";
+import { SPACE_V4, SPEC_LABEL_INK_ALPHA, tokenDecl, type Decl } from "@/lib/design-tokens-v4";
 
 /** 선언 목록 합치기 — 같은 속성은 뒤가 이긴다(순서는 처음 나온 위치) */
 export function mergeDecl(...lists: Decl[]): Decl {
@@ -45,11 +45,11 @@ export const TABLE_CELL_PAD_V4 = { y: 14, x: 16 } as const;
 /** 표 껍데기: 반경 3단 '중' + 흰 면. 일반 스펙은 hairline 테두리(위·아래 굵은 줄 대신), 배송 안내는 기존 accent 테두리 위에 반경만 */
 export const specWrapV4 = (isShipping: boolean, ink: string = BRAND.ink): Decl =>
   mergeDecl(tokenDecl("radius-md"), [["overflow", "hidden"]], isShipping ? [] : mergeDecl(tokenDecl("hairline", ink), [["background", FLAT_PAPER]]));
-/** 라벨 칸: 면(헤더 대신) + 진해진 글자(면 위 4.5:1 — 이전 55%는 면 위에서 부족) + 좌우 16 여백 */
+/** 라벨 칸: 면(헤더 대신) + 글자 잉크 알파 SPEC_LABEL_INK_ALPHA(면 위 4.5:1을 만족하는 가장 약한 값 — 이전 55%는 면 위에서 3.5:1) + 좌우 16 여백 */
 export const specLabelCellV4 = (accent: string, ink: string = BRAND.ink): Decl => [
   ["padding", `${TABLE_CELL_PAD_V4.y}px ${TABLE_CELL_PAD_V4.x}px`],
   ["background", hexToRgba(accent, INFO_TABLE.headerBgAlpha)],
-  ["color", hexToRgba(ink, 0.72)],
+  ["color", hexToRgba(ink, SPEC_LABEL_INK_ALPHA)],
   ["opacity", "1"],
 ];
 export const specValueCellV4 = (): Decl => [["padding", `${TABLE_CELL_PAD_V4.y}px ${TABLE_CELL_PAD_V4.x}px`]];

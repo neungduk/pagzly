@@ -51,6 +51,8 @@ export const SHADOW_V4 = {
   soft: { y: 6, blur: 16, alpha: 0.07 }, // 목록 속 카드(번호 카드 등)
   float: { y: 12, blur: 28, alpha: 0.13 }, // 사진·겹침 카드처럼 면 위에 떠 있는 것
 } as const;
+/** spec_table 라벨 글자 잉크 알파 — 라벨 면(accent 10%, 줄무늬 행은 7% 위에 10%) 위 4.5:1을 만족하는 가장 약한 값(합성 21종 최악 0.64 → 0.65, 444차 판단 2). 443차 0.72는 과했다 */
+export const SPEC_LABEL_INK_ALPHA = 0.65;
 export const HAIRLINE_ALPHA = 0.1; // 카드 테두리 한 가지(잉크 10%)
 export const DIVIDER_ALPHA = 0.18; // 구분선 선: 잉크 18% — 면 위 비텍스트 장식
 
