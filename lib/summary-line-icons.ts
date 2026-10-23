@@ -32,7 +32,7 @@ export type SummaryIconId =
   | "box"
   | "palette";
 
-const PATHS: Record<SummaryIconId, string> = {
+export const SUMMARY_ICON_PATHS: Record<SummaryIconId, string> = {
   check: '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/>',
   shield: '<path d="M12 3l7 3v5.5c0 4.4-3 8.2-7 9.5-4-1.3-7-5.1-7-9.5V6l7-3z"/><path d="M9 12l2 2 4-4"/>',
   award: '<circle cx="12" cy="9" r="5.5"/><path d="M8.5 13.5L7 21l5-2.5 5 2.5-1.5-7.5"/>',
@@ -139,7 +139,7 @@ const BENEFIT_RULES: [RegExp, SummaryIconId][] = [
   [/색상|컬러|색감/, "palette"],
 ];
 
-function benefitMatches(text: string): SummaryIconId[] {
+export function benefitMatches(text: string): SummaryIconId[] {
   const out: SummaryIconId[] = [];
   for (const [re, id] of BENEFIT_RULES) if (re.test(text) && !out.includes(id)) out.push(id);
   return out;
@@ -187,7 +187,7 @@ export function pickChecklistIcons(items: string[]): SummaryIconId[] {
 export const BENEFIT_ICON_PX = 34;
 
 export function summaryIconSvg(id: SummaryIconId, color: string, sizePx: number): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${sizePx}" height="${sizePx}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="display:block" aria-hidden="true">${PATHS[id]}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${sizePx}" height="${sizePx}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="display:block" aria-hidden="true">${SUMMARY_ICON_PATHS[id]}</svg>`;
 }
 
 export const SUMMARY_ICON_PX = 30;

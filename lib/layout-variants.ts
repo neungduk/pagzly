@@ -35,6 +35,7 @@ import { EYEBROW_LABEL, SANS_FF, TITLE_FF, esc, ghostHtml, highlightKeyword, key
 import { splitSentences } from "@/lib/impact-boost";
 import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import { groupPendingSpecRows, PENDING_SPEC_ROW_LABEL } from "@/lib/spec-placeholder";
+import { iconV4Svg, pickIconsV4 } from "@/lib/icons";
 
 export type V4Family = V4Block["family"];
 
@@ -153,13 +154,15 @@ function benefitsHtml(s: ImpactSection, b: V4Block, p: V4Palette, alt: string): 
       (first!.img ? `<div style="flex:0 0 40%;min-width:0;border-radius:18px;overflow:hidden;background:${p.tints[1]};box-shadow:0 8px 20px ${hexToRgba(p.ink, 0.12)}">${img(first!.img.url, alt, first!.img.pos)}</div>` : "") +
       `</div>`;
     const faces = ["#FFFFFF", p.tints[0], mixHex(p.secondary, "#FFFFFF", 0.84), p.tints[1]];
+    // 440차 3 — 작은 칸 전부 키워드 근거가 있으면 번호 대신 아이콘(흰 선 + 진한 면), 하나라도 없으면 번호 그대로
+    const icons = pickIconsV4(rest);
     const small = rest
       .map((it, i) => {
         const bg = faces[i % faces.length]!;
         const right = i % 2 === 1;
         return (
           `<div style="flex:1 1 calc(50% - 5px);min-width:140px;box-sizing:border-box;display:flex;flex-direction:column;align-items:${right ? "flex-end" : "flex-start"};text-align:${right ? "right" : "left"};padding:18px;border-radius:20px;background:${bg};${bg === "#FFFFFF" ? `border:1px solid ${hexToRgba(p.ink, 0.1)};` : ""}">` +
-          `<span style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:${i % 3 === 2 ? "10px" : "50%"};background:${p.deep};color:#FFFFFF;${SANS_FF};font-size:13px;font-weight:800">${NUM(i + 2)}</span>` +
+          `<span style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:${i % 3 === 2 ? "10px" : "50%"};background:${p.deep};color:#FFFFFF;${SANS_FF};font-size:13px;font-weight:800">${icons ? iconV4Svg(icons[i]!, { color: "#FFFFFF", px: 18 }) : NUM(i + 2)}</span>` +
           `<p style="margin:12px 0 0;${typeCss("card", p.ink, "font-size:16px")}">${esc(it.title)}</p>` +
           (it.body ? `<p style="margin:6px 0 0;${typeCss("small", mixHex(p.ink, "#FFFFFF", 0.18))}">${esc(it.body)}</p>` : "") +
           `</div>`
@@ -182,12 +185,14 @@ function benefitsHtml(s: ImpactSection, b: V4Block, p: V4Palette, alt: string): 
     return wrap(b, p, rows, { head });
   }
   if (b.variant === "iconstrip") {
+    // 440차 3 — 항목 전부 키워드 근거가 있으면 체크·번호 번갈이 대신 항목별 아이콘(듀오톤), 없으면 이전 그대로
+    const icons = pickIconsV4(items);
     const strip = `<div aria-hidden="true" style="display:flex;gap:6px;margin:0 0 18px">${items.map((_, i) => `<span style="flex:1 1 0%;height:6px;border-radius:999px;background:${i === 0 ? p.deep : p.tints[2]}"></span>`).join("")}</div>`;
     const rows = items
       .map(
         (it, i) =>
           `<div style="display:flex;align-items:center;gap:14px;padding:16px 0;${i ? `border-top:1px solid ${hexToRgba(p.ink, 0.1)}` : ""}">` +
-          `<span style="flex:none;display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:14px;background:${i % 2 ? p.tints[1] : p.deep}">${i % 2 ? `<span style="${SANS_FF};font-size:15px;font-weight:800;color:${p.deep}">${NUM(i + 1)}</span>` : CHECK("#FFFFFF", 20)}</span>` +
+          `<span style="flex:none;display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:14px;background:${i % 2 ? p.tints[1] : p.deep}">${icons ? iconV4Svg(icons[i]!, i % 2 ? { color: p.deep, px: 26, tint: p.tints[0] } : { color: "#FFFFFF", px: 26 }) : i % 2 ? `<span style="${SANS_FF};font-size:15px;font-weight:800;color:${p.deep}">${NUM(i + 1)}</span>` : CHECK("#FFFFFF", 20)}</span>` +
           `<div style="flex:1 1 0%;min-width:0"><p style="margin:0;${typeCss("card", p.ink, "font-size:16px")}">${esc(it.title)}</p>` +
           (it.body ? `<p style="margin:4px 0 0;${typeCss("small", on.sub)}">${esc(it.body)}</p>` : "") +
           `</div></div>`,
@@ -297,11 +302,13 @@ function specHtml(s: ImpactSection, b: V4Block, p: V4Palette): string {
     return wrap(b, p, `<div style="display:flex;flex-wrap:wrap;border-radius:20px;background:#FFFFFF;border:1px solid ${hexToRgba(p.ink, 0.1)}">${cells}</div>`, { head });
   }
   if (b.variant === "grid") {
+    // 440차 3 — 라벨 전부 키워드 근거가 있으면 라벨 앞에 작은 아이콘
+    const icons = pickIconsV4(items.map((it) => ({ title: it.title })));
     const cards = items
       .map(
-        (it) =>
+        (it, i) =>
           `<div style="flex:1 1 calc(50% - 5px);min-width:140px;box-sizing:border-box;padding:16px;border-radius:16px;background:#FFFFFF;border:1px solid ${hexToRgba(p.ink, 0.08)}">` +
-          `<p style="margin:0;${typeCss("label", p.deep, "letter-spacing:0.04em")}">${esc(it.title)}</p>` +
+          `<p style="margin:0;display:flex;align-items:center;gap:6px;${typeCss("label", p.deep, "letter-spacing:0.04em")}">${icons ? `<span style="flex:none">${iconV4Svg(icons[i]!, { color: p.deep, px: 18 })}</span>` : ""}${esc(it.title)}</p>` +
           `<p style="margin:8px 0 0;${typeCss("small", p.ink, "font-size:15px;font-weight:600;white-space:pre-line")}">${esc(it.body ?? "")}</p></div>`,
       )
       .join("");

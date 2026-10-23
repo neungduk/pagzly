@@ -112,11 +112,9 @@ import {
 import { parseCertificationTokens } from "@/lib/enrich-product-sections";
 import { extractTrustChips, splitChipCaption } from "@/lib/extract-trust-chips";
 import {
-  pickSummaryIcon,
   summaryChipWidth,
   summaryGridColumns,
   summaryIconSvg,
-  SUMMARY_ICON_PX,
   pickBenefitCardIcons,
   pickChecklistIcons,
   BENEFIT_ICON_PX,
@@ -168,6 +166,7 @@ import { HERO_V2_TUNED, heroPalette, heroV2Html } from "@/lib/hero-spec";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
 import { v4TextOn } from "@/lib/palette-v4";
+import { glanceIconSvg } from "@/lib/icons";
 import { typeFloorCss } from "@/lib/type-treatments";
 import { BEAUTY_HERO, HERO_ARCH, HERO_CAPTION, HERO_FRAME, HERO_STAGE_VARIANT, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroStageOn } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
@@ -331,7 +330,7 @@ function trustStripHtml(
                 token.includes(c) ||
                 c.toLowerCase().includes(token.toLowerCase())),
           );
-          const icon = summaryIconSvg(pickSummaryIcon(c), certHighlight ? accent : deepText, SUMMARY_ICON_PX);
+          const icon = glanceIconSvg(c, certHighlight ? accent : deepText, accent);
           const caption = splitChipCaption(c);
           const divider =
             FLAT_SECTION_SURFACES && i % summaryGridColumns(chips.length) !== 0

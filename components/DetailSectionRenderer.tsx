@@ -62,11 +62,9 @@ import { buildSectionImageAlt } from "@/lib/detail-image-alt";
 import { splitTextByKeywords } from "@/lib/review-insights";
 import { extractTrustChips, splitChipCaption } from "@/lib/extract-trust-chips";
 import {
-  pickSummaryIcon,
   summaryChipWidth,
   summaryGridColumns,
   summaryIconSvg,
-  SUMMARY_ICON_PX,
   pickBenefitCardIcons,
   pickChecklistIcons,
   BENEFIT_ICON_PX,
@@ -249,6 +247,7 @@ import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
 import { DESIGN_V4_ENABLED, hideImgOnError } from "@/lib/design-v4";
 import { typeFloorCss } from "@/lib/type-treatments";
 import { v4TextOn } from "@/lib/palette-v4";
+import { glanceIconSvg } from "@/lib/icons";
 
 export type SectionEditApi = {
   enabled: boolean;
@@ -1512,7 +1511,7 @@ function TrustStrip({
               <span
                 aria-hidden="true"
                 dangerouslySetInnerHTML={{
-                  __html: summaryIconSvg(pickSummaryIcon(chip), iconColor, SUMMARY_ICON_PX),
+                  __html: glanceIconSvg(chip, iconColor, theme.accent),
                 }}
               />
               <span
