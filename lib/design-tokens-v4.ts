@@ -148,9 +148,10 @@ export const toneOverlayStyle = (mood: string | undefined | null): string => {
 
 // ── 히어로 B형 고스트 글자 가장자리 페이드(443차 4-2) ─────────────────────────
 /** 고스트 글자 박스(좌우 -2%, 위 -0.55em, overflow:hidden)에 잘린 가장자리를 면 색 그라데이션 덮개로 녹인다 — mask·clip-path 없음 */
-export const GHOST_FADE_V4 = { sidePct: 14, topPct: 40 } as const;
-export const ghostFadeBackground = (face: string, withTop = true): string =>
-  `linear-gradient(90deg,${face} 0%,${inkRgba(face, 0)} ${GHOST_FADE_V4.sidePct}%,${inkRgba(face, 0)} ${100 - GHOST_FADE_V4.sidePct}%,${face} 100%)${withTop ? `,linear-gradient(180deg,${face} 0%,${inkRgba(face, 0)} ${GHOST_FADE_V4.topPct}%)` : ""}`;
+export const GHOST_FADE_V4 = { sidePct: 22, topPct: 40, bottomPct: 30 } as const; // 444차: 14 → 22 (D형 눈 검수에서 왼쪽 잘린 글자가 아직 또렷)
+export const ghostFadeBackground = (face: string, vertical: "top" | "bottom" = "top"): string =>
+  `linear-gradient(90deg,${face} 0%,${inkRgba(face, 0)} ${GHOST_FADE_V4.sidePct}%,${inkRgba(face, 0)} ${100 - GHOST_FADE_V4.sidePct}%,${face} 100%),` +
+  (vertical === "top" ? `linear-gradient(180deg,${face} 0%,${inkRgba(face, 0)} ${GHOST_FADE_V4.topPct}%)` : `linear-gradient(0deg,${face} 0%,${inkRgba(face, 0)} ${GHOST_FADE_V4.bottomPct}%)`);
 
 // ── 일러스트 배너 글 스크림 카드(444차 눈 검수) ────────────────────────────────
 /** 글 블록 뒤 스크림 카드의 번짐: 위아래 10%, 좌우 4% — 좁은 폭(390)에서 좌우 10%는 카드가 화면 가장자리를 넘어 잘려 보였다 */

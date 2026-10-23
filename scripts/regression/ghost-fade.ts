@@ -10,7 +10,7 @@ export const name = "고스트 글자 페이드 — B·C·D형·면 색 그라�
 export async function run(): Promise<string[]> {
   const fails: string[] = [];
   const bg = ghostFadeBackground("#336699");
-  if (!bg.includes("rgba(51, 102, 153, 0)") || !bg.startsWith("linear-gradient(90deg,#336699 0%") || bg.includes("mask") || bg.includes("clip")) fails.push(`페이드 배경 형태: ${bg}`);
+  if (!bg.includes("rgba(51, 102, 153, 0)") || !bg.startsWith("linear-gradient(90deg,#336699 0%") || bg.includes("mask") || bg.includes("clip") || !bg.includes("linear-gradient(180deg") || !ghostFadeBackground("#336699", "bottom").includes("linear-gradient(0deg")) fails.push(`페이드 배경 형태: ${bg}`);
   if (GHOST_FADE_V4.sidePct * 2 >= 100 || GHOST_FADE_V4.topPct >= 100) fails.push("페이드 범위 값 이상");
   let bHeroes = 0;
   for (const [id, f] of corpus()) {

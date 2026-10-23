@@ -324,9 +324,9 @@ function v3GhostFade(p: HeroV2Plan, face: string, geom: "top" | "bottom" = "top"
   const g = p.v3?.ghost;
   if (!g || !designV4On() || !/^#[0-9a-f]{6}$/i.test(face)) return "";
   const px = ghostPx(g);
-  // top: B·C형(고스트가 위 가장자리에 걸침, 좌우 -2%·위 -0.55em). bottom: D형(흰 면 아래쪽 구간에서 오른쪽 아래로 앉아 왼쪽이 잘림) — 좌우만 녹인다
+  // top: B·C형(고스트가 위 가장자리에 걸침, 좌우 -2%·위 -0.55em) → 좌우+위. bottom: D형(면 아래쪽 구간에서 오른쪽 아래로 앉아 왼쪽이 잘리고 글자 아래가 구간 끝에서 평평하게 잘림) → 좌우+아래
   const place = geom === "top" ? `left:-2%;right:-2%;top:${-0.55 * px}px;z-index:-1` : `left:0;right:0;bottom:16px;z-index:0`;
-  return `<span aria-hidden="true" data-hl-fade="ghost" style="position:absolute;${place};height:${Math.round(px * 0.9)}px;background:${ghostFadeBackground(face, geom === "top")};pointer-events:none"></span>`;
+  return `<span aria-hidden="true" data-hl-fade="ghost" style="position:absolute;${place};height:${Math.round(px * 0.9)}px;background:${ghostFadeBackground(face, geom)};pointer-events:none"></span>`;
 }
 function v3Ghost(p: HeroV2Plan, color: string, place: string): string {
   const g = p.v3?.ghost;
