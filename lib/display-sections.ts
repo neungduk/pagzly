@@ -1,4 +1,7 @@
 import type { DetailSection } from "@/lib/types/generate";
+import { designV4On } from "@/lib/design-v4";
+import { faceKeyOf } from "@/lib/layout-variants";
+import { markTightTops } from "@/lib/rhythm-v4";
 import { orderSectionsForFlow } from "@/lib/section-flow-order";
 import { limitBoldBlocks } from "@/lib/detail-visual-rhythm";
 import { enforceImageSourceCapIndexed } from "@/lib/image-source-cap";
@@ -413,5 +416,7 @@ export function applyDisplayRules(
   const heroPlan = opts.claimFacts && !opts.editing && heroSec?.type === "hero" ? planHeroV2({ hero: heroSec, productName: opts.claimFacts.productName, brandName: opts.brandName, imageUrls, origins: opts.origins, tags: opts.tags, roles: opts.roles, category: opts.category, archetype: arche && !arche.fallback ? arche.id : null, mood, facts: opts.claimFacts, certifications: opts.claimFacts.source.certifications, keyFeatures: opts.claimFacts.source.keyFeatures, wornTop: heroSec.photoTopAnchored === true, ...ctaOf(finalOut1.sections) }) : null;
   const finalOut = heroPlan && heroSec?.type === "hero" ? { sections: [({ ...heroSec, v2: heroPlan } as DetailSection), ...finalOut1.sections.slice(1)], sourceIndexes: finalOut1.sourceIndexes } : finalOut1;
   const policyChanges = policy ? [...policy.changes, ...(photo ? [{ type: "filled" as const, index: 0, kind: "photos" as const, reason: `사용하지 않은 사진 ${photo.indexes.join(",")}번`, slot: "backfill_photos" }] : [])] : undefined;
-  return { sections: finalOut.sections, sourceIndexes: keptMap ? finalOut.sourceIndexes.map((i) => keptMap(i)) : finalOut.sourceIndexes, ...(policyChanges ? { policyChanges } : {}), ...(arche ? { archetype: { result: arche, mood, hero: recipe?.hero ?? null } } : {}) };
+  // 444차 3 — 같은 면 이웃의 위 여백 해석(DESIGN_V4, lib/rhythm-v4.ts). v4 off면 그대로
+  const rhythmSections = designV4On() ? markTightTops(finalOut.sections, faceKeyOf) : finalOut.sections;
+  return { sections: rhythmSections, sourceIndexes: keptMap ? finalOut.sourceIndexes.map((i) => keptMap(i)) : finalOut.sourceIndexes, ...(policyChanges ? { policyChanges } : {}), ...(arche ? { archetype: { result: arche, mood, hero: recipe?.hero ?? null } } : {}) };
 }

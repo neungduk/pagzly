@@ -735,6 +735,12 @@ const isDarkFace = (s: DetailSection | undefined): boolean => !!s && (s.type ===
 /** 임팩트 종류별 섹션 바탕(템플릿 마크업 기준): 색 면(틴트·파스텔)인 종류. 나머지 임팩트는 흰 바탕 */
 const TINT_KINDS = new Set(["faqcards", "proof", "specstrip", "story", "textboost", "split"]);
 type FaceClass = "white" | "tint" | "unknown";
+/** 444차 — 인접 섹션 간격 규칙(lib/rhythm-v4.ts)이 "같은 면"을 판정하는 키. 임팩트만(그 밖은 null = 같은 면으로 보지 않음). 흰 면(bgA·card·기본)은 한 키 */
+export function faceKeyOf(s: DetailSection | undefined): string | null {
+  if (!s || s.type !== "impact") return null;
+  if (s.kind === "v4" && s.v4) return s.v4.face === "bgA" || s.v4.face === "card" || !s.v4.face || s.v4.face === "grad0" || s.v4.face === "grad1" ? "white" : `v4:${s.v4.face}`; // 그라데이션 면은 흰 쪽에서 시작해 위 가장자리가 흰 이웃과 이어져 읽힌다(444차 측정)
+  return TINT_KINDS.has(s.kind) ? `tint:${s.kind}` : s.faceTone === "warm" ? "warm" : "white";
+}
 function faceClass(s: DetailSection | undefined): FaceClass {
   if (!s || s.type !== "impact") return "unknown";
   if (s.kind === "v4" && s.v4) return s.v4.face === "bgA" || s.v4.face === "card" || !s.v4.face ? "white" : "tint";

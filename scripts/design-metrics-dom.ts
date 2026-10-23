@@ -16,7 +16,7 @@ import { chromium } from "playwright";
 export const BIG_LINES_PER_SCREEN_MAX = 1.5;
 export const FLIPS_MAX = 6;
 
-export type DomMetrics = { screens: number; big: number; bigPerScreen: number; all: number; flips: number; padOff: number; padJumps: number; gapBig: number; gapUneven: number; headingThin: number; headingKinds: number; headingKindList: string; headingInversions: number };
+export type DomMetrics = { screens: number; big: number; bigPerScreen: number; all: number; flips: number; padOff: number; padJumps: number; gapBig: number; gapUneven: number; gapBigPairs?: string[]; headingThin: number; headingKinds: number; headingKindList: string; headingInversions: number };
 
 /**
  * 440차 6 — 측정 함수 분리(린터 R5·R11이 같은 값을 쓴다). 페이지마다 export HTML을 390×844에 올려 잰다. 사진·폰트 등 외부 요청은 막는다.
@@ -102,7 +102,7 @@ export async function measureDomPages(pages: Array<[string, string]>): Promise<M
       const TIERS = [0, 32, 48, 64];
       // 443차 R17 셋째 조건 — 한 화면 안 요소 간격 불균형(스크린샷 없이 DOM 측정). 이웃 섹션 사이 빈 간격 = 앞 섹션 아래 여백 + 뒤 섹션 위 여백(두 여백은 겹치지 않고 더해진다).
       //  · gapBig: 면 색이 같은 이웃(경계로 구분되지 않아 빈 칸처럼 보이는 쌍) 사이 빈 간격이 96px 초과 — 여백 스케일의 가장 큰 두 단(64+32)까지는 구획으로 읽히고, 그보다 크면(예: 배송 안내 64 + AI 안내 48 = 112) 빈 칸으로 읽힌다
-      //  · gapUneven: 같은 화면(844px) 구간 안에 8px 초과 간격이 둘 이상이고 가장 큰 것이 가장 작은 것의 2배 초과 — 441차 급변(padJumps)과 같은 2배 기준
+      //  · gapUneven: 같은 화면(844px) 구간 안에 (양쪽 여백이 모두 8px 초과인 — 가장자리까지 닿는 사진·배너와 맞닿은 쪽은 제외) 간격이 둘 이상이고 가장 큰 것이 가장 작은 것의 2배 초과 — 441차 급변(padJumps)과 같은 2배 기준
       const faceOf = (w: Element): string => {
         const wr = w.getBoundingClientRect();
         for (const n of [w, ...Array.from(w.querySelectorAll("*"))] as HTMLElement[]) {
@@ -116,16 +116,19 @@ export async function measureDomPages(pages: Array<[string, string]>): Promise<M
         return "rgb(255, 255, 255)";
       };
       let gapBig = 0;
+      const gapBigPairs: string[] = [];
+      const nameOf = (e: Element) => (e.getAttribute("data-pz-v4") ?? e.getAttribute("data-pz-impact") ?? e.className ?? "").toString().split(" ")[0] || e.tagName.toLowerCase();
       const gapsByScreen = new Map<number, number[]>();
-      let prevRow: { pb: number; face: string } | null = null;
+      let prevRow: { pb: number; face: string; name: string } | null = null;
       for (const s of tops) {
         if (s.classList.contains("pagzly-hero") || s.querySelector(".pagzly-hero") || s.getBoundingClientRect().height < 40) { prevRow = null; continue; }
         const cs0 = getComputedStyle(s);
-        const row = { pt: Math.round(parseFloat(cs0.paddingTop)), pb: Math.round(parseFloat(cs0.paddingBottom)), face: faceOf(s) };
+        const row = { pt: Math.round(parseFloat(cs0.paddingTop)), pb: Math.round(parseFloat(cs0.paddingBottom)), face: faceOf(s), name: nameOf(s) };
         if (prevRow) {
           const gap = prevRow.pb + row.pt;
-          if (row.face === prevRow.face && row.face !== "photo" && gap > 96) gapBig += 1;
-          if (gap > 8) {
+          if (row.face === prevRow.face && row.face !== "photo" && gap > 96) { gapBig += 1; gapBigPairs.push(`${prevRow.name}(${prevRow.pb}) → ${row.name}(${row.pt}) = ${gap} [${row.face}]`); }
+          // 한쪽이 가장자리까지 닿는 사진·배너(여백 8px 이하)와 붙은 쪽은 빈 간격이 아니라 맞닿음이라 불균형 비교에서 뺀다(444차)
+          if (prevRow.pb > 8 && row.pt > 8) {
             const k = Math.floor((s.getBoundingClientRect().top + window.scrollY) / 844);
             gapsByScreen.set(k, [...(gapsByScreen.get(k) ?? []), gap]);
           }
@@ -146,7 +149,7 @@ export async function measureDomPages(pages: Array<[string, string]>): Promise<M
         if (prevPad > 8 && pt > 8 && Math.max(prevPad, pt) / Math.min(prevPad, pt) > 2) padJumps += 1;
         prevPad = pb;
       }
-      return { screens: H / 844, big, all, flips, padOff, padJumps, gapBig, gapUneven, headingThin, headingKinds: kinds.size, headingKindList: [...kinds].sort().join(","), headingInversions };
+      return { screens: H / 844, big, all, flips, padOff, padJumps, gapBig, gapUneven, gapBigPairs, headingThin, headingKinds: kinds.size, headingKindList: [...kinds].sort().join(","), headingInversions };
     });
     out.set(id, { ...m, bigPerScreen: m.big / m.screens });
   }

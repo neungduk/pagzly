@@ -21,6 +21,7 @@ import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import type { IllustColors } from "@/lib/illustrations/core";
 import { illustFor, illustHtml } from "@/lib/illust-sections";
 import { NEUTRAL_MOOD, applyMood, moodOf } from "@/lib/mood";
+import { tightenTopPad } from "@/lib/rhythm-v4";
 import { designV4On } from "@/lib/design-v4";
 import { tierHeadingWeights } from "@/lib/type-treatments";
 import { polishTitles } from "@/lib/typo-rhythm";
@@ -72,7 +73,9 @@ export function impactHtml(s: ImpactSection, pal: ImpactPalette, alt: string): s
   const moodHtml = s.mood ? applyMood(toned, moodOf(s.mood)) : designV4On() ? applyMood(toned, NEUTRAL_MOOD) : toned;
   // 438차 1-5 — 제목 줄 끝 고아 줄이기(DESIGN_POLISH)
   // 441차 1-1 — 제목 굵기 위계 3단(v4)
-  return polishTitles(designV4On() ? tierHeadingWeights(moodHtml) : moodHtml);
+  // 444차 3 — 같은 면 이웃이면 위 여백을 스케일 가장 작은 값으로(간격 해석 규칙, lib/rhythm-v4.ts)
+  const spaced = s.rhythm === "tight" && designV4On() ? tightenTopPad(moodHtml) : moodHtml;
+  return polishTitles(designV4On() ? tierHeadingWeights(spaced) : spaced);
 }
 
 function impactHtmlBase(s: ImpactSection, pal: ImpactPalette, alt: string): string {

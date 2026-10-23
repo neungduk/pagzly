@@ -576,6 +576,8 @@ export type ImpactSection = {
   mood?: string;
   /** 439차 — 면 리듬: 흰 바탕 임팩트 블록이 흰 면 사이에 끼면 따뜻한 중립 면으로(린트 R2 2회차, v4 계획만 설정) */
   faceTone?: "warm";
+  /** 444차 — 앞 섹션과 면이 같으면 위 여백을 줄인다(lib/rhythm-v4.ts, v4 계획만 설정) */
+  rhythm?: "tight";
   /** 439차 — 디자인 엔진 v4 블록(kind "v4"): 레이아웃 계열·변형·항목·모티프·타이포 연출(lib/layout-variants.ts) */
   v4?: V4Block;
 };
