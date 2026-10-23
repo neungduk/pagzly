@@ -410,7 +410,7 @@ function applyTrust(r: { sections: DetailSection[]; sourceIndexes: number[]; ins
       const rows = s.type === "impact" ? (s.kind === "v4" && s.v4?.family === "spec" ? (s.v4.items ?? []).map((x) => ({ label: x.title, value: x.body ?? "" })) : s.kind === "spectable" || s.kind === "specstrip" ? s.stats ?? [] : []) : [];
       for (const row of rows) {
         const t = `${row.label} ${row.value}`.trim();
-        if (!TRUST_RE.test(row.label) || isPlaceholderValue(row.value) || [...t].length > 28 || titles.includes(t)) continue;
+        if (!TRUST_RE.test(row.label) || isPlaceholderValue(row.value) || [...t].length > 16 || titles.includes(t)) continue; // 442차 — 16자 이하(요약 문구만, 위 배송 표 문장을 3줄로 되풀이하던 것)
         // 배지 문구가 더 자세한 행 안에 그대로 있으면("5만원 이상 무료배송" ⊂ "배송비 3,000원 (5만원 이상 무료배송)") 자세한 행 하나만
         const dup = titles.findIndex((x) => t.includes(x));
         if (dup >= 0) titles[dup] = t;
@@ -781,6 +781,8 @@ function assignMotifs(secs: DetailSection[], mood: string | null, seed: number):
     const motifs = planMotifs(mood, seed + i, { count: two ? 2 : 1, cross });
     // 441차 1-4 — 걸치는 모티프가 없는 경계(짝수 번째·히어로·사진 하단 캡션 뒤 제외)에는 mood 구분선을 번갈아
     const divider = !cross && k % 2 === 0 && !prevPhotoBottom && prev && prev.type !== "hero" ? dividerFor(mood, k / 2) : undefined;
-    return { ...s, v4: { ...s.v4, motifs, ...(divider ? { divider } : {}) } } as DetailSection;
+    // 442차 1 — 구분선이 있는 경계에서는 위쪽 모티프를 뺀다(점 격자·블롭과 구분선이 겹쳐 보이던 것, 눈 검수 s411·s418·makeup). 아래쪽 모티프는 유지
+    const placed = divider ? motifs.filter((m) => m.anchor !== "top") : motifs;
+    return { ...s, v4: { ...s.v4, motifs: placed, ...(divider ? { divider } : {}) } } as DetailSection;
   });
 }

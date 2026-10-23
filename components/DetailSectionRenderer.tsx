@@ -246,7 +246,7 @@ import { applyDisplayRules } from "@/lib/display-sections";
 import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
 import { DESIGN_V4_ENABLED, hideImgOnError } from "@/lib/design-v4";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
-import { v4TextOn } from "@/lib/palette-v4";
+import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
 import { glanceIconSvg } from "@/lib/icons";
 
 export type SectionEditApi = {
@@ -4395,7 +4395,9 @@ function renderSection(
             style={{
               background: [
                 getHeroGradient(theme),
-                `linear-gradient(180deg, ${hexToRgba(theme.deepAccent, 0.55)} 0%, transparent 28%, transparent 55%, ${hexToRgba(theme.deepAccent, 0.75)} 100%)`,
+                DESIGN_V4_ENABLED
+                  ? bannerScrimV4(theme.deepAccent)
+                  : `linear-gradient(180deg, ${hexToRgba(theme.deepAccent, 0.55)} 0%, transparent 28%, transparent 55%, ${hexToRgba(theme.deepAccent, 0.75)} 100%)`,
               ].join(", "),
             }}
             aria-hidden="true"

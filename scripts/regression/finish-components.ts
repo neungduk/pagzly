@@ -4,7 +4,7 @@
  */
 import fs from "node:fs";
 import { DIVIDER_KINDS, dividerFor, dividerHtml } from "../../lib/dividers";
-import { depthShadow, hairline } from "../../lib/palette-v4";
+import { bannerScrimV4, depthShadow, hairline } from "../../lib/palette-v4";
 import { numberStatHtml } from "../../lib/type-treatments";
 import { corpus, exportHtmlOf } from "../design-corpus";
 
@@ -29,6 +29,13 @@ export async function run(): Promise<string[]> {
   if (strip("30mL") !== "30mL" || strip("하이브리드 ANC 42dB") !== "하이브리드 ANC 42dB") fails.push("숫자 컴포넌트가 원문을 바꿈");
   if (!/font-size:13px;font-weight:800[^>]*>mL/.test(numberStatHtml("30mL", "#111", 26))) fails.push("단위가 작게 분리되지 않음");
   if (!/font-size:19px/.test(numberStatHtml("하이브리드 ANC 42dB", "#111", 26))) fails.push("글 값이 한 단계 작지 않음");
+  // 442차 1 — 구분선이 있는 섹션에는 위쪽 모티프가 없다(겹침 방지), 배너 스크림은 가운데도 덮는다
+  for (const [id, f] of corpus()) {
+    for (const m of exportHtmlOf(f).matchAll(/<section data-pz-impact="v4"[^>]*>([\s\S]*?)<\/section>/g)) {
+      if (/data-pz-divider/.test(m[1]!) && /data-mz="top:/.test(m[1]!)) fails.push(`${id}: 구분선과 위쪽 모티프가 한 섹션에 같이 있음`);
+    }
+  }
+  if (/transparent/.test(bannerScrimV4("#183F5F"))) fails.push("배너 스크림에 투명 구간이 있음(배경 글자가 읽힘)");
   const used = new Set<string>();
   for (const [, f] of corpus()) for (const m of exportHtmlOf(f).matchAll(/data-pz-divider="(\w+)"/g)) used.add(m[1]!);
   if (corpus().length >= 18) for (const k of DIVIDER_KINDS) if (!used.has(k)) fails.push(`구분선 ${k} 말뭉치 0회`);

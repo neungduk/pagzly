@@ -165,7 +165,7 @@ import { archetypeHeroLayout } from "@/lib/archetype-recipes";
 import { HERO_V2_TUNED, heroPalette, heroV2Html } from "@/lib/hero-spec";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
-import { v4TextOn } from "@/lib/palette-v4";
+import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
 import { glanceIconSvg } from "@/lib/icons";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
 import { BEAUTY_HERO, HERO_ARCH, HERO_CAPTION, HERO_FRAME, HERO_STAGE_VARIANT, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroStageOn } from "@/lib/hero-variants";
@@ -1912,7 +1912,7 @@ function sectionHtml(
       // aspect-ratio는 흐름 안 오버레이의 최소 높이로만 쓴다(라이브와 동일).
       return `<section${sectionIdAttr} class="pagzly-illustration-banner" style="position:relative;overflow:hidden;background:${deepFill}">
         ${illSrc ? `<img src="${esc(illSrc)}" alt="${esc(section.heading ?? "컨셉 배너")}" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"/>` : ""}
-        <div style="position:absolute;inset:0;background:linear-gradient(180deg,${deep}99,transparent 35%,transparent 55%,${deep}cc)"></div>
+        <div style="position:absolute;inset:0;background:${DESIGN_V4_ENABLED ? bannerScrimV4(deep) : `linear-gradient(180deg,${deep}99,transparent 35%,transparent 55%,${deep}cc)`}"></div>
         <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;aspect-ratio:16/9;box-sizing:border-box;padding:32px 24px;text-align:center;color:#FAF8F3">
           <div style="position:relative;max-width:520px;padding:20px 28px">
             <div aria-hidden="true" style="position:absolute;inset:-10%;border-radius:20px;pointer-events:none;background:rgba(27,27,24,.9);box-shadow:0 8px 40px rgba(27,27,24,.4)"></div>

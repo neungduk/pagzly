@@ -152,6 +152,14 @@ export function depthShadow(level: DepthLevel, ink: string): string {
 }
 /** 카드 테두리 한 가지(잉크 10%) */
 export const hairline = (ink: string): string => `1px solid ${hexToRgbaLocal(ink, 0.1)}`;
+
+/**
+ * 442차 1 — 일러스트 배너 배경 스크림(DESIGN_V4, 그라데이션 오버레이만, filter 없음). 이전 스크림은 가운데 띠(28~55%)가 투명해
+ * 배경 사진 속 제품 라벨 글자("Glow")가 제목 카드 옆으로 읽혔다. 가운데도 deep 62%로 눌러 배경 글자가 읽히지 않게 한다.
+ * 제목은 어두운 카드(잉크 90%) 위 글자라 대비는 그대로(4.5 이상).
+ */
+export const bannerScrimV4 = (deepHex: string): string =>
+  `linear-gradient(180deg, ${hexToRgbaLocal(deepHex, 0.78)} 0%, ${hexToRgbaLocal(deepHex, 0.62)} 35%, ${hexToRgbaLocal(deepHex, 0.62)} 55%, ${hexToRgbaLocal(deepHex, 0.86)} 100%)`;
 function hexToRgbaLocal(hex: string, a: number): string {
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
   return `rgba(${r}, ${g}, ${b}, ${a})`;

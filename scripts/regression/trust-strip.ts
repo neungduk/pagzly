@@ -29,6 +29,7 @@ export async function run(): Promise<string[]> {
       const parts = raw.includes(JSON.stringify(t).slice(1, -1)) ? [] : [t.slice(0, t.indexOf(" ")), t.slice(t.indexOf(" ") + 1)];
       for (const p of parts) if (!raw.includes(p)) fails.push(`${id}: 입력에 없는 문구 «${t}»`);
     }
+    for (const t of titles) if ([...t].length > 16) fails.push(`${id}: 요약 문구가 16자 초과 «${t}»`);
     for (const a of titles) for (const b of titles) if (a !== b && b.includes(a)) fails.push(`${id}: 중복 «${a}» ⊂ «${b}»`);
     for (const bdg of cta?.badges ?? []) if (titles.some((t) => t.includes(bdg))) fails.push(`${id}: 옮긴 배지 «${bdg}»가 구매 카드에 남음`);
     const html = exportHtmlOf(f);
