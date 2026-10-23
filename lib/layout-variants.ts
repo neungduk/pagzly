@@ -102,7 +102,8 @@ export function variantFits(family: V4Family, variant: string, d: { items: Item[
     case "story.editorial": return Boolean(d.quote) || len(d.body) >= 40;
     case "story.quote": return Boolean(d.quote);
     case "story.linetime": return splitSentences(`${d.quote ?? ""} ${d.body ?? ""}`).length >= 3;
-    case "spec.strip": return n >= 2 && n <= 4 && d.items.every((i) => len(i.body) <= 12 && len(i.title) <= 10);
+    // 440차 5 — 값 ≤14자(2열 칸 24px에서 2줄 이내). 12자일 때는 전자 스펙 띠("하이브리드 ANC 42dB" 14자)가 늘 탈락해 strip이 말뭉치 0회였다
+    case "spec.strip": return n >= 2 && n <= 4 && d.items.every((i) => len(i.body) <= 14 && len(i.title) <= 10);
     case "spec.grid": return n >= 2 && n <= 8 && d.items.every((i) => len(i.body) <= 40);
     case "spec.line": return n >= 1;
     case "phototext.overlap": case "phototext.offset": case "phototext.arch": case "phototext.caption": return n === 1 && photos === 1;
@@ -502,7 +503,8 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
     const next = byAt.get(i + 1);
     if (c.family === "phototext" && next?.family === "phototext") {
       const pair = { ...c, items: [...c.items, ...next.items], from: `${c.from}+${next.from}` };
-      if (variantOrder("phototext", ctx.mood, seed + i).indexOf("collage") <= 2 && (counts.get("phototext.collage") ?? 0) < 1) { cc = pair; consumed = 2; pairWith = true; }
+      // 440차 5 — 선호 4위까지(5개 중). 3위까지일 때는 이웃 사진 카드 쌍이 있는 페이지(전자 4종)에서도 collage가 한 번도 안 나왔다
+      if (variantOrder("phototext", ctx.mood, seed + i).indexOf("collage") <= 3 && (counts.get("phototext.collage") ?? 0) < 1) { cc = pair; consumed = 2; pairWith = true; }
     }
     // 페이지 안에서 덜 쓴 변형을 먼저(같은 순위면 mood·시드 순서) — 같은 모양이 반복되지 않게
     const order0 = variantOrder(cc.family, ctx.mood, seed + i * 7);

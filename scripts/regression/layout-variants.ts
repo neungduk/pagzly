@@ -58,7 +58,9 @@ export async function run(): Promise<string[]> {
   eq("벤토는 3개 이상", [variantFits("benefits", "bento", { items: it(2) }), variantFits("benefits", "bento", { items: it(3) })], [false, true]);
   eq("지그재그는 사진 2장 이상", [variantFits("benefits", "zigzag", { items: it(3, 1) }), variantFits("benefits", "zigzag", { items: it(3, 2) })], [false, true]);
   eq("콜라주는 사진 카드 2개", [variantFits("phototext", "collage", { items: it(1, 1) }), variantFits("phototext", "collage", { items: it(2, 2) })], [false, true]);
-  eq("스트립은 짧은 값만", variantFits("spec", "strip", { items: [{ title: "용량", body: "제조일로부터 24개월 이내" }, { title: "a", body: "b" }] }), false);
+  // 440차 5 — 값 한도 12 → 14자(전자 스펙 띠 "하이브리드 ANC 42dB"). 15자부터는 제외
+  eq("스트립은 짧은 값만", variantFits("spec", "strip", { items: [{ title: "용량", body: "제조일로부터 24개월 이내 사용" }, { title: "a", body: "b" }] }), false);
+  eq("스트립 값 14자까지", variantFits("spec", "strip", { items: [{ title: "노이즈 캔슬링", body: "하이브리드 ANC 42dB" }, { title: "a", body: "b" }] }), true);
   eq("인용형은 인용 문장 있을 때만", variantFits("story", "quote", { items: [], body: "본문" }), false);
   eq("변형 순서 결정적", variantOrder("benefits", "playful", 7), variantOrder("benefits", "playful", 7));
   // 합성 페이지
