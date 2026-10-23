@@ -7,6 +7,7 @@
  */
 import { MOODS, type MoodId, type MoodTokens } from "@/lib/archetype-recipes";
 import { DETAIL_FONT_STACK } from "@/lib/detail-typography";
+import { designV4On } from "@/lib/design-v4";
 
 export const NEUTRAL_MOOD: MoodTokens = { pad: 1, r: 1, sh: 1, divider: "wave", titleWeight: 800, titleTracking: "-0.02em", illust: "solid" };
 
@@ -41,7 +42,9 @@ export function applyMood(html: string, k: MoodTokens): string {
   // 제목 굵기·자간(굵기 700 이상인 제목 글꼴 요소만)
   if (k.titleWeight !== 800 || k.titleTracking !== "-0.02em") {
     const re = new RegExp(`(${TITLE_FF.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")};font-size:[^;]+;font-weight:)(\\d+)(;letter-spacing:)([^;"]+)`, "g");
-    out = out.replace(re, (_m, a: string, w: string, b: string, ls: string) => `${a}${Number(w) >= 700 ? k.titleWeight : w}${b}${Number(w) >= 700 ? k.titleTracking : ls}`);
+    // 441차 1-1(DESIGN_V4) — 제목 굵기는 페이지 안에서 하나(800). 900(큰 숫자·인용)은 그대로, mood 개성은 자간·반경·여백으로만
+    const weightOf = (w: number) => (designV4On() ? (w >= 900 ? w : 800) : k.titleWeight);
+    out = out.replace(re, (_m, a: string, w: string, b: string, ls: string) => `${a}${Number(w) >= 700 ? weightOf(Number(w)) : w}${b}${Number(w) >= 700 ? k.titleTracking : ls}`);
   }
   return out;
 }

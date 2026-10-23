@@ -29,6 +29,11 @@ export async function run(): Promise<string[]> {
   if (!rules(`<section>${ok}</section><section><p>본문</p></section>`).includes("R15:warn")) fails.push("히어로 직후 가격·요약 없음이 R15가 아님");
   if (rules(`<section>${ok}</section><div data-pz-strip></div>`).includes("R15:warn")) fails.push("가격 띠가 있는데 R15");
   if (!lintPage("t", `<section>${ok}</section><div data-pz-strip></div>`, hero, { screens: 2, bigPerScreen: 1.7, flips: 2 }).issues.some((i) => i.rule === "R5")) fails.push("DOM 큰 글줄 1.7이 R5가 아님");
+  // 441차 1-1 — R16 제목 위계(DOM 값)
+  const dom = (o: object) => ({ screens: 2, bigPerScreen: 1, flips: 2, ...o });
+  if (!lintPage("t", `<section>${ok}</section><div data-pz-strip></div>`, hero, dom({ headingThin: 1 })).issues.some((i) => i.rule === "R16" && i.sev === "error")) fails.push("얇은 제목이 R16 error가 아님");
+  if (!lintPage("t", `<section>${ok}</section><div data-pz-strip></div>`, hero, dom({ headingKinds: 4 })).issues.some((i) => i.rule === "R16")) fails.push("제목 스타일 4종이 R16이 아님");
+  if (lintPage("t", `<section>${ok}</section><div data-pz-strip></div>`, hero, dom({ headingKinds: 3, headingThin: 0 })).issues.some((i) => i.rule === "R16")) fails.push("제목 스타일 3종을 R16으로 잡음");
   const results = await lintCorpus();
   if (results.length) {
     const avg = results.reduce((a, r) => a + r.score, 0) / results.length;

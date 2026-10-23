@@ -149,7 +149,7 @@ function benefitsHtml(s: ImpactSection, b: V4Block, p: V4Palette, alt: string): 
     const big =
       `<div style="flex:1 1 100%;min-width:0;box-sizing:border-box;position:relative;overflow:hidden;display:flex;align-items:stretch;gap:14px;min-height:180px;padding:22px;border-radius:24px;background:${p.tints[2]}">` +
       `<div style="flex:1 1 0%;min-width:0;display:flex;flex-direction:column;justify-content:flex-end"><span aria-hidden="true" style="${TITLE_FF};font-size:44px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${p.deep}">01</span>` +
-      `<p style="margin:12px 0 0;${typeCss("card", p.ink, "font-size:20px")}">${esc(first!.title)}</p>` +
+      `<p style="margin:12px 0 0;${typeCss("card", p.ink, "font-size:20px;font-weight:800")}">${esc(first!.title)}</p>` +
       (first!.body ? `<p style="margin:8px 0 0;${typeCss("small", mixHex(p.ink, "#FFFFFF", 0.12))}">${esc(first!.body)}</p>` : "") +
       `</div>` +
       (first!.img ? `<div style="flex:0 0 40%;min-width:0;border-radius:18px;overflow:hidden;background:${p.tints[1]};box-shadow:0 8px 20px ${hexToRgba(p.ink, 0.12)}">${img(first!.img.url, alt, first!.img.pos)}</div>` : "") +

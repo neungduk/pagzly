@@ -16,7 +16,7 @@ import { chromium } from "playwright";
 export const BIG_LINES_PER_SCREEN_MAX = 1.5;
 export const FLIPS_MAX = 6;
 
-export type DomMetrics = { screens: number; big: number; bigPerScreen: number; all: number; flips: number };
+export type DomMetrics = { screens: number; big: number; bigPerScreen: number; all: number; flips: number; headingThin: number; headingKinds: number; headingKindList: string; headingInversions: number };
 
 /**
  * 440차 6 — 측정 함수 분리(린터 R5·R11이 같은 값을 쓴다). 페이지마다 export HTML을 390×844에 올려 잰다. 사진·폰트 등 외부 요청은 막는다.
@@ -76,7 +76,29 @@ export async function measureDomPages(pages: Array<[string, string]>): Promise<M
         prev = c;
         prevTone = tone;
       }
-      return { screens: H / 844, big, all, flips };
+      // 441차 R16 — 섹션 제목 위계: 한글 포함·숫자 위주 아님·18~40px 글(큰 숫자·가격 제외). 섹션 첫 제목보다 2px 넘게 큰 뒤 제목은 위계 역전
+      const kinds = new Set<string>();
+      let headingThin = 0, headingInversions = 0;
+      for (const s of tops) {
+        if (s.classList.contains("pagzly-hero") || s.querySelector(".pagzly-hero")) continue;
+        const hs = (Array.from(s.querySelectorAll("h2,h3,p")) as HTMLElement[]).filter((e) => {
+          const t = (e.textContent ?? "").trim();
+          if (!t || t.length > 40 || e.closest('[aria-hidden="true"],[data-pz-deco],[data-hl]')) return false;
+          const fs0 = parseFloat(getComputedStyle(e).fontSize);
+          return fs0 >= 18 && fs0 <= 40 && /[가-힣]/.test(t) && (t.match(/[0-9₩,.%]/g) ?? []).length < t.length / 2;
+        });
+        const first = hs.find((e) => /^H[23]$/.test(e.tagName)) ?? hs[0];
+        for (const h of hs) {
+          const cs = getComputedStyle(h);
+          const fsz = parseFloat(cs.fontSize);
+          const w = Number(cs.fontWeight);
+          if (w < 600) headingThin += 1;
+          // 인용·큰 문구(story 계열 display 900)는 제목 체계 밖이라 종류에서 뺀다
+          if (!h.closest('[data-pz-v4^="story"]')) kinds.add(`${w}/${fsz >= 26 ? "L" : fsz >= 20 ? "M" : "S"}`);
+          if (first && h !== first && fsz > parseFloat(getComputedStyle(first).fontSize) + 2 && !h.closest('[data-pz-v4^="story"]')) headingInversions += 1;
+        }
+      }
+      return { screens: H / 844, big, all, flips, headingThin, headingKinds: kinds.size, headingKindList: [...kinds].sort().join(","), headingInversions };
     });
     out.set(id, { ...m, bigPerScreen: m.big / m.screens });
   }

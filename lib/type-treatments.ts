@@ -17,7 +17,7 @@ export const SANS_FF = `font-family:${DETAIL_FONT_STACK.sans}`;
 /** v4 타입 스케일(390 기준 px·행간·자간·굵기). 본문 최소 14px, 라벨 최소 12px */
 export const TYPE_SCALE_V4 = {
   display: { size: 30, lh: 1.25, ls: "-0.03em", w: 900 },
-  title: { size: 24, lh: 1.3, ls: "-0.02em", w: 800 },
+  title: { size: 26, lh: 1.3, ls: "-0.02em", w: 800 }, // 441 — 섹션 제목(대)과 같은 26px
   card: { size: 17, lh: 1.45, ls: "-0.01em", w: 700 },
   body: { size: 15, lh: 1.7, ls: "0", w: 400 },
   small: { size: 14, lh: 1.6, ls: "0", w: 500 },
@@ -114,4 +114,36 @@ export function typeFloorCss(scope: string): string {
     ...["9px", "10px", "11px"].map((v) => `${scope} .text-\[${v}\]`),
   ];
   return `${sels.join(",")}{font-size:12px!important}`;
+}
+
+// ── 섹션 제목 시스템(라이브·export 공용 CSS) ──────────────────────────────────
+/**
+ * 441차 1-1 — 제목 위계 통일(DESIGN_V4). 감사(24종 456개): 스타일 10종, 굵기 400·500 제목 26개 — 뷰티 서체 짝(lib/font-pairs.ts)이
+ * `.pagzly-display-headline`을 400·500 !important로 덮어 "이런 고민 있으신가요?"·"숫자로 보는 구성" 같은 얇고 연한 제목이 굵은 v4 제목과 섞였다.
+ * 위계 3단: 대(섹션 제목) 26px·800 / 중(카드 큰 제목) 20~22·800 / 소(카드 제목) 16~18·700. 인용·큰 문구(display 30·900)는 별도.
+ * 선택자에 `section`을 넣어 서체 짝 규칙(같은 클래스 2단)보다 구체도를 높인다 — 스타일 태그 순서와 무관하게 이긴다.
+ * 크기는 좁은 폭(390)만 26px: 라이브는 컨테이너 쿼리 변수 `--pz-t-section-b`, export는 640 미만 미디어 쿼리의 `--pz-t-section`(design-tokens 369행 규칙).
+ * 넓은 폭(750) 제목 36px는 그대로 — 처음엔 export 변수 하나만 덮어 750 폭까지 26px로 눌렀고 라이브와 어긋났다(패리티 -10).
+ */
+export const HEADING_SECTION_PX = 26;
+export function headingSystemCss(scope: string, mode: "live" | "export"): string {
+  const size = `${HEADING_SECTION_PX / 16}rem`;
+  return (
+    (mode === "live" ? `${scope}{--pz-t-section-b:${size}!important}` : `@media (max-width:639px){${scope}{--pz-t-section:${size}!important}}`) +
+    `${scope} section .pagzly-display-headline{font-weight:800!important}`
+  );
+}
+
+/**
+ * 441차 1-1 — 이전 임팩트 템플릿 카드 제목 굵기를 위계 3단에 맞춘다(DESIGN_V4, 임팩트 마크업 한 벌이라 라이브·export 같음).
+ * 중(20~22px)인데 700, 소(18~19px)인데 600이던 제목이 한 페이지 제목 스타일을 4~5종으로 늘렸다(린트 R16). style 속성 단위로 크기·굵기를 함께 본다.
+ */
+export function tierHeadingWeights(html: string): string {
+  return html.replace(/style="([^"]*)"/g, (all, st: string) => {
+    const size = Number(/(?:^|;)font-size:(\d+)px/.exec(st)?.[1] ?? 0);
+    const w = /(?:^|;)font-weight:(\d+)/.exec(st)?.[1];
+    if (!w) return all;
+    const want = size >= 20 && size <= 22 && w === "700" ? "800" : size >= 18 && size <= 19 && w === "600" ? "700" : null;
+    return want ? `style="${st.replace(/((?:^|;)font-weight:)\d+/, `$1${want}`)}"` : all;
+  });
 }

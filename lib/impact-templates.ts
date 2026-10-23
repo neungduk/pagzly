@@ -21,6 +21,8 @@ import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import type { IllustColors } from "@/lib/illustrations/core";
 import { illustFor, illustHtml } from "@/lib/illust-sections";
 import { applyMood, moodOf } from "@/lib/mood";
+import { designV4On } from "@/lib/design-v4";
+import { tierHeadingWeights } from "@/lib/type-treatments";
 import { polishTitles } from "@/lib/typo-rhythm";
 import { HERO_V2_TUNED } from "@/lib/hero-spec";
 import { specialHtml } from "@/lib/special-sections";
@@ -68,7 +70,8 @@ export function impactHtml(s: ImpactSection, pal: ImpactPalette, alt: string): s
   const toned = s.faceTone === "warm" ? html.replace(/^(<section[^>]*?style="[^"]*?)background:#FFFFFF/, `$1background:${WARM_FACE}`) : html;
   const moodHtml = s.mood ? applyMood(toned, moodOf(s.mood)) : toned;
   // 438차 1-5 — 제목 줄 끝 고아 줄이기(DESIGN_POLISH)
-  return polishTitles(moodHtml);
+  // 441차 1-1 — 제목 굵기 위계 3단(v4)
+  return polishTitles(designV4On() ? tierHeadingWeights(moodHtml) : moodHtml);
 }
 
 function impactHtmlBase(s: ImpactSection, pal: ImpactPalette, alt: string): string {
