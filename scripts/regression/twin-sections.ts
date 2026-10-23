@@ -9,7 +9,7 @@ import { BRAND } from "../../lib/design-tokens";
 import { buildDetailPageHtml } from "../../lib/export-detail-html";
 import { declStyle, tokenDecl, type Decl } from "../../lib/design-tokens-v4";
 import type { DetailSection } from "../../lib/types/generate";
-import { highlightCardV4, personaCardV4, personaTextV4 } from "../../lib/twin-styles-v4";
+import { faqCardV4, faqListV4, faqQuestionV4, highlightCardV4, personaCardV4, personaTextV4 } from "../../lib/twin-styles-v4";
 import { corpus, exportArgsOf, readSession } from "../design-corpus";
 
 export const name = "쌍둥이 수정 — 섹션별 라이브↔export v4 토큰 선언 패리티";
@@ -27,6 +27,11 @@ export const PROBES: Probe[] = [
       highlightCardV4({ trust: true, em: false, bold: false }), highlightCardV4({ trust: true, em: true, bold: false }),
     ],
     heading: (s) => (s.heading as string) || ((s.cards as Array<{ title?: string }>)?.[0]?.title),
+  },
+  {
+    type: "faq",
+    groups: [faqCardV4(), faqQuestionV4(), faqListV4()],
+    heading: (s) => (s.items as Array<{ question?: string }> | undefined)?.[0]?.question,
   },
   {
     type: "target_persona",
@@ -73,8 +78,8 @@ async function liveOf(a: ReturnType<typeof exportArgsOf>, sections: DetailSectio
 export async function run(): Promise<string[]> {
   const fails: string[] = [];
   const seen: Record<string, number> = {};
-  const total: number[] = [];
   for (const probe of PROBES) {
+    const total: number[] = [];
     for (const [id, file] of corpus()) {
       const a = exportArgsOf(readSession(file));
       for (const sec of (a.sections ?? []) as unknown as Array<Record<string, unknown>>) {

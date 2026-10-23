@@ -14,7 +14,7 @@ export const name = "토큰 단일 소스 — 키 누락·라이브/export 같�
 const INK = "#1B1B18";
 const REQUIRED: T.TokenKey[] = [
   "display", "heading-large", "heading-mid", "heading-small", "body", "body-small", "label",
-  "space-sm", "space-md", "space-lg", "radius-sm", "radius-md", "radius-lg",
+  "space-sm", "space-md", "space-lg", "gap-xs", "gap-sm", "gap-md", "radius-sm", "radius-md", "radius-lg",
   "line-tight", "line-snug", "line-normal", "line-relaxed", "line-loose",
   "shadow-none", "shadow-soft", "shadow-float", "hairline",
 ];

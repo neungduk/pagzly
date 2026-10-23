@@ -246,7 +246,7 @@ import { applyDisplayRules } from "@/lib/display-sections";
 import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
 import { DESIGN_V4_ENABLED, hideImgOnError } from "@/lib/design-v4";
 import { declObject, tokenStyleObject } from "@/lib/design-tokens-v4";
-import { highlightCardV4, highlightTitleKey, personaCardV4, personaTextV4 } from "@/lib/twin-styles-v4";
+import { highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4 } from "@/lib/twin-styles-v4";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
 import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
@@ -5539,8 +5539,8 @@ function renderSection(
                 />
               </div>
               <div
-                className="mx-auto mt-10 max-w-xl border-t text-left"
-                style={{ borderColor: hexToRgba(BRAND.ink, 0.12) }}
+                className={DESIGN_V4_ENABLED ? "mx-auto max-w-xl text-left" : "mx-auto mt-10 max-w-xl border-t text-left"}
+                style={{ borderColor: hexToRgba(BRAND.ink, 0.12), ...(DESIGN_V4_ENABLED ? declObject(faqListV4()) : {}) }}
                 data-faq-list
               >
                 {section.items.map((item, itemIndex) => (
@@ -5549,8 +5549,8 @@ function renderSection(
                   section.items.some((other) => !isPlaceholderAnswer(other.answer)) ? null : (
                   <div
                     key={`${itemIndex}-${item.question.slice(0, 12)}`}
-                    className="border-b py-6"
-                    style={{ borderColor: hexToRgba(BRAND.ink, 0.12) }}
+                    className={DESIGN_V4_ENABLED ? undefined : "border-b py-6"}
+                    style={DESIGN_V4_ENABLED ? declObject(faqCardV4()) : { borderColor: hexToRgba(BRAND.ink, 0.12) }}
                   >
                     <div className="flex items-start gap-3">
                       <span
@@ -5570,7 +5570,8 @@ function renderSection(
                           );
                           edit?.onChange(index, { ...section, items });
                         }}
-                        className="min-w-0 flex-1 pt-0.5 font-heading text-[17px] font-bold leading-snug tracking-[-0.02em] text-ink"
+                        className={DESIGN_V4_ENABLED ? "min-w-0 flex-1 pt-0.5 font-heading text-ink" : "min-w-0 flex-1 pt-0.5 font-heading text-[17px] font-bold leading-snug tracking-[-0.02em] text-ink"}
+                        style={DESIGN_V4_ENABLED ? declObject(faqQuestionV4()) : undefined}
                       />
                     </div>
                     <div className="mt-3 flex items-start gap-3">

@@ -36,6 +36,9 @@ export const SPACE_SNAP_BOUNDS = [40, 56] as const;
 /** mood 임팩트 블록 여백 스냅 경계: 36 이하 → 32, 52 이하 → 48, 그 외 64 */
 export const MOOD_PAD_BOUNDS = [36, 52] as const;
 
+/** 요소 사이 간격(섹션 여백 스케일과 별개의 작은 단) */
+export const GAP_V4 = { xs: 8, sm: 12, md: 16 } as const;
+
 // ── 반경 3단 ────────────────────────────────────────────────────────────────
 export const RADIUS_V4 = { sm: 8, md: 16, lg: 24 } as const; // 알약 999px·원 50%는 그대로
 export const RADIUS_TIERS = [RADIUS_V4.sm, RADIUS_V4.md, RADIUS_V4.lg] as const;
@@ -80,6 +83,7 @@ const STATIC_DECL = (() => {
     out[key] = [["font-size", `${t.size}px`], ["font-weight", String(t.w)], ["line-height", String(t.lh)], ["letter-spacing", t.ls]];
   }
   for (const [k, v] of Object.entries(SPACE_V4)) out[`space-${k}`] = [["padding-top", `${v}px`], ["padding-bottom", `${v}px`]];
+  for (const [k, v] of Object.entries(GAP_V4)) out[`gap-${k}`] = [["gap", `${v}px`]];
   for (const [k, v] of Object.entries(RADIUS_V4)) out[`radius-${k}`] = [["border-radius", `${v}px`]];
   for (const [k, v] of Object.entries(LINE_HEIGHT_V4)) out[`line-${k}`] = [["line-height", String(v)]];
   return out;
@@ -92,7 +96,7 @@ const INK_DECL: Record<string, (ink: string) => Array<[string, string]>> = {
   hairline: (ink) => [["border", hairlineOf(ink)]],
 };
 
-export type TokenKey = TypeTokenKey | `space-${keyof typeof SPACE_V4}` | `radius-${keyof typeof RADIUS_V4}` | `line-${keyof typeof LINE_HEIGHT_V4}` | "shadow-none" | "shadow-soft" | "shadow-float" | "hairline";
+export type TokenKey = TypeTokenKey | `space-${keyof typeof SPACE_V4}` | `gap-${keyof typeof GAP_V4}` | `radius-${keyof typeof RADIUS_V4}` | `line-${keyof typeof LINE_HEIGHT_V4}` | "shadow-none" | "shadow-soft" | "shadow-float" | "hairline";
 export const TOKEN_KEYS: readonly TokenKey[] = [...Object.keys(STATIC_DECL), ...Object.keys(INK_DECL)] as TokenKey[];
 
 function declOf(key: TokenKey, ink?: string): Array<[string, string]> {

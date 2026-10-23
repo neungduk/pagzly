@@ -3,7 +3,7 @@
  * "v4에서만 바뀌는 값"을 섹션마다 한 함수로 모아 두 렌더러가 같이 읽는다(마크업은 각자, 값은 한 곳). 값은 lib/design-tokens-v4.ts 토큰만 쓴다.
  * 선언 목록(Decl)을 라이브는 declObject(style 객체)로, export는 declStyle(인라인 문자열)로 바꿔 쓴다. 하드코딩 신규 금지.
  */
-import { BRAND } from "@/lib/design-tokens";
+import { BRAND, FLAT_PAPER } from "@/lib/design-tokens";
 import { SPACE_V4, tokenDecl, type Decl } from "@/lib/design-tokens-v4";
 
 /** 선언 목록 합치기 — 같은 속성은 뒤가 이긴다(순서는 처음 나온 위치) */
@@ -28,3 +28,12 @@ export function highlightCardV4(c: { trust: boolean; em: boolean; bold: boolean 
 export const personaTextV4 = (): Decl => tokenDecl("heading-small");
 /** 목록 카드 껍데기: 반경 3단 '중' — 라이브 rounded-xl(12)과 export RADIUS.lg(16)이 따로 가던 것을 한 값으로 */
 export const personaCardV4 = (): Decl => mergeDecl(tokenDecl("radius-md"), personaTextV4());
+
+// ── faq ──────────────────────────────────────────────────────────────────────
+/** 질문 글: 카드 제목 '소'(17·700) 토큰 */
+export const faqQuestionV4 = (): Decl => tokenDecl("heading-small");
+/** 목록: 줄 구분(border-top) 대신 카드 사이 간격 16, 위 간격 48 */
+export const faqListV4 = (): Decl => mergeDecl([["margin-top", `${SPACE_V4.md}px`], ["display", "flex"], ["flex-direction", "column"]], tokenDecl("gap-md"));
+/** 카드 한 장: 흰 면 + hairline + soft 그림자 + 반경 '중', 안쪽 여백 24/20(정적 펼침 — 질문·답을 항상 모두 보인다) */
+export const faqCardV4 = (ink: string = BRAND.ink): Decl =>
+  mergeDecl(tokenDecl("radius-md"), tokenDecl("hairline", ink), tokenDecl("shadow-soft", ink), [["background", FLAT_PAPER], ["padding", "24px 20px"]]);

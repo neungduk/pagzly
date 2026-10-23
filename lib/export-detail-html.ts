@@ -166,7 +166,7 @@ import { HERO_V2_TUNED, heroPalette, heroV2Html } from "@/lib/hero-spec";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
 import { LINE_HEIGHT_V4, SPACE_V4, declStyle, tokenStyle } from "@/lib/design-tokens-v4";
-import { highlightCardV4, highlightTitleKey, personaCardV4, personaTextV4 } from "@/lib/twin-styles-v4";
+import { highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4 } from "@/lib/twin-styles-v4";
 import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
 import { glanceIconSvg } from "@/lib/icons";
@@ -1766,7 +1766,7 @@ function sectionHtml(
         const circle = "display:flex;flex-shrink:0;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9999px;font-size:13px;font-weight:700;line-height:1";
         return `<section${sectionIdAttr} style="${trustPad}${sectionInset}${bgCss}">
         <div style="text-align:center;max-width:576px;margin:0 auto">${twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}</div>
-        <div data-faq-list style="max-width:576px;margin:40px auto 0;border-top:1px solid ${line};text-align:left">
+        <div data-faq-list style="${DESIGN_V4_ENABLED ? `max-width:576px;margin-left:auto;margin-right:auto;${declStyle(faqListV4())};text-align:left` : `max-width:576px;margin:40px auto 0;border-top:1px solid ${line};text-align:left`}">
           ${section.items
             .filter(
               (item) =>
@@ -1774,8 +1774,8 @@ function sectionHtml(
                 section.items.every((other) => isPlaceholderAnswer(other.answer)),
             )
             .map(
-              (item) => `<div class="pagzly-faq-card" style="border-bottom:1px solid ${line};padding:24px 0">
-            <div style="display:flex;align-items:flex-start;gap:12px"><span aria-hidden="true" style="${circle};background:${solidAccentOnPaper(theme)};color:${BRAND.paper}">Q</span><p style="min-width:0;flex:1;margin:0;padding-top:2px;font-family:${DETAIL_FONT_STACK.heading};font-size:17px;font-weight:700;line-height:1.375;letter-spacing:-0.02em;color:${BRAND.ink}">${esc(item.question)}</p></div>
+              (item) => `<div class="pagzly-faq-card" style="${DESIGN_V4_ENABLED ? declStyle(faqCardV4()) : `border-bottom:1px solid ${line};padding:24px 0`}">
+            <div style="display:flex;align-items:flex-start;gap:12px"><span aria-hidden="true" style="${circle};background:${solidAccentOnPaper(theme)};color:${BRAND.paper}">Q</span><p style="min-width:0;flex:1;margin:0;padding-top:2px;font-family:${DETAIL_FONT_STACK.heading};${DESIGN_V4_ENABLED ? declStyle(faqQuestionV4()) : "font-size:17px;font-weight:700;line-height:1.375;letter-spacing:-0.02em"};color:${BRAND.ink}">${esc(item.question)}</p></div>
             <div style="display:flex;align-items:flex-start;gap:12px;margin-top:12px"><span aria-hidden="true" style="${circle};border:1px solid ${hexToRgba(theme.accent, 0.4)};color:${deepText}">A</span><p class="pagzly-body-lh" style="min-width:0;flex:1;margin:0;font-size:${titleSizeCss("body")};line-height:1.85;color:rgba(27,27,24,.72)">${esc(item.answer)}</p></div>
           </div>`,
             )
