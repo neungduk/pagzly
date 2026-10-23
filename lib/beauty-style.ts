@@ -5,6 +5,7 @@
  */
 import type { InfoColors, InfoLevel } from "@/lib/info-style";
 import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
+import { depthShadowOf } from "@/lib/design-tokens-v4";
 
 /** 기본 켬. 끄려면 NEXT_PUBLIC_BEAUTY_STYLE=off로 서버를 시작한다(418차와 같은 화면 — 전/후 캡처·되돌리기용) */
 export const BEAUTY_STYLE_ENABLED = process.env.NEXT_PUBLIC_BEAUTY_STYLE !== "off";
@@ -65,8 +66,9 @@ export function beautyInfoCss(level: InfoLevel | undefined, scope: string, c: In
 
   // ── 퀵포인트: 카드 한 장(왼쪽 액센트 띠) · 제목 22px · 본문 16px · 썸네일 112px ──
   const Q = `${scope} [data-info="quick"]`;
-  rule(Q, `background:${c.soft};padding-top:12px;padding-bottom:12px`);
-  rule(`${Q}>div`, `background:${W};border-left:6px solid ${c.accent};border-bottom:0;border-radius:16px;padding:18px 20px;gap:18px;box-shadow:0 8px 22px rgba(27,27,24,0.1)`);
+  // 444차 — v4: 퀵포인트 한 줄(섹션 하나)의 위·아래 여백 12px는 3단 스케일 밖이라(린트 R17) 섹션 여백 0 + 카드 바깥 여백 12로 같은 간격을 낸다. 카드 깊이는 깊이 토큰(soft)
+  rule(Q, DESIGN_V4_ENABLED ? `background:${c.soft};padding-top:0;padding-bottom:0;display:flow-root` : `background:${c.soft};padding-top:12px;padding-bottom:12px`);
+  rule(`${Q}>div`, `background:${W};border-left:6px solid ${c.accent};border-bottom:0;border-radius:16px;padding:18px 20px;gap:18px;box-shadow:${DESIGN_V4_ENABLED ? depthShadowOf("soft", "#1B1B18") : "0 8px 22px rgba(27,27,24,0.1)"}${DESIGN_V4_ENABLED ? ";margin:12px 0" : ""}`);
   rule(`${Q} h3`, `font-size:22px;font-weight:800;line-height:1.3;color:${c.deep}`);
   rule(`${Q} p`, `font-size:16px;line-height:1.6;color:${c.ink};margin-top:6px`);
   rule(`${Q} img`, `width:112px;height:112px;border-radius:14px`);
