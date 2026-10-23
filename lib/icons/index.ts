@@ -11,6 +11,7 @@
 import { SUMMARY_ICON_PATHS, SUMMARY_ICON_PX, benefitMatches, pickSummaryIcon, summaryIconSvg, type SummaryIconId } from "@/lib/summary-line-icons";
 import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
 import { hexToRgba } from "@/lib/design-tokens";
+import { ensureContrast } from "@/lib/palette-v4";
 
 /** 440차에 더한 아이콘 — 24 격자, 선 2, 둥근 끝(stroke-linecap/linejoin round), 채움 없음 */
 const EXTRA_PATHS = {
@@ -178,5 +179,6 @@ export function extraIconFor(text: string): ExtraIconId | null {
  */
 export function glanceIconSvg(chip: string, color: string, accent: string): string {
   if (!DESIGN_V4_ENABLED) return summaryIconSvg(pickSummaryIcon(chip), color, SUMMARY_ICON_PX);
-  return iconV4Svg(extraIconFor(chip) ?? pickSummaryIcon(chip), { color, px: SUMMARY_ICON_PX, tint: hexToRgba(accent, 0.16) });
+  // 440차 6 린트 R13 — 인증 강조 칩은 원본 포인트색이라 옅은 요약 면에서 2.9:1까지 떨어졌다. 비텍스트 기준 3:1을 옅은 면 대표값(#F0EBE3)에 맞춘다
+  return iconV4Svg(extraIconFor(chip) ?? pickSummaryIcon(chip), { color: ensureContrast(color, "#F0EBE3", 3), px: SUMMARY_ICON_PX, tint: hexToRgba(accent, 0.16) });
 }

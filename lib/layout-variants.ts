@@ -651,7 +651,7 @@ function applyRhythm(secs: DetailSection[], idx: number[], ctx: V4Ctx, seed: num
  */
 export function touchName(name: string): string {
   const n = name.trim();
-  const m = /^(.+?)s*[(（]([^()（）]+)[)）]s*$/.exec(n);
+  const m = /^(.+?)\s*[(（]([^()（）]+)[)）]\s*$/.exec(n);
   if (!m) return n;
   const parts = [m[1]!.trim(), m[2]!.trim()].filter((x) => [...x].length >= 2);
   return parts.length ? parts.sort((a, b) => [...a].length - [...b].length)[0]! : n;

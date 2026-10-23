@@ -100,7 +100,7 @@ export function longestTokenEm(text: string, letterSpacingEm = 0): number {
 export function statFitEm(value: string | undefined, letterSpacingEm = -0.05): number {
   if (!DESIGN_V4_ENABLED) return longestTokenEm(value ?? "", letterSpacingEm);
   let width = 0;
-  for (const ch of (value ?? "").trim()) width += /s/.test(ch) ? 0.3 : (/[~～]/.test(ch) ? 0.8 : glyphEm(ch)) + letterSpacingEm;
+  for (const ch of (value ?? "").trim()) width += /\s/.test(ch) ? 0.3 : (/[~～]/.test(ch) ? 0.8 : glyphEm(ch)) + letterSpacingEm;
   return Math.max(0.01, Math.round(width * 1.28 * 100) / 100);
 }
 

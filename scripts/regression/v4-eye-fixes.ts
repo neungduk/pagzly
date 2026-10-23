@@ -33,6 +33,10 @@ export async function run(): Promise<string[]> {
   // D3
   if (touchName("Dream Glow Camellia Essence Mist (드림 글로우 카멜리아 에센스 미스트)") !== "드림 글로우 카멜리아 에센스 미스트") fails.push("D3: 괄호 병기 제품명이 짧은 쪽이 아님");
   if (touchName("벨벳 워터 틴트 립 4호") !== "벨벳 워터 틴트 립 4호") fails.push("D3: 괄호 없는 제품명이 바뀜");
+  // 440차 6 — 정규식 공백(\s)이 s로 들어갔던 회귀: 괄호 앞이 s로 끝나는 이름, 공백 폭
+  if (touchName("Glows (글로우즈 미스트 세럼 대용량)") !== "Glows") fails.push("D3: 괄호 앞 's'가 잘림");
+  if (statFitEm("a b") <= statFitEm("ab")) fails.push("D1: 공백 폭이 반영되지 않음");
+  if (statFitEm("ss") !== statFitEm("aa")) fails.push("D1: 영문 s를 공백으로 봄");
   // D2: 말뭉치 v4 스펙 블록에 안내 문구 행이 2개 이상 남지 않음
   for (const [id, f] of corpus()) {
     for (const s of displayOf(f).sections as Array<{ type: string; kind?: string; v4?: { family: string }; stats?: Array<{ value: string }> }>) {

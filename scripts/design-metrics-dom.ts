@@ -16,19 +16,21 @@ import { chromium } from "playwright";
 export const BIG_LINES_PER_SCREEN_MAX = 1.5;
 export const FLIPS_MAX = 6;
 
-async function main() {
-  const { corpus, exportHtmlOf } = await import("./design-corpus");
-  const want = process.argv.slice(2);
+export type DomMetrics = { screens: number; big: number; bigPerScreen: number; all: number; flips: number };
+
+/**
+ * 440차 6 — 측정 함수 분리(린터 R5·R11이 같은 값을 쓴다). 페이지마다 export HTML을 390×844에 올려 잰다. 사진·폰트 등 외부 요청은 막는다.
+ */
+export async function measureDomPages(pages: Array<[string, string]>): Promise<Map<string, DomMetrics>> {
+  const out = new Map<string, DomMetrics>();
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
   const page = await ctx.newPage();
   // tsx가 함수 이름 보조 함수(__name)를 넣어 브라우저 쪽에서 없다고 나는 것을 막는다
   await page.addInitScript({ content: "window.__name = (f) => f;" });
   await page.route("**/*", (r) => (r.request().resourceType() === "document" ? r.continue() : r.abort()));
-  const rows: string[] = ["id\t화면수\t큰글줄/화면\t면 전환\t명암 반전\t판정"];
-  let bad = 0;
-  for (const [id, file] of corpus({ only: want })) {
-    await page.setContent(exportHtmlOf(file), { waitUntil: "domcontentloaded" });
+  for (const [id, html] of pages) {
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
     await page.evaluate("window.__name = (f) => f");
     const m = await page.evaluate(() => {
       const H = document.documentElement.scrollHeight;
@@ -76,15 +78,28 @@ async function main() {
       }
       return { screens: H / 844, big, all, flips };
     });
-    const per = m.big / m.screens;
-    const ok = per <= BIG_LINES_PER_SCREEN_MAX && m.flips <= FLIPS_MAX;
-    if (!ok) bad += 1;
-    rows.push([id, m.screens.toFixed(1), per.toFixed(2), m.all, m.flips, ok ? "통과" : "위반"].join("\t"));
+    out.set(id, { ...m, bigPerScreen: m.big / m.screens });
   }
   await b.close();
+  return out;
+}
+
+async function main() {
+  const { corpus, exportHtmlOf } = await import("./design-corpus");
+  const want = process.argv.slice(2);
+  const files = corpus({ only: want });
+  const metrics = await measureDomPages(files.map(([id, file]) => [id, exportHtmlOf(file)]));
+  const rows: string[] = ["id\t화면수\t큰글줄/화면\t면 전환\t명암 반전\t판정"];
+  let bad = 0;
+  for (const [id] of files) {
+    const m = metrics.get(id)!;
+    const ok = m.bigPerScreen <= BIG_LINES_PER_SCREEN_MAX && m.flips <= FLIPS_MAX;
+    if (!ok) bad += 1;
+    rows.push([id, m.screens.toFixed(1), m.bigPerScreen.toFixed(2), m.all, m.flips, ok ? "통과" : "위반"].join("\t"));
+  }
   console.log(rows.join("\n"));
   if (process.env.OUT) fs.writeFileSync(process.env.OUT, rows.join("\n") + "\n");
   process.exit(bad ? 1 : 0);
 }
 
-void main();
+if (process.argv[1] && /design-metrics-dom/.test(process.argv[1])) void main();
