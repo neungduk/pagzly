@@ -735,6 +735,21 @@ const isDarkFace = (s: DetailSection | undefined): boolean => !!s && (s.type ===
 /** 임팩트 종류별 섹션 바탕(템플릿 마크업 기준): 색 면(틴트·파스텔)인 종류. 나머지 임팩트는 흰 바탕 */
 const TINT_KINDS = new Set(["faqcards", "proof", "specstrip", "story", "textboost", "split"]);
 type FaceClass = "white" | "tint" | "unknown";
+/**
+ * 445차 6 — 아이브로우 번호를 화면에 나오는 순서로 다시 매긴다. 번호는 계획 순서(placeV4)로 붙는데 블록이 이후 앞당겨지거나(첫 3화면 규칙·이동) 해서
+ * 화면에는 03 → 01 → 02처럼 뒤섞여 보였다(디자이너 눈 검수 5종 중 4종). 번호 0(접점 띠·숨 고르기)은 그대로, 번호와 같은 고스트 글자도 같이 바꾼다. 입력 배열은 바꾸지 않는다.
+ */
+export function renumberV4Blocks(sections: DetailSection[]): DetailSection[] {
+  let next = 0;
+  return sections.map((s) => {
+    if (s.type !== "impact" || s.kind !== "v4" || !s.v4 || s.v4.no <= 0) return s;
+    next += 1;
+    if (s.v4.no === next) return s;
+    const oldGhost = String(s.v4.no).padStart(2, "0");
+    return { ...s, v4: { ...s.v4, no: next, ...(s.v4.ghost === oldGhost ? { ghost: String(next).padStart(2, "0") } : {}) } } as DetailSection;
+  });
+}
+
 /** 444차 — 인접 섹션 간격 규칙(lib/rhythm-v4.ts)이 "같은 면"을 판정하는 키. 임팩트만(그 밖은 null = 같은 면으로 보지 않음). 흰 면(bgA·card·기본)은 한 키 */
 export function faceKeyOf(s: DetailSection | undefined): string | null {
   if (!s || s.type !== "impact") return null;

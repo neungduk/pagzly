@@ -1,6 +1,6 @@
 import type { DetailSection } from "@/lib/types/generate";
 import { designV4On } from "@/lib/design-v4";
-import { faceKeyOf } from "@/lib/layout-variants";
+import { faceKeyOf, renumberV4Blocks } from "@/lib/layout-variants";
 import { faceKeysFor, legacyTopPads, markTightTops } from "@/lib/rhythm-v4";
 import { orderSectionsForFlow } from "@/lib/section-flow-order";
 import { limitBoldBlocks } from "@/lib/detail-visual-rhythm";
@@ -420,8 +420,10 @@ export function applyDisplayRules(
   const policyChanges = policy ? [...policy.changes, ...(photo ? [{ type: "filled" as const, index: 0, kind: "photos" as const, reason: `사용하지 않은 사진 ${photo.indexes.join(",")}번`, slot: "backfill_photos" }] : [])] : undefined;
   // 444차 3 — 같은 면 이웃의 위 여백 해석(DESIGN_V4, lib/rhythm-v4.ts). v4 off면 그대로
   // 445차 3 — 이전(비임팩트) 섹션도 면 키를 읽어 같은 규칙: 임팩트 위 여백은 rhythm:"tight", 이전 섹션 위 여백은 topPads(섹션 번호 → px)로 내보낸다
-  const rhythmKey = designV4On() ? faceKeysFor(finalOut.sections, faceKeyOf) : faceKeyOf;
-  const rhythmSections = designV4On() ? markTightTops(finalOut.sections, rhythmKey) : finalOut.sections;
-  const topPads = designV4On() ? legacyTopPads(finalOut.sections, rhythmKey, opts.category ?? "") : {};
+  // 445차 6 — v4 아이브로우 번호는 화면 순서대로(이동·앞당김으로 뒤섞이지 않게)
+  const numbered = designV4On() ? renumberV4Blocks(finalOut.sections) : finalOut.sections;
+  const rhythmKey = designV4On() ? faceKeysFor(numbered, faceKeyOf) : faceKeyOf;
+  const rhythmSections = designV4On() ? markTightTops(numbered, rhythmKey) : finalOut.sections;
+  const topPads = designV4On() ? legacyTopPads(numbered, rhythmKey, opts.category ?? "") : {};
   return { sections: rhythmSections, ...(Object.keys(topPads).length ? { topPads } : {}), sourceIndexes: keptMap ? finalOut.sourceIndexes.map((i) => keptMap(i)) : finalOut.sourceIndexes, ...(policyChanges ? { policyChanges } : {}), ...(arche ? { archetype: { result: arche, mood, hero: recipe?.hero ?? null } } : {}) };
 }

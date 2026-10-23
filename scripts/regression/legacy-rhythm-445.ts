@@ -4,6 +4,7 @@
  * ③ 말뭉치: 계획 topPads가 만든 표식(data-pz-top)이 export·라이브에 같은 개수·같은 값으로 나오고 CSS 한 줄이 같은 값을 쓴다, ④ export DOM에서 표식 달린 섹션의 위 여백이 표식 값. 호출 0·서버 0.
  */
 import React from "react";
+import { renumberV4Blocks } from "../../lib/layout-variants";
 import { LEGACY_SECTION_V4, faceKeysFor, legacyFaceKey, legacyTopPads, resolveTopPad, topPadCssV4 } from "../../lib/rhythm-v4";
 import { faceKeyOf } from "../../lib/layout-variants";
 import { getRhythmTokens } from "../../lib/rhythm-tokens";
@@ -126,6 +127,19 @@ export async function run(): Promise<string[]> {
     if (want.length) { withPads += 1; forDom.push([id, exp, pads]); }
   }
   if (withPads < 3) fails.push(`말뭉치에서 이전 섹션 위 여백을 줄이는 입력이 ${withPads}개뿐(≥3 기대)`);
+
+  // ⑤ 445차 6 — v4 아이브로우 번호는 화면 순서대로 1부터(03 → 01 → 02처럼 뒤섞이지 않게). 번호 0(접점 띠 등)은 그대로, 입력 배열 불변
+  const v4 = (no: number, ghost?: string) => ({ type: "impact", slot: "impact", kind: "v4", text: "", v4: { family: "benefits", variant: "x", no, ...(ghost ? { ghost } : {}) } }) as unknown as DetailSection;
+  const mixed = [HERO, v4(3, "03"), v4(0), v4(1, "01"), sec("faq"), v4(2)];
+  const frozen = JSON.stringify(mixed);
+  const fixed = renumberV4Blocks(mixed) as unknown as Array<{ v4?: { no: number; ghost?: string } }>;
+  if (JSON.stringify(mixed) !== frozen) fails.push("renumberV4Blocks가 입력 배열을 바꿈");
+  if (fixed.map((x) => x.v4?.no ?? "-").join(",") !== "-,1,0,2,-,3") fails.push(`번호 재배치 ${fixed.map((x) => x.v4?.no ?? "-").join(",")} ≠ -,1,0,2,-,3`);
+  if (fixed[1]!.v4!.ghost !== "01" || fixed[3]!.v4!.ghost !== "02") fails.push("번호와 같은 고스트 글자도 같이 바뀌어야 함");
+  for (const [id, file] of corpus()) {
+    const nos = displayOf(file).sections.flatMap((x) => (x.type === "impact" && x.kind === "v4" && x.v4 && x.v4.no > 0 ? [x.v4.no] : []));
+    if (nos.some((n, k) => n !== k + 1)) fails.push(`${id}: 화면 순서 번호가 1부터 이어지지 않음 ${nos.join(",")}`);
+  }
 
   // ④ export DOM: 표식 달린 섹션의 위 여백이 표식 값
   const b = await launch();
