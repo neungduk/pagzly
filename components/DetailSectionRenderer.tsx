@@ -246,7 +246,7 @@ import { applyDisplayRules } from "@/lib/display-sections";
 import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
 import { DESIGN_V4_ENABLED, hideImgOnError } from "@/lib/design-v4";
 import { BANNER_SCRIM_INSET_V4, declObject, tokenStyleObject } from "@/lib/design-tokens-v4";
-import { highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, stepTextV4, stepsListV4 } from "@/lib/twin-styles-v4";
+import { reviewCaptionV4, highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, stepTextV4, stepsListV4 } from "@/lib/twin-styles-v4";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
 import { topPadCssV4 } from "@/lib/rhythm-v4";
 import { ctaTrustHtml } from "@/lib/layout-variants";
@@ -4954,6 +4954,7 @@ function renderSection(
             <p
               data-testid="review-highlight-count"
               className="mx-auto mt-2 max-w-xl text-center text-[11px] text-ink/40 @min-[640px]/pz:text-xs"
+              style={DESIGN_V4_ENABLED ? declObject(reviewCaptionV4()) : undefined}
             >
               실제 리뷰 {section.sourceReviewCount}건 분석
             </p>
@@ -4963,6 +4964,7 @@ function renderSection(
             <p
               data-testid="review-highlight-pet-signal"
               className="mx-auto mt-1 max-w-xl text-center text-[11px] text-ink/40 @min-[640px]/pz:text-xs"
+              style={DESIGN_V4_ENABLED ? declObject(reviewCaptionV4()) : undefined}
             >
               반려동물 나이·체중 언급 리뷰 {section.petAgeWeightMentionCount}건
             </p>
@@ -4972,6 +4974,7 @@ function renderSection(
             <p
               data-testid="review-highlight-repurchase-signal"
               className="mx-auto mt-1 max-w-xl text-center text-[11px] text-ink/40 @min-[640px]/pz:text-xs"
+              style={DESIGN_V4_ENABLED ? declObject(reviewCaptionV4()) : undefined}
             >
               재구매 의사 언급 리뷰 {section.repurchaseMentionCount}건
             </p>
@@ -4981,6 +4984,7 @@ function renderSection(
             <p
               data-testid="review-highlight-size-fit-signal"
               className="mx-auto mt-1 max-w-xl text-center text-[11px] text-ink/40 @min-[640px]/pz:text-xs"
+              style={DESIGN_V4_ENABLED ? declObject(reviewCaptionV4()) : undefined}
             >
               사이즈·핏 언급 리뷰 {section.sizeFitMentionCount}건
             </p>
@@ -4990,11 +4994,12 @@ function renderSection(
             <p
               data-testid="review-highlight-long-term-use-signal"
               className="mx-auto mt-1 max-w-xl text-center text-[11px] text-ink/40 @min-[640px]/pz:text-xs"
+              style={DESIGN_V4_ENABLED ? declObject(reviewCaptionV4()) : undefined}
             >
               장기 사용 후기 {section.longTermUseMentionCount}건
             </p>
           ) : null}
-          <p className="mx-auto mt-2 max-w-xl text-center text-xs text-ink/40">
+          <p className="mx-auto mt-2 max-w-xl text-center text-xs text-ink/40" style={DESIGN_V4_ENABLED ? declObject(reviewCaptionV4()) : undefined}>
             실제 구매자 리뷰에서 자주 나온 내용을 요약했습니다
           </p>
           {FLAT_SECTION_SURFACES ? (
@@ -5003,7 +5008,7 @@ function renderSection(
                 <li
                   key={praiseIndex}
                   data-testid="review-card"
-                  className="flex items-start gap-4 rounded-xl border px-5 py-5 text-left"
+                  className={`flex items-start gap-4 ${DESIGN_V4_ENABLED ? "rounded-2xl" : "rounded-xl"} border px-5 py-5 text-left`}
                   style={{ backgroundColor: FLAT_PAPER, borderColor: hexToRgba(theme.accent, 0.16) }}
                 >
                   <span
@@ -5130,7 +5135,7 @@ function renderSection(
               data-testid="review-highlight-concerns"
               className="mx-auto mt-12 max-w-xl border-t border-ink/10 pt-8"
             >
-              <p className="text-center text-[11px] font-medium tracking-wide text-ink/45 @min-[640px]/pz:text-xs">
+              <p className="text-center text-[11px] font-medium tracking-wide text-ink/45 @min-[640px]/pz:text-xs" style={DESIGN_V4_ENABLED ? declObject(reviewCaptionV4()) : undefined}>
                 실제 후기에 나온 아쉬운 점
               </p>
               <ul className="mt-4 space-y-2.5">
@@ -5148,9 +5153,10 @@ function renderSection(
                           edit?.onChange(index, { ...section, concerns: nextConcerns });
                         }}
                         className="text-center text-[12px] leading-relaxed text-ink/50 @min-[640px]/pz:text-[13px]"
+                        style={DESIGN_V4_ENABLED ? declObject(reviewCaptionV4(false)) : undefined}
                       />
                     ) : (
-                      <p className="text-center text-[12px] leading-relaxed text-ink/50 @min-[640px]/pz:text-[13px]">
+                      <p className="text-center text-[12px] leading-relaxed text-ink/50 @min-[640px]/pz:text-[13px]" style={DESIGN_V4_ENABLED ? declObject(reviewCaptionV4(false)) : undefined}>
                         {item.matchCount > 0
                           ? splitTextByKeywords(item.text).map((seg, segIdx) =>
                               seg.isKeyword ? (
@@ -5180,6 +5186,7 @@ function renderSection(
                       <p
                         data-testid="review-match-badge"
                         className="mt-1 text-center text-[11px] text-ink/40 @min-[640px]/pz:text-xs"
+                        style={DESIGN_V4_ENABLED ? declObject(reviewCaptionV4()) : undefined}
                       >
                         {item.matchCount}건 언급
                       </p>

@@ -5,7 +5,7 @@
  */
 import { BRAND, FLAT_PAPER, INFO_TABLE, hexToRgba } from "@/lib/design-tokens";
 import { classifyBoolishCell } from "@/lib/comparison-cell-classify";
-import { SPACE_V4, SPEC_LABEL_INK_ALPHA, tokenDecl, type Decl } from "@/lib/design-tokens-v4";
+import { LINE_HEIGHT_V4, MIN_LABEL_PX, SPACE_V4, SPEC_LABEL_INK_ALPHA, tokenDecl, type Decl } from "@/lib/design-tokens-v4";
 
 /** 선언 목록 합치기 — 같은 속성은 뒤가 이긴다(순서는 처음 나온 위치) */
 export function mergeDecl(...lists: Decl[]): Decl {
@@ -85,3 +85,11 @@ export const aiBodyV4 = (): Decl => mergeDecl([["font-size", "13px"]], tokenDecl
 // ── usage_steps(사용 순서) — 제목은 섹션 제목 시스템 그대로, 여백·행간만 ──────────
 export const stepsListV4 = (): Decl => [["margin-top", `${SPACE_V4.md}px`]];
 export const stepTextV4 = (): Decl => tokenDecl("line-relaxed");
+
+// ── review_highlight(후기 요약) ──────────────────────────────────────────────
+/**
+ * 445차 5 — 후기 캡션(분석 건수·언급 건수·"아쉬운 점" 머리말·요약 안내·건수 배지)과 아쉬운 점 문장. 라이브 text-ink/40·45·50 + 11px, export opacity .4~.5 + 11px였다:
+ * 면 위 대비 약 2.6~3.5:1·글자 11px로 라벨 하한(12px)·대비(4.5:1)를 못 맞췄다(합성 픽스처에 후기 섹션을 넣고서야 드러남). 잉크 알파는 spec 라벨과 같은 토큰(SPEC_LABEL_INK_ALPHA),
+ * 글자 크기는 라벨 하한 토큰. size=false면 글자 크기는 건드리지 않는다(아쉬운 점 문장은 좁은 12 · 넓은 13 반응형을 각자 유지).
+ */
+export const reviewCaptionV4 = (size = true, ink: string = BRAND.ink): Decl => mergeDecl([["color", hexToRgba(ink, SPEC_LABEL_INK_ALPHA)], ["opacity", "1"]], size ? [["font-size", `${MIN_LABEL_PX}px`], ["line-height", String(LINE_HEIGHT_V4.normal)]] : []);
