@@ -246,7 +246,7 @@ import { applyDisplayRules } from "@/lib/display-sections";
 import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
 import { DESIGN_V4_ENABLED, hideImgOnError } from "@/lib/design-v4";
 import { declObject, tokenStyleObject } from "@/lib/design-tokens-v4";
-import { highlightCardV4, highlightTitleKey } from "@/lib/twin-styles-v4";
+import { highlightCardV4, highlightTitleKey, personaCardV4, personaTextV4 } from "@/lib/twin-styles-v4";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
 import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
@@ -1745,7 +1745,7 @@ function PersonaStrip({
                 personas[i] = next;
                 onChange(personas);
               }}
-              className="line-clamp-3 min-w-0 flex-1 text-center font-medium"
+              className={DESIGN_V4_ENABLED ? "line-clamp-3 min-w-0 flex-1 text-center" : "line-clamp-3 min-w-0 flex-1 text-center font-medium"}
               style={{
                 padding: `0 ${s.padXPx}px`,
                 fontSize: s.textPx,
@@ -1753,6 +1753,7 @@ function PersonaStrip({
                 color: BRAND.ink,
                 wordBreak: "keep-all",
                 textWrap: "balance",
+                ...(DESIGN_V4_ENABLED ? declObject(personaTextV4()) : {}),
               }}
             />
           </li>
@@ -5735,7 +5736,9 @@ function renderSection(
                 key={`${personaIndex}-${persona.slice(0, 12)}`}
                 className={
                   FLAT_SECTION_SURFACES
-                    ? "flex items-center gap-3 rounded-xl border px-5 py-4 text-[16px] font-medium leading-snug"
+                    ? DESIGN_V4_ENABLED
+                      ? "flex items-center gap-3 border px-5 py-4"
+                      : "flex items-center gap-3 rounded-xl border px-5 py-4 text-[16px] font-medium leading-snug"
                     : "inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium"
                 }
                 style={
@@ -5744,6 +5747,7 @@ function renderSection(
                         backgroundColor: FLAT_PAPER,
                         borderColor: hexToRgba(theme.accent, 0.16),
                         color: BRAND.ink,
+                        ...(DESIGN_V4_ENABLED ? declObject(personaCardV4()) : {}),
                       }
                     : {
                         backgroundColor: hexToRgba(theme.baseNeutral, 0.85),

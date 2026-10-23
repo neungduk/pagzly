@@ -22,3 +22,9 @@ export function highlightCardV4(c: { trust: boolean; em: boolean; bold: boolean 
   const depth: Decl = c.em ? [["border", "none"], ...tokenDecl("shadow-float", ink)] : c.bold ? tokenDecl("shadow-none") : [...tokenDecl("hairline", ink), ...tokenDecl("shadow-soft", ink)];
   return mergeDecl(tokenDecl("radius-md"), pad, depth);
 }
+
+// ── target_persona(페르소나) ─────────────────────────────────────────────────
+/** 페르소나 문장(목록 카드·사진 띠 한 줄)은 카드 제목 '소'(17·700). 단일 라벨은 442차대로 '중'(PERSONA_SINGLE, 같은 토큰) */
+export const personaTextV4 = (): Decl => tokenDecl("heading-small");
+/** 목록 카드 껍데기: 반경 3단 '중' — 라이브 rounded-xl(12)과 export RADIUS.lg(16)이 따로 가던 것을 한 값으로 */
+export const personaCardV4 = (): Decl => mergeDecl(tokenDecl("radius-md"), personaTextV4());

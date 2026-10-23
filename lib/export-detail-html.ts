@@ -166,7 +166,7 @@ import { HERO_V2_TUNED, heroPalette, heroV2Html } from "@/lib/hero-spec";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
 import { LINE_HEIGHT_V4, SPACE_V4, declStyle, tokenStyle } from "@/lib/design-tokens-v4";
-import { highlightCardV4, highlightTitleKey } from "@/lib/twin-styles-v4";
+import { highlightCardV4, highlightTitleKey, personaCardV4, personaTextV4 } from "@/lib/twin-styles-v4";
 import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
 import { glanceIconSvg } from "@/lib/icons";
@@ -1665,7 +1665,7 @@ function sectionHtml(
               .map((p, i) => {
                 const flip = i % 2 === 1;
                 const alt = buildSectionImageAlt(productName, p, section.slot);
-                return `<li style="display:flex;align-items:center;flex-direction:${flip ? "row-reverse" : "row"};overflow:hidden;border-radius:9999px;border:1px solid ${hexToRgba(theme.accent, 0.16)};background:${FLAT_PAPER};aspect-ratio:${ps.rowAspect}"><div style="position:relative;height:100%;flex-shrink:0;width:${ps.photoWidthPct}%"><img src="${esc(imageUrls[stripIndexes[i]!] ?? "")}" alt="${esc(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover"/><div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(${flip ? "270deg" : "90deg"},transparent ${100 - ps.fadePct}%,${FLAT_PAPER} 100%)"></div></div><span style="min-width:0;flex:1;text-align:center;font-weight:500;padding:0 ${ps.padXPx}px;font-size:${ps.textPx}px;line-height:${ps.lineHeight};color:${BRAND.ink};word-break:keep-all;text-wrap:balance;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${esc(p)}</span></li>`;
+                return `<li style="display:flex;align-items:center;flex-direction:${flip ? "row-reverse" : "row"};overflow:hidden;border-radius:9999px;border:1px solid ${hexToRgba(theme.accent, 0.16)};background:${FLAT_PAPER};aspect-ratio:${ps.rowAspect}"><div style="position:relative;height:100%;flex-shrink:0;width:${ps.photoWidthPct}%"><img src="${esc(imageUrls[stripIndexes[i]!] ?? "")}" alt="${esc(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover"/><div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(${flip ? "270deg" : "90deg"},transparent ${100 - ps.fadePct}%,${FLAT_PAPER} 100%)"></div></div><span style="min-width:0;flex:1;text-align:center;${DESIGN_V4_ENABLED ? "" : "font-weight:500;"}padding:0 ${ps.padXPx}px;font-size:${ps.textPx}px;line-height:${ps.lineHeight};color:${BRAND.ink};word-break:keep-all;text-wrap:balance;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden${DESIGN_V4_ENABLED ? `;${declStyle(personaTextV4())}` : ""}">${esc(p)}</span></li>`;
               })
               .join("")}</ul>`
           : "";
@@ -1682,7 +1682,7 @@ function sectionHtml(
         return `<section${sectionIdAttr} class="pagzly-persona" style="${pad}${sectionInset}${bgCss}">
         <div style="text-align:center;max-width:576px;margin:0 auto">${questionLeadHtml}${twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}</div>
         ${stripHtml || singleHtml || `<ul${isPersonaPairGrid(section.personas) ? ` class="pagzly-persona-pairs"` : ""} style="max-width:576px;margin:32px auto 0;padding:0;list-style:none;display:${isPersonaPairGrid(section.personas) ? "grid" : "flex"};flex-direction:column;gap:12px">
-          ${section.personas.map((p) => `<li style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-radius:${RADIUS.lg}px;border:1px solid ${hexToRgba(theme.accent, 0.16)};background:${FLAT_PAPER};font-size:16px;font-weight:500;line-height:1.375;color:${BRAND.ink}"><span style="display:flex;flex-shrink:0;align-items:center;justify-content:center;width:24px;height:24px;border-radius:9999px;background:${solidAccentOnPaper(theme)}">${check}</span><span style="min-width:0;flex:1;text-align:left">${esc(p)}</span></li>`).join("")}
+          ${section.personas.map((p) => `<li style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-radius:${RADIUS.lg}px;border:1px solid ${hexToRgba(theme.accent, 0.16)};background:${FLAT_PAPER};font-size:16px;font-weight:500;line-height:1.375;color:${BRAND.ink}${DESIGN_V4_ENABLED ? `;${declStyle(personaCardV4())}` : ""}"><span style="display:flex;flex-shrink:0;align-items:center;justify-content:center;width:24px;height:24px;border-radius:9999px;background:${solidAccentOnPaper(theme)}">${check}</span><span style="min-width:0;flex:1;text-align:left">${esc(p)}</span></li>`).join("")}
         </ul>`}
         ${trailHtml}
       </section>`;

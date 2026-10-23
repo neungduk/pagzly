@@ -9,7 +9,7 @@ import { BRAND } from "../../lib/design-tokens";
 import { buildDetailPageHtml } from "../../lib/export-detail-html";
 import { declStyle, tokenDecl, type Decl } from "../../lib/design-tokens-v4";
 import type { DetailSection } from "../../lib/types/generate";
-import { highlightCardV4 } from "../../lib/twin-styles-v4";
+import { highlightCardV4, personaCardV4, personaTextV4 } from "../../lib/twin-styles-v4";
 import { corpus, exportArgsOf, readSession } from "../design-corpus";
 
 export const name = "쌍둥이 수정 — 섹션별 라이브↔export v4 토큰 선언 패리티";
@@ -27,6 +27,11 @@ export const PROBES: Probe[] = [
       highlightCardV4({ trust: true, em: false, bold: false }), highlightCardV4({ trust: true, em: true, bold: false }),
     ],
     heading: (s) => (s.heading as string) || ((s.cards as Array<{ title?: string }>)?.[0]?.title),
+  },
+  {
+    type: "target_persona",
+    groups: [personaTextV4(), personaCardV4()],
+    heading: (s) => (s.personas as string[] | undefined)?.[0], // 제목은 두 톤 span으로 쪼개져 글자로 못 찾는다
   },
 ];
 
@@ -79,6 +84,7 @@ export async function run(): Promise<string[]> {
         const only = [sec] as unknown as DetailSection[];
         const exp = sectionOf(buildDetailPageHtml({ ...a, sections: only }), needle);
         const live = sectionOf(await liveOf(a, only), needle);
+        if (!exp && live) continue; // export의 표시 규칙(applyDisplayRules)이 이 카테고리에서 섹션을 뺀 경우 — 라이브는 규칙을 페이지 쪽에서 적용하므로 비교 대상 아님
         if (!exp || !live) { fails.push(`${probe.type} ${id}: 섹션 조각을 못 찾음(live ${Boolean(live)} / export ${Boolean(exp)})`); continue; }
         seen[probe.type] = (seen[probe.type] ?? 0) + 1;
         probe.groups.forEach((g, gi) => {
