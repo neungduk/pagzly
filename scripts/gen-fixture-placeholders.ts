@@ -1,7 +1,7 @@
 /**
  * 443차 4-3 — 합성 픽스처(scripts/fixtures/archetype-*.json) 사진 교체: 모든 픽스처가 같은 음식 선반·글자 박힌 사진을 가리켜
  * 립 틴트 같은 페이지에 엉뚱한 사진이 나오던 것을, 카테고리 색 톤의 글자 없는 플레이스홀더(그라데이션 면 + 단순 도형, 직접 생성 → 저작권 문제 없음)로 바꾼다.
- *   npx tsx scripts/gen-fixture-placeholders.ts          (이미 바꾼 픽스처는 건너뜀, 같은 입력이면 같은 출력)
+ *   npx tsx scripts/gen-fixture-placeholders.ts          (같은 입력이면 같은 출력 — 이미 바꾼 픽스처는 주소를 그대로 두고 이미지만 다시 만든다)
  * 사진 주소 /qa-fixtures/synth/<파일> → /qa-fixtures/ph/<카테고리>/<파일>. 크기(가로×세로)는 원래 파일과 같게 해 레이아웃 비율을 유지한다(원본이 없으면 480×600).
  * 총 용량은 실행 끝에 출력한다(상한 8MB).
  */
@@ -11,6 +11,7 @@ import sharp from "sharp";
 
 const FIX_DIR = "scripts/fixtures";
 const OLD = "/qa-fixtures/synth/";
+const PH = "/qa-fixtures/ph/";
 const OUT_ROOT = "public/qa-fixtures/ph";
 
 /** 카테고리 → [폴더 키, 위 색, 아래 색, 도형 색] — 각 카테고리의 흔한 상품 톤(뷰티 분홍, 식품 크림, 전자 쿨 그레이 …) */
@@ -29,24 +30,35 @@ const hash = (s: string): number => {
   return h;
 };
 
+/** 색을 검정 쪽으로 t만큼 섞는다(도형·그림자를 면보다 확실히 진하게 — 444차 눈 검수: 면과 비슷한 도형은 사진 칸이 비어 보였다) */
+function darken(hex: string, t: number): string {
+  const c = [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - t)));
+  return `#${c.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+}
+
 function svgOf(w: number, h: number, top: string, bottom: string, shape: string, name: string): string {
   const k = hash(name);
   const cx = Math.round(w * (0.42 + (k % 17) / 100));
   const cy = Math.round(h * (0.46 + ((k >> 5) % 11) / 100));
-  const r = Math.round(Math.min(w, h) * (0.2 + ((k >> 9) % 9) / 100));
+  const r = Math.round(Math.min(w, h) * (0.24 + ((k >> 9) % 9) / 100));
   const form = k % 3;
-  const body =
+  const body = darken(bottom, 0.38);
+  const rim = darken(bottom, 0.2);
+  const pad = Math.round(r * 0.12);
+  const shadowY = form === 1 ? cy + Math.round(r * 1.2) : cy + Math.round(r * (form === 0 ? 1 : 0.8));
+  const obj =
     form === 0
-      ? `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${shape}" fill-opacity="0.85"/>`
+      ? `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${body}"/><circle cx="${cx - Math.round(r * 0.3)}" cy="${cy - Math.round(r * 0.3)}" r="${Math.round(r * 0.45)}" fill="${shape}" fill-opacity="0.35"/>`
       : form === 1
-        ? `<rect x="${cx - r}" y="${cy - Math.round(r * 1.2)}" width="${r * 2}" height="${Math.round(r * 2.4)}" rx="${Math.round(r * 0.35)}" fill="${shape}" fill-opacity="0.85"/>`
-        : `<ellipse cx="${cx}" cy="${cy}" rx="${Math.round(r * 1.25)}" ry="${Math.round(r * 0.8)}" fill="${shape}" fill-opacity="0.85"/>`;
+        ? `<rect x="${cx - r}" y="${cy - Math.round(r * 1.2)}" width="${r * 2}" height="${Math.round(r * 2.4)}" rx="${Math.round(r * 0.35)}" fill="${body}"/><rect x="${cx - r + pad}" y="${cy - Math.round(r * 1.2) + pad}" width="${Math.round(r * 0.5)}" height="${Math.round(r * 2.4) - pad * 2}" rx="${Math.round(r * 0.2)}" fill="${shape}" fill-opacity="0.3"/>`
+        : `<ellipse cx="${cx}" cy="${cy}" rx="${Math.round(r * 1.25)}" ry="${Math.round(r * 0.8)}" fill="${body}"/><ellipse cx="${cx - Math.round(r * 0.35)}" cy="${cy - Math.round(r * 0.2)}" rx="${Math.round(r * 0.5)}" ry="${Math.round(r * 0.25)}" fill="${shape}" fill-opacity="0.35"/>`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">` +
-    `<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${top}"/><stop offset="1" stop-color="${bottom}"/></linearGradient></defs>` +
+    `<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${top}"/><stop offset="1" stop-color="${rim}"/></linearGradient></defs>` +
     `<rect width="${w}" height="${h}" fill="url(#g)"/>` +
-    `<rect y="${Math.round(h * 0.72)}" width="${w}" height="${h - Math.round(h * 0.72)}" fill="${shape}" fill-opacity="0.22"/>` +
-    body +
+    `<rect y="${Math.round(h * 0.72)}" width="${w}" height="${h - Math.round(h * 0.72)}" fill="${darken(bottom, 0.3)}" fill-opacity="0.35"/>` +
+    `<ellipse cx="${cx}" cy="${shadowY}" rx="${Math.round(r * 1.1)}" ry="${Math.round(r * 0.18)}" fill="#000000" fill-opacity="0.22"/>` +
+    obj +
     `</svg>`
   );
 }
@@ -61,24 +73,23 @@ async function main() {
     const spec = CATEGORY[category];
     if (!spec) throw new Error(`${file}: 카테고리 '${category}'에 맞는 색 톤이 없음`);
     const [key, top, bottom, shape] = spec;
-    const names = [...new Set([...text.matchAll(new RegExp(`${OLD.replace(/\//g, "\\/")}([^"\\\\]+)`, "g"))].map((m) => m[1]!))];
+    const names = [...new Set([...text.matchAll(/\/qa-fixtures\/(?:synth|ph\/[a-z]+)\/([^"\\]+)/g)].map((m) => m[1]!))];
     for (const name of names) {
-      const src = path.join("public/qa-fixtures/synth", name);
+      const srcs = [path.join("public/qa-fixtures/synth", name), path.join(OUT_ROOT, key, name)];
+      const src = srcs.find((f) => fs.existsSync(f));
       let w = 480;
       let h = 600;
-      if (fs.existsSync(src)) {
+      if (src) {
         const meta = await sharp(src).metadata();
         w = meta.width ?? w;
         h = meta.height ?? h;
       }
       const dest = path.join(OUT_ROOT, key, name);
-      if (!fs.existsSync(dest)) {
-        fs.mkdirSync(path.dirname(dest), { recursive: true });
-        const img = sharp(Buffer.from(svgOf(w, h, top, bottom, shape, `${key}/${name}`)));
-        await (/\.jpe?g$/i.test(name) ? img.jpeg({ quality: 82 }) : img.png({ compressionLevel: 9 })).toFile(dest);
-        made += 1;
-      }
-      text = text.split(`${OLD}${name}`).join(`/qa-fixtures/ph/${key}/${name}`);
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      const img = sharp(Buffer.from(svgOf(w, h, top, bottom, shape, `${key}/${name}`)));
+      await (/\.jpe?g$/i.test(name) ? img.jpeg({ quality: 82 }) : img.png({ compressionLevel: 9 })).toFile(dest);
+      made += 1;
+      text = text.split(`${OLD}${name}`).join(`${PH}${key}/${name}`);
     }
     fs.writeFileSync(p, text);
   }
