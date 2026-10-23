@@ -1333,7 +1333,7 @@ function LayeredPanel({
   if (FLAT_SECTION_SURFACES) {
     return (
       <div
-        className={`relative rounded-xl border ${className}`}
+        className={`relative ${DESIGN_V4_ENABLED ? "rounded-2xl" : "rounded-xl"} border ${className}`}
         style={{ backgroundColor: FLAT_PAPER, borderColor: hexToRgba(theme.accent, 0.16) }}
       >
         {children}

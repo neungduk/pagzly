@@ -165,7 +165,7 @@ import { archetypeHeroLayout } from "@/lib/archetype-recipes";
 import { HERO_V2_TUNED, heroPalette, heroV2Html } from "@/lib/hero-spec";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
-import { BANNER_SCRIM_INSET_V4, LINE_HEIGHT_V4, SPACE_V4, declStyle, tokenStyle } from "@/lib/design-tokens-v4";
+import { BANNER_SCRIM_INSET_V4, LINE_HEIGHT_V4, RADIUS_V4, SPACE_V4, declStyle, tokenStyle } from "@/lib/design-tokens-v4";
 import { highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, stepTextV4, stepsListV4 } from "@/lib/twin-styles-v4";
 import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
@@ -959,7 +959,7 @@ function sectionHtml(
               return `<div class="${em && !FLAT_SECTION_SURFACES ? "pulse-card" : ""}${rowCls}"${infoOn(layout) && em ? ' data-em="1"' : ""} style="${FLAT_SECTION_SURFACES ? "container-type:inline-size;" : ""}border-radius:${RADIUS.lg}px;padding:${FLAT_SECTION_SURFACES ? "32px 24px" : "28px 20px"};text-align:center;background:${cardBg};border:${cardBorder};${em && !FLAT_SECTION_SURFACES ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}${DESIGN_V4_ENABLED ? `${declStyle(highlightCardV4({ trust: false, em, bold: Boolean(section.boldBlock) }))};` : ""}color:${titleColor}">
                 ${iconHtml}${FLAT_SECTION_SURFACES ? "" : `<div style="font-size:${FONT_SIZE.label};letter-spacing:.22em;opacity:.7;border:1px solid ${accent}55;border-radius:${RADIUS.pill}px;display:inline-block;padding:4px 10px">${formatPointBadge(i + 1)}</div>`}
                 ${cardKeyword.keyword ? FLAT_SECTION_SURFACES ? `<p class="pz-fit" style="--pz-fs:clamp(1.75rem,8cqi,2.75rem);--pz-fit-em:${longestTokenEm(cardKeyword.keyword, -0.06)};font-size:clamp(1.75rem,8cqi,2.75rem);font-family:${DETAIL_FONT_STACK.heading};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:0 0 ${showTitle ? 0 : 8}px;text-transform:uppercase;color:${(em || section.boldBlock) && !lightEm ? BRAND.paper : deepText}">${esc(cardKeyword.keyword)}</p>` : `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClampCard};font-weight:900;line-height:.92;letter-spacing:-.05em;margin:${FLAT_SECTION_SURFACES ? 0 : 12}px 0 ${showTitle ? 0 : 8}px;text-transform:uppercase;color:${(em || section.boldBlock) && !lightEm ? BRAND.paper : deepText}">${esc(cardKeyword.keyword)}</p>` : ""}
-                ${showTitle && DESIGN_V4_ENABLED ? `<h3 style="margin:${FLAT_SECTION_SURFACES && !cardKeyword.keyword ? 0 : 8}px 0 8px;font-family:${DETAIL_FONT_STACK.heading};${tokenStyle(highlightTitleKey(false))};color:${titleColor}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</h3>` : showTitle ? `<h3 style="margin:${FLAT_SECTION_SURFACES && !cardKeyword.keyword ? 0 : 8}px 0 8px;font-size:${cardKeyword.keyword ? (FLAT_SECTION_SURFACES ? `16px;line-height:24px;letter-spacing:-0.02em;font-family:${DETAIL_FONT_STACK.heading}` : FONT_SIZE.bodySm) : FLAT_SECTION_SURFACES ? "18px;line-height:28px;letter-spacing:-0.02em" : "inherit"};font-weight:${cardKeyword.keyword ? "600" : "700"};color:${titleColor}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</h3>` : ""}
+                ${showTitle && DESIGN_V4_ENABLED ? `<${infoOn(layout) ? "p" : "h3"} style="margin:${FLAT_SECTION_SURFACES && !cardKeyword.keyword ? 0 : 8}px 0 8px;font-family:${DETAIL_FONT_STACK.heading};${tokenStyle(highlightTitleKey(false))};color:${titleColor}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</${infoOn(layout) ? "p" : "h3"}>` : showTitle ? `<h3 style="margin:${FLAT_SECTION_SURFACES && !cardKeyword.keyword ? 0 : 8}px 0 8px;font-size:${cardKeyword.keyword ? (FLAT_SECTION_SURFACES ? `16px;line-height:24px;letter-spacing:-0.02em;font-family:${DETAIL_FONT_STACK.heading}` : FONT_SIZE.bodySm) : FLAT_SECTION_SURFACES ? "18px;line-height:28px;letter-spacing:-0.02em" : "inherit"};font-weight:${cardKeyword.keyword ? "600" : "700"};color:${titleColor}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</h3>` : ""}
                 ${isRedundantCardBody(card.title, card.body) ? "" : `<p style="margin:0;font-size:${FONT_SIZE.bodySm};line-height:${DESIGN_V4_ENABLED ? LINE_HEIGHT_V4.relaxed : "1.625"};color:${bodyColor}">${esc(card.body)}</p>`}
               </div>`;
             })
@@ -1102,7 +1102,7 @@ function sectionHtml(
               .join("")}</div>`
           : "";
       return `<section${sectionIdAttr}${infoAttr(layout, "stat")} style="${pad}${sectionInset}${bgCss}">
-        ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
+        ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}${DESIGN_V4_ENABLED && infoOn(layout) && !metricsHtml && !footnotesHtml ? ";margin-bottom:0" : ""}`)}
         ${metricsHtml}${footnotesHtml}</section>${infoOn(layout) && numberBlockHtml ? `<section${infoAttr(layout, "statnum")} style="${pad}${sectionInset}${bgCss}">${numberBlockHtml}</section>` : ""}`;
     }
     case "comparison_chart": {
@@ -1926,9 +1926,9 @@ function sectionHtml(
         <div style="position:absolute;inset:0;background:${DESIGN_V4_ENABLED ? bannerScrimV4(deep) : `linear-gradient(180deg,${deep}99,transparent 35%,transparent 55%,${deep}cc)`}"></div>
         <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;aspect-ratio:16/9;box-sizing:border-box;padding:32px 24px;text-align:center;color:#FAF8F3">
           <div style="position:relative;max-width:520px;padding:20px 28px">
-            <div aria-hidden="true" style="position:absolute;inset:${DESIGN_V4_ENABLED ? BANNER_SCRIM_INSET_V4 : "-10%"};border-radius:20px;pointer-events:none;background:rgba(27,27,24,.9);box-shadow:0 8px 40px rgba(27,27,24,.4)"></div>
+            <div aria-hidden="true"${DESIGN_V4_ENABLED ? ' class="pagzly-banner-scrim"' : ""} style="position:absolute;inset:${DESIGN_V4_ENABLED ? BANNER_SCRIM_INSET_V4 : "-10%"};border-radius:${DESIGN_V4_ENABLED ? RADIUS_V4.md : 20}px;pointer-events:none;background:rgba(27,27,24,.9);box-shadow:0 8px 40px rgba(27,27,24,.4)"></div>
             <div style="position:relative;z-index:1">
-              ${section.heading ? dh2(category, esc(section.heading), `font-size:${FONT_SIZE.sectionLg};margin:0`) : ""}
+              ${section.heading ? (DESIGN_V4_ENABLED ? `<h2 style="font-family:${DETAIL_FONT_STACK.heading};font-size:${titleSizeCss("banner")};font-weight:700;line-height:1.15;letter-spacing:-0.03em;margin:0;color:#fff">${esc(section.heading)}</h2>` : dh2(category, esc(section.heading), `font-size:${FONT_SIZE.sectionLg};margin:0`)) : ""}
               ${section.body ? `<p style="margin:12px 0 0;font-size:${FONT_SIZE.body};opacity:.95;max-width:480px">${esc(section.body)}</p>` : ""}
             </div>
           </div>
@@ -2404,7 +2404,7 @@ ${jsonLd}
   @media (min-width:640px){.pagzly-wrap{${sectionPadVarsCss(opts.category, true, packPadScale(pack))}}}
   .pagzly-wrap section>h2.pagzly-display-headline:first-child{margin-top:0}
   .pagzly-wrap .pagzly-display-headline{line-height:1.2}
-  @media (min-width:640px){.pagzly-caution-list{padding:20px 28px!important}}
+  @media (min-width:640px){.pagzly-caution-list{padding:20px 28px!important}}${DESIGN_V4_ENABLED ? `@media (min-width:640px){.pagzly-banner-scrim{border-radius:${RADIUS_V4.lg}px!important}}` : ""}
   .pagzly-compact-thumb{display:block;width:96px;height:96px}
   .pagzly-stacked{padding:64px 0}.pagzly-stacked-head{padding:0 24px}.pagzly-stacked-body{padding:40px 24px 0}
   @media (min-width:640px){.pagzly-stacked{padding:80px 0}.pagzly-stacked-head{padding:0 40px}.pagzly-stacked-body{padding:48px 40px 0}}

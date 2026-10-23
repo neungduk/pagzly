@@ -22,7 +22,7 @@ export async function run(): Promise<string[]> {
       if (/background:#FFFFFF/.test(m[1]!) && /pagzly-hl-grid/.test(h)) fails.push(`${id}: info 강조 카드가 흰 면 인라인 배경(lightEm)을 가짐 — 강조색 면 위 어두운 제목`);
     }
     // ② 배너 스크림
-    for (const m of h.matchAll(/position:absolute;inset:([^;]+);border-radius:20px;pointer-events:none;background:rgba\(27,27,24,\.9\)/g)) {
+    for (const m of h.matchAll(/position:absolute;inset:([^;]+);border-radius:16px;pointer-events:none;background:rgba\(27,27,24,\.9\)/g)) {
       banners += 1;
       if (m[1] !== BANNER_SCRIM_INSET_V4) fails.push(`${id}: 배너 스크림 번짐 ${m[1]} ≠ ${BANNER_SCRIM_INSET_V4}`);
     }
