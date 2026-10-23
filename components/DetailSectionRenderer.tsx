@@ -246,6 +246,7 @@ import { applyDisplayRules } from "@/lib/display-sections";
 import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
 import { DESIGN_V4_ENABLED, hideImgOnError } from "@/lib/design-v4";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
+import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
 import { glanceIconSvg } from "@/lib/icons";
 
@@ -5875,6 +5876,11 @@ function renderSection(
                 ))}
               </div>
             )}
+            {(() => {
+              // 442차 2-B — v4 신뢰 문구(제품명 → 가격 → 혜택 → 신뢰 → 버튼). export와 같은 함수(문자열 한 벌)
+              const trustHtml = ctaTrustHtml(section.trust, theme);
+              return trustHtml ? <div dangerouslySetInnerHTML={{ __html: trustHtml }} /> : null;
+            })()}
             <div className="pt-4">
               <span
                 {...beautyIp(layout, "cta")}

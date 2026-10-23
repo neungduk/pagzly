@@ -165,6 +165,7 @@ import { archetypeHeroLayout } from "@/lib/archetype-recipes";
 import { HERO_V2_TUNED, heroPalette, heroV2Html } from "@/lib/hero-spec";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
+import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
 import { glanceIconSvg } from "@/lib/icons";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
@@ -1746,7 +1747,7 @@ function sectionHtml(
         <p${beautyIpAttr(layout, "price")} style="font-family:${DETAIL_FONT_STACK.heading};font-size:${titleSizeCss("price")};font-weight:700;line-height:1;letter-spacing:-0.04em;margin:8px 0 0;color:${ensureReadableOnPaper(accent, 3)}">${priceGlyphHtml()}${section.price.toLocaleString("ko-KR")}</p>
         ${shopperFacingTarget(section.targetCustomer) ? `<p${beautyIpAttr(layout, "chip")} style="display:inline-block;margin:16px 0 0;padding:6px 16px;border-radius:9999px;background:${hexToRgba(accent, 0.14)};color:${deepText};font-size:${FONT_SIZE.xs};font-weight:500">${esc(shopperFacingTarget(section.targetCustomer))}</p>` : ""}
         ${section.badges?.length ? `<div${beautyIpAttr(layout, "badges")}${section.badges.length === 4 ? ` class="pagzly-badges4"` : ""} style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:16px">${section.badges.map((b) => `<span style="background:${FLAT_PAPER};border:1px solid ${hexToRgba(accent, 0.3)};border-radius:9999px;color:${deepText};padding:8px 16px;font-size:${FONT_SIZE.xs};font-weight:600">${esc(b)}</span>`).join("")}</div>` : ""}
-        ${layout.beautyInfo ? `<span${beautyIpAttr(layout, "cta")} style="display:inline-block;margin-top:24px;padding:14px 28px;background:#1B1B18;color:#FAF8F3;font-weight:700">지금 구매하기</span>` : ""}
+        ${ctaTrustHtml(section.trust, theme)}${layout.beautyInfo ? `<span${beautyIpAttr(layout, "cta")} style="display:inline-block;margin-top:24px;padding:14px 28px;background:#1B1B18;color:#FAF8F3;font-weight:700">지금 구매하기</span>` : ""}
         <p${beautyIpAttr(layout, "note")} style="margin-top:20px;font-size:${FONT_SIZE.xs};color:rgba(27,27,24,.5)">배송·교환·환불은 판매자 정책을 확인해 주세요.</p>
       </section>`;
       }

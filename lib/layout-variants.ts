@@ -50,7 +50,6 @@ export const V4_VARIANTS: Record<V4Family, string[]> = {
   phototext: ["overlap", "offset", "arch", "caption", "collage"],
   touch: ["band"],
   breather: ["motif"],
-  trust: ["strip"],
 };
 
 /** mood별 선호 순서(앞이 우선). 없는 mood는 기본 순서 */
@@ -384,16 +383,22 @@ function phototextHtml(b: V4Block, p: V4Palette, alt: string): string {
  * 아이콘은 요약 칩과 같은 규칙(근거 없으면 체크). 제목 문구는 만들지 않는다. 배지가 더 자세한 행에 들어 있으면 행 하나만, 2개 미만이면 생략.
  */
 const TRUST_RE = /배송|출고|교환|반품|환불|보증|보장|a\/s|무상|인증|결제|무이자|할부|정품/i;
-function trustHtml(b: V4Block, p: V4Palette): string {
-  const items = b.items ?? [];
+/**
+ * 442차 2-B — 신뢰 문구를 구매 카드 안(제품명 → 가격 → 혜택 → 신뢰 → 버튼)에 그린다. 라이브·export가 같은 함수를 부른다(문자열 한 벌).
+ * v4가 꺼져 있거나 2개 미만이면 빈 문자열 — 구매 카드는 이전 마크업 그대로.
+ */
+export function ctaTrustHtml(items: readonly string[] | undefined, theme: { accent: string; deepAccent: string }): string {
+  if (!designV4On() || !items || items.length < 2) return "";
+  const p = v4Palette({ ink: "#1B1B18", accent: theme.accent, deep: theme.deepAccent }, null);
   const cells = items
-    .map((it) => {
+    .map((title) => {
+      const it = { title };
       // 요약 칩과 같은 규칙(신규 키워드 → 요약 규칙: 교환=되돌리기·배송=트럭·보증=방패, 근거 없으면 체크) — 아이콘·점이 섞이지 않게
       const mark = iconV4Svg(extraIconFor(it.title) ?? pickSummaryIcon(it.title), { color: p.deep, px: 22, tint: p.tints[0] });
       return `<div style="flex:1 1 calc(50% - 5px);min-width:140px;box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;background:#FFFFFF;border:${hairline(p.ink)}"><span style="flex:none">${mark}</span><span style="min-width:0;${typeCss("small", p.ink, "font-weight:700")}">${esc(it.title)}</span></div>`;
     })
     .join("");
-  return wrap({ ...b, motifs: [] }, p, `<div style="display:flex;flex-wrap:wrap;gap:10px">${cells}</div>`, { pad: "32px 24px" });
+  return `<div data-pz-trust style="display:flex;flex-wrap:wrap;gap:10px;max-width:480px;margin:20px auto 0;text-align:left">${cells}</div>`;
 }
 
 /** 하단 구매 카드 바로 위 신뢰 스트립 삽입 + 옮긴 배지는 구매 카드 칩에서 뺀다(중복 방지, 데이터 단계라 라이브·export 같음) */
@@ -420,12 +425,9 @@ function applyTrust(r: { sections: DetailSection[]; sourceIndexes: number[]; ins
   }
   if (titles.length < 2) return r;
   void ctx;
-  const trust = { type: "impact", slot: "impact", kind: "v4", text: "", v4: { family: "trust", variant: "strip", no: 0, face: "bgB", items: titles.slice(0, 4).map((title) => ({ title })) } } as DetailSection;
-  // 스트립에 그대로 있거나 더 자세한 행으로 바뀐 배지는 구매 카드 칩에서 뺀다
-  S[ci] = { ...cta, badges: (cta.badges ?? []).filter((x) => !(badges.includes(x) && titles.some((t) => t.includes(x)))) } as DetailSection;
-  S.splice(ci, 0, trust);
-  I.splice(ci, 0, I[ci - 1]!);
-  return { sections: S, sourceIndexes: I, inserted: [...r.inserted, `신뢰 스트립 @${ci}`] };
+  // 442차 2-B — 별도 블록이 아니라 구매 카드 데이터에 싣는다(카드 안 배지 아래). 스트립에 그대로 있거나 더 자세한 행으로 바뀐 배지는 칩에서 뺀다
+  S[ci] = { ...cta, trust: titles.slice(0, 4), badges: (cta.badges ?? []).filter((x) => !(badges.includes(x) && titles.some((t) => t.includes(x)))) } as DetailSection;
+  return { sections: S, sourceIndexes: I, inserted: [...r.inserted, `신뢰 문구 → 구매 카드 @${ci}`] };
 }
 
 function touchHtml(s: ImpactSection, b: V4Block, p: V4Palette): string {
@@ -449,7 +451,6 @@ export function v4Html(s: ImpactSection, pal: ImpactPalette, alt: string): strin
     case "spec": html = specHtml(s, b, p); break;
     case "phototext": html = phototextHtml(b, p, alt); break;
     case "touch": html = touchHtml(s, b, p); break;
-    case "trust": html = trustHtml(b, p); break;
     default: html = wrap({ ...b, motifs: [] }, p, `<div aria-hidden="true" style="display:flex;align-items:center;justify-content:center;gap:18px">${motifSvg("wave", 96, 20, motifColors(p), b.no)}${motifSvg("sparkle", 18, 18, motifColors(p))}${motifSvg("wave", 96, 20, motifColors(p), b.no + 1)}</div>`, { pad: "32px 24px" });
   }
   return polishCardTitles(html);

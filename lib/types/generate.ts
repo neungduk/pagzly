@@ -275,6 +275,8 @@ export type CtaPriceSection = {
   price: number;
   targetCustomer?: string | null;
   badges?: string[];
+  /** 442차 — v4 신뢰 문구(입력의 배송·교환·보증 등 요약, 2~4개). 구매 카드 안 배지 아래에 그린다. v4 계획(applyTrust)만 채운다 */
+  trust?: string[];
 };
 
 // 스펙 비교(경쟁사/이전 모델 대비) 전용 2열 비교표.
@@ -580,7 +582,7 @@ export type ImpactSection = {
 
 /** 439차 — v4 블록 데이터(문구는 모두 기존 섹션·입력 원문) */
 export type V4Block = {
-  family: "benefits" | "concern" | "story" | "spec" | "phototext" | "touch" | "breather" | "trust";
+  family: "benefits" | "concern" | "story" | "spec" | "phototext" | "touch" | "breather";
   variant: string;
   /** 아이브로우 순번(1부터) */
   no: number;
