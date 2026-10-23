@@ -4,7 +4,7 @@
 - `scripts/eye-capture.ts`(페이지 시트)·`scripts/eye-sections.ts`(섹션 단독)·`scripts/eye-compare.ts`(전/후). 서버·외부 네트워크 없음: Playwright route로 export HTML을 열고 `/qa-fixtures/ph`·`/fonts`는 저장소 파일, Google Fonts CSS는 로컬 Noto Sans KR로 대체.
 - **폰트: 실제 Noto Sans KR(`@fontsource/noto-sans-kr`의 woff2, `node scripts/build-detail-fonts.mjs`가 `public/fonts`로 복사)로 렌더**했다. 지시서가 걱정한 시스템 폴백이 아니라서 글자 폭·줄바꿈 판단은 export 기준으로 신뢰할 수 있다. 다만 **라이브(React/Tailwind) 화면은 한 번도 못 봤다.**
 - 사진은 글자 없는 플레이스홀더(`/qa-fixtures/ph`)라 사진 비율·여백·겹침은 볼 수 있지만 **실사진의 밝기·색 편차·가림은 못 본다.**
-- 끝까지 본 페이지(390px, 화면 844px 단위 시트): 뷰티 `fx-skincare-serum`(6시트)·`fx-makeup-tint`(5시트), 테크 `fx-tier-rich-tech-6p`(6시트)·`fx-tech-keyboard`(3시트), 패션 `fx-fashion-dress-floral`(5시트), 생활 `fx-tier-normal-living-3p`(4시트), 빈약 입력 `fx-tier-sparse-beauty-1p`(2시트 + 구매 띠). 그 밖 11종은 첫 화면 접촉 시트와 섹션 단독 캡처로만 봤다. 750px는 섹션 단독 시트로 FAQ·표·강조 카드·고지를 봤다. 시트 경로: `review/444-verify/eye/<픽스처>/w390/sheet-NN.png`(로컬, 커밋 안 함. 재생성: `npx tsx scripts/eye-capture.ts`).
+- 끝까지 본 페이지(390px, 화면 844px 단위 시트, 전부 마지막 시트=문서 끝 SEO 텍스트까지): 뷰티 `fx-skincare-serum`(6시트)·`fx-makeup-tint`(6시트), 테크 `fx-tier-rich-tech-6p`(6시트)·`fx-tech-keyboard`(5시트), 패션 `fx-fashion-dress-floral`(7시트 중 1~6, 7번째는 SEO 텍스트 꼬리라 안 엶), 생활 `fx-tier-normal-living-3p`(5시트), 빈약 입력 `fx-tier-sparse-beauty-1p`(3시트). 그 밖 11종은 첫 화면 접촉 시트와 섹션 단독 캡처로만 봤다. 750px는 섹션 단독 시트로 FAQ·표·강조 카드·고지를 봤고 **750px 전체 페이지 시트는 만들기만 하고 열어 보지 않았다**. 시트 경로: `review/444-verify/eye/<픽스처>/w390/sheet-NN.png`(로컬, 커밋 안 함. 재생성: `npx tsx scripts/eye-capture.ts`).
 - 입력 풍부 픽스처 3종(`fx-compare-*`, 비교표·신뢰 근거)은 시트 몇 장만 확인.
 
 ## 443차 변경 항목 합격/결함 표
