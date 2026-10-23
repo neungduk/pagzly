@@ -129,7 +129,11 @@ const EXTRA_RULES: Array<[RegExp, V4IconId]> = [
   [/재사용|리필|교체/, "refresh"],
   [/손에|한\s*손|그립|휴대/, "hand"],
   [/사이즈|치수|크기|규격/, "size"],
+  // 441차 1-7 — 색 조합은 팔레트(이전 혜택 규칙 "톤"이 미백·톤업 뜻의 반짝임으로 잡던 것)
+  [/톤온톤|톤\s*온\s*톤|색\s*조합|컬러\s*매치/, "palette"],
 ];
+
+const BODY_ONLY_BLOCKED = new Set<V4IconId>(["ruler", "weight", "cup", "size"]);
 
 /** 라벨(+본문) 하나에서 아이콘 후보들 — 440 규칙 → 기존 혜택 규칙 순. 없으면 빈 배열 */
 export function iconCandidatesV4(text: string): V4IconId[] {
@@ -148,7 +152,8 @@ export function pickIconsV4(items: Array<{ title: string; body?: string }>): V4I
   const used = new Set<V4IconId>();
   const picked: V4IconId[] = [];
   for (const it of items) {
-    const c = [...iconCandidatesV4(it.title), ...iconCandidatesV4(it.body ?? "")];
+    // 441차 1-7 — 크기·무게·용량 아이콘은 제목 근거일 때만(본문 "168cm" 때문에 "남녀 공용"이 자 아이콘이 되던 것)
+    const c = [...iconCandidatesV4(it.title), ...iconCandidatesV4(it.body ?? "").filter((x) => !BODY_ONLY_BLOCKED.has(x))];
     if (!c.length) return null;
     const id = c.find((x) => !used.has(x)) ?? c[0]!;
     used.add(id);

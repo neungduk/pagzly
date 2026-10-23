@@ -38,6 +38,10 @@ export async function run(): Promise<string[]> {
   const a = pickIconsV4([{ title: "보습 크림" }, { title: "촉촉한 보습" }, { title: "블루투스" }]);
   eq("결정성", a, pickIconsV4([{ title: "보습 크림" }, { title: "촉촉한 보습" }, { title: "블루투스" }]));
   if (a && a[0] === a[1]) fails.push(`반복 회피 실패 ${a}`);
+  // 441차 1-7 — 뜻 어긋남 사례
+  eq("톤온톤 → 팔레트", iconCandidatesV4("톤온톤 화이트")[0], "palette");
+  eq("본문 수치로 크기 아이콘 금지", pickIconsV4([{ title: "남녀 공용", body: "여성 모델 168cm는 M을" }]), null);
+  eq("제목 수치는 크기 아이콘", pickIconsV4([{ title: "사이즈 S~XL" }]), ["size"]);
   const svg = iconV4Svg("battery", { color: "#1B1B18", px: 40, tint: "#EADFF2" });
   if (svg.indexOf('fill="#EADFF2"') > svg.indexOf("<rect")) fails.push("듀오톤 틴트가 선 위에 그려짐");
   if (!/stroke-width="2"/.test(svg)) fails.push("v4 선 굵기 2 아님");
