@@ -8,6 +8,7 @@
  * 섹션은 색을 직접 쓰지 않고 면 역할(FaceRole)을 고른다 — 반전 면은 페이지당 예산(428 명암 반전 ≤6)을 레이아웃 계획이 센다.
  */
 import { contrastRatioToken, mixHex, tokenHslToRgb, tokenRgbToHex, tokenRgbToHsl } from "@/lib/design-tokens";
+import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
 
 export type FaceRole = "bgA" | "bgB" | "emphasis" | "invert" | "card";
 export const FACE_ROLES: readonly FaceRole[] = ["bgA", "bgB", "emphasis", "invert", "card"];
@@ -52,6 +53,14 @@ export function ensureContrast(fg: string, bg: string, min = MIN_TEXT_CONTRAST):
     if (contrastRatioToken(c, bg) >= min) return c;
   }
   return darkBg ? WHITE : INK;
+}
+
+/**
+ * 439차 2-7 린트 3회전 — 옅은 색 면 위 작은 라벨(STEP 등) 글자를 그 면 기준 4.5:1로(DESIGN_V4). 라이브·export 공용.
+ * 이전 차수 라벨색은 종이(#FAF8F3) 기준이라 틴트 면에서 3.9 안팎으로 떨어졌다. 면이 단색 헥스가 아니면(그라데이션) 그대로.
+ */
+export function v4TextOn(fg: string, bg: string | undefined): string {
+  return DESIGN_V4_ENABLED && bg && /^#[0-9a-f]{6}$/i.test(bg) ? ensureContrast(fg, bg) : fg;
 }
 
 /** 흰 글자가 min 대비가 될 때까지 면을 어둡게(색상 유지) */

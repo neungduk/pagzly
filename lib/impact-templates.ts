@@ -56,13 +56,17 @@ export function boostIllustColors(theme: CategoryTheme, face: string): IllustCol
   return { a: dark, b, c, n: theme.baseNeutral };
 }
 
+/** 439차 — 흰 면 연속을 끊는 따뜻한 중립 면(잉크·진한 색 글자 대비 4.5 이상 유지되는 아주 옅은 면) */
+export const WARM_FACE = "#F7F3EE";
+
 /** 마크업 한 벌(라이브 dangerouslySetInnerHTML·export 문자열 공용) */
 export function impactHtml(s: ImpactSection, pal: ImpactPalette, alt: string): string {
   const html0 = impactHtmlBase(s, pal, alt);
   // 438차 — 본문 사진 실패 폴백: 로드 실패 시 사진을 숨겨(alt 텍스트 노출 금지) 컨테이너의 색 면만 남긴다
   const html = HERO_V2_TUNED ? html0.replace(/<img (?![^>]*onerror)([^>]*?)(\s*\/?>)/g,"<img $1 onerror=\"this.style.display='none'\"$2") : html0;
   // 436차 — 아키타입 mood 토큰(여백·반경·그림자·제목 굵기). mood가 없으면 지금 마크업 그대로
-  const moodHtml = s.mood ? applyMood(html, moodOf(s.mood)) : html;
+  const toned = s.faceTone === "warm" ? html.replace(/^(<section[^>]*?style="[^"]*?)background:#FFFFFF/, `$1background:${WARM_FACE}`) : html;
+  const moodHtml = s.mood ? applyMood(toned, moodOf(s.mood)) : toned;
   // 438차 1-5 — 제목 줄 끝 고아 줄이기(DESIGN_POLISH)
   return polishTitles(moodHtml);
 }

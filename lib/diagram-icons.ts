@@ -3,6 +3,8 @@
  * Recraft는 개발 시점 1회만; 런타임 호출 없음.
  */
 import { FONT_SIZE } from "@/lib/design-tokens";
+import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
+import { ensureContrast } from "@/lib/palette-v4";
 import {
   DIAGRAM_ICON_SVGS,
   type DiagramIconId,
@@ -65,5 +67,7 @@ export function diagramTitleWithIconHtml(
   color: string,
 ): string {
   const icon = diagramIconImgHtml(id, color, 22);
-  return `<p style="font-size:${FONT_SIZE.caption};letter-spacing:.12em;opacity:.85;margin:0 0 8px;color:${color};display:flex;align-items:center;justify-content:center;gap:8px">${icon}<span>${title}</span></p>`;
+  // 439차 2-7 린트 3회전(DESIGN_V4) — 도식 제목 글자는 흰 바탕 4.5:1(옅은 포인트색·opacity .85로 3.1까지 떨어지던 것). 아이콘 색은 그대로
+  const text = DESIGN_V4_ENABLED && /^#[0-9a-f]{6}$/i.test(color) ? `opacity:1;margin:0 0 8px;color:${ensureContrast(color, "#FFFFFF")}` : `opacity:.85;margin:0 0 8px;color:${color}`;
+  return `<p style="font-size:${FONT_SIZE.caption};letter-spacing:.12em;${text};display:flex;align-items:center;justify-content:center;gap:8px">${icon}<span>${title}</span></p>`;
 }

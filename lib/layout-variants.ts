@@ -222,7 +222,7 @@ function concernHtml(s: ImpactSection, b: V4Block, p: V4Palette): string {
       .map(
         (it, i) =>
           `<div style="position:relative;z-index:${items.length - i};display:flex;align-items:flex-start;gap:12px;box-sizing:border-box;margin:${i ? -4 : 0}px ${i % 2 ? 0 : 12}px 0 ${i % 2 ? 12 : 0}px;padding:18px 18px;border-radius:16px;background:#FFFFFF;border:1px solid ${hexToRgba(p.ink, 0.08)};box-shadow:0 10px 22px ${hexToRgba(p.ink, 0.1)};transform:rotate(${tilt[i % tilt.length]}deg)">` +
-          `<span aria-hidden="true" style="flex:none;${TITLE_FF};font-size:30px;font-weight:900;line-height:0.8;color:${p.accent}">“</span>` +
+          `<span aria-hidden="true" style="flex:none;${TITLE_FF};font-size:24px;font-weight:900;line-height:0.8;color:${p.accent}">“</span>` +
           `<p style="flex:1 1 0%;min-width:0;margin:0;${typeCss("card", p.ink, "font-size:16px;font-weight:600")}">${esc(it.title)}</p></div>`,
       )
       .join("");
@@ -532,7 +532,7 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
   }
   const hooked = applyHookStructure(outS, outI, placed, keywords, ctx);
   const rhythm = applyRhythm(hooked.sections, hooked.sourceIndexes, ctx, seed);
-  const withMotifs = assignMotifs(rhythm.sections, ctx.mood, seed);
+  const withMotifs = assignMotifs(assignFaces(rhythm.sections, seed), ctx.mood, seed);
   const finalPlaced: V4Placed[] = [];
   withMotifs.forEach((s, at) => { if (s.type === "impact" && s.kind === "v4" && s.v4) finalPlaced.push({ family: s.v4.family, variant: s.v4.variant, at, from: "" }); });
   return { sections: withMotifs, sourceIndexes: rhythm.sourceIndexes, placed: finalPlaced, moved: hooked.moved, inserted: rhythm.inserted };
@@ -584,6 +584,16 @@ function applyRhythm(secs: DetailSection[], idx: number[], ctx: V4Ctx, seed: num
     ({ type: "impact", slot: "impact", kind: "v4", text: "", ...(ctx.mood ? { mood: ctx.mood } : {}), ...extra, v4: { family, variant: family === "touch" ? "band" : "motif", no: 0, face: family === "touch" ? "grad0" : "bgA", ...b } }) as DetailSection;
   secs.forEach((s, i) => {
     const info = isInfoSection(s);
+    // 같은 구조(임팩트 종류)가 바로 이어지면(예: 참고 카드 둘) 사이에 모티프 면 — 연속 동일 구조 0
+    const prev = S[S.length - 1];
+    const twin = prev && prev.type === "impact" && s.type === "impact" && structureKey(prev) === structureKey(s);
+    if (twin && breathers < MAX_BREATHERS) {
+      S.push(mk("breather"));
+      I.push(idx[i]!);
+      inserted.push(`모티프 면(같은 구조 사이) @${S.length - 1}`);
+      breathers += 1;
+      run = 0;
+    }
     if (info && run >= INFO_RUN_MAX && breathers < MAX_BREATHERS) {
       S.push(mk("breather"));
       I.push(idx[i]!);
@@ -595,7 +605,8 @@ function applyRhythm(secs: DetailSection[], idx: number[], ctx: V4Ctx, seed: num
     S.push(s);
     I.push(idx[i]!);
   });
-  // 구매 유도 접점: 입력 가격(cta_price.price)이 있을 때 40% 지점 근처, 히어로·접점·모티프 면 옆이 아닌 경계
+  // 구매 유도 접점: 입력 가격(cta_price.price)이 있을 때 40% 지점 근처, 히어로·접점·모티프 면 옆이 아닌 경계.
+  // 어두운 면(색면 강조 박스·일러스트 배너) 둘 사이에는 넣지 않는다 — 밝은 띠가 끼면 명암 반전이 2회 늘어 428 예산(≤6)을 넘긴다(린트 3회전, DOM 지표)
   const cta = S.find((s) => s.type === "cta_price") as Extract<DetailSection, { type: "cta_price" }> | undefined;
   const price = cta && typeof cta.price === "number" && cta.price > 0 ? `${cta.price.toLocaleString("ko-KR")}원` : "";
   if (price && ctx.facts.productName.trim()) {
@@ -607,7 +618,7 @@ function applyRhythm(secs: DetailSection[], idx: number[], ctx: V4Ctx, seed: num
     for (let k = 0; k < S.length; k += 1) {
       const d = Math.abs(y - total * TOUCH_AT);
       const prev = S[k - 1];
-      const ok = k >= 3 && !(prev?.type === "impact" && prev.kind === "v4" && (prev.v4?.family === "breather")) && !isQP(prev) && !isQP(S[k]) && S[k]?.type !== "cta_price";
+      const ok = k >= 3 && !(prev?.type === "impact" && prev.kind === "v4" && (prev.v4?.family === "breather")) && !isQP(prev) && !isQP(S[k]) && S[k]?.type !== "cta_price" && !(isDarkFace(prev) && isDarkFace(S[k]));
       if (ok && d < bestD) { bestD = d; best = k; }
       y += hs[k]!;
     }
@@ -620,6 +631,46 @@ function applyRhythm(secs: DetailSection[], idx: number[], ctx: V4Ctx, seed: num
   void seed;
   return { sections: S, sourceIndexes: I, inserted };
 }
+
+/** 늘 어두운 면으로 그려지는 섹션(색면 강조 박스·일러스트 배너) — 접점 위치 고를 때만 쓴다 */
+const isDarkFace = (s: DetailSection | undefined): boolean => !!s && (s.type === "illustration_banner" || (s.type === "highlight_box" && !!s.boldBlock));
+
+/** 임팩트 종류별 섹션 바탕(템플릿 마크업 기준): 색 면(틴트·파스텔)인 종류. 나머지 임팩트는 흰 바탕 */
+const TINT_KINDS = new Set(["faqcards", "proof", "specstrip", "story", "textboost", "split"]);
+type FaceClass = "white" | "tint" | "unknown";
+function faceClass(s: DetailSection | undefined): FaceClass {
+  if (!s || s.type !== "impact") return "unknown";
+  if (s.kind === "v4" && s.v4) return s.v4.face === "bgA" || s.v4.face === "card" || !s.v4.face ? "white" : "tint";
+  return TINT_KINDS.has(s.kind) || s.faceTone === "warm" ? "tint" : "white";
+}
+
+/**
+ * 면 리듬(린트 R2 1회차 수정): v4 블록 바탕을 이웃과 엇갈리게 — 앞이나 뒤가 흰 면이면 색 면(강조 틴트·따뜻한 중립·그라데이션 순환),
+ * 앞이 색 면이면 흰 면. 흰 면이 3개 이어지는 "평평한 스크롤"을 줄인다. 반전(어두운) 면은 쓰지 않아 428 명암 반전 예산은 그대로.
+ */
+function assignFaces(secs: DetailSection[], seed: number): DetailSection[] {
+  const tints: NonNullable<V4Block["face"]>[] = ["emphasis", "bgB", "grad0", "grad1"];
+  let k = seed % tints.length;
+  const out = [...secs];
+  for (let i = 0; i < out.length; i += 1) {
+    const s = out[i]!;
+    if (s.type !== "impact" || s.kind !== "v4" || !s.v4) continue;
+    const fam = s.v4.family;
+    if (fam === "touch" || (fam === "phototext" && s.v4.variant === "caption")) continue;
+    const prev = faceClass(out[i - 1]);
+    const next = faceClass(out[i + 1]);
+    const face: NonNullable<V4Block["face"]> = fam === "breather" ? (prev === "white" && next !== "tint" ? "bgB" : "bgA") : prev === "white" || next === "white" ? tints[k++ % tints.length]! : prev === "tint" ? "bgA" : s.v4.face ?? "bgA";
+    out[i] = { ...s, v4: { ...s.v4, face } } as DetailSection;
+  }
+  // 2회차: 흰 바탕 임팩트가 흰 면 사이(앞뒤 모두 흰 면)에 끼면 따뜻한 중립 면으로 — 사진·참고 카드(note: 안쪽 카드가 같은 중립 면)는 제외
+  for (let i = 1; i < out.length - 1; i += 1) {
+    const s = out[i]!;
+    if (s.type !== "impact" || s.kind === "v4" || s.kind === "note" || s.kind === "number" || s.kind === "statement" || s.kind === "reviewstat" || PHOTO_KINDS.has(s.kind) || faceClass(s) !== "white") continue;
+    if (faceClass(out[i - 1]) === "white" && faceClass(out[i + 1]) !== "tint") out[i] = { ...s, faceTone: "warm" } as DetailSection;
+  }
+  return out;
+}
+const PHOTO_KINDS = new Set(["bleed", "inset", "frame", "zoom", "asym2", "mosaic3", "stagger", "callout"]);
 
 /** 모티프: v4 블록마다 1개(스토리·접점·모티프 면은 2개), 격번으로 위 경계 걸침 — 앞 섹션이 사진 하단 캡션형(bleed·caption)이면 걸치지 않는다 */
 function assignMotifs(secs: DetailSection[], mood: string | null, seed: number): DetailSection[] {

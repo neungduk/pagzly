@@ -572,6 +572,8 @@ export type ImpactSection = {
   origin?: { type: string; slot?: string };
   /** 436차 — 아키타입 mood(여백·반경·그림자·구분선·제목 굵기 토큰). 없으면 지금 화면과 같다 */
   mood?: string;
+  /** 439차 — 면 리듬: 흰 바탕 임팩트 블록이 흰 면 사이에 끼면 따뜻한 중립 면으로(린트 R2 2회차, v4 계획만 설정) */
+  faceTone?: "warm";
   /** 439차 — 디자인 엔진 v4 블록(kind "v4"): 레이아웃 계열·변형·항목·모티프·타이포 연출(lib/layout-variants.ts) */
   v4?: V4Block;
 };

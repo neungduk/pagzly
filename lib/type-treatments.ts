@@ -100,3 +100,18 @@ export function polishCardTitles(html: string): string {
     Number(size) >= 15 && Number(weight) >= 600 && !text.includes('style="white-space:nowrap"') ? `${open}${bindTail(text)}${close}` : all,
   );
 }
+
+// ── 글자 크기 하한(라이브·export 공용 CSS) ────────────────────────────────────
+/**
+ * 439차 2-7 린트 1회차 수정 — 이전 차수 마크업에 남은 9~11px 라벨(STEP·한눈에 보기·각주 등)을 12px로 올린다.
+ * 인라인 스타일(export "font-size:11px", 라이브 CSSOM "font-size: 11px")과 라이브 Tailwind 클래스(text-[11px] 등)를 함께 잡는다.
+ * scope 요소에 data-pz-typefloor를 달아 린터가 하한 적용 여부를 안다. SVG 도식 안 글자(font-size 속성)는 건드리지 않는다.
+ */
+export function typeFloorCss(scope: string): string {
+  const sizes = ["9px", "10px", "10.5px", "11px", "11.5px"];
+  const sels = [
+    ...sizes.flatMap((v) => [`${scope} [style*="font-size:${v}"]`, `${scope} [style*="font-size: ${v}"]`]),
+    ...["9px", "10px", "11px"].map((v) => `${scope} .text-\[${v}\]`),
+  ];
+  return `${sels.join(",")}{font-size:12px!important}`;
+}

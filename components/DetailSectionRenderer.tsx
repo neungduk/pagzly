@@ -246,7 +246,9 @@ import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/li
 import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe";
 import { applyDisplayRules } from "@/lib/display-sections";
 import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
-import { hideImgOnError } from "@/lib/design-v4";
+import { DESIGN_V4_ENABLED, hideImgOnError } from "@/lib/design-v4";
+import { typeFloorCss } from "@/lib/type-treatments";
+import { v4TextOn } from "@/lib/palette-v4";
 
 export type SectionEditApi = {
   enabled: boolean;
@@ -1032,7 +1034,7 @@ function PointPill({
         padding: `${POINT_PILL.padY}px ${POINT_PILL.padX}px`,
         letterSpacing: `${POINT_PILL.letterSpacingEm}em`,
         backgroundColor: inverted ? BRAND.paper : solidAccentOnPaper(theme),
-        color: inverted ? solidDeepOnPaper(theme) : BRAND.paper,
+        color: inverted ? (DESIGN_V4_ENABLED ? readableTextDeep(theme) : solidDeepOnPaper(theme)) : BRAND.paper,
       }}
     >
       {label}
@@ -4525,7 +4527,7 @@ function renderSection(
                 <div className="min-w-0 flex-1 pt-1 @min-[640px]/pz:flex-none @min-[640px]/pz:pt-0">
                   <p
                     className={`mb-1.5 ${TYPO.sectionLabel}`}
-                    style={{ color: readableTextAccent(theme) }}
+                    style={{ color: v4TextOn(readableTextAccent(theme), textSectionStyle(theme, pattern, category).background as string | undefined) }}
                   >
                     STEP {String(stepIndex + 1).padStart(2, "0")}
                   </p>
@@ -6028,6 +6030,7 @@ export default function DetailSectionRenderer({
       data-pz-info={packLayout.beautyInfo ? "1" : undefined}
       data-pz-v2={v2On ? "1" : undefined}
       data-pz-v3={fontPair?.id}
+      data-pz-typefloor={DESIGN_V4_ENABLED ? "1" : undefined}
       style={packRootStyle(category, pack, v2Typo, v2TitleOnly) as CSSProperties}
     >
       {isClassicPack(pack) ? (
@@ -6036,6 +6039,7 @@ export default function DetailSectionRenderer({
         <style>{packStructureCss(packLayout, "[data-pz-pack]", "live") + infoCss(packLayout.info, "[data-pz-pack]", infoColorsOf(baseTheme), infoBackdrops, { demote: v2Plan?.demoted })}</style>
       )}
       {v2Css ? <style>{v2Css}</style> : null}
+      {DESIGN_V4_ENABLED ? <style>{typeFloorCss("[data-pz-typefloor]")}</style> : null}
       {DESIGN_V3_COLOR_ENABLED && v2On ? <style>{paletteInfoCss("[data-pz-v2]", extendedTheme, packLayout.info)}</style> : null}
       {DESIGN_V3_COLOR_ENABLED && !edit?.enabled ? <style>{dividerCss({ scope: "[data-pz-v2]", mode: "live", sections, ext: extendedTheme, category, info: packLayout.info })}</style> : null}
       {fontPair ? (
