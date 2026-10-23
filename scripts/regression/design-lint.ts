@@ -29,6 +29,9 @@ export async function run(): Promise<string[]> {
   if (!rules(`<section>${ok}</section><section><p>본문</p></section>`).includes("R15:warn")) fails.push("히어로 직후 가격·요약 없음이 R15가 아님");
   if (rules(`<section>${ok}</section><div data-pz-strip></div>`).includes("R15:warn")) fails.push("가격 띠가 있는데 R15");
   if (!lintPage("t", `<section>${ok}</section><div data-pz-strip></div>`, hero, { screens: 2, bigPerScreen: 1.7, flips: 2 }).issues.some((i) => i.rule === "R5")) fails.push("DOM 큰 글줄 1.7이 R5가 아님");
+  // 441차 1-3 — R9 고스트 글자 확장
+  if (!rules(`${ok}<section data-pz-impact="v4" data-pz-v4="phototext.overlap" style=""><span data-pz-ghost>02</span></section>`).includes("R9:error")) fails.push("사진 블록 고스트가 R9가 아님");
+  if (rules(`${ok}<section data-pz-impact="v4" data-pz-v4="benefits.zigzag" style=""><span data-pz-ghost>02</span></section>`).includes("R9:error")) fails.push("허용 블록 고스트를 R9로 잡음");
   // 441차 1-1 — R16 제목 위계(DOM 값)
   const dom = (o: object) => ({ screens: 2, bigPerScreen: 1, flips: 2, ...o });
   if (!lintPage("t", `<section>${ok}</section><div data-pz-strip></div>`, hero, dom({ headingThin: 1 })).issues.some((i) => i.rule === "R16" && i.sev === "error")) fails.push("얇은 제목이 R16 error가 아님");

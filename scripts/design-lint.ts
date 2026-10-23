@@ -33,7 +33,7 @@ import type { DetailSection } from "../lib/types/generate";
 import { contrastRatioToken } from "../lib/design-tokens";
 import { isSafe, readMotifMarks } from "../lib/motifs";
 import { estimateSectionHeight } from "../lib/impact-templates";
-import { isInfoSection, structureKey } from "../lib/layout-variants";
+import { ghostAllowed, isInfoSection, structureKey } from "../lib/layout-variants";
 
 export type Severity = "error" | "warn" | "info";
 export type LintIssue = { rule: string; sev: Severity; msg: string };
@@ -214,6 +214,8 @@ export function lintPage(id: string, html: string, display: DetailSection[], dom
   }
   // R9 모티프
   for (const k of readMotifMarks(html)) if (!isSafe({ offset: k.offset, h: k.h })) add("R9", "error", `모티프 ${k.id} 안전 영역 밖`);
+  // 441차 1-3 — 고스트 글자: 허용 블록(ghostAllowed) 밖에 있으면 error(사진·오버레이 카드 블록에서 카드 밖으로 새어 보임)
+  for (const m of html.matchAll(/<section data-pz-impact="v4" data-pz-v4="([a-z]+)\.([a-z0-9]+)"[^>]*>([\s\S]*?)<\/section>/g)) if (/data-pz-ghost/.test(m[3]!) && !ghostAllowed(m[1]!, m[2]!)) add("R9", "error", `고스트 글자 ${m[1]}.${m[2]}`);
   // R10 히어로
   const h1 = /<h1[^>]*data-hero-name="(\d+)"/.exec(html);
   if (display[0]?.type === "hero" && (!h1 || Number(h1[1]) < 32)) add("R10", "error", h1 ? `히어로 제품명 ${h1[1]}px` : "히어로 제품명 없음");

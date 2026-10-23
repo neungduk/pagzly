@@ -540,7 +540,7 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
     const face = cc.family === "phototext" && variant === "caption" ? "bgA" : faceCycle[faceIdx++ % faceCycle.length]!;
     const block: V4Block = {
       family: cc.family, variant, no, items: cc.items, face, keywords: keywords.slice(0, 12), preset: titlePresetFor(ctx.mood),
-      ...(cc.family === "benefits" && variant !== "bento" && variant !== "numcards" ? { ghost: String(no).padStart(2, "0") } : {}),
+      ...(ghostAllowed(cc.family, variant) ? { ghost: String(no).padStart(2, "0") } : {}),
     };
     const sec: ImpactSection = {
       type: "impact", slot: "impact", kind: "v4", text: cc.text, v4: block,
@@ -666,6 +666,12 @@ export function touchName(name: string): string {
   const parts = [m[1]!.trim(), m[2]!.trim()].filter((x) => [...x].length >= 2);
   return parts.length ? parts.sort((a, b) => [...a].length - [...b].length)[0]! : n;
 }
+
+/**
+ * 441차 1-3 — 고스트 글자(배경 장식 번호)를 허용하는 블록. 사진 위 글 카드·오버레이 카드가 있는 블록(phototext 전부)과
+ * 큰 번호·카드가 이미 있는 블록(bento·numcards)에는 두지 않는다 — 카드 밖으로 글자가 새어 보이거나 번호가 겹친다. 린트 R9가 같은 규칙을 본다.
+ */
+export const ghostAllowed = (family: string, variant: string): boolean => family === "benefits" && variant !== "bento" && variant !== "numcards";
 
 /** 늘 어두운 면으로 그려지는 섹션(색면 강조 박스·일러스트 배너) — 접점 위치 고를 때만 쓴다 */
 const isDarkFace = (s: DetailSection | undefined): boolean => !!s && (s.type === "illustration_banner" || (s.type === "highlight_box" && !!s.boldBlock));
