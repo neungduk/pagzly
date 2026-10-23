@@ -14,6 +14,7 @@ import type { InfoBackdropMap, InfoZone } from "@/lib/info-backdrop";
 import { infoZonesOfSections } from "@/lib/info-backdrop";
 import { V3_COLOR_TINT, hexToRgba, mixHex, type TitleScaleOverrides } from "@/lib/design-tokens";
 import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
+import { TYPE_V4 } from "@/lib/design-tokens-v4";
 import { stripCss } from "@/lib/price-strip";
 import { heroStageCss } from "@/lib/hero-variants";
 
@@ -189,7 +190,7 @@ export function designV2Css(o: V2CssOpts): string {
     const sec = (k: string) => `${S} [data-info="${k}"]`;
     // 사용 단계 숫자·포인트 카드 제목·혼방 막대 수치는 굵기 900 → 700~800, 크기 한 단계 아래
     out.push(rule(`${sec("steps")} ol>li>div:first-child>span,${sec("steps")} ol>li>span:first-child`, `font-size:${V2_TYPE.stepNumeral}px;font-weight:700`));
-    out.push(rule(`${sec("points")} [data-ip="pgrid"]>div>p:first-of-type`, `font-size:${V2_TYPE.pointTitle}px;font-weight:${DESIGN_V4_ENABLED ? 800 : 700};line-height:1.25`)); // 442차 — v4는 제목 위계 '중' 800(R16 잔여 24px/700), 라이브·export 공용 CSS
+    out.push(rule(`${sec("points")} [data-ip="pgrid"]>div>p:first-of-type`, `font-size:${V2_TYPE.pointTitle}px;font-weight:${DESIGN_V4_ENABLED ? TYPE_V4["heading-mid"].w : 700};line-height:1.25`)); // 442차 — v4는 제목 위계 '중' 800(R16 잔여 24px/700), 라이브·export 공용 CSS
     out.push(rule(`${sec("stat")} [data-ip="bars"]>div>div:first-child>span:last-child>*`, `font-size:${V2_TYPE.statValue}px;font-weight:800`));
     out.push(rule(`${sec("stat")} [data-ip="bars"]>div[data-top]>div:first-child>span:last-child>*`, `font-size:${V2_TYPE.statTopValue}px`));
     // 구간 제목 굵기: 인포 구간 안 제목은 700 이하(serif 600)로 — 굵은 제목이 줄마다 올라오는 느낌을 낮춘다

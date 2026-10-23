@@ -6,6 +6,7 @@
  */
 import { getCategoryRhythm } from "@/lib/design-tokens";
 import { designV4On } from "@/lib/design-v4";
+import { SPACE_SNAP_BOUNDS, SPACE_V4 } from "@/lib/design-tokens-v4";
 
 export type RhythmTokens = {
   heroX: number;
@@ -26,7 +27,7 @@ export function getRhythmTokens(category: string, wide: boolean, padYScale = 1):
   const rhythm = getCategoryRhythm(category);
   // 442차 2-C — v4는 배율 뒤 좁은 폭 값을 3단(32·48·64)으로 스냅(64×0.875=56, 48×0.75=36 같은 중간값 제거). 경계값은 위 단으로(40→48, 56→64).
   // 넓은 폭은 그대로. 라이브(팩 변수 rhythmLiveVars)와 export가 이 함수 한 곳을 읽는다
-  const snap3 = (v: number) => (wide || !designV4On() || v <= 8 ? v : v < 40 ? 32 : v < 56 ? 48 : 64);
+  const snap3 = (v: number) => (wide || !designV4On() || v <= 8 ? v : v < SPACE_SNAP_BOUNDS[0] ? SPACE_V4.sm : v < SPACE_SNAP_BOUNDS[1] ? SPACE_V4.md : SPACE_V4.lg);
   const scaleY = (px: number) => snap3(padYScale === 1 ? px : Math.round(px * padYScale));
   const padY = (cls: string) => (wide ? unit(cls, /pz:py-(\d+)/, 28) : unit(cls, /(?:^|\s)py-(\d+)/, 16));
   const side = (cls: string, kind: "t" | "b" | "x", fallback: number) =>

@@ -8,6 +8,7 @@
 import { MOODS, type MoodId, type MoodTokens } from "@/lib/archetype-recipes";
 import { DETAIL_FONT_STACK } from "@/lib/detail-typography";
 import { designV4On } from "@/lib/design-v4";
+import { MOOD_PAD_BOUNDS, PAD_TIERS, RADIUS_SNAP_BOUNDS, RADIUS_TIERS, SHADOW_ALPHA_TIERS } from "@/lib/design-tokens-v4";
 
 export const NEUTRAL_MOOD: MoodTokens = { pad: 1, r: 1, sh: 1, divider: "wave", titleWeight: 800, titleTracking: "-0.02em", illust: "solid" };
 
@@ -20,13 +21,11 @@ const scaleRadius = (v: string, r: number): string =>
   v.replace(/(\d+(?:\.\d+)?)px/g, (m, n: string) => (Number(n) >= 100 || Number(n) === 0 ? m : `${Math.max(1, Math.round(snapRadius(Number(n)) * r))}px`));
 
 /** 436차 1-5 — 토큰 단계: 임팩트 블록마다 제각각이던 값(여백 32/40/44/48/56/64, 반경 6/10/12/14/18/28, 그림자 알파 0.06~0.28)을 단계로 맞춘다 */
-export const PAD_TIERS = [32, 48, 64] as const; // 조밀 · 보통 · 여유
-export const RADIUS_TIERS = [8, 16, 24] as const; // 작게 · 보통 · 크게(알약 999px·원 50%는 그대로)
-export const SHADOW_ALPHA_TIERS = [0.1, 0.18] as const; // 약 · 강
-const snapPad = (n: number): number => (n <= 36 ? PAD_TIERS[0] : n <= 52 ? PAD_TIERS[1] : PAD_TIERS[2]);
+export { PAD_TIERS, RADIUS_TIERS, SHADOW_ALPHA_TIERS }; // 값의 원천은 lib/design-tokens-v4.ts 한 곳(443차 1)
+const snapPad = (n: number): number => (n <= MOOD_PAD_BOUNDS[0] ? PAD_TIERS[0] : n <= MOOD_PAD_BOUNDS[1] ? PAD_TIERS[1] : PAD_TIERS[2]);
 /** 3단 중 가장 가까운 값(441차 v4 세로 리듬) */
 export const nearestPad = (n: number): number => PAD_TIERS.reduce((best, t) => (Math.abs(t - n) < Math.abs(best - n) ? t : best), PAD_TIERS[0] as number);
-const snapRadius = (n: number): number => (n <= 9 ? RADIUS_TIERS[0] : n <= 20 ? RADIUS_TIERS[1] : RADIUS_TIERS[2]);
+const snapRadius = (n: number): number => (n <= RADIUS_SNAP_BOUNDS[0] ? RADIUS_TIERS[0] : n <= RADIUS_SNAP_BOUNDS[1] ? RADIUS_TIERS[1] : RADIUS_TIERS[2]);
 const snapAlpha = (a: number): number => (a <= 0.12 ? SHADOW_ALPHA_TIERS[0] : SHADOW_ALPHA_TIERS[1]);
 
 export function applyMood(html: string, k: MoodTokens): string {

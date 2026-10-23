@@ -4,6 +4,7 @@
  * mood가 기본 2종을 고르고 블록마다 번갈아 쓴다. 교차 모티프가 걸치는 경계에는 두지 않는다(같은 경계에 장식 둘 금지).
  */
 import { hexToRgba } from "@/lib/design-tokens";
+import { DIVIDER_ALPHA } from "@/lib/design-tokens-v4";
 
 export const DIVIDER_KINDS = ["wave", "slant", "zigzag", "dotted", "double", "fade"] as const;
 export type DividerKind = (typeof DIVIDER_KINDS)[number];
@@ -20,7 +21,7 @@ export const dividerFor = (mood: string | null | undefined, n: number): DividerK
 
 /** 선 색: 잉크 18% — 면 위 비텍스트 장식(대비 요구 없음), 너무 진하면 섹션이 잘려 보인다 */
 export function dividerHtml(kind: DividerKind, ink: string): string {
-  const c = hexToRgba(ink, 0.18);
+  const c = hexToRgba(ink, DIVIDER_ALPHA);
   const strip = (h: number, inner: string, extra = "") => `<span aria-hidden="true" data-pz-divider="${kind}" style="position:absolute;left:0;right:0;top:0;height:${h}px;pointer-events:none;${extra}">${inner}</span>`;
   const svg = (d: string) => `<svg viewBox="0 0 384 12" width="100%" height="12" preserveAspectRatio="none" style="display:block" aria-hidden="true"><path d="${d}" fill="none" stroke="${c}" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>`;
   switch (kind) {

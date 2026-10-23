@@ -9,23 +9,23 @@
 import { bindTail } from "@/lib/typo-rhythm";
 import { DETAIL_FONT_STACK } from "@/lib/detail-typography";
 import { hexToRgba } from "@/lib/design-tokens";
+import { HEADING_SECTION_PX as HEADING_PX, MIN_BODY_PX, MIN_LABEL_PX, TYPE_V4 } from "@/lib/design-tokens-v4";
 
 export const esc = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 export const TITLE_FF = `font-family:${DETAIL_FONT_STACK.sansDisplayHeadline}`;
 export const SANS_FF = `font-family:${DETAIL_FONT_STACK.sans}`;
 
-/** v4 타입 스케일(390 기준 px·행간·자간·굵기). 본문 최소 14px, 라벨 최소 12px */
+/** v4 타입 스케일(390 기준 px·행간·자간·굵기). 값의 원천은 lib/design-tokens-v4.ts(TYPE_V4) 한 곳 — 여기는 역할 이름만 붙인다. 본문 최소 14px, 라벨 최소 12px */
 export const TYPE_SCALE_V4 = {
-  display: { size: 30, lh: 1.25, ls: "-0.03em", w: 900 },
-  title: { size: 26, lh: 1.3, ls: "-0.02em", w: 800 }, // 441 — 섹션 제목(대)과 같은 26px
-  card: { size: 17, lh: 1.45, ls: "-0.01em", w: 700 },
-  body: { size: 15, lh: 1.7, ls: "0", w: 400 },
-  small: { size: 14, lh: 1.6, ls: "0", w: 500 },
-  label: { size: 12, lh: 1.2, ls: "0.14em", w: 700 },
+  display: TYPE_V4.display,
+  title: TYPE_V4["heading-large"], // 441 — 섹션 제목(대)과 같은 26px
+  card: TYPE_V4["heading-small"],
+  body: TYPE_V4.body,
+  small: TYPE_V4["body-small"],
+  label: TYPE_V4.label,
 } as const;
 export type TypeRole = keyof typeof TYPE_SCALE_V4;
-export const MIN_BODY_PX = 14;
-export const MIN_LABEL_PX = 12;
+export { MIN_BODY_PX, MIN_LABEL_PX };
 
 /** 역할 → 인라인 글꼴 스타일 */
 export function typeCss(role: TypeRole, color: string, extra = ""): string {
@@ -125,7 +125,7 @@ export function typeFloorCss(scope: string): string {
  * 크기는 좁은 폭(390)만 26px: 라이브는 컨테이너 쿼리 변수 `--pz-t-section-b`, export는 640 미만 미디어 쿼리의 `--pz-t-section`(design-tokens 369행 규칙).
  * 넓은 폭(750) 제목 36px는 그대로 — 처음엔 export 변수 하나만 덮어 750 폭까지 26px로 눌렀고 라이브와 어긋났다(패리티 -10).
  */
-export const HEADING_SECTION_PX = 26;
+export const HEADING_SECTION_PX = HEADING_PX;
 export function headingSystemCss(scope: string, mode: "live" | "export"): string {
   const size = `${HEADING_SECTION_PX / 16}rem`;
   return (
