@@ -13,7 +13,8 @@ const C = { a: "#AABBCC", b: "#334455", c: "#DD6677" };
 export async function run(): Promise<string[]> {
   const fails: string[] = [];
   for (const mood of [...Object.keys(MOODS), null]) {
-    for (let seed = 0; seed < 40; seed += 1) {
+    // 440차 7-4 — 실제 시드는 부호 없는 32비트(seedOf)라 2^31 이상도 검사(이전엔 0~39만 봐서 inset 음수를 놓쳤다)
+    for (const seed of [...Array.from({ length: 40 }, (_, i) => i), 0x80000000, 0x80000005, 0xdeadbeef, 0xfffffffe, 0xffffffff]) {
       for (const cross of [true, false]) {
         const ps = planMotifs(mood, seed, { count: 2, cross });
         if (ps.length > MAX_MOTIFS_PER_SECTION) fails.push(`${mood}/${seed}: ${ps.length}개`);

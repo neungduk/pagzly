@@ -117,7 +117,8 @@ export function planMotifs(mood: string | null | undefined, seed: number, opts: 
     const side: "left" | "right" = (seed + k) % 2 === 0 ? "right" : "left";
     // 걸침: 경계 밖으로 최대 CROSS_MAX_PX, 안쪽 깊이는 안전 영역 이하. 걸치지 않으면 경계 안쪽 여백 띠 안에 둔다
     const offset = k === 0 && opts.cross ? Math.max(-CROSS_MAX_PX, Math.min(-Math.round(h / 3), SAFE_BAND_PX - h)) : Math.max(-CROSS_MAX_PX, Math.min(12, SAFE_BAND_PX - h));
-    out.push({ id, anchor, side, offset, inset: 8 + ((seed >> 2) % 3) * 6, w, h, variant: seed + k });
+    // 440차 7-4 — 시드는 부호 없는 32비트(seedOf)라 2^31 이상이면 `>>`가 음수가 되어 inset -4px(경계 밖) → 문서 가로 스크롤 4px. 부호 없는 시프트로
+    out.push({ id, anchor, side, offset, inset: 8 + ((seed >>> 2) % 3) * 6, w, h, variant: seed + k });
   }
   return out;
 }
