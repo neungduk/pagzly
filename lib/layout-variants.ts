@@ -34,6 +34,7 @@ import { motifHtml, motifSvg, planMotifs, type MotifColors, type MotifPlacement 
 import { EYEBROW_LABEL, SANS_FF, TITLE_FF, esc, ghostHtml, highlightKeyword, keywordCandidates, polishCardTitles, titleBlock, titlePresetFor, typeCss } from "@/lib/type-treatments";
 import { splitSentences } from "@/lib/impact-boost";
 import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
+import { groupPendingSpecRows, PENDING_SPEC_ROW_LABEL } from "@/lib/spec-placeholder";
 
 export type V4Family = V4Block["family"];
 
@@ -441,7 +442,10 @@ function findCandidates(secs: DetailSection[], ctx: V4Ctx): Cand[] {
       continue;
     }
     if (s.type === "impact" && (s.kind === "spectable" || s.kind === "specstrip") && (s.stats ?? []).length >= 1) {
-      out.push({ family: "spec", at: i, len: 1, text: s.text, items: (s.stats ?? []).map((r) => ({ title: r.label, body: r.value })), ...(s.origin ? { origin: s.origin } : {}), from: s.kind });
+      // 440차 눈 검수 D2 — "판매자 확인 필요" 같은 안내 행이 2개 이상이면 438차 표처럼 "확인 필요 항목" 한 줄로 모은다(문구는 원래 라벨 그대로)
+      const { shown, pendingLabels } = groupPendingSpecRows(s.stats ?? []);
+      const rows = pendingLabels.length ? [...shown, { label: PENDING_SPEC_ROW_LABEL, value: pendingLabels.join(" · ") }] : shown;
+      out.push({ family: "spec", at: i, len: 1, text: s.text, items: rows.map((r) => ({ title: r.label, body: r.value })), ...(s.origin ? { origin: s.origin } : {}), from: s.kind });
       continue;
     }
     if (s.type === "image_text" && (s.layout === "full" || s.layout === undefined) && !s.imageCrop && !s.sceneCrop && s.heading.trim() && s.heading.trim().length <= 30 && urlOf(s.imageIndex)) {
@@ -623,13 +627,25 @@ function applyRhythm(secs: DetailSection[], idx: number[], ctx: V4Ctx, seed: num
       y += hs[k]!;
     }
     if (best > 0) {
-      S.splice(best, 0, mk("touch", { text: ctx.facts.productName.trim() }, { price }));
+      S.splice(best, 0, mk("touch", { text: touchName(ctx.facts.productName) }, { price }));
       I.splice(best, 0, I[best - 1]!);
       inserted.push(`구매 유도 접점 @${best}`);
     }
   }
   void seed;
   return { sections: S, sourceIndexes: I, inserted };
+}
+
+/**
+ * 440차 눈 검수 D3 — 접점 띠의 제품명. "Dream Glow Camellia Essence Mist (드림 글로우 카멜리아 에센스 미스트)"처럼 괄호 병기면 띠가 4줄이 되므로
+ * 괄호 밖·안 중 짧은 쪽(2자 이상)만 쓴다. 입력 제품명의 일부만 쓰고 새 문구는 만들지 않는다.
+ */
+export function touchName(name: string): string {
+  const n = name.trim();
+  const m = /^(.+?)s*[(（]([^()（）]+)[)）]s*$/.exec(n);
+  if (!m) return n;
+  const parts = [m[1]!.trim(), m[2]!.trim()].filter((x) => [...x].length >= 2);
+  return parts.length ? parts.sort((a, b) => [...a].length - [...b].length)[0]! : n;
 }
 
 /** 늘 어두운 면으로 그려지는 섹션(색면 강조 박스·일러스트 배너) — 접점 위치 고를 때만 쓴다 */

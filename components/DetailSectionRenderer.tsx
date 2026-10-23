@@ -141,7 +141,7 @@ import NoiseComparisonDiagram from "@/components/NoiseComparisonDiagram";
 import WaterproofIpDiagram from "@/components/WaterproofIpDiagram";
 import WeightComparisonDiagram from "@/components/WeightComparisonDiagram";
 import PowerConsumptionDiagram from "@/components/PowerConsumptionDiagram";
-import { headlineDisplayStyle, joinNumericSuffix, longestTokenEm, packHeadlineLiveVars } from "@/lib/detail-typography";
+import { headlineDisplayStyle, joinNumericSuffix, longestTokenEm, packHeadlineLiveVars, statFitEm } from "@/lib/detail-typography";
 import { rhythmLiveVars } from "@/lib/rhythm-tokens";
 import { archetypeHeroLayout } from "@/lib/archetype-recipes";
 import { heroPalette, heroV2Html } from "@/lib/hero-spec";
@@ -4148,7 +4148,7 @@ function renderSection(
                     <StatValue
                       editEnabled={edit?.enabled}
                       value={metric.value}
-                      style={fitTokenStyle(metric.value, -0.05)}
+                      style={{ "--pz-fit-em": statFitEm(metric.value) } as CSSProperties}
                       onChange={(value) => {
                         const metrics = section.metrics.map((item, mi) =>
                           mi === metricIndex ? { ...item, value } : item,
@@ -4199,7 +4199,7 @@ function renderSection(
                     <StatValue
                       editEnabled={edit?.enabled}
                       value={metric.value}
-                      style={fitTokenStyle(metric.value, -0.05)}
+                      style={{ "--pz-fit-em": statFitEm(metric.value) } as CSSProperties}
                       onChange={(value) => {
                         const metrics = section.metrics.map((item, i) =>
                           i === metricIndex ? { ...item, value } : item,

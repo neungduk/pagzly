@@ -6,6 +6,7 @@
  * 그 외: 기존 Noto Sans KR + weight/tracking 강화 (신규 패밀리 없음)
  */
 import { FONT_SIZE } from "@/lib/design-tokens";
+import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
 import type { StylePack } from "@/lib/style-packs";
 import { resolveTemplateCategory, type TemplateCategory } from "@/lib/section-templates";
 
@@ -88,6 +89,19 @@ export function longestTokenEm(text: string, letterSpacingEm = 0): number {
     max = Math.max(max, width);
   }
   return Math.max(0.01, Math.round(max * 1.06 * 100) / 100);
+}
+
+/**
+ * 440차 눈 검수 D1 — 큰 숫자 카드(stat) 값의 맞춤 폭(DESIGN_V4, 라이브·export 공용). 어절 단위 폭은 "20수 싱글 저지"를 48px로 3줄,
+ * "50~56cm"를 단위 중간("c|m")에서 끊었다(900 굵기 영문·기호 폭을 작게 잡음). v4에서는 값 전체를 한 줄로 보고(공백 0.3em, 물결 0.8em) 굵기 여유 28%를 준다
+ * (눈 검수: 12%로는 "50~56cm"가 여전히 끊김).
+ * off면 이전과 같은 어절 기준.
+ */
+export function statFitEm(value: string | undefined, letterSpacingEm = -0.05): number {
+  if (!DESIGN_V4_ENABLED) return longestTokenEm(value ?? "", letterSpacingEm);
+  let width = 0;
+  for (const ch of (value ?? "").trim()) width += /s/.test(ch) ? 0.3 : (/[~～]/.test(ch) ? 0.8 : glyphEm(ch)) + letterSpacingEm;
+  return Math.max(0.01, Math.round(width * 1.28 * 100) / 100);
 }
 
 /** 408차 — 스타일 팩의 제목 서체·굵기·자간(Noto Sans/Serif 2종 안). 기본 팩이면 null */

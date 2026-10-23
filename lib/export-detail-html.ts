@@ -209,6 +209,7 @@ import {
   displayHeadlineInlineCss,
   packHeadlineExportCss,
   longestTokenEm,
+  statFitEm,
 } from "@/lib/detail-typography";
 import { splitStatValue, STAT_UNIT_EM } from "@/lib/stat-value";
 import {
@@ -491,7 +492,7 @@ function statValueHtml(value: string): string {
 /** 라이브 TYPO 제목과 같은 TITLE_SCALE 크기 + 긴 어절 축소(.pz-fit) — rawText는 이스케이프 전 원문 */
 function titleFitCss(key: TitleScaleKey, rawText: string | undefined, letterSpacingEm: number): string {
   const size = titleSizeCss(key);
-  return `--pz-fs:${size};--pz-fit-em:${longestTokenEm(rawText ?? "", letterSpacingEm)};font-size:${size}`;
+  return `--pz-fs:${size};--pz-fit-em:${key === "statNumber" ? statFitEm(rawText, letterSpacingEm) : longestTokenEm(rawText ?? "", letterSpacingEm)};font-size:${size}`;
 }
 
 /** comparison_chart 본문 — 단독 섹션과 circle 콤보 섹션 공용 (라이브 renderComparisonChartBody) */

@@ -302,6 +302,11 @@ export const HERO_FAIL_ONERROR = "var s=this.closest('[data-hero-v2]');if(s)s.se
 export const HERO_FAIL_ONLOAD = "if(this.naturalWidth<240||this.naturalHeight<240||this.naturalWidth/this.naturalHeight>3||this.naturalHeight/this.naturalWidth>3){this.onerror()}";
 export const HERO_FAIL_CSS = `<style>[data-hero-fail] [data-hero-scrim],[data-hero-fail] [data-hero-photo]{display:none}[data-hero-v2="A"][data-hero-fail]{aspect-ratio:auto!important;max-height:none!important;padding:0 0 8px}[data-hero-v2="A"][data-hero-fail] [data-hero-a-text]{position:static!important;padding-bottom:0!important}[data-hero-v2="A"][data-hero-fail] [data-hero-a-text]:last-child{padding:24px 24px 44px!important}[data-hero-v2="D"][data-hero-fail]{background:transparent!important}</style>`;
 /** 439차 1-(d) — D형은 브랜드 알약이 사진 위에 있어 사진 실패 시 함께 사라졌다 → 글 블록에 숨겨 둔 알약을 실패 때만 보인다(DESIGN_V4) */
+/**
+ * 440차 눈 검수 H2 — v3 B·C형은 사진이 실패해 사진 자리가 접히면 글 블록(가격 태그)이 히어로 맨 아래에 붙어, 가격 띠 겹침(-12px)과 아래 둥근 모서리에 가려졌다.
+ * 아래 여백을 주고, 사진 영역에 걸려 있던 고스트·모티프는 사진과 함께 접는다.
+ */
+const HERO_FAIL_CSS_V3 = `<style>[data-hero-v3][data-hero-v2="B"][data-hero-fail],[data-hero-v3][data-hero-v2="C"][data-hero-fail]{padding-bottom:40px!important}${["B", "C"].flatMap((v) => ["ghost", "motif"].map((l) => `[data-hero-v3][data-hero-v2="${v}"][data-hero-fail] [data-hl=${l}]`)).join(",")}{display:none}</style>`;
 const HERO_FAIL_CSS_V4 = `<style>[data-hero-brand-fallback]{display:none}[data-hero-fail] [data-hero-brand-fallback]{display:block}</style>`;
 
 /** 히어로 마크업(438차: 제목 줄 끝 고아 줄이기를 함께 적용 — DESIGN_POLISH) */
@@ -396,11 +401,14 @@ function heroV2HtmlBase(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt:
  * 439차 2-4 — 히어로 v3 마크업. 438차 변형 A~E의 글·사진 배치를 그대로 두고 레이어(모티프·고스트·스티커·가격 태그)를 얹는다.
  * z 규칙: 사진 감싸개(z 3) 안에서 모티프(-2) < 고스트(-1) < 사진(흐름) < 스티커(6) · 글 블록(z 4) — 장식은 글 위로 올라오지 않는다.
  */
+/** 440차 눈 검수 H1 — 고스트 글자가 튀어나오거나 깔리는 높이(px). 그만큼 사진 위·패널 아래 여백을 늘려 칩·가격 띠(-12px 겹침)와 겹치지 않는 자기 띠를 준다 */
+const ghostBand = (p: HeroV2Plan): number => (p.v3?.ghost ? Math.round(ghostPx(p.v3.ghost) * 0.55) : 0);
+
 function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: string): string {
   const size = heroNameSizePx(p.name);
   const failAttrs = ` onerror="${HERO_FAIL_ONERROR}" onload="${HERO_FAIL_ONLOAD}"`;
   const img = (extra: string) => `<img src="${esc(p.imageUrl)}" alt="${esc(alt)}" fetchpriority="high" decoding="async"${failAttrs} style="${extra}"/>`;
-  const wrapOpen = (v: HeroV2Variant, style: string) => `${STRIP_OVERLAP_CSS_TUNED + HERO_FAIL_CSS + (v === "D" && p.brand ? HERO_FAIL_CSS_V4 : "")}<section data-hero-v2="${v}" data-hero-v3 class="hero pagzly-hero" style="position:relative;width:100%;box-sizing:border-box;overflow:hidden;border-radius:0 0 24px 24px;${style}">`;
+  const wrapOpen = (v: HeroV2Variant, style: string) => `${STRIP_OVERLAP_CSS_TUNED + HERO_FAIL_CSS + HERO_FAIL_CSS_V3 + (v === "D" && p.brand ? HERO_FAIL_CSS_V4 : "")}<section data-hero-v2="${v}" data-hero-v3 class="hero pagzly-hero" style="position:relative;width:100%;box-sizing:border-box;overflow:hidden;border-radius:0 0 24px 24px;${style}">`;
   const vp = v4Palette({ accent: pal.accent, deep: pal.deepAccent }, p.v3!.mood);
   const priceBg = "#FFFFFF";
   const priceFg = "#1B1B18";
@@ -417,14 +425,15 @@ function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: str
   }
   if (p.variant === "B" || p.variant === "C") {
     const isB = p.variant === "B";
+    const band = ghostBand(p);
     const face = isB ? heroFaceColor(pal.accent, p.hueHint).face : "#0E0E10";
     const ghost = v3Ghost(p, ghostColor(isB ? face : mixHex(face, pal.accent, 0.22), "#FFFFFF", "#FFFFFF"), "left:-2%;right:-2%;top:-0.55em;text-align:center;overflow:hidden;z-index:-1");
     const motif = v3Motif(p, pal, isB ? mixHex(face, "#FFFFFF", 0.1) : mixHex("#0E0E10", pal.accent, 0.35), "left:50%;top:14%;margin-left:-230px;z-index:-2", "blob", 460, 380);
     const photo = isB
       ? p.whiteBg
-        ? `<div data-hero-photo style="position:relative;margin:24px auto 0;width:84%;aspect-ratio:4 / 4.6">${img("position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply")}</div>`
-        : `<div data-hero-photo style="position:relative;margin:16px auto 0;width:96%;aspect-ratio:4 / 5.2;border-radius:999px 999px 0 0;overflow:hidden;box-shadow:0 -10px 30px rgba(10,10,10,0.25);background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`
-      : `<div data-hero-photo style="position:relative;margin:16px auto 32px;width:96%;aspect-ratio:1 / 1.3;border-radius:24px;overflow:hidden;box-shadow:0 0 70px ${hexToRgba(pal.accent, 0.5)};background:#1B1B18">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`;
+        ? `<div data-hero-photo style="position:relative;margin:${24 + band}px auto 0;width:84%;aspect-ratio:4 / 4.6">${img("position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply")}</div>`
+        : `<div data-hero-photo style="position:relative;margin:${16 + band}px auto 0;width:96%;aspect-ratio:4 / 5.2;border-radius:999px 999px 0 0;overflow:hidden;box-shadow:0 -10px 30px rgba(10,10,10,0.25);background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`
+      : `<div data-hero-photo style="position:relative;margin:${16 + band}px auto 32px;width:96%;aspect-ratio:1 / 1.3;border-radius:24px;overflow:hidden;box-shadow:0 0 70px ${hexToRgba(pal.accent, 0.5)};background:#1B1B18">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`;
     const text = isB
       ? `<div style="position:relative;z-index:4;padding:28px 24px 0">${brandPill(p, "rgba(255,255,255,0.2)", "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "#FFFFFF")}${hookHtml(hero, "#FFFFFF", "#FFFFFF")}${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.6)")}</div>${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "rgba(255,255,255,0.18)", "#FFFFFF", "rgba(255,255,255,0.55)")}</div>` : ""}${v3Price(p, priceBg, priceFg)}</div>`
       : `<div style="position:relative;z-index:4;padding:28px 24px 0;text-align:center">${brandPill(p, "rgba(255,255,255,0.14)", "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.75)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.82)")}<div style="display:flex;justify-content:center">${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.5)")}</div></div>${p.badges.length ? `<div style="margin-top:14px;display:flex;justify-content:center">${badgeRow(p, "rgba(255,255,255,0.12)", "#FFFFFF", "rgba(255,255,255,0.45)")}</div>` : ""}${v3Price(p, priceBg, priceFg)}</div>`;
@@ -440,16 +449,16 @@ function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: str
     return (
       wrapOpen("D", "background:#FFFFFF") +
       `<div data-hero-photo style="position:relative;width:100%;aspect-ratio:4 / 4.8;overflow:hidden;background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}<div style="position:absolute;left:0;top:0;padding:18px 20px">${brandPill(p, "rgba(255,255,255,0.9)", "#1B1B18")}</div>${v3Sticker(p, pal, "right:16px;bottom:16px;z-index:6")}</div>` +
-      `<div style="position:relative;overflow:hidden;background:${face};padding:28px 24px 44px">${v3Ghost(p, ghostColor(face, "#1B1B18", vp.deep), "right:-6px;bottom:-0.1em;z-index:0")}` +
+      `<div style="position:relative;overflow:hidden;background:${face};padding:28px 24px ${44 + ghostBand(p)}px">${v3Ghost(p, ghostColor(face, "#1B1B18", vp.deep), "right:-6px;bottom:16px;z-index:0")}` +
       `<div style="position:relative;z-index:4">${p.brand ? `<div data-hero-brand-fallback style="margin:0 0 14px">${brandPill(p, "#FFFFFF", "#1B1B18")}</div>` : ""}${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, deep, hexToRgba("#1B1B18", 0.78))}${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "#FFFFFF", "#1B1B18", hexToRgba("#1B1B18", 0.2))}</div>` : ""}${tagRow(p, "#1B1B18", hexToRgba("#1B1B18", 0.3))}${v3Price(p, darkenForWhite(vp.deep), "#FFFFFF")}</div></div></section>`
     );
   }
   // E 타이포
   const face = pal.face;
   return (
-    wrapOpen("E", `background:${face};padding:36px 24px 52px`) +
+    wrapOpen("E", `background:${face};padding:36px 24px ${52 + ghostBand(p)}px`) +
     v3Motif(p, pal, vp.tints[3], "top:-18px;right:-18px;z-index:1", "rings", 96, 96) +
-    v3Ghost(p, ghostColor(face, "#1B1B18", vp.deep), "left:16px;bottom:-0.12em;z-index:2") +
+    v3Ghost(p, ghostColor(face, "#1B1B18", vp.deep), "left:16px;bottom:16px;z-index:2") +
     `<div style="position:relative;z-index:4"><div>${brandPill(p, "#FFFFFF", "#1B1B18")}</div><div style="margin-top:20px">${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, mixHex(pal.deepAccent, "#000000", 0.35), hexToRgba("#1B1B18", 0.78))}</div>` +
     `<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-top:24px"><div style="flex:1 1 0%;min-width:0">${badgeRow(p, "#FFFFFF", "#1B1B18", hexToRgba("#1B1B18", 0.2))}${tagRow(p, "#1B1B18", hexToRgba("#1B1B18", 0.3))}${v3Price(p, darkenForWhite(vp.deep), "#FFFFFF")}</div>` +
     (p.imageUrl ? `<div style="position:relative;flex:0 0 36%;max-width:180px"><div data-hero-photo style="aspect-ratio:1 / 1;border-radius:50%;overflow:hidden;box-shadow:0 10px 24px rgba(10,10,10,0.18);background:${pal.baseNeutral}">${img(`display:block;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>${v3Sticker(p, pal, "top:-26px;left:-26px;z-index:6")}</div>` : "") +
