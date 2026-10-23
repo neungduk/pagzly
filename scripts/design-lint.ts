@@ -23,7 +23,7 @@
  *  R13 아이콘 대비(440)          error v4 아이콘(data-pz-icon) 선색과 바탕 3:1 미만 — 비텍스트 그래픽 기준(WCAG 1.4.11)
  *  R14 변형 다양성(440)          warn  v4 블록 4개 이상인 페이지에서 서로 다른 변형 비율 < 60% — 같은 모양 반복(연속이 아니어도)
  *  R15 첫 화면 구매·혜택(440)     warn  히어로 바로 뒤에 가격 띠·한눈에 보기 요약이 없음 — 상위 페이지는 첫 스크롤 안에 가격·혜택을 둔다
- *  R17 세로 리듬(441, DOM)       warn  v4·임팩트 섹션 위·아래 여백이 3단(32·48·64, 사진 풀블리드 0) 밖(442차: 이전 섹션 포함) / info 이웃 섹션 여백 2배 넘는 급변
+ *  R17 세로 리듬(441, DOM)       warn  v4·임팩트 섹션 위·아래 여백이 3단(32·48·64, 사진 풀블리드 0) 밖(442차: 이전 섹션 포함) / info 이웃 섹션 여백 2배 넘는 급변·(443차) 같은 면 이웃 빈 간격 96px 초과·한 화면 안 간격 2배 초과 불균형
  *                              (이전 정보 섹션 여백은 라이브 Tailwind·export 변수가 따로 계산돼 이번 스냅 범위 밖)
  *  R16 제목 위계(441, DOM)       error 굵기 600 미만 제목 / warn 섹션 안 뒤 제목이 첫 제목보다 큼·페이지 제목 스타일(굵기×크기 3단) 4종 이상 — 제목 시스템이 둘 이상으로 갈라짐
  * 440차: R5(큰 글줄/화면)·R11(명암 반전)은 DOM 측정(scripts/design-metrics-dom.ts measureDomPages, 390×844)이 있으면 그 값을 쓴다 —
@@ -157,7 +157,7 @@ export function iconRuns(html: string): Array<{ id: string; stroke: string | nul
   return out;
 }
 
-export type LintDom = { screens: number; bigPerScreen: number; flips: number; padOff?: number; padJumps?: number; headingThin?: number; headingKinds?: number; headingKindList?: string; headingInversions?: number };
+export type LintDom = { screens: number; bigPerScreen: number; flips: number; padOff?: number; padJumps?: number; gapBig?: number; gapUneven?: number; headingThin?: number; headingKinds?: number; headingKindList?: string; headingInversions?: number };
 
 export function lintPage(id: string, html: string, display: DetailSection[], dom?: LintDom): LintResult {
   const issues: LintIssue[] = [];
@@ -180,6 +180,9 @@ export function lintPage(id: string, html: string, display: DetailSection[], dom
   // R17 세로 리듬(DOM): v4·임팩트 섹션 여백 3단 밖 / 이웃 섹션 여백 2배 넘는 급변
   if (dom?.padOff) add("R17", "warn", `여백 3단(32·48·64) 밖 ${dom.padOff}곳`);
   if (dom?.padJumps) add("R17", "info", `이웃 섹션 여백 급변 ${dom.padJumps}곳`);
+  // 443차 셋째 조건: 같은 면 이웃 사이 빈 간격 96px 초과 / 한 화면 안 간격 2배 초과 불균형(근거는 design-metrics-dom.ts 주석)
+  if (dom?.gapBig) add("R17", "info", `같은 면 이웃 사이 빈 간격 96px 초과 ${dom.gapBig}곳`);
+  if (dom?.gapUneven) add("R17", "info", `한 화면 안 간격 불균형 ${dom.gapUneven}곳`);
   // R16 제목 위계(DOM): 굵기 600 미만 제목 error, 섹션 안 크기 역전 warn, 페이지 제목 스타일(굵기×크기 3단) 4종 이상 warn
   if (dom?.headingThin) add("R16", "error", `굵기 600 미만 제목 ${dom.headingThin}개`);
   if (dom?.headingInversions) add("R16", "warn", `섹션 안 제목 크기 역전 ${dom.headingInversions}건`);

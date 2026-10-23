@@ -5307,7 +5307,7 @@ function renderSection(
         return (
           <section
             key={`ai_disclosure-${index}`}
-            className={DESIGN_V4_ENABLED ? "px-6 py-12 @min-[640px]/pz:px-10" : "px-6 py-10 @min-[640px]/pz:px-10"}
+            className={DESIGN_V4_ENABLED ? "px-6 py-8 @min-[640px]/pz:px-10" : "px-6 py-10 @min-[640px]/pz:px-10"}
             style={textSectionStyle(theme, pattern, category)}
           >
             <div

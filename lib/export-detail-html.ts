@@ -2102,7 +2102,7 @@ function sectionHtml(
     }
     case "ai_disclosure":
       if (FLAT_SECTION_SURFACES) {
-        return `<section${sectionIdAttr} style="padding:${DESIGN_V4_ENABLED ? 48 : 40}px var(--pz-pad-x,20px);${sectionInset}${bgCss}">
+        return `<section${sectionIdAttr} style="padding:${DESIGN_V4_ENABLED ? SPACE_V4.sm : 40}px var(--pz-pad-x,20px);${sectionInset}${bgCss}">
         <div style="max-width:36rem;margin:0 auto;text-align:center;border:1px solid ${hexToRgba(BRAND.ink, 0.12)};border-radius:12px;background:${FLAT_PAPER};padding:16px 20px${DESIGN_V4_ENABLED ? `;${declStyle(noticeBoxV4())}` : ""}">
           <p style="margin:0;font-size:14px;font-weight:600;line-height:1.375;color:${hexToRgba(BRAND.ink, 0.8)}${DESIGN_V4_ENABLED ? `;${declStyle(aiHeadV4())}` : ""}">${esc(section.heading)}</p>
           <p style="margin:6px 0 0;font-size:13px;line-height:1.625;color:${hexToRgba(BRAND.ink, 0.6)}${DESIGN_V4_ENABLED ? `;${declStyle(aiBodyV4())}` : ""}">${esc(section.body)}</p>
