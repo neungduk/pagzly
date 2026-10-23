@@ -165,7 +165,7 @@ import { archetypeHeroLayout } from "@/lib/archetype-recipes";
 import { HERO_V2_TUNED, heroPalette, heroV2Html } from "@/lib/hero-spec";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
-import { LINE_HEIGHT_V4, SPACE_V4, declStyle, tokenStyle } from "@/lib/design-tokens-v4";
+import { BANNER_SCRIM_INSET_V4, LINE_HEIGHT_V4, SPACE_V4, declStyle, tokenStyle } from "@/lib/design-tokens-v4";
 import { highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, stepTextV4, stepsListV4 } from "@/lib/twin-styles-v4";
 import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
@@ -924,7 +924,7 @@ function sectionHtml(
           ${cards
             .map((card, i) => {
               const em = i === center;
-              const lightEm = FLAT_SECTION_SURFACES && Boolean(section.boldBlock) && em;
+              const lightEm = FLAT_SECTION_SURFACES && Boolean(section.boldBlock) && em && !(DESIGN_V4_ENABLED && infoOn(layout)); // 444차 — 정보 면(info) CSS는 강조 카드를 강조색 면으로 칠해 흰 카드용 어두운 제목이 안 읽혔다
               const cardKeyword = FLAT_SECTION_SURFACES
                 ? parseUniformCardKeywords(cards.map((c) => c.title ?? ""))[i]!
                 : parseMegaKeywordHeading(card.title);
@@ -1926,7 +1926,7 @@ function sectionHtml(
         <div style="position:absolute;inset:0;background:${DESIGN_V4_ENABLED ? bannerScrimV4(deep) : `linear-gradient(180deg,${deep}99,transparent 35%,transparent 55%,${deep}cc)`}"></div>
         <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;aspect-ratio:16/9;box-sizing:border-box;padding:32px 24px;text-align:center;color:#FAF8F3">
           <div style="position:relative;max-width:520px;padding:20px 28px">
-            <div aria-hidden="true" style="position:absolute;inset:-10%;border-radius:20px;pointer-events:none;background:rgba(27,27,24,.9);box-shadow:0 8px 40px rgba(27,27,24,.4)"></div>
+            <div aria-hidden="true" style="position:absolute;inset:${DESIGN_V4_ENABLED ? BANNER_SCRIM_INSET_V4 : "-10%"};border-radius:20px;pointer-events:none;background:rgba(27,27,24,.9);box-shadow:0 8px 40px rgba(27,27,24,.4)"></div>
             <div style="position:relative;z-index:1">
               ${section.heading ? dh2(category, esc(section.heading), `font-size:${FONT_SIZE.sectionLg};margin:0`) : ""}
               ${section.body ? `<p style="margin:12px 0 0;font-size:${FONT_SIZE.body};opacity:.95;max-width:480px">${esc(section.body)}</p>` : ""}
@@ -2460,7 +2460,7 @@ ${jsonLd}
   }
   /* 402차 — 가격 카드는 제자리에 둔다(라이브와 같음). 750px 이하 sticky였을 때 첫 화면 아래 약 350~400px를 덮었고,
      마켓 상세 영역에서는 마켓 자체 구매 바와 겹친다. 그림자는 라이브처럼 모든 폭에 둔다 */
-  .pagzly-cta{position:relative;z-index:20;box-shadow:${ELEVATION.ctaSticky}}
+  .pagzly-cta{position:relative;z-index:20;box-shadow:${DESIGN_V4_ENABLED ? "none" : ELEVATION.ctaSticky}}
   @media (prefers-reduced-motion:reduce){.fill-bar,.pulse-card,.ring-fill{animation:none!important}}
 </style>
 </head>

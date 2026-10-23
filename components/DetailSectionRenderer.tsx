@@ -245,7 +245,7 @@ import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe"
 import { applyDisplayRules } from "@/lib/display-sections";
 import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
 import { DESIGN_V4_ENABLED, hideImgOnError } from "@/lib/design-v4";
-import { declObject, tokenStyleObject } from "@/lib/design-tokens-v4";
+import { BANNER_SCRIM_INSET_V4, declObject, tokenStyleObject } from "@/lib/design-tokens-v4";
 import { highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, stepTextV4, stepsListV4 } from "@/lib/twin-styles-v4";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
 import { ctaTrustHtml } from "@/lib/layout-variants";
@@ -3910,7 +3910,7 @@ function renderSection(
           <div className={`relative mx-auto ${isTrustEvidence ? "mt-0" : DESIGN_V4_ENABLED ? "mt-12" : "mt-10"} grid gap-4 ${gridCols}`} {...(isTrustEvidence ? {} : ipData(layout, "pgrid"))}>
             {cards.map((card, cardIndex) => {
               const emphasized = cardIndex === centerIdx;
-              const lightEm = FLAT_SECTION_SURFACES && boldBlock && emphasized;
+              const lightEm = FLAT_SECTION_SURFACES && boldBlock && emphasized && !(DESIGN_V4_ENABLED && infoOn(layout)); // 444차 — 정보 면(info) CSS는 강조 카드를 강조색 면으로 칠해 흰 카드용 어두운 제목이 안 읽혔다
               const cardKeyword = FLAT_SECTION_SURFACES
                 ? parseUniformCardKeywords(cards.map((c) => c.title ?? ""))[cardIndex]!
                 : parseMegaKeywordHeading(card.title);
@@ -4443,8 +4443,9 @@ function renderSection(
             <div className="relative max-w-md px-5 py-5 @min-[640px]/pz:max-w-lg @min-[640px]/pz:px-8 @min-[640px]/pz:py-6">
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-[-10%] rounded-2xl @min-[640px]/pz:rounded-3xl"
+                className={DESIGN_V4_ENABLED ? "pointer-events-none absolute rounded-2xl @min-[640px]/pz:rounded-3xl" : "pointer-events-none absolute inset-[-10%] rounded-2xl @min-[640px]/pz:rounded-3xl"}
                 style={{
+                  ...(DESIGN_V4_ENABLED ? { inset: BANNER_SCRIM_INSET_V4 } : {}),
                   background: hexToRgba(BRAND.ink, 0.9),
                   boxShadow: `0 8px 40px ${hexToRgba(BRAND.ink, 0.4)}`,
                 }}
@@ -5849,6 +5850,8 @@ function renderSection(
               ? {
                   backgroundColor: flatAccentTint(theme),
                   borderTop: `1px solid ${hexToRgba(theme.accent, 0.16)}`,
+                  // 444차 — v4: 정적 구매 띠는 떠 있는 요소가 아니라 위로 번지는 스티키 그림자가 면 사이에 지저분한 띠로 보였다(스타일 값만, 구조 불변)
+                  ...(DESIGN_V4_ENABLED ? tokenStyleObject("shadow-none") : {}),
                 }
               : {
                   backgroundColor: getCtaBandBackground(theme),
