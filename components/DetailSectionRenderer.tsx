@@ -4459,6 +4459,7 @@ function renderSection(
                     value={section.heading ?? ""}
                     onChange={(heading) => edit?.onChange(index, { ...section, heading })}
                     className={`${TYPO.bannerTitle} ${getCategoryRhythm(category).heroTitleExtra}`}
+                    style={DESIGN_V4_ENABLED ? tokenStyleObject("heading-large") : undefined}
                   />
                 )}
                 {(section.body || edit?.enabled) && (

@@ -1929,7 +1929,7 @@ function sectionHtml(
           <div style="position:relative;max-width:520px;padding:20px 28px">
             <div aria-hidden="true"${DESIGN_V4_ENABLED ? ' class="pagzly-banner-scrim"' : ""} style="position:absolute;inset:${DESIGN_V4_ENABLED ? BANNER_SCRIM_INSET_V4 : "-10%"};border-radius:${DESIGN_V4_ENABLED ? RADIUS_V4.md : 20}px;pointer-events:none;background:rgba(27,27,24,.9);box-shadow:0 8px 40px rgba(27,27,24,.4)"></div>
             <div style="position:relative;z-index:1">
-              ${section.heading ? (DESIGN_V4_ENABLED ? `<h2 style="font-family:${DETAIL_FONT_STACK.heading};font-size:${titleSizeCss("banner")};font-weight:700;line-height:1.15;letter-spacing:-0.03em;margin:0;color:#fff">${esc(section.heading)}</h2>` : dh2(category, esc(section.heading), `font-size:${FONT_SIZE.sectionLg};margin:0`)) : ""}
+              ${section.heading ? (DESIGN_V4_ENABLED ? `<h2 style="font-family:${DETAIL_FONT_STACK.heading};${tokenStyle("heading-large")};margin:0;color:#fff">${esc(section.heading)}</h2>` : dh2(category, esc(section.heading), `font-size:${FONT_SIZE.sectionLg};margin:0`)) : ""}
               ${section.body ? `<p style="margin:12px 0 0;font-size:${FONT_SIZE.body};opacity:.95;max-width:480px">${esc(section.body)}</p>` : ""}
             </div>
           </div>

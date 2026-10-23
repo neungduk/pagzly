@@ -141,6 +141,21 @@ export async function run(): Promise<string[]> {
     if (nos.some((n, k) => n !== k + 1)) fails.push(`${id}: 화면 순서 번호가 1부터 이어지지 않음 ${nos.join(",")}`);
   }
 
+  // ⑥ 445차 1·7 — 일러스트 배너 제목은 제목 위계 '대'(26·800) 토큰을 라이브·export가 같이 읽는다(굵기 700 한 종이 늘어 제목 스타일이 4종이 되던 것 방지)
+  {
+    const f = corpus().find(([id]) => id === "fx-compare-beauty")![1];
+    const exp = exportHtmlOf(f);
+    const m = /<section[^>]*class="pagzly-illustration-banner"[\s\S]*?<h2 style="([^"]*)"/.exec(exp);
+    if (!m) fails.push("export 일러스트 배너 제목이 없음");
+    else if (!/font-size:26px/.test(m[1]!) || !/font-weight:800/.test(m[1]!)) fails.push(`export 배너 제목이 heading-large(26·800)가 아님 «${m[1]}»`);
+    const a2 = exportArgsOf(readSession(f));
+    const budgeted = applySectionDisplayBudget(a2.category, a2.sections ?? [], { chartRemoved: comparisonPolicyRemovesChart(a2.claimFacts) });
+    const live = renderToStaticMarkup(React.createElement(R as never, { sections: budgeted, imageUrls: a2.imageUrls ?? [], category: a2.category, theme: a2.theme, productName: a2.productName, brandName: a2.brandName, stylePackId: a2.stylePackId, imageHashByUrl: a2.imageHashByUrl, imageOrigins: a2.imageOrigins, imageRoles: a2.imageRoles, imageTags: a2.imageTags, hasSizeInfo: a2.hasSizeInfo, claimFacts: a2.claimFacts } as never));
+    const lm = /<h2 class="[^"]*font-heading[^"]*"[^>]*style="([^"]*)"/.exec(live.slice(live.indexOf("aspect-video")));
+    if (!lm) fails.push("라이브 일러스트 배너 제목을 못 찾음");
+    else if (!/font-size:26px/.test(lm[1]!) || !/font-weight:800/.test(lm[1]!)) fails.push(`라이브 배너 제목이 heading-large(26·800)가 아님 «${lm[1]}»`);
+  }
+
   // ④ export DOM: 표식 달린 섹션의 위 여백이 표식 값
   const b = await launch();
   for (const [id, exp, pads] of forDom) {
