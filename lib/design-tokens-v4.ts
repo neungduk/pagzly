@@ -143,3 +143,9 @@ export const toneOverlayStyle = (mood: string | undefined | null): string => {
     ? `position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;background:linear-gradient(180deg,${inkRgba(tint, TONE_V4.alphaTop)} 0%,${inkRgba(tint, TONE_V4.alphaBottom)} 100%)`
     : "";
 };
+
+// ── 히어로 B형 고스트 글자 가장자리 페이드(443차 4-2) ─────────────────────────
+/** 고스트 글자 박스(좌우 -2%, 위 -0.55em, overflow:hidden)에 잘린 가장자리를 면 색 그라데이션 덮개로 녹인다 — mask·clip-path 없음 */
+export const GHOST_FADE_V4 = { sidePct: 14, topPct: 40 } as const;
+export const ghostFadeBackground = (face: string): string =>
+  `linear-gradient(90deg,${face} 0%,${inkRgba(face, 0)} ${GHOST_FADE_V4.sidePct}%,${inkRgba(face, 0)} ${100 - GHOST_FADE_V4.sidePct}%,${face} 100%),linear-gradient(180deg,${face} 0%,${inkRgba(face, 0)} ${GHOST_FADE_V4.topPct}%)`;

@@ -22,6 +22,7 @@ import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 import { polishTitles } from "@/lib/typo-rhythm";
 import { DESIGN_V4_ENABLED, designV4On } from "@/lib/design-v4";
+import { ghostFadeBackground } from "@/lib/design-tokens-v4";
 import { designV2On } from "@/lib/design-v2";
 import { motifSvg } from "@/lib/motifs";
 import { v4Palette } from "@/lib/palette-v4";
@@ -318,6 +319,13 @@ export function heroV2Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, a
 /** 고스트 글자 크기(px): 짧을수록 크게 */
 export const ghostPx = (word: string): number => { const n = [...word].length; return n <= 4 ? 120 : n <= 6 ? 96 : n <= 9 ? 76 : 60; };
 const layerAttrs = (id: HeroLayerId) => `data-hl="${id}" data-hz="${HERO_LAYER_Z[id]}"`;
+/** 443차 4-2 — 히어로 B형 고스트 글자 가장자리 페이드: 고스트와 같은 박스에 면 색 그라데이션 덮개(고스트 바로 뒤 형제, 같은 z). 고스트가 없으면 빈 문자열 */
+function v3GhostFade(p: HeroV2Plan, face: string): string {
+  const g = p.v3?.ghost;
+  if (!g || !designV4On() || !/^#[0-9a-f]{6}$/i.test(face)) return "";
+  const px = ghostPx(g);
+  return `<span aria-hidden="true" data-hl-fade="ghost" style="position:absolute;left:-2%;right:-2%;top:${-0.55 * px}px;height:${Math.round(px * 0.9)}px;background:${ghostFadeBackground(face)};pointer-events:none;z-index:-1"></span>`;
+}
 function v3Ghost(p: HeroV2Plan, color: string, place: string): string {
   const g = p.v3?.ghost;
   return g ? `<span aria-hidden="true" ${layerAttrs("ghost")} style="position:absolute;${place};${title};font-size:${ghostPx(g)}px;font-weight:900;letter-spacing:-0.05em;line-height:0.9;color:${color};white-space:nowrap;pointer-events:none">${esc(g)}</span>` : "";
@@ -427,7 +435,7 @@ function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: str
     const isB = p.variant === "B";
     const band = ghostBand(p);
     const face = isB ? heroFaceColor(pal.accent, p.hueHint).face : "#0E0E10";
-    const ghost = v3Ghost(p, ghostColor(isB ? face : mixHex(face, pal.accent, 0.22), "#FFFFFF", "#FFFFFF"), "left:-2%;right:-2%;top:-0.55em;text-align:center;overflow:hidden;z-index:-1");
+    const ghost = v3Ghost(p, ghostColor(isB ? face : mixHex(face, pal.accent, 0.22), "#FFFFFF", "#FFFFFF"), "left:-2%;right:-2%;top:-0.55em;text-align:center;overflow:hidden;z-index:-1") + (isB ? v3GhostFade(p, face) : "");
     const motif = v3Motif(p, pal, isB ? mixHex(face, "#FFFFFF", 0.1) : mixHex("#0E0E10", pal.accent, 0.35), "left:50%;top:14%;margin-left:-230px;z-index:-2", "blob", 460, 380);
     const photo = isB
       ? p.whiteBg
