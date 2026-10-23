@@ -156,12 +156,12 @@
   ],
   "imageAnalysis": "1. 제품 색상: 단일 화이트 컬러로, 모든 사진에서 순백색의 깨끗한 톤이 일관되게 표현됨. 2. 질감/소재: 면 100% 싱글 저지(20수) 소재로, 클로즈업 사진(인덱스 3)에서 적당한 두께감과 부드러운 저지 특유의 세로 결이 확인되며 비침이 적어 보임. 3. 시각적 특징: 목둘레 립 마감이 선명하게 드러나고, 드롭숄더 디자인으로 어깨선이 자연스럽게 떨어지는 세미오버 실루엣이 여러 착용컷에서 일관되게 나타남. 플랫레이 컷에서는 박시한 전체 핏과 깔끔한 봉제선이 돋보임. 4. 인상·어필 포인트: 무지 디자인과 화이트 컬러 덕분에 데님, 슬랙스, 캐주얼 팬츠 등 다양한 하의와 매치가 자연스러워 보이며, 남녀 공용으로 다양한 체형과 성별의 모델이 착용한 컷을 통해 범용성을 강조함. 5. USP: 목둘레 립 마감으로 변형과 늘어짐을 최소화하고, 중간 두께의 저지 소재로 비침 걱정 없이 사계절(단독/이너) 활용 가능한 데일리 기본 아이템이라는 점이 핵심 차별점으로 부각됨.",
   "theme": {
-    "accent": "#20547E",
-    "accentSoft": "#EFF5FA",
-    "accentText": "#1E4667",
-    "heroScrimFrom": "rgba(32,84,126,0.72)",
-    "baseNeutral": "#C8D6E1",
-    "deepAccent": "#183F5F"
+    "accent": "#2B2381",
+    "accentSoft": "#F1F0FA",
+    "accentText": "#27206A",
+    "heroScrimFrom": "rgba(43,35,129,0.72)",
+    "baseNeutral": "#8681BB",
+    "deepAccent": "#201A61"
   },
   "draftTextCost": 0.0049274736,
   "reviewInsights": null,
@@ -654,12 +654,12 @@
     "replacements": [],
     "productId": "f80fe9e5-1d21-4fef-857d-696d26909bae",
     "theme": {
-      "accent": "#20547E",
-      "accentSoft": "#EFF5FA",
-      "accentText": "#1E4667",
-      "heroScrimFrom": "rgba(32,84,126,0.72)",
-      "baseNeutral": "#C8D6E1",
-      "deepAccent": "#183F5F"
+      "accent": "#2B2381",
+      "accentSoft": "#F1F0FA",
+      "accentText": "#27206A",
+      "heroScrimFrom": "rgba(43,35,129,0.72)",
+      "baseNeutral": "#8681BB",
+      "deepAccent": "#201A61"
     },
     "urlAnalysisNotices": [],
     "qaSummary": "",

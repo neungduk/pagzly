@@ -168,12 +168,12 @@
   ],
   "imageAnalysis": "1. 제품 색상: 용기는 반투명 화이트 프로스트 글라스이며, 내용물은 맑은 옐로우 톤으로 하단부는 연한 미색, 상단부는 진한 골드빛 옐로우로 그라데이션을 이룸. 캡은 글로시 블랙으로 포인트를 줌. \n2. 질감/소재: 유리 용기는 반투명 프로스트 마감으로 고급스러운 질감을 연출하며, 캡은 유광 플라스틱으로 깔끔한 대비를 이룸. 내용물은 워터리한 에센스 미스트 타입으로 가벼운 제형이 느껴짐. \n3. 시각적 특징: 심플한 원통형 바틀 디자인에 파스텔톤 핑크 필기체 로고(Dream Glow)와 블랙 브랜드 로고가 조화를 이루며, 투명도와 색상 그라데이션이 시각적으로 청량하고 맑은 인상을 줌. 배경은 연한 하늘색 톤으로 전체적으로 맑고 촉촉한 이미지와 잘 어울림. \n4. 인상·어필 포인트: 작고 슬림한 사이즈로 휴대성이 강조되며, 펌프형 분사 구조가 사용 편의성을 시각적으로 전달함. 손으로 직접 사용하는 라이프스타일 컷을 통해 실제 사용감과 가벼운 미스트 분사 느낌을 자연스럽게 보여줌. \n5. USP: 동백 추출물과 히알루론산, 판테놀, 병풀 추출물 등 보습 및 진정 케어 성분을 함유한 가벼운 사용감의 미니 사이즈 에센스 미스트로, 메이크업 위에도 사용 가능해 데일리 보습 케어와 간편한 리프레시가 가능한 점이 특징임.",
   "theme": {
-    "accent": "#20547E",
-    "accentSoft": "#EFF5FA",
-    "accentText": "#1E4667",
-    "heroScrimFrom": "rgba(32,84,126,0.72)",
-    "baseNeutral": "#A7BED0",
-    "deepAccent": "#183F5F"
+    "accent": "#21667E",
+    "accentSoft": "#EFF7FA",
+    "accentText": "#1E5367",
+    "heroScrimFrom": "rgba(33,102,126,0.72)",
+    "baseNeutral": "#5991A6",
+    "deepAccent": "#194D5F"
   },
   "draftTextCost": 0.0079004464,
   "reviewInsights": null,
@@ -655,12 +655,12 @@
     "replacements": [],
     "productId": "264a8784-39ee-4e2a-bb85-6fdd2ab9b951",
     "theme": {
-      "accent": "#20547E",
-      "accentSoft": "#EFF5FA",
-      "accentText": "#1E4667",
-      "heroScrimFrom": "rgba(32,84,126,0.72)",
-      "baseNeutral": "#A7BED0",
-      "deepAccent": "#183F5F"
+      "accent": "#21667E",
+      "accentSoft": "#EFF7FA",
+      "accentText": "#1E5367",
+      "heroScrimFrom": "rgba(33,102,126,0.72)",
+      "baseNeutral": "#5991A6",
+      "deepAccent": "#194D5F"
     },
     "urlAnalysisNotices": [],
     "qaSummary": "",

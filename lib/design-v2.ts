@@ -215,7 +215,8 @@ export function designV2Css(o: V2CssOpts): string {
     }
     // 뷰티: 퀵포인트(옅은 포인트색 면)와 히어로 캡션 띠도 같은 틴트로 — 밝은 면이 띠마다 달라 보이던 것을 줄인다
     if (o.beautyInfo) {
-      out.push(rule(sec("quick"), `background:${tintGradient(c, 0.6)}`));
+      // 445차 4 — v4: 퀵포인트 줄은 섹션마다 흰색에서 시작하는 그라데이션이라 줄 경계에서 흰 띠가 보였다(앞 줄은 틴트로 끝나고 뒤 줄은 흰색으로 다시 시작). 줄 전체를 같은 단색 틴트로
+      out.push(rule(sec("quick"), `background:${DESIGN_V4_ENABLED ? v2Tint(c, 0.6) : tintGradient(c, 0.6)}`));
       out.push(rule(`${S} [data-hero-caption]`, `background:${tintGradient(c, 0.6)}`));
     }
   }
