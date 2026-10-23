@@ -1,7 +1,7 @@
 /**
  * 444차 1 — 섹션 단독 눈 검수 캡처: 말뭉치 페이지에서 표시 예산·비교 정책으로 빠지는 섹션(FAQ·비교표·신뢰 근거 카드 등)과 바뀐 섹션을
  * 섹션 하나만 담은 export HTML로 열어 그 <section>만 캡처한다. 픽스처별 타일을 가로로 붙여 섹션 종류마다 한 장(<out>/<종류>-w<폭>.png).
- *   npx tsx scripts/eye-sections.ts [--out=review/444-verify/sections] [--widths=390,750] [--types=faq,spec_table]
+ *   npx tsx scripts/eye-sections.ts [--out=review/444-verify/sections] [--widths=390,750] [--types=faq,spec_table] [--fixtures=fx-tech-keyboard,...]
  * 합성 입력(말뭉치에 없는 섹션)은 SYNTH에 있다 — 검사 전용 문구이며 서비스 문구가 아니다.
  */
 import fs from "node:fs";
@@ -15,6 +15,7 @@ const arg = (k: string, d: string) => process.argv.find((a) => a.startsWith(`--$
 const OUT = arg("out", "review/444-verify/sections");
 const WIDTHS = arg("widths", "390,750").split(",").map(Number);
 const TYPES = arg("types", "").split(",").filter(Boolean);
+const FIXTURES = arg("fixtures", "").split(",").filter(Boolean); // 지정하면 그 픽스처만(예: 테크·뷰티 표)
 const MAX_TILES = 3;
 
 type Sec = Record<string, unknown>;
@@ -29,7 +30,7 @@ async function main() {
   fs.mkdirSync(OUT, { recursive: true });
   const byType = new Map<string, Array<{ label: string; html: string }>>();
   const add = (type: string, label: string, html: string) => byType.set(type, [...(byType.get(type) ?? []), { label, html }]);
-  for (const [id, file] of corpus()) {
+  for (const [id, file] of corpus({ only: FIXTURES })) {
     const a = exportArgsOf(readSession(file));
     for (const sec of (a.sections ?? []) as unknown as Sec[]) {
       const t = String(sec.type);
