@@ -7,6 +7,7 @@
  */
 import type { CategoryTheme } from "@/lib/category-theme";
 import { BRAND, ensureReadableOnPaper } from "@/lib/design-tokens";
+import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
 import { infoBackdropCss, type InfoBackdropMap, type InfoZone } from "@/lib/info-backdrop";
 
 export type InfoLevel = "calm" | "bold" | "dramatic";
@@ -158,7 +159,7 @@ export function infoCss(level: InfoLevel | undefined, scope: string, c: InfoColo
   if (drS) rule(`${sec("stat")}>p`, `color:rgba(255,255,255,0.75)`);
 
   // 혼방 구간 밖으로 분리된 숫자 칸(사이즈 종수 등)
-  rule(sec("statnum"), `background:${drS ? c.accent : c.base};padding-top:36px;padding-bottom:36px`);
+  rule(sec("statnum"), `background:${drS ? c.accent : c.base};padding-top:${DESIGN_V4_ENABLED ? 32 : 36}px;padding-bottom:${DESIGN_V4_ENABLED ? 32 : 36}px`); // 442차 — v4 여백 3단(36 → 32)
   rule(`${sec("statnum")}>div`, `margin:0 auto;border-top:0;border-bottom:0`);
   rule(`${sec("statnum")} *`, `color:${drS ? W : c.deep}`);
   rule(`${sec("statnum")}>div>div>:last-child`, "font-size:16px;font-weight:700");

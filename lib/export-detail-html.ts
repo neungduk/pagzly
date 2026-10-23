@@ -2092,7 +2092,7 @@ function sectionHtml(
     }
     case "ai_disclosure":
       if (FLAT_SECTION_SURFACES) {
-        return `<section${sectionIdAttr} style="padding:40px var(--pz-pad-x,20px);${sectionInset}${bgCss}">
+        return `<section${sectionIdAttr} style="padding:${DESIGN_V4_ENABLED ? 48 : 40}px var(--pz-pad-x,20px);${sectionInset}${bgCss}">
         <div style="max-width:36rem;margin:0 auto;text-align:center;border:1px solid ${hexToRgba(BRAND.ink, 0.12)};border-radius:12px;background:${FLAT_PAPER};padding:16px 20px">
           <p style="margin:0;font-size:14px;font-weight:600;line-height:1.375;color:${hexToRgba(BRAND.ink, 0.8)}">${esc(section.heading)}</p>
           <p style="margin:6px 0 0;font-size:13px;line-height:1.625;color:${hexToRgba(BRAND.ink, 0.6)}">${esc(section.body)}</p>
@@ -2405,7 +2405,7 @@ ${jsonLd}
   .pagzly-wrap [data-diagram]>svg,.pagzly-wrap .pagzly-diagram>div>svg{display:block}
   @media (min-width:640px){.pagzly-run-num{font-size:2.5rem!important}}
   .pagzly-wrap :is(h1,h2,h3){text-wrap:balance}.pagzly-wrap p{text-wrap:pretty}.pagzly-wrap .pagzly-bubble{text-wrap:balance}
-  .pagzly-textonly{padding:40px 24px}
+  .pagzly-textonly{padding:${DESIGN_V4_ENABLED ? 48 : 40}px 24px}
   @media (min-width:640px){.pagzly-textonly{padding:48px 40px}}
   .pagzly-rv-cap{font-size:11px;line-height:1.5}
   @media (min-width:640px){.pagzly-rv-cap{font-size:12px;line-height:16px}}

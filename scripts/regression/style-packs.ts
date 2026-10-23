@@ -4,6 +4,7 @@
  */
 import { buildDetailPageHtml } from "../../lib/export-detail-html";
 import { getCategoryTheme } from "../../lib/category-theme";
+import { DESIGN_V4_ENABLED } from "../../lib/design-v4";
 import { getHeroGradient, titleScaleVars, titleScaleExportCss } from "../../lib/design-tokens";
 import { headlineDisplayStyle, packHeadlineExportCss } from "../../lib/detail-typography";
 import { applyPackTone, CLASSIC_PACK, packTitleScaleOverrides, resolveStylePack, stylePackOptions } from "../../lib/style-packs";
@@ -78,7 +79,12 @@ export async function run(): Promise<string[]> {
   if (!mono.includes("--pz-t-hero:2.5rem") || !edi.includes("--pz-t-hero:2.75rem")) fails.push("팩 제목 크기 변수가 export에 없음");
   if (mono === base || edi === base || mono === edi) fails.push("팩 export가 서로 같음");
   const padOf = (s: string) => /--pz-pad-y:(\d+)px/.exec(s)?.[1];
-  if (!(Number(padOf(mono)) > Number(padOf(base))) || !(Number(padOf(edi)) > Number(padOf(mono)))) fails.push(`여백 순서 classic<mono<editorial 아님: ${padOf(base)}/${padOf(mono)}/${padOf(edi)}`);
+  // 442차 — v4는 여백을 3단(32·48·64)으로 스냅해 classic·mono가 같은 단일 수 있다(팩 개성은 서체·구조 축에서 유지). v4: 비감소 + editorial이 classic보다 큼. 이전(v4 꺼짐)은 엄격한 순서
+  const v4Pad = DESIGN_V4_ENABLED;
+  const okOrder = v4Pad
+    ? Number(padOf(mono)) >= Number(padOf(base)) && Number(padOf(edi)) >= Number(padOf(mono)) && Number(padOf(edi)) > Number(padOf(base))
+    : Number(padOf(mono)) > Number(padOf(base)) && Number(padOf(edi)) > Number(padOf(mono));
+  if (!okOrder) fails.push(`여백 순서 classic<mono<editorial 아님(v4는 비감소): ${padOf(base)}/${padOf(mono)}/${padOf(edi)}`);
   // 4) 색: hue 유지, 채도 감소
   const t = { ...th, accent: "#844F1F", accentText: "#844F1F", deepAccent: "#4A2C0F", accentSoft: "#F3E6D8", baseNeutral: "#F5EEE6" };
   for (const id of ["mono-minimal", "editorial"] as const) {

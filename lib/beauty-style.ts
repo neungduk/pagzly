@@ -4,6 +4,7 @@
  * 카피 프롬프트·비전 비용 절감은 화면이 아니라 호출 쪽이라 이 플래그와 별개다.
  */
 import type { InfoColors, InfoLevel } from "@/lib/info-style";
+import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
 
 /** 기본 켬. 끄려면 NEXT_PUBLIC_BEAUTY_STYLE=off로 서버를 시작한다(418차와 같은 화면 — 전/후 캡처·되돌리기용) */
 export const BEAUTY_STYLE_ENABLED = process.env.NEXT_PUBLIC_BEAUTY_STYLE !== "off";
@@ -53,7 +54,7 @@ export function beautyInfoCss(level: InfoLevel | undefined, scope: string, c: In
   // ── 구매 카드: 액센트 채움 띠 · 가격 크게 · 혜택 칩 2열 · 큰 CTA 버튼 ──
   const B = `${scope} [data-info="buy"]`;
   const ip = (k: string) => `${B} [data-ip="${k}"]`;
-  rule(B, `background:${c.accent};clip-path:none;margin-top:0;padding-top:56px;padding-bottom:56px;border-top:0;color:${W}`);
+  rule(B, `background:${c.accent};clip-path:none;margin-top:0;padding-top:${DESIGN_V4_ENABLED ? 64 : 56}px;padding-bottom:${DESIGN_V4_ENABLED ? 64 : 56}px;border-top:0;color:${W}`); // 442차 — v4 여백 3단(56 → 64)
   rule(`${ip("kicker")},${ip("name")}`, `color:rgba(255,255,255,0.88);opacity:1`);
   rule(ip("price"), `font-size:${dr ? 72 : 60}px;font-weight:900;line-height:1;letter-spacing:-0.04em;color:${W}`);
   rule(ip("chip"), `background:rgba(255,255,255,0.2);color:${W};font-size:14px;font-weight:600`);

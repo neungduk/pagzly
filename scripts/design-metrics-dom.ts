@@ -106,8 +106,10 @@ export async function measureDomPages(pages: Array<[string, string]>): Promise<M
         const cs = getComputedStyle(s);
         const pt = Math.round(parseFloat(cs.paddingTop)), pb = Math.round(parseFloat(cs.paddingBottom));
         // 8px 이하는 사진 테두리용 가장자리 값(0단)으로 본다
-        if (s.hasAttribute("data-pz-impact")) for (const v of [pt, pb]) if (v > 8 && !TIERS.some((t) => Math.abs(t - v) <= 1)) padOff += 1;
-        if (prevPad > 0 && pt > 0 && Math.max(prevPad, pt) / Math.min(prevPad, pt) > 2) padJumps += 1;
+        // 442차 — 이전 섹션(표·FAQ·주의·구매 카드 등)까지 전부 검사(441차는 임팩트·v4만)
+        for (const v of [pt, pb]) if (v > 8 && !TIERS.some((t) => Math.abs(t - v) <= 1)) padOff += 1;
+        // 8px 이하(사진이 면에 붙는 가장자리)는 급변으로 보지 않는다
+        if (prevPad > 8 && pt > 8 && Math.max(prevPad, pt) / Math.min(prevPad, pt) > 2) padJumps += 1;
         prevPad = pb;
       }
       return { screens: H / 844, big, all, flips, padOff, padJumps, headingThin, headingKinds: kinds.size, headingKindList: [...kinds].sort().join(","), headingInversions };

@@ -5,6 +5,7 @@
  * padYScale(스타일 팩)은 위·아래 세로 여백에만 곱한다. 1이면 예전 값과 정확히 같다.
  */
 import { getCategoryRhythm } from "@/lib/design-tokens";
+import { designV4On } from "@/lib/design-v4";
 
 export type RhythmTokens = {
   heroX: number;
@@ -23,7 +24,10 @@ const unit = (cls: string, re: RegExp, fallback: number) => Number(re.exec(cls)?
 
 export function getRhythmTokens(category: string, wide: boolean, padYScale = 1): RhythmTokens {
   const rhythm = getCategoryRhythm(category);
-  const scaleY = (px: number) => (padYScale === 1 ? px : Math.round(px * padYScale));
+  // 442차 2-C — v4는 배율 뒤 좁은 폭 값을 3단(32·48·64)으로 스냅(64×0.875=56, 48×0.75=36 같은 중간값 제거). 경계값은 위 단으로(40→48, 56→64).
+  // 넓은 폭은 그대로. 라이브(팩 변수 rhythmLiveVars)와 export가 이 함수 한 곳을 읽는다
+  const snap3 = (v: number) => (wide || !designV4On() || v <= 8 ? v : v < 40 ? 32 : v < 56 ? 48 : 64);
+  const scaleY = (px: number) => snap3(padYScale === 1 ? px : Math.round(px * padYScale));
   const padY = (cls: string) => (wide ? unit(cls, /pz:py-(\d+)/, 28) : unit(cls, /(?:^|\s)py-(\d+)/, 16));
   const side = (cls: string, kind: "t" | "b" | "x", fallback: number) =>
     wide

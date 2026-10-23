@@ -4,7 +4,7 @@
 // 배경색/여백/이미지 비율을 결정해야 한다.
 
 import type { CategoryTheme } from "@/lib/category-theme";
-import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
+import { DESIGN_V4_ENABLED, designV4On } from "@/lib/design-v4";
 
 // ---------------------------------------------------------------------------
 // 0. 브랜드 팔레트 — globals.css @theme 와 1:1 대응
@@ -1132,14 +1132,23 @@ function getCategoryRhythmBase(category: string): CategoryRhythm {
  * 408차 — 여백 클래스에 표식 클래스(pz-pad-*)를 덧붙인다. 스타일 팩이 없으면 globals.css 규칙이 걸리지 않아
  * 화면은 그대로이고, 팩이 있으면 [data-pz-pack] 규칙이 같은 숫자 토큰으로 세로 여백을 바꾼다.
  */
+/**
+ * 442차 2-C — v4 세로 여백 3단 스냅(좁은 폭 32·48·64px). 이전 섹션 여백에 남아 있던 56·40·36px를 가까운 단으로:
+ * py-14(56) → py-16(64), pt-10(40) → pt-12(48), pt-9(36) → pt-8(32). 원천 한 곳이라 라이브(클래스)와 export(클래스를 파싱한 토큰)가 같이 바뀐다.
+ * 넓은 폭(@min-[640px]/pz:…) 값은 그대로. 아래 리터럴은 Tailwind가 새 클래스를 생성하도록 소스에 남겨 두는 용도다: py-16 pt-12 pt-8
+ */
+const V4_PAD_SNAP = (cls: string): string =>
+  designV4On() ? cls.replace(/(^|\s)py-14(?=\s|$)/, "$1py-16").replace(/(^|\s)pt-10(?=\s|$)/, "$1pt-12").replace(/(^|\s)pt-9(?=\s|$)/, "$1pt-8") : cls;
+
 export function getCategoryRhythm(category: string): CategoryRhythm {
   const r = getCategoryRhythmBase(category);
   return {
     ...r,
-    generousPadClass: `${r.generousPadClass} pz-pad-g`,
-    trustPadClass: `${r.trustPadClass} pz-pad-t`,
-    ctaPadClass: `${r.ctaPadClass} pz-pad-c`,
-    pointTextPadClass: `${r.pointTextPadClass} pz-pad-p`,
+    generousPadClass: `${V4_PAD_SNAP(r.generousPadClass)} pz-pad-g`,
+    trustPadClass: `${V4_PAD_SNAP(r.trustPadClass)} pz-pad-t`,
+    ctaPadClass: `${V4_PAD_SNAP(r.ctaPadClass)} pz-pad-c`,
+    pointTextPadClass: `${V4_PAD_SNAP(r.pointTextPadClass)} pz-pad-p`,
+    galleryTitlePadClass: V4_PAD_SNAP(r.galleryTitlePadClass),
   };
 }
 

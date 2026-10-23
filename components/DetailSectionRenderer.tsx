@@ -2735,7 +2735,7 @@ function renderSection(
         return (
           <section
             key={`image_text-${index}`}
-            className="px-6 py-10 @min-[640px]/pz:px-10 @min-[640px]/pz:py-12"
+            className={DESIGN_V4_ENABLED ? "px-6 py-12 @min-[640px]/pz:px-10 @min-[640px]/pz:py-12" : "px-6 py-10 @min-[640px]/pz:px-10 @min-[640px]/pz:py-12"}
             style={textSectionStyle(theme, pattern, category)}
           >
             <div className={`mx-auto max-w-xl ${FLAT_SECTION_SURFACES ? "text-center" : ""}`}>
@@ -5272,7 +5272,7 @@ function renderSection(
         return (
           <section
             key={`ai_disclosure-${index}`}
-            className="px-6 py-10 @min-[640px]/pz:px-10"
+            className={DESIGN_V4_ENABLED ? "px-6 py-12 @min-[640px]/pz:px-10" : "px-6 py-10 @min-[640px]/pz:px-10"}
             style={textSectionStyle(theme, pattern, category)}
           >
             <div
