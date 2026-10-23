@@ -9,13 +9,13 @@ import { BRAND } from "../../lib/design-tokens";
 import { buildDetailPageHtml } from "../../lib/export-detail-html";
 import { declStyle, tokenDecl, type Decl } from "../../lib/design-tokens-v4";
 import type { DetailSection } from "../../lib/types/generate";
-import { faqCardV4, faqListV4, faqQuestionV4, highlightCardV4, personaCardV4, personaTextV4 } from "../../lib/twin-styles-v4";
+import { compareCellV4, compareUnitV4, compareWrapV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, faqCardV4, faqListV4, faqQuestionV4, highlightCardV4, personaCardV4, personaTextV4 } from "../../lib/twin-styles-v4";
 import { corpus, exportArgsOf, readSession } from "../design-corpus";
 
 export const name = "쌍둥이 수정 — 섹션별 라이브↔export v4 토큰 선언 패리티";
 
 /** groups: 한 요소(style 속성)가 통째로 가져야 하는 선언 묶음. 묶음마다 라이브·export의 요소 수가 같아야 한다(순서·다른 선언은 무관) */
-type Probe = { type: string; groups: Decl[]; heading: (s: Record<string, unknown>) => string | undefined };
+type Probe = { type: string; synth?: Array<Record<string, unknown>>; groups: Decl[] | ((accent: string) => Decl[]); heading: (s: Record<string, unknown>) => string | undefined };
 const INK = BRAND.ink;
 /** 섹션을 추가할 때마다 한 줄씩 늘린다 */
 export const PROBES: Probe[] = [
@@ -27,6 +27,29 @@ export const PROBES: Probe[] = [
       highlightCardV4({ trust: true, em: false, bold: false }), highlightCardV4({ trust: true, em: true, bold: false }),
     ],
     heading: (s) => (s.heading as string) || ((s.cards as Array<{ title?: string }>)?.[0]?.title),
+  },
+  {
+    // 판매자 신뢰 근거 카드(제목 '중' 20/800)는 합성 말뭉치에 없어 손으로 만든 입력으로 본다(검사 전용 문구)
+    type: "highlight_box",
+    synth: [{ type: "highlight_box", slot: "seller_trust_evidence", heading: "신뢰근거검사", cards: [{ title: "검사카드A", body: "검사본문A" }, { title: "검사카드B", body: "검사본문B" }, { title: "검사카드C", body: "검사본문C" }] }],
+    groups: [tokenDecl("heading-mid"), highlightCardV4({ trust: true, em: false, bold: false }), highlightCardV4({ trust: true, em: true, bold: false })],
+    heading: (s) => s.heading as string | undefined,
+  },
+  {
+    // 비교 표: 숫자 열(우측 정렬·단위 작게)과 글 열(왼쪽)을 둘 다. 합성 말뭉치에는 comparison_table이 없다(검사 전용 문구)
+    type: "comparison_table",
+    synth: [
+      { type: "comparison_table", slot: "comparison_table", heading: "숫자비교검사", columns: ["기존", "우리"], rows: [{ label: "무게검사", values: ["120g", "95g"] }, { label: "소음검사", values: ["42dB", "38dB"] }] },
+      { type: "comparison_table", slot: "comparison_table", heading: "글비교검사", columns: ["기존", "우리"], rows: [{ label: "소재검사", values: ["합성섬유", "순면"] }, { label: "지원검사", values: ["미지원", "지원"] }] },
+    ],
+    groups: [compareWrapV4(), compareCellV4(true), compareCellV4(false), compareUnitV4()],
+    heading: (s) => (s.rows as Array<{ label?: string }> | undefined)?.[0]?.label,
+  },
+  {
+    type: "spec_table",
+    // 라벨 칸·값 칸·표 껍데기(배송 안내/일반)·줄무늬: 라이브·export가 같은 선언을 같은 수만큼 낸다
+    groups: (accent) => [specLabelCellV4(accent), specValueCellV4(), specWrapV4(false), specWrapV4(true), specZebraV4(accent)],
+    heading: (s) => (s.rows as Array<{ label?: string }> | undefined)?.[0]?.label,
   },
   {
     type: "faq",
@@ -81,9 +104,11 @@ export async function run(): Promise<string[]> {
   for (const probe of PROBES) {
     const total: number[] = [];
     for (const [id, file] of corpus()) {
-      const a = exportArgsOf(readSession(file));
-      for (const sec of (a.sections ?? []) as unknown as Array<Record<string, unknown>>) {
-        if (sec.type !== probe.type) continue;
+      const a0 = exportArgsOf(readSession(file));
+      // 합성 입력은 비교 정책(판매자 입력 없으면 비교 섹션 제거)이 켜지지 않게 claimFacts를 비운다(정책 문서: 개발용 고정 데이터는 그대로)
+      const a = probe.synth ? { ...a0, claimFacts: undefined } : a0;
+      const own = ((a.sections ?? []) as unknown as Array<Record<string, unknown>>).filter((x) => x.type === probe.type && !probe.synth);
+      for (const sec of [...own, ...(id === corpus()[0]![0] ? (probe.synth ?? []) : [])]) {
         const needle = probe.heading(sec);
         if (!needle) continue;
         const only = [sec] as unknown as DetailSection[];
@@ -92,7 +117,8 @@ export async function run(): Promise<string[]> {
         if (!exp && live) continue; // export의 표시 규칙(applyDisplayRules)이 이 카테고리에서 섹션을 뺀 경우 — 라이브는 규칙을 페이지 쪽에서 적용하므로 비교 대상 아님
         if (!exp || !live) { fails.push(`${probe.type} ${id}: 섹션 조각을 못 찾음(live ${Boolean(live)} / export ${Boolean(exp)})`); continue; }
         seen[probe.type] = (seen[probe.type] ?? 0) + 1;
-        probe.groups.forEach((g, gi) => {
+        const groups = typeof probe.groups === "function" ? probe.groups(a.theme.accent) : probe.groups;
+        groups.forEach((g, gi) => {
           const l = groupCount(live, g);
           const e = groupCount(exp, g);
           if (l !== e) fails.push(`${probe.type} ${id}: 묶음 #${gi} \`${declStyle(g).slice(0, 60)}…\` 라이브 ${l}개 ≠ export ${e}개`);
@@ -101,7 +127,8 @@ export async function run(): Promise<string[]> {
       }
     }
     if (!seen[probe.type]) fails.push(`${probe.type}: 말뭉치에 검사할 섹션 없음`);
-    else if (!total.some((n) => n > 0)) fails.push(`${probe.type}: v4 토큰 선언이 export에 한 번도 안 나옴(검사 무의미)`);
+    else if (process.env.TWIN_VERBOSE) console.log(`${probe.type} 묶음별 export 요소 수`, total.join(","));
+    if (seen[probe.type] && !total.some((n) => n > 0)) fails.push(`${probe.type}: v4 토큰 선언이 export에 한 번도 안 나옴(검사 무의미)`);
   }
   return fails;
 }

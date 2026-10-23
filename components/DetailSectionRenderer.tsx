@@ -246,7 +246,7 @@ import { applyDisplayRules } from "@/lib/display-sections";
 import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
 import { DESIGN_V4_ENABLED, hideImgOnError } from "@/lib/design-v4";
 import { declObject, tokenStyleObject } from "@/lib/design-tokens-v4";
-import { highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4 } from "@/lib/twin-styles-v4";
+import { highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit } from "@/lib/twin-styles-v4";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
 import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
@@ -522,10 +522,13 @@ function ComparisonValueCell({
   value,
   emphasized,
   theme,
+  numeric,
 }: {
   value: string;
   emphasized?: boolean;
   theme: CategoryTheme;
+  /** v4 숫자 열 — 숫자는 그대로, 단위는 작게(원문 불변) */
+  numeric?: boolean;
 }) {
   const kind = classifyBoolishCell(value);
   if (kind === "yes") {
@@ -549,8 +552,18 @@ function ComparisonValueCell({
       </span>
     );
   }
+  const split = numeric ? splitNumberUnit(value) : null;
   return (
-    <span className={emphasized ? "font-semibold text-ink" : "text-ink"}>{value}</span>
+    <span className={emphasized ? "font-semibold text-ink" : "text-ink"}>
+      {split ? (
+        <>
+          {split.num}
+          {split.unit ? <span style={declObject(compareUnitV4())}>{split.unit}</span> : null}
+        </>
+      ) : (
+        value
+      )}
+    </span>
   );
 }
 
@@ -3374,6 +3387,8 @@ function renderSection(
         FLAT_SECTION_SURFACES && !isShipping && !edit?.enabled
           ? groupPendingSpecRows(visibleRows)
           : { shown: visibleRows, pendingLabels: [] as string[] };
+      const specV4 = DESIGN_V4_ENABLED && FLAT_SECTION_SURFACES;
+      const specGridV4 = FLAT_SECTION_SURFACES && !isShipping && !edit?.enabled && isCompactSpecGrid(tableRows, pendingLabels.length);
       const specSectionStyle = isMainSpecTable && !FLAT_SECTION_SURFACES
         ? {
             ...textSectionStyle(theme, pattern, category),
@@ -3482,16 +3497,17 @@ function renderSection(
                 ? "mt-6"
                 : "mt-10"
             }`}
-            style={
-              isShipping
+            style={{
+              ...(isShipping
                 ? FLAT_SECTION_SURFACES
                   ? { borderColor: hexToRgba(theme.accent, 0.2), backgroundColor: FLAT_PAPER }
                   : {
                       borderColor: hexToRgba(theme.accent, 0.35),
                       backgroundColor: hexToRgba(theme.baseNeutral, 0.5),
                     }
-                : undefined
-            }
+                : {}),
+              ...(specV4 ? declObject(specWrapV4(isShipping)) : {}),
+            }}
           >
             <table
               className={`w-full text-sm ${
@@ -3500,7 +3516,7 @@ function renderSection(
                   : ""
               }`}
               style={
-                isShipping
+                isShipping || specV4
                   ? undefined
                   : {
                       borderTop: `1px solid ${hexToRgba(BRAND.ink, INFO_TABLE.specEdgeInkAlpha)}`,
@@ -3509,7 +3525,7 @@ function renderSection(
               }
             >
               <tbody>
-                {tableRows.map((row) => {
+                {tableRows.map((row, rowPos) => {
                   const rowIndex = section.rows.indexOf(row);
                   return (
                   <tr
@@ -3519,9 +3535,10 @@ function renderSection(
                       borderColor: isShipping
                         ? hexToRgba(theme.accent, INFO_TABLE.rowBorderAlpha)
                         : hexToRgba(BRAND.ink, INFO_TABLE.specRuleInkAlpha),
+                      ...(specV4 && !specGridV4 && rowPos % 2 === 1 ? declObject(specZebraV4(theme.accent)) : {}),
                     }}
                   >
-                    <td className={`w-[38%] py-3.5 pr-4 ${isShipping ? "pl-4" : ""} ${TYPO.tableLabel}`}>
+                    <td className={`w-[38%] py-3.5 pr-4 ${isShipping ? "pl-4" : ""} ${TYPO.tableLabel}`} style={specV4 ? declObject(specLabelCellV4(theme.accent)) : undefined}>
                       <div className="flex items-center gap-2.5">
                         {!FLAT_SECTION_SURFACES ? (
                           <ConceptBadgeIcon
@@ -3550,6 +3567,7 @@ function renderSection(
                           ? "font-normal text-ink/45"
                           : "font-medium text-ink"
                       }`}
+                      style={specV4 ? declObject(specValueCellV4()) : undefined}
                     >
                       {isCertificationHighlight(row.label, row.value, certTokens) &&
                       !edit?.enabled &&
@@ -3630,8 +3648,8 @@ function renderSection(
                 })}
                 {pendingLabels.length > 0 ? (
                   <tr data-spec-pending>
-                    <td className={`w-[38%] py-3.5 pr-4 ${TYPO.tableLabel}`}>{PENDING_SPEC_ROW_LABEL}</td>
-                    <td className="py-3.5 text-[13px] leading-relaxed tracking-tight text-ink/45">
+                    <td className={`w-[38%] py-3.5 pr-4 ${TYPO.tableLabel}`} style={specV4 ? declObject(specLabelCellV4(theme.accent)) : undefined}>{PENDING_SPEC_ROW_LABEL}</td>
+                    <td className="py-3.5 text-[13px] leading-relaxed tracking-tight text-ink/45" style={specV4 ? declObject(specValueCellV4()) : undefined}>
                       {pendingLabels.join(" · ")}
                     </td>
                   </tr>
@@ -3653,7 +3671,9 @@ function renderSection(
       );
     }
 
-    case "comparison_table":
+    case "comparison_table": {
+      const cmpNum0 = DESIGN_V4_ENABLED && numericColumnV4(section.rows, 0);
+      const cmpNum1 = DESIGN_V4_ENABLED && numericColumnV4(section.rows, 1);
       return (
         <section
           key={`comparison_table-${index}`}
@@ -3669,12 +3689,12 @@ function renderSection(
           <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}>
             {headlineKeywordNodes(section.heading, theme) ?? section.heading}
           </h3>
-          <div className="mx-auto mt-10 max-w-xl overflow-x-auto overflow-hidden rounded-lg">
+          <div className="mx-auto mt-10 max-w-xl overflow-x-auto overflow-hidden rounded-lg" style={DESIGN_V4_ENABLED ? declObject(compareWrapV4()) : undefined}>
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ backgroundColor: hexToRgba(theme.accent, INFO_TABLE.headerBgAlpha) }}>
-                  <th className="px-4 py-3 text-left font-medium text-ink/55" />
-                  <th className="px-4 py-3 text-left font-medium text-ink/55">
+                  <th className="px-4 py-3 text-left font-medium text-ink/55" style={DESIGN_V4_ENABLED ? declObject(compareCellV4(false)) : undefined} />
+                  <th className="px-4 py-3 text-left font-medium text-ink/55" style={DESIGN_V4_ENABLED ? declObject(compareCellV4(cmpNum0)) : undefined}>
                     {section.columns[0]}
                   </th>
                   <th
@@ -3682,6 +3702,7 @@ function renderSection(
                     style={{
                       color: readableTextDeep(theme),
                       backgroundColor: hexToRgba(theme.accent, INFO_TABLE.oursHighlightAlpha),
+                      ...(DESIGN_V4_ENABLED ? declObject(compareCellV4(cmpNum1)) : {}),
                     }}
                   >
                     {section.columns[1]}
@@ -3701,20 +3722,22 @@ function renderSection(
                           : hexToRgba(theme.accent, INFO_TABLE.stripeAlpha),
                     }}
                   >
-                    <td className="px-4 py-3.5 font-medium text-ink/55">{row.label}</td>
-                    <td className="px-4 py-3.5">
-                      <ComparisonValueCell value={row.values[0]} theme={theme} />
+                    <td className="px-4 py-3.5 font-medium text-ink/55" style={DESIGN_V4_ENABLED ? declObject(compareCellV4(false)) : undefined}>{row.label}</td>
+                    <td className="px-4 py-3.5" style={DESIGN_V4_ENABLED ? declObject(compareCellV4(cmpNum0)) : undefined}>
+                      <ComparisonValueCell value={row.values[0]} theme={theme} numeric={DESIGN_V4_ENABLED && cmpNum0} />
                     </td>
                     <td
                       className="px-4 py-3.5"
                       style={{
                         backgroundColor: hexToRgba(theme.accent, INFO_TABLE.oursHighlightAlpha),
+                        ...(DESIGN_V4_ENABLED ? declObject(compareCellV4(cmpNum1)) : {}),
                       }}
                     >
                       <ComparisonValueCell
                         value={row.values[1]}
                         emphasized
                         theme={theme}
+                        numeric={DESIGN_V4_ENABLED && cmpNum1}
                       />
                     </td>
                   </tr>
@@ -3724,6 +3747,7 @@ function renderSection(
           </div>
         </section>
       );
+    }
 
     case "comparison_chart":
       return (

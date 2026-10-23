@@ -166,7 +166,7 @@ import { HERO_V2_TUNED, heroPalette, heroV2Html } from "@/lib/hero-spec";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
 import { LINE_HEIGHT_V4, SPACE_V4, declStyle, tokenStyle } from "@/lib/design-tokens-v4";
-import { highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4 } from "@/lib/twin-styles-v4";
+import { highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit } from "@/lib/twin-styles-v4";
 import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
 import { glanceIconSvg } from "@/lib/icons";
@@ -1514,8 +1514,12 @@ function sectionHtml(
           : { shown: visibleRows, pendingLabels: [] as string[] };
       const thPad = isShipping ? "14px 16px" : "14px 16px 14px 0";
       const tdPad = isShipping ? "14px 16px 14px 0" : "14px 0";
+      const specV4 = DESIGN_V4_ENABLED && FLAT_SECTION_SURFACES;
+      const specGridV4 = FLAT_SECTION_SURFACES && !isShipping && isCompactSpecGrid(tableRows, pendingLabels.length);
+      const labelV4 = specV4 ? `;${declStyle(specLabelCellV4(accent))}` : "";
+      const valueV4 = specV4 ? `;${declStyle(specValueCellV4())}` : "";
       const pendingRowHtml = pendingLabels.length
-        ? `<tr style="border-top:1px solid ${hexToRgba(BRAND.ink, INFO_TABLE.specRuleInkAlpha)}"><th style="text-align:left;padding:${thPad};width:38%;opacity:.55;font-weight:500;font-size:${FONT_SIZE.sm};letter-spacing:-0.01em">${PENDING_SPEC_ROW_LABEL}</th><td style="padding:${tdPad};font-size:13px;line-height:1.625;letter-spacing:-0.025em;color:rgba(27,27,24,.45)">${esc(pendingLabels.join(" · "))}</td></tr>`
+        ? `<tr style="border-top:1px solid ${hexToRgba(BRAND.ink, INFO_TABLE.specRuleInkAlpha)}"><th style="text-align:left;padding:${thPad};width:38%;opacity:.55;font-weight:500;font-size:${FONT_SIZE.sm};letter-spacing:-0.01em${labelV4}">${PENDING_SPEC_ROW_LABEL}</th><td style="padding:${tdPad};font-size:13px;line-height:1.625;letter-spacing:-0.025em;color:rgba(27,27,24,.45)${valueV4}">${esc(pendingLabels.join(" · "))}</td></tr>`
         : "";
       const rowsHtml = tableRows
         .map((row, ri) => {
@@ -1533,12 +1537,13 @@ function sectionHtml(
             ri === tableRows.length - 1
               ? "none"
               : `1px solid ${isShipping ? `${accent}33` : hexToRgba(BRAND.ink, INFO_TABLE.specRuleInkAlpha)}`;
-          return `<tr style="border-bottom:${rowRule}"><th style="text-align:left;padding:${thPad};width:38%;opacity:.55;font-weight:500;font-size:${FONT_SIZE.sm};letter-spacing:-0.01em">${esc(row.label)}</th><td style="padding:${tdPad};letter-spacing:-0.025em;${isPlaceholderValue(row.value) ? "font-weight:400;color:rgba(27,27,24,.45)" : "font-weight:500"}">${valueHtml}</td></tr>`;
+          const zebraV4 = specV4 && !specGridV4 && ri % 2 === 1 ? `;${declStyle(specZebraV4(accent))}` : "";
+          return `<tr style="border-bottom:${rowRule}${zebraV4}"><th style="text-align:left;padding:${thPad};width:38%;opacity:.55;font-weight:500;font-size:${FONT_SIZE.sm};letter-spacing:-0.01em${labelV4}">${esc(row.label)}</th><td style="padding:${tdPad};letter-spacing:-0.025em;${isPlaceholderValue(row.value) ? "font-weight:400;color:rgba(27,27,24,.45)" : "font-weight:500"}${valueV4}">${valueHtml}</td></tr>`;
         })
         .join("") + pendingRowHtml;
       const specEdge = `1px solid ${hexToRgba(BRAND.ink, INFO_TABLE.specEdgeInkAlpha)}`;
       const specGrid = FLAT_SECTION_SURFACES && !isShipping && isCompactSpecGrid(tableRows, pendingLabels.length);
-      const tableHtml = `<table${specGrid ? ` class="pagzly-spec-grid"` : ""} style="width:100%;border-collapse:collapse;font-size:${FONT_SIZE.bodySm};line-height:20px${isShipping ? "" : `;border-top:${specEdge};border-bottom:${specEdge}`}"><tbody>${rowsHtml}</tbody></table>`;
+      const tableHtml = `<table${specGrid ? ` class="pagzly-spec-grid"` : ""} style="width:100%;border-collapse:collapse;font-size:${FONT_SIZE.bodySm};line-height:20px${isShipping || specV4 ? "" : `;border-top:${specEdge};border-bottom:${specEdge}`}"><tbody>${rowsHtml}</tbody></table>`;
       const tableMargin = diagramHtml ? "24px" : "40px";
       return `<section${sectionIdAttr} style="${trustPad}${sectionInset}${specTableBg}${bgCss}" class="${isShipping ? "pagzly-shipping" : ""}">
         ${kickerHtml(`<p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">INFO</p>`)}
@@ -1548,9 +1553,9 @@ function sectionHtml(
         ${
           isShipping
             ? FLAT_SECTION_SURFACES
-              ? `<div class="pagzly-shipping-table" style="max-width:576px;margin:${tableMargin} auto 0;border:1px solid ${hexToRgba(accent, 0.2)};border-radius:12px;overflow:hidden;background:${FLAT_PAPER}">${tableHtml}</div>`
+              ? `<div class="pagzly-shipping-table" style="max-width:576px;margin:${tableMargin} auto 0;border:1px solid ${hexToRgba(accent, 0.2)};border-radius:12px;overflow:hidden;background:${FLAT_PAPER}${specV4 ? `;${declStyle(specWrapV4(true))}` : ""}">${tableHtml}</div>`
               : `<div class="pagzly-shipping-table" style="max-width:576px;margin:${tableMargin} auto 0;border:2px solid ${accent}59;border-radius:${RADIUS.md}px;overflow:hidden;background:${sectionBg}80">${tableHtml}</div>`
-            : `<div style="max-width:576px;margin:${tableMargin} auto 0">${tableHtml}</div>`
+            : `<div style="max-width:576px;margin:${tableMargin} auto 0${specV4 ? `;${declStyle(specWrapV4(false))}` : ""}">${tableHtml}</div>`
         }
         ${
           sizeMatches.length > 0
@@ -1822,7 +1827,7 @@ function sectionHtml(
     case "comparison_table": {
       // 242차 — 라이브 ComparisonValueCell과 동일 판정(공유 lib/comparison-cell-classify.ts)+
       // 동일 시각(28px 원형 배지, accent 틴트/회색, 체크·X)을 export에도 배선.
-      const comparisonCellHtml = (value: string, emphasized: boolean) => {
+      const comparisonCellHtml = (value: string, emphasized: boolean, numeric = false) => {
         const kind = classifyBoolishCell(value);
         if (kind === "yes") {
           return `<span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9999px;background:${hexToRgba(accent, emphasized ? 0.2 : 0.12)}" aria-label="${esc(value)}"><span aria-hidden="true" style="color:${deepText};font-size:14px;font-weight:700;line-height:1">&#10003;</span></span>`;
@@ -1830,30 +1835,33 @@ function sectionHtml(
         if (kind === "no") {
           return `<span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9999px;background:rgba(27,27,24,0.05)" aria-label="${esc(value)}"><span aria-hidden="true" style="color:rgba(27,27,24,0.35);font-size:13px;font-weight:600;line-height:1">&#10005;</span></span>`;
         }
-        return esc(value);
+        const split = DESIGN_V4_ENABLED && numeric ? splitNumberUnit(value) : null;
+        return split ? `${esc(split.num)}${split.unit ? `<span style="${declStyle(compareUnitV4())}">${esc(split.unit)}</span>` : ""}` : esc(value);
       };
+      const cmpNum = [DESIGN_V4_ENABLED && numericColumnV4(section.rows, 0), DESIGN_V4_ENABLED && numericColumnV4(section.rows, 1)];
+      const cellV4 = (right: boolean) => (DESIGN_V4_ENABLED ? `;${declStyle(compareCellV4(right))}` : "");
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         ${kickerHtml(`<p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">COMPARE</p>`)}
         ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
-        <table style="width:100%;max-width:560px;margin:24px auto 0;border-collapse:collapse;font-size:${FONT_SIZE.bodySm}">
+        ${DESIGN_V4_ENABLED ? `<div style="max-width:560px;margin-left:auto;margin-right:auto;${declStyle(compareWrapV4())}">` : ""}<table style="width:100%;${DESIGN_V4_ENABLED ? "" : "max-width:560px;margin:24px auto 0;"}border-collapse:collapse;font-size:${FONT_SIZE.bodySm}">
           <thead><tr style="background:${accent}1a">
-            <th style="padding:12px;text-align:left"></th>
-            <th style="padding:12px;text-align:left">${esc(section.columns[0])}</th>
-            <th style="padding:12px;text-align:left;color:${deepText};font-weight:700;background:${accent}24">${esc(section.columns[1])}</th>
+            <th style="padding:12px;text-align:left${cellV4(false)}"></th>
+            <th style="padding:12px;text-align:left${cellV4(cmpNum[0]!)}">${esc(section.columns[0])}</th>
+            <th style="padding:12px;text-align:left;color:${deepText};font-weight:700;background:${accent}24${cellV4(cmpNum[1]!)}">${esc(section.columns[1])}</th>
           </tr></thead>
           <tbody>
             ${section.rows
               .map(
                 (row, ri) =>
                   `<tr style="border-bottom:1px solid ${accent}33;background:${ri % 2 ? accent + "0d" : "transparent"}">
-                    <td style="padding:12px;font-weight:500;opacity:.65">${esc(row.label)}</td>
-                    <td style="padding:12px">${comparisonCellHtml(row.values[0], false)}</td>
-                    <td style="padding:12px;font-weight:600;background:${accent}14">${comparisonCellHtml(row.values[1], true)}</td>
+                    <td style="padding:12px;font-weight:500;opacity:.65${cellV4(false)}">${esc(row.label)}</td>
+                    <td style="padding:12px${cellV4(cmpNum[0]!)}">${comparisonCellHtml(row.values[0], false, cmpNum[0])}</td>
+                    <td style="padding:12px;font-weight:600;background:${accent}14${cellV4(cmpNum[1]!)}">${comparisonCellHtml(row.values[1], true, cmpNum[1])}</td>
                   </tr>`,
               )
               .join("")}
           </tbody>
-        </table>
+        </table>${DESIGN_V4_ENABLED ? "</div>" : ""}
       </section>`;
     }
     case "color_variation": {
