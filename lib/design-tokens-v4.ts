@@ -118,3 +118,28 @@ export const tokenStyleObject = (key: TokenKey, ink?: string): Record<string, st
 export function tokenDecl(key: TokenKey, ink?: string): Decl {
   return declOf(key, ink);
 }
+
+// ── 본문 사진 톤 통일 오버레이(443차 4-1) ─────────────────────────────────────
+/**
+ * mood별 은은한 틴트 — 사진 위 그라데이션 오버레이 한 장(filter·mix-blend-mode 없음, 알파 합성만이라 export·PNG 안전).
+ * 위는 옅게, 아래로 갈수록 조금 진하게(사진 간 밝기·색 차이를 줄이되 제품 색을 덮지 않는 상한 0.16). mood가 없으면 오버레이 자체를 만들지 않는다(입력 없음 = 불변).
+ */
+export const TONE_V4 = {
+  alphaTop: 0.06,
+  alphaBottom: 0.16,
+  tint: {
+    "minimal-luxe": "#CFC6B8",
+    natural: "#BFD0B0",
+    clinic: "#B9D3E8",
+    playful: "#F2B8CF",
+    street: "#8E9AA8",
+    warm: "#E8C79B",
+  },
+} as const;
+export type ToneMood = keyof typeof TONE_V4.tint;
+export const toneOverlayStyle = (mood: string | undefined | null): string => {
+  const tint = mood && Object.prototype.hasOwnProperty.call(TONE_V4.tint, mood) ? TONE_V4.tint[mood as ToneMood] : null;
+  return tint
+    ? `position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;background:linear-gradient(180deg,${inkRgba(tint, TONE_V4.alphaTop)} 0%,${inkRgba(tint, TONE_V4.alphaBottom)} 100%)`
+    : "";
+};

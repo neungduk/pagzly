@@ -19,6 +19,8 @@ import type { StripImageHints } from "@/lib/persona-strip";
 import type { ProductImageRole } from "@/lib/image-roles";
 import { hexToRgba } from "@/lib/design-tokens";
 import { DETAIL_FONT_STACK } from "@/lib/detail-typography";
+import { designV4On } from "@/lib/design-v4";
+import { toneOverlayStyle } from "@/lib/design-tokens-v4";
 
 /** 기본 켬. 끄려면 NEXT_PUBLIC_PHOTO_LAYOUT_V2=off 로 서버를 시작한다(433차와 같은 화면) */
 export const PHOTO_LAYOUT_V2_ENABLED = process.env.NEXT_PUBLIC_PHOTO_LAYOUT_V2 !== "off";
@@ -39,29 +41,33 @@ export function photoLayoutHtml(s: ImpactSection, pal: ImpactPalette, alt: strin
   const head = (centered: boolean) =>
     s.text ? `<p style="margin:0 0 16px;${centered ? "text-align:center;" : ""}${title};font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.3;color:${pal.deep};word-break:keep-all">${esc(s.text)}</p>` : "";
   const ph = `background:${pal.tint}`;
+  // 443차 4-1 — v4에서 mood가 있으면 본문 사진마다 틴트 그라데이션 오버레이 한 장(없으면 빈 문자열 → 마크업 불변). 오버레이가 사진 칸 안에 놓이도록 칸에 position:relative
+  const toneStyle = designV4On() ? toneOverlayStyle(s.mood) : "";
+  const tone = toneStyle ? `<span aria-hidden="true" data-pz-tone style="display:block;${toneStyle}"></span>` : "";
+  const rel = toneStyle ? "position:relative;" : "";
   switch (s.kind) {
     case "asym2":
       return (
         `<section data-pz-impact="asym2" style="padding:40px 24px;background:#FFFFFF"><div style="max-width:576px;margin:0 auto">${head(false)}` +
         `<div style="position:relative;padding-bottom:20%">` +
-        `<div style="width:70%;aspect-ratio:4 / 5;overflow:hidden;border-radius:6px;${ph}">${img(imgs[0]?.url ?? "", alt, pos0)}</div>` +
-        `<div style="position:absolute;right:0;bottom:0;width:44%;aspect-ratio:1 / 1;overflow:hidden;border-radius:6px;border:5px solid #FFFFFF;box-sizing:border-box;box-shadow:0 8px 20px ${hexToRgba(pal.ink, 0.14)};${ph}">${img(imgs[1]?.url ?? "", alt, imgs[1]?.pos ?? "50% 40%")}</div>` +
+        `<div style="${rel}width:70%;aspect-ratio:4 / 5;overflow:hidden;border-radius:6px;${ph}">${img(imgs[0]?.url ?? "", alt, pos0)}${tone}</div>` +
+        `<div style="position:absolute;right:0;bottom:0;width:44%;aspect-ratio:1 / 1;overflow:hidden;border-radius:6px;border:5px solid #FFFFFF;box-sizing:border-box;box-shadow:0 8px 20px ${hexToRgba(pal.ink, 0.14)};${ph}">${img(imgs[1]?.url ?? "", alt, imgs[1]?.pos ?? "50% 40%")}${tone}</div>` +
         `</div></div></section>`
       );
     case "mosaic3":
       return (
         `<section data-pz-impact="mosaic3" style="padding:40px 24px;background:#FFFFFF"><div style="max-width:576px;margin:0 auto">${head(false)}` +
         `<div style="display:grid;grid-template-columns:1.3fr 1fr;grid-template-rows:auto auto;gap:8px">` +
-        `<div style="grid-row:1 / span 2;position:relative;min-height:0;overflow:hidden;border-radius:6px;${ph}"><div style="position:absolute;left:0;top:0;width:100%;height:100%">${img(imgs[0]?.url ?? "", alt, pos0)}</div></div>` +
-        `<div style="aspect-ratio:1 / 1;overflow:hidden;border-radius:6px;${ph}">${img(imgs[1]?.url ?? "", alt, imgs[1]?.pos ?? "50% 40%")}</div>` +
-        `<div style="aspect-ratio:4 / 3;overflow:hidden;border-radius:6px;${ph}">${img(imgs[2]?.url ?? "", alt, imgs[2]?.pos ?? "50% 40%")}</div>` +
+        `<div style="grid-row:1 / span 2;position:relative;min-height:0;overflow:hidden;border-radius:6px;${ph}"><div style="position:absolute;left:0;top:0;width:100%;height:100%">${img(imgs[0]?.url ?? "", alt, pos0)}${tone}</div></div>` +
+        `<div style="${rel}aspect-ratio:1 / 1;overflow:hidden;border-radius:6px;${ph}">${img(imgs[1]?.url ?? "", alt, imgs[1]?.pos ?? "50% 40%")}${tone}</div>` +
+        `<div style="${rel}aspect-ratio:4 / 3;overflow:hidden;border-radius:6px;${ph}">${img(imgs[2]?.url ?? "", alt, imgs[2]?.pos ?? "50% 40%")}${tone}</div>` +
         `</div></div></section>`
       );
     case "stagger": {
       const col = (from: number) =>
         imgs
           .filter((_, i) => i % 2 === from)
-          .map((p, k) => `<div style="aspect-ratio:${(k + from) % 2 === 0 ? "4 / 5" : "1 / 1"};overflow:hidden;border-radius:6px;${ph}">${img(p.url, alt, p.pos ?? "50% 40%")}</div>`)
+          .map((p, k) => `<div style="${rel}aspect-ratio:${(k + from) % 2 === 0 ? "4 / 5" : "1 / 1"};overflow:hidden;border-radius:6px;${ph}">${img(p.url, alt, p.pos ?? "50% 40%")}${tone}</div>`)
           .join("");
       return (
         `<section data-pz-impact="stagger" style="padding:40px 24px;background:#FFFFFF"><div style="max-width:576px;margin:0 auto">${head(false)}` +
@@ -74,7 +80,7 @@ export function photoLayoutHtml(s: ImpactSection, pal: ImpactPalette, alt: strin
     case "inset":
       return (
         `<section data-pz-impact="inset" style="padding-bottom:8px;background:#FFFFFF">` +
-        `<div style="width:100%;aspect-ratio:4 / 5;overflow:hidden;${ph}">${img(imgs[0]?.url ?? "", alt, pos0)}</div>` +
+        `<div style="${rel}width:100%;aspect-ratio:4 / 5;overflow:hidden;${ph}">${img(imgs[0]?.url ?? "", alt, pos0)}${tone}</div>` +
         `<div style="position:relative;margin:-64px 20px 0;max-width:536px;box-sizing:border-box;padding:22px 22px 24px;background:#FFFFFF;border-radius:10px;box-shadow:0 10px 28px ${hexToRgba(pal.ink, 0.14)}">` +
         `<p style="margin:0;${title};font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.3;color:${pal.deep};word-break:keep-all">${esc(s.text)}</p>` +
         (s.body ? `<p style="margin:10px 0 0;${sans};font-size:14.5px;line-height:1.8;color:${hexToRgba(pal.ink, 0.78)};white-space:pre-line;word-break:keep-all">${esc(s.body)}</p>` : "") +
@@ -86,7 +92,7 @@ export function photoLayoutHtml(s: ImpactSection, pal: ImpactPalette, alt: strin
       const ratio = shape === "circle" ? "1 / 1" : "4 / 5";
       return (
         `<section data-pz-impact="frame" style="padding:48px 24px;background:#FFFFFF"><div style="max-width:576px;margin:0 auto;text-align:center">` +
-        `<div style="width:${shape === "circle" ? "74%" : "78%"};aspect-ratio:${ratio};margin:0 auto;overflow:hidden;border-radius:${radius};${ph};box-shadow:0 12px 28px ${hexToRgba(pal.ink, 0.12)}">${img(imgs[0]?.url ?? "", alt, pos0)}</div>` +
+        `<div style="${rel}width:${shape === "circle" ? "74%" : "78%"};aspect-ratio:${ratio};margin:0 auto;overflow:hidden;border-radius:${radius};${ph};box-shadow:0 12px 28px ${hexToRgba(pal.ink, 0.12)}">${img(imgs[0]?.url ?? "", alt, pos0)}${tone}</div>` +
         `<p style="margin:24px 0 0;${title};font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.3;color:${pal.deep};word-break:keep-all">${esc(s.text)}</p>` +
         (s.body ? `<p style="margin:10px auto 0;max-width:420px;${sans};font-size:14.5px;line-height:1.8;color:${hexToRgba(pal.ink, 0.78)};white-space:pre-line;word-break:keep-all">${esc(s.body)}</p>` : "") +
         `</div></section>`
@@ -95,7 +101,7 @@ export function photoLayoutHtml(s: ImpactSection, pal: ImpactPalette, alt: strin
     case "zoom":
       return (
         `<section data-pz-impact="zoom" style="padding:0 0 8px;background:#FFFFFF">` +
-        `<div style="position:relative;width:100%;aspect-ratio:4 / 5;overflow:hidden;${ph}">${img(imgs[0]?.url ?? "", alt, pos0)}` +
+        `<div style="position:relative;width:100%;aspect-ratio:4 / 5;overflow:hidden;${ph}">${img(imgs[0]?.url ?? "", alt, pos0)}${tone}` +
         `<div style="position:absolute;right:20px;bottom:20px;width:38%;aspect-ratio:1 / 1;overflow:hidden;border-radius:50%;border:4px solid #FFFFFF;box-sizing:border-box;box-shadow:0 8px 20px ${hexToRgba(pal.ink, 0.28)};${ph}">${img(imgs[0]?.url ?? "", alt, "50% 45%", "transform:scale(2.4);transform-origin:50% 45%")}</div></div>` +
         `<div style="padding:24px 24px 0"><div style="max-width:576px;margin:0 auto"><p style="margin:0;${title};font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.3;color:${pal.deep};word-break:keep-all">${esc(s.text)}</p>` +
         (s.body ? `<p style="margin:10px 0 0;${sans};font-size:14.5px;line-height:1.8;color:${hexToRgba(pal.ink, 0.78)};white-space:pre-line;word-break:keep-all">${esc(s.body)}</p>` : "") +
