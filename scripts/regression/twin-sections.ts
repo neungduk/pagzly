@@ -9,7 +9,7 @@ import { BRAND } from "../../lib/design-tokens";
 import { buildDetailPageHtml } from "../../lib/export-detail-html";
 import { declStyle, tokenDecl, type Decl } from "../../lib/design-tokens-v4";
 import type { DetailSection } from "../../lib/types/generate";
-import { aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, compareCellV4, compareUnitV4, compareWrapV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, faqCardV4, faqListV4, faqQuestionV4, highlightCardV4, personaCardV4, personaTextV4 } from "../../lib/twin-styles-v4";
+import { stepTextV4, stepsListV4, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, compareCellV4, compareUnitV4, compareWrapV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, faqCardV4, faqListV4, faqQuestionV4, highlightCardV4, personaCardV4, personaTextV4 } from "../../lib/twin-styles-v4";
 import { corpus, exportArgsOf, readSession } from "../design-corpus";
 
 export const name = "쌍둥이 수정 — 섹션별 라이브↔export v4 토큰 선언 패리티";
@@ -61,6 +61,11 @@ export const PROBES: Probe[] = [
     type: "ai_disclosure",
     groups: [noticeBoxV4(), aiHeadV4(), aiBodyV4()],
     heading: (s) => s.heading as string | undefined,
+  },
+  {
+    type: "usage_steps",
+    groups: [stepsListV4(), stepTextV4()],
+    heading: (s) => (s.steps as string[] | undefined)?.[0]?.slice(0, 4), // 뷰티는 첫 어절을 <b>로 쪼개 전체 문장으로는 못 찾는다
   },
   {
     type: "faq",

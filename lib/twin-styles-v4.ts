@@ -81,3 +81,7 @@ export const cautionBoxV4 = (ink: string = BRAND.ink): Decl => mergeDecl(noticeB
 /** AI 안내: 문구는 고정(고지 규정) — 크기·굵기·행간만. 제목 14·600, 본문 13(라벨 12 이상)·행간 relaxed */
 export const aiHeadV4 = (): Decl => mergeDecl(tokenDecl("body-small"), [["font-weight", "600"]]);
 export const aiBodyV4 = (): Decl => mergeDecl([["font-size", "13px"]], tokenDecl("line-relaxed"));
+
+// ── usage_steps(사용 순서) — 제목은 섹션 제목 시스템 그대로, 여백·행간만 ──────────
+export const stepsListV4 = (): Decl => [["margin-top", `${SPACE_V4.md}px`]];
+export const stepTextV4 = (): Decl => tokenDecl("line-relaxed");

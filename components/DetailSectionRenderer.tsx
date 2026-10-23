@@ -246,7 +246,7 @@ import { applyDisplayRules } from "@/lib/display-sections";
 import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
 import { DESIGN_V4_ENABLED, hideImgOnError } from "@/lib/design-v4";
 import { declObject, tokenStyleObject } from "@/lib/design-tokens-v4";
-import { highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4 } from "@/lib/twin-styles-v4";
+import { highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, stepTextV4, stepsListV4 } from "@/lib/twin-styles-v4";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
 import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
@@ -4525,7 +4525,7 @@ function renderSection(
             onChange={(heading) => edit?.onChange(index, { ...section, heading })}
             className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)} display={headlineKeywordNodes(section.heading, theme)}
           />
-          <ol className="relative mx-auto mt-14 max-w-3xl flex flex-col gap-10 @min-[640px]/pz:flex-row @min-[640px]/pz:items-start @min-[640px]/pz:gap-4">
+          <ol className="relative mx-auto mt-14 max-w-3xl flex flex-col gap-10 @min-[640px]/pz:flex-row @min-[640px]/pz:items-start @min-[640px]/pz:gap-4" style={DESIGN_V4_ENABLED ? declObject(stepsListV4()) : undefined}>
             {/* 연결선: 모바일은 세로(뱃지 중심 x=24px), sm 이상은 가로(뱃지 중심 y=24px) */}
             <div
               aria-hidden="true"
@@ -4573,7 +4573,7 @@ function renderSection(
                     STEP {String(stepIndex + 1).padStart(2, "0")}
                   </p>
                   {infoOn(layout) && !edit?.enabled ? (
-                    <span className="block">
+                    <span className="block" style={DESIGN_V4_ENABLED ? declObject(stepTextV4()) : undefined}>
                       {splitLead(step) ? (
                         <>
                           <b data-ip="lead">{splitLead(step)!.lead}</b>
@@ -4598,6 +4598,7 @@ function renderSection(
                         ? "block text-sm font-normal leading-relaxed text-ink/78 @min-[640px]/pz:max-w-[14rem]"
                         : TYPO.stepItem
                     }
+                    style={DESIGN_V4_ENABLED ? declObject(stepTextV4()) : undefined}
                   />
                   )}
                 </div>

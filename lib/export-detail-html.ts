@@ -166,7 +166,7 @@ import { HERO_V2_TUNED, heroPalette, heroV2Html } from "@/lib/hero-spec";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
 import { LINE_HEIGHT_V4, SPACE_V4, declStyle, tokenStyle } from "@/lib/design-tokens-v4";
-import { highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4 } from "@/lib/twin-styles-v4";
+import { highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, stepTextV4, stepsListV4 } from "@/lib/twin-styles-v4";
 import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
 import { glanceIconSvg } from "@/lib/icons";
@@ -1708,12 +1708,12 @@ function sectionHtml(
         const edge = `${50 / Math.max(1, section.steps.length)}%`;
         return `<section${sectionIdAttr}${infoAttr(layout, "steps")} style="${pad}${sectionInset}${bgCss}">
         ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
-        <ol class="pagzly-usage" style="position:relative;max-width:768px;margin:56px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:40px;--pz-step-edge:${edge}">
+        <ol class="pagzly-usage" style="position:relative;max-width:768px;margin:56px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:40px;--pz-step-edge:${edge}${DESIGN_V4_ENABLED ? `;${declStyle(stepsListV4())}` : ""}">
           <div class="pagzly-usage-line" aria-hidden="true" style="position:absolute;left:22px;top:22px;bottom:22px;width:1px;background:${hexToRgba(accent, 0.25)}"></div>
           ${section.steps
             .map(
               (s, i) =>
-                `<li class="pagzly-usage-step" style="position:relative;display:flex;align-items:flex-start;gap:16px"><span aria-hidden="true" style="position:relative;z-index:1;flex-shrink:0;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:9999px;background:linear-gradient(${tint},${tint}),${FLAT_PAPER};color:${deepText};font-size:16px;font-weight:600;font-variant-numeric:tabular-nums">${i + 1}</span><div style="min-width:0;flex:1;padding-top:4px"><p style="margin:0 0 6px;font-family:${DETAIL_FONT_STACK.label};font-size:11px;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:${v4TextOn(accentText, sectionBg)}">STEP ${String(i + 1).padStart(2, "0")}</p><span class="pagzly-usage-text" style="display:block;font-size:14px;line-height:1.625;color:${hexToRgba(BRAND.ink, 0.78)}">${infoOn(layout) && splitLead(s) ? `<b data-ip="lead">${esc(splitLead(s)!.lead)}</b>${esc(splitLead(s)!.rest)}` : esc(s)}</span></div></li>`,
+                `<li class="pagzly-usage-step" style="position:relative;display:flex;align-items:flex-start;gap:16px"><span aria-hidden="true" style="position:relative;z-index:1;flex-shrink:0;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:9999px;background:linear-gradient(${tint},${tint}),${FLAT_PAPER};color:${deepText};font-size:16px;font-weight:600;font-variant-numeric:tabular-nums">${i + 1}</span><div style="min-width:0;flex:1;padding-top:4px"><p style="margin:0 0 6px;font-family:${DETAIL_FONT_STACK.label};font-size:11px;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:${v4TextOn(accentText, sectionBg)}">STEP ${String(i + 1).padStart(2, "0")}</p><span class="pagzly-usage-text" style="display:block;font-size:14px;line-height:1.625;color:${hexToRgba(BRAND.ink, 0.78)}${DESIGN_V4_ENABLED ? `;${declStyle(stepTextV4())}` : ""}">${infoOn(layout) && splitLead(s) ? `<b data-ip="lead">${esc(splitLead(s)!.lead)}</b>${esc(splitLead(s)!.rest)}` : esc(s)}</span></div></li>`,
             )
             .join("")}
         </ol>${flowBlock}</section>`;
