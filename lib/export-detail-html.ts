@@ -165,6 +165,8 @@ import { archetypeHeroLayout } from "@/lib/archetype-recipes";
 import { HERO_V2_TUNED, heroPalette, heroV2Html } from "@/lib/hero-spec";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
+import { LINE_HEIGHT_V4, SPACE_V4, declStyle, tokenStyle } from "@/lib/design-tokens-v4";
+import { highlightCardV4, highlightTitleKey } from "@/lib/twin-styles-v4";
 import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
 import { glanceIconSvg } from "@/lib/icons";
@@ -901,9 +903,9 @@ function sectionHtml(
                 : section.boldBlock
                   ? hexToRgba(BRAND.paper, 0.82)
                   : hexToRgba(BRAND.ink, 0.68);
-              return `<div style="display:flex;flex-direction:column;gap:8px;border-radius:${RADIUS.lg}px;padding:40px 24px;text-align:center;background:${cardBg};border:${cardBorder};${em && !FLAT_SECTION_SURFACES ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}">
-                <p style="margin:0;font-family:${DETAIL_FONT_STACK.heading};font-size:${FONT_SIZE.section};line-height:1.35;font-weight:700;letter-spacing:-0.03em;color:${titleColor}">${esc(title)}</p>
-                ${card.body ? `<p style="margin:0;font-size:${FONT_SIZE.bodySm};line-height:1.625;color:${bodyColor}">${esc(card.body)}</p>` : ""}
+              return `<div style="display:flex;flex-direction:column;gap:8px;border-radius:${RADIUS.lg}px;padding:40px 24px;text-align:center;background:${cardBg};border:${cardBorder};${em && !FLAT_SECTION_SURFACES ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}${DESIGN_V4_ENABLED ? `${declStyle(highlightCardV4({ trust: true, em, bold: Boolean(section.boldBlock) }))};` : ""}">
+                <p style="margin:0;font-family:${DETAIL_FONT_STACK.heading};${DESIGN_V4_ENABLED ? tokenStyle(highlightTitleKey(true)) : `font-size:${FONT_SIZE.section};line-height:1.35;font-weight:700;letter-spacing:-0.03em`};color:${titleColor}">${esc(title)}</p>
+                ${card.body ? `<p style="margin:0;font-size:${FONT_SIZE.bodySm};line-height:${DESIGN_V4_ENABLED ? LINE_HEIGHT_V4.relaxed : "1.625"};color:${bodyColor}">${esc(card.body)}</p>` : ""}
               </div>`;
             })
             .join("")}
@@ -918,7 +920,7 @@ function sectionHtml(
       return `<section${sectionIdAttr}${infoAttr(layout, "points")} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${headerHtml}
         ${productPhotoHtml}
-        <div class="pagzly-hl-grid"${ipAttr(layout, "pgrid")} style="display:grid;grid-template-columns:repeat(${cards.length === 4 ? 2 : 1},1fr);--pz-hl-wide:repeat(${cards.length},1fr);gap:${FLAT_SECTION_SURFACES ? 16 : 12}px;margin-top:${FLAT_SECTION_SURFACES ? 40 : 32}px">
+        <div class="pagzly-hl-grid"${ipAttr(layout, "pgrid")} style="display:grid;grid-template-columns:repeat(${cards.length === 4 ? 2 : 1},1fr);--pz-hl-wide:repeat(${cards.length},1fr);gap:${FLAT_SECTION_SURFACES ? 16 : 12}px;margin-top:${FLAT_SECTION_SURFACES ? (DESIGN_V4_ENABLED ? SPACE_V4.md : 40) : 32}px">
           ${cards
             .map((card, i) => {
               const em = i === center;
@@ -954,11 +956,11 @@ function sectionHtml(
                   ? `<span aria-hidden="true" style="display:flex;justify-content:center;margin-bottom:12px"><span style="display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:48px;height:48px;border-radius:50%;border:1px solid ${(em || section.boldBlock) && !lightEm ? hexToRgba(BRAND.paper, 0.32) : hexToRgba(deepText, 0.22)}">${summaryIconSvg(benefitIcons[i]!, (em || section.boldBlock) && !lightEm ? BRAND.paper : deepText, BENEFIT_ICON_PX)}</span></span>`
                   : "";
               const rowCls = FLAT_SECTION_SURFACES && benefitIcons && cards.length <= 3 ? " pagzly-hl-row" : "";
-              return `<div class="${em && !FLAT_SECTION_SURFACES ? "pulse-card" : ""}${rowCls}"${infoOn(layout) && em ? ' data-em="1"' : ""} style="${FLAT_SECTION_SURFACES ? "container-type:inline-size;" : ""}border-radius:${RADIUS.lg}px;padding:${FLAT_SECTION_SURFACES ? "32px 24px" : "28px 20px"};text-align:center;background:${cardBg};border:${cardBorder};${em && !FLAT_SECTION_SURFACES ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}color:${titleColor}">
+              return `<div class="${em && !FLAT_SECTION_SURFACES ? "pulse-card" : ""}${rowCls}"${infoOn(layout) && em ? ' data-em="1"' : ""} style="${FLAT_SECTION_SURFACES ? "container-type:inline-size;" : ""}border-radius:${RADIUS.lg}px;padding:${FLAT_SECTION_SURFACES ? "32px 24px" : "28px 20px"};text-align:center;background:${cardBg};border:${cardBorder};${em && !FLAT_SECTION_SURFACES ? `box-shadow:${ELEVATION.highlightEmphasis};` : ""}${DESIGN_V4_ENABLED ? `${declStyle(highlightCardV4({ trust: false, em, bold: Boolean(section.boldBlock) }))};` : ""}color:${titleColor}">
                 ${iconHtml}${FLAT_SECTION_SURFACES ? "" : `<div style="font-size:${FONT_SIZE.label};letter-spacing:.22em;opacity:.7;border:1px solid ${accent}55;border-radius:${RADIUS.pill}px;display:inline-block;padding:4px 10px">${formatPointBadge(i + 1)}</div>`}
                 ${cardKeyword.keyword ? FLAT_SECTION_SURFACES ? `<p class="pz-fit" style="--pz-fs:clamp(1.75rem,8cqi,2.75rem);--pz-fit-em:${longestTokenEm(cardKeyword.keyword, -0.06)};font-size:clamp(1.75rem,8cqi,2.75rem);font-family:${DETAIL_FONT_STACK.heading};font-weight:900;line-height:.92;letter-spacing:-.06em;margin:0 0 ${showTitle ? 0 : 8}px;text-transform:uppercase;color:${(em || section.boldBlock) && !lightEm ? BRAND.paper : deepText}">${esc(cardKeyword.keyword)}</p>` : `<p style="overflow-wrap:break-word;font-size:${FONT_SIZE.keywordClampCard};font-weight:900;line-height:.92;letter-spacing:-.05em;margin:${FLAT_SECTION_SURFACES ? 0 : 12}px 0 ${showTitle ? 0 : 8}px;text-transform:uppercase;color:${(em || section.boldBlock) && !lightEm ? BRAND.paper : deepText}">${esc(cardKeyword.keyword)}</p>` : ""}
-                ${showTitle ? `<h3 style="margin:${FLAT_SECTION_SURFACES && !cardKeyword.keyword ? 0 : 8}px 0 8px;font-size:${cardKeyword.keyword ? (FLAT_SECTION_SURFACES ? `16px;line-height:24px;letter-spacing:-0.02em;font-family:${DETAIL_FONT_STACK.heading}` : FONT_SIZE.bodySm) : FLAT_SECTION_SURFACES ? "18px;line-height:28px;letter-spacing:-0.02em" : "inherit"};font-weight:${cardKeyword.keyword ? "600" : "700"};color:${titleColor}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</h3>` : ""}
-                ${isRedundantCardBody(card.title, card.body) ? "" : `<p style="margin:0;font-size:${FONT_SIZE.bodySm};line-height:1.625;color:${bodyColor}">${esc(card.body)}</p>`}
+                ${showTitle && DESIGN_V4_ENABLED ? `<h3 style="margin:${FLAT_SECTION_SURFACES && !cardKeyword.keyword ? 0 : 8}px 0 8px;font-family:${DETAIL_FONT_STACK.heading};${tokenStyle(highlightTitleKey(false))};color:${titleColor}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</h3>` : showTitle ? `<h3 style="margin:${FLAT_SECTION_SURFACES && !cardKeyword.keyword ? 0 : 8}px 0 8px;font-size:${cardKeyword.keyword ? (FLAT_SECTION_SURFACES ? `16px;line-height:24px;letter-spacing:-0.02em;font-family:${DETAIL_FONT_STACK.heading}` : FONT_SIZE.bodySm) : FLAT_SECTION_SURFACES ? "18px;line-height:28px;letter-spacing:-0.02em" : "inherit"};font-weight:${cardKeyword.keyword ? "600" : "700"};color:${titleColor}">${esc(cardKeyword.keyword ? cardKeyword.remainder || card.title : card.title)}</h3>` : ""}
+                ${isRedundantCardBody(card.title, card.body) ? "" : `<p style="margin:0;font-size:${FONT_SIZE.bodySm};line-height:${DESIGN_V4_ENABLED ? LINE_HEIGHT_V4.relaxed : "1.625"};color:${bodyColor}">${esc(card.body)}</p>`}
               </div>`;
             })
             .join("")}

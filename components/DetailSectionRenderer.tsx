@@ -245,6 +245,8 @@ import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe"
 import { applyDisplayRules } from "@/lib/display-sections";
 import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
 import { DESIGN_V4_ENABLED, hideImgOnError } from "@/lib/design-v4";
+import { declObject, tokenStyleObject } from "@/lib/design-tokens-v4";
+import { highlightCardV4, highlightTitleKey } from "@/lib/twin-styles-v4";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
 import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
@@ -3880,7 +3882,7 @@ function renderSection(
               <img onError={hideImgOnError} src={productThumbs.highlight} alt="" aria-hidden className="block h-full w-full object-cover" />
             </div>
           ) : null}
-          <div className={`relative mx-auto ${isTrustEvidence ? "mt-0" : "mt-10"} grid gap-4 ${gridCols}`} {...(isTrustEvidence ? {} : ipData(layout, "pgrid"))}>
+          <div className={`relative mx-auto ${isTrustEvidence ? "mt-0" : DESIGN_V4_ENABLED ? "mt-12" : "mt-10"} grid gap-4 ${gridCols}`} {...(isTrustEvidence ? {} : ipData(layout, "pgrid"))}>
             {cards.map((card, cardIndex) => {
               const emphasized = cardIndex === centerIdx;
               const lightEm = FLAT_SECTION_SURFACES && boldBlock && emphasized;
@@ -3898,7 +3900,7 @@ function renderSection(
                     emphasized && !isTrustEvidence && !FLAT_SECTION_SURFACES
                       ? "pagzly-pulse-card pagzly-ink-shimmer @min-[640px]/pz:-translate-y-2"
                       : ""
-                  } ${isTrustEvidence ? "py-10 @min-[640px]/pz:py-14" : ""}`}
+                  } ${isTrustEvidence && !DESIGN_V4_ENABLED ? "py-10 @min-[640px]/pz:py-14" : ""}`}
                   style={{
                     backgroundColor: lightEm
                       ? FLAT_PAPER
@@ -3921,6 +3923,7 @@ function renderSection(
                       emphasized && !FLAT_SECTION_SURFACES
                         ? ELEVATION.highlightEmphasis
                         : undefined,
+                    ...(DESIGN_V4_ENABLED ? declObject(highlightCardV4({ trust: isTrustEvidence, em: emphasized, bold: boldBlock })) : {}),
                   }}
                 >
                   {!isTrustEvidence && FLAT_SECTION_SURFACES && benefitIcons ? (
@@ -3994,13 +3997,18 @@ function renderSection(
                       edit?.onChange(index, { ...section, cards: nextCards });
                     }}
                     className={
-                      isTrustEvidence
-                        ? "font-heading text-2xl font-bold tracking-[-0.03em] @min-[640px]/pz:text-4xl"
-                        : cardKeyword.keyword
-                          ? "font-heading text-base font-semibold tracking-[-0.02em]"
-                          : "font-heading text-lg font-bold tracking-[-0.02em]"
+                      DESIGN_V4_ENABLED
+                        ? "font-heading"
+                        : isTrustEvidence
+                          ? "font-heading text-2xl font-bold tracking-[-0.03em] @min-[640px]/pz:text-4xl"
+                          : cardKeyword.keyword
+                            ? "font-heading text-base font-semibold tracking-[-0.02em]"
+                            : "font-heading text-lg font-bold tracking-[-0.02em]"
                     }
-                    style={lightEm ? { color: BRAND.ink } : emphasized || boldBlock ? { color: BRAND.paper } : undefined}
+                    style={{
+                      ...(DESIGN_V4_ENABLED ? tokenStyleObject(highlightTitleKey(isTrustEvidence)) : {}),
+                      ...(lightEm ? { color: BRAND.ink } : emphasized || boldBlock ? { color: BRAND.paper } : {}),
+                    }}
                     {...elementSelectProps(edit, index, `cards[${cardIndex}].title`)}
                   />
                   ) : null}
@@ -4015,16 +4023,17 @@ function renderSection(
                         nextCards[cardIndex] = { ...nextCards[cardIndex], body };
                         edit?.onChange(index, { ...section, cards: nextCards });
                       }}
-                      className="text-sm leading-relaxed"
-                      style={
-                        lightEm
+                      className={DESIGN_V4_ENABLED ? "text-sm" : "text-sm leading-relaxed"}
+                      style={{
+                        ...(DESIGN_V4_ENABLED ? tokenStyleObject("line-relaxed") : {}),
+                        ...(lightEm
                           ? { color: hexToRgba(BRAND.ink, 0.68) }
                           : emphasized
                           ? { color: hexToRgba(BRAND.paper, 0.9) }
                           : boldBlock
                             ? { color: hexToRgba(BRAND.paper, 0.82) }
-                            : { color: hexToRgba(BRAND.ink, 0.68) }
-                      }
+                            : { color: hexToRgba(BRAND.ink, 0.68) }),
+                      }}
                       {...elementSelectProps(edit, index, `cards[${cardIndex}].body`)}
                     />
                   ) : null}

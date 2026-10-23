@@ -14,7 +14,7 @@
 export const TYPE_V4 = {
   display: { size: 30, lh: 1.25, ls: "-0.03em", w: 900 },
   "heading-large": { size: 26, lh: 1.3, ls: "-0.02em", w: 800 },
-  "heading-mid": { size: 20, lh: 1.5, ls: "-0.02em", w: 800 },
+  "heading-mid": { size: 20, lh: 1.4, ls: "-0.02em", w: 800 },
   "heading-small": { size: 17, lh: 1.45, ls: "-0.01em", w: 700 },
   body: { size: 15, lh: 1.7, ls: "0", w: 400 },
   "body-small": { size: 14, lh: 1.6, ls: "0", w: 500 },
@@ -65,6 +65,14 @@ export const depthShadowOf = (level: DepthLevel, ink: string): string => {
 };
 export const hairlineOf = (ink: string): string => `1px solid ${inkRgba(ink, HAIRLINE_ALPHA)}`;
 
+/** CSS 선언 목록(속성은 kebab-case, 값은 문자열) → export 인라인 문자열 / 라이브 style 객체. 섹션별 쌍둥이 함수(lib/twin-styles-v4.ts)도 이 둘을 쓴다 */
+export type Decl = Array<[string, string]>;
+export const declStyle = (d: Decl): string => d.map(([p, v]) => `${p}:${v}`).join(";");
+export function declObject(d: Decl): Record<string, string> {
+  const camel = (p: string) => p.replace(/-([a-z])/g, (_m, c: string) => c.toUpperCase());
+  return Object.fromEntries(d.map(([p, v]) => [camel(p), v]));
+}
+
 /** 토큰 키 → CSS 선언(속성은 kebab-case, 값은 문자열). 라이브·export 두 헬퍼가 같은 이 표를 읽는다 */
 const STATIC_DECL = (() => {
   const out: Record<string, Array<[string, string]>> = {};
@@ -97,10 +105,12 @@ function declOf(key: TokenKey, ink?: string): Array<[string, string]> {
 }
 
 /** export용 인라인 스타일 문자열(끝 세미콜론 없음) */
-export const tokenStyle = (key: TokenKey, ink?: string): string => declOf(key, ink).map(([p, v]) => `${p}:${v}`).join(";");
+export const tokenStyle = (key: TokenKey, ink?: string): string => declStyle(declOf(key, ink));
 
 /** 라이브(React style)용 객체. 값은 문자열 — tokenStyle과 같은 선언에서 나온다 */
-export function tokenStyleObject(key: TokenKey, ink?: string): Record<string, string> {
-  const camel = (p: string) => p.replace(/-([a-z])/g, (_m, c: string) => c.toUpperCase());
-  return Object.fromEntries(declOf(key, ink).map(([p, v]) => [camel(p), v]));
+export const tokenStyleObject = (key: TokenKey, ink?: string): Record<string, string> => declObject(declOf(key, ink));
+
+/** 토큰 여러 개를 한 선언 목록으로(앞 토큰의 같은 속성은 뒤 토큰이 덮는다) */
+export function tokenDecl(key: TokenKey, ink?: string): Decl {
+  return declOf(key, ink);
 }
