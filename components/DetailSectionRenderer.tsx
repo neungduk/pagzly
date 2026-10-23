@@ -1041,6 +1041,11 @@ function PointPill({
   );
 }
 
+/** 440차 4 — 가격 통화기호(작게 위로, DESIGN_V4). export priceGlyphHtml과 같은 값 */
+function PriceGlyph() {
+  return <span style={{ fontSize: "0.56em", marginRight: "0.06em", verticalAlign: "0.32em", letterSpacing: 0 }}>₩</span>;
+}
+
 /** 작은 잉크 리드 + 큰 포인트색 핵심 문구. 편집 모드에서는 원문 한 줄 그대로 */
 /** 플랫 톤 일반 섹션 제목 — 투톤 제목의 메인색과 맞춘다 */
 function flatTitleColor(theme: CategoryTheme): CSSProperties | undefined {
@@ -4626,7 +4631,7 @@ function renderSection(
                           ? "left-2 top-2 px-2.5 py-1 text-[10px] tracking-[0.18em] @min-[640px]/pz:left-3 @min-[640px]/pz:top-3 @min-[640px]/pz:px-3.5 @min-[640px]/pz:py-1.5 @min-[640px]/pz:text-[11px] @min-[640px]/pz:tracking-[0.24em]"
                           : "left-3 top-3 px-3.5 py-1.5 text-[11px] tracking-[0.24em]"
                       }`}
-                      style={{ backgroundColor: solidDeepOnPaper(theme) }}
+                      style={{ backgroundColor: DESIGN_V4_ENABLED ? readableTextDeep(theme) : solidDeepOnPaper(theme) }}
                     >
                       STEP {String(stepIndex + 1).padStart(2, "0")}
                     </span>
@@ -4640,7 +4645,7 @@ function renderSection(
                     {section.stepBadgeOffImage ? (
                       <span
                         className={`block mb-1.5 ${rowMode ? "mt-0 @min-[640px]/pz:mt-3" : "mt-3"} ${TYPO.sectionLabel}`}
-                        style={{ color: readableTextAccent(theme) }}
+                        style={{ color: v4TextOn(readableTextAccent(theme), textSectionStyle(theme, pattern, category).background as string | undefined) }}
                       >
                         STEP {String(stepIndex + 1).padStart(2, "0")}
                       </span>
@@ -5821,7 +5826,7 @@ function renderSection(
               className={`${FLAT_SECTION_SURFACES ? "" : "pagzly-ink-headline"} font-heading text-[length:var(--pz-t-price-b)] font-bold leading-none @min-[640px]/pz:text-[length:var(--pz-t-price-w)]`}
               style={{ color: readableTextAccent(theme, 3), letterSpacing: "-0.04em" }}
             >
-              ₩{section.price.toLocaleString()}
+              {DESIGN_V4_ENABLED ? <PriceGlyph /> : "₩"}{section.price.toLocaleString()}
             </p>
             {shopperFacingTarget(section.targetCustomer) && (
               <span
