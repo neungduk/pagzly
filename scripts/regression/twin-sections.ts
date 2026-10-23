@@ -9,7 +9,7 @@ import { BRAND } from "../../lib/design-tokens";
 import { buildDetailPageHtml } from "../../lib/export-detail-html";
 import { declStyle, tokenDecl, type Decl } from "../../lib/design-tokens-v4";
 import type { DetailSection } from "../../lib/types/generate";
-import { compareCellV4, compareUnitV4, compareWrapV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, faqCardV4, faqListV4, faqQuestionV4, highlightCardV4, personaCardV4, personaTextV4 } from "../../lib/twin-styles-v4";
+import { aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, compareCellV4, compareUnitV4, compareWrapV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, faqCardV4, faqListV4, faqQuestionV4, highlightCardV4, personaCardV4, personaTextV4 } from "../../lib/twin-styles-v4";
 import { corpus, exportArgsOf, readSession } from "../design-corpus";
 
 export const name = "쌍둥이 수정 — 섹션별 라이브↔export v4 토큰 선언 패리티";
@@ -50,6 +50,17 @@ export const PROBES: Probe[] = [
     // 라벨 칸·값 칸·표 껍데기(배송 안내/일반)·줄무늬: 라이브·export가 같은 선언을 같은 수만큼 낸다
     groups: (accent) => [specLabelCellV4(accent), specValueCellV4(), specWrapV4(false), specWrapV4(true), specZebraV4(accent)],
     heading: (s) => (s.rows as Array<{ label?: string }> | undefined)?.[0]?.label,
+  },
+  {
+    type: "caution",
+    groups: [cautionBoxV4()],
+    heading: (s) => s.heading as string | undefined,
+  },
+  {
+    // 고지 문구는 고정 — 문구는 건드리지 않고 박스·제목·본문 스타일 선언만 비교(문구 불변은 아래 별도 검사)
+    type: "ai_disclosure",
+    groups: [noticeBoxV4(), aiHeadV4(), aiBodyV4()],
+    heading: (s) => s.heading as string | undefined,
   },
   {
     type: "faq",
@@ -117,6 +128,11 @@ export async function run(): Promise<string[]> {
         if (!exp && live) continue; // export의 표시 규칙(applyDisplayRules)이 이 카테고리에서 섹션을 뺀 경우 — 라이브는 규칙을 페이지 쪽에서 적용하므로 비교 대상 아님
         if (!exp || !live) { fails.push(`${probe.type} ${id}: 섹션 조각을 못 찾음(live ${Boolean(live)} / export ${Boolean(exp)})`); continue; }
         seen[probe.type] = (seen[probe.type] ?? 0) + 1;
+        if (probe.type === "ai_disclosure") {
+          // 고지 문구 고정 규정: 제목·본문이 두 렌더러에 원문 그대로(스타일만 바뀜)
+          for (const [label, frag] of [["export", exp], ["라이브", live]] as const)
+            for (const t of [sec.heading, sec.body] as string[]) if (!frag.includes(escHtml(t))) fails.push(`ai_disclosure ${id}: ${label}에서 고지 문구가 원문과 다름`);
+        }
         const groups = typeof probe.groups === "function" ? probe.groups(a.theme.accent) : probe.groups;
         groups.forEach((g, gi) => {
           const l = groupCount(live, g);

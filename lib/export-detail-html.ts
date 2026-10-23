@@ -166,7 +166,7 @@ import { HERO_V2_TUNED, heroPalette, heroV2Html } from "@/lib/hero-spec";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
 import { LINE_HEIGHT_V4, SPACE_V4, declStyle, tokenStyle } from "@/lib/design-tokens-v4";
-import { highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit } from "@/lib/twin-styles-v4";
+import { highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4 } from "@/lib/twin-styles-v4";
 import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
 import { glanceIconSvg } from "@/lib/icons";
@@ -1808,7 +1808,7 @@ function sectionHtml(
         const dot = `display:block;flex-shrink:0;width:6px;height:6px;margin-top:8px;border-radius:9999px;background:${solidAccentOnPaper(theme)}`;
         return `<section${sectionIdAttr}${infoAttr(layout, "care")} style="${trustPad}${sectionInset}${bgCss}">
         ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)};margin:0`)}
-        <div data-caution-list class="pagzly-caution-list" style="max-width:36rem;margin:32px auto 0;border:1px solid ${hexToRgba(BRAND.ink, 0.12)};border-radius:12px;background:${FLAT_PAPER};padding:20px;text-align:left;font-size:14px;line-height:1.625;color:${hexToRgba(BRAND.ink, 0.75)}">
+        <div data-caution-list class="pagzly-caution-list" style="max-width:36rem;margin:32px auto 0;border:1px solid ${hexToRgba(BRAND.ink, 0.12)};border-radius:12px;background:${FLAT_PAPER};padding:20px;text-align:left;font-size:14px;line-height:1.625;color:${hexToRgba(BRAND.ink, 0.75)}${DESIGN_V4_ENABLED ? `;${declStyle(cautionBoxV4())}` : ""}">
           <ul style="list-style:none;margin:0;padding:0">${cautionItems
             .map((item, i) => `<li style="display:flex;gap:12px${i ? ";margin-top:10px" : ""}">${infoOn(layout) ? `<span aria-hidden="true">${INFO_CHECK_SVG}</span>` : `<span aria-hidden="true" style="${dot}"></span>`}<span style="min-width:0">${infoOn(layout) && splitLead(item) ? `<b data-ip="lead">${esc(splitLead(item)!.lead)}</b>${esc(splitLead(item)!.rest)}` : esc(item)}</span></li>`)
             .join("")}</ul>
@@ -2103,9 +2103,9 @@ function sectionHtml(
     case "ai_disclosure":
       if (FLAT_SECTION_SURFACES) {
         return `<section${sectionIdAttr} style="padding:${DESIGN_V4_ENABLED ? 48 : 40}px var(--pz-pad-x,20px);${sectionInset}${bgCss}">
-        <div style="max-width:36rem;margin:0 auto;text-align:center;border:1px solid ${hexToRgba(BRAND.ink, 0.12)};border-radius:12px;background:${FLAT_PAPER};padding:16px 20px">
-          <p style="margin:0;font-size:14px;font-weight:600;line-height:1.375;color:${hexToRgba(BRAND.ink, 0.8)}">${esc(section.heading)}</p>
-          <p style="margin:6px 0 0;font-size:13px;line-height:1.625;color:${hexToRgba(BRAND.ink, 0.6)}">${esc(section.body)}</p>
+        <div style="max-width:36rem;margin:0 auto;text-align:center;border:1px solid ${hexToRgba(BRAND.ink, 0.12)};border-radius:12px;background:${FLAT_PAPER};padding:16px 20px${DESIGN_V4_ENABLED ? `;${declStyle(noticeBoxV4())}` : ""}">
+          <p style="margin:0;font-size:14px;font-weight:600;line-height:1.375;color:${hexToRgba(BRAND.ink, 0.8)}${DESIGN_V4_ENABLED ? `;${declStyle(aiHeadV4())}` : ""}">${esc(section.heading)}</p>
+          <p style="margin:6px 0 0;font-size:13px;line-height:1.625;color:${hexToRgba(BRAND.ink, 0.6)}${DESIGN_V4_ENABLED ? `;${declStyle(aiBodyV4())}` : ""}">${esc(section.body)}</p>
         </div>
       </section>`;
       }

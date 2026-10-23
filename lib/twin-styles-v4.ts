@@ -73,3 +73,11 @@ export const compareWrapV4 = (ink: string = BRAND.ink): Decl =>
   mergeDecl([["margin-top", `${SPACE_V4.md}px`]], tokenDecl("radius-md"), tokenDecl("hairline", ink), [["overflow", "hidden"]]);
 /** 칸 안쪽 여백(행 높이): 라이브 px-4/py-3.5와 export 12px이 따로 가던 것을 한 값으로. 숫자 열은 우측 정렬 */
 export const compareCellV4 = (right: boolean): Decl => [["padding", `${TABLE_CELL_PAD_V4.y}px ${TABLE_CELL_PAD_V4.x}px`], ...(right ? ([["text-align", "right"]] as Decl) : [])];
+
+// ── caution(주의) · ai_disclosure(AI 생성 콘텐츠 안내) ───────────────────────
+/** 얇은 면 안내 박스: 반경 '중' + hairline + 흰 면. 글은 본문 작은 단(14·500) 토큰 — 441차 임팩트 note(15·500, 3px 띠)와 같은 가벼운 무게감 */
+export const noticeBoxV4 = (ink: string = BRAND.ink): Decl => mergeDecl(tokenDecl("radius-md"), tokenDecl("hairline", ink), [["background", FLAT_PAPER]]);
+export const cautionBoxV4 = (ink: string = BRAND.ink): Decl => mergeDecl(noticeBoxV4(ink), tokenDecl("body-small"));
+/** AI 안내: 문구는 고정(고지 규정) — 크기·굵기·행간만. 제목 14·600, 본문 13(라벨 12 이상)·행간 relaxed */
+export const aiHeadV4 = (): Decl => mergeDecl(tokenDecl("body-small"), [["font-weight", "600"]]);
+export const aiBodyV4 = (): Decl => mergeDecl([["font-size", "13px"]], tokenDecl("line-relaxed"));

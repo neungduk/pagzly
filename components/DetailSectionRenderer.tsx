@@ -246,7 +246,7 @@ import { applyDisplayRules } from "@/lib/display-sections";
 import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
 import { DESIGN_V4_ENABLED, hideImgOnError } from "@/lib/design-v4";
 import { declObject, tokenStyleObject } from "@/lib/design-tokens-v4";
-import { highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit } from "@/lib/twin-styles-v4";
+import { highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4 } from "@/lib/twin-styles-v4";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
 import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
@@ -4840,7 +4840,7 @@ function renderSection(
             <div
               data-caution-list
               className="mx-auto mt-8 max-w-xl rounded-xl border px-5 py-5 text-left text-[14px] leading-relaxed text-ink/75 @min-[640px]/pz:px-7"
-              style={{ borderColor: hexToRgba(BRAND.ink, 0.12), backgroundColor: FLAT_PAPER }}
+              style={DESIGN_V4_ENABLED ? declObject(cautionBoxV4()) : { borderColor: hexToRgba(BRAND.ink, 0.12), backgroundColor: FLAT_PAPER }}
             >
               <ul className="space-y-2.5">
                 {cautionItems.map((item, i) => (
@@ -5311,7 +5311,7 @@ function renderSection(
           >
             <div
               className="mx-auto max-w-xl rounded-xl border px-5 py-4 text-center"
-              style={{ borderColor: hexToRgba(BRAND.ink, 0.12), backgroundColor: FLAT_PAPER }}
+              style={DESIGN_V4_ENABLED ? declObject(noticeBoxV4()) : { borderColor: hexToRgba(BRAND.ink, 0.12), backgroundColor: FLAT_PAPER }}
             >
               <EditableText
                 as="p"
@@ -5319,6 +5319,7 @@ function renderSection(
                 value={section.heading}
                 onChange={(heading) => edit?.onChange(index, { ...section, heading })}
                 className="text-[14px] font-semibold leading-snug text-ink/80"
+                style={DESIGN_V4_ENABLED ? declObject(aiHeadV4()) : undefined}
               />
               <EditableText
                 as="p"
@@ -5327,6 +5328,7 @@ function renderSection(
                 value={section.body}
                 onChange={(body) => edit?.onChange(index, { ...section, body })}
                 className="mt-1.5 text-[13px] leading-relaxed text-ink/60"
+                style={DESIGN_V4_ENABLED ? declObject(aiBodyV4()) : undefined}
               />
             </div>
           </section>
