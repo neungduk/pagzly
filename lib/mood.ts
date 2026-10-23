@@ -24,6 +24,8 @@ export const PAD_TIERS = [32, 48, 64] as const; // 조밀 · 보통 · 여유
 export const RADIUS_TIERS = [8, 16, 24] as const; // 작게 · 보통 · 크게(알약 999px·원 50%는 그대로)
 export const SHADOW_ALPHA_TIERS = [0.1, 0.18] as const; // 약 · 강
 const snapPad = (n: number): number => (n <= 36 ? PAD_TIERS[0] : n <= 52 ? PAD_TIERS[1] : PAD_TIERS[2]);
+/** 3단 중 가장 가까운 값(441차 v4 세로 리듬) */
+export const nearestPad = (n: number): number => PAD_TIERS.reduce((best, t) => (Math.abs(t - n) < Math.abs(best - n) ? t : best), PAD_TIERS[0] as number);
 const snapRadius = (n: number): number => (n <= 9 ? RADIUS_TIERS[0] : n <= 20 ? RADIUS_TIERS[1] : RADIUS_TIERS[2]);
 const snapAlpha = (a: number): number => (a <= 0.12 ? SHADOW_ALPHA_TIERS[0] : SHADOW_ALPHA_TIERS[1]);
 
@@ -32,7 +34,8 @@ export function applyMood(html: string, k: MoodTokens): string {
   {
     // 첫 태그(섹션)의 상하 여백만 배율 적용: padding:Apx Bpx(Cpx) 형태의 첫 값(상)과 마지막 값(하)
     out = out.replace(/^(<section[^>]*?style="[^"]*?padding:)(\d+)px(?: (\d+)px)?(?: (\d+)px)?(?: (\d+)px)?/, (_m, pre: string, a: string, b?: string, c?: string, d?: string) => {
-      const sc = (v: string) => `${Math.round(snapPad(Number(v)) * k.pad)}px`;
+      // 441차 1-6(v4) — 배율 뒤 3단 스케일로 다시 스냅(27~77px 12종 → 32·48·64). mood 개성은 단 이동으로만
+      const sc = (v: string) => `${designV4On() ? nearestPad(snapPad(Number(v)) * k.pad) : Math.round(snapPad(Number(v)) * k.pad)}px`;
       return `${pre}${sc(a)}${b ? ` ${b}px` : ""}${c ? ` ${sc(c)}` : ""}${d ? ` ${d}px` : ""}`;
     });
   }

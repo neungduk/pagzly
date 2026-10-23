@@ -16,7 +16,7 @@ import { chromium } from "playwright";
 export const BIG_LINES_PER_SCREEN_MAX = 1.5;
 export const FLIPS_MAX = 6;
 
-export type DomMetrics = { screens: number; big: number; bigPerScreen: number; all: number; flips: number; headingThin: number; headingKinds: number; headingKindList: string; headingInversions: number };
+export type DomMetrics = { screens: number; big: number; bigPerScreen: number; all: number; flips: number; padOff: number; padJumps: number; headingThin: number; headingKinds: number; headingKindList: string; headingInversions: number };
 
 /**
  * 440차 6 — 측정 함수 분리(린터 R5·R11이 같은 값을 쓴다). 페이지마다 export HTML을 390×844에 올려 잰다. 사진·폰트 등 외부 요청은 막는다.
@@ -98,7 +98,19 @@ export async function measureDomPages(pages: Array<[string, string]>): Promise<M
           if (first && h !== first && fsz > parseFloat(getComputedStyle(first).fontSize) + 2 && !h.closest('[data-pz-v4^="story"]')) headingInversions += 1;
         }
       }
-      return { screens: H / 844, big, all, flips, headingThin, headingKinds: kinds.size, headingKindList: [...kinds].sort().join(","), headingInversions };
+      // 441차 R17 — 세로 리듬: v4·임팩트 섹션 위·아래 여백이 3단(32·48·64, 사진 풀블리드 0)을 벗어난 수, 이웃 섹션 여백이 2배 넘게 급변한 수
+      const TIERS = [0, 32, 48, 64];
+      let padOff = 0, padJumps = 0, prevPad = -1;
+      for (const s of tops) {
+        if (s.classList.contains("pagzly-hero") || s.querySelector(".pagzly-hero")) { prevPad = -1; continue; }
+        const cs = getComputedStyle(s);
+        const pt = Math.round(parseFloat(cs.paddingTop)), pb = Math.round(parseFloat(cs.paddingBottom));
+        // 8px 이하는 사진 테두리용 가장자리 값(0단)으로 본다
+        if (s.hasAttribute("data-pz-impact")) for (const v of [pt, pb]) if (v > 8 && !TIERS.some((t) => Math.abs(t - v) <= 1)) padOff += 1;
+        if (prevPad > 0 && pt > 0 && Math.max(prevPad, pt) / Math.min(prevPad, pt) > 2) padJumps += 1;
+        prevPad = pb;
+      }
+      return { screens: H / 844, big, all, flips, padOff, padJumps, headingThin, headingKinds: kinds.size, headingKindList: [...kinds].sort().join(","), headingInversions };
     });
     out.set(id, { ...m, bigPerScreen: m.big / m.screens });
   }

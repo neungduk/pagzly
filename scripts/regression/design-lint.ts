@@ -32,6 +32,8 @@ export async function run(): Promise<string[]> {
   // 441차 1-3 — R9 고스트 글자 확장
   if (!rules(`${ok}<section data-pz-impact="v4" data-pz-v4="phototext.overlap" style=""><span data-pz-ghost>02</span></section>`).includes("R9:error")) fails.push("사진 블록 고스트가 R9가 아님");
   if (rules(`${ok}<section data-pz-impact="v4" data-pz-v4="benefits.zigzag" style=""><span data-pz-ghost>02</span></section>`).includes("R9:error")) fails.push("허용 블록 고스트를 R9로 잡음");
+  // 441차 1-6 — R17 세로 리듬
+  if (!lintPage("t", `<section>${ok}</section><div data-pz-strip></div>`, hero, { screens: 2, bigPerScreen: 1, flips: 2, padOff: 2 }).issues.some((i) => i.rule === "R17" && i.sev === "warn")) fails.push("여백 3단 밖이 R17이 아님");
   // 441차 1-1 — R16 제목 위계(DOM 값)
   const dom = (o: object) => ({ screens: 2, bigPerScreen: 1, flips: 2, ...o });
   if (!lintPage("t", `<section>${ok}</section><div data-pz-strip></div>`, hero, dom({ headingThin: 1 })).issues.some((i) => i.rule === "R16" && i.sev === "error")) fails.push("얇은 제목이 R16 error가 아님");

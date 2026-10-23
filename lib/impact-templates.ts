@@ -20,7 +20,7 @@ import { DETAIL_FONT_STACK } from "@/lib/detail-typography";
 import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import type { IllustColors } from "@/lib/illustrations/core";
 import { illustFor, illustHtml } from "@/lib/illust-sections";
-import { applyMood, moodOf } from "@/lib/mood";
+import { NEUTRAL_MOOD, applyMood, moodOf } from "@/lib/mood";
 import { designV4On } from "@/lib/design-v4";
 import { tierHeadingWeights } from "@/lib/type-treatments";
 import { polishTitles } from "@/lib/typo-rhythm";
@@ -68,7 +68,8 @@ export function impactHtml(s: ImpactSection, pal: ImpactPalette, alt: string): s
   const html = HERO_V2_TUNED ? html0.replace(/<img (?![^>]*onerror)([^>]*?)(\s*\/?>)/g,"<img $1 onerror=\"this.style.display='none'\"$2") : html0;
   // 436차 — 아키타입 mood 토큰(여백·반경·그림자·제목 굵기). mood가 없으면 지금 마크업 그대로
   const toned = s.faceTone === "warm" ? html.replace(/^(<section[^>]*?style="[^"]*?)background:#FFFFFF/, `$1background:${WARM_FACE}`) : html;
-  const moodHtml = s.mood ? applyMood(toned, moodOf(s.mood)) : toned;
+  // 441차 1-6 — v4에서는 mood가 없는 페이지도 중립 mood 토큰을 거쳐 여백 3단·반경·그림자 단계를 같게(이전엔 40·44·56px가 남음)
+  const moodHtml = s.mood ? applyMood(toned, moodOf(s.mood)) : designV4On() ? applyMood(toned, NEUTRAL_MOOD) : toned;
   // 438차 1-5 — 제목 줄 끝 고아 줄이기(DESIGN_POLISH)
   // 441차 1-1 — 제목 굵기 위계 3단(v4)
   return polishTitles(designV4On() ? tierHeadingWeights(moodHtml) : moodHtml);

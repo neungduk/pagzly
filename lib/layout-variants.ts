@@ -137,7 +137,7 @@ function wrap(b: V4Block, p: V4Palette, inner: string, opts: { pad?: string; hea
   const ghost = b.ghost ? ghostHtml(b.ghost, mixHex(p.faces[role] === "#FFFFFF" ? p.tints[0] : p.tints[1], p.accent, 0.12), 88, "tr") : "";
   const title = opts.head !== undefined ? titleBlock(b.preset ?? "number", opts.label ?? EYEBROW_LABEL[b.family] ?? "", b.no, opts.head, { ink: on.text, deep: on.strong, pillBg: p.deep, pillFg: "#FFFFFF" }) : "";
   return (
-    `<section data-pz-impact="v4" data-pz-v4="${b.family}.${b.variant}" style="position:relative;padding:${opts.pad ?? "56px 24px"};background:${faceBg(b, p)}">` +
+    `<section data-pz-impact="v4" data-pz-v4="${b.family}.${b.variant}" style="position:relative;padding:${opts.pad ?? "64px 24px"};background:${faceBg(b, p)}">` +
     motifs + ghost + (b.divider ? dividerHtml(b.divider as DividerKind, p.ink) : "") +
     `<div style="position:relative;z-index:1;max-width:576px;margin:0 auto">${title}${inner}</div></section>`
   );
@@ -368,7 +368,7 @@ function phototextHtml(b: V4Block, p: V4Palette, alt: string): string {
     return wrap(b, p,
       `<div style="margin:0 -24px;aspect-ratio:4 / 5;overflow:hidden;background:${p.tints[1]}">${img(it.img!.url, alt, it.img!.pos)}</div>` +
       `<div style="display:flex;gap:14px;margin-top:22px;padding-top:18px;border-top:2px solid ${p.ink}"><div style="flex:0 0 auto;${TITLE_FF};font-size:28px;font-weight:900;line-height:1;color:${p.deep}">${NUM(b.no)}</div><div style="flex:1 1 0%;min-width:0">${title(it.title, 20)}${body(it.body)}</div></div>`,
-      { pad: "0 24px 56px" });
+      { pad: "0 24px 64px" });
   }
   // collage: 사진 2장 비대칭 + 항목 2개
   const [a, c] = items;
@@ -393,7 +393,7 @@ function trustHtml(b: V4Block, p: V4Palette): string {
       return `<div style="flex:1 1 calc(50% - 5px);min-width:140px;box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;background:#FFFFFF;border:${hairline(p.ink)}"><span style="flex:none">${mark}</span><span style="min-width:0;${typeCss("small", p.ink, "font-weight:700")}">${esc(it.title)}</span></div>`;
     })
     .join("");
-  return wrap({ ...b, motifs: [] }, p, `<div style="display:flex;flex-wrap:wrap;gap:10px">${cells}</div>`, { pad: "28px 24px" });
+  return wrap({ ...b, motifs: [] }, p, `<div style="display:flex;flex-wrap:wrap;gap:10px">${cells}</div>`, { pad: "32px 24px" });
 }
 
 /** 하단 구매 카드 바로 위 신뢰 스트립 삽입 + 옮긴 배지는 구매 카드 칩에서 뺀다(중복 방지, 데이터 단계라 라이브·export 같음) */
