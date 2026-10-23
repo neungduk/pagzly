@@ -138,3 +138,21 @@ function gradientPresets(mood: string | null | undefined, t: V4Palette["tints"],
 export function gradientStops(g: string): string[] {
   return g.match(/#[0-9A-Fa-f]{6}/g) ?? [];
 }
+
+// ── 카드 깊이 토큰(441차 1-4) ──────────────────────────────────────────────────
+/**
+ * v4 카드 그림자 3단계 + hairline 테두리. 이전엔 v4 마크업에 그림자 7종(0 6px 16px … 0 14px 30px, 알파 0.06~0.14)이 섞여 있었다.
+ * none: 면만 / soft: 목록 속 카드(번호 카드 등) / float: 사진·겹침 카드처럼 면 위에 떠 있는 것. mood(applyMood)가 알파를 다시 두 단계로 곱한다.
+ */
+export type DepthLevel = "none" | "soft" | "float";
+export function depthShadow(level: DepthLevel, ink: string): string {
+  if (level === "none") return "none";
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(ink.slice(i, i + 2), 16));
+  return level === "soft" ? `0 6px 16px rgba(${r}, ${g}, ${b}, 0.07)` : `0 12px 28px rgba(${r}, ${g}, ${b}, 0.13)`;
+}
+/** 카드 테두리 한 가지(잉크 10%) */
+export const hairline = (ink: string): string => `1px solid ${hexToRgbaLocal(ink, 0.1)}`;
+function hexToRgbaLocal(hex: string, a: number): string {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}

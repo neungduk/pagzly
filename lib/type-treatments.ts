@@ -147,3 +147,19 @@ export function tierHeadingWeights(html: string): string {
     return want ? `style="${st.replace(/((?:^|;)font-weight:)\d+/, `$1${want}`)}"` : all;
   });
 }
+
+// ── 숫자 강조 컴포넌트 ──────────────────────────────────────────────────────
+/**
+ * 441차 1-4 — 큰 숫자 + 작은 단위(+ 라벨은 호출 쪽). "30mL"·"4가지"·"15cm"·"42dB"처럼 숫자로 시작하면 숫자는 크게(900), 단위는 절반 크기(800).
+ * 숫자로 시작하지 않는 글 값("하이브리드 ANC 42dB")은 숫자처럼 키우지 않고 0.72배·800으로 — 큰 글자 여러 줄이 되지 않게.
+ * 값은 입력(424 게이트를 통과한 표·스펙 값) 그대로, 계산·반올림 없음.
+ */
+export function numberStatHtml(value: string, color: string, px: number): string {
+  const v = value.trim();
+  const m = /^([0-9][0-9.,~∼\-]*)\s*([^\s].{0,5})?$/.exec(v);
+  if (m) {
+    const unit = m[2] ? `<span style="font-size:${Math.round(px * 0.5)}px;font-weight:800;letter-spacing:0;margin-left:2px">${esc(m[2])}</span>` : "";
+    return `<span style="${TITLE_FF};font-size:${px}px;font-weight:900;letter-spacing:-0.03em;line-height:1.1;color:${color};white-space:nowrap">${esc(m[1]!)}${unit}</span>`;
+  }
+  return `<span style="${TITLE_FF};font-size:${Math.round(px * 0.72)}px;font-weight:800;letter-spacing:-0.02em;line-height:1.25;color:${color};word-break:keep-all">${esc(v)}</span>`;
+}

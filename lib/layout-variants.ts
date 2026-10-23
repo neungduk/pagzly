@@ -29,9 +29,10 @@ import type { ImpactPalette } from "@/lib/impact-templates";
 import type { ProductImageOrigin } from "@/lib/image-origins";
 import { designV4On } from "@/lib/design-v4";
 import { hexToRgba, mixHex } from "@/lib/design-tokens";
-import { v4Palette, type FaceRole, type V4Palette } from "@/lib/palette-v4";
+import { depthShadow, hairline, v4Palette, type FaceRole, type V4Palette } from "@/lib/palette-v4";
+import { dividerFor, dividerHtml, type DividerKind } from "@/lib/dividers";
 import { motifHtml, motifSvg, planMotifs, type MotifColors, type MotifPlacement } from "@/lib/motifs";
-import { EYEBROW_LABEL, SANS_FF, TITLE_FF, esc, ghostHtml, highlightKeyword, keywordCandidates, polishCardTitles, titleBlock, titlePresetFor, typeCss } from "@/lib/type-treatments";
+import { EYEBROW_LABEL, SANS_FF, TITLE_FF, esc, ghostHtml, highlightKeyword, keywordCandidates, numberStatHtml, polishCardTitles, titleBlock, titlePresetFor, typeCss } from "@/lib/type-treatments";
 import { splitSentences } from "@/lib/impact-boost";
 import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import { groupPendingSpecRows, isPlaceholderValue, PENDING_SPEC_ROW_LABEL } from "@/lib/spec-placeholder";
@@ -135,7 +136,7 @@ function wrap(b: V4Block, p: V4Palette, inner: string, opts: { pad?: string; hea
   const title = opts.head !== undefined ? titleBlock(b.preset ?? "number", opts.label ?? EYEBROW_LABEL[b.family] ?? "", b.no, opts.head, { ink: on.text, deep: on.strong, pillBg: p.deep, pillFg: "#FFFFFF" }) : "";
   return (
     `<section data-pz-impact="v4" data-pz-v4="${b.family}.${b.variant}" style="position:relative;padding:${opts.pad ?? "56px 24px"};background:${faceBg(b, p)}">` +
-    motifs + ghost +
+    motifs + ghost + (b.divider ? dividerHtml(b.divider as DividerKind, p.ink) : "") +
     `<div style="position:relative;z-index:1;max-width:576px;margin:0 auto">${title}${inner}</div></section>`
   );
 }
@@ -152,7 +153,7 @@ function benefitsHtml(s: ImpactSection, b: V4Block, p: V4Palette, alt: string): 
       `<p style="margin:12px 0 0;${typeCss("card", p.ink, "font-size:20px;font-weight:800")}">${esc(first!.title)}</p>` +
       (first!.body ? `<p style="margin:8px 0 0;${typeCss("small", mixHex(p.ink, "#FFFFFF", 0.12))}">${esc(first!.body)}</p>` : "") +
       `</div>` +
-      (first!.img ? `<div style="flex:0 0 40%;min-width:0;border-radius:18px;overflow:hidden;background:${p.tints[1]};box-shadow:0 8px 20px ${hexToRgba(p.ink, 0.12)}">${img(first!.img.url, alt, first!.img.pos)}</div>` : "") +
+      (first!.img ? `<div style="flex:0 0 40%;min-width:0;border-radius:18px;overflow:hidden;background:${p.tints[1]};box-shadow:${depthShadow("float", p.ink)}">${img(first!.img.url, alt, first!.img.pos)}</div>` : "") +
       `</div>`;
     const faces = ["#FFFFFF", p.tints[0], mixHex(p.secondary, "#FFFFFF", 0.84), p.tints[1]];
     // 440차 3 — 작은 칸 전부 키워드 근거가 있으면 번호 대신 아이콘(흰 선 + 진한 면), 하나라도 없으면 번호 그대로
@@ -162,7 +163,7 @@ function benefitsHtml(s: ImpactSection, b: V4Block, p: V4Palette, alt: string): 
         const bg = faces[i % faces.length]!;
         const right = i % 2 === 1;
         return (
-          `<div style="flex:1 1 calc(50% - 5px);min-width:140px;box-sizing:border-box;display:flex;flex-direction:column;align-items:${right ? "flex-end" : "flex-start"};text-align:${right ? "right" : "left"};padding:18px;border-radius:20px;background:${bg};${bg === "#FFFFFF" ? `border:1px solid ${hexToRgba(p.ink, 0.1)};` : ""}">` +
+          `<div style="flex:1 1 calc(50% - 5px);min-width:140px;box-sizing:border-box;display:flex;flex-direction:column;align-items:${right ? "flex-end" : "flex-start"};text-align:${right ? "right" : "left"};padding:18px;border-radius:20px;background:${bg};${bg === "#FFFFFF" ? `border:${hairline(p.ink)};` : ""}">` +
           `<span style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:${i % 3 === 2 ? "10px" : "50%"};background:${p.deep};color:#FFFFFF;${SANS_FF};font-size:13px;font-weight:800">${icons ? iconV4Svg(icons[i]!, { color: "#FFFFFF", px: 18 }) : NUM(i + 2)}</span>` +
           `<p style="margin:12px 0 0;${typeCss("card", p.ink, "font-size:16px")}">${esc(it.title)}</p>` +
           (it.body ? `<p style="margin:6px 0 0;${typeCss("small", mixHex(p.ink, "#FFFFFF", 0.18))}">${esc(it.body)}</p>` : "") +
@@ -176,7 +177,7 @@ function benefitsHtml(s: ImpactSection, b: V4Block, p: V4Palette, alt: string): 
     const rows = items
       .map(
         (it, i) =>
-          `<div style="position:relative;display:flex;align-items:flex-start;gap:16px;padding:20px 20px 20px 16px;margin-top:${i ? 12 : 0}px;border-radius:18px;background:#FFFFFF;border:1px solid ${hexToRgba(p.ink, 0.1)};box-shadow:0 6px 16px ${hexToRgba(p.ink, 0.06)}">` +
+          `<div style="position:relative;display:flex;align-items:flex-start;gap:16px;padding:20px 20px 20px 16px;margin-top:${i ? 12 : 0}px;border-radius:18px;background:#FFFFFF;border:${hairline(p.ink)};box-shadow:${depthShadow("soft", p.ink)}">` +
           `<span aria-hidden="true" data-pz-deco style="flex:none;width:64px;${TITLE_FF};font-size:52px;font-weight:900;letter-spacing:-0.05em;line-height:0.9;color:${p.tints[3]}">${NUM(i + 1)}</span>` +
           `<div style="flex:1 1 0%;min-width:0;padding-top:4px"><p style="margin:0;${typeCss("card", p.ink)}">${esc(it.title)}</p>` +
           (it.body ? `<p style="margin:6px 0 0;${typeCss("body", on.sub)}">${esc(it.body)}</p>` : "") +
@@ -228,7 +229,7 @@ function concernHtml(s: ImpactSection, b: V4Block, p: V4Palette): string {
     const cards = items
       .map(
         (it, i) =>
-          `<div style="position:relative;z-index:${items.length - i};display:flex;align-items:flex-start;gap:12px;box-sizing:border-box;margin:${i ? -4 : 0}px ${i % 2 ? 0 : 12}px 0 ${i % 2 ? 12 : 0}px;padding:18px 18px;border-radius:16px;background:#FFFFFF;border:1px solid ${hexToRgba(p.ink, 0.08)};box-shadow:0 10px 22px ${hexToRgba(p.ink, 0.1)};transform:rotate(${tilt[i % tilt.length]}deg)">` +
+          `<div style="position:relative;z-index:${items.length - i};display:flex;align-items:flex-start;gap:12px;box-sizing:border-box;margin:${i ? -4 : 0}px ${i % 2 ? 0 : 12}px 0 ${i % 2 ? 12 : 0}px;padding:18px 18px;border-radius:16px;background:#FFFFFF;border:${hairline(p.ink)};box-shadow:${depthShadow("float", p.ink)};transform:rotate(${tilt[i % tilt.length]}deg)">` +
           `<span aria-hidden="true" style="flex:none;${TITLE_FF};font-size:24px;font-weight:900;line-height:0.8;color:${p.accent}">“</span>` +
           `<p style="flex:1 1 0%;min-width:0;margin:0;${typeCss("card", p.ink, "font-size:16px;font-weight:600")}">${esc(it.title)}</p></div>`,
       )
@@ -251,7 +252,7 @@ function storyHtml(s: ImpactSection, b: V4Block, p: V4Palette, alt: string): str
   const on = p.onFace[faceRole(b)];
   const chip = s.chip ? `<span style="display:inline-block;padding:6px 14px;border-radius:999px;background:${p.deep};${typeCss("label", "#FFFFFF", "letter-spacing:0.06em")}">${esc(s.chip)}</span>` : "";
   const photo = s.images?.[0];
-  const photoHtml = photo ? `<div style="margin:28px 0 0;aspect-ratio:4 / 3;overflow:hidden;border-radius:20px;box-shadow:0 10px 24px ${hexToRgba(p.ink, 0.12)}">${img(photo.url, alt, photo.pos)}</div>` : "";
+  const photoHtml = photo ? `<div style="margin:28px 0 0;aspect-ratio:4 / 3;overflow:hidden;border-radius:20px;box-shadow:${depthShadow("float", p.ink)}">${img(photo.url, alt, photo.pos)}</div>` : "";
   const head = headingHtml(s.text, b, p, "color");
   if (b.variant === "editorial") {
     const inner =
@@ -298,18 +299,19 @@ function specHtml(s: ImpactSection, b: V4Block, p: V4Palette): string {
     const lines = same
       ? `<p style="margin:0;${typeCss("card", p.ink, "font-size:16px")}">${items.map((it) => esc(it.title)).join(" · ")}</p><p style="margin:6px 0 0;${typeCss("small", on.sub)}">${esc(items[0]!.body ?? "")}</p>`
       : items.map((it, i) => `<p style="margin:${i ? 8 : 0}px 0 0;${typeCss("small", on.text)}"><b style="font-weight:700;color:${p.ink}">${esc(it.title)}</b> — ${esc(it.body ?? "")}</p>`).join("");
-    return wrap(b, p, `<div style="display:flex;gap:14px;align-items:flex-start;padding:18px 18px 20px;border-radius:16px;background:#FFFFFF;border:1px solid ${hexToRgba(p.ink, 0.1)}"><span style="flex:none;margin-top:2px">${iconV4Svg("info", { color: p.deep, px: 22, tint: p.tints[0] })}</span><div style="flex:1 1 0%;min-width:0">${lines}</div></div>`, { head });
+    return wrap(b, p, `<div style="display:flex;gap:14px;align-items:flex-start;padding:18px 18px 20px;border-radius:16px;background:#FFFFFF;border:${hairline(p.ink)}"><span style="flex:none;margin-top:2px">${iconV4Svg("info", { color: p.deep, px: 22, tint: p.tints[0] })}</span><div style="flex:1 1 0%;min-width:0">${lines}</div></div>`, { head });
   }
   if (b.variant === "strip") {
     const cells = items
       .map(
         (it, i) =>
           `<div style="flex:1 1 calc(50% - 1px);min-width:120px;box-sizing:border-box;padding:18px 12px;text-align:center;${i ? `border-left:1px solid ${hexToRgba(p.ink, 0.1)}` : ""}">` +
-          `<p style="margin:0;${TITLE_FF};font-size:24px;font-weight:900;letter-spacing:-0.03em;line-height:1.15;color:${on.strong};word-break:keep-all">${esc(it.body ?? "")}</p>` +
+          // 441차 1-4 — 숫자 강조 컴포넌트(큰 숫자 + 작은 단위, 글 값은 한 단계 작게)
+          `<p style="margin:0;line-height:1.15">${numberStatHtml(it.body ?? "", on.strong, 26)}</p>` +
           `<p style="margin:6px 0 0;${typeCss("label", on.sub, "letter-spacing:0.04em")}">${esc(it.title)}</p></div>`,
       )
       .join("");
-    return wrap(b, p, `<div style="display:flex;flex-wrap:wrap;border-radius:20px;background:#FFFFFF;border:1px solid ${hexToRgba(p.ink, 0.1)}">${cells}</div>`, { head });
+    return wrap(b, p, `<div style="display:flex;flex-wrap:wrap;border-radius:20px;background:#FFFFFF;border:${hairline(p.ink)}">${cells}</div>`, { head });
   }
   if (b.variant === "grid") {
     // 440차 3 — 라벨 전부 키워드 근거가 있으면 라벨 앞에 작은 아이콘
@@ -317,7 +319,7 @@ function specHtml(s: ImpactSection, b: V4Block, p: V4Palette): string {
     const cards = items
       .map(
         (it, i) =>
-          `<div style="flex:1 1 calc(50% - 5px);min-width:140px;box-sizing:border-box;padding:16px;border-radius:16px;background:#FFFFFF;border:1px solid ${hexToRgba(p.ink, 0.08)}">` +
+          `<div style="flex:1 1 calc(50% - 5px);min-width:140px;box-sizing:border-box;padding:16px;border-radius:16px;background:#FFFFFF;border:${hairline(p.ink)}">` +
           `<p style="margin:0;display:flex;align-items:center;gap:6px;${typeCss("label", p.deep, "letter-spacing:0.04em")}">${icons ? `<span style="flex:none">${iconV4Svg(icons[i]!, { color: p.deep, px: 18 })}</span>` : ""}${esc(it.title)}</p>` +
           `<p style="margin:8px 0 0;${typeCss("small", p.ink, "font-size:15px;font-weight:600;white-space:pre-line")}">${esc(it.body ?? "")}</p></div>`,
       )
@@ -347,7 +349,7 @@ function phototextHtml(b: V4Block, p: V4Palette, alt: string): string {
   if (b.variant === "overlap") {
     return wrap(b, p,
       `<div style="aspect-ratio:4 / 5;border-radius:24px;overflow:hidden;background:${p.tints[1]}">${img(it.img!.url, alt, it.img!.pos)}</div>` +
-      `<div style="position:relative;z-index:2;margin:-24px 14px 0;box-sizing:border-box;padding:22px 20px;border-radius:20px;background:#FFFFFF;box-shadow:0 12px 28px ${hexToRgba(p.ink, 0.14)}">${label}${title(it.title)}${body(it.body)}</div>`);
+      `<div style="position:relative;z-index:2;margin:-24px 14px 0;box-sizing:border-box;padding:22px 20px;border-radius:20px;background:#FFFFFF;box-shadow:${depthShadow("float", p.ink)}">${label}${title(it.title)}${body(it.body)}</div>`);
   }
   if (b.variant === "offset") {
     return wrap(b, p,
@@ -357,7 +359,7 @@ function phototextHtml(b: V4Block, p: V4Palette, alt: string): string {
   }
   if (b.variant === "arch") {
     return wrap(b, p,
-      `<div style="width:78%;margin:0 auto;aspect-ratio:3 / 4;border-radius:999px 999px 24px 24px;overflow:hidden;background:${p.tints[1]};box-shadow:0 14px 30px ${hexToRgba(p.ink, 0.12)}">${img(it.img!.url, alt, it.img!.pos)}</div>` +
+      `<div style="width:78%;margin:0 auto;aspect-ratio:3 / 4;border-radius:999px 999px 24px 24px;overflow:hidden;background:${p.tints[1]};box-shadow:${depthShadow("float", p.ink)}">${img(it.img!.url, alt, it.img!.pos)}</div>` +
       `<div style="margin-top:26px;text-align:center">${label}${title(it.title)}${body(it.body)}</div>`);
   }
   if (b.variant === "caption") {
@@ -377,7 +379,7 @@ function phototextHtml(b: V4Block, p: V4Palette, alt: string): string {
 
 function touchHtml(s: ImpactSection, b: V4Block, p: V4Palette): string {
   return wrap(b, p,
-    `<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;box-sizing:border-box;padding:20px 22px;border-radius:22px;background:#FFFFFF;box-shadow:0 10px 24px ${hexToRgba(p.ink, 0.1)}">` +
+    `<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;box-sizing:border-box;padding:20px 22px;border-radius:22px;background:#FFFFFF;box-shadow:${depthShadow("float", p.ink)}">` +
     `<p style="flex:1 1 0%;min-width:0;margin:0;${typeCss("card", p.ink, "font-size:16px")}">${esc(s.text)}</p>` +
     `<p style="flex:none;margin:0;${TITLE_FF};font-size:24px;font-weight:900;letter-spacing:-0.02em;line-height:1.2;color:${p.onFace.card.strong};white-space:nowrap;word-break:keep-all">${esc(b.price ?? "")}</p></div>`,
     { pad: "48px 24px" });
@@ -722,7 +724,10 @@ function assignMotifs(secs: DetailSection[], mood: string | null, seed: number):
     const prev = secs[i - 1];
     const prevPhotoBottom = prev?.type === "impact" && (prev.kind === "bleed" || (prev.kind === "v4" && prev.v4?.variant === "caption"));
     const two = s.v4.family === "story" || s.v4.family === "touch" || s.v4.family === "breather";
-    const motifs = planMotifs(mood, seed + i, { count: two ? 2 : 1, cross: !prevPhotoBottom && prev?.type !== "hero" && k % 2 === 1 });
-    return { ...s, v4: { ...s.v4, motifs } } as DetailSection;
+    const cross = !prevPhotoBottom && prev?.type !== "hero" && k % 2 === 1;
+    const motifs = planMotifs(mood, seed + i, { count: two ? 2 : 1, cross });
+    // 441차 1-4 — 걸치는 모티프가 없는 경계(짝수 번째·히어로·사진 하단 캡션 뒤 제외)에는 mood 구분선을 번갈아
+    const divider = !cross && k % 2 === 0 && !prevPhotoBottom && prev && prev.type !== "hero" ? dividerFor(mood, k / 2) : undefined;
+    return { ...s, v4: { ...s.v4, motifs, ...(divider ? { divider } : {}) } } as DetailSection;
   });
 }

@@ -593,6 +593,8 @@ export type V4Block = {
   preset?: "enlabel" | "number" | "pill";
   /** 고스트 글자(번호·입력 수치·영문 제품명) */
   ghost?: string;
+  /** 441차 — 위 경계 구분선 종류(lib/dividers.ts). 교차 모티프가 없는 경계에만 */
+  divider?: string;
   /** touch: 가격 표기(입력 가격) */
   price?: string;
   /** 한눈에 보기(첫 3화면 규칙으로 앞당긴 블록) */
