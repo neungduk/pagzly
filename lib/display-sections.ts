@@ -1,7 +1,7 @@
 import type { DetailSection } from "@/lib/types/generate";
 import { designV4On } from "@/lib/design-v4";
 import { faceKeyOf } from "@/lib/layout-variants";
-import { markTightTops } from "@/lib/rhythm-v4";
+import { faceKeysFor, legacyTopPads, markTightTops } from "@/lib/rhythm-v4";
 import { orderSectionsForFlow } from "@/lib/section-flow-order";
 import { limitBoldBlocks } from "@/lib/detail-visual-rhythm";
 import { enforceImageSourceCapIndexed } from "@/lib/image-source-cap";
@@ -38,6 +38,8 @@ export type DisplaySections = {
   archetype?: { result: ArchetypeResult; mood: MoodId | null; hero: HeroVariant | null };
   /** 427차 — 비교 정책이 한 일(제거·문장 삭제·판매자 표·대체·사진 갤러리). 보고·검증용, 렌더에는 쓰지 않는다 */
   policyChanges?: PolicyChange[];
+  /** 445차 3 — 이전(비임팩트) 섹션 중 위 여백을 줄일 곳(섹션 번호 → px, DESIGN_V4). 라이브·export가 같은 값을 data-pz-top 표식과 같은 CSS로 적용 */
+  topPads?: Record<number, number>;
 };
 
 const DANGLING_TAIL = /[\s,，、·;:\-–—]+$/u;
@@ -417,6 +419,9 @@ export function applyDisplayRules(
   const finalOut = heroPlan && heroSec?.type === "hero" ? { sections: [({ ...heroSec, v2: heroPlan } as DetailSection), ...finalOut1.sections.slice(1)], sourceIndexes: finalOut1.sourceIndexes } : finalOut1;
   const policyChanges = policy ? [...policy.changes, ...(photo ? [{ type: "filled" as const, index: 0, kind: "photos" as const, reason: `사용하지 않은 사진 ${photo.indexes.join(",")}번`, slot: "backfill_photos" }] : [])] : undefined;
   // 444차 3 — 같은 면 이웃의 위 여백 해석(DESIGN_V4, lib/rhythm-v4.ts). v4 off면 그대로
-  const rhythmSections = designV4On() ? markTightTops(finalOut.sections, faceKeyOf) : finalOut.sections;
-  return { sections: rhythmSections, sourceIndexes: keptMap ? finalOut.sourceIndexes.map((i) => keptMap(i)) : finalOut.sourceIndexes, ...(policyChanges ? { policyChanges } : {}), ...(arche ? { archetype: { result: arche, mood, hero: recipe?.hero ?? null } } : {}) };
+  // 445차 3 — 이전(비임팩트) 섹션도 면 키를 읽어 같은 규칙: 임팩트 위 여백은 rhythm:"tight", 이전 섹션 위 여백은 topPads(섹션 번호 → px)로 내보낸다
+  const rhythmKey = designV4On() ? faceKeysFor(finalOut.sections, faceKeyOf) : faceKeyOf;
+  const rhythmSections = designV4On() ? markTightTops(finalOut.sections, rhythmKey) : finalOut.sections;
+  const topPads = designV4On() ? legacyTopPads(finalOut.sections, rhythmKey, opts.category ?? "") : {};
+  return { sections: rhythmSections, ...(Object.keys(topPads).length ? { topPads } : {}), sourceIndexes: keptMap ? finalOut.sourceIndexes.map((i) => keptMap(i)) : finalOut.sourceIndexes, ...(policyChanges ? { policyChanges } : {}), ...(arche ? { archetype: { result: arche, mood, hero: recipe?.hero ?? null } } : {}) };
 }

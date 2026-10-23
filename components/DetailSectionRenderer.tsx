@@ -248,6 +248,7 @@ import { DESIGN_V4_ENABLED, hideImgOnError } from "@/lib/design-v4";
 import { BANNER_SCRIM_INSET_V4, declObject, tokenStyleObject } from "@/lib/design-tokens-v4";
 import { highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, stepTextV4, stepsListV4 } from "@/lib/twin-styles-v4";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
+import { topPadCssV4 } from "@/lib/rhythm-v4";
 import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
 import { glanceIconSvg } from "@/lib/icons";
@@ -6095,7 +6096,7 @@ export default function DetailSectionRenderer({
         <style>{packStructureCss(packLayout, "[data-pz-pack]", "live") + infoCss(packLayout.info, "[data-pz-pack]", infoColorsOf(baseTheme), infoBackdrops, { demote: v2Plan?.demoted })}</style>
       )}
       {v2Css ? <style>{v2Css}</style> : null}
-      {DESIGN_V4_ENABLED ? <style>{typeFloorCss("[data-pz-typefloor]") + headingSystemCss("[data-pz-typefloor]", "live")}</style> : null}
+      {DESIGN_V4_ENABLED ? <style>{typeFloorCss("[data-pz-typefloor]") + headingSystemCss("[data-pz-typefloor]", "live") + topPadCssV4((px) => `[data-pz-typefloor] [data-pz-top="${px}"] > section`)}</style> : null}
       {DESIGN_V3_COLOR_ENABLED && v2On ? <style>{paletteInfoCss("[data-pz-v2]", extendedTheme, packLayout.info)}</style> : null}
       {DESIGN_V3_COLOR_ENABLED && !edit?.enabled ? <style>{dividerCss({ scope: "[data-pz-v2]", mode: "live", sections, ext: extendedTheme, category, info: packLayout.info })}</style> : null}
       {fontPair ? (
@@ -6281,6 +6282,7 @@ export default function DetailSectionRenderer({
               id={anchorId}
               data-section-index={index}
               data-section-slot={section.slot}
+              data-pz-top={DESIGN_V4_ENABLED && sections.length === display.sections.length ? display.topPads?.[index] : undefined}
               data-pending-highlight={
                 pendingHighlightIndex === index ? "true" : undefined
               }

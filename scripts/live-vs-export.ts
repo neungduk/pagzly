@@ -24,7 +24,7 @@ export type Info = {
 };
 
 /** 두 페이지에서 같은 식으로 평가하는 추출 식(문자열) */
-const EXTRACT = `(() => {
+export const EXTRACT = `(() => {
   const root = document.querySelector('[data-pz-typefloor]');
   const rt = root.getBoundingClientRect().top + window.scrollY;
   const tops = Array.from(root.querySelectorAll('section')).filter((s) => !s.parentElement.closest('section') && !s.closest('article') && s.getBoundingClientRect().height > 8);

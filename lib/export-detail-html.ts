@@ -171,6 +171,7 @@ import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
 import { glanceIconSvg } from "@/lib/icons";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
+import { topPadCssV4 } from "@/lib/rhythm-v4";
 import { BEAUTY_HERO, HERO_ARCH, HERO_CAPTION, HERO_FRAME, HERO_STAGE_VARIANT, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroStageOn } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
@@ -2186,6 +2187,7 @@ export function buildDetailPageHtml(opts: {
       restoreHashtagHeadingUnits(limitBoldBlocks(afterUserHidden)),
     ),
   );
+  const topPads = DESIGN_V4_ENABLED ? displayRes.topPads : undefined;
   const trustChips = extractTrustChips(visibleSections);
   // 430차 — 라이브와 같은 조화형 팔레트(같은 함수·같은 입력)
   const extended = extendThemeFor(opts.theme, { category: opts.category, productName: opts.productName, brandName: opts.brandName, packHeadline: pack.headline ? { kind: pack.headline.kind, weight: pack.headline.weight } : null });
@@ -2311,7 +2313,10 @@ export function buildDetailPageHtml(opts: {
         );
       }
       // 430B: 면 전환 구분선(곡선/사선)이 걸릴 섹션 위치 표식(라이브 data-section-index와 같은 번호)
-      bodyParts.push(DESIGN_V3_COLOR_ENABLED && dividerStyleFor(opts.category) ? html.replace(/^(\s*)<section/, `$1<section data-pz-i="${i}"`) : html);
+      // 445차 3 — 이전 섹션 위 여백 해석(계획 topPads, v4): 라이브 data-pz-top 래퍼와 같은 값을 섹션 태그 표식으로
+      const topPx = topPads && visibleSections.length === displayRes.sections.length ? topPads[i] : undefined;
+      const marked = topPx ? html.replace(/^(\s*)<section/, `$1<section data-pz-top="${topPx}"`) : html;
+      bodyParts.push(DESIGN_V3_COLOR_ENABLED && dividerStyleFor(opts.category) ? marked.replace(/^(\s*)<section/, `$1<section data-pz-i="${i}"`) : marked);
       lastRenderedSection = section;
     }
     if (deferredStripHtml && i === 1) {
@@ -2438,7 +2443,7 @@ ${jsonLd}
   ${DESIGN_V3_COLOR_ENABLED && designV2On(opts.category) ? paletteInfoCss(".pagzly-wrap", extended, v2Layout.info) : ""}
   ${DESIGN_V3_COLOR_ENABLED ? dividerCss({ scope: ".pagzly-wrap", mode: "export", sections: visibleSections, ext: extended, category: opts.category, info: v2Layout.info }) : ""}
   ${v3Pair ? fontPairCss(".pagzly-wrap", v3Pair) : ""}${DESIGN_V4_ENABLED ? `
-  ${typeFloorCss(".pagzly-wrap[data-pz-typefloor]") + headingSystemCss(".pagzly-wrap[data-pz-typefloor]", "export")}` : ""}
+  ${typeFloorCss(".pagzly-wrap[data-pz-typefloor]") + headingSystemCss(".pagzly-wrap[data-pz-typefloor]", "export") + topPadCssV4((px) => `.pagzly-wrap section[data-pz-top="${px}"]`)}` : ""}
   @media (min-width:640px){.pagzly-usage{flex-direction:row!important;align-items:flex-start;gap:16px!important}.pagzly-usage-line{left:var(--pz-step-edge)!important;right:var(--pz-step-edge);bottom:auto!important;width:auto!important;height:1px}.pagzly-usage-step{flex:1;flex-direction:column;align-items:center!important;gap:12px!important;text-align:center}.pagzly-usage-step>div{flex:none!important;padding-top:0!important}.pagzly-usage-text{max-width:14rem;margin:0 auto}.pagzly-persona-pairs{grid-template-columns:repeat(2,1fr)!important}.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}.pagzly-hl-grid{grid-template-columns:var(--pz-hl-wide)!important}.pagzly-cl-grid{grid-template-columns:var(--pz-cl-wide)!important}.pagzly-step-rows{grid-template-columns:repeat(3,1fr)!important;gap:32px!important;margin-top:48px!important}.pagzly-step-pairs{gap:32px!important}.pagzly-step-row{display:block!important}.pagzly-step-row h3{margin-top:12px!important}.pagzly-step-row .pagzly-step-tag{margin-top:12px!important}.pagzly-step-row .pagzly-step-tag+h3{margin-top:0!important}.pagzly-step-row p,.pagzly-step-pairs p{font-size:14px!important}}
   .pagzly-wrap .pz-fit{font-size:max(min(var(--pz-fs),0.6875rem),min(var(--pz-fs),calc(100cqi / var(--pz-fit-em,0.01))))!important}
   .pagzly-anchor-nav a{scroll-margin-top:52px}
