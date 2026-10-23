@@ -34,7 +34,7 @@ import { motifHtml, motifSvg, planMotifs, type MotifColors, type MotifPlacement 
 import { EYEBROW_LABEL, SANS_FF, TITLE_FF, esc, ghostHtml, highlightKeyword, keywordCandidates, polishCardTitles, titleBlock, titlePresetFor, typeCss } from "@/lib/type-treatments";
 import { splitSentences } from "@/lib/impact-boost";
 import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
-import { groupPendingSpecRows, PENDING_SPEC_ROW_LABEL } from "@/lib/spec-placeholder";
+import { groupPendingSpecRows, isPlaceholderValue, PENDING_SPEC_ROW_LABEL } from "@/lib/spec-placeholder";
 import { iconV4Svg, pickIconsV4 } from "@/lib/icons";
 
 export type V4Family = V4Block["family"];
@@ -291,6 +291,15 @@ function specHtml(s: ImpactSection, b: V4Block, p: V4Palette): string {
   const items = b.items ?? [];
   const on = p.onFace[faceRole(b)];
   const head = headingHtml(s.text, b, p, "color");
+  // 441차 1-2 — 모든 행이 안내 문구(배송·교환 "판매자 정책을 확인해주세요" 등)면 같은 카드 반복 대신 압축 안내 카드 한 장(입력 문구 원문).
+  // 문구가 모두 같으면 라벨을 한 줄로 묶고 문구는 한 번, 다르면 "라벨 — 문구" 목록
+  if (items.length >= 2 && items.every((it) => isPlaceholderValue(it.body ?? ""))) {
+    const same = new Set(items.map((it) => (it.body ?? "").trim())).size === 1;
+    const lines = same
+      ? `<p style="margin:0;${typeCss("card", p.ink, "font-size:16px")}">${items.map((it) => esc(it.title)).join(" · ")}</p><p style="margin:6px 0 0;${typeCss("small", on.sub)}">${esc(items[0]!.body ?? "")}</p>`
+      : items.map((it, i) => `<p style="margin:${i ? 8 : 0}px 0 0;${typeCss("small", on.text)}"><b style="font-weight:700;color:${p.ink}">${esc(it.title)}</b> — ${esc(it.body ?? "")}</p>`).join("");
+    return wrap(b, p, `<div style="display:flex;gap:14px;align-items:flex-start;padding:18px 18px 20px;border-radius:16px;background:#FFFFFF;border:1px solid ${hexToRgba(p.ink, 0.1)}"><span style="flex:none;margin-top:2px">${iconV4Svg("info", { color: p.deep, px: 22, tint: p.tints[0] })}</span><div style="flex:1 1 0%;min-width:0">${lines}</div></div>`, { head });
+  }
   if (b.variant === "strip") {
     const cells = items
       .map(
@@ -318,8 +327,9 @@ function specHtml(s: ImpactSection, b: V4Block, p: V4Palette): string {
   // line
   const rows = items
     .map(
-      (it) =>
-        `<div style="display:flex;gap:12px;padding:14px 2px;border-bottom:1px solid ${hexToRgba(p.ink, 0.12)}">` +
+      (it, i) =>
+        // 441차 1-2 — 표 줄무늬 면(짝수 행 옅은 틴트), 좌우 여백으로 면이 글에 붙지 않게
+        `<div style="display:flex;gap:12px;padding:14px 10px;border-bottom:1px solid ${hexToRgba(p.ink, 0.12)}${i % 2 ? `;background:${hexToRgba(p.deep, 0.04)}` : ""}">` +
         `<span style="flex:0 0 34%;min-width:0;${typeCss("small", on.strong, "font-weight:700")}">${esc(it.title)}</span>` +
         `<span style="flex:1 1 0%;min-width:0;${typeCss("body", on.text, "white-space:pre-line")}">${esc(it.body ?? "")}</span></div>`,
     )

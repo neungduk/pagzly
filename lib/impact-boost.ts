@@ -20,6 +20,7 @@ import { emphasisMarkerGradient } from "@/lib/body-emphasis";
 import { hexToRgba } from "@/lib/design-tokens";
 import { DETAIL_FONT_STACK } from "@/lib/detail-typography";
 import { moodOf } from "@/lib/mood";
+import { designV4On } from "@/lib/design-v4";
 
 /** 기본 켬. 끄려면 NEXT_PUBLIC_IMPACT_BOOST=off 로 서버를 시작한다(433·431차와 같은 화면) */
 export const IMPACT_BOOST_ENABLED = process.env.NEXT_PUBLIC_IMPACT_BOOST !== "off";
@@ -105,16 +106,18 @@ export function boostHtml(s: ImpactSection, pal: ImpactPalette, alt: string): st
     );
   }
   if (s.kind === "note") {
+    // 441차 1-2(v4) — 주의·고지는 얇은 면 + 작은 아이콘 + 가벼운 글(15px·500). 안내문이 섹션 제목보다 무거워 보이던 것(16px·600, 6px 띠)
+    const v4 = designV4On();
     const rows = (s.labels ?? [])
       .map(
         (l, i) =>
           `<div style="display:flex;align-items:flex-start;gap:12px;${i > 0 ? `margin-top:14px;padding-top:14px;border-top:1px solid ${hexToRgba(pal.ink, 0.1)}` : ""}">` +
-          `<span style="flex:none;display:flex;align-items:center;justify-content:center;width:26px;height:26px;margin-top:1px;border-radius:999px;background:${pal.deep}">${BANG_SVG}</span>` +
-          `<span style="min-width:0;${sans};font-size:16px;font-weight:600;line-height:1.6;color:${pal.ink};word-break:keep-all">${e(l)}</span></div>`,
+          `<span style="flex:none;display:flex;align-items:center;justify-content:center;width:${v4 ? 22 : 26}px;height:${v4 ? 22 : 26}px;margin-top:${v4 ? 2 : 1}px;border-radius:999px;background:${pal.deep}">${BANG_SVG}</span>` +
+          `<span style="min-width:0;${sans};font-size:${v4 ? "15px;font-weight:500;line-height:1.65" : "16px;font-weight:600;line-height:1.6"};color:${pal.ink};word-break:keep-all">${e(l)}</span></div>`,
       )
       .join("");
     return (
-      `<section data-pz-impact="note" style="padding:40px 24px;background:#FFFFFF"><div style="max-width:576px;margin:0 auto;box-sizing:border-box;padding:22px 22px 24px;border-radius:14px;border-left:6px solid ${pal.deep};background:${pal.warm}">` +
+      `<section data-pz-impact="note" style="padding:40px 24px;background:#FFFFFF"><div style="max-width:576px;margin:0 auto;box-sizing:border-box;padding:22px 22px 24px;border-radius:${v4 ? 12 : 14}px;border-left:${v4 ? 3 : 6}px solid ${pal.deep};background:${pal.warm}">` +
       (s.text ? `<p style="margin:0 0 16px;${title};font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.3;color:${pal.deep};word-break:keep-all">${e(s.text)}</p>` : "") +
       `${rows}</div></section>`
     );
