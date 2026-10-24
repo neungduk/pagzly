@@ -55,7 +55,7 @@ export async function run(): Promise<string[]> {
   if ((broken.match(/<br>/g) ?? []).length !== 11) fails.push(`문장 줄바꿈 ${(broken.match(/<br>/g) ?? []).length}개(11 기대)`);
   if (broken.replace(/<br>/g, " ") !== long) fails.push("줄바꿈 외에 글자가 바뀜");
   const any = corpus().map(([, f]) => exportHtmlOf(f)).find((h) => h.includes("pagzly-seo-text"));
-  if (!any || !any.includes(".pagzly-seo-text h2{margin:32px 0 12px;font-size:12px")) fails.push("v4 평문 블록 CSS가 없음");
+  if (!any || !any.includes(".pagzly-seo-text h2{margin:20px 0 8px;font-size:12px")) fails.push("v4 평문 블록 CSS가 없음");
 
   // ③ 넓은 폭 여백
   for (const cat of ["화장품/뷰티", "의류/패션", "전자제품", "식품/건강기능식품", "생활용품", "반려동물"]) {

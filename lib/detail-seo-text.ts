@@ -9,6 +9,9 @@ function esc(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
+/** 447차 2-d — v4 평문 블록의 "상세 정보" 목록 최대 줄 수(예전 80). 같은 글이 섹션에 이미 보이므로 앞쪽 40줄이면 검색·AI가 읽기에 충분하고 페이지 끝 글 덩어리가 절반 가까이 줄어든다 */
+export const SEO_DETAIL_MAX_V4 = 40;
+
 /** 섹션에서 검색·AI가 읽을 수 있는 본문 텍스트 추출 */
 export function collectSectionPlainText(section: DetailSection): string[] {
   const lines: string[] = [];
@@ -144,7 +147,7 @@ export function buildSeoTextBlockHtml(opts: {
   if (sectionTexts.length > 0) {
     parts.push(
       `<section><h2>상세 정보</h2><ul>${sectionTexts
-        .slice(0, 80)
+        .slice(0, DESIGN_V4_ENABLED ? SEO_DETAIL_MAX_V4 : 80)
         .map((t) => `<li>${esc(t)}</li>`)
         .join("")}</ul></section>`,
     );
