@@ -111,7 +111,7 @@ const ALL_TEXT = `(() => {
   const out = []; const w = document.createTreeWalker(document.querySelector('[data-pz-typefloor]') || document.body, NodeFilter.SHOW_TEXT); const seen = new Set();
   while (w.nextNode()) { const n = w.currentNode; const text = (n.textContent || '').trim(); if (!text) continue; const e = n.parentElement; if (!e || seen.has(e) || ['SCRIPT','STYLE','NOSCRIPT'].includes(e.tagName) || e.closest('nextjs-portal,[data-pagzly-bar],nav')) continue;
     const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) === 0 || e.closest('[aria-hidden="true"]')) continue;
-    const r = document.createRange(); r.selectNodeContents(n); const b = r.getBoundingClientRect(); if (b.width < 4 || b.height < 4) continue; seen.add(e);
+    const r = document.createRange(); r.selectNodeContents(n); const b = (cs.webkitLineClamp && cs.webkitLineClamp !== 'none') ? e.getBoundingClientRect() : r.getBoundingClientRect(); if (b.width < 4 || b.height < 4) continue; seen.add(e);
     const m = rgba(cs.color);
     out.push({ x: b.left + scrollX, y: b.top + scrollY, w: b.width, h: b.height, text: text.slice(0, 20), fg: [Number(m[0]), Number(m[1]), Number(m[2]), m[3] === undefined ? 1 : Number(m[3])], px: parseFloat(cs.fontSize), weight: Number(cs.fontWeight) || 400, layout: '' }); }
   return out;
@@ -152,5 +152,7 @@ if (/fuzz-live\.ts$/.test(process.argv[1] ?? "")) {
     fs.writeFileSync(out, md);
     if (arg("json", "")) fs.writeFileSync(arg("json", ""), JSON.stringify(violations));
     console.log(md);
+    const blank = new Set(cases.filter((c) => c.ops.includes("제품명 공백")).map((c) => c.id));
+    process.exit(violations.some((v) => (v.kind === "가로 넘침" || v.kind === "잘린 글자" || v.kind === "빈 섹션 껍데기") && !blank.has(v.id)) ? 1 : 0);
   });
 }

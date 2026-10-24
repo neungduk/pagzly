@@ -42,7 +42,7 @@ export const PROBE = `(() => {
     const n = walker.currentNode; const text = (n.textContent || '').trim(); if (!text) continue;
     const e = n.parentElement; if (!e || seen.has(e) || ['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(e.tagName)) continue;
     const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) === 0) continue;
-    const r = document.createRange(); r.selectNodeContents(n); const b = r.getBoundingClientRect(); if (b.width < 4 || b.height < 4) continue;
+    const r = document.createRange(); r.selectNodeContents(n); const b = (cs.webkitLineClamp && cs.webkitLineClamp !== 'none') ? e.getBoundingClientRect() : r.getBoundingClientRect(); if (b.width < 4 || b.height < 4) continue;
     const t = { x: b.left + scrollX, y: b.top + scrollY, w: b.width, h: b.height };
     if (cover(t) < 0.5) continue;
     seen.add(e);

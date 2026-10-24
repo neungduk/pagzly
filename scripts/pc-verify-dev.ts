@@ -15,7 +15,7 @@ const NPX = process.platform === "win32" ? "npx.cmd" : "npx";
 async function main() {
   fs.mkdirSync(OUT, { recursive: true });
   const logFd = fs.openSync(path.join(OUT, "next-dev.log"), "w");
-  const server = spawn(NPX, ["next", "dev", "-p", PORT], { stdio: ["ignore", logFd, logFd], env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" }, shell: process.platform === "win32" });
+  const server = spawn(NPX, ["next", "dev", "-p", PORT], { stdio: ["ignore", logFd, logFd], env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" }, shell: process.platform === "win32", detached: process.platform !== "win32" });
   let ready = false;
   for (let i = 0; i < 90 && !ready; i += 1) {
     await new Promise((r) => setTimeout(r, 1000));
@@ -32,7 +32,7 @@ async function main() {
     }
   } finally {
     if (process.platform === "win32") spawnSync("taskkill", ["/pid", String(server.pid), "/T", "/F"]);
-    else server.kill("SIGTERM");
+    else { try { process.kill(-server.pid!, "SIGTERM"); } catch { server.kill("SIGTERM"); } }
   }
   process.exit(code);
 }

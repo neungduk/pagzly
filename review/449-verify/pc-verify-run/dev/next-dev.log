@@ -1,0 +1,3189 @@
+▲ Next.js 16.4.2 (Turbopack)
+- Local:         http://localhost:3188
+- Network:       http://192.0.2.2:3188
+✓ Ready in 456ms
+✓ Running next.config.ts took 49ms
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+
+  To migrate automatically, run:
+  npx @next/codemod@canary middleware-to-proxy .
+
+  Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+
+✓ Generated AGENTS.md for AI agents. Set `agentRules: false` in next.config to disable.
+ GET /dev/detail-preview?capture=session 200 in 2.2s (next.js: 1306ms, proxy.ts: 129ms, application-code: 792ms)
+ GET /dev/detail-preview?capture=session 200 in 139ms (next.js: 8ms, proxy.ts: 12ms, application-code: 120ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <div className="min-h-full...">
+      <div>
+      <div className="mx-auto ma..." data-pagzly-preview={true} data-headline-face="serif">
+        <DetailSectionRenderer sections={[...]} imageUrls={[...]} imageHashByUrl={undefined} imageRoles={undefined} ...>
+          <div ref={{current:null}} className="@container..." data-pz-pack={undefined} data-pz-info="1" data-pz-v2="1" ...>
+            <style>
+            <style>
+            <style>
+            <style>
+            <style>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <style>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal index={3} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={3} data-section-slot="checklist" data-pz-top={32} ...>
+                  <section className="relative o..." style={{...}}>
+                    <SectionBackdropAccent>
+                    <div>
+                    <div className="relative m...">
+                      <svg>
+                      <div className="absolute o..." style={{left:"25%", ...}}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                          <img
+                            src="/iteration-fixtures/01.jpg"
+                            alt="히알루론 수분 크림 — 이 크림이 하는 일 — checklist"
+                            className="h-full w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                      ...
+            <DetailScrollReveal index={4} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={4} data-section-slot="feature_ca..." data-pz-top={undefined} ...>
+                  <section className="pb-8 @min-..." style={{...}}>
+                    <div className="relative">
+                      <div className="relative o..." style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — POINT — feature callout"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                    ...
+            <DetailScrollReveal index={5} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={5} data-section-slot="ingredient..." data-pz-top={undefined} ...>
+                  <StackedImageTextSection section={{type:"imag...", ...}} src="/iteration..." ratioClass="aspect-square" ...>
+                    <section className="relative o..." style={{...}}>
+                      <div>
+                      <div className="relative">
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — 수분을 붙잡는 히알루론산 — ingredient highlight"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      ...
+            <DetailScrollReveal>
+            <DetailScrollReveal index={7} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-usage" data-section-index={7} data-section-slot="step_card" data-pz-top={32} ...>
+                  <section className="px-6 py-12..." style={{...}}>
+                    <p>
+                    <EditableText>
+                    <div className="mx-auto mt...">
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/03.jpg"
+                              alt="히알루론 수분 크림 — 세안 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/04.jpg"
+                              alt="히알루론 수분 크림 — 도포 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+            <DetailScrollReveal index={8} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-gal..." data-section-index={8} data-section-slot="gallery" data-pz-top={undefined} ...>
+                  <section style={{...}}>
+                    <div>
+                    <div data-gallery-variant={undefined} className="grid grid-..." style={{...}}>
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/03.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 3 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/04.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 4 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+            ...
+ 
+ GET /dev/detail-preview?capture=session 200 in 252ms (next.js: 115ms, proxy.ts: 7ms, application-code: 130ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <div className="min-h-full...">
+      <div>
+      <div className="mx-auto ma..." data-pagzly-preview={true} data-headline-face="serif">
+        <DetailSectionRenderer sections={[...]} imageUrls={[...]} imageHashByUrl={undefined} imageRoles={undefined} ...>
+          <div ref={{current:null}} className="@container..." data-pz-pack={undefined} data-pz-info="1" data-pz-v2="1" ...>
+            <style>
+            <style>
+            <style>
+            <style>
+            <style>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <style>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal index={3} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={3} data-section-slot="checklist" data-pz-top={32} ...>
+                  <section className="relative o..." style={{...}}>
+                    <SectionBackdropAccent>
+                    <div>
+                    <div className="relative m...">
+                      <svg>
+                      <div className="absolute o..." style={{left:"25%", ...}}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                          <img
+                            src="/iteration-fixtures/01.jpg"
+                            alt="히알루론 수분 크림 — 이 크림이 하는 일 — checklist"
+                            className="h-full w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                      ...
+            <DetailScrollReveal index={4} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={4} data-section-slot="feature_ca..." data-pz-top={undefined} ...>
+                  <section className="pb-8 @min-..." style={{...}}>
+                    <div className="relative">
+                      <div className="relative o..." style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — POINT — feature callout"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                    ...
+            <DetailScrollReveal index={5} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={5} data-section-slot="ingredient..." data-pz-top={undefined} ...>
+                  <StackedImageTextSection section={{type:"imag...", ...}} src="/iteration..." ratioClass="aspect-square" ...>
+                    <section className="relative o..." style={{...}}>
+                      <div>
+                      <div className="relative">
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — 수분을 붙잡는 히알루론산 — ingredient highlight"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      ...
+            <DetailScrollReveal>
+            <DetailScrollReveal index={7} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-usage" data-section-index={7} data-section-slot="step_card" data-pz-top={32} ...>
+                  <section className="px-6 py-12..." style={{...}}>
+                    <p>
+                    <EditableText>
+                    <div className="mx-auto mt...">
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/03.jpg"
+                              alt="히알루론 수분 크림 — 세안 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/04.jpg"
+                              alt="히알루론 수분 크림 — 도포 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+            <DetailScrollReveal index={8} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-gal..." data-section-index={8} data-section-slot="gallery" data-pz-top={undefined} ...>
+                  <section style={{...}}>
+                    <div>
+                    <div data-gallery-variant={undefined} className="grid grid-..." style={{...}}>
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/03.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 3 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/04.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 4 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+            ...
+ 
+ GET /dev/detail-preview?capture=session 200 in 152ms (next.js: 49ms, proxy.ts: 4ms, application-code: 99ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <div className="min-h-full...">
+      <div>
+      <div className="mx-auto ma..." data-pagzly-preview={true} data-headline-face="serif">
+        <DetailSectionRenderer sections={[...]} imageUrls={[...]} imageHashByUrl={undefined} imageRoles={undefined} ...>
+          <div ref={{current:null}} className="@container..." data-pz-pack={undefined} data-pz-info="1" data-pz-v2="1" ...>
+            <style>
+            <style>
+            <style>
+            <style>
+            <style>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <style>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal index={3} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={3} data-section-slot="checklist" data-pz-top={32} ...>
+                  <section className="relative o..." style={{...}}>
+                    <SectionBackdropAccent>
+                    <div>
+                    <div className="relative m...">
+                      <svg>
+                      <div className="absolute o..." style={{left:"25%", ...}}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                          <img
+                            src="/iteration-fixtures/01.jpg"
+                            alt="히알루론 수분 크림 — 이 크림이 하는 일 — checklist"
+                            className="h-full w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                      ...
+            <DetailScrollReveal index={4} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={4} data-section-slot="feature_ca..." data-pz-top={undefined} ...>
+                  <section className="pb-8 @min-..." style={{...}}>
+                    <div className="relative">
+                      <div className="relative o..." style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — POINT — feature callout"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                    ...
+            <DetailScrollReveal index={5} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={5} data-section-slot="ingredient..." data-pz-top={undefined} ...>
+                  <StackedImageTextSection section={{type:"imag...", ...}} src="/iteration..." ratioClass="aspect-square" ...>
+                    <section className="relative o..." style={{...}}>
+                      <div>
+                      <div className="relative">
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — 수분을 붙잡는 히알루론산 — ingredient highlight"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      ...
+            <DetailScrollReveal>
+            <DetailScrollReveal index={7} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-usage" data-section-index={7} data-section-slot="step_card" data-pz-top={32} ...>
+                  <section className="px-6 py-12..." style={{...}}>
+                    <p>
+                    <EditableText>
+                    <div className="mx-auto mt...">
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/03.jpg"
+                              alt="히알루론 수분 크림 — 세안 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/04.jpg"
+                              alt="히알루론 수분 크림 — 도포 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+            <DetailScrollReveal index={8} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-gal..." data-section-index={8} data-section-slot="gallery" data-pz-top={undefined} ...>
+                  <section style={{...}}>
+                    <div>
+                    <div data-gallery-variant={undefined} className="grid grid-..." style={{...}}>
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/03.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 3 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/04.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 4 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+            ...
+ 
+ GET /dev/detail-preview?capture=session 200 in 170ms (next.js: 32ms, proxy.ts: 3ms, application-code: 135ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <div className="min-h-full...">
+      <div>
+      <div className="mx-auto ma..." data-pagzly-preview={true} data-headline-face="serif">
+        <DetailSectionRenderer sections={[...]} imageUrls={[...]} imageHashByUrl={undefined} imageRoles={undefined} ...>
+          <div ref={{current:null}} className="@container..." data-pz-pack={undefined} data-pz-info="1" data-pz-v2="1" ...>
+            <style>
+            <style>
+            <style>
+            <style>
+            <style>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <style>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal index={3} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={3} data-section-slot="checklist" data-pz-top={32} ...>
+                  <section className="relative o..." style={{...}}>
+                    <SectionBackdropAccent>
+                    <div>
+                    <div className="relative m...">
+                      <svg>
+                      <div className="absolute o..." style={{left:"25%", ...}}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                          <img
+                            src="/iteration-fixtures/01.jpg"
+                            alt="히알루론 수분 크림 — 이 크림이 하는 일 — checklist"
+                            className="h-full w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                      ...
+            <DetailScrollReveal index={4} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={4} data-section-slot="feature_ca..." data-pz-top={undefined} ...>
+                  <section className="pb-8 @min-..." style={{...}}>
+                    <div className="relative">
+                      <div className="relative o..." style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — POINT — feature callout"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                    ...
+            <DetailScrollReveal index={5} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={5} data-section-slot="ingredient..." data-pz-top={undefined} ...>
+                  <StackedImageTextSection section={{type:"imag...", ...}} src="/iteration..." ratioClass="aspect-square" ...>
+                    <section className="relative o..." style={{...}}>
+                      <div>
+                      <div className="relative">
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — 수분을 붙잡는 히알루론산 — ingredient highlight"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      ...
+            <DetailScrollReveal>
+            <DetailScrollReveal index={7} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-usage" data-section-index={7} data-section-slot="step_card" data-pz-top={32} ...>
+                  <section className="px-6 py-12..." style={{...}}>
+                    <p>
+                    <EditableText>
+                    <div className="mx-auto mt...">
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/03.jpg"
+                              alt="히알루론 수분 크림 — 세안 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/04.jpg"
+                              alt="히알루론 수분 크림 — 도포 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+            <DetailScrollReveal index={8} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-gal..." data-section-index={8} data-section-slot="gallery" data-pz-top={undefined} ...>
+                  <section style={{...}}>
+                    <div>
+                    <div data-gallery-variant={undefined} className="grid grid-..." style={{...}}>
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/03.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 3 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/04.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 4 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+            ...
+ 
+[browser] Failed to fetch (lib/capture-detail-png.ts:242:15)
+ GET /dev/detail-preview?capture=session 200 in 184ms (next.js: 55ms, proxy.ts: 5ms, application-code: 125ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <div className="min-h-full...">
+      <div>
+      <div className="mx-auto ma..." data-pagzly-preview={true} data-headline-face="serif">
+        <DetailSectionRenderer sections={[...]} imageUrls={[...]} imageHashByUrl={undefined} imageRoles={undefined} ...>
+          <div ref={{current:null}} className="@container..." data-pz-pack={undefined} data-pz-info="1" data-pz-v2="1" ...>
+            <style>
+            <style>
+            <style>
+            <style>
+            <style>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <style>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal index={3} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={3} data-section-slot="checklist" data-pz-top={32} ...>
+                  <section className="relative o..." style={{...}}>
+                    <SectionBackdropAccent>
+                    <div>
+                    <div className="relative m...">
+                      <svg>
+                      <div className="absolute o..." style={{left:"25%", ...}}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                          <img
+                            src="/iteration-fixtures/01.jpg"
+                            alt="히알루론 수분 크림 — 이 크림이 하는 일 — checklist"
+                            className="h-full w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                      ...
+            <DetailScrollReveal index={4} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={4} data-section-slot="feature_ca..." data-pz-top={undefined} ...>
+                  <section className="pb-8 @min-..." style={{...}}>
+                    <div className="relative">
+                      <div className="relative o..." style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — POINT — feature callout"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                    ...
+            <DetailScrollReveal index={5} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={5} data-section-slot="ingredient..." data-pz-top={undefined} ...>
+                  <StackedImageTextSection section={{type:"imag...", ...}} src="/iteration..." ratioClass="aspect-square" ...>
+                    <section className="relative o..." style={{...}}>
+                      <div>
+                      <div className="relative">
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — 수분을 붙잡는 히알루론산 — ingredient highlight"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      ...
+            <DetailScrollReveal>
+            <DetailScrollReveal index={7} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-usage" data-section-index={7} data-section-slot="step_card" data-pz-top={32} ...>
+                  <section className="px-6 py-12..." style={{...}}>
+                    <p>
+                    <EditableText>
+                    <div className="mx-auto mt...">
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/03.jpg"
+                              alt="히알루론 수분 크림 — 세안 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/04.jpg"
+                              alt="히알루론 수분 크림 — 도포 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+            <DetailScrollReveal index={8} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-gal..." data-section-index={8} data-section-slot="gallery" data-pz-top={undefined} ...>
+                  <section style={{...}}>
+                    <div>
+                    <div data-gallery-variant={undefined} className="grid grid-..." style={{...}}>
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/03.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 3 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/04.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 4 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+            ...
+ 
+ GET /dev/detail-preview?capture=session 200 in 426ms (next.js: 22ms, proxy.ts: 4ms, application-code: 400ms)
+ GET /dev/detail-preview?capture=session 200 in 424ms (next.js: 101ms, proxy.ts: 5ms, application-code: 318ms)
+ GET /dev/detail-preview?capture=session 200 in 422ms (next.js: 187ms, proxy.ts: 5ms, application-code: 230ms)
+ GET /dev/detail-preview?capture=session 200 in 428ms (next.js: 312ms, proxy.ts: 4ms, application-code: 112ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <div className="min-h-full...">
+      <div>
+      <div className="mx-auto ma..." data-pagzly-preview={true} data-headline-face="serif">
+        <DetailSectionRenderer sections={[...]} imageUrls={[...]} imageHashByUrl={undefined} imageRoles={undefined} ...>
+          <div ref={{current:null}} className="@container..." data-pz-pack={undefined} data-pz-info="1" data-pz-v2="1" ...>
+            <style>
+            <style>
+            <style>
+            <style>
+            <style>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <style>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal index={5} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={5} data-section-slot="ingredient..." data-pz-top={undefined} ...>
+                  <StackedImageTextSection section={{type:"imag...", ...}} src="/iteration..." ratioClass="aspect-square" ...>
+                    <section className="relative o..." style={{...}}>
+                      <div>
+                      <div className="relative">
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — 수분을 붙잡는 히알루론산 — ingredient highlight"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      ...
+            <DetailScrollReveal>
+            <DetailScrollReveal index={7} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-usage" data-section-index={7} data-section-slot="step_card" data-pz-top={32} ...>
+                  <section className="px-6 py-12..." style={{...}}>
+                    <p>
+                    <EditableText>
+                    <div className="mx-auto mt...">
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/03.jpg"
+                              alt="히알루론 수분 크림 — 세안 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/04.jpg"
+                              alt="히알루론 수분 크림 — 도포 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+            <DetailScrollReveal index={8} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-gal..." data-section-index={8} data-section-slot="gallery" data-pz-top={undefined} ...>
+                  <section style={{...}}>
+                    <div>
+                    <div data-gallery-variant={undefined} className="grid grid-..." style={{...}}>
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/03.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 3 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/04.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 4 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+            ...
+ 
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <div className="min-h-full...">
+      <div>
+      <div className="mx-auto ma..." data-pagzly-preview={true} data-headline-face="serif">
+        <DetailSectionRenderer sections={[...]} imageUrls={[...]} imageHashByUrl={undefined} imageRoles={undefined} ...>
+          <div ref={{current:null}} className="@container..." data-pz-pack={undefined} data-pz-info="1" data-pz-v2="1" ...>
+            <style>
+            <style>
+            <style>
+            <style>
+            <style>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <style>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal index={3} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={3} data-section-slot="checklist" data-pz-top={32} ...>
+                  <section className="relative o..." style={{...}}>
+                    <SectionBackdropAccent>
+                    <div>
+                    <div className="relative m...">
+                      <svg>
+                      <div className="absolute o..." style={{left:"25%", ...}}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                          <img
+                            src="/iteration-fixtures/01.jpg"
+                            alt="히알루론 수분 크림 — 이 크림이 하는 일 — checklist"
+                            className="h-full w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                      ...
+            <DetailScrollReveal index={4} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={4} data-section-slot="feature_ca..." data-pz-top={undefined} ...>
+                  <section className="pb-8 @min-..." style={{...}}>
+                    <div className="relative">
+                      <div className="relative o..." style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — POINT — feature callout"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                    ...
+            <DetailScrollReveal index={5} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={5} data-section-slot="ingredient..." data-pz-top={undefined} ...>
+                  <StackedImageTextSection section={{type:"imag...", ...}} src="/iteration..." ratioClass="aspect-square" ...>
+                    <section className="relative o..." style={{...}}>
+                      <div>
+                      <div className="relative">
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — 수분을 붙잡는 히알루론산 — ingredient highlight"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      ...
+            <DetailScrollReveal>
+            <DetailScrollReveal index={7} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-usage" data-section-index={7} data-section-slot="step_card" data-pz-top={32} ...>
+                  <section className="px-6 py-12..." style={{...}}>
+                    <p>
+                    <EditableText>
+                    <div className="mx-auto mt...">
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/03.jpg"
+                              alt="히알루론 수분 크림 — 세안 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/04.jpg"
+                              alt="히알루론 수분 크림 — 도포 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+            <DetailScrollReveal index={8} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-gal..." data-section-index={8} data-section-slot="gallery" data-pz-top={undefined} ...>
+                  <section style={{...}}>
+                    <div>
+                    <div data-gallery-variant={undefined} className="grid grid-..." style={{...}}>
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/03.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 3 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/04.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 4 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+            ...
+ 
+ GET /dev/detail-preview?capture=session 200 in 103ms (next.js: 6ms, proxy.ts: 4ms, application-code: 93ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <div className="min-h-full...">
+      <div>
+      <div className="mx-auto ma..." data-pagzly-preview={true} data-headline-face="serif">
+        <DetailSectionRenderer sections={[...]} imageUrls={[...]} imageHashByUrl={undefined} imageRoles={undefined} ...>
+          <div ref={{current:null}} className="@container..." data-pz-pack={undefined} data-pz-info="1" data-pz-v2="1" ...>
+            <style>
+            <style>
+            <style>
+            <style>
+            <style>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <style>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal index={3} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={3} data-section-slot="checklist" data-pz-top={32} ...>
+                  <section className="relative o..." style={{...}}>
+                    <SectionBackdropAccent>
+                    <div>
+                    <div className="relative m...">
+                      <svg>
+                      <div className="absolute o..." style={{left:"25%", ...}}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                          <img
+                            src="/iteration-fixtures/01.jpg"
+                            alt="히알루론 수분 크림 — 이 크림이 하는 일 — checklist"
+                            className="h-full w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                      ...
+            <DetailScrollReveal index={4} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={4} data-section-slot="feature_ca..." data-pz-top={undefined} ...>
+                  <section className="pb-8 @min-..." style={{...}}>
+                    <div className="relative">
+                      <div className="relative o..." style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — POINT — feature callout"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                    ...
+            <DetailScrollReveal index={5} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={5} data-section-slot="ingredient..." data-pz-top={undefined} ...>
+                  <StackedImageTextSection section={{type:"imag...", ...}} src="/iteration..." ratioClass="aspect-square" ...>
+                    <section className="relative o..." style={{...}}>
+                      <div>
+                      <div className="relative">
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — 수분을 붙잡는 히알루론산 — ingredient highlight"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      ...
+            <DetailScrollReveal>
+            <DetailScrollReveal index={7} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-usage" data-section-index={7} data-section-slot="step_card" data-pz-top={32} ...>
+                  <section className="px-6 py-12..." style={{...}}>
+                    <p>
+                    <EditableText>
+                    <div className="mx-auto mt...">
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/03.jpg"
+                              alt="히알루론 수분 크림 — 세안 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/04.jpg"
+                              alt="히알루론 수분 크림 — 도포 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+            <DetailScrollReveal index={8} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-gal..." data-section-index={8} data-section-slot="gallery" data-pz-top={undefined} ...>
+                  <section style={{...}}>
+                    <div>
+                    <div data-gallery-variant={undefined} className="grid grid-..." style={{...}}>
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/03.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 3 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/04.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 4 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+            ...
+ 
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <div className="min-h-full...">
+      <div>
+      <div className="mx-auto ma..." data-pagzly-preview={true} data-headline-face="serif">
+        <DetailSectionRenderer sections={[...]} imageUrls={[...]} imageHashByUrl={undefined} imageRoles={undefined} ...>
+          <div ref={{current:null}} className="@container..." data-pz-pack={undefined} data-pz-info="1" data-pz-v2="1" ...>
+            <style>
+            <style>
+            <style>
+            <style>
+            <style>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <style>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal index={3} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={3} data-section-slot="checklist" data-pz-top={32} ...>
+                  <section className="relative o..." style={{...}}>
+                    <SectionBackdropAccent>
+                    <div>
+                    <div className="relative m...">
+                      <svg>
+                      <div className="absolute o..." style={{left:"25%", ...}}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                          <img
+                            src="/iteration-fixtures/01.jpg"
+                            alt="히알루론 수분 크림 — 이 크림이 하는 일 — checklist"
+                            className="h-full w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                      ...
+            <DetailScrollReveal index={4} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={4} data-section-slot="feature_ca..." data-pz-top={undefined} ...>
+                  <section className="pb-8 @min-..." style={{...}}>
+                    <div className="relative">
+                      <div className="relative o..." style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — POINT — feature callout"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                    ...
+            <DetailScrollReveal index={5} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={5} data-section-slot="ingredient..." data-pz-top={undefined} ...>
+                  <StackedImageTextSection section={{type:"imag...", ...}} src="/iteration..." ratioClass="aspect-square" ...>
+                    <section className="relative o..." style={{...}}>
+                      <div>
+                      <div className="relative">
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — 수분을 붙잡는 히알루론산 — ingredient highlight"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      ...
+            <DetailScrollReveal>
+            <DetailScrollReveal index={7} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-usage" data-section-index={7} data-section-slot="step_card" data-pz-top={32} ...>
+                  <section className="px-6 py-12..." style={{...}}>
+                    <p>
+                    <EditableText>
+                    <div className="mx-auto mt...">
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/03.jpg"
+                              alt="히알루론 수분 크림 — 세안 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/04.jpg"
+                              alt="히알루론 수분 크림 — 도포 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+            <DetailScrollReveal index={8} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-gal..." data-section-index={8} data-section-slot="gallery" data-pz-top={undefined} ...>
+                  <section style={{...}}>
+                    <div>
+                    <div data-gallery-variant={undefined} className="grid grid-..." style={{...}}>
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/03.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 3 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/04.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 4 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+            ...
+ 
+ GET /dev/detail-preview?capture=session 200 in 193ms (next.js: 21ms, proxy.ts: 5ms, application-code: 167ms)
+ GET /dev/detail-preview?capture=session 200 in 297ms (next.js: 52ms, proxy.ts: 9ms, application-code: 235ms)
+ GET /dev/detail-preview?capture=session 200 in 187ms (next.js: 25ms, proxy.ts: 6ms, application-code: 156ms)
+ GET /dev/detail-preview?capture=session 200 in 127ms (next.js: 6ms, proxy.ts: 3ms, application-code: 118ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <div className="min-h-full...">
+      <div>
+      <div className="mx-auto ma..." data-pagzly-preview={true} data-headline-face="serif">
+        <DetailSectionRenderer sections={[...]} imageUrls={[...]} imageHashByUrl={undefined} imageRoles={undefined} ...>
+          <div ref={{current:null}} className="@container..." data-pz-pack={undefined} data-pz-info="1" data-pz-v2="1" ...>
+            <style>
+            <style>
+            <style>
+            <style>
+            <style>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <style>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal index={3} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={3} data-section-slot="checklist" data-pz-top={32} ...>
+                  <section className="relative o..." style={{...}}>
+                    <SectionBackdropAccent>
+                    <div>
+                    <div className="relative m...">
+                      <svg>
+                      <div className="absolute o..." style={{left:"25%", ...}}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                          <img
+                            src="/iteration-fixtures/01.jpg"
+                            alt="히알루론 수분 크림 — 이 크림이 하는 일 — checklist"
+                            className="h-full w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                      ...
+            <DetailScrollReveal index={4} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={4} data-section-slot="feature_ca..." data-pz-top={undefined} ...>
+                  <section className="pb-8 @min-..." style={{...}}>
+                    <div className="relative">
+                      <div className="relative o..." style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — POINT — feature callout"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                    ...
+            <DetailScrollReveal index={5} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={5} data-section-slot="ingredient..." data-pz-top={undefined} ...>
+                  <StackedImageTextSection section={{type:"imag...", ...}} src="/iteration..." ratioClass="aspect-square" ...>
+                    <section className="relative o..." style={{...}}>
+                      <div>
+                      <div className="relative">
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — 수분을 붙잡는 히알루론산 — ingredient highlight"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      ...
+            <DetailScrollReveal>
+            <DetailScrollReveal index={7} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-usage" data-section-index={7} data-section-slot="step_card" data-pz-top={32} ...>
+                  <section className="px-6 py-12..." style={{...}}>
+                    <p>
+                    <EditableText>
+                    <div className="mx-auto mt...">
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/03.jpg"
+                              alt="히알루론 수분 크림 — 세안 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/04.jpg"
+                              alt="히알루론 수분 크림 — 도포 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+            <DetailScrollReveal index={8} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-gal..." data-section-index={8} data-section-slot="gallery" data-pz-top={undefined} ...>
+                  <section style={{...}}>
+                    <div>
+                    <div data-gallery-variant={undefined} className="grid grid-..." style={{...}}>
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/03.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 3 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/04.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 4 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+            ...
+ 
+ GET /dev/detail-preview?capture=session 200 in 143ms (next.js: 18ms, proxy.ts: 6ms, application-code: 120ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <div className="min-h-full...">
+      <div>
+      <div className="mx-auto ma..." data-pagzly-preview={true} data-headline-face="serif">
+        <DetailSectionRenderer sections={[...]} imageUrls={[...]} imageHashByUrl={undefined} imageRoles={undefined} ...>
+          <div ref={{current:null}} className="@container..." data-pz-pack={undefined} data-pz-info="1" data-pz-v2="1" ...>
+            <style>
+            <style>
+            <style>
+            <style>
+            <style>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <style>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal index={3} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={3} data-section-slot="checklist" data-pz-top={32} ...>
+                  <section className="relative o..." style={{...}}>
+                    <SectionBackdropAccent>
+                    <div>
+                    <div className="relative m...">
+                      <svg>
+                      <div className="absolute o..." style={{left:"25%", ...}}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                          <img
+                            src="/iteration-fixtures/01.jpg"
+                            alt="히알루론 수분 크림 — 이 크림이 하는 일 — checklist"
+                            className="h-full w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                      ...
+            <DetailScrollReveal index={4} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={4} data-section-slot="feature_ca..." data-pz-top={undefined} ...>
+                  <section className="pb-8 @min-..." style={{...}}>
+                    <div className="relative">
+                      <div className="relative o..." style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — POINT — feature callout"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                    ...
+            <DetailScrollReveal index={5} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={5} data-section-slot="ingredient..." data-pz-top={undefined} ...>
+                  <StackedImageTextSection section={{type:"imag...", ...}} src="/iteration..." ratioClass="aspect-square" ...>
+                    <section className="relative o..." style={{...}}>
+                      <div>
+                      <div className="relative">
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — 수분을 붙잡는 히알루론산 — ingredient highlight"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      ...
+            <DetailScrollReveal>
+            <DetailScrollReveal index={7} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-usage" data-section-index={7} data-section-slot="step_card" data-pz-top={32} ...>
+                  <section className="px-6 py-12..." style={{...}}>
+                    <p>
+                    <EditableText>
+                    <div className="mx-auto mt...">
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/03.jpg"
+                              alt="히알루론 수분 크림 — 세안 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/04.jpg"
+                              alt="히알루론 수분 크림 — 도포 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+            <DetailScrollReveal index={8} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-gal..." data-section-index={8} data-section-slot="gallery" data-pz-top={undefined} ...>
+                  <section style={{...}}>
+                    <div>
+                    <div data-gallery-variant={undefined} className="grid grid-..." style={{...}}>
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/03.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 3 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/04.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 4 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+            ...
+ 
+ GET /dev/detail-preview?capture=session 200 in 427ms (next.js: 30ms, proxy.ts: 12ms, application-code: 385ms)
+ GET /dev/detail-preview?capture=session 200 in 352ms (next.js: 88ms, proxy.ts: 28ms, application-code: 237ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <div className="min-h-full...">
+      <div>
+      <div className="mx-auto ma..." data-pagzly-preview={true} data-headline-face="serif">
+        <DetailSectionRenderer sections={[...]} imageUrls={[...]} imageHashByUrl={undefined} imageRoles={undefined} ...>
+          <div ref={{current:null}} className="@container..." data-pz-pack={undefined} data-pz-info="1" data-pz-v2="1" ...>
+            <style>
+            <style>
+            <style>
+            <style>
+            <style>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <style>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal index={7} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-usage" data-section-index={7} data-section-slot="step_card" data-pz-top={32} ...>
+                  <section className="px-6 py-12..." style={{...}}>
+                    <p>
+                    <EditableText>
+                    <div className="mx-auto mt...">
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/03.jpg"
+                              alt="히알루론 수분 크림 — 세안 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/04.jpg"
+                              alt="히알루론 수분 크림 — 도포 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+            <DetailScrollReveal index={8} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-gal..." data-section-index={8} data-section-slot="gallery" data-pz-top={undefined} ...>
+                  <section style={{...}}>
+                    <div>
+                    <div data-gallery-variant={undefined} className="grid grid-..." style={{...}}>
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/03.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 3 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/04.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 4 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+            ...
+ 
+ GET /dev/detail-preview?capture=session 200 in 123ms (next.js: 11ms, proxy.ts: 3ms, application-code: 108ms)
+ GET /dev/detail-preview?capture=session 200 in 196ms (next.js: 58ms, proxy.ts: 9ms, application-code: 129ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <div className="min-h-full...">
+      <div>
+      <div className="mx-auto ma..." data-pagzly-preview={true} data-headline-face="serif">
+        <DetailSectionRenderer sections={[...]} imageUrls={[...]} imageHashByUrl={undefined} imageRoles={undefined} ...>
+          <div ref={{current:null}} className="@container..." data-pz-pack={undefined} data-pz-info="1" data-pz-v2="1" ...>
+            <style>
+            <style>
+            <style>
+            <style>
+            <style>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <style>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal index={3} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={3} data-section-slot="checklist" data-pz-top={32} ...>
+                  <section className="relative o..." style={{...}}>
+                    <SectionBackdropAccent>
+                    <div>
+                    <div className="relative m...">
+                      <svg>
+                      <div className="absolute o..." style={{left:"25%", ...}}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                          <img
+                            src="/iteration-fixtures/01.jpg"
+                            alt="히알루론 수분 크림 — 이 크림이 하는 일 — checklist"
+                            className="h-full w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                      ...
+            <DetailScrollReveal index={4} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={4} data-section-slot="feature_ca..." data-pz-top={undefined} ...>
+                  <section className="pb-8 @min-..." style={{...}}>
+                    <div className="relative">
+                      <div className="relative o..." style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — POINT — feature callout"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                    ...
+            <DetailScrollReveal index={5} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={5} data-section-slot="ingredient..." data-pz-top={undefined} ...>
+                  <StackedImageTextSection section={{type:"imag...", ...}} src="/iteration..." ratioClass="aspect-square" ...>
+                    <section className="relative o..." style={{...}}>
+                      <div>
+                      <div className="relative">
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — 수분을 붙잡는 히알루론산 — ingredient highlight"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      ...
+            <DetailScrollReveal>
+            <DetailScrollReveal index={7} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-usage" data-section-index={7} data-section-slot="step_card" data-pz-top={32} ...>
+                  <section className="px-6 py-12..." style={{...}}>
+                    <p>
+                    <EditableText>
+                    <div className="mx-auto mt...">
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/03.jpg"
+                              alt="히알루론 수분 크림 — 세안 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/04.jpg"
+                              alt="히알루론 수분 크림 — 도포 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+            <DetailScrollReveal index={8} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-gal..." data-section-index={8} data-section-slot="gallery" data-pz-top={undefined} ...>
+                  <section style={{...}}>
+                    <div>
+                    <div data-gallery-variant={undefined} className="grid grid-..." style={{...}}>
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/03.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 3 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/04.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 4 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+            ...
+ 
+ GET /dev/detail-preview?capture=session 200 in 347ms (next.js: 12ms, proxy.ts: 4ms, application-code: 331ms)
+ GET /dev/detail-preview?capture=session 200 in 347ms (next.js: 31ms, proxy.ts: 5ms, application-code: 311ms)
+ GET /dev/detail-preview?capture=session 200 in 352ms (next.js: 131ms, proxy.ts: 6ms, application-code: 215ms)
+ GET /dev/detail-preview?capture=session 200 in 175ms (next.js: 7ms, proxy.ts: 3ms, application-code: 164ms)
+ GET /dev/detail-preview?capture=session 200 in 134ms (next.js: 23ms, proxy.ts: 4ms, application-code: 107ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <div className="min-h-full...">
+      <div>
+      <div className="mx-auto ma..." data-pagzly-preview={true} data-headline-face="serif">
+        <DetailSectionRenderer sections={[...]} imageUrls={[...]} imageHashByUrl={undefined} imageRoles={undefined} ...>
+          <div ref={{current:null}} className="@container..." data-pz-pack={undefined} data-pz-info="1" data-pz-v2="1" ...>
+            <style>
+            <style>
+            <style>
+            <style>
+            <style>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <style>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal index={3} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={3} data-section-slot="checklist" data-pz-top={32} ...>
+                  <section className="relative o..." style={{...}}>
+                    <SectionBackdropAccent>
+                    <div>
+                    <div className="relative m...">
+                      <svg>
+                      <div className="absolute o..." style={{left:"25%", ...}}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                          <img
+                            src="/iteration-fixtures/01.jpg"
+                            alt="히알루론 수분 크림 — 이 크림이 하는 일 — checklist"
+                            className="h-full w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                      ...
+            <DetailScrollReveal index={4} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={4} data-section-slot="feature_ca..." data-pz-top={undefined} ...>
+                  <section className="pb-8 @min-..." style={{...}}>
+                    <div className="relative">
+                      <div className="relative o..." style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — POINT — feature callout"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                    ...
+            <DetailScrollReveal index={5} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={5} data-section-slot="ingredient..." data-pz-top={undefined} ...>
+                  <StackedImageTextSection section={{type:"imag...", ...}} src="/iteration..." ratioClass="aspect-square" ...>
+                    <section className="relative o..." style={{...}}>
+                      <div>
+                      <div className="relative">
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — 수분을 붙잡는 히알루론산 — ingredient highlight"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      ...
+            <DetailScrollReveal>
+            <DetailScrollReveal index={7} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-usage" data-section-index={7} data-section-slot="step_card" data-pz-top={32} ...>
+                  <section className="px-6 py-12..." style={{...}}>
+                    <p>
+                    <EditableText>
+                    <div className="mx-auto mt...">
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/03.jpg"
+                              alt="히알루론 수분 크림 — 세안 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/04.jpg"
+                              alt="히알루론 수분 크림 — 도포 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+            <DetailScrollReveal index={8} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-gal..." data-section-index={8} data-section-slot="gallery" data-pz-top={undefined} ...>
+                  <section style={{...}}>
+                    <div>
+                    <div data-gallery-variant={undefined} className="grid grid-..." style={{...}}>
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/03.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 3 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/04.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 4 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+            ...
+ 
+ GET /dev/detail-preview?capture=session 200 in 244ms (next.js: 90ms, proxy.ts: 7ms, application-code: 147ms)
+ GET /dev/detail-preview?capture=session 200 in 276ms (next.js: 43ms, proxy.ts: 8ms, application-code: 224ms)
+ GET /dev/detail-preview?capture=session 200 in 247ms (next.js: 25ms, proxy.ts: 10ms, application-code: 212ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <div className="min-h-full...">
+      <div>
+      <div className="mx-auto ma..." data-pagzly-preview={true} data-headline-face="serif">
+        <DetailSectionRenderer sections={[...]} imageUrls={[...]} imageHashByUrl={undefined} imageRoles={undefined} ...>
+          <div ref={{current:null}} className="@container..." data-pz-pack={undefined} data-pz-info="1" data-pz-v2="1" ...>
+            <style>
+            <style>
+            <style>
+            <style>
+            <style>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <style>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal index={3} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={3} data-section-slot="checklist" data-pz-top={32} ...>
+                  <section className="relative o..." style={{...}}>
+                    <SectionBackdropAccent>
+                    <div>
+                    <div className="relative m...">
+                      <svg>
+                      <div className="absolute o..." style={{left:"25%", ...}}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                          <img
+                            src="/iteration-fixtures/01.jpg"
+                            alt="히알루론 수분 크림 — 이 크림이 하는 일 — checklist"
+                            className="h-full w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                      ...
+            <DetailScrollReveal index={4} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={4} data-section-slot="feature_ca..." data-pz-top={undefined} ...>
+                  <section className="pb-8 @min-..." style={{...}}>
+                    <div className="relative">
+                      <div className="relative o..." style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — POINT — feature callout"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                    ...
+            <DetailScrollReveal index={5} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={5} data-section-slot="ingredient..." data-pz-top={undefined} ...>
+                  <StackedImageTextSection section={{type:"imag...", ...}} src="/iteration..." ratioClass="aspect-square" ...>
+                    <section className="relative o..." style={{...}}>
+                      <div>
+                      <div className="relative">
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — 수분을 붙잡는 히알루론산 — ingredient highlight"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      ...
+            <DetailScrollReveal>
+            <DetailScrollReveal index={7} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-usage" data-section-index={7} data-section-slot="step_card" data-pz-top={32} ...>
+                  <section className="px-6 py-12..." style={{...}}>
+                    <p>
+                    <EditableText>
+                    <div className="mx-auto mt...">
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/03.jpg"
+                              alt="히알루론 수분 크림 — 세안 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/04.jpg"
+                              alt="히알루론 수분 크림 — 도포 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+            <DetailScrollReveal index={8} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-gal..." data-section-index={8} data-section-slot="gallery" data-pz-top={undefined} ...>
+                  <section style={{...}}>
+                    <div>
+                    <div data-gallery-variant={undefined} className="grid grid-..." style={{...}}>
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/03.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 3 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/04.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 4 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+            ...
+ 
+ GET /dev/detail-preview?capture=session 200 in 237ms (next.js: 28ms, proxy.ts: 21ms, application-code: 189ms)
+ GET /dev/detail-preview?capture=session 200 in 159ms (next.js: 21ms, proxy.ts: 3ms, application-code: 135ms)
+ GET /dev/detail-preview?capture=session 200 in 319ms (next.js: 26ms, proxy.ts: 10ms, application-code: 282ms)
+ GET /dev/detail-preview?capture=session 200 in 322ms (next.js: 131ms, proxy.ts: 15ms, application-code: 177ms)
+ GET /dev/detail-preview?capture=session 200 in 122ms (next.js: 12ms, proxy.ts: 10ms, application-code: 101ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <div className="min-h-full...">
+      <div>
+      <div className="mx-auto ma..." data-pagzly-preview={true} data-headline-face="serif">
+        <DetailSectionRenderer sections={[...]} imageUrls={[...]} imageHashByUrl={undefined} imageRoles={undefined} ...>
+          <div ref={{current:null}} className="@container..." data-pz-pack={undefined} data-pz-info="1" data-pz-v2="1" ...>
+            <style>
+            <style>
+            <style>
+            <style>
+            <style>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <style>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal index={3} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={3} data-section-slot="checklist" data-pz-top={32} ...>
+                  <section className="relative o..." style={{...}}>
+                    <SectionBackdropAccent>
+                    <div>
+                    <div className="relative m...">
+                      <svg>
+                      <div className="absolute o..." style={{left:"25%", ...}}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                          <img
+                            src="/iteration-fixtures/01.jpg"
+                            alt="히알루론 수분 크림 — 이 크림이 하는 일 — checklist"
+                            className="h-full w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                      ...
+            <DetailScrollReveal index={4} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={4} data-section-slot="feature_ca..." data-pz-top={undefined} ...>
+                  <section className="pb-8 @min-..." style={{...}}>
+                    <div className="relative">
+                      <div className="relative o..." style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — POINT — feature callout"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                    ...
+            <DetailScrollReveal index={5} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={5} data-section-slot="ingredient..." data-pz-top={undefined} ...>
+                  <StackedImageTextSection section={{type:"imag...", ...}} src="/iteration..." ratioClass="aspect-square" ...>
+                    <section className="relative o..." style={{...}}>
+                      <div>
+                      <div className="relative">
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — 수분을 붙잡는 히알루론산 — ingredient highlight"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      ...
+            <DetailScrollReveal>
+            <DetailScrollReveal index={7} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-usage" data-section-index={7} data-section-slot="step_card" data-pz-top={32} ...>
+                  <section className="px-6 py-12..." style={{...}}>
+                    <p>
+                    <EditableText>
+                    <div className="mx-auto mt...">
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/03.jpg"
+                              alt="히알루론 수분 크림 — 세안 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/04.jpg"
+                              alt="히알루론 수분 크림 — 도포 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+            <DetailScrollReveal index={8} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-gal..." data-section-index={8} data-section-slot="gallery" data-pz-top={undefined} ...>
+                  <section style={{...}}>
+                    <div>
+                    <div data-gallery-variant={undefined} className="grid grid-..." style={{...}}>
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/03.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 3 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/04.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 4 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+            ...
+ 
+ GET /dev/detail-preview?capture=session 200 in 230ms (next.js: 20ms, proxy.ts: 5ms, application-code: 205ms)
+ GET /dev/detail-preview?capture=session 200 in 209ms (next.js: 53ms, proxy.ts: 6ms, application-code: 150ms)
+ GET /dev/detail-preview?capture=session 200 in 196ms (next.js: 19ms, proxy.ts: 9ms, application-code: 169ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <div className="min-h-full...">
+      <div>
+      <div className="mx-auto ma..." data-pagzly-preview={true} data-headline-face="serif">
+        <DetailSectionRenderer sections={[...]} imageUrls={[...]} imageHashByUrl={undefined} imageRoles={undefined} ...>
+          <div ref={{current:null}} className="@container..." data-pz-pack={undefined} data-pz-info="1" data-pz-v2="1" ...>
+            <style>
+            <style>
+            <style>
+            <style>
+            <style>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <style>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal index={3} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={3} data-section-slot="checklist" data-pz-top={32} ...>
+                  <section className="relative o..." style={{...}}>
+                    <SectionBackdropAccent>
+                    <div>
+                    <div className="relative m...">
+                      <svg>
+                      <div className="absolute o..." style={{left:"25%", ...}}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                          <img
+                            src="/iteration-fixtures/01.jpg"
+                            alt="히알루론 수분 크림 — 이 크림이 하는 일 — checklist"
+                            className="h-full w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                      ...
+            <DetailScrollReveal index={4} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={4} data-section-slot="feature_ca..." data-pz-top={undefined} ...>
+                  <section className="pb-8 @min-..." style={{...}}>
+                    <div className="relative">
+                      <div className="relative o..." style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — POINT — feature callout"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                    ...
+            <DetailScrollReveal index={5} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={5} data-section-slot="ingredient..." data-pz-top={undefined} ...>
+                  <StackedImageTextSection section={{type:"imag...", ...}} src="/iteration..." ratioClass="aspect-square" ...>
+                    <section className="relative o..." style={{...}}>
+                      <div>
+                      <div className="relative">
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — 수분을 붙잡는 히알루론산 — ingredient highlight"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      ...
+            <DetailScrollReveal>
+            <DetailScrollReveal index={7} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-usage" data-section-index={7} data-section-slot="step_card" data-pz-top={32} ...>
+                  <section className="px-6 py-12..." style={{...}}>
+                    <p>
+                    <EditableText>
+                    <div className="mx-auto mt...">
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/03.jpg"
+                              alt="히알루론 수분 크림 — 세안 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/04.jpg"
+                              alt="히알루론 수분 크림 — 도포 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+            <DetailScrollReveal index={8} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-gal..." data-section-index={8} data-section-slot="gallery" data-pz-top={undefined} ...>
+                  <section style={{...}}>
+                    <div>
+                    <div data-gallery-variant={undefined} className="grid grid-..." style={{...}}>
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/03.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 3 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/04.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 4 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+            ...
+ 
+ GET /dev/detail-preview?capture=session 200 in 122ms (next.js: 9ms, proxy.ts: 3ms, application-code: 110ms)
+ GET /dev/detail-preview?capture=session 200 in 175ms (next.js: 16ms, proxy.ts: 3ms, application-code: 157ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <div className="min-h-full...">
+      <div>
+      <div className="mx-auto ma..." data-pagzly-preview={true} data-headline-face="serif">
+        <DetailSectionRenderer sections={[...]} imageUrls={[...]} imageHashByUrl={undefined} imageRoles={undefined} ...>
+          <div ref={{current:null}} className="@container..." data-pz-pack={undefined} data-pz-info="1" data-pz-v2="1" ...>
+            <style>
+            <style>
+            <style>
+            <style>
+            <style>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <link>
+            <style>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal>
+            <DetailScrollReveal index={3} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={3} data-section-slot="checklist" data-pz-top={32} ...>
+                  <section className="relative o..." style={{...}}>
+                    <SectionBackdropAccent>
+                    <div>
+                    <div className="relative m...">
+                      <svg>
+                      <div className="absolute o..." style={{left:"25%", ...}}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                          <img
+                            src="/iteration-fixtures/01.jpg"
+                            alt="히알루론 수분 크림 — 이 크림이 하는 일 — checklist"
+                            className="h-full w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                      ...
+            <DetailScrollReveal index={4} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={4} data-section-slot="feature_ca..." data-pz-top={undefined} ...>
+                  <section className="pb-8 @min-..." style={{...}}>
+                    <div className="relative">
+                      <div className="relative o..." style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — POINT — feature callout"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                    ...
+            <DetailScrollReveal index={5} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id={undefined} data-section-index={5} data-section-slot="ingredient..." data-pz-top={undefined} ...>
+                  <StackedImageTextSection section={{type:"imag...", ...}} src="/iteration..." ratioClass="aspect-square" ...>
+                    <section className="relative o..." style={{...}}>
+                      <div>
+                      <div className="relative">
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-squ...">
+                          <img
+                            src="/iteration-fixtures/02.jpg"
+                            alt="히알루론 수분 크림 — 수분을 붙잡는 히알루론산 — ingredient highlight"
+                            className="aspect-square w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      ...
+            <DetailScrollReveal>
+            <DetailScrollReveal index={7} variant="section-alt">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-usage" data-section-index={7} data-section-slot="step_card" data-pz-top={32} ...>
+                  <section className="px-6 py-12..." style={{...}}>
+                    <p>
+                    <EditableText>
+                    <div className="mx-auto mt...">
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/03.jpg"
+                              alt="히알루론 수분 크림 — 세안 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+                      <div className="flex flex-col">
+                        <div className="relative o...">
+                          <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="h-full w-f...">
+                            <img
+                              src="/iteration-fixtures/04.jpg"
+                              alt="히알루론 수분 크림 — 도포 — step card"
+                              className="h-full w-full object-cover"
+                              style={undefined}
++                             loading="lazy"
+-                             loading="eager"
+                              decoding="async"
+                              crossOrigin="anonymous"
+                              onError={function onError}
+                            >
+                          ...
+                        ...
+            <DetailScrollReveal index={8} variant="section">
+              <div ref={{current:null}} data-scroll-reveal={true} className={"relative "}>
+                <span>
+                <div id="pagzly-gal..." data-section-index={8} data-section-slot="gallery" data-pz-top={undefined} ...>
+                  <section style={{...}}>
+                    <div>
+                    <div data-gallery-variant={undefined} className="grid grid-..." style={{...}}>
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/03.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 3 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+                      <div className="relative" style={undefined}>
+                        <SectionImage src="/iteration..." alt="히알루론 수분 크림..." className="aspect-[3/...">
+                          <img
+                            src="/iteration-fixtures/04.jpg"
+                            alt="히알루론 수분 크림 — 실제 사용 장면 4 — gallery"
+                            className="aspect-[3/4] w-full object-cover"
+                            style={undefined}
++                           loading="lazy"
+-                           loading="eager"
+                            decoding="async"
+                            crossOrigin="anonymous"
+                            onError={function onError}
+                          >
+                        ...
+            ...
+ 
+ GET /dev/detail-preview?capture=session 200 in 117ms (next.js: 6ms, proxy.ts: 6ms, application-code: 105ms)
+[?25h
