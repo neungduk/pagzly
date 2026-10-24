@@ -12,9 +12,10 @@ import sharp from "sharp";
 import { STRESS_PHOTOS, generate } from "./gen-photo-stress";
 import { corpus, exportHtmlOf } from "./design-corpus";
 import { EXTRA_ROOTS, launch, openHtml } from "./eye-lib";
+import { VARIANT_IDS, htmlFor } from "./stress-variants";
 
 export const PHOTO_DIR = "review/448-verify/photos";
-export const FIXTURES = ["fx-compare-fashion", "fx-fashion-dress-floral", "fx-skincare-serum", "fx-food-snack", "fx-tech-keyboard", "fx-tech-vacuum"];
+export const FIXTURES = ["fx-compare-fashion", "fx-fashion-dress-floral", "fx-skincare-serum", "fx-food-snack", "fx-tech-keyboard", "fx-tech-vacuum", "fx-hairbody-shampoo", "fx-tier-normal-living-3p", ...VARIANT_IDS];
 
 export type TextProbe = { text: string; x: number; y: number; w: number; h: number; fg: [number, number, number, number]; px: number; weight: number; layout: string };
 export type Finding = { fixture: string; photo: string; layout: string; text: string; px: number; need: number; ratio: number; p5: number; p50: number; p95: number };
@@ -89,7 +90,7 @@ export async function measure(browser: Awaited<ReturnType<typeof launch>>, html:
 }
 
 export function swapPhotos(html: string, photo: string): string {
-  return html.replace(/\/qa-fixtures\/ph\/[^"')\s]+/g, `/stress/${photo}.jpg`);
+  return html.replace(/(?:https?:\/\/qa-fixtures\.invalid)?\/(?:qa-fixtures\/ph|synth\/section-backdrops)\/[^"')\s]+|https?:\/\/qa-fixtures\.invalid\/[^"')\s]+/g, `/stress/${photo}.jpg`);
 }
 
 export async function run(opts: { fixtures?: string[]; photos?: string[]; width?: number } = {}): Promise<Finding[]> {
@@ -99,9 +100,8 @@ export async function run(opts: { fixtures?: string[]; photos?: string[]; width?
   const all: Finding[] = [];
   const fixtures = (opts.fixtures ?? FIXTURES).filter(Boolean);
   const photos = (opts.photos ?? STRESS_PHOTOS.map((p) => p.id)).filter(Boolean);
-  const files = new Map(corpus({ only: fixtures }));
   for (const fx of fixtures) {
-    const base = exportHtmlOf(files.get(fx)!);
+    const base = htmlFor(fx);
     for (const ph of photos) all.push(...(await measure(browser, swapPhotos(base, ph), fx, ph, opts.width ?? 390)));
   }
   await browser.close();

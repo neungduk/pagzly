@@ -1,0 +1,2 @@
+행: sky-ground / white-shadow / pastel-low / very-dark / sat-red / noise-shelf
+열: 히어로 A / 정보 포인트 / 배너

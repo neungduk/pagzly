@@ -185,6 +185,11 @@ export function safeBackdropUrl(u: string | null | undefined): string | null {
 /** 이미지가 최악(스크림 반대편 극단색)이어도 글자 대비가 target 이상이 되는 최소 스크림 투명도 */
 /** 448차 1-3 — v4: 어두운 사진 뒷면 스크림 목표 대비(예전 5). 안의 보조 글자(알파 0.92)·카드 면 덧칠을 감안해 흰 사진 최악에서 본문 14px가 4.5:1을 넘도록 6 */
 export const BACKDROP_DARK_TARGET_V4 = 6;
+/**
+ * 449차 1-2 — 포인트 구간(points)은 본문이 카드 안에 있고 섹션 면에는 큰 제목·번호 알약만 있다. 섹션 스크림은 큰 글자 대비(3:1 + 여유 → 3.3)만 맞추고
+ * 본문 대비는 카드 자체의 어두운 면(info-style의 v4 카드)이 맡는다 → 사진이 카드 사이·가장자리에서 살아 보인다(448차: 알파 0.96, 보존 0.06).
+ */
+export const BACKDROP_POINTS_TARGET_V4 = 3.3;
 export function scrimAlpha(scrimHex: string, textHex: string, worstImageHex: string, target: number): number {
   for (let a = 0.5; a <= 0.96; a += 0.01) {
     if (contrastRatioToken(textHex, mixHex(worstImageHex, scrimHex, a)) >= target) return +a.toFixed(2);
@@ -205,7 +210,7 @@ export function infoBackdropCss(map: InfoBackdropMap | undefined, level: InfoLev
     if (!url) continue;
     const dark = zone === "points" || (zone === "stat" && dr);
     const scrimHex = dark ? c.deep : zone === "compare" ? c.paper : c.soft;
-    const a = dark ? scrimAlpha(scrimHex, c.paper, "#FFFFFF", designV4On() ? BACKDROP_DARK_TARGET_V4 : 5) : scrimAlpha(scrimHex, c.ink, "#000000", 5.5);
+    const a = dark ? scrimAlpha(scrimHex, c.paper, "#FFFFFF", designV4On() ? (zone === "points" ? BACKDROP_POINTS_TARGET_V4 : BACKDROP_DARK_TARGET_V4) : 5) : designV4On() ? Math.max(scrimAlpha(scrimHex, c.ink, "#000000", 5.5), scrimAlpha(scrimHex, c.deep, "#000000", 3.3)) : scrimAlpha(scrimHex, c.ink, "#000000", 5.5);
     const scrim = hexToRgba(scrimHex, a);
     out.push(`${scope} [data-info="${zone}"]{background:linear-gradient(${scrim},${scrim}),url("${url}") center/cover no-repeat !important}`);
   }

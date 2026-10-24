@@ -1,6 +1,7 @@
 /**
  * 회귀 — 417차 선행(2-8) 인포 구간 AI 배경 슬롯·상한·폴백·프롬프트. 계산만 검사한다(Replicate·네트워크 호출 0, 유료 0).
  */
+import { DESIGN_V4_ENABLED } from "../../lib/design-v4";
 import fs from "node:fs";
 import path from "node:path";
 import {
@@ -119,7 +120,8 @@ export async function run(): Promise<string[]> {
         const dark = zone === "points" || (zone === "stat" && lv === "dramatic");
         const eff = mixHex(dark ? "#FFFFFF" : "#000000", hex, a);
         const cr = contrastRatioToken(dark ? c.paper : c.ink, eff);
-        if (cr < 4.5) fails.push(`${lv} hue${h} ${zone} 최악 이미지 대비 ${cr.toFixed(2)} < 4.5`);
+        const need = DESIGN_V4_ENABLED && zone === "points" ? 3 : 4.5; // 449차: 포인트 구간 섹션 스크림은 큰 제목 3:1만 맡고 본문은 카드 면이 맡는다(photo-stress가 카드 위 본문 4.5:1을 픽셀로 확인)
+        if (cr < need) fails.push(`${lv} hue${h} ${zone} 최악 이미지 대비 ${cr.toFixed(2)} < ${need}`);
       }
     }
   }

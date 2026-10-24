@@ -28,6 +28,12 @@ export const STRESS_PHOTOS: StressPhoto[] = [
   { id: "ratio-3to1", label: "극대 종횡비 3:1(폴백 경계)", w: 1200, h: 400 },
 ];
 
+/** 449차 — 노출 측정용 기준 사진(순백·순흑). 같은 페이지를 두 번 렌더해 덮개(스크림·카드)의 픽셀별 알파를 푼다 */
+export const REF_PHOTOS: StressPhoto[] = [
+  { id: "ref-white", label: "기준 순백", w: 800, h: 800 },
+  { id: "ref-black", label: "기준 순흑", w: 800, h: 800 },
+];
+
 function rng(seed: number): () => number {
   let a = seed >>> 0;
   return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
@@ -77,6 +83,11 @@ async function noiseShelf(p: StressPhoto, out: string): Promise<void> {
 export async function generate(outDir: string): Promise<string[]> {
   fs.mkdirSync(outDir, { recursive: true });
   const files: string[] = [];
+  for (const p of REF_PHOTOS) {
+    const out = path.join(outDir, `${p.id}.jpg`);
+    await sharp({ create: { width: p.w, height: p.h, channels: 3, background: p.id === "ref-white" ? "#FFFFFF" : "#000000" } }).jpeg({ quality: 95 }).toFile(out);
+    files.push(out);
+  }
   for (const p of STRESS_PHOTOS) {
     const out = path.join(outDir, `${p.id}.jpg`);
     if (p.id === "noise-shelf") await noiseShelf(p, out);

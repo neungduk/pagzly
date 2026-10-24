@@ -6,7 +6,7 @@
  * export에 새 CSS 기능을 쓰지 않는다(:has·컨테이너 쿼리·text-wrap 없음 — 속성 선택자·::before·카운터만).
  */
 import type { CategoryTheme } from "@/lib/category-theme";
-import { BRAND, ensureReadableOnPaper } from "@/lib/design-tokens";
+import { BRAND, ensureReadableOnPaper, hexToRgba, mixHex } from "@/lib/design-tokens";
 import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
 import { infoBackdropCss, type InfoBackdropMap, type InfoZone } from "@/lib/info-backdrop";
 
@@ -124,7 +124,7 @@ export function infoCss(level: InfoLevel | undefined, scope: string, c: InfoColo
   rule(PG, `display:grid;grid-template-columns:1fr;gap:${dr ? 44 : 22}px;max-width:34rem;margin:44px auto 0;counter-reset:pz-pt`);
   rule(
     `${PG}>div`,
-    `position:relative;counter-increment:pz-pt;display:flex;flex-direction:column;gap:8px;padding:32px 24px;border-radius:16px;text-align:center;background:rgba(255,255,255,${DESIGN_V4_ENABLED ? 0.04 : 0.08});border:1px solid rgba(255,255,255,0.3);box-shadow:none`,
+    `position:relative;counter-increment:pz-pt;display:flex;flex-direction:column;gap:8px;padding:32px 24px;border-radius:16px;text-align:center;background:${DESIGN_V4_ENABLED ? hexToRgba(mixHex(c.deep, "#000000", 0.3), 0.72) : "rgba(255,255,255,0.08)"};border:1px solid rgba(255,255,255,0.3);box-shadow:none`,
   );
   out.push(`${PG}>div::before{content:counter(pz-pt,decimal-leading-zero);display:block;margin-bottom:6px;font-size:13px;font-weight:800;letter-spacing:0.24em;color:rgba(255,255,255,0.78)}`);
   rule(`${PG}>div[data-em]`, `padding:44px 26px;background:${c.accent};border:2px solid rgba(255,255,255,0.6);box-shadow:0 16px 36px rgba(0,0,0,0.38)`);

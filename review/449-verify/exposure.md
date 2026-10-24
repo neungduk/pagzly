@@ -1,0 +1,31 @@
+# 사진 노출 지표 (449차)
+
+덮개가 사진을 가리는 정도(사진과 무관 — 순백·순흑 사진 쌍으로 푼 픽셀별 알파). 가림 면적비 = 알파 ≥0.5 픽셀 비율(낮을수록 사진이 보임), 휘도 보존율 = 평균(1-알파)(높을수록 사진이 밝게 보임). 목표: 히어로 가림 ≤0.5·보존 ≥0.6, 정보 구간 가림 ≤1·보존 ≥0.15.
+
+| 레이아웃 | 영역 수 | 가림 평균 | 가림 최악 | 보존 평균 | 보존 최악 | 최악 픽스처 |
+|---|---|---|---|---|---|---|
+| banner | 10 | 1.00 | 1.00 | 0.08 | 0.07 | fx-compare-fashion / fx-tech-keyboard+person |
+| hero-A | 4 | 0.48 | 0.49 | 0.65 | 0.64 | fx-food-snack+person |
+| hero-B | 4 | 0.15 | 0.23 | 0.85 | 0.77 | fx-food-snack |
+| hero-C | 1 | 0.04 | 0.04 | 0.96 | 0.96 | fx-tech-keyboard |
+| hero-D | 2 | 0.04 | 0.04 | 0.96 | 0.96 | fx-tech-vacuum / fx-tier-normal-living-3p |
+| impact-asym2 | 10 | 0.01 | 0.03 | 0.88 | 0.86 | fx-food-snack / fx-food-snack+person |
+| impact-bleed | 2 | 0.27 | 0.27 | 0.73 | 0.73 | fx-food-snack+person |
+| impact-frame | 1 | 0.03 | 0.03 | 0.87 | 0.87 | fx-fashion-dress-floral |
+| impact-split | 3 | 0.01 | 0.01 | 0.99 | 0.99 | fx-tech-keyboard |
+| impact-zoom | 4 | 0.02 | 0.08 | 0.89 | 0.88 | fx-tech-keyboard+person / fx-tech-keyboard |
+| info-points | 4 | 0.97 | 1.00 | 0.17 | 0.13 | fx-skincare-serum+noimg |
+| info-stat | 1 | 1.00 | 1.00 | 0.19 | 0.19 | fx-hairbody-shampoo |
+| section | 51 | 0.08 | 0.22 | 0.92 | 0.78 | fx-tech-keyboard / fx-food-snack |
+| v4-benefits.bento | 1 | 0.04 | 0.04 | 0.96 | 0.96 | fx-tier-normal-living-3p |
+| v4-benefits.zigzag | 4 | 0.03 | 0.05 | 0.97 | 0.95 | fx-hairbody-shampoo |
+| v4-phototext.arch | 5 | 0.09 | 0.10 | 0.91 | 0.90 | fx-tech-vacuum / fx-food-snack+person |
+| v4-phototext.caption | 6 | 0.00 | 0.01 | 1.00 | 0.99 | fx-compare-fashion |
+| v4-phototext.collage | 4 | 0.03 | 0.03 | 0.97 | 0.97 | fx-tech-keyboard / fx-tech-keyboard+person |
+| v4-phototext.offset | 5 | 0.01 | 0.01 | 0.99 | 0.99 | fx-hairbody-shampoo |
+| v4-phototext.overlap | 7 | 0.06 | 0.06 | 0.94 | 0.94 | fx-tech-vacuum |
+| v4-story.linetime | 4 | 0.01 | 0.02 | 0.99 | 0.98 | fx-food-snack+person |
+| v4-story.quote | 2 | 0.01 | 0.01 | 0.99 | 0.99 | fx-hairbody-shampoo |
+
+## 목표 미달 영역
+- fx-skincare-serum+noimg info-points: 보존 0.13 < 0.15

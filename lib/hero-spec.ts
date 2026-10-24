@@ -317,11 +317,18 @@ export function scrimGradient(tuned: boolean = HERO_V2_TUNED): string {
  * 흰 사진·밝은 하늘·파스텔에서 흰 제목 대비가 2:1대로 떨어졌다. 글 블록이 자기 뒤에 항상 알파 0.62 이상의 면을 깔면 사진 밝기·블록 높이와 무관하게 보장된다
  * (위 FEATHER px는 부드러운 가장자리). 사진 분석 없이 정적으로 보장 — 라이브·export가 같은 마크업 함수.
  */
-export const HERO_TEXT_SCRIM_FEATHER_PX = 40;
+export const HERO_TEXT_SCRIM_FEATHER_PX = 28;
 export const HERO_TEXT_SCRIM_ALPHA = 0.62;
+/**
+ * 449차 1-2 — 노출 균형: 448차의 아래 62% 스크림을 없애고(가림 0.54·보존 0.50 — 사진 아래 절반이 죽음) 글 블록 자체 면만 남긴다.
+ * 글이 없는 아래 여백 구간(HERO_TEXT_PAD_BOTTOM_PX)은 알파를 0.45까지 풀어 사진이 숨 쉬게 한다(글자가 없는 곳이라 대비에 영향 없음).
+ * 노출 하한은 scripts/photo-exposure.ts(히어로 가림 ≤0.45·보존 ≥0.55)가 확인한다.
+ */
+export const HERO_TEXT_PAD_BOTTOM_PX = 28;
+export const HERO_TEXT_SCRIM_END_ALPHA = 0.4;
 export function heroTextScrim(): string {
   const f = HERO_TEXT_SCRIM_FEATHER_PX;
-  return `linear-gradient(180deg,rgba(10,10,10,0) 0,rgba(10,10,10,${HERO_TEXT_SCRIM_ALPHA}) ${f}px,rgba(10,10,10,0.78) 100%)`;
+  return `linear-gradient(180deg,rgba(10,10,10,0) 0,rgba(10,10,10,${HERO_TEXT_SCRIM_ALPHA}) ${f}px,rgba(10,10,10,${HERO_TEXT_SCRIM_ALPHA}) calc(100% - ${HERO_TEXT_PAD_BOTTOM_PX}px),rgba(10,10,10,${HERO_TEXT_SCRIM_END_ALPHA}) 100%)`;
 }
 
 /** 최악의 사진(흰색) 위 스크림 알파 a에서 흰 글자의 대비 — 회귀가 ≥4.5를 확인 */
@@ -506,6 +513,8 @@ function heroV2HtmlBase(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt:
 const ghostBand = (p: HeroV2Plan): number => (p.v3?.ghost ? Math.round(ghostFitPx(p.v3.ghost) * 0.55) : 0);
 
 /** 448차 4 — 히어로(포화·어두운 면) 위 태그·배지 칩 테두리 알파. 0.5~0.6은 면과 2.4~2.8:1이라 칩 경계가 흐렸다 → 3:1 이상(R21). v3 히어로는 v4에서만 쓰인다 */
+/** 449차 — 히어로 A 위쪽 브랜드·배지 알약 바탕(448차 0.5·0.38은 흰 사진 위에서 12px 흰 글자 2.5~3.6:1) → 어떤 사진에서도 4.5:1 이상 */
+const HERO_A_CHIP_BG_V4 = "rgba(10,10,10,0.66)";
 const HERO_CHIP_BORDER_V4 = "rgba(255,255,255,0.8)";
 function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: string): string {
   const size = heroNameSizePx(p.name);
@@ -520,10 +529,9 @@ function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: str
       wrapOpen("A", "aspect-ratio:4 / 5.4;max-height:760px;background:#1B1B18") +
       img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`) +
       `<div aria-hidden="true" data-hero-scrim style="position:absolute;left:0;right:0;top:0;height:14%;background:linear-gradient(180deg,rgba(10,10,10,0.3),rgba(10,10,10,0))"></div>` +
-      `<div aria-hidden="true" data-hero-scrim style="position:absolute;left:0;right:0;bottom:0;height:62%;background:${scrimGradient(true)}"></div>` +
-      `<div data-hero-a-text style="position:absolute;left:0;right:0;top:0;padding:20px ${p.v3!.sticker ? 112 : 20}px 0 20px">${brandPill(p, "rgba(10,10,10,0.5)", "#FFFFFF")}${p.badges.length ? `<div style="margin-top:10px">${badgeRow(p, "rgba(10,10,10,0.38)", "#FFFFFF", "rgba(255,255,255,0.55)")}</div>` : ""}</div>` +
+      `<div data-hero-a-text style="position:absolute;left:0;right:0;top:0;padding:20px ${p.v3!.sticker ? 112 : 20}px 0 20px">${brandPill(p, HERO_A_CHIP_BG_V4, "#FFFFFF")}${p.badges.length ? `<div style="margin-top:10px">${badgeRow(p, HERO_A_CHIP_BG_V4, "#FFFFFF", HERO_CHIP_BORDER_V4)}</div>` : ""}</div>` +
       v3Sticker(p, pal, "top:18px;right:18px;z-index:6") +
-      `<div data-hero-a-text style="position:absolute;left:0;right:0;bottom:0;z-index:4;padding:${HERO_TEXT_SCRIM_FEATHER_PX}px 24px 44px;background:${heroTextScrim()}">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.92)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.96)")}${tagRow(p, "#FFFFFF", HERO_CHIP_BORDER_V4)}${v3Price(p, priceBg, priceFg)}</div></section>`
+      `<div data-hero-a-text style="position:absolute;left:0;right:0;bottom:0;z-index:4;padding:${HERO_TEXT_SCRIM_FEATHER_PX}px 24px ${HERO_TEXT_PAD_BOTTOM_PX}px;background:${heroTextScrim()}">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.92)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.96)")}${tagRow(p, "#FFFFFF", HERO_CHIP_BORDER_V4)}${v3Price(p, priceBg, priceFg)}</div></section>`
     );
   }
   if (p.variant === "B" || p.variant === "C") {
@@ -534,7 +542,8 @@ function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: str
     const motif = v3Motif(p, pal, isB ? mixHex(face, "#FFFFFF", 0.1) : mixHex("#0E0E10", pal.accent, 0.35), "left:50%;top:14%;margin-left:-230px;z-index:-2", "blob", 460, 380);
     const photo = isB
       ? p.whiteBg
-        ? `<div data-hero-photo style="position:relative;margin:${24 + band}px auto 0;width:84%;aspect-ratio:4 / 4.6">${img("position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply")}</div>`
+        ? // 449차 1-3 — 흰 배경 컷아웃: multiply는 z-index 묶음(고립 그룹) 안에서 면과 섞이지 않아 네모 흰 상자로 떴고(합성 whitebg 변형으로 확인) export 금지 기법이기도 하다 → 둥근 흰 카드 + 그림자 프레임(의도된 모양)
+          `<div data-hero-photo data-hero-frame="card" style="position:relative;margin:${24 + band}px auto 40px;width:84%;aspect-ratio:4 / 4.6;border-radius:24px;overflow:hidden;background:#FFFFFF;box-shadow:0 14px 40px rgba(10,10,10,0.28)">${img("position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain")}</div>`
         : heroFrameOf(p) === "circle"
           ? `<div data-hero-photo data-hero-frame="circle" style="position:relative;margin:${24 + band}px auto 40px;width:78%;aspect-ratio:1 / 1;border-radius:50%;overflow:hidden;box-shadow:0 14px 40px rgba(10,10,10,0.28);background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`
           : heroFrameOf(p) === "offset"
