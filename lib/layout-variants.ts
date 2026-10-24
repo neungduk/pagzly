@@ -753,8 +753,15 @@ export function renumberV4Blocks(sections: DetailSection[]): DetailSection[] {
 /** 444차 — 인접 섹션 간격 규칙(lib/rhythm-v4.ts)이 "같은 면"을 판정하는 키. 임팩트만(그 밖은 null = 같은 면으로 보지 않음). 흰 면(bgA·card·기본)은 한 키 */
 export function faceKeyOf(s: DetailSection | undefined): string | null {
   if (!s || s.type !== "impact") return null;
-  if (s.kind === "v4" && s.v4) return s.v4.face === "bgA" || s.v4.face === "card" || !s.v4.face || s.v4.face === "grad0" || s.v4.face === "grad1" ? "white" : `v4:${s.v4.face}`; // 그라데이션 면은 흰 쪽에서 시작해 위 가장자리가 흰 이웃과 이어져 읽힌다(444차 측정)
-  return TINT_KINDS.has(s.kind) ? `tint:${s.kind}` : s.faceTone === "warm" ? "warm" : "white";
+  // 446차 4-3 — 옅은 색 면은 한 키("tint"): 색 예산(v4 슬롯 2군)으로 면 색이 한 계열이 되어 faqcards·emphasis·legacy 색 면이 눈으로는 같은 면이다. 웜 중립(bgB·warm)은 따로, 어두운 면(invert)은 그대로
+  if (s.kind === "v4" && s.v4) {
+    const f = s.v4.face;
+    if (f === "bgA" || f === "card" || !f || f === "grad0" || f === "grad1") return "white"; // 그라데이션 면은 흰 쪽에서 시작해 위 가장자리가 흰 이웃과 이어져 읽힌다(444차 측정)
+    if (designV4On()) return f === "bgB" ? "warm" : f === "emphasis" ? "tint" : `v4:${f}`;
+    return `v4:${f}`;
+  }
+  if (TINT_KINDS.has(s.kind)) return designV4On() ? "tint" : `tint:${s.kind}`;
+  return s.faceTone === "warm" ? "warm" : "white";
 }
 function faceClass(s: DetailSection | undefined): FaceClass {
   if (!s || s.type !== "impact") return "unknown";

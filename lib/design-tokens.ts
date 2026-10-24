@@ -1138,8 +1138,23 @@ function getCategoryRhythmBase(category: string): CategoryRhythm {
  * py-14(56) → py-16(64), pt-10(40) → pt-12(48), pt-9(36) → pt-8(32). 원천 한 곳이라 라이브(클래스)와 export(클래스를 파싱한 토큰)가 같이 바뀐다.
  * 넓은 폭(@min-[640px]/pz:…) 값은 그대로. 아래 리터럴은 Tailwind가 새 클래스를 생성하도록 소스에 남겨 두는 용도다: py-16 pt-12 pt-8
  */
+/**
+ * 446차 4-3 — 넓은 폭(≥640px) 세로 여백도 3단: 72·80·88·96(py-18·20·22·24) → 64(py-16), 44·40(pt-11·10) → 48(pt-12), 56(pb-14·pt-14) → 64(pb-16·pt-16), 36(pt-9) → 32(pt-8).
+ * 750px에서 같은 면 이웃 간격이 112~144로 벌어지던 것(445차 느슨한 스캔 10건)의 원인. 같은 원천이라 라이브(클래스)·export(클래스를 파싱한 --pz-pad-* 토큰)가 같이 바뀐다. Tailwind 클래스 생성용 리터럴: @min-[640px]/pz:py-16 @min-[640px]/pz:pt-12 @min-[640px]/pz:pb-16 @min-[640px]/pz:pt-8 @min-[640px]/pz:pt-16
+ */
+const V4_WIDE = "@min-\\[640px\\]/pz:";
 const V4_PAD_SNAP = (cls: string): string =>
-  designV4On() ? cls.replace(/(^|\s)py-14(?=\s|$)/, "$1py-16").replace(/(^|\s)pt-10(?=\s|$)/, "$1pt-12").replace(/(^|\s)pt-9(?=\s|$)/, "$1pt-8") : cls;
+  designV4On()
+    ? cls
+        .replace(/(^|\s)py-14(?=\s|$)/, "$1py-16")
+        .replace(/(^|\s)pt-10(?=\s|$)/, "$1pt-12")
+        .replace(/(^|\s)pt-9(?=\s|$)/, "$1pt-8")
+        .replace(new RegExp(`(^|\\s)${V4_WIDE}py-(?:18|20|22|24)(?=\\s|$)`), "$1@min-[640px]/pz:py-16")
+        .replace(new RegExp(`(^|\\s)${V4_WIDE}pt-(?:10|11)(?=\\s|$)`), "$1@min-[640px]/pz:pt-12")
+        .replace(new RegExp(`(^|\\s)${V4_WIDE}pb-14(?=\\s|$)`), "$1@min-[640px]/pz:pb-16")
+        .replace(new RegExp(`(^|\\s)${V4_WIDE}pt-9(?=\\s|$)`), "$1@min-[640px]/pz:pt-8")
+        .replace(new RegExp(`(^|\\s)${V4_WIDE}pt-14(?=\\s|$)`), "$1@min-[640px]/pz:pt-16")
+    : cls;
 
 export function getCategoryRhythm(category: string): CategoryRhythm {
   const r = getCategoryRhythmBase(category);

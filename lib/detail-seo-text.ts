@@ -1,4 +1,5 @@
 import type { DetailSection, GeneratedCopy } from "@/lib/types/generate";
+import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
 
 function esc(s: string): string {
   return s
@@ -88,6 +89,16 @@ export function collectSectionPlainText(section: DetailSection): string[] {
 }
 
 /**
+ * 446차 4 — 긴 평문(상품 설명·사용 방법·주의사항)은 문장 끝(. ! ?)마다 줄을 바꿔 한 문단이 벽처럼 보이지 않게(DESIGN_V4). 글자는 그대로이고 줄바꿈 태그만 더한다.
+ * 180자 이하는 그대로.
+ */
+export const SEO_LONG_TEXT_CHARS = 180;
+export function breakSentences(text: string): string {
+  if (!DESIGN_V4_ENABLED || [...text].length <= SEO_LONG_TEXT_CHARS) return esc(text);
+  return text.split(/(?<=[.!?。])\s+/).map((t) => esc(t)).join("<br>");
+}
+
+/**
  * 통이미지 상세의 약점(텍스트 부재)을 보완 — HTML export·미리보기에 숨김 텍스트 블록 생성.
  * 시각 레이아웃은 이미지 섹션, 본문은 검색·AI가 파싱 가능.
  */
@@ -108,7 +119,7 @@ export function buildSeoTextBlockHtml(opts: {
   parts.push(`<p><strong>카테고리</strong> ${esc(opts.category)}</p>`);
 
   if (opts.copy?.description?.trim()) {
-    parts.push(`<section><h2>상품 설명</h2><p>${esc(opts.copy.description.trim())}</p></section>`);
+    parts.push(`<section><h2>상품 설명</h2><p>${breakSentences(opts.copy.description.trim())}</p></section>`);
   }
   if (opts.copy?.features?.length) {
     parts.push(
@@ -118,10 +129,10 @@ export function buildSeoTextBlockHtml(opts: {
     );
   }
   if (opts.copy?.howToUse?.trim()) {
-    parts.push(`<section><h2>사용 방법</h2><p>${esc(opts.copy.howToUse.trim())}</p></section>`);
+    parts.push(`<section><h2>사용 방법</h2><p>${breakSentences(opts.copy.howToUse.trim())}</p></section>`);
   }
   if (opts.copy?.caution?.trim()) {
-    parts.push(`<section><h2>주의사항</h2><p>${esc(opts.copy.caution.trim())}</p></section>`);
+    parts.push(`<section><h2>주의사항</h2><p>${breakSentences(opts.copy.caution.trim())}</p></section>`);
   }
   if (opts.certifications?.trim()) {
     parts.push(

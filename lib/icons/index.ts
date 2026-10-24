@@ -182,8 +182,17 @@ export function extraIconFor(text: string): ExtraIconId | null {
  * "한눈에 보기" 요약 칩 아이콘(라이브·export 공용). v4: 신규 규칙 → 이전 요약 규칙 순으로 고르고 선 2 + 듀오톤(포인트색 16% 틴트).
  * off: 이전과 같은 summaryIconSvg(선 1.4·요약 규칙)
  */
-export function glanceIconSvg(chip: string, color: string, accent: string): string {
+export function glanceIconSvg(chip: string, color: string, accent: string, index?: number): string {
   if (!DESIGN_V4_ENABLED) return summaryIconSvg(pickSummaryIcon(chip), color, SUMMARY_ICON_PX);
   // 440차 6 린트 R13 — 인증 강조 칩은 원본 포인트색이라 옅은 요약 면에서 2.9:1까지 떨어졌다. 비텍스트 기준 3:1을 옅은 면 대표값(#F0EBE3)에 맞춘다
-  return iconV4Svg(extraIconFor(chip) ?? pickSummaryIcon(chip), { color: ensureContrast(color, "#F0EBE3", 3), px: SUMMARY_ICON_PX, tint: hexToRgba(accent, 0.16) });
+  const ink = ensureContrast(color, "#F0EBE3", 3);
+  const id = extraIconFor(chip) ?? pickSummaryIcon(chip);
+  // 446차 4 — 키워드 근거가 없어 체크로 떨어지는 칩은 번호 배지로(같은 체크가 여러 칸에 반복되던 것). 번호는 칸 순서일 뿐 새 문구가 아니다
+  if (id === "check" && index !== undefined) return numberBadgeSvg(index + 1, ink, hexToRgba(accent, 0.16), SUMMARY_ICON_PX);
+  return iconV4Svg(id, { color: ink, px: SUMMARY_ICON_PX, tint: hexToRgba(accent, 0.16) });
+}
+
+/** 번호 배지(요약 칩 폴백): 듀오톤 원 + 선 원 + 숫자. 아이콘 표식(data-pz-icon="num")으로 R13 대비 검사를 받는다 */
+export function numberBadgeSvg(n: number, color: string, tint: string, px: number): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${px}" height="${px}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block" aria-hidden="true" data-pz-icon="num"><circle cx="12" cy="12" r="10" fill="${tint}"/><text x="12" y="16.2" text-anchor="middle" font-size="12" font-weight="800" fill="${color}" stroke="none" style="font-family:inherit">${n}</text></svg>`;
 }

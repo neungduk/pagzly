@@ -340,7 +340,7 @@ function trustStripHtml(
                 token.includes(c) ||
                 c.toLowerCase().includes(token.toLowerCase())),
           );
-          const icon = glanceIconSvg(c, certHighlight ? accent : deepText, accent);
+          const icon = glanceIconSvg(c, certHighlight ? accent : deepText, accent, i);
           const caption = splitChipCaption(c);
           const divider =
             FLAT_SECTION_SURFACES && i % summaryGridColumns(chips.length) !== 0
@@ -2451,7 +2451,14 @@ ${jsonLd}
   .pagzly-seo-text{padding:32px 20px;font-size:${FONT_SIZE.bodySm};line-height:1.65;border-top:1px solid #DAD5C9;color:rgba(27,27,24,.62)}
   .pagzly-seo-text h1{font-size:${FONT_SIZE.seoH2};margin:0 0 8px;color:#1B1B18}
   .pagzly-seo-text h2{font-size:${FONT_SIZE.seoH2};margin:16px 0 8px}
-  .pagzly-seo-text ul{padding-left:1.2rem;margin:0}
+  .pagzly-seo-text ul{padding-left:1.2rem;margin:0}${DESIGN_V4_ENABLED ? `
+  .pagzly-seo-text{max-width:576px;margin:0 auto;padding:48px 24px 64px;border-top:0;line-height:1.75}
+  .pagzly-seo-text>p{margin:0 0 4px}
+  .pagzly-seo-text h2{margin:32px 0 12px;font-size:12px;font-weight:700;letter-spacing:.14em;color:rgba(27,27,24,.65)}
+  .pagzly-seo-text section>p{margin:0;padding-left:14px;border-left:2px solid rgba(27,27,24,.14)}
+  .pagzly-seo-text ul{list-style:none;padding:0}
+  .pagzly-seo-text li{padding:8px 0;border-top:1px solid rgba(27,27,24,.08)}
+  .pagzly-seo-text li:first-child{border-top:0}` : ""}
   @keyframes fillBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
   .fill-bar{transform-origin:left center;animation:fillBar .9s ease-out both}
   @keyframes ringFill{from{stroke-dashoffset:var(--ring-empty)}to{stroke-dashoffset:var(--ring-offset)}}

@@ -36,7 +36,7 @@ export async function run(): Promise<string[]> {
   if (legacyFaceKey(sec("cta_price"), 4) !== "own:cta_price") fails.push("구매 섹션은 자기 면");
   for (let b = 0; b < 8; b += 1) {
     const p = getSectionPattern(b, "faq");
-    const want = p === "A" || p === "D" ? "white" : "tint:legacy";
+    const want = p === "A" || p === "D" ? "white" : "tint";
     if (legacyFaceKey(sec("faq"), b) !== want) fails.push(`faq 본문 ${b}번: 면 키 ${legacyFaceKey(sec("faq"), b)} ≠ ${want}`);
     if (legacyFaceKey(sec("checklist", { boldBlock: true }), b) !== `ink:${b}`) fails.push("boldBlock은 어두운 면(이웃과 같은 면 아님)");
   }
@@ -48,7 +48,8 @@ export async function run(): Promise<string[]> {
   let pairsSame = 0, pairsDiff = 0, tightened = 0;
   for (const category of CATEGORIES) {
     const tk = getRhythmTokens(category, false);
-    const px = (v: string | number) => (typeof v === "number" ? v : v === "y" ? tk.padY : v === "ty" ? tk.padTy : tk.padCy);
+    const tkW = getRhythmTokens(category, true); // 446차 4-3: 넓은 폭 값도 함께 본다
+    const px = (v: string | number, wide = false) => { const k = wide ? tkW : tk; return typeof v === "number" ? v : v === "y" ? k.padY : v === "ty" ? k.padTy : k.padCy; };
     for (const a of surfaceTypes) for (const b of types) for (let start = 0; start < 4; start += 1) {
       const secs = [HERO, ...Array.from({ length: start }, () => sec("image_text")), sec(a), sec(b)];
       const key = faceKeysFor(secs, faceKeyOf);
@@ -71,7 +72,8 @@ export async function run(): Promise<string[]> {
       tightened += 1;
       if (![SPACE_V4.sm, SPACE_V4.md].includes(got as never)) fails.push(`${category} ${a}→${b}@${start}: 값 ${got}이 32·48이 아님`);
       if (got >= top) fails.push(`${category} ${a}→${b}@${start}: 위 여백이 안 줄어듦 ${top} → ${got}`);
-      if (got !== resolveTopPad(px(LEGACY_SECTION_V4[a]!.bottom), top, true)) fails.push(`${category} ${a}→${b}@${start}: resolveTopPad와 다름`);
+      const want = Math.min(resolveTopPad(px(LEGACY_SECTION_V4[a]!.bottom), top, true), resolveTopPad(px(LEGACY_SECTION_V4[a]!.bottom, true), px(LEGACY_SECTION_V4[b]!.top, true), true), top);
+      if (got !== want) fails.push(`${category} ${a}→${b}@${start}: 기대 ${want} ≠ ${got}`);
     }
   }
   if (!pairsSame || !pairsDiff || !tightened) fails.push(`불변식 표본 부족(같은 면 ${pairsSame}, 다른 면 ${pairsDiff}, 줄임 ${tightened})`);

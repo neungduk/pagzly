@@ -97,7 +97,7 @@ export function legacyFaceKey(section: DetailSection, bodyIndex: number): string
   if (row.face === "own") return `own:${section.type}`;
   if ((section as { boldBlock?: boolean }).boldBlock) return `ink:${bodyIndex}`; // 어두운 강조 면은 구획으로 읽혀 이웃과 같은 면이 아니다
   const pattern = getSectionPattern(bodyIndex, section.type);
-  return pattern === "A" || pattern === "D" ? "white" : "tint:legacy";
+  return pattern === "A" || pattern === "D" ? "white" : "tint"; // 임팩트 옅은 면과 같은 키(446차 4-3)
 }
 
 /** 임팩트(faceKeyOf)와 이전 섹션(legacyFaceKey)을 한 함수로 — 섹션 객체로 찾는 면 키 조회(markTightTops에 그대로 넘긴다) */
@@ -119,7 +119,8 @@ export function faceKeysFor(sections: DetailSection[], impactKey: (s: DetailSect
  */
 export function legacyTopPads(sections: DetailSection[], faceKey: (s: DetailSection | undefined) => string | null, category: string): Record<number, number> {
   const t = getRhythmTokens(category, false);
-  const px = (src: PadSource): number => (typeof src === "number" ? src : src === "y" ? t.padY : src === "ty" ? t.padTy : t.padCy);
+  const tw = getRhythmTokens(category, true); // 446차 4-3 — 넓은 폭 값(v4: 3단 스냅 후 최대 64)도 같이 본다: 48+48이 좁은 폭에선 96이지만 750px에선 64+64=128
+  const px = (src: PadSource, wide = false): number => { const k = wide ? tw : t; return typeof src === "number" ? src : src === "y" ? k.padY : src === "ty" ? k.padTy : k.padCy; };
   const out: Record<number, number> = {};
   for (let i = 1; i < sections.length; i += 1) {
     const s = sections[i]!;
@@ -132,7 +133,8 @@ export function legacyTopPads(sections: DetailSection[], faceKey: (s: DetailSect
     const prevBottom = prev.type === "impact" ? SPACE_V4.lg : prevRow ? px(prevRow.bottom) : null;
     if (prevBottom === null) continue;
     const top = px(row.top);
-    const next = resolveTopPad(prevBottom, top, true);
+    const prevBottomW = prev.type === "impact" ? SPACE_V4.lg : px(prevRow!.bottom, true);
+    const next = Math.min(resolveTopPad(prevBottom, top, true), resolveTopPad(prevBottomW, px(row.top, true), true), top);
     if (next !== top) out[i] = next;
   }
   return out;
