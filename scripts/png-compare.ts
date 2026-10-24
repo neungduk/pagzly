@@ -109,5 +109,7 @@ async function main() {
   lines.push("", "구간 시트(`*-worst.png`)는 왼쪽 = 앱 PNG, 오른쪽 = 브라우저 화면(같은 폭으로 맞춤)의 차이가 큰 구간 3개.");
   fs.writeFileSync(path.join(OUT, "report.md"), lines.join("\n") + "\n");
   console.log(lines.join("\n"));
+  const bad = lines.filter((l) => l.startsWith("| fx-") && (/실패/.test(l) || Number(l.split("|")[4]!.trim()) > 6));
+  process.exit(bad.length ? 1 : 0);
 }
 if (/png-compare\.ts$/.test(process.argv[1] ?? "")) void main();

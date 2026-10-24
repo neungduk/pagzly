@@ -145,5 +145,7 @@ if (/a11y-lint\.ts$/.test(process.argv[1] ?? "")) {
     fs.writeFileSync(out, md);
     if (arg("json", "")) fs.writeFileSync(arg("json", ""), JSON.stringify(rows));
     console.log(md.split("\n").slice(0, 32).join("\n"));
+    const n = (rule: string) => rows.reduce((s, r) => s + r.export.filter((i) => i.rule === rule && i.sev !== "info").length + r.live.filter((i) => i.rule === rule && i.sev !== "info").length, 0);
+    process.exit(n("R19") + n("R20") + n("R22") > 0 || n("R21") > 10 || n("R23") > 2 ? 1 : 0);
   });
 }

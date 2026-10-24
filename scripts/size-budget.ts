@@ -50,4 +50,5 @@ if (/size-budget\.ts$/.test(process.argv[1] ?? "")) {
   fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.writeFileSync(out, lines.join("\n") + "\n");
   console.log(lines.join("\n"));
+  process.exit(rows.some((r) => r.bytes / 1024 > (isRich(r.id) ? BUDGET_KB.rich : BUDGET_KB.normal)) ? 1 : 0);
 }

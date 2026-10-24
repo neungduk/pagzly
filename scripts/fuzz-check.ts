@@ -131,11 +131,13 @@ export function report(cases: FuzzCase[], vs: Violation[]): string {
 if (/fuzz-check\.ts$/.test(process.argv[1] ?? "")) {
   const arg = (k: string, d: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? d;
   const out = arg("out", "review/448-verify/fuzz-report.md");
-  void runFuzz({ n: Number(arg("n", "200")), live: Number(arg("live", "30")), widths: arg("widths", "360,390,750").split(",").map(Number), only: arg("only", "").split(",").filter(Boolean) }).then(({ cases, violations }) => {
+  void runFuzz({ n: Number(arg("n", "200")), live: Number(arg("live", "30")), widths: arg("widths", "320,360,390,750").split(",").map(Number), only: arg("only", "").split(",").filter(Boolean) }).then(({ cases, violations }) => {
     fs.mkdirSync(path.dirname(out), { recursive: true });
     const md = report(cases, violations);
     fs.writeFileSync(out, md);
     if (arg("json", "")) fs.writeFileSync(arg("json", ""), JSON.stringify(violations));
     console.log(md.split("\n").slice(0, 16).join("\n"));
+    const blank = new Set(cases.filter((c) => c.ops.includes("제품명 공백")).map((c) => c.id));
+    process.exit(violations.some((v) => v.kind !== "렌더 느림" && !(v.kind === "린트 error" && /R10/.test(v.detail) && blank.has(v.id))) ? 1 : 0);
   });
 }

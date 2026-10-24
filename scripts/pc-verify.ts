@@ -30,7 +30,7 @@ export type Step = {
   etaMin?: number;
 };
 
-export type Options = { dryRun: boolean; skipCapture: boolean; skipBuild: boolean; skipSmoke: boolean; only: string[]; out: string; date: string };
+export type Options = { dryRun: boolean; skipCapture: boolean; skipBuild: boolean; skipSmoke: boolean; full: boolean; only: string[]; out: string; date: string };
 
 export const ENV_NAMES = ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "NEXT_PUBLIC_SITE_URL"] as const;
 export const SNAP_EXPORT = "review/439-verify/snap-438";
@@ -40,7 +40,7 @@ const NPX = process.platform === "win32" ? "npx.cmd" : "npx";
 export function parseArgs(argv: string[]): Options {
   const get = (k: string) => argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
   const date = get("date") ?? new Date().toISOString().slice(0, 10);
-  return { dryRun: argv.includes("--dry-run"), skipCapture: argv.includes("--skip-capture"), skipBuild: argv.includes("--skip-build"), skipSmoke: argv.includes("--skip-smoke"), only: (get("only") ?? "").split(",").filter(Boolean), out: get("out") ?? `review/pc-verify-${date}`, date };
+  return { dryRun: argv.includes("--dry-run"), skipCapture: argv.includes("--skip-capture"), skipBuild: argv.includes("--skip-build"), skipSmoke: argv.includes("--skip-smoke"), full: argv.includes("--full"), only: (get("only") ?? "").split(",").filter(Boolean), out: get("out") ?? `review/pc-verify-${date}`, date };
 }
 
 /** 단계 계획(순수 함수 — 회귀가 검사). exists는 파일 존재 확인을 주입한다 */
@@ -56,6 +56,14 @@ export function planSteps(o: Options, exists: (p: string) => boolean = fs.exists
     { id: "build", title: "5. next build(PC 환경값 상속)", cmd: [NPX, "next", "build"], skip: o.skipBuild ? "--skip-build" : undefined, etaMin: 3, hints: [{ re: /NEXT_PUBLIC_|Supabase|supabaseUrl/i, text: "환경값 문제 가능 — 환경 점검 단계의 '없음' 항목 확인" }] },
     { id: "sessions", title: "6. 저장 세션 6종(패리티·428 DOM·750 넘침·린트)", cmd: [NPX, "tsx", "scripts/pc-verify-sessions.ts", `--out=${o.out}`], skip: sessionCount ? undefined : "저장 세션 없음 — review/*-live/**/session.json 또는 review/pexels-*/session.json을 두면 자동 탐색", etaMin: 3 },
     { id: "smoke", title: "7. launch-smoke(next start로 띄워 호출)", cmd: [NPX, "tsx", "scripts/launch-smoke.ts"], needs: ["build"], kind: "smoke", skip: o.skipSmoke ? "--skip-smoke" : exists("scripts/launch-smoke.ts") ? undefined : "scripts/launch-smoke.ts 없음", etaMin: 2 },
+    // 449차 — 448차 강건성 하네스(사진 스트레스·노출·접근성·크기·style 묶기·퍼징). 기본은 빠른 부분집합, --full이면 전체(퍼징 200·라이브 하네스 포함)
+    { id: "legibility", title: "9a. 사진 스트레스 가독성(극단 사진 17종 × 픽스처)", cmd: [NPX, "tsx", "scripts/photo-legibility.ts", `--out=${o.out}/photo-stress.md`, ...(o.full ? [] : ["--fixtures=fx-compare-fashion,fx-skincare-serum,fx-tech-keyboard+person,fx-skincare-serum+whitebg", "--photos=cutout-white,sat-yellow,sky-ground,very-dark,noise-shelf"])], etaMin: o.full ? 6 : 2 },
+    { id: "exposure", title: "9b. 사진 노출 균형(가림 면적비·휘도 보존율)", cmd: [NPX, "tsx", "scripts/photo-exposure.ts", `--out=${o.out}/exposure.md`], etaMin: 2 },
+    { id: "a11y", title: "9c. 접근성·구조·성능 린트 R19~R23", cmd: [NPX, "tsx", "scripts/a11y-lint.ts", `--out=${o.out}/a11y-report.md`], etaMin: 2 },
+    { id: "size", title: "9d. export HTML 크기 예산", cmd: [NPX, "tsx", "scripts/size-budget.ts", `--out=${o.out}/size-budget.md`], etaMin: 1 },
+    { id: "dedupe", title: "9e. 반복 style 묶기 계산 스타일 동일", cmd: [NPX, "tsx", "scripts/style-dedupe-check.ts", ...(o.full ? [] : ["--widths=390"])], etaMin: o.full ? 5 : 2 },
+    { id: "fuzz", title: `9f. 입력 퍼징(export, ${o.full ? "200" : "30"}개 · 320·360·390·750)`, cmd: [NPX, "tsx", "scripts/fuzz-check.ts", `--n=${o.full ? 200 : 30}`, `--live=${o.full ? 30 : 6}`, `--out=${o.out}/fuzz-report.md`], etaMin: o.full ? 8 : 2 },
+    { id: "dev", title: "9g. 라이브 하네스(PNG 다운로드 대조 + 라이브 퍼징, next dev)", cmd: [NPX, "tsx", "scripts/pc-verify-dev.ts", `--out=${o.out}/dev`, `--fuzz-n=${o.full ? 200 : 40}`], skip: o.full ? undefined : "--full에서만(개발 서버를 띄움, 약 10~25분)", etaMin: 20 },
     { id: "capture", title: "8. 눈 검수 캡처(저장 세션 + 합성, 390·750)", cmd: [NPX, "tsx", "scripts/pc-verify-eye.ts", `--out=${o.out}/eye`], skip: o.skipCapture ? "--skip-capture" : undefined, etaMin: 10 },
   ];
   return o.only.length ? steps.map((s) => (o.only.includes(s.id) ? s : { ...s, skip: s.skip ?? "--only에 없음" })) : steps;

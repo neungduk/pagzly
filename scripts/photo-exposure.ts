@@ -110,5 +110,6 @@ if (/photo-exposure\.ts$/.test(process.argv[1] ?? "")) {
     fs.writeFileSync(out, md);
     if (arg("json", "")) fs.writeFileSync(arg("json", ""), JSON.stringify(rows));
     console.log(md);
+    process.exit(limitFailures(rows).length ? 1 : 0);
   });
 }

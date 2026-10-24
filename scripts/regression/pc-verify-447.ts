@@ -15,8 +15,10 @@ export async function run(): Promise<string[]> {
   ok(o.out === "review/pc-verify-2026-01-02", `기본 출력 경로: ${o.out}`);
 
   const all = planSteps(o, () => true, 3);
-  ok(all.map((s) => s.id).join(",") === "env,tsc,regression,off-export,off-live,build,sessions,smoke,capture", `단계 순서: ${all.map((s) => s.id)}`);
-  ok(all.every((s) => !s.skip), "모두 있을 때 건너뜀 없음");
+  ok(all.map((s) => s.id).join(",") === "env,tsc,regression,off-export,off-live,build,sessions,smoke,legibility,exposure,a11y,size,dedupe,fuzz,dev,capture", `단계 순서: ${all.map((s) => s.id)}`);
+  ok(all.filter((s) => s.id !== "dev").every((s) => !s.skip), "모두 있을 때 건너뜀 없음(dev는 --full에서만)");
+  ok(!!all.find((s) => s.id === "dev")?.skip && !planSteps(parseArgs(["--full"]), () => true, 3).find((s) => s.id === "dev")?.skip, "라이브 하네스는 --full에서만");
+  ok(planSteps(parseArgs(["--full"]), () => true, 3).find((s) => s.id === "fuzz")!.cmd.includes("--n=200"), "--full 퍼징은 200개");
   ok(all.find((s) => s.id === "smoke")?.needs?.includes("build") === true, "smoke는 build 뒤");
 
   const noBase = planSteps(o, (p) => !p.includes("snap-438"), 3);
@@ -44,7 +46,7 @@ export async function run(): Promise<string[]> {
   ok(!md.includes("secret-dummy-value") && md.includes("| 단계 | 결과 | 시간 | 종료 코드 | 명령 | 로그 |") && md.includes("눈으로 볼 체크리스트"), "요약 표·체크리스트");
 
   // 정적 검사: .env 읽기·값 출력 없음
-  for (const f of ["scripts/pc-verify.ts", "scripts/pc-verify-sessions.ts", "scripts/pc-verify-eye.ts", "scripts/pc-sessions-find.ts"]) {
+  for (const f of ["scripts/pc-verify.ts", "scripts/pc-verify-sessions.ts", "scripts/pc-verify-eye.ts", "scripts/pc-sessions-find.ts", "scripts/pc-verify-dev.ts"]) {
     const src = fs.readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
     ok(!/readFileSync\([^)]*\.env|dotenv|loadEnvConfig|openSync\([^)]*\.env|["'`][^"'`]*\.env(\.local|\.production)?["'`]/.test(src), `${f}: .env 파일을 열지 않아야 함`);
     ok(!/console\.log\([^)]*process\.env\[|console\.log\([^)]*process\.env\./.test(src), `${f}: 환경값 출력 금지`);

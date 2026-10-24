@@ -12,7 +12,7 @@ npm run pc-verify -- --skip-capture     # 눈 검수 캡처만 생략
 npm run pc-verify -- --only=tsc,regression
 ```
 
-옵션: `--dry-run` · `--skip-capture` · `--skip-build` · `--skip-smoke` · `--only=id,id` · `--out=경로` · `--date=YYYY-MM-DD`.
+옵션: `--dry-run` · `--full`(오래 걸리는 단계 포함) · `--skip-capture` · `--skip-build` · `--skip-smoke` · `--only=id,id` · `--out=경로` · `--date=YYYY-MM-DD`.
 
 ## 단계
 | id | 내용 | 비고 |
@@ -25,6 +25,10 @@ npm run pc-verify -- --only=tsc,regression
 | sessions | 저장 세션 6종: 섹션 수 패리티·428 DOM 지표·750폭 가로 넘침·린트(R7·R16·R17·R18) | `review/*-live/**/session.json`, `review/pexels-*/session.json` 자동 탐색, 없으면 건너뜀 |
 | smoke | `next start -p 3199`로 띄워 `launch-smoke` 호출 후 종료 | build 합격 필요 |
 | capture | 저장 세션 + 합성 21종을 390·750폭으로 844px 시트 + 첫 화면 접촉 시트 | `--skip-capture` |
+| legibility · exposure | 극단 합성 사진 × 픽스처의 글자 대비(픽셀 기준)와 사진 노출(가림 면적비·휘도 보존율) | 기본은 빠른 부분집합, `--full`이면 전체 |
+| a11y · size · dedupe | 접근성·구조 린트 R19~R23, export 크기 예산(150/220KB), 반복 style 묶기 계산 스타일 동일 | |
+| fuzz | 입력 퍼징(export): 기본 30개 · `--full` 200개, 320·360·390·750폭 | |
+| dev | **`--full`에서만** — `next dev -p 3188`을 띄워 PNG 다운로드 대조(png-compare) + 라이브 퍼징(fuzz-live) 후 끈다 | 환경 파일은 읽지 않는다(PC의 환경값 그대로 이어받음) |
 
 한 단계가 실패해도 서로 독립인 뒤 단계는 계속 돈다(build 실패 시 smoke만 건너뜀). 단계마다 명령·시간·종료 코드·로그 경로(`logs/<id>.log`)가 요약 표에 남는다.
 

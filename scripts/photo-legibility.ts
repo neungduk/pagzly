@@ -133,5 +133,6 @@ if (/photo-legibility\.ts$/.test(process.argv[1] ?? "")) {
     fs.writeFileSync(out, md);
     if (arg("json")) fs.writeFileSync(arg("json")!, JSON.stringify(all));
     console.log(md.split("\n").slice(0, 4).join("\n"));
+    process.exit(all.some((f) => f.ratio < f.need) ? 1 : 0);
   });
 }
