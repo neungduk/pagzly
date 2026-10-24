@@ -36,6 +36,12 @@ export const SPACE_SNAP_BOUNDS = [40, 56] as const;
 /** mood 임팩트 블록 여백 스냅 경계: 36 이하 → 32, 52 이하 → 48, 그 외 64 */
 export const MOOD_PAD_BOUNDS = [36, 52] as const;
 
+/**
+ * 447차 2-c — 히어로 포화 면 상한(OKLCH). HSL 채도 0.6~0.85로 올린 면은 색상마다 지각 채도가 크게 달라(청록 0.09 ↔ 파랑·보라·마젠타 0.26) 실사진 옆에서 형광처럼 튄다.
+ * 색상과 명도는 두고 채도(C)만 이 값까지 줄인다. 명도(L)는 이 값을 넘지 않는다(흰 글자 4.5:1은 그대로 확인). 값 한 곳: 라이브·export 같은 값.
+ */
+export const HERO_FACE_CAP = { chroma: 0.19, lightness: 0.58 } as const;
+
 /** 요소 사이 간격(섹션 여백 스케일과 별개의 작은 단) */
 export const GAP_V4 = { xs: 8, sm: 12, md: 16 } as const;
 

@@ -22,7 +22,7 @@ import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 import { polishTitles } from "@/lib/typo-rhythm";
 import { DESIGN_V4_ENABLED, designV4On } from "@/lib/design-v4";
-import { ghostFadeBackground } from "@/lib/design-tokens-v4";
+import { HERO_FACE_CAP, ghostFadeBackground } from "@/lib/design-tokens-v4";
 import { designV2On } from "@/lib/design-v2";
 import { motifSvg } from "@/lib/motifs";
 import { v4Palette } from "@/lib/palette-v4";
@@ -250,6 +250,34 @@ export function saturatedFace(accent: string): string {
   return hslToHex(h, s, 0.2);
 }
 
+// ── 447차 2-c: OKLCH 상한 ──
+const toLin = (v: number) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+const fromLin = (v: number) => (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055);
+export function hexToOklch(hex: string): { L: number; C: number; h: number } {
+  const n = parseInt(hex.replace("#", "").slice(0, 6), 16);
+  const r = toLin(((n >> 16) & 255) / 255), g = toLin(((n >> 8) & 255) / 255), b = toLin((n & 255) / 255);
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b), m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b), s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  const A = 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, B = 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s;
+  return { L: 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, C: Math.hypot(A, B), h: ((Math.atan2(B, A) * 180) / Math.PI + 360) % 360 };
+}
+export function oklchToHex(L: number, C: number, h: number): string {
+  const a = C * Math.cos((h * Math.PI) / 180), b = C * Math.sin((h * Math.PI) / 180);
+  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3, m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3, s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
+  const rgb = [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s];
+  return `#${rgb.map((v) => Math.round(Math.min(1, Math.max(0, fromLin(Math.min(1, Math.max(0, v))))) * 255).toString(16).padStart(2, "0")).join("")}`.toUpperCase();
+}
+/** 포화 면에 채도·명도 상한을 건다(DESIGN_V4만). 상한 안이면 그대로, 넘으면 색상 유지·채도만 상한으로(명도는 상한 이하로) 두고 흰 글자 4.5:1이 안 되면 명도를 낮춘다 */
+export function capFaceChroma(face: string): string {
+  if (!designV4On() || !/^#[0-9a-f]{6}$/i.test(face)) return face;
+  const o = hexToOklch(face);
+  if (o.C <= HERO_FACE_CAP.chroma && o.L <= HERO_FACE_CAP.lightness) return face;
+  let L = Math.min(o.L, HERO_FACE_CAP.lightness);
+  const C = Math.min(o.C, HERO_FACE_CAP.chroma);
+  let out = oklchToHex(L, C, o.h);
+  for (let k = 0; k < 40 && contrastRatioToken("#FFFFFF", out) < 4.5; k += 1) { L -= 0.01; out = oklchToHex(L, C, o.h); }
+  return out;
+}
+
 /** 색상어 → 색상(도). 무채색어는 dark만 */
 const COLOR_WORDS: Array<[RegExp, number | "dark"]> = [
   [/코랄/, 10], [/체리|레드|빨강|버건디|와인/, 352], [/핑크|로즈|장미/, 338], [/오렌지|주황|살구/, 24], [/옐로|노랑|레몬|머스터드/, 46],
@@ -273,9 +301,9 @@ export function isNearNeutral(hex: string): boolean {
 
 /** 포화 면 색 결정: ① 사진 지배색(테마 대표색)이 유채색이면 그것 ② 아니면 색상어 ③ 아니면 mood ④ 신호 없으면 대표색 그대로(437차 동작) */
 export function heroFaceColor(accent: string, hint: HeroHueHint | undefined): { face: string; source: "photo" | "keyword" | "mood" | "accent" } {
-  if (!hint || !isNearNeutral(accent)) return { face: saturatedFace(accent), source: hint ? "photo" : "accent" };
+  if (!hint || !isNearNeutral(accent)) return { face: capFaceChroma(saturatedFace(accent)), source: hint ? "photo" : "accent" };
   if (hint.hue === "dark") return { face: "#1F2026", source: hint.source };
-  return { face: saturatedFace(hslToHex(hint.hue, 0.7, 0.45)), source: hint.source };
+  return { face: capFaceChroma(saturatedFace(hslToHex(hint.hue, 0.7, 0.45))), source: hint.source };
 }
 
 /** 사진 위 스크림 불투명도 곡선(0=아래 끝). 텍스트 영역(아래 약 45%)에서 최소 scrimTextAlpha 이상 */
