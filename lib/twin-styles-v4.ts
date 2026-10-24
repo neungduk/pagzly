@@ -5,7 +5,7 @@
  */
 import { BRAND, FLAT_PAPER, INFO_TABLE, hexToRgba } from "@/lib/design-tokens";
 import { classifyBoolishCell } from "@/lib/comparison-cell-classify";
-import { LINE_HEIGHT_V4, MIN_LABEL_PX, SPACE_V4, SPEC_LABEL_INK_ALPHA, tokenDecl, type Decl } from "@/lib/design-tokens-v4";
+import { LINE_HEIGHT_V4, MIN_LABEL_PX, SPACE_V4, TYPE_V4, SPEC_LABEL_INK_ALPHA, tokenDecl, type Decl } from "@/lib/design-tokens-v4";
 
 /** 선언 목록 합치기 — 같은 속성은 뒤가 이긴다(순서는 처음 나온 위치) */
 export function mergeDecl(...lists: Decl[]): Decl {
@@ -93,3 +93,7 @@ export const stepTextV4 = (): Decl => tokenDecl("line-relaxed");
  * 글자 크기는 라벨 하한 토큰. size=false면 글자 크기는 건드리지 않는다(아쉬운 점 문장은 좁은 12 · 넓은 13 반응형을 각자 유지).
  */
 export const reviewCaptionV4 = (size = true, ink: string = BRAND.ink): Decl => mergeDecl([["color", hexToRgba(ink, SPEC_LABEL_INK_ALPHA)], ["opacity", "1"]], size ? [["font-size", `${MIN_LABEL_PX}px`], ["line-height", String(LINE_HEIGHT_V4.normal)]] : []);
+
+// ── step_card(사진 위 STEP 칩) ───────────────────────────────────────────────
+/** 446차 5 — 사진 위 STEP 칩: 라이브 text-[10px]/[11px]·export 10px/12px가 따로 가던 것을 라벨 토큰(12px·자간 label)으로. 칩 면 위 글자 대비는 테마 보정(v4SafeTheme)이 맡는다 */
+export const stepChipV4 = (): Decl => [["font-size", `${MIN_LABEL_PX}px`], ["letter-spacing", TYPE_V4.label.ls]];

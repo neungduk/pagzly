@@ -6,6 +6,7 @@
  *  - 라이브(DetailSectionRenderer)와 export(buildDetailPageHtml)가 같은 세트·같은 CSS 한 벌(fontPairCss)을 쓴다. export에 :has·컨테이너 쿼리·text-wrap 없음. 외부 CDN 호출 없음(같은 출처 /fonts).
  * 플래그: NEXT_PUBLIC_DESIGN_V3_FONTS=off 면 429차 폰트(Noto Sans/Serif)로 돌아간다(픽셀 동일).
  */
+import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
 import { resolveTemplateCategory, type TemplateCategory } from "@/lib/section-templates";
 
 export const DESIGN_V3_FONTS_ENABLED = process.env.NEXT_PUBLIC_DESIGN_V3_FONTS !== "off";
@@ -155,6 +156,8 @@ export function fontPairCss(scope: string, p: FontPair): string {
     // 숫자·가격은 같은 폭 숫자(tabular-nums), 영문 라벨(.font-mono)은 자간을 넓힌다
     `${scope} .font-heading{font-variant-numeric:tabular-nums}` +
     `${scope} .font-mono{letter-spacing:${p.label_.letterSpacing}!important}` +
+    // 446차 5 — export의 STEP 라벨(.pagzly-step-tag)은 font-mono 클래스가 없어 이 자간이 라이브에만 걸렸다(인라인 .32em). v4에서 같은 자간을 건다(라이브는 해당 클래스가 없어 영향 없음)
+    (DESIGN_V4_ENABLED ? `${scope} .pagzly-step-tag{letter-spacing:${p.label_.letterSpacing}!important}` : "") +
     `${scope} .pagzly-display-headline{font-family:var(--pz-f-title)!important;font-weight:${t.weight}!important;letter-spacing:${t.letterSpacing}!important;line-height:${t.lineHeight}!important}`
   );
 }

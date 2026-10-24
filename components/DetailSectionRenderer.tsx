@@ -246,7 +246,7 @@ import { applyDisplayRules } from "@/lib/display-sections";
 import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
 import { DESIGN_V4_ENABLED, hideImgOnError } from "@/lib/design-v4";
 import { BANNER_SCRIM_INSET_V4, declObject, tokenStyleObject } from "@/lib/design-tokens-v4";
-import { reviewCaptionV4, highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, stepTextV4, stepsListV4 } from "@/lib/twin-styles-v4";
+import { stepChipV4, reviewCaptionV4, highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, stepTextV4, stepsListV4 } from "@/lib/twin-styles-v4";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
 import { topPadCssV4 } from "@/lib/rhythm-v4";
 import { v4SafeTheme } from "@/lib/palette-v4";
@@ -4673,7 +4673,7 @@ function renderSection(
                           ? "left-2 top-2 px-2.5 py-1 text-[10px] tracking-[0.18em] @min-[640px]/pz:left-3 @min-[640px]/pz:top-3 @min-[640px]/pz:px-3.5 @min-[640px]/pz:py-1.5 @min-[640px]/pz:text-[11px] @min-[640px]/pz:tracking-[0.24em]"
                           : "left-3 top-3 px-3.5 py-1.5 text-[11px] tracking-[0.24em]"
                       }`}
-                      style={{ backgroundColor: DESIGN_V4_ENABLED ? readableTextDeep(theme) : solidDeepOnPaper(theme) }}
+                      style={{ backgroundColor: DESIGN_V4_ENABLED ? readableTextDeep(theme) : solidDeepOnPaper(theme), ...(DESIGN_V4_ENABLED ? declObject(stepChipV4()) : {}) }}
                     >
                       STEP {String(stepIndex + 1).padStart(2, "0")}
                     </span>

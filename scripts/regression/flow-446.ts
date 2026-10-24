@@ -6,7 +6,11 @@ import { glanceIconSvg } from "../../lib/icons";
 import { breakSentences, SEO_LONG_TEXT_CHARS } from "../../lib/detail-seo-text";
 import { getCategoryRhythm } from "../../lib/design-tokens";
 import { getRhythmTokens } from "../../lib/rhythm-tokens";
-import { corpus, exportHtmlOf } from "../design-corpus";
+import React from "react";
+import { applySectionDisplayBudget } from "../../lib/section-display-budget";
+import { comparisonPolicyRemovesChart } from "../../lib/comparison-policy";
+import { buildDetailPageHtml } from "../../lib/export-detail-html";
+import { corpus, exportArgsOf, exportHtmlOf, readSession } from "../design-corpus";
 
 export const name = "후킹 흐름·밀도 — 요약 칩 번호 폴백·긴 평문 서식·넓은 폭 여백 3단";
 
@@ -27,6 +31,19 @@ export async function run(): Promise<string[]> {
     const checks = (seg.match(/data-pz-icon="check"/g) ?? []).length;
     if (checks > 1) fails.push(`${id}: 한눈에 보기 체크 아이콘 ${checks}개(≤1 기대)`);
   }
+  // 라이브도 같은 번호 배지(같은 함수·같은 인덱스): export에 번호 배지가 있는 픽스처는 라이브에도 같은 개수
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const { default: R } = await import("../../components/DetailSectionRenderer");
+  let numbered = 0;
+  for (const [id, file] of corpus({ only: ["fx-compare-beauty", "fx-tier-sparse-beauty-1p", "fx-tech-vacuum", "fx-food-snack"] })) {
+    const nExp = (exportHtmlOf(file).match(/data-pz-icon="num"/g) ?? []).length;
+    const a = exportArgsOf(readSession(file));
+    const live = renderToStaticMarkup(React.createElement(R as never, { sections: applySectionDisplayBudget(a.category, a.sections ?? [], { chartRemoved: comparisonPolicyRemovesChart(a.claimFacts) }), imageUrls: a.imageUrls ?? [], category: a.category, theme: a.theme, productName: a.productName, brandName: a.brandName, stylePackId: a.stylePackId, imageHashByUrl: a.imageHashByUrl, imageOrigins: a.imageOrigins, imageRoles: a.imageRoles, imageTags: a.imageTags, hasSizeInfo: a.hasSizeInfo, claimFacts: a.claimFacts } as never));
+    const nLive = (live.match(/data-pz-icon="num"/g) ?? []).length;
+    numbered += nExp;
+    if (nExp !== nLive) fails.push(`${id}: 번호 배지 export ${nExp} ≠ 라이브 ${nLive}`);
+  }
+  if (!numbered) fails.push("번호 배지가 말뭉치 4종 어디에도 안 나옴(검사 대상 0)");
   if (withStrip < 10) fails.push(`한눈에 보기가 있는 말뭉치 ${withStrip}개뿐`);
 
   // ② 긴 평문
@@ -52,5 +69,21 @@ export async function run(): Promise<string[]> {
     const w = getRhythmTokens(cat, true);
     for (const [k, v] of Object.entries({ padY: w.padY, padTy: w.padTy, padCy: w.padCy })) if (v > 64) fails.push(`${cat}: 넓은 폭 ${k}=${v} > 64`);
   }
+  // ④ 446차 5 — 사진 위 STEP 칩: export·라이브 모두 12px·자간 label 토큰, 폰트 쌍 자간 규칙이 export STEP 태그에도
+  {
+    const [, file] = corpus({ only: ["fx-tier-rich-tech-6p"] })[0]!;
+    const a1 = exportArgsOf(readSession(file));
+    const only = (a1.sections ?? []).find((x) => x.type === "step_card");
+    if (!only) fails.push("fx-tier-rich-tech-6p에 step_card가 없음(npx tsx scripts/gen-fixture-steps.ts)");
+    const exp = buildDetailPageHtml({ ...a1, sections: only ? [only] : [] } as never);
+    const chip = /<span style="position:absolute;left:\d+px;top:\d+px;background:[^"]*">STEP 01<\/span>/.exec(exp)?.[0] ?? "";
+    if (!/font-size:12px/.test(chip) || !/letter-spacing:0\.14em/.test(chip)) fails.push(`export 사진 위 STEP 칩이 토큰(12px·0.14em)이 아님: ${chip.slice(0, 200)}`);
+    const a2 = exportArgsOf(readSession(file));
+    const live = renderToStaticMarkup(React.createElement(R as never, { sections: only ? [only] : [], imageUrls: a2.imageUrls ?? [], category: a2.category, theme: a2.theme, productName: a2.productName, brandName: a2.brandName, stylePackId: a2.stylePackId, imageHashByUrl: a2.imageHashByUrl, imageOrigins: a2.imageOrigins, imageRoles: a2.imageRoles, imageTags: a2.imageTags, hasSizeInfo: a2.hasSizeInfo, claimFacts: a2.claimFacts } as never));
+    const lc = /<span class="absolute rounded-full[^"]*"[^>]*>STEP 01<\/span>/.exec(live)?.[0] ?? "";
+    if (!/font-size:12px/.test(lc) || !/letter-spacing:0\.14em/.test(lc)) fails.push(`라이브 사진 위 STEP 칩이 토큰이 아님: ${lc.slice(-200)}`);
+  }
+  const anyDoc = corpus().map(([, f]) => exportHtmlOf(f)).find((h) => h.includes(".font-mono{letter-spacing:"));
+  if (!anyDoc || !/\.pagzly-step-tag\{letter-spacing:[^}]*!important\}/.test(anyDoc)) fails.push("export에 STEP 태그 자간 규칙이 없음(폰트 쌍)");
   return fails;
 }
