@@ -1,7 +1,9 @@
 "use client";
 
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { hasSizeHeight } from "@/lib/scene-size";
+import { captureDetailToPngBlobs, prepareCaptureRoot } from "@/lib/capture-detail-png";
+import { freezeScrollRevealAnimations, unfreezeScrollRevealAnimations } from "@/components/DetailScrollReveal";
 import { claimFactsOf } from "@/lib/numeric-claim-gate";
 import { notFound } from "next/navigation";
 import DetailActionBar, { type DetailToolTab } from "@/components/DetailActionBar";
@@ -1499,6 +1501,11 @@ function DetailPreviewBody({ capture, budget }: { capture: string | null; budget
   const [toast, setToast] = useState<{ message: string; tone: "error" | "info" | "ok" } | null>(
     null,
   );
+
+  // 448차 — 개발용: 실제 PNG 다운로드 함수(결과 화면이 쓰는 모듈)를 캡처 하네스(scripts/png-compare.ts)가 호출할 수 있게 노출한다(이 페이지는 development에서만 열린다)
+  useEffect(() => {
+    if (captureMode) (window as unknown as { __pzCapture?: unknown }).__pzCapture = { captureDetailToPngBlobs, prepareCaptureRoot, freezeScrollRevealAnimations, unfreezeScrollRevealAnimations };
+  }, [captureMode]);
 
   const previewCategory = capturePreset?.category ?? "화장품/뷰티";
   // 408차 — 결과 화면 선택칸(StylePackPicker)을 로그인 없이 확인하기 위한 개발용 상태
