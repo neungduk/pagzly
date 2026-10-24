@@ -1,7 +1,7 @@
 import type { DetailSection } from "@/lib/types/generate";
 import { designV4On } from "@/lib/design-v4";
 import { faceKeyOf, renumberV4Blocks } from "@/lib/layout-variants";
-import { faceKeysFor, legacyTopPads, markTightTops } from "@/lib/rhythm-v4";
+import { faceKeysFor, legacyTopPads, markTightTops, motifBottomPads } from "@/lib/rhythm-v4";
 import { orderSectionsForFlow } from "@/lib/section-flow-order";
 import { limitBoldBlocks } from "@/lib/detail-visual-rhythm";
 import { enforceImageSourceCapIndexed } from "@/lib/image-source-cap";
@@ -40,6 +40,8 @@ export type DisplaySections = {
   policyChanges?: PolicyChange[];
   /** 445차 3 — 이전(비임팩트) 섹션 중 위 여백을 줄일 곳(섹션 번호 → px, DESIGN_V4). 라이브·export가 같은 값을 data-pz-top 표식과 같은 CSS로 적용 */
   topPads?: Record<number, number>;
+  /** 447차 2-b — 모티프 블록 이웃의 앞 섹션 아래 여백을 줄일 곳(섹션 번호 → px, DESIGN_V4). data-pz-bot 표식 + 같은 CSS */
+  bottomPads?: Record<number, number>;
 };
 
 const DANGLING_TAIL = /[\s,，、·;:\-–—]+$/u;
@@ -425,5 +427,6 @@ export function applyDisplayRules(
   const rhythmKey = designV4On() ? faceKeysFor(numbered, faceKeyOf) : faceKeyOf;
   const rhythmSections = designV4On() ? markTightTops(numbered, rhythmKey) : finalOut.sections;
   const topPads = designV4On() ? legacyTopPads(numbered, rhythmKey, opts.category ?? "") : {};
-  return { sections: rhythmSections, ...(Object.keys(topPads).length ? { topPads } : {}), sourceIndexes: keptMap ? finalOut.sourceIndexes.map((i) => keptMap(i)) : finalOut.sourceIndexes, ...(policyChanges ? { policyChanges } : {}), ...(arche ? { archetype: { result: arche, mood, hero: recipe?.hero ?? null } } : {}) };
+  const bottomPads = designV4On() ? motifBottomPads(numbered, rhythmKey, opts.category ?? "") : {};
+  return { sections: rhythmSections, ...(Object.keys(topPads).length ? { topPads } : {}), ...(Object.keys(bottomPads).length ? { bottomPads } : {}), sourceIndexes: keptMap ? finalOut.sourceIndexes.map((i) => keptMap(i)) : finalOut.sourceIndexes, ...(policyChanges ? { policyChanges } : {}), ...(arche ? { archetype: { result: arche, mood, hero: recipe?.hero ?? null } } : {}) };
 }

@@ -140,6 +140,40 @@ export function legacyTopPads(sections: DetailSection[], faceKey: (s: DetailSect
   return out;
 }
 
+// ── 447차 2-b: 모티프 블록 위 간격(112) 줄이기 ─────────────────────────────────────
+
+/** 모티프 블록 이웃의 앞 섹션 아래 여백(스케일 가장 작은 단) */
+export const MOTIF_BOTTOM_PX = SPACE_V4.sm;
+/**
+ * 모티프 블록은 위 여백이 모티프 안전 영역(40)보다 커야 해서(위 hasMotif 주석) 뒤 블록의 위 여백(48~64)을 줄일 수 없다 → 앞 섹션의 아래 여백을 줄인다(계획 bottomPads).
+ * 같은 면 이웃이고 둘 중 하나가 모티프 블록일 때, 앞 섹션이 임팩트(아래 여백 40~64, 32 아래인 종류는 없음)이거나 이전 섹션(표의 아래 여백이 32보다 큰 것)이면 32로: 32 + 64 = 96 이하.
+ * 결과: 섹션 번호(앞 섹션) → px. 줄이는 곳만. 이미 32 이하인 앞 섹션은 건드리지 않는다.
+ */
+/** (447차) 흰·웜 크림·옅은 색 면은 눈으로 같은 밝은 면(색 거리 6 안, 446차 측정)이라 한 키로 본다. 그 밖(어두운 면 등)은 그대로 */
+const lightKey = (k: string | null): string | null => (k === "white" || k === "warm" || k === "tint" ? "light" : k);
+export function motifBottomPads(sections: DetailSection[], faceKey: (s: DetailSection | undefined) => string | null, category: string): Record<number, number> {
+  const t = getRhythmTokens(category, false);
+  const tw = getRhythmTokens(category, true);
+  const px = (src: PadSource, k: typeof t): number => (typeof src === "number" ? src : src === "y" ? k.padY : src === "ty" ? k.padTy : k.padCy);
+  const out: Record<number, number> = {};
+  for (let i = 1; i < sections.length; i += 1) {
+    const prev = sections[i - 1]!;
+    const s = sections[i]!;
+    if (prev.type === "hero" || s.type === "hero") continue;
+    if (!(s.type === "impact" ? hasMotif(s) : false) && !(prev.type === "impact" ? hasMotif(prev) : false)) continue;
+    const a = lightKey(faceKey(prev));
+    if (a === null || a !== lightKey(faceKey(s))) continue;
+    const row = LEGACY_SECTION_V4[prev.type];
+    const eligible = prev.type === "impact" ? true : !!row && row.face === "surface" && Math.min(px(row.bottom, t), px(row.bottom, tw)) > MOTIF_BOTTOM_PX;
+    if (eligible) out[i - 1] = MOTIF_BOTTOM_PX;
+  }
+  return out;
+}
+
+export function bottomPadCssV4(selector: (px: number) => string): string {
+  return `${selector(MOTIF_BOTTOM_PX)}{padding-bottom:${MOTIF_BOTTOM_PX}px!important}`;
+}
+
 /** 표식 → CSS(라이브·export 공용 한 벌): 줄일 수 있는 두 단(32·48). selector(px)가 각 라이브/export의 선택자를 준다 */
 export function topPadCssV4(selector: (px: number) => string): string {
   return [SPACE_V4.sm, SPACE_V4.md].map((px) => `${selector(px)}{padding-top:${px}px!important}`).join("");
