@@ -20,7 +20,7 @@ export function fontCss(): string {
 export const launch = (): Promise<Browser> => chromium.launch();
 
 /** html을 W폭 화면으로 열고 폰트·사진 로드를 기다린 페이지를 돌려준다 */
-export async function openHtml(browser: Browser, html: string, W: number, css = fontCss()): Promise<{ page: Page; close: () => Promise<void> }> {
+export async function openHtml(browser: Browser, html: string, W: number, css = fontCss(), allowNet = false): Promise<{ page: Page; close: () => Promise<void> }> {
   const ctx = await browser.newContext({ viewport: { width: W, height: 844 }, deviceScaleFactor: 1 });
   const page = await ctx.newPage();
   await page.route("**/*", async (route) => {
@@ -32,7 +32,8 @@ export async function openHtml(browser: Browser, html: string, W: number, css = 
       return route.fulfill({ status: 404, body: "" });
     }
     if (/fonts\.googleapis\.com/.test(u.host) && css) return route.fulfill({ status: 200, contentType: "text/css", body: css });
-    return route.abort();
+    // 447차: PC 검증은 저장 세션의 실제 사진 주소를 불러온다(allowNet). 기본(클라우드·합성)은 모든 외부 요청 차단
+    return allowNet ? route.continue() : route.abort();
   });
   await page.goto(`${ORIGIN}/`, { waitUntil: "load" });
   await page.evaluate("document.fonts.ready.then(() => 1)");
