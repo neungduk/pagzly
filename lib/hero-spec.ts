@@ -101,6 +101,22 @@ export function ghostWordOf(name: string, nameSub?: string): string {
   return /[가-힣]/.test(best) ? best : best.toUpperCase();
 }
 
+/**
+ * 447차 2-a — 긴 한글 제품명 고스트 대체(DESIGN_V4). 제품명이 길어 폭 맞춤(ghostFitPx)이 0(끔)이 되면 입력 글자만으로 다른 후보를 고른다:
+ * 제품명 첫 단어 · 영문 보조줄 · 브랜드 중 폭에 맞는(44px 이상) 가장 짧은 것. 맞는 후보가 없으면 끈다. 원래 단어가 맞으면 그대로(예전 결과 유지).
+ * 라이브·export가 같은 계획(heroV3Of)을 쓰므로 같은 값.
+ */
+export function ghostFitWordOf(name: string, nameSub?: string, brand?: string): string {
+  const first = ghostWordOf(name, nameSub);
+  if (!first || ghostFitPx(first) > 0) return first;
+  const cands = [name.trim().split(/\s+/)[0] ?? "", nameSub ?? "", brand ?? ""]
+    .map((c) => c.trim())
+    .filter((c) => [...c].length >= 2)
+    .map((c) => (/[가-힣]/.test(c) ? c : c.toUpperCase()))
+    .filter((c) => ghostFitPx(c) > 0);
+  return cands.length ? cands.reduce((a, b) => ([...b].length < [...a].length ? b : a)) : "";
+}
+
 /** 스티커 글: 12자 이하 한 개 */
 export const STICKER_MAX = 12;
 
@@ -574,7 +590,7 @@ export function heroV3Of(i: HeroPlanInput, main: string, sub: string | undefined
   const benefit = strip ? undefined : (i.ctaBadges ?? []).map((b) => b.trim()).find((b) => b && [...b].length <= STICKER_MAX && !checkText(b, i.facts).bad);
   const sticker = badges[0] && [...badges[0]].length <= STICKER_MAX ? badges[0] : benefit;
   const price = !strip && typeof i.price === "number" && i.price > 0 ? `${i.price.toLocaleString("ko-KR")}원` : undefined;
-  const ghost = ghostWordOf(main, sub);
+  const ghost = ghostFitWordOf(main, sub, (i.brandName ?? "").trim());
   let seed = 0;
   for (const ch of main) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
   return { ...(ghost ? { ghost } : {}), ...(sticker ? { sticker } : {}), ...(price ? { price } : {}), motifVariant: seed % 8, mood: i.mood };
