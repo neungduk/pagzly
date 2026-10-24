@@ -8,6 +8,7 @@
  * 라이브·export는 같은 함수(extendThemeFor)를 쓴다. NEXT_PUBLIC_DESIGN_V3_COLOR=off 면 429차(본문 base 하나)와 같다.
  */
 import { v4SafeTheme } from "@/lib/palette-v4";
+import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
 import type { CategoryTheme } from "@/lib/category-theme";
 import { resolveTemplateCategory, type TemplateCategory } from "@/lib/section-templates";
 import { ensureReadableOnPaper, extendTheme, setThemeCycle, tokenHslToRgb, tokenRgbToHex, tokenRgbToHsl, hueShiftThemeToken, type ExtendedTheme, type ThemeVariantKey } from "@/lib/design-tokens";
@@ -206,12 +207,31 @@ export function derivePalette(base: CategoryTheme, rule: HarmonyRule): Palette {
  * 렌더러·export 공통 진입점: 플래그가 켜져 있고 대상(뷰티·패션 우선, 그 밖은 규칙 적용)이면 조화형 변형을 만들어 섹션 순환(PALETTE_CYCLE)을 건 ExtendedTheme을 돌려준다.
  * 플래그 off면 기존 extendTheme(본문 base 하나) 그대로.
  */
+/** 446차 2 — v4 페이지 색 예산: 면 색상군 ≤3(포인트 1계열 + 보조 1계열 + 중립). 슬롯 4개를 색상 2군으로 모은다: 3차 = 대표색 계열의 명도 사다리, 포인트 = 보조색 계열의 명도 사다리, 보조는 이동 ±40° 안 */
+export const V4_MAX_SECONDARY_SHIFT = 40;
+function narrowSlotsV4(base: CategoryTheme, pal: Palette): Record<PaletteSlot, CategoryTheme> {
+  const p = hexHsl(base.accent);
+  const rule = pal.rule;
+  const fashion = rule === "photo-tonal" || rule === "photo-tonal-bold" || rule === "mono-neutral";
+  const shift = fashion ? 0 : Math.max(-V4_MAX_SECONDARY_SHIFT, Math.min(V4_MAX_SECONDARY_SHIFT, HARMONY_RULES[rule].secondary));
+  const secondary = fashion ? pal.themes.secondary : capTheme(hueShiftThemeToken(base, shift), HARMONY_RULES[rule].satCap);
+  const sec = hexHsl(secondary.accent);
+  const ladder = (t: CategoryTheme, h: number, s: number, l: number, dl: number, sMul: number) => ({ ...themeWithAccentHsl(t, h, Math.max(0.12, Math.min(0.85, s * sMul)), Math.max(0.2, Math.min(0.66, l + dl))), baseNeutral: t.baseNeutral });
+  return {
+    primary: base,
+    secondary,
+    tertiary: ladder(base, p.h, p.s, p.l, 0.05, 0.85),
+    accent: fashion ? ladder(base, p.h, p.s, p.l, -0.03, 1.2) : ladder(secondary, sec.h, sec.s, sec.l, -0.05, 1.1),
+  };
+}
+
 export function extendThemeFor(base: CategoryTheme, input: PaletteInput, enabled: boolean = DESIGN_V3_COLOR_ENABLED): ExtendedTheme {
   const legacy = extendTheme(base);
   if (!enabled) return legacy;
   const pal = derivePalette(base, harmonyRuleFor(input));
   // 446차 1 — 슬롯 테마도 같은 전경색 보정(v4): 색상이 돌아간 슬롯의 글자·칩이 자기 옅은 면 위에서 4.5:1이 되게
-  const ext: ExtendedTheme = { base: v4SafeTheme(pal.themes.primary), warm: v4SafeTheme(pal.themes.secondary), cool: v4SafeTheme(pal.themes.tertiary), bold: v4SafeTheme(pal.themes.accent) };
+  const slots = DESIGN_V4_ENABLED ? narrowSlotsV4(base, pal) : pal.themes;
+  const ext: ExtendedTheme = { base: v4SafeTheme(slots.primary), warm: v4SafeTheme(slots.secondary), cool: v4SafeTheme(slots.tertiary), bold: v4SafeTheme(slots.accent) };
   // 같은 상품은 항상 같은 시작 위치(라이브·export·재불러오기 동일): 시드로 4칸 순환을 회전
   const shift = fontSeed(input.productName, input.brandName) % PALETTE_CYCLE.length;
   const cycle = PALETTE_CYCLE.map((_, i) => PALETTE_CYCLE[(i + shift) % PALETTE_CYCLE.length]!);

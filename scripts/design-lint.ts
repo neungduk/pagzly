@@ -30,6 +30,7 @@
  * 글자 수 어림(R5)은 DOM 지표보다 낮게 나와(s411 0.2 vs 1.70) 위반을 놓쳤다. DOM 값이 없으면(단위 검사) 이전 어림식.
  * 점수 = 100 − Σ(error 8, warn 3, info 1), 규칙별 감점 상한 24 — 한 규칙이 점수를 독점하지 않게.
  */
+import { MAX_HUE_GROUPS, budgetOf } from "./color-budget";
 import fs from "node:fs";
 import type { DetailSection } from "../lib/types/generate";
 import { contrastRatioToken } from "../lib/design-tokens";
@@ -157,7 +158,7 @@ export function iconRuns(html: string): Array<{ id: string; stroke: string | nul
   return out;
 }
 
-export type LintDom = { screens: number; bigPerScreen: number; flips: number; padOff?: number; padJumps?: number; gapBig?: number; gapUneven?: number; headingThin?: number; headingKinds?: number; headingKindList?: string; headingInversions?: number };
+export type LintDom = { screens: number; bigPerScreen: number; flips: number; padOff?: number; padJumps?: number; gapBig?: number; gapUneven?: number; headingThin?: number; headingKinds?: number; headingKindList?: string; headingInversions?: number; colorGroups?: number; colorGroupHues?: number[] };
 
 export function lintPage(id: string, html: string, display: DetailSection[], dom?: LintDom): LintResult {
   const issues: LintIssue[] = [];
@@ -237,6 +238,8 @@ export function lintPage(id: string, html: string, display: DetailSection[], dom
   // R15 히어로 직후 구매·혜택(가격 띠·한눈에 보기 요약)
   const heroEnd = html.search(/<\/section>/);
   if (display[0]?.type === "hero" && heroEnd > 0 && !/data-pz-strip|한눈에 보기|data-summary=/.test(html.slice(heroEnd, heroEnd + 12000))) add("R15", "warn", "히어로 직후 가격 띠·한눈에 보기 없음");
+  // R18 색 응집력(446, DOM): 한 페이지 면(배경) 색상군이 3을 넘으면 알록달록 — 포인트 1계열 + 보조 1계열 + 중립
+  if (dom?.colorGroups !== undefined && dom.colorGroups > MAX_HUE_GROUPS) add("R18", "warn", `면 색상군 ${dom.colorGroups}개 > ${MAX_HUE_GROUPS} (${(dom.colorGroupHues ?? []).join("°, ")}°)`);
   // R12 사진 비율
   const photoSecs = display.filter((s) => JSON.stringify(s).match(/"(imageIndex|imageUrl|images|url)"/)).length;
   const ratio = photoSecs / Math.max(1, display.length);
@@ -253,11 +256,17 @@ export async function lintCorpus(only: string[] = [], opts: { dom?: boolean } = 
   const { corpus, exportHtmlOf, displayOf } = await import("./design-corpus");
   const pages = corpus({ only }).map(([id, file]) => ({ id, html: exportHtmlOf(file), display: displayOf(file).sections }));
   const dom = opts.dom === false || !pages.length ? null : await (await import("./design-metrics-dom")).measureDomPages(pages.map((p) => [p.id, p.html]));
-  return pages.map((p) => lintPage(p.id, p.html, p.display, dom?.get(p.id)));
+  const faces = opts.dom === false || !pages.length ? null : await (await import("./color-budget")).measureFaces(pages.map((p) => [p.id, p.html]));
+  return pages.map((p) => {
+    const d = dom?.get(p.id);
+    const f = faces?.get(p.id);
+    const cb = f ? budgetOf(f.faces) : null;
+    return lintPage(p.id, p.html, p.display, d ? { ...d, ...(cb ? { colorGroups: cb.groups, colorGroupHues: cb.groupHues } : {}) } : undefined);
+  });
 }
 
 export function reportMd(results: LintResult[], title = "디자인 린트"): string {
-  const rules = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15", "R16", "R17"];
+  const rules = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15", "R16", "R17", "R18"];
   const head = `| 세션 | 점수 | ${rules.join(" | ")} | 화면 | 큰글줄/화면 | 반전 |\n|---|---|${rules.map(() => "---").join("|")}|---|---|---|`;
   const rows = results.map((r) => `| ${r.id} | **${r.score}** | ${rules.map((k) => r.issues.filter((i) => i.rule === k).length || "").join(" | ")} | ${r.stats.screens} | ${r.stats.bigPerScreen} | ${r.stats.flips} |`);
   const avg = results.reduce((a, r) => a + r.score, 0) / Math.max(1, results.length);

@@ -35,6 +35,8 @@ export type V4Palette = {
 const INK = "#1B1B18";
 const WHITE = "#FFFFFF";
 export const MIN_TEXT_CONTRAST = 4.5;
+/** 보조색 색상 이동 상한(도) — lib/palette-harmony.ts V4_MAX_SECONDARY_SHIFT와 같은 값 */
+export const V4_SECONDARY_MAX_SHIFT = 40;
 
 function hsl(hex: string): { h: number; s: number; l: number } {
   const n = parseInt(hex.replace("#", "").slice(0, 6), 16);
@@ -121,7 +123,9 @@ export function v4Palette(base: { ink?: string; accent: string; deep: string }, 
   const hm = (mood && MOOD_HARMONY[mood]) || DEFAULT_HARMONY;
   const a = hsl(accent);
   const s = Math.min(hm.cap, Math.max(0.2, a.s));
-  const secondary = fromHsl(a.h + hm.sec, hm.sec === 0 ? s * 0.5 : s, Math.min(0.62, Math.max(0.38, a.l)));
+  // 446차 2 — 보조 색상 이동은 ±40° 안(페이지 면 색상군 ≤3: 대표색 계열 + 보조 계열 + 중립). 팝(120°)·스트리트(180°) 무드도 그라데이션 두 번째 색이 다른 색상군으로 튀지 않게
+  const secShift = Math.max(-V4_SECONDARY_MAX_SHIFT, Math.min(V4_SECONDARY_MAX_SHIFT, hm.sec));
+  const secondary = fromHsl(a.h + secShift, hm.sec === 0 ? s * 0.5 : s, Math.min(0.62, Math.max(0.38, a.l)));
   const tertiary = fromHsl(a.h + hm.ter, hm.ter === 0 ? s * 0.4 : s * 0.85, Math.min(0.66, Math.max(0.42, a.l + 0.06)));
   const point = fromHsl(a.h + hm.pt, Math.min(0.85, s + 0.15), 0.5);
   const faces: Record<FaceRole, string> = {
