@@ -156,7 +156,7 @@ function benefitsHtml(s: ImpactSection, b: V4Block, p: V4Palette, alt: string): 
       `<p style="margin:12px 0 0;${typeCss("card", p.ink, "font-size:20px;font-weight:800")}">${esc(first!.title)}</p>` +
       (first!.body ? `<p style="margin:8px 0 0;${typeCss("small", mixHex(p.ink, "#FFFFFF", 0.12))}">${esc(first!.body)}</p>` : "") +
       `</div>` +
-      (first!.img ? `<div style="flex:0 0 40%;min-width:0;border-radius:18px;overflow:hidden;background:${p.tints[1]};box-shadow:${depthShadow("float", p.ink)}">${img(first!.img.url, alt, first!.img.pos)}</div>` : "") +
+      (first!.img ? `<div style="flex:0 0 40%;min-width:0;position:relative;border-radius:18px;overflow:hidden;background:${p.tints[1]};box-shadow:${depthShadow("float", p.ink)}">${img(first!.img.url, alt, first!.img.pos, "position:absolute;inset:0")}</div>` : "") +
       `</div>`;
     const faces = ["#FFFFFF", p.tints[0], mixHex(p.secondary, "#FFFFFF", 0.84), p.tints[1]];
     // 440차 3 — 작은 칸 전부 키워드 근거가 있으면 번호 대신 아이콘(흰 선 + 진한 면), 하나라도 없으면 번호 그대로

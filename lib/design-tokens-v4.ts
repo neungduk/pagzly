@@ -42,6 +42,15 @@ export const MOOD_PAD_BOUNDS = [36, 52] as const;
  */
 export const HERO_FACE_CAP = { chroma: 0.19, lightness: 0.58 } as const;
 
+/**
+ * 449차 2 — 칩·알약 테두리 토큰(한 곳). 칩은 두 종류다:
+ *  - 장식 칩(해시태그·성분·인증·한눈에 보기 알약·스펙 칩): 정보는 글자가 담고(글자 대비 4.5:1 이상) 테두리는 머리카락 선(알파 hairlineAlpha) — 비텍스트 대비(R21) 대상이 아니다.
+ *  - 조작 칩(색상 선택 라벨·토글 버튼): 경계가 "누를 수 있음·선택 상태"를 알리므로 종이색 위 3:1 이상(controlBorder, #8A8678 = 종이 #FAF8F3과 약 3.4:1).
+ * 히어로 위 칩 테두리는 heroChipBorder(포화·어두운 면과 3:1 이상).
+ * 생성부 전수(449차 조사): export 8곳(RADIUS.pill/9999/999 + border) · 라이브 7곳(rounded-full + border) · 히어로 tagRow/badgeRow/brandPill · 색상 선택 라벨 2곳(export·라이브).
+ */
+export const CHIP_V4 = { hairlineAlpha: 0.3, controlBorder: "#8A8678", selectedBorder: "rgba(27,27,24,0.6)", heroChipBorder: "rgba(255,255,255,0.8)" } as const;
+
 /** 요소 사이 간격(섹션 여백 스케일과 별개의 작은 단) */
 export const GAP_V4 = { xs: 8, sm: 12, md: 16 } as const;
 

@@ -22,7 +22,7 @@ import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 import { polishTitles } from "@/lib/typo-rhythm";
 import { DESIGN_V4_ENABLED, designV4On } from "@/lib/design-v4";
-import { HERO_FACE_CAP, ghostFadeBackground } from "@/lib/design-tokens-v4";
+import { CHIP_V4, HERO_FACE_CAP, ghostFadeBackground } from "@/lib/design-tokens-v4";
 import { designV2On } from "@/lib/design-v2";
 import { motifSvg } from "@/lib/motifs";
 import { v4Palette } from "@/lib/palette-v4";
@@ -515,7 +515,7 @@ const ghostBand = (p: HeroV2Plan): number => (p.v3?.ghost ? Math.round(ghostFitP
 /** 448차 4 — 히어로(포화·어두운 면) 위 태그·배지 칩 테두리 알파. 0.5~0.6은 면과 2.4~2.8:1이라 칩 경계가 흐렸다 → 3:1 이상(R21). v3 히어로는 v4에서만 쓰인다 */
 /** 449차 — 히어로 A 위쪽 브랜드·배지 알약 바탕(448차 0.5·0.38은 흰 사진 위에서 12px 흰 글자 2.5~3.6:1) → 어떤 사진에서도 4.5:1 이상 */
 const HERO_A_CHIP_BG_V4 = "rgba(10,10,10,0.66)";
-const HERO_CHIP_BORDER_V4 = "rgba(255,255,255,0.8)";
+const HERO_CHIP_BORDER_V4 = CHIP_V4.heroChipBorder;
 function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: string): string {
   const size = heroNameSizePx(p.name);
   const failAttrs = ` onerror="${HERO_FAIL_ONERROR}" onload="${HERO_FAIL_ONLOAD}"`;

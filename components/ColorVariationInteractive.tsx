@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { CategoryTheme } from "@/lib/category-theme";
 import type { ColorVariationSection } from "@/lib/types/generate";
 import { DESIGN_V4_ENABLED, hideImgOnError } from "@/lib/design-v4";
+import { CHIP_V4 } from "@/lib/design-tokens-v4";
 
 /** 448차 — v4는 섹션 제목을 h2로(제목 단계 건너뜀 방지) */
 const TitleTag = (DESIGN_V4_ENABLED ? "h2" : "h3") as "h2";
@@ -72,6 +73,7 @@ export default function ColorVariationInteractive({
                 ? "border-ink/40 bg-ink/5 font-medium text-ink"
                 : "border-line text-ink/70 hover:border-ink/25"
             }`}
+            style={DESIGN_V4_ENABLED ? { borderColor: active === optIndex ? CHIP_V4.selectedBorder : CHIP_V4.controlBorder } : undefined}
             aria-pressed={active === optIndex}
           >
             <span

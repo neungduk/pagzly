@@ -16,7 +16,7 @@ import { launch, openHtml } from "./eye-lib";
 import { applySectionDisplayBudget } from "../lib/section-display-budget";
 import { comparisonPolicyRemovesChart } from "../lib/comparison-policy";
 
-export type A11yIssue = { rule: "R19" | "R20" | "R21" | "R22" | "R23"; sev: "error" | "warn"; msg: string };
+export type A11yIssue = { rule: "R19" | "R20" | "R21" | "R22" | "R23"; sev: "error" | "warn" | "info"; msg: string; src?: string };
 
 const attr = (tag: string, name: string): string | null => { const m = new RegExp(`\\s${name}\\s*=\\s*"([^"]*)"`, "i").exec(tag); return m ? m[1]! : null; };
 const hasAttr = (tag: string, name: string): boolean => new RegExp(`\\s${name}(\\s|=|/|>)`, "i").test(tag);
@@ -78,7 +78,11 @@ const DOM_RULES = `(() => {
     if (al < 0.25) continue; // 머리카락 선(알파 0.25 미만)은 장식 — 정보를 담지 않는다
     const eff = [0, 1, 2].map((i) => bc[i] * al + back[i] * (1 - al));
     const cr = ratio(L(eff[0], eff[1], eff[2]), L(back[0], back[1], back[2]));
-    if (cr < 3) out.push({ rule: 'R21', sev: 'warn', msg: '테두리 대비 ' + cr.toFixed(2) + ' «' + (e.textContent || '').trim().slice(0, 14) + '»' });
+    // 449차: 조작 칩(라벨·버튼·링크·입력 연결)만 경계가 정보 — 장식 칩은 글자 대비 4.5:1 이상이면 info(제외)
+    const control = !!e.closest('label,button,a,[role],input,select');
+    const tc = parse(cs.color); const tl = L(tc[0], tc[1], tc[2]); const tr = ratio(tl, L(back[0], back[1], back[2]));
+    if (cr < 3 && !control && tr >= 4.5) { out.push({ rule: 'R21', sev: 'info', msg: '장식 칩(제외) ' + cr.toFixed(2) + ' «' + (e.textContent || '').trim().slice(0, 14) + '»' }); continue; }
+    if (cr < 3) out.push({ rule: 'R21', sev: 'warn', msg: '테두리 대비 ' + cr.toFixed(2) + ' «' + (e.textContent || '').trim().slice(0, 14) + '»', src: (e.getAttribute('class') || '') + '|' + (e.getAttribute('style') || '').slice(0, 140) });
   }
   // R23: 비율 예약 없는 이미지 — src를 잠깐 떼어 자리 높이가 변하는지 잰다(변하면 로드 뒤 아래 내용이 밀린다)
   for (const img of document.querySelectorAll('.pagzly-wrap img')) {
@@ -123,7 +127,7 @@ export async function auditCorpus(ids?: string[]): Promise<A11yRow[]> {
 
 export function tableOf(rows: A11yRow[]): string {
   const rules = ["R19", "R20", "R21", "R22", "R23"] as const;
-  const cnt = (xs: A11yIssue[], r: string) => xs.filter((x) => x.rule === r).length;
+  const cnt = (xs: A11yIssue[], r: string) => xs.filter((x) => x.rule === r && x.sev !== "info").length;
   const head = `| 세션 | ${rules.map((r) => `${r} export`).join(" | ")} | ${rules.slice(0, 1).concat(["R20", "R22"] as never).map((r) => `${r} 라이브`).join(" | ")} |`;
   const lines = [head, `|---|${"---|".repeat(rules.length + 3)}`];
   for (const r of rows) lines.push(`| ${r.id} | ${rules.map((x) => cnt(r.export, x)).join(" | ")} | ${["R19", "R20", "R22"].map((x) => cnt(r.live, x)).join(" | ")} |`);
