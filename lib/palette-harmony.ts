@@ -7,6 +7,7 @@
  *  - 접근성: 글자색은 기존 보정(readableTextDeep/Accent)이 4.5:1(큰 글자 3:1)을 맞추고, 색약(적록) 시뮬레이션에서 슬롯 간 색 차(ΔE)가 모자라면 포인트색 명도를 벌린다.
  * 라이브·export는 같은 함수(extendThemeFor)를 쓴다. NEXT_PUBLIC_DESIGN_V3_COLOR=off 면 429차(본문 base 하나)와 같다.
  */
+import { v4SafeTheme } from "@/lib/palette-v4";
 import type { CategoryTheme } from "@/lib/category-theme";
 import { resolveTemplateCategory, type TemplateCategory } from "@/lib/section-templates";
 import { ensureReadableOnPaper, extendTheme, setThemeCycle, tokenHslToRgb, tokenRgbToHex, tokenRgbToHsl, hueShiftThemeToken, type ExtendedTheme, type ThemeVariantKey } from "@/lib/design-tokens";
@@ -209,7 +210,8 @@ export function extendThemeFor(base: CategoryTheme, input: PaletteInput, enabled
   const legacy = extendTheme(base);
   if (!enabled) return legacy;
   const pal = derivePalette(base, harmonyRuleFor(input));
-  const ext: ExtendedTheme = { base: pal.themes.primary, warm: pal.themes.secondary, cool: pal.themes.tertiary, bold: pal.themes.accent };
+  // 446차 1 — 슬롯 테마도 같은 전경색 보정(v4): 색상이 돌아간 슬롯의 글자·칩이 자기 옅은 면 위에서 4.5:1이 되게
+  const ext: ExtendedTheme = { base: v4SafeTheme(pal.themes.primary), warm: v4SafeTheme(pal.themes.secondary), cool: v4SafeTheme(pal.themes.tertiary), bold: v4SafeTheme(pal.themes.accent) };
   // 같은 상품은 항상 같은 시작 위치(라이브·export·재불러오기 동일): 시드로 4칸 순환을 회전
   const shift = fontSeed(input.productName, input.brandName) % PALETTE_CYCLE.length;
   const cycle = PALETTE_CYCLE.map((_, i) => PALETTE_CYCLE[(i + shift) % PALETTE_CYCLE.length]!);

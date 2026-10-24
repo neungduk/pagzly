@@ -64,6 +64,33 @@ export function v4TextOn(fg: string, bg: string | undefined): string {
   return DESIGN_V4_ENABLED && bg && /^#[0-9a-f]{6}$/i.test(bg) ? ensureContrast(fg, bg) : fg;
 }
 
+/**
+ * 446차 1 — 테마 전경색 자동 보정(DESIGN_V4). 노랑~초록(약 30~180°)은 팔레트 곡선이 밝은 색을 줘서 deepAccent·accentText가 옅은 면 위에서 4.1 안팎,
+ * accent 면 위 종이색 글자(POINT 칩·말풍선·카드 머리)가 4.1~4.4로 4.5:1에 못 미쳤다(색상환 전수 197건, 합성 픽스처를 이 색상대로 바꿔 재현).
+ * 색상·채도는 유지하고 명도만 낮춘다: deepAccent·accentText는 가장 어두운 옅은 면(LIGHT_TINT_FLOOR) 위 글자로, accent는 종이색 글자를 올리는 면으로.
+ * 라이브·export가 테마를 처음 받는 자리(applyPackTone 직후)에서 같은 함수를 쓴다. v4 off면 그대로.
+ */
+export const LIGHT_TINT_FLOOR = "#EDEDE4";
+const PAPER_INK = "#FAF8F3";
+function darkenKeepHue(hex: string, ok: (c: string) => boolean): string {
+  if (ok(hex)) return hex;
+  const { h, s, l } = hsl(hex);
+  for (let L = l - 0.01; L >= 0.06; L -= 0.01) {
+    const c = fromHsl(h, s, L);
+    if (ok(c)) return c;
+  }
+  return fromHsl(h, s, 0.06);
+}
+export function v4SafeTheme<T extends { accent: string; deepAccent: string; accentText: string }>(theme: T): T {
+  if (!DESIGN_V4_ENABLED) return theme;
+  const text = (c: string) => contrastRatioToken(c, LIGHT_TINT_FLOOR) >= MIN_TEXT_CONTRAST + 0.1;
+  const fill = (c: string) => contrastRatioToken(PAPER_INK, c) >= MIN_TEXT_CONTRAST + 0.1;
+  const accentText = darkenKeepHue(theme.accentText, text);
+  const deepAccent = darkenKeepHue(theme.deepAccent, (c) => text(c) && fill(c));
+  const accent = darkenKeepHue(theme.accent, fill);
+  return accent === theme.accent && deepAccent === theme.deepAccent && accentText === theme.accentText ? theme : { ...theme, accent, deepAccent, accentText };
+}
+
 /** 흰 글자가 min 대비가 될 때까지 면을 어둡게(색상 유지) */
 function darkFace(hex: string, min = MIN_TEXT_CONTRAST): string {
   const { h, s, l } = hsl(hex);

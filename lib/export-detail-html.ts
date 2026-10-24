@@ -172,6 +172,7 @@ import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
 import { glanceIconSvg } from "@/lib/icons";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
 import { topPadCssV4 } from "@/lib/rhythm-v4";
+import { v4SafeTheme } from "@/lib/palette-v4";
 import { BEAUTY_HERO, HERO_ARCH, HERO_CAPTION, HERO_FRAME, HERO_STAGE_VARIANT, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroStageOn } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
@@ -2169,7 +2170,7 @@ export function buildDetailPageHtml(opts: {
 }): string {
   const pack = resolveStylePack(opts.category, opts.stylePackId);
   // 408차 — 팩 색 톤: hue는 세션 theme 그대로, 채도·밝기 곡선만 교체(기본 팩은 같은 객체)
-  opts = { ...opts, theme: applyPackTone(opts.theme, pack) };
+  opts = { ...opts, theme: v4SafeTheme(applyPackTone(opts.theme, pack)) };
   const hidden = new Set(opts.hiddenIndexes ?? []);
   // 183차 표시 예산은 결과 페이지(라이브)와 같은 순서 — 사용자 숨김 → 예산 → 표시 규칙(상한·사진 띠)
   const displayRes = applyDisplayRules(
