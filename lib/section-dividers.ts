@@ -4,6 +4,7 @@
  * 대상은 배경 면이 단색 파스텔/흰색으로 칠해지는 글 중심 섹션뿐이다(사진이 깔리는 섹션·인포 구간(자체 배경)은 제외).
  * 라이브는 섹션 래퍼의 data-section-index, export는 섹션 요소의 data-pz-i(buildDetailPageHtml이 붙임)로 같은 번호를 가리킨다.
  */
+import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
 import { FLAT_PAPER, getSectionPattern, getSectionTheme, pastelFace, type ExtendedTheme } from "@/lib/design-tokens";
 import { resolveTemplateCategory } from "@/lib/section-templates";
 
@@ -43,6 +44,7 @@ export function faceSequence(sections: ReadonlyArray<SectionLike>, ext: Extended
   });
 }
 
+/** 448차 — 물결 띠는 좌우 6%씩 구간 밖으로 나가(left:-6%·width:112%) 구간이 가로로 안 잘리면 360폭에서 가로 스크롤(+22px)이 생겼다 → v4는 구간을 가로로만 clip(세로·sticky는 그대로) */
 const H = 26;
 
 export function dividerCss(o: { scope: string; mode: "live" | "export"; sections: ReadonlyArray<SectionLike>; ext: ExtendedTheme; category: string | undefined | null; info: string | undefined }): string {
@@ -58,7 +60,7 @@ export function dividerCss(o: { scope: string; mode: "live" | "export"; sections
       style === "wave"
         ? `left:-6%;width:112%;height:${H}px;border-radius:0 0 50% 50%/0 0 100% 100%`
         : `left:0;width:100%;height:${H - 4}px;clip-path:polygon(0 0,100% 0,0 100%)`;
-    out.push(`${sel(i)}{position:relative}${sel(i)}::before{content:"";position:absolute;top:-1px;${shape};background:${prev};pointer-events:none;z-index:1}`);
+    out.push(`${sel(i)}{position:relative${DESIGN_V4_ENABLED ? ";overflow-x:clip" : ""}}${sel(i)}::before{content:"";position:absolute;top:-1px;${shape};background:${prev};pointer-events:none;z-index:1}`);
   }
   return out.join("");
 }

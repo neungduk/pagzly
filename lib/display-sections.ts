@@ -1,5 +1,6 @@
 import type { DetailSection } from "@/lib/types/generate";
 import { designV4On } from "@/lib/design-v4";
+import { collectSectionPlainText } from "@/lib/detail-seo-text";
 import { faceKeyOf, renumberV4Blocks } from "@/lib/layout-variants";
 import { faceKeysFor, legacyTopPads, markTightTops, motifBottomPads } from "@/lib/rhythm-v4";
 import { orderSectionsForFlow } from "@/lib/section-flow-order";
@@ -43,6 +44,22 @@ export type DisplaySections = {
   /** 447차 2-b — 모티프 블록 이웃의 앞 섹션 아래 여백을 줄일 곳(섹션 번호 → px, DESIGN_V4). data-pz-bot 표식 + 같은 CSS */
   bottomPads?: Record<number, number>;
 };
+
+/** 448차 — 글(제목·본문·항목)도 사진도 없는 섹션 껍데기. 히어로·갤러리·구매 접점·AI 고지·임팩트(자기 판정)는 제외 */
+export function isBlankShell(s: DetailSection): boolean {
+  if (s.type === "hero" || s.type === "gallery" || s.type === "cta_price" || s.type === "ai_disclosure" || s.type === "impact") return false;
+  // 사진·장면 이미지·아이콘이 하나라도 있으면 껍데기가 아니다(키 이름으로 판정 — 섹션마다 필드가 다르다)
+  for (const [k, v] of Object.entries(s as unknown as Record<string, unknown>)) {
+    if (/image|photo|scene|url|icon|svg/i.test(k) && (typeof v === "number" || (typeof v === "string" && v.trim()) || (Array.isArray(v) && v.length) || (v && typeof v === "object" && !Array.isArray(v)))) return false;
+  }
+  try {
+    // 본문만이 내용인 종류(주의사항·브랜드 스토리)는 제목만 남으면 껍데기
+    if (s.type === "caution" || s.type === "brand_story") return !String((s as unknown as { body?: unknown }).body ?? "").trim();
+    return collectSectionPlainText(s).every((t) => !t.trim());
+  } catch {
+    return false;
+  }
+}
 
 const DANGLING_TAIL = /[\s,，、·;:\-–—]+$/u;
 
@@ -418,7 +435,10 @@ export function applyDisplayRules(
   // 437차 — 첫 화면 히어로 재설계 계획(제품명이 입력에 있을 때만, 편집 모드·claimFacts 없음은 기존 히어로)
   const heroSec = finalOut1.sections[0];
   const heroPlan = opts.claimFacts && !opts.editing && heroSec?.type === "hero" ? planHeroV2({ hero: heroSec, productName: opts.claimFacts.productName, brandName: opts.brandName, imageUrls, origins: opts.origins, tags: opts.tags, roles: opts.roles, category: opts.category, archetype: arche && !arche.fallback ? arche.id : null, mood, facts: opts.claimFacts, certifications: opts.claimFacts.source.certifications, keyFeatures: opts.claimFacts.source.keyFeatures, wornTop: heroSec.photoTopAnchored === true, ...ctaOf(finalOut1.sections) }) : null;
-  const finalOut = heroPlan && heroSec?.type === "hero" ? { sections: [({ ...heroSec, v2: heroPlan } as DetailSection), ...finalOut1.sections.slice(1)], sourceIndexes: finalOut1.sourceIndexes } : finalOut1;
+  const finalOut2 = heroPlan && heroSec?.type === "hero" ? { sections: [({ ...heroSec, v2: heroPlan } as DetailSection), ...finalOut1.sections.slice(1)], sourceIndexes: finalOut1.sourceIndexes } : finalOut1;
+  // 448차 2-3 — 글이 하나도 없는 섹션 껍데기 생략(DESIGN_V4): 제목·항목이 모두 비면 export·라이브 모두 빈 여백 덩어리만 남았다(라이브는 일부 종류만 건너뜀)
+  const keepIdx = designV4On() ? finalOut2.sections.map((sec, i) => (i === 0 || !isBlankShell(sec) ? i : -1)).filter((i) => i >= 0) : null;
+  const finalOut = keepIdx && keepIdx.length !== finalOut2.sections.length ? { sections: keepIdx.map((i) => finalOut2.sections[i]!), sourceIndexes: keepIdx.map((i) => finalOut2.sourceIndexes[i]!) } : finalOut2;
   const policyChanges = policy ? [...policy.changes, ...(photo ? [{ type: "filled" as const, index: 0, kind: "photos" as const, reason: `사용하지 않은 사진 ${photo.indexes.join(",")}번`, slot: "backfill_photos" }] : [])] : undefined;
   // 444차 3 — 같은 면 이웃의 위 여백 해석(DESIGN_V4, lib/rhythm-v4.ts). v4 off면 그대로
   // 445차 3 — 이전(비임팩트) 섹션도 면 키를 읽어 같은 규칙: 임팩트 위 여백은 rhythm:"tight", 이전 섹션 위 여백은 topPads(섹션 번호 → px)로 내보낸다

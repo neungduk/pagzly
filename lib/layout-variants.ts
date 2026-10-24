@@ -28,7 +28,7 @@ import type { DetailSection, ImpactSection, V4Block } from "@/lib/types/generate
 import type { ImpactPalette } from "@/lib/impact-templates";
 import type { ProductImageOrigin } from "@/lib/image-origins";
 import { designV4On } from "@/lib/design-v4";
-import { hexToRgba, mixHex } from "@/lib/design-tokens";
+import { contrastRatioToken, hexToRgba, mixHex } from "@/lib/design-tokens";
 import { depthShadow, hairline, v4Palette, type FaceRole, type V4Palette } from "@/lib/palette-v4";
 import { dividerFor, dividerHtml, type DividerKind } from "@/lib/dividers";
 import { motifHtml, motifSvg, planMotifs, type MotifColors, type MotifPlacement } from "@/lib/motifs";
@@ -119,6 +119,8 @@ const faceBg = (b: V4Block, p: V4Palette): string => (b.face === "grad0" ? p.gra
 const faceRole = (b: V4Block): FaceRole => (b.face === "grad0" || b.face === "grad1" ? "emphasis" : ((b.face ?? "bgA") as FaceRole));
 const motifColors = (p: V4Palette): MotifColors => ({ a: p.tints[3], b: p.deep, c: p.secondary });
 
+/** 448차 — 지그재그 번호 라벨은 진한 대표색(p.deep)을 썼는데 연한 색 면(emphasis 등) 위에서 4.5:1에 못 미치는 팔레트가 있었다(퍼징 R7 4.30). 못 미칠 때만 면 위 강한 글자색으로 */
+const zigzagLabelColor = (b: V4Block, p: V4Palette, strong: string): string => (contrastRatioToken(p.deep, p.faces[faceRole(b)]) >= 4.5 ? p.deep : strong);
 const NUM = (n: number) => String(n).padStart(2, "0");
 const CHECK = (c: string, s = 16) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true" style="display:block"><path d="M5 12.5 L10 17 L19 7" fill="none" stroke="${c}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const img = (url: string, alt: string, pos = "50% 45%", extra = "") => `<img src="${esc(url)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover;object-position:${pos};${extra}"/>`;
@@ -212,7 +214,7 @@ function benefitsHtml(s: ImpactSection, b: V4Block, p: V4Palette, alt: string): 
         : `<div aria-hidden="true" style="flex:0 0 44%;min-width:0;aspect-ratio:1 / 1;border-radius:20px;display:flex;align-items:center;justify-content:center;background:${p.tints[1]};${TITLE_FF};font-size:48px;font-weight:900;color:${p.deep}">${NUM(i + 1)}</div>`;
       return (
         `<div style="display:flex;flex-direction:${right ? "row-reverse" : "row"};align-items:center;gap:16px;margin-top:${i ? 20 : 0}px">${media}` +
-        `<div style="flex:1 1 0%;min-width:0;text-align:${right ? "right" : "left"}"><p style="margin:0;${typeCss("label", p.deep)}">${NUM(i + 1)}</p>` +
+        `<div style="flex:1 1 0%;min-width:0;text-align:${right ? "right" : "left"}"><p style="margin:0;${typeCss("label", zigzagLabelColor(b, p, on.strong))}">${NUM(i + 1)}</p>` +
         `<p style="margin:6px 0 0;${typeCss("card", p.ink)}">${esc(it.title)}</p>` +
         (it.body ? `<p style="margin:6px 0 0;${typeCss("small", on.sub)}">${esc(it.body)}</p>` : "") +
         `</div></div>`
