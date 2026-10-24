@@ -1522,7 +1522,7 @@ function sectionHtml(
       const labelV4 = specV4 ? `;${declStyle(specLabelCellV4(accent))}` : "";
       const valueV4 = specV4 ? `;${declStyle(specValueCellV4())}` : "";
       const pendingRowHtml = pendingLabels.length
-        ? `<tr style="border-top:1px solid ${hexToRgba(BRAND.ink, INFO_TABLE.specRuleInkAlpha)}"><th style="text-align:left;padding:${thPad};width:38%;opacity:.55;font-weight:500;font-size:${FONT_SIZE.sm};letter-spacing:-0.01em${labelV4}">${PENDING_SPEC_ROW_LABEL}</th><td style="padding:${tdPad};font-size:13px;line-height:1.625;letter-spacing:-0.025em;color:rgba(27,27,24,.45)${valueV4}">${esc(pendingLabels.join(" · "))}</td></tr>`
+        ? `<tr style="border-top:1px solid ${hexToRgba(BRAND.ink, INFO_TABLE.specRuleInkAlpha)}"><th style="text-align:left;padding:${thPad};width:38%;opacity:.55;font-weight:500;font-size:${FONT_SIZE.sm};letter-spacing:-0.01em${labelV4}">${PENDING_SPEC_ROW_LABEL}</th><td style="padding:${tdPad};font-size:13px;line-height:1.625;letter-spacing:-0.025em;color:rgba(27,27,24,${DESIGN_V4_ENABLED ? ".72" : ".45"})${valueV4}">${esc(pendingLabels.join(" · "))}</td></tr>`
         : "";
       const rowsHtml = tableRows
         .map((row, ri) => {
@@ -1758,7 +1758,7 @@ function sectionHtml(
         ${shopperFacingTarget(section.targetCustomer) ? `<p${beautyIpAttr(layout, "chip")} style="display:inline-block;margin:16px 0 0;padding:6px 16px;border-radius:9999px;background:${hexToRgba(accent, 0.14)};color:${deepText};font-size:${FONT_SIZE.xs};font-weight:500">${esc(shopperFacingTarget(section.targetCustomer))}</p>` : ""}
         ${section.badges?.length ? `<div${beautyIpAttr(layout, "badges")}${section.badges.length === 4 ? ` class="pagzly-badges4"` : ""} style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:16px">${section.badges.map((b) => `<span style="background:${FLAT_PAPER};border:1px solid ${hexToRgba(accent, 0.3)};border-radius:9999px;color:${deepText};padding:8px 16px;font-size:${FONT_SIZE.xs};font-weight:600">${esc(b)}</span>`).join("")}</div>` : ""}
         ${ctaTrustHtml(section.trust, theme)}${layout.beautyInfo ? `<span${beautyIpAttr(layout, "cta")} style="display:inline-block;margin-top:24px;padding:14px 28px;background:#1B1B18;color:#FAF8F3;font-weight:700">지금 구매하기</span>` : ""}
-        <p${beautyIpAttr(layout, "note")} style="margin-top:20px;font-size:${FONT_SIZE.xs};color:rgba(27,27,24,.5)">배송·교환·환불은 판매자 정책을 확인해 주세요.</p>
+        <p${beautyIpAttr(layout, "note")} style="margin-top:20px;font-size:${FONT_SIZE.xs};color:rgba(27,27,24,${DESIGN_V4_ENABLED ? ".72" : ".5"})">배송·교환·환불은 판매자 정책을 확인해 주세요.</p>
       </section>`;
       }
       return `<section${sectionIdAttr}${beautyAttr(layout, "buy")} class="pagzly-cta" style="${ctaPad}background:${deepFill};color:#FAF8F3;text-align:center;clip-path:polygon(0 44px, 100% 0, 100% 100%, 0 100%);margin-top:-16px">

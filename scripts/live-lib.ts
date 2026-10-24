@@ -10,7 +10,10 @@ export const SESSION_KEY = "pagzly-dev-preview-session";
 
 /** 픽스처 → 개발 미리보기 preset(readSessionPreset이 읽는 모양). claimInput은 세션 JSON 자체(export 캡처의 claimFactsOf 입력과 같다) */
 export function presetOf(file: string): Record<string, unknown> {
-  const s = readSession(file);
+  return presetOfSession(readSession(file));
+}
+/** 449차 — 세션 객체(퍼징 사례)에서 바로 만든다 */
+export function presetOfSession(s: ReturnType<typeof readSession>): Record<string, unknown> {
   const a = exportArgsOf(s);
   // export(buildDetailPageHtml)와 같은 순서·같은 옵션으로 표시 예산을 미리 적용한다. 개발 미리보기는 예산이 기본 꺼짐이고 chartRemoved 옵션도 안 넘겨 결과 페이지·export와 구성이 달라지기 때문
   const sections = applySectionDisplayBudget(a.category, (a.sections ?? []) as never, { chartRemoved: comparisonPolicyRemovesChart(a.claimFacts) });

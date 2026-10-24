@@ -46,15 +46,25 @@ export type DisplaySections = {
 };
 
 /** 448차 — 글(제목·본문·항목)도 사진도 없는 섹션 껍데기. 히어로·갤러리·구매 접점·AI 고지·임팩트(자기 판정)는 제외 */
-export function isBlankShell(s: DetailSection): boolean {
+export function dropTitleOnlyItems(s: DetailSection): DetailSection {
+  if (s.type !== "impact" || s.kind !== "v4" || !s.v4?.items || s.v4.family === "touch" || s.v4.family === "spec") return s;
+  const kept = s.v4.items.filter((it) => (it.body ?? "").trim() || it.img);
+  return kept.length >= 2 && kept.length < s.v4.items.length ? ({ ...s, v4: { ...s.v4, items: kept } } as DetailSection) : s;
+}
+
+export function isBlankShell(s: DetailSection, imageCount?: number): boolean {
   if (s.type === "hero" || s.type === "gallery" || s.type === "cta_price" || s.type === "ai_disclosure" || s.type === "impact") return false;
   // 사진·장면 이미지·아이콘이 하나라도 있으면 껍데기가 아니다(키 이름으로 판정 — 섹션마다 필드가 다르다)
   for (const [k, v] of Object.entries(s as unknown as Record<string, unknown>)) {
-    if (/image|photo|scene|url|icon|svg/i.test(k) && (typeof v === "number" || (typeof v === "string" && v.trim()) || (Array.isArray(v) && v.length) || (v && typeof v === "object" && !Array.isArray(v)))) return false;
+    // 449차 — 사진 번호가 실제 사진 수를 넘으면(사진이 모자란 입력) 사진이 없는 것으로 본다
+    if (imageCount !== undefined && k === "imageIndex" && typeof v === "number" && v >= imageCount) continue;
+    if (/^(imageIndex(es)?|imageUrls?|illustrationUrl|photo\w*|scene\w*|circle\w*|icon\w*|svg\w*)$/i.test(k) && (typeof v === "number" || (typeof v === "string" && v.trim()) || (Array.isArray(v) && v.length) || (v && typeof v === "object" && !Array.isArray(v)))) return false;
   }
   try {
     // 본문만이 내용인 종류(주의사항·브랜드 스토리)는 제목만 남으면 껍데기
     if (s.type === "caution" || s.type === "brand_story") return !String((s as unknown as { body?: unknown }).body ?? "").trim();
+    // 449차 3 — 숫자 게이트가 본문 문장을 지운 뒤 사진도 없는 이미지-글 행은 제목 한 줄만 남는다 → 껍데기
+    if (s.type === "image_text" && !String((s as unknown as { body?: unknown }).body ?? "").trim()) return true;
     return collectSectionPlainText(s).every((t) => !t.trim());
   } catch {
     return false;
@@ -437,8 +447,10 @@ export function applyDisplayRules(
   const heroPlan = opts.claimFacts && !opts.editing && heroSec?.type === "hero" ? planHeroV2({ hero: heroSec, productName: opts.claimFacts.productName, brandName: opts.brandName, imageUrls, origins: opts.origins, tags: opts.tags, roles: opts.roles, category: opts.category, archetype: arche && !arche.fallback ? arche.id : null, mood, facts: opts.claimFacts, certifications: opts.claimFacts.source.certifications, keyFeatures: opts.claimFacts.source.keyFeatures, wornTop: heroSec.photoTopAnchored === true, ...ctaOf(finalOut1.sections) }) : null;
   const finalOut2 = heroPlan && heroSec?.type === "hero" ? { sections: [({ ...heroSec, v2: heroPlan } as DetailSection), ...finalOut1.sections.slice(1)], sourceIndexes: finalOut1.sourceIndexes } : finalOut1;
   // 448차 2-3 — 글이 하나도 없는 섹션 껍데기 생략(DESIGN_V4): 제목·항목이 모두 비면 export·라이브 모두 빈 여백 덩어리만 남았다(라이브는 일부 종류만 건너뜀)
-  const keepIdx = designV4On() ? finalOut2.sections.map((sec, i) => (i === 0 || !isBlankShell(sec) ? i : -1)).filter((i) => i >= 0) : null;
-  const finalOut = keepIdx && keepIdx.length !== finalOut2.sections.length ? { sections: keepIdx.map((i) => finalOut2.sections[i]!), sourceIndexes: keepIdx.map((i) => finalOut2.sourceIndexes[i]!) } : finalOut2;
+  const keepIdx = designV4On() ? finalOut2.sections.map((sec, i) => (i === 0 || !isBlankShell(sec, imageUrls.length) ? i : -1)).filter((i) => i >= 0) : null;
+  const finalOut0b = keepIdx && keepIdx.length !== finalOut2.sections.length ? { sections: keepIdx.map((i) => finalOut2.sections[i]!), sourceIndexes: keepIdx.map((i) => finalOut2.sourceIndexes[i]!) } : finalOut2;
+  // 449차 3 — 숫자 게이트 등이 본문을 지워 제목만 남은 v4 목록 항목(카드·행)은 생략(항목이 둘 이상 남을 때만). 게이트의 의미는 바꾸지 않고 표시만 정리
+  const finalOut = designV4On() ? { sections: finalOut0b.sections.map(dropTitleOnlyItems), sourceIndexes: finalOut0b.sourceIndexes } : finalOut0b;
   const policyChanges = policy ? [...policy.changes, ...(photo ? [{ type: "filled" as const, index: 0, kind: "photos" as const, reason: `사용하지 않은 사진 ${photo.indexes.join(",")}번`, slot: "backfill_photos" }] : [])] : undefined;
   // 444차 3 — 같은 면 이웃의 위 여백 해석(DESIGN_V4, lib/rhythm-v4.ts). v4 off면 그대로
   // 445차 3 — 이전(비임팩트) 섹션도 면 키를 읽어 같은 규칙: 임팩트 위 여백은 rhythm:"tight", 이전 섹션 위 여백은 topPads(섹션 번호 → px)로 내보낸다

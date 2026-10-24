@@ -3654,7 +3654,7 @@ function renderSection(
                 {pendingLabels.length > 0 ? (
                   <tr data-spec-pending>
                     <td className={`w-[38%] py-3.5 pr-4 ${TYPO.tableLabel}`} style={specV4 ? declObject(specLabelCellV4(theme.accent)) : undefined}>{PENDING_SPEC_ROW_LABEL}</td>
-                    <td className="py-3.5 text-[13px] leading-relaxed tracking-tight text-ink/45" style={specV4 ? declObject(specValueCellV4()) : undefined}>
+                    <td className={`py-3.5 text-[13px] leading-relaxed tracking-tight ${DESIGN_V4_ENABLED ? "text-ink/70" : "text-ink/45"}`} style={specV4 ? declObject(specValueCellV4()) : undefined}>
                       {pendingLabels.join(" · ")}
                     </td>
                   </tr>
@@ -5947,7 +5947,7 @@ function renderSection(
               >
                 지금 구매하기
               </span>
-              <p className="mt-3 text-xs leading-relaxed text-ink/50" {...beautyIp(layout, "note")}>
+              <p className={`mt-3 text-xs leading-relaxed ${DESIGN_V4_ENABLED ? "text-ink/70" : "text-ink/50"}`} {...beautyIp(layout, "note")}>
                 배송·교환·환불은 판매자 정책을 확인해 주세요.
               </p>
             </div>

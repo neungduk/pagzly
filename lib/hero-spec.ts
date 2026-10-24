@@ -516,6 +516,8 @@ const ghostBand = (p: HeroV2Plan): number => (p.v3?.ghost ? Math.round(ghostFitP
 /** 449차 — 히어로 A 위쪽 브랜드·배지 알약 바탕(448차 0.5·0.38은 흰 사진 위에서 12px 흰 글자 2.5~3.6:1) → 어떤 사진에서도 4.5:1 이상 */
 const HERO_A_CHIP_BG_V4 = "rgba(10,10,10,0.66)";
 const HERO_CHIP_BORDER_V4 = CHIP_V4.heroChipBorder;
+/** 449차 — 포화·어두운 면 위 브랜드 알약(12px 흰 글자): 흰 20% 덧칠은 면을 밝혀 3.3:1이었다 → 어두운 덧칠 */
+const HERO_BRAND_PILL_BG_V4 = "rgba(10,10,10,0.28)";
 function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: string): string {
   const size = heroNameSizePx(p.name);
   const failAttrs = ` onerror="${HERO_FAIL_ONERROR}" onload="${HERO_FAIL_ONLOAD}"`;
@@ -551,8 +553,8 @@ function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: str
             : `<div data-hero-photo style="position:relative;margin:${16 + band}px auto 0;width:96%;aspect-ratio:4 / 5.2;border-radius:999px 999px 0 0;overflow:hidden;box-shadow:0 -10px 30px rgba(10,10,10,0.25);background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`
       : `<div data-hero-photo style="position:relative;margin:${16 + band}px auto 32px;width:96%;aspect-ratio:1 / 1.3;border-radius:24px;overflow:hidden;box-shadow:0 0 70px ${hexToRgba(pal.accent, 0.5)};background:#1B1B18">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`;
     const text = isB
-      ? `<div style="position:relative;z-index:4;padding:28px 24px 0">${brandPill(p, "rgba(255,255,255,0.2)", "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "#FFFFFF")}${hookHtml(hero, "#FFFFFF", "#FFFFFF")}${tagRow(p, "#FFFFFF", HERO_CHIP_BORDER_V4)}</div>${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "rgba(255,255,255,0.18)", "#FFFFFF", HERO_CHIP_BORDER_V4)}</div>` : ""}${v3Price(p, priceBg, priceFg)}</div>`
-      : `<div style="position:relative;z-index:4;padding:28px 24px 0;text-align:center">${brandPill(p, "rgba(255,255,255,0.14)", "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.75)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.82)")}<div style="display:flex;justify-content:center">${tagRow(p, "#FFFFFF", HERO_CHIP_BORDER_V4)}</div></div>${p.badges.length ? `<div style="margin-top:14px;display:flex;justify-content:center">${badgeRow(p, "rgba(255,255,255,0.12)", "#FFFFFF", HERO_CHIP_BORDER_V4)}</div>` : ""}${v3Price(p, priceBg, priceFg)}</div>`;
+      ? `<div style="position:relative;z-index:4;padding:28px 24px 0">${brandPill(p, HERO_BRAND_PILL_BG_V4, "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "#FFFFFF")}${hookHtml(hero, "#FFFFFF", "#FFFFFF")}${tagRow(p, "#FFFFFF", HERO_CHIP_BORDER_V4)}</div>${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "rgba(255,255,255,0.18)", "#FFFFFF", HERO_CHIP_BORDER_V4)}</div>` : ""}${v3Price(p, priceBg, priceFg)}</div>`
+      : `<div style="position:relative;z-index:4;padding:28px 24px 0;text-align:center">${brandPill(p, HERO_BRAND_PILL_BG_V4, "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.75)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.82)")}<div style="display:flex;justify-content:center">${tagRow(p, "#FFFFFF", HERO_CHIP_BORDER_V4)}</div></div>${p.badges.length ? `<div style="margin-top:14px;display:flex;justify-content:center">${badgeRow(p, "rgba(255,255,255,0.12)", "#FFFFFF", HERO_CHIP_BORDER_V4)}</div>` : ""}${v3Price(p, priceBg, priceFg)}</div>`;
     return (
       wrapOpen(p.variant, isB ? `background:${face};isolation:isolate` : `background:#0E0E10 radial-gradient(60% 45% at 50% 66%,${hexToRgba(pal.accent, 0.4)},rgba(14,14,16,0) 70%);isolation:isolate`) +
       text +
