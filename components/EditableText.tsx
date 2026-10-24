@@ -2,6 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { joinNumericSuffix } from "@/lib/detail-typography";
+import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
 
 type EditableTextProps = {
   value: string;
@@ -36,7 +37,8 @@ export default function EditableText({
   }
 
   if (!enabled) {
-    const Tag = as;
+    // 448차 — v4: 섹션 제목 h3은 h2로(히어로 h1 다음 단계를 건너뛰지 않게, export와 같은 단계). 편집 중 마크업은 그대로
+    const Tag = DESIGN_V4_ENABLED && as === "h3" ? "h2" : as;
     return (
       <Tag className={className} style={style}>
         {display ?? joinNumericSuffix(value)}

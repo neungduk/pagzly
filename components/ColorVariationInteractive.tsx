@@ -3,7 +3,10 @@
 import { useState } from "react";
 import type { CategoryTheme } from "@/lib/category-theme";
 import type { ColorVariationSection } from "@/lib/types/generate";
-import { hideImgOnError } from "@/lib/design-v4";
+import { DESIGN_V4_ENABLED, hideImgOnError } from "@/lib/design-v4";
+
+/** 448차 — v4는 섹션 제목을 h2로(제목 단계 건너뜀 방지) */
+const TitleTag = (DESIGN_V4_ENABLED ? "h2" : "h3") as "h2";
 
 type Props = {
   section: ColorVariationSection;
@@ -54,9 +57,9 @@ export default function ColorVariationInteractive({
       style={textSectionStyle}
     >
       {accentHairline}
-      <h3 className={titleClassName} style={titleStyle}>
+      <TitleTag className={titleClassName} style={titleStyle}>
         {titleContent ?? section.heading}
-      </h3>
+      </TitleTag>
 
       <div className="mt-12 flex flex-wrap justify-center gap-3">
         {section.options.map((option, optIndex) => (

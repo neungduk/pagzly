@@ -117,7 +117,7 @@ export function buildSeoTextBlockHtml(opts: {
   certifications?: string | null;
 }): string {
   const parts: string[] = [];
-  parts.push(`<h1>${esc(opts.productName)}</h1>`);
+  parts.push(DESIGN_V4_ENABLED ? `<h2 class="pagzly-seo-title">${esc(opts.productName)}</h2>` : `<h1>${esc(opts.productName)}</h1>`);
   if (opts.brandName) parts.push(`<p><strong>브랜드</strong> ${esc(opts.brandName)}</p>`);
   parts.push(`<p><strong>카테고리</strong> ${esc(opts.category)}</p>`);
 

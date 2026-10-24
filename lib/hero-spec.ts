@@ -505,6 +505,8 @@ function heroV2HtmlBase(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt:
 /** 440차 눈 검수 H1 — 고스트 글자가 튀어나오거나 깔리는 높이(px). 그만큼 사진 위·패널 아래 여백을 늘려 칩·가격 띠(-12px 겹침)와 겹치지 않는 자기 띠를 준다 */
 const ghostBand = (p: HeroV2Plan): number => (p.v3?.ghost ? Math.round(ghostFitPx(p.v3.ghost) * 0.55) : 0);
 
+/** 448차 4 — 히어로(포화·어두운 면) 위 태그·배지 칩 테두리 알파. 0.5~0.6은 면과 2.4~2.8:1이라 칩 경계가 흐렸다 → 3:1 이상(R21). v3 히어로는 v4에서만 쓰인다 */
+const HERO_CHIP_BORDER_V4 = "rgba(255,255,255,0.8)";
 function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: string): string {
   const size = heroNameSizePx(p.name);
   const failAttrs = ` onerror="${HERO_FAIL_ONERROR}" onload="${HERO_FAIL_ONLOAD}"`;
@@ -521,7 +523,7 @@ function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: str
       `<div aria-hidden="true" data-hero-scrim style="position:absolute;left:0;right:0;bottom:0;height:62%;background:${scrimGradient(true)}"></div>` +
       `<div data-hero-a-text style="position:absolute;left:0;right:0;top:0;padding:20px ${p.v3!.sticker ? 112 : 20}px 0 20px">${brandPill(p, "rgba(10,10,10,0.5)", "#FFFFFF")}${p.badges.length ? `<div style="margin-top:10px">${badgeRow(p, "rgba(10,10,10,0.38)", "#FFFFFF", "rgba(255,255,255,0.55)")}</div>` : ""}</div>` +
       v3Sticker(p, pal, "top:18px;right:18px;z-index:6") +
-      `<div data-hero-a-text style="position:absolute;left:0;right:0;bottom:0;z-index:4;padding:${HERO_TEXT_SCRIM_FEATHER_PX}px 24px 44px;background:${heroTextScrim()}">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.92)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.96)")}${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.55)")}${v3Price(p, priceBg, priceFg)}</div></section>`
+      `<div data-hero-a-text style="position:absolute;left:0;right:0;bottom:0;z-index:4;padding:${HERO_TEXT_SCRIM_FEATHER_PX}px 24px 44px;background:${heroTextScrim()}">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.92)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.96)")}${tagRow(p, "#FFFFFF", HERO_CHIP_BORDER_V4)}${v3Price(p, priceBg, priceFg)}</div></section>`
     );
   }
   if (p.variant === "B" || p.variant === "C") {
@@ -540,8 +542,8 @@ function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: str
             : `<div data-hero-photo style="position:relative;margin:${16 + band}px auto 0;width:96%;aspect-ratio:4 / 5.2;border-radius:999px 999px 0 0;overflow:hidden;box-shadow:0 -10px 30px rgba(10,10,10,0.25);background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`
       : `<div data-hero-photo style="position:relative;margin:${16 + band}px auto 32px;width:96%;aspect-ratio:1 / 1.3;border-radius:24px;overflow:hidden;box-shadow:0 0 70px ${hexToRgba(pal.accent, 0.5)};background:#1B1B18">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`;
     const text = isB
-      ? `<div style="position:relative;z-index:4;padding:28px 24px 0">${brandPill(p, "rgba(255,255,255,0.2)", "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "#FFFFFF")}${hookHtml(hero, "#FFFFFF", "#FFFFFF")}${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.6)")}</div>${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "rgba(255,255,255,0.18)", "#FFFFFF", "rgba(255,255,255,0.55)")}</div>` : ""}${v3Price(p, priceBg, priceFg)}</div>`
-      : `<div style="position:relative;z-index:4;padding:28px 24px 0;text-align:center">${brandPill(p, "rgba(255,255,255,0.14)", "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.75)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.82)")}<div style="display:flex;justify-content:center">${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.5)")}</div></div>${p.badges.length ? `<div style="margin-top:14px;display:flex;justify-content:center">${badgeRow(p, "rgba(255,255,255,0.12)", "#FFFFFF", "rgba(255,255,255,0.45)")}</div>` : ""}${v3Price(p, priceBg, priceFg)}</div>`;
+      ? `<div style="position:relative;z-index:4;padding:28px 24px 0">${brandPill(p, "rgba(255,255,255,0.2)", "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "#FFFFFF")}${hookHtml(hero, "#FFFFFF", "#FFFFFF")}${tagRow(p, "#FFFFFF", HERO_CHIP_BORDER_V4)}</div>${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "rgba(255,255,255,0.18)", "#FFFFFF", HERO_CHIP_BORDER_V4)}</div>` : ""}${v3Price(p, priceBg, priceFg)}</div>`
+      : `<div style="position:relative;z-index:4;padding:28px 24px 0;text-align:center">${brandPill(p, "rgba(255,255,255,0.14)", "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.75)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.82)")}<div style="display:flex;justify-content:center">${tagRow(p, "#FFFFFF", HERO_CHIP_BORDER_V4)}</div></div>${p.badges.length ? `<div style="margin-top:14px;display:flex;justify-content:center">${badgeRow(p, "rgba(255,255,255,0.12)", "#FFFFFF", HERO_CHIP_BORDER_V4)}</div>` : ""}${v3Price(p, priceBg, priceFg)}</div>`;
     return (
       wrapOpen(p.variant, isB ? `background:${face};isolation:isolate` : `background:#0E0E10 radial-gradient(60% 45% at 50% 66%,${hexToRgba(pal.accent, 0.4)},rgba(14,14,16,0) 70%);isolation:isolate`) +
       text +

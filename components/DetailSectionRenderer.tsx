@@ -254,6 +254,9 @@ import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
 import { glanceIconSvg } from "@/lib/icons";
 
+/** 448차 — v4는 섹션 제목을 h2로(히어로 h1 다음 단계 건너뜀 방지, export와 같은 단계). 예전은 h3 그대로 */
+const SectionH = (DESIGN_V4_ENABLED ? "h2" : "h3") as "h2";
+
 export type SectionEditApi = {
   enabled: boolean;
   onChange: (index: number, section: DetailSection) => void;
@@ -1127,7 +1130,7 @@ function TwoToneTitle({
   const tones = twoToneHeadlineColors(theme, inverted);
   const mainColor = plain && !inverted ? BRAND.ink : tones.main;
   return (
-    <h3 className={className} style={fit}>
+    <SectionH className={className} style={fit}>
       {parts.lead ? (
         <span
           className="mb-[0.3em] block font-medium tracking-[-0.02em]"
@@ -1142,7 +1145,7 @@ function TwoToneTitle({
       <span className="block" style={{ color: mainColor }}>
         {(!parts.lead && !inverted && headlineKeywordNodes(parts.main, theme)) || parts.main}
       </span>
-    </h3>
+    </SectionH>
   );
 }
 
@@ -1876,9 +1879,9 @@ function renderComparisonChartBody(params: {
       >
         COMPARE
       </p>
-      <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}>
+      <SectionH className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}>
         {headlineKeywordNodes(section.heading, theme) ?? section.heading}
-      </h3>
+      </SectionH>
       {FLAT_SECTION_SURFACES && section.presentationStyle !== "checklist" ? (
         <div className="mx-auto mt-8 flex max-w-md items-center justify-center gap-5 text-xs text-ink/60">
           <span className="flex items-center gap-1.5">
@@ -2015,12 +2018,12 @@ function renderTextOnlyRun(params: {
               {String(i + 1).padStart(2, "0")}
             </span>
             <div className="min-w-0">
-              <h3
+              <SectionH
                 className="font-heading text-xl font-bold tracking-[-0.02em]"
                 style={{ color: readableTextDeep(theme, 3) }}
               >
                 {textOnlyRunHeading(row.heading)}
-              </h3>
+              </SectionH>
               <p
                 className="mt-2 whitespace-pre-line text-[15px] leading-[1.75]"
                 style={{ color: hexToRgba(BRAND.ink, 0.72) }}
@@ -3688,9 +3691,9 @@ function renderSection(
           >
             COMPARE
           </p>
-          <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}>
+          <SectionH className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}>
             {headlineKeywordNodes(section.heading, theme) ?? section.heading}
-          </h3>
+          </SectionH>
           <div className="mx-auto mt-10 max-w-xl overflow-x-auto overflow-hidden rounded-lg" style={DESIGN_V4_ENABLED ? declObject(compareWrapV4()) : undefined}>
             <table className="w-full text-sm">
               <thead>
@@ -3786,9 +3789,9 @@ function renderSection(
           >
             FIT CHECK
           </p>
-          <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}>
+          <SectionH className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}>
             {headlineKeywordNodes(section.heading, theme) ?? section.heading}
-          </h3>
+          </SectionH>
           <div
             className={`mx-auto mt-10 grid gap-6 ${
               recommendFor.length > 0 && considerIf.length > 0
@@ -4839,9 +4842,9 @@ function renderSection(
             style={textSectionStyle(theme, pattern, category)}
             {...infoData(layout, "care")}
           >
-            <h3 className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}>
+            <SectionH className={`${TEXT_COL_CLASS} ${TYPO.sectionTitle}`} style={flatTitleColor(theme)}>
               {headlineKeywordNodes(section.heading, theme) ?? section.heading}
-            </h3>
+            </SectionH>
             <div
               data-caution-list
               className="mx-auto mt-8 max-w-xl rounded-xl border px-5 py-5 text-left text-[14px] leading-relaxed text-ink/75 @min-[640px]/pz:px-7"
