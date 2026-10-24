@@ -172,6 +172,7 @@ import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
 import { glanceIconSvg } from "@/lib/icons";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
 import { bottomPadCssV4, topPadCssV4 } from "@/lib/rhythm-v4";
+import { dedupeStyles } from "@/lib/style-dedupe";
 import { v4SafeTheme } from "@/lib/palette-v4";
 import { BEAUTY_HERO, HERO_ARCH, HERO_CAPTION, HERO_FRAME, HERO_STAGE_VARIANT, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroStageOn } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
@@ -636,7 +637,7 @@ function textOnlyRunHtml(params: {
       (row, i) =>
         `<li style="display:grid;grid-template-columns:auto 1fr;align-items:start;column-gap:20px;padding:${i === 0 ? 0 : 24}px 0 ${i === rows.length - 1 ? 0 : 24}px${i === 0 ? "" : `;border-top:${rule}`}">` +
         `<span class="pagzly-run-num" aria-hidden="true" style="font-family:${DETAIL_FONT_STACK.heading};font-size:2rem;font-weight:800;line-height:1;letter-spacing:-0.04em;font-variant-numeric:tabular-nums;color:${readableTextAccent(theme)}">${String(i + 1).padStart(2, "0")}</span>` +
-        `<div style="min-width:0"><h3 style="margin:0;font-family:${DETAIL_FONT_STACK.heading};font-size:20px;line-height:28px;font-weight:700;letter-spacing:-0.02em;color:${readableTextDeep(theme, 3)}">${esc(textOnlyRunHeading(row.heading))}</h3>` +
+        `<div style="min-width:0"><${DESIGN_V4_ENABLED ? "h2" : "h3"} style="margin:0;font-family:${DETAIL_FONT_STACK.heading};font-size:20px;line-height:28px;font-weight:700;letter-spacing:-0.02em;color:${readableTextDeep(theme, 3)}">${esc(textOnlyRunHeading(row.heading))}</${DESIGN_V4_ENABLED ? "h2" : "h3"}>` +
         `<p style="margin:8px 0 0;white-space:pre-line;font-size:15px;line-height:1.75;color:${hexToRgba(BRAND.ink, 0.72)}">${esc(row.body)}</p></div></li>`,
     )
     .join("");
@@ -1209,7 +1210,7 @@ function sectionHtml(
               ${section.noPhoto ? `<div class="pagzly-compact-thumb" data-pz-icon-tile aria-hidden="true" style="display:flex;align-items:center;justify-content:center;border-radius:${thumbRadius}px;background:${theme.accentSoft}"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="${readableTextAccent(theme)}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8L16 9.5"/></svg></div>` : src ? `<img class="pagzly-compact-thumb" src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="object-fit:cover;border-radius:${thumbRadius}px"/>` : ""}
             </div>
             <div style="min-width:0;flex:1;text-align:${imageFirst ? "left" : "right"}">
-              <h3 style="margin:0;font-family:${DETAIL_FONT_STACK.heading};font-size:${titleSizeCss("compact")};font-weight:600;line-height:1.35;letter-spacing:-0.02em;color:#1B1B18;overflow-wrap:anywhere">${esc(section.heading)}</h3>
+              <${DESIGN_V4_ENABLED ? "h2" : "h3"} style="margin:0;font-family:${DETAIL_FONT_STACK.heading};font-size:${titleSizeCss("compact")};font-weight:600;line-height:1.35;letter-spacing:-0.02em;color:#1B1B18;overflow-wrap:anywhere">${esc(section.heading)}</${DESIGN_V4_ENABLED ? "h2" : "h3"}>
               <p style="margin:6px 0 0;font-family:${DETAIL_FONT_STACK.sans};font-size:${FONT_SIZE.bodySm};font-weight:400;line-height:1.6;color:rgba(27,27,24,.75);overflow-wrap:anywhere">${esc(section.body)}</p>
             </div>
           </div>
@@ -2393,7 +2394,9 @@ export function buildDetailPageHtml(opts: {
   const metaDesc = (opts.description ?? opts.productName).trim().slice(0, 160);
 
   // 438차 — 본문 사진 로드 실패 시 깨진 이미지·alt 텍스트가 보이지 않게(export 전체 <img>에 오류 시 숨김)
-  const finalHtml = (html: string): string => (HERO_V2_TUNED ? html.replace(/<img (?![^>]*onerror)([^>]*?)(\s*\/?>)/g,"<img $1 onerror=\"this.style.display='none'\"$2") : html);
+  const finalHtml0 = (html: string): string => (HERO_V2_TUNED ? html.replace(/<img (?![^>]*onerror)([^>]*?)(\s*\/?>)/g,"<img $1 onerror=\"this.style.display='none'\"$2") : html);
+  // 448차 5 — 반복 인라인 style 묶기(v4): 규칙·보존 장치는 lib/style-dedupe.ts
+  const finalHtml = (html: string): string => (DESIGN_V4_ENABLED ? dedupeStyles(finalHtml0(html)) : finalHtml0(html));
   return finalHtml(`<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -2457,6 +2460,7 @@ ${jsonLd}
   .pagzly-seo-text ul{padding-left:1.2rem;margin:0}${DESIGN_V4_ENABLED ? `
   .pagzly-seo-text{max-width:576px;margin:0 auto;padding:32px 24px 40px;border-top:0;font-size:12px;line-height:1.55}
   .pagzly-seo-text>p{margin:0 0 2px}
+  .pagzly-seo-text h2.pagzly-seo-title{margin:0 0 8px;font-size:${FONT_SIZE.seoH2};font-weight:700;letter-spacing:0;color:#1B1B18}
   .pagzly-seo-text h2{margin:20px 0 8px;font-size:12px;font-weight:700;letter-spacing:.14em;color:rgba(27,27,24,.65)}
   .pagzly-seo-text section>p{margin:0;padding-left:12px;border-left:2px solid rgba(27,27,24,.12)}
   .pagzly-seo-text ul{list-style:none;padding:0}

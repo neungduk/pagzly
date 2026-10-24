@@ -7,6 +7,7 @@ import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { BRAND } from "../../lib/design-tokens";
 import { buildDetailPageHtml } from "../../lib/export-detail-html";
+import { expandDedupedStyles } from "../../lib/style-dedupe";
 import { declStyle, tokenDecl, type Decl } from "../../lib/design-tokens-v4";
 import type { DetailSection } from "../../lib/types/generate";
 import { stepTextV4, stepsListV4, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, compareCellV4, compareUnitV4, compareWrapV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, faqCardV4, faqListV4, faqQuestionV4, highlightCardV4, personaCardV4, personaTextV4 } from "../../lib/twin-styles-v4";
@@ -82,7 +83,8 @@ export const PROBES: Probe[] = [
 const escHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 /** needle이 든 <section> 조각(바깥 것은 중첩 없음) */
-export function sectionOf(html: string, needle: string): string | null {
+export function sectionOf(html0: string, needle: string): string | null {
+  const html = expandDedupedStyles(html0); // 448차 — export의 반복 style 묶기(v4)를 되돌려 인라인 모양으로 비교
   const at = html.indexOf(escHtml(needle));
   if (at < 0) return null;
   const from = html.lastIndexOf("<section", at);

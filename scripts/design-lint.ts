@@ -30,6 +30,7 @@
  * 글자 수 어림(R5)은 DOM 지표보다 낮게 나와(s411 0.2 vs 1.70) 위반을 놓쳤다. DOM 값이 없으면(단위 검사) 이전 어림식.
  * 점수 = 100 − Σ(error 8, warn 3, info 1), 규칙별 감점 상한 24 — 한 규칙이 점수를 독점하지 않게.
  */
+import { expandDedupedStyles } from "../lib/style-dedupe";
 import { MAX_HUE_GROUPS, budgetOf } from "./color-budget";
 import fs from "node:fs";
 import type { DetailSection } from "../lib/types/generate";
@@ -160,7 +161,8 @@ export function iconRuns(html: string): Array<{ id: string; stroke: string | nul
 
 export type LintDom = { screens: number; bigPerScreen: number; flips: number; padOff?: number; padJumps?: number; gapBig?: number; gapUneven?: number; headingThin?: number; headingKinds?: number; headingKindList?: string; headingInversions?: number; colorGroups?: number; colorGroupHues?: number[] };
 
-export function lintPage(id: string, html: string, display: DetailSection[], dom?: LintDom): LintResult {
+export function lintPage(id: string, html0: string, display: DetailSection[], dom?: LintDom): LintResult {
+  const html = expandDedupedStyles(html0); // 448차 — export의 반복 style 묶기(v4)를 되돌려 인라인 style을 읽는다
   const issues: LintIssue[] = [];
   const add = (rule: string, sev: Severity, msg: string) => issues.push({ rule, sev, msg });
   // R1 연속 동일 구조
