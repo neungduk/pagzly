@@ -249,6 +249,7 @@ import { BANNER_SCRIM_INSET_V4, declObject, tokenStyleObject } from "@/lib/desig
 import { reviewCaptionV4, highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, stepTextV4, stepsListV4 } from "@/lib/twin-styles-v4";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
 import { topPadCssV4 } from "@/lib/rhythm-v4";
+import { v4SafeTheme } from "@/lib/palette-v4";
 import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
 import { glanceIconSvg } from "@/lib/icons";
@@ -1533,7 +1534,7 @@ function TrustStrip({
               <span
                 aria-hidden="true"
                 dangerouslySetInnerHTML={{
-                  __html: glanceIconSvg(chip, iconColor, theme.accent),
+                  __html: glanceIconSvg(chip, iconColor, theme.accent, chipIndex),
                 }}
               />
               <span
@@ -6040,7 +6041,7 @@ export default function DetailSectionRenderer({
   const sections = edit?.enabled ? shaped : dropSpecEchoFaqItems(shaped);
   const pointOrdinals = buildPointOrdinals(sections);
   const productThumbs = resolveProductThumbs(rawSections, imageUrls, imageHashByUrl);
-  const baseTheme = applyPackTone(themeOverride ?? getCategoryTheme(category), pack);
+  const baseTheme = v4SafeTheme(applyPackTone(themeOverride ?? getCategoryTheme(category), pack));
   // 430차 — 조화형 멀티 컬러(V3 색): 섹션마다 팔레트 슬롯을 순환(off면 기존 extendTheme과 같다)
   const extendedTheme = extendThemeFor(baseTheme, { category, productName, brandName, packHeadline: pack.headline ? { kind: pack.headline.kind, weight: pack.headline.weight } : null });
   // 428차 — 디자인 V2: 하드 색 면 예산(planBands)과 CSS 한 벌(라이브·export 공통)
