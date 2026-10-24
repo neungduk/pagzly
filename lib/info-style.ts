@@ -124,11 +124,11 @@ export function infoCss(level: InfoLevel | undefined, scope: string, c: InfoColo
   rule(PG, `display:grid;grid-template-columns:1fr;gap:${dr ? 44 : 22}px;max-width:34rem;margin:44px auto 0;counter-reset:pz-pt`);
   rule(
     `${PG}>div`,
-    `position:relative;counter-increment:pz-pt;display:flex;flex-direction:column;gap:8px;padding:32px 24px;border-radius:16px;text-align:center;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.3);box-shadow:none`,
+    `position:relative;counter-increment:pz-pt;display:flex;flex-direction:column;gap:8px;padding:32px 24px;border-radius:16px;text-align:center;background:rgba(255,255,255,${DESIGN_V4_ENABLED ? 0.04 : 0.08});border:1px solid rgba(255,255,255,0.3);box-shadow:none`,
   );
   out.push(`${PG}>div::before{content:counter(pz-pt,decimal-leading-zero);display:block;margin-bottom:6px;font-size:13px;font-weight:800;letter-spacing:0.24em;color:rgba(255,255,255,0.78)}`);
   rule(`${PG}>div[data-em]`, `padding:44px 26px;background:${c.accent};border:2px solid rgba(255,255,255,0.6);box-shadow:0 16px 36px rgba(0,0,0,0.38)`);
-  rule(`${PG}>div>p`, `margin:0;font-size:16px;line-height:1.65;font-weight:400;text-transform:none;letter-spacing:0;color:rgba(255,255,255,0.92)`);
+  rule(`${PG}>div>p`, `margin:0;font-size:16px;line-height:1.65;font-weight:400;text-transform:none;letter-spacing:0;color:rgba(255,255,255,${DESIGN_V4_ENABLED ? 1 : 0.92})`);
   rule(`${PG}>div>p:first-of-type`, `font-size:30px;font-weight:900;line-height:1.2;color:${W}`);
   if (dr) {
     out.push(

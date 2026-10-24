@@ -10,6 +10,7 @@
 import type { InfoColors, InfoLevel } from "@/lib/info-style";
 import { contrastRatioToken, hexToRgba, mixHex } from "@/lib/design-tokens";
 import { beautyStyleOn } from "@/lib/beauty-style";
+import { designV4On } from "@/lib/design-v4";
 
 export type InfoZone = "steps" | "points" | "stat" | "compare" | "care";
 export type InfoBackdropMap = Partial<Record<InfoZone, string>>;
@@ -182,6 +183,8 @@ export function safeBackdropUrl(u: string | null | undefined): string | null {
 }
 
 /** 이미지가 최악(스크림 반대편 극단색)이어도 글자 대비가 target 이상이 되는 최소 스크림 투명도 */
+/** 448차 1-3 — v4: 어두운 사진 뒷면 스크림 목표 대비(예전 5). 안의 보조 글자(알파 0.92)·카드 면 덧칠을 감안해 흰 사진 최악에서 본문 14px가 4.5:1을 넘도록 6 */
+export const BACKDROP_DARK_TARGET_V4 = 6;
 export function scrimAlpha(scrimHex: string, textHex: string, worstImageHex: string, target: number): number {
   for (let a = 0.5; a <= 0.96; a += 0.01) {
     if (contrastRatioToken(textHex, mixHex(worstImageHex, scrimHex, a)) >= target) return +a.toFixed(2);
@@ -202,7 +205,7 @@ export function infoBackdropCss(map: InfoBackdropMap | undefined, level: InfoLev
     if (!url) continue;
     const dark = zone === "points" || (zone === "stat" && dr);
     const scrimHex = dark ? c.deep : zone === "compare" ? c.paper : c.soft;
-    const a = dark ? scrimAlpha(scrimHex, c.paper, "#FFFFFF", 5) : scrimAlpha(scrimHex, c.ink, "#000000", 5.5);
+    const a = dark ? scrimAlpha(scrimHex, c.paper, "#FFFFFF", designV4On() ? BACKDROP_DARK_TARGET_V4 : 5) : scrimAlpha(scrimHex, c.ink, "#000000", 5.5);
     const scrim = hexToRgba(scrimHex, a);
     out.push(`${scope} [data-info="${zone}"]{background:linear-gradient(${scrim},${scrim}),url("${url}") center/cover no-repeat !important}`);
   }

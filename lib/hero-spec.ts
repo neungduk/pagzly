@@ -312,6 +312,18 @@ export function scrimGradient(tuned: boolean = HERO_V2_TUNED): string {
   if (tuned) return "linear-gradient(0deg,rgba(10,10,10,0.9) 0%,rgba(10,10,10,0.74) 30%,rgba(10,10,10,0.6) 46%,rgba(10,10,10,0) 100%)";
   return "linear-gradient(0deg,rgba(10,10,10,0.9) 0%,rgba(10,10,10,0.78) 34%,rgba(10,10,10,0.62) 48%,rgba(10,10,10,0) 78%)";
 }
+/**
+ * 448차 1-3 — 히어로 A 글 블록 자체 스크림(DESIGN_V4). 아래 62% 스크림은 글 블록(이름·보조줄·훅·태그·가격)이 길어지면 윗줄(제품명)이 알파 ≥0.6 구간 위로 올라가
+ * 흰 사진·밝은 하늘·파스텔에서 흰 제목 대비가 2:1대로 떨어졌다. 글 블록이 자기 뒤에 항상 알파 0.62 이상의 면을 깔면 사진 밝기·블록 높이와 무관하게 보장된다
+ * (위 FEATHER px는 부드러운 가장자리). 사진 분석 없이 정적으로 보장 — 라이브·export가 같은 마크업 함수.
+ */
+export const HERO_TEXT_SCRIM_FEATHER_PX = 40;
+export const HERO_TEXT_SCRIM_ALPHA = 0.62;
+export function heroTextScrim(): string {
+  const f = HERO_TEXT_SCRIM_FEATHER_PX;
+  return `linear-gradient(180deg,rgba(10,10,10,0) 0,rgba(10,10,10,${HERO_TEXT_SCRIM_ALPHA}) ${f}px,rgba(10,10,10,0.78) 100%)`;
+}
+
 /** 최악의 사진(흰색) 위 스크림 알파 a에서 흰 글자의 대비 — 회귀가 ≥4.5를 확인 */
 export function worstCaseScrimContrast(alpha: number): number {
   const v = Math.round(255 * (1 - alpha) + 10 * alpha);
@@ -509,7 +521,7 @@ function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: str
       `<div aria-hidden="true" data-hero-scrim style="position:absolute;left:0;right:0;bottom:0;height:62%;background:${scrimGradient(true)}"></div>` +
       `<div data-hero-a-text style="position:absolute;left:0;right:0;top:0;padding:20px ${p.v3!.sticker ? 112 : 20}px 0 20px">${brandPill(p, "rgba(10,10,10,0.5)", "#FFFFFF")}${p.badges.length ? `<div style="margin-top:10px">${badgeRow(p, "rgba(10,10,10,0.38)", "#FFFFFF", "rgba(255,255,255,0.55)")}</div>` : ""}</div>` +
       v3Sticker(p, pal, "top:18px;right:18px;z-index:6") +
-      `<div data-hero-a-text style="position:absolute;left:0;right:0;bottom:0;z-index:4;padding:0 24px 44px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.92)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.96)")}${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.55)")}${v3Price(p, priceBg, priceFg)}</div></section>`
+      `<div data-hero-a-text style="position:absolute;left:0;right:0;bottom:0;z-index:4;padding:${HERO_TEXT_SCRIM_FEATHER_PX}px 24px 44px;background:${heroTextScrim()}">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.92)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.96)")}${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.55)")}${v3Price(p, priceBg, priceFg)}</div></section>`
     );
   }
   if (p.variant === "B" || p.variant === "C") {
