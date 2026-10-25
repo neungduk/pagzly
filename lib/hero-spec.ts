@@ -344,19 +344,49 @@ export const heroPalette = (theme: CategoryTheme, category?: string): HeroPalett
 const title = `font-family:${DETAIL_FONT_STACK.sansDisplayHeadline}`;
 const sans = `font-family:${DETAIL_FONT_STACK.sans}`;
 
+/**
+ * 450차 2 — 히어로 A 글 블록 압축(DESIGN_V4). 글 블록이 사진 높이의 HERO_A_BLOCK_BUDGET(38%)을 넘으면 낮은 우선순위부터 접는다.
+ * 우선순위: 제품명 > 훅 > 가격 > 배지 > 보조줄 > 해시태그. 접는 순서: 해시태그 줄 → 보조줄(부제 문장) → 제품명 보조줄(영문 등) → 훅 2줄 말줄임(훅은 1줄까지 줄이지 않는다 — 예산은 최선 노력, 제품명·가격·훅 2줄이 남으면 예산 초과를 허용). 제품명·가격은 접지 않는다.
+ * 문구는 지우지 않는다 — 접힌 요소는 마크업에 남고(높이 0·넘침 숨김), 훅만 line-clamp. 높이는 390폭 기준 글자 폭 어림(한글·한자 0.98em, 숫자 0.58, 영문 0.56, 공백 0.3)이라
+ * 라이브·export가 같은 함수를 쓰므로 같은 결정이 나온다(브라우저 측정 없음).
+ */
+export const HERO_A_BLOCK_BUDGET = 0.38;
+export type HeroAFold = { tags?: boolean; sub?: boolean; nameSub?: boolean; hookLines?: number };
+const FOLD_CSS = "max-height:0!important;margin:0!important;padding:0!important;border:0!important;overflow:hidden!important;";
+const glyphEm = (ch: string): number => (/[0-9]/.test(ch) ? 0.58 : /\s/.test(ch) ? 0.3 : /[\u1100-\u11ff\u3130-\u318f\uac00-\ud7af\u3000-\u9fff\uff00-\uffef]/.test(ch) ? 0.98 : 0.56);
+const linesOf = (text: string, px: number, widthPx: number, maxLines: number): number => Math.min(maxLines, Math.max(1, Math.ceil([...text].reduce((w, c) => w + glyphEm(c) * px, 0) / widthPx)));
+export function heroABlockFold(p: HeroV2Plan, hero: HeroSection, size: number, photoH = 526, textW = 342): { fold: HeroAFold; estPx: number; budgetPx: number } {
+  const budgetPx = Math.round(photoH * HERO_A_BLOCK_BUDGET);
+  const pad = HERO_TEXT_SCRIM_FEATHER_PX + HERO_TEXT_PAD_BOTTOM_PX;
+  const name = linesOf(p.name, size, textW, HERO_SPEC.nameMaxLines) * Math.round(size * 1.14);
+  const nameSubH = p.nameSub ? 8 + 16 : 0;
+  const hookLinesFull = linesOf(hero.headline, 20, textW, 4);
+  const hook = (n: number) => 14 + n * 27;
+  const sub = hero.subheadline ? 8 + 24 : 0;
+  const tags = p.tags.length ? 12 + 30 : 0;
+  const price = p.v3?.price ? 14 + 36 : 0;
+  const total = (f: HeroAFold) => pad + name + (f.nameSub ? 0 : nameSubH) + hook(f.hookLines ?? hookLinesFull) + (f.sub ? 0 : sub) + (f.tags ? 0 : tags) + price;
+  const fold: HeroAFold = {};
+  if (total(fold) > budgetPx && tags) fold.tags = true;
+  if (total(fold) > budgetPx && sub) fold.sub = true;
+  if (total(fold) > budgetPx && nameSubH) fold.nameSub = true;
+  if (total(fold) > budgetPx && hookLinesFull > 2) fold.hookLines = 2;
+  return { fold, estPx: total(fold), budgetPx };
+}
+
 const nameHtml = (p: HeroV2Plan, color: string, size: number, weight: number): string =>
   `<h1 data-hero-name="${size}" style="margin:0;${title};font-size:${size}px;font-weight:${weight};letter-spacing:-0.03em;line-height:1.14;color:${color};word-break:keep-all;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:${HERO_SPEC.nameMaxLines};overflow:hidden">${esc(p.name)}</h1>`;
 const ONE_LINE = "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
-const subNameHtml = (p: HeroV2Plan, color: string): string => (p.nameSub ? `<p style="margin:8px 0 0;${HERO_V2_TUNED ? ONE_LINE : ""}${sans};font-size:12px;font-weight:600;letter-spacing:0.08em;line-height:1.3;color:${color};text-transform:uppercase">${esc(p.nameSub)}</p>` : "");
-const hookHtml = (hero: HeroSection, color: string, sub: string): string =>
-  `<p data-hero-hook style="margin:14px 0 0;${title};font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.35;color:${color};word-break:keep-all">${esc(hero.headline)}</p>` +
-  (hero.subheadline ? `<p style="margin:8px 0 0;${HERO_V2_TUNED ? ONE_LINE : ""}${sans};font-size:15px;font-weight:500;line-height:1.6;color:${sub};word-break:keep-all">${esc(hero.subheadline)}</p>` : "");
+const subNameHtml = (p: HeroV2Plan, color: string, fold?: HeroAFold): string => (p.nameSub ? `<p${fold?.nameSub ? " data-hero-fold" : ""} style="margin:8px 0 0;${fold?.nameSub ? FOLD_CSS : ""}${HERO_V2_TUNED ? ONE_LINE : ""}${sans};font-size:12px;font-weight:600;letter-spacing:0.08em;line-height:1.3;color:${color};text-transform:uppercase">${esc(p.nameSub)}</p>` : "");
+const hookHtml = (hero: HeroSection, color: string, sub: string, fold?: HeroAFold): string =>
+  `<p data-hero-hook style="margin:14px 0 0;${fold?.hookLines ? `display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:${fold.hookLines};overflow:hidden;` : ""}${title};font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.35;color:${color};word-break:keep-all">${esc(hero.headline)}</p>` +
+  (hero.subheadline ? `<p${fold?.sub ? " data-hero-fold" : ""} style="margin:8px 0 0;${fold?.sub ? FOLD_CSS : ""}${HERO_V2_TUNED ? ONE_LINE : ""}${sans};font-size:15px;font-weight:500;line-height:1.6;color:${sub};word-break:keep-all">${esc(hero.subheadline)}</p>` : "");
 const brandPill = (p: HeroV2Plan, bg: string, color: string): string =>
   p.brand ? `<span style="display:inline-block;padding:6px 12px;border-radius:999px;background:${bg};color:${color};${sans};font-size:12px;font-weight:700;letter-spacing:0.08em;line-height:1.2;text-transform:uppercase">${esc(p.brand)}</span>` : "";
 const badgeRow = (p: HeroV2Plan, bg: string, color: string, border: string): string =>
   p.badges.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${p.badges.map((b) => `<span style="display:inline-block;padding:5px 10px;border-radius:999px;background:${bg};border:1px solid ${border};color:${color};${sans};font-size:12px;font-weight:700;line-height:1.2">${esc(b)}</span>`).join("")}</div>` : "";
-const tagRow = (p: HeroV2Plan, color: string, border: string): string =>
-  p.tags.length ? `<div style="display:flex;flex-wrap:${HERO_V2_TUNED ? "nowrap;overflow:hidden" : "wrap"};gap:6px;margin-top:${HERO_V2_TUNED ? 12 : 16}px">${p.tags.map((t) => `<span style="display:inline-block;padding:6px 12px;border-radius:999px;border:1px solid ${border};color:${color};${sans};font-size:13px;font-weight:600;line-height:1.2">#${esc(t)}</span>`).join("")}</div>` : "";
+const tagRow = (p: HeroV2Plan, color: string, border: string, fold?: HeroAFold): string =>
+  p.tags.length ? `<div${fold?.tags ? " data-hero-fold" : ""} style="${fold?.tags ? FOLD_CSS : ""}display:flex;flex-wrap:${HERO_V2_TUNED ? "nowrap;overflow:hidden" : "wrap"};gap:6px;margin-top:${HERO_V2_TUNED ? 12 : 16}px">${p.tags.map((t) => `<span style="display:inline-block;padding:6px 12px;border-radius:999px;border:1px solid ${border};color:${color};${sans};font-size:13px;font-weight:600;line-height:1.2">#${esc(t)}</span>`).join("")}</div>` : "";
 /** 가격 스트립(428)이 히어로 하단 경계에 걸쳐 한 덩어리로 보이게: 위로 20px 올리고 위쪽 모서리를 둥글게 */
 const STRIP_OVERLAP_CSS = `<style>[data-pz-strip]{position:relative;z-index:2;margin-top:-20px;border-radius:20px 20px 0 0;box-shadow:0 -6px 16px rgba(27,27,24,0.08)}</style>`;
 const STRIP_OVERLAP_CSS_TUNED = `<style>[data-pz-strip]{position:relative;z-index:2;margin-top:-12px;border-radius:16px 16px 0 0;box-shadow:0 -4px 12px rgba(27,27,24,0.08)}</style>`;
@@ -527,13 +557,14 @@ function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: str
   const priceBg = "#FFFFFF";
   const priceFg = "#1B1B18";
   if (p.variant === "A") {
+    const aFold = heroABlockFold(p, hero, size).fold;
     return (
       wrapOpen("A", "aspect-ratio:4 / 5.4;max-height:760px;background:#1B1B18") +
       img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`) +
       `<div aria-hidden="true" data-hero-scrim style="position:absolute;left:0;right:0;top:0;height:14%;background:linear-gradient(180deg,rgba(10,10,10,0.3),rgba(10,10,10,0))"></div>` +
       `<div data-hero-a-text style="position:absolute;left:0;right:0;top:0;padding:20px ${p.v3!.sticker ? 112 : 20}px 0 20px">${brandPill(p, HERO_A_CHIP_BG_V4, "#FFFFFF")}${p.badges.length ? `<div style="margin-top:10px">${badgeRow(p, HERO_A_CHIP_BG_V4, "#FFFFFF", HERO_CHIP_BORDER_V4)}</div>` : ""}</div>` +
       v3Sticker(p, pal, "top:18px;right:18px;z-index:6") +
-      `<div data-hero-a-text style="position:absolute;left:0;right:0;bottom:0;z-index:4;padding:${HERO_TEXT_SCRIM_FEATHER_PX}px 24px ${HERO_TEXT_PAD_BOTTOM_PX}px;background:${heroTextScrim()}">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.92)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.96)")}${tagRow(p, "#FFFFFF", HERO_CHIP_BORDER_V4)}${v3Price(p, priceBg, priceFg)}</div></section>`
+      `<div data-hero-a-text style="position:absolute;left:0;right:0;bottom:0;z-index:4;padding:${HERO_TEXT_SCRIM_FEATHER_PX}px 24px ${HERO_TEXT_PAD_BOTTOM_PX}px;background:${heroTextScrim()}">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.92)", aFold)}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.96)", aFold)}${tagRow(p, "#FFFFFF", HERO_CHIP_BORDER_V4, aFold)}${v3Price(p, priceBg, priceFg)}</div></section>`
     );
   }
   if (p.variant === "B" || p.variant === "C") {

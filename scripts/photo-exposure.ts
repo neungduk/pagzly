@@ -16,7 +16,7 @@ import { EXTRA_ROOTS, launch, openHtml } from "./eye-lib";
 import { FIXTURES as BASE_FIXTURES, PHOTO_DIR, swapPhotos } from "./photo-legibility";
 import { htmlFor } from "./stress-variants";
 
-export const EXPOSURE_LIMITS = { hero: { cover: 0.5, keep: 0.6 }, info: { cover: 1, keep: 0.12 }, banner: { cover: 1, keep: 0.06 } } as const;
+export const EXPOSURE_LIMITS = { hero: { cover: 0.45, keep: 0.65 }, info: { cover: 1, keep: 0.12 }, banner: { cover: 1, keep: 0.06 } } as const;
 /** 449차에서 확장한 말뭉치(히어로 E·흰 배경 컷아웃·임팩트 사진 블록 변형이 얹힌 픽스처 포함) */
 export const EXPOSURE_FIXTURES = BASE_FIXTURES;
 
