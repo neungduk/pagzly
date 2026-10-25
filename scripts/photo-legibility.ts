@@ -54,7 +54,7 @@ export const PROBE = `(() => {
   return out;
 })()`;
 
-const HIDE_TEXT = "*{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important;caret-color:transparent!important}";
+const HIDE_TEXT = "*{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important;caret-color:transparent!important}svg text,svg tspan{fill:transparent!important;stroke:none!important}";
 
 export async function measure(browser: Awaited<ReturnType<typeof launch>>, html: string, fixture: string, photo: string, W = 390): Promise<Finding[]> {
   const ex = await openHtml(browser, html, W);

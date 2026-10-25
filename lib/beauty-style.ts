@@ -56,13 +56,13 @@ export function beautyInfoCss(level: InfoLevel | undefined, scope: string, c: In
   const B = `${scope} [data-info="buy"]`;
   const ip = (k: string) => `${B} [data-ip="${k}"]`;
   rule(B, `background:${c.accent};clip-path:none;margin-top:0;padding-top:${DESIGN_V4_ENABLED ? 64 : 56}px;padding-bottom:${DESIGN_V4_ENABLED ? 64 : 56}px;border-top:0;color:${W}`); // 442차 — v4 여백 3단(56 → 64)
-  rule(`${ip("kicker")},${ip("name")}`, `color:rgba(255,255,255,0.88);opacity:1`);
+  rule(`${ip("kicker")},${ip("name")}`, `color:${DESIGN_V4_ENABLED ? W : "rgba(255,255,255,0.88)"};opacity:1`); // 450차: v4는 흰색 그대로(0.88은 액센트 면 위 4.2~4.4:1)
   rule(ip("price"), `font-size:${dr ? 72 : 60}px;font-weight:900;line-height:1;letter-spacing:-0.04em;color:${W}`);
-  rule(ip("chip"), `background:rgba(255,255,255,0.2);color:${W};font-size:14px;font-weight:600`);
+  rule(ip("chip"), `background:${DESIGN_V4_ENABLED ? "rgba(10,10,10,0.22)" : "rgba(255,255,255,0.2)"};color:${W};font-size:14px;font-weight:600`); // 450차: v4는 어두운 덧칠(흰 덧칠은 면을 밝혀 3.4~3.8:1)
   rule(ip("badges"), `display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:24rem;margin:28px auto 0;justify-content:stretch`);
   rule(`${ip("badges")}>span`, `display:flex;align-items:center;justify-content:center;text-align:center;padding:14px 10px;font-size:14px;font-weight:700;background:${W};color:${c.deep};border:0;border-radius:12px;clip-path:none`);
   rule(ip("cta"), `display:block;width:100%;max-width:24rem;margin:32px auto 0;padding:22px 16px;box-sizing:border-box;font-size:20px;font-weight:800;text-align:center;border-radius:14px;background:${c.deep};color:${W};box-shadow:0 14px 32px rgba(0,0,0,0.35)`);
-  rule(ip("note"), `color:rgba(255,255,255,0.88);font-size:13px;margin-top:16px;opacity:1`);
+  rule(ip("note"), `color:${DESIGN_V4_ENABLED ? W : "rgba(255,255,255,0.88)"};font-size:13px;margin-top:16px;opacity:1`);
 
   // ── 퀵포인트: 카드 한 장(왼쪽 액센트 띠) · 제목 22px · 본문 16px · 썸네일 112px ──
   const Q = `${scope} [data-info="quick"]`;

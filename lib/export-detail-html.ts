@@ -173,6 +173,8 @@ import { glanceIconSvg } from "@/lib/icons";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
 import { bottomPadCssV4, topPadCssV4 } from "@/lib/rhythm-v4";
 import { dedupeStyles } from "@/lib/style-dedupe";
+import { mutedFloorCssExport, readableOnFace } from "@/lib/muted-v4";
+import { mixHex } from "@/lib/design-tokens";
 import { v4SafeTheme } from "@/lib/palette-v4";
 import { BEAUTY_HERO, HERO_ARCH, HERO_CAPTION, HERO_FRAME, HERO_STAGE_VARIANT, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroStageOn } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
@@ -306,7 +308,7 @@ function trustStripHtml(
   // 409차 — 팩 요약 변형(라이브 TrustStrip과 같은 DOM·토큰). 칩 문구는 그대로, 아이콘만 뺀다
   if (variant !== "icon-grid") {
     const V = SUMMARY_VARIANT;
-    const color = theme.deepAccent;
+    const color = DESIGN_V4_ENABLED ? readableTextDeep(theme, 4.6) : theme.deepAccent; // 450차: 종이색 위 4.5:1(원래 deepAccent 그대로는 4.3:1)
     const label = `<p style="margin:0 0 ${V.labelGapPx}px;font-size:${V.labelSizePx}px;letter-spacing:${V.labelTracking};font-weight:600;color:${readableTextDeep(theme)};text-align:center">한눈에 보기</p>`;
     const body =
       variant === "inline-strip"
@@ -347,7 +349,7 @@ function trustStripHtml(
             FLAT_SECTION_SURFACES && i % summaryGridColumns(chips.length) !== 0
               ? `<span aria-hidden="true" style="position:absolute;left:-6px;top:4px;bottom:4px;width:1px;background:${hexToRgba(accent, 0.22)}"></span>`
               : "";
-          return `<div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;width:${chipWidth}">${divider}${icon}<span style="font-size:14px;font-weight:600;line-height:1.375;word-break:keep-all;color:${certHighlight ? accentText : theme.deepAccent}">${esc(caption.main)}${caption.sub ? `<span style="display:block;margin-top:2px;font-size:11px;font-weight:500;opacity:.6">${esc(caption.sub)}</span>` : ""}</span></div>`;
+          return `<div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;width:${chipWidth}">${divider}${icon}<span style="font-size:14px;font-weight:600;line-height:1.375;word-break:keep-all;color:${DESIGN_V4_ENABLED ? readableOnFace(certHighlight ? theme.accent : theme.deepAccent, FLAT_SECTION_SURFACES ? flatAccentTint(theme) : FLAT_PAPER) : certHighlight ? accentText : theme.deepAccent}">${esc(caption.main)}${caption.sub ? `<span style="display:block;margin-top:2px;font-size:11px;font-weight:500;opacity:.6">${esc(caption.sub)}</span>` : ""}</span></div>`;
         })
         .join("")}
     </div></div>`;
@@ -1526,15 +1528,16 @@ function sectionHtml(
         : "";
       const rowsHtml = tableRows
         .map((row, ri) => {
+          const chipText = DESIGN_V4_ENABLED ? readableOnFace(accentText, mixHex(FLAT_PAPER, accent, 0.14), 4.6) : accentText; // 450차: 칩 면(액센트 10~14% 틴트) 위 4.5:1
           const certHighlight = isCertificationHighlight(row.label, row.value, certTokens);
           const chips = FLAT_SECTION_SURFACES && !isShipping && !certHighlight ? specIngredientChips(row.label, row.value) : null;
           const certChips = certHighlight ? specCertChips(row.value) : null;
           const valueHtml = certChips
-            ? `<span data-spec-chips style="display:flex;flex-wrap:wrap;gap:6px">${certChips.map((c) => `<span style="padding:2px 8px;border-radius:${RADIUS.sm}px;font-size:13px;line-height:20px;color:${accentText};background:${accent}24;box-shadow:${ELEVATION.certUnderlineExportHex(accent + "8c")}">${esc(c)}</span>`).join("")}</span>`
+            ? `<span data-spec-chips style="display:flex;flex-wrap:wrap;gap:6px">${certChips.map((c) => `<span style="padding:2px 8px;border-radius:${RADIUS.sm}px;font-size:13px;line-height:20px;color:${chipText};background:${accent}24;box-shadow:${ELEVATION.certUnderlineExportHex(accent + "8c")}">${esc(c)}</span>`).join("")}</span>`
             : certHighlight
-            ? `<span style="display:inline-block;padding:2px 8px;border-radius:${RADIUS.sm}px;color:${accentText};background:${accent}24;box-shadow:${ELEVATION.certUnderlineExportHex(accent + "8c")}">${esc(row.value)}</span>`
+            ? `<span style="display:inline-block;padding:2px 8px;border-radius:${RADIUS.sm}px;color:${chipText};background:${accent}24;box-shadow:${ELEVATION.certUnderlineExportHex(accent + "8c")}">${esc(row.value)}</span>`
             : chips
-              ? `<span data-spec-chips style="display:flex;flex-wrap:wrap;gap:6px">${chips.map((c) => `<span style="padding:2px 10px;border-radius:${RADIUS.pill}px;font-size:13px;line-height:20px;color:${accentText};background:${hexToRgba(accent, 0.1)}">${esc(c)}</span>`).join("")}</span>`
+              ? `<span data-spec-chips style="display:flex;flex-wrap:wrap;gap:6px">${chips.map((c) => `<span style="padding:2px 10px;border-radius:${RADIUS.pill}px;font-size:13px;line-height:20px;color:${chipText};background:${hexToRgba(accent, 0.1)}">${esc(c)}</span>`).join("")}</span>`
               : esc(displaySpecValue(row.label, row.value));
           const rowRule =
             ri === tableRows.length - 1
@@ -1755,7 +1758,7 @@ function sectionHtml(
         return `<section${sectionIdAttr}${beautyAttr(layout, "buy")} class="pagzly-cta" style="${ctaPad}background:${flatAccentTint(theme)};border-top:1px solid ${hexToRgba(accent, 0.16)};color:${BRAND.ink};text-align:center">
         ${productName.trim() ? `<p${beautyIpAttr(layout, "name")} style="margin:0 0 12px;font-family:${DETAIL_FONT_STACK.heading};font-size:15px;font-weight:700;line-height:1.375;letter-spacing:-0.025em;color:rgba(27,27,24,.8);word-break:keep-all">${esc(productName.trim())}</p>` : ""}
         <p${beautyIpAttr(layout, "price")} style="font-family:${DETAIL_FONT_STACK.heading};font-size:${titleSizeCss("price")};font-weight:700;line-height:1;letter-spacing:-0.04em;margin:8px 0 0;color:${ensureReadableOnPaper(accent, 3)}">${priceGlyphHtml()}${section.price.toLocaleString("ko-KR")}</p>
-        ${shopperFacingTarget(section.targetCustomer) ? `<p${beautyIpAttr(layout, "chip")} style="display:inline-block;margin:16px 0 0;padding:6px 16px;border-radius:9999px;background:${hexToRgba(accent, 0.14)};color:${deepText};font-size:${FONT_SIZE.xs};font-weight:500">${esc(shopperFacingTarget(section.targetCustomer))}</p>` : ""}
+        ${shopperFacingTarget(section.targetCustomer) ? `<p${beautyIpAttr(layout, "chip")} style="display:inline-block;margin:16px 0 0;padding:6px 16px;border-radius:9999px;background:${hexToRgba(accent, 0.14)};color:${DESIGN_V4_ENABLED ? readableOnFace(deepText, mixHex(flatAccentTint(theme), accent, 0.14)) : deepText};font-size:${FONT_SIZE.xs};font-weight:500">${esc(shopperFacingTarget(section.targetCustomer))}</p>` : ""}
         ${section.badges?.length ? `<div${beautyIpAttr(layout, "badges")}${section.badges.length === 4 ? ` class="pagzly-badges4"` : ""} style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:16px">${section.badges.map((b) => `<span style="background:${FLAT_PAPER};border:1px solid ${hexToRgba(accent, 0.3)};border-radius:9999px;color:${deepText};padding:8px 16px;font-size:${FONT_SIZE.xs};font-weight:600">${esc(b)}</span>`).join("")}</div>` : ""}
         ${ctaTrustHtml(section.trust, theme)}${layout.beautyInfo ? `<span${beautyIpAttr(layout, "cta")} style="display:inline-block;margin-top:24px;padding:14px 28px;background:#1B1B18;color:#FAF8F3;font-weight:700">지금 구매하기</span>` : ""}
         <p${beautyIpAttr(layout, "note")} style="margin-top:20px;font-size:${FONT_SIZE.xs};color:rgba(27,27,24,${DESIGN_V4_ENABLED ? ".72" : ".5"})">배송·교환·환불은 판매자 정책을 확인해 주세요.</p>
@@ -2450,7 +2453,7 @@ ${jsonLd}
   ${DESIGN_V3_COLOR_ENABLED && designV2On(opts.category) ? paletteInfoCss(".pagzly-wrap", extended, v2Layout.info) : ""}
   ${DESIGN_V3_COLOR_ENABLED ? dividerCss({ scope: ".pagzly-wrap", mode: "export", sections: visibleSections, ext: extended, category: opts.category, info: v2Layout.info }) : ""}
   ${v3Pair ? fontPairCss(".pagzly-wrap", v3Pair) : ""}${DESIGN_V4_ENABLED ? `
-  ${typeFloorCss(".pagzly-wrap[data-pz-typefloor]") + headingSystemCss(".pagzly-wrap[data-pz-typefloor]", "export") + topPadCssV4((px) => `.pagzly-wrap section[data-pz-top="${px}"]`) + bottomPadCssV4((px) => `.pagzly-wrap section[data-pz-bot="${px}"]`)}` : ""}
+  ${typeFloorCss(".pagzly-wrap[data-pz-typefloor]") + headingSystemCss(".pagzly-wrap[data-pz-typefloor]", "export") + topPadCssV4((px) => `.pagzly-wrap section[data-pz-top="${px}"]`) + bottomPadCssV4((px) => `.pagzly-wrap section[data-pz-bot="${px}"]`) + mutedFloorCssExport(".pagzly-wrap[data-pz-typefloor]")}` : ""}
   @media (min-width:640px){.pagzly-usage{flex-direction:row!important;align-items:flex-start;gap:16px!important}.pagzly-usage-line{left:var(--pz-step-edge)!important;right:var(--pz-step-edge);bottom:auto!important;width:auto!important;height:1px}.pagzly-usage-step{flex:1;flex-direction:column;align-items:center!important;gap:12px!important;text-align:center}.pagzly-usage-step>div{flex:none!important;padding-top:0!important}.pagzly-usage-text{max-width:14rem;margin:0 auto}.pagzly-persona-pairs{grid-template-columns:repeat(2,1fr)!important}.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}.pagzly-hl-grid{grid-template-columns:var(--pz-hl-wide)!important}.pagzly-cl-grid{grid-template-columns:var(--pz-cl-wide)!important}.pagzly-step-rows{grid-template-columns:repeat(3,1fr)!important;gap:32px!important;margin-top:48px!important}.pagzly-step-pairs{gap:32px!important}.pagzly-step-row{display:block!important}.pagzly-step-row h3{margin-top:12px!important}.pagzly-step-row .pagzly-step-tag{margin-top:12px!important}.pagzly-step-row .pagzly-step-tag+h3{margin-top:0!important}.pagzly-step-row p,.pagzly-step-pairs p{font-size:14px!important}}
   .pagzly-wrap .pz-fit{font-size:max(min(var(--pz-fs),0.6875rem),min(var(--pz-fs),calc(100cqi / var(--pz-fit-em,0.01))))!important}
   .pagzly-anchor-nav a{scroll-margin-top:52px}

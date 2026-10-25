@@ -77,16 +77,16 @@ export async function checkLive(browser: Browser, server: string, c: FuzzCase, w
 }
 
 /** 페이지(라이브 렌더러 루트 또는 export 문서)의 모든 글자를 픽셀 기준 대비로 검사 — 글자를 투명하게 한 재캡처로 글자 상자 뒤 실제 배경(5·95백분위) */
-export async function contrastPage(page: import("playwright").Page): Promise<Array<{ text: string; px: number; ratio: number; need: number }>> {
+export async function contrastPage(page: import("playwright").Page): Promise<Array<{ text: string; px: number; ratio: number; need: number; src?: string }>> {
   await page.addStyleTag({ content: "*,*::before,*::after{animation:none!important;transition:none!important}" });
   await page.waitForTimeout(100);
   const all = (await page.evaluate(ALL_TEXT)) as TextProbe[];
-  await page.addStyleTag({ content: "*{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important}" });
+  await page.addStyleTag({ content: "*{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important}svg text,svg tspan{fill:transparent!important;stroke:none!important}" });
   const buf = await page.screenshot({ fullPage: true });
   const im = sharp(buf);
   const meta = await im.metadata();
   const raw = await im.ensureAlpha().raw().toBuffer();
-  const bad: Array<{ text: string; px: number; ratio: number; need: number }> = [];
+  const bad: Array<{ text: string; px: number; ratio: number; need: number; src?: string }> = [];
   for (const p of all) {
     const x0 = Math.max(0, Math.floor(p.x)), y0 = Math.max(0, Math.floor(p.y)), x1 = Math.min(meta.width!, Math.ceil(p.x + p.w)), y1 = Math.min(meta.height!, Math.ceil(p.y + p.h));
     if (x1 - x0 < 2 || y1 - y0 < 2) continue;
@@ -97,9 +97,11 @@ export async function contrastPage(page: import("playwright").Page): Promise<Arr
     const mix = (cc: number, avg: number) => cc * a + avg * (1 - a);
     const fl = a >= 0.999 ? lum(p.fg[0], p.fg[1], p.fg[2]) : lum(mix(p.fg[0], sr / n), mix(p.fg[1], sg / n), mix(p.fg[2], sb / n));
     const med = ls[Math.floor(n * 0.5)]!;
-    const ratio = ratioOf(fl, fl >= med ? ls[Math.min(n - 1, Math.floor(n * 0.95))]! : ls[Math.floor(n * 0.05)]!);
     const need = p.px >= 24 || (p.px >= 18.66 && p.weight >= 700) ? 3 : 4.5;
-    if (ratio < need) bad.push({ text: p.text, px: p.px, ratio, need });
+    // 글자 상자 가장자리(필·막대 모서리)가 오탐을 만들어 작은 글자는 90·10, 큰 글자는 75·25백분위(큰 글자는 상자가 글줄보다 훨씬 커서 가장자리 비중이 큼)
+    const hi = need === 3 ? 0.75 : 0.9;
+    const ratio = ratioOf(fl, fl >= med ? ls[Math.min(n - 1, Math.floor(n * hi))]! : ls[Math.floor(n * (1 - hi))]!);
+    if (ratio < need) bad.push({ text: p.text, px: p.px, ratio, need, src: `${p.layout}#fg=${p.fg.map((v) => Math.round(v * 100) / 100).join(',')}#bg=${med.toFixed(3)}` });
   }
   return bad.sort((a, b) => a.ratio - b.ratio);
 }
@@ -112,8 +114,8 @@ const ALL_TEXT = `(() => {
   while (w.nextNode()) { const n = w.currentNode; const text = (n.textContent || '').trim(); if (!text) continue; const e = n.parentElement; if (!e || seen.has(e) || ['SCRIPT','STYLE','NOSCRIPT'].includes(e.tagName) || e.closest('nextjs-portal,[data-pagzly-bar],nav')) continue;
     const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) === 0 || e.closest('[aria-hidden="true"]')) continue;
     const r = document.createRange(); r.selectNodeContents(n); const b = (cs.webkitLineClamp && cs.webkitLineClamp !== 'none') ? e.getBoundingClientRect() : r.getBoundingClientRect(); if (b.width < 4 || b.height < 4) continue; seen.add(e);
-    const m = rgba(cs.color);
-    out.push({ x: b.left + scrollX, y: b.top + scrollY, w: b.width, h: b.height, text: text.slice(0, 20), fg: [Number(m[0]), Number(m[1]), Number(m[2]), m[3] === undefined ? 1 : Number(m[3])], px: parseFloat(cs.fontSize), weight: Number(cs.fontWeight) || 400, layout: '' }); }
+    const m = rgba(e instanceof SVGElement ? (cs.fill && cs.fill !== 'none' ? cs.fill : cs.color) : cs.color);
+    out.push({ x: b.left + scrollX, y: b.top + scrollY, w: b.width, h: b.height, text: text.slice(0, 20), fg: [Number(m[0]), Number(m[1]), Number(m[2]), m[3] === undefined ? 1 : Number(m[3])], px: parseFloat(cs.fontSize), weight: Number(cs.fontWeight) || 400, layout: (e.getAttribute('class') || '').slice(0, 60) + '|' + (e.getAttribute('style') || '').match(/(?:color|opacity)[^;]*/g)?.join(';').slice(0, 70) + '|' + e.tagName + '>' + (e.parentElement ? e.parentElement.tagName + '.' + (e.parentElement.getAttribute('class') || '').slice(0, 30) : '') }); }
   return out;
 })()`;
 

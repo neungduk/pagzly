@@ -249,6 +249,8 @@ import { BANNER_SCRIM_INSET_V4, declObject, tokenStyleObject } from "@/lib/desig
 import { stepChipV4, reviewCaptionV4, highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, stepTextV4, stepsListV4 } from "@/lib/twin-styles-v4";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
 import { bottomPadCssV4, topPadCssV4 } from "@/lib/rhythm-v4";
+import { mutedFloorCssLive, readableOnFace } from "@/lib/muted-v4";
+import { mixHex } from "@/lib/design-tokens";
 import { v4SafeTheme } from "@/lib/palette-v4";
 import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
@@ -1444,7 +1446,7 @@ function TrustStrip({
               return (
                 <Fragment key={chip}>
                   {i > 0 ? <span aria-hidden="true" style={{ width: 1, height: V.dividerHeightPx, backgroundColor: V.borderColor }} /> : null}
-                  <span style={{ fontSize: V.stripSizePx, fontWeight: 600, wordBreak: "keep-all", color: theme.deepAccent }}>
+                  <span style={{ fontSize: V.stripSizePx, fontWeight: 600, wordBreak: "keep-all", color: DESIGN_V4_ENABLED ? readableTextDeep(theme, 4.6) : theme.deepAccent }}>
                     {caption.main}
                     {caption.sub ? <span style={{ marginLeft: 4, fontWeight: 500, opacity: 0.6 }}>{caption.sub}</span> : null}
                   </span>
@@ -1479,7 +1481,7 @@ function TrustStrip({
                     fontSize: V.listSizePx,
                     fontWeight: 600,
                     wordBreak: "keep-all",
-                    color: theme.deepAccent,
+                    color: DESIGN_V4_ENABLED ? readableTextDeep(theme, 4.6) : theme.deepAccent,
                   }}
                 >
                   <span>{caption.main}</span>
@@ -1542,7 +1544,7 @@ function TrustStrip({
               />
               <span
                 className="text-[14px] font-semibold leading-snug [word-break:keep-all]"
-                style={{ color: certHighlight ? theme.accent : theme.deepAccent }}
+                style={{ color: DESIGN_V4_ENABLED ? readableOnFace(certHighlight ? theme.accent : theme.deepAccent, FLAT_SECTION_SURFACES ? flatAccentTint(theme) : FLAT_PAPER) : certHighlight ? theme.accent : theme.deepAccent }}
               >
                 {caption.main}
                 {caption.sub ? (
@@ -3583,7 +3585,7 @@ function renderSection(
                               key={ci}
                               className="rounded-md px-2 py-0.5 text-[13px] leading-5"
                               style={{
-                                color: readableTextAccent(theme),
+                                color: DESIGN_V4_ENABLED ? readableOnFace(readableTextAccent(theme), mixHex(FLAT_PAPER, theme.accent, 0.14), 4.6) : readableTextAccent(theme),
                                 backgroundColor: hexToRgba(theme.accent, 0.14),
                                 boxShadow: ELEVATION.certUnderlineSoft(theme.accent),
                               }}
@@ -3620,7 +3622,7 @@ function renderSection(
                               key={ci}
                               className="rounded-full px-2.5 py-0.5 text-[13px] leading-5"
                               style={{
-                                color: readableTextAccent(theme),
+                                color: DESIGN_V4_ENABLED ? readableOnFace(readableTextAccent(theme), mixHex(FLAT_PAPER, theme.accent, 0.14), 4.6) : readableTextAccent(theme),
                                 backgroundColor: hexToRgba(theme.accent, 0.1),
                               }}
                             >
@@ -5894,7 +5896,7 @@ function renderSection(
                 className="inline-block rounded-full px-4 py-1.5 text-xs font-medium"
                 style={{
                   backgroundColor: hexToRgba(theme.accent, 0.14),
-                  color: readableTextDeep(theme),
+                  color: DESIGN_V4_ENABLED ? readableOnFace(readableTextDeep(theme), mixHex(flatAccentTint(theme), theme.accent, 0.14)) : readableTextDeep(theme),
                 }}
               >
                 {shopperFacingTarget(section.targetCustomer)}
@@ -6108,7 +6110,7 @@ export default function DetailSectionRenderer({
         <style>{packStructureCss(packLayout, "[data-pz-pack]", "live") + infoCss(packLayout.info, "[data-pz-pack]", infoColorsOf(baseTheme), infoBackdrops, { demote: v2Plan?.demoted })}</style>
       )}
       {v2Css ? <style>{v2Css}</style> : null}
-      {DESIGN_V4_ENABLED ? <style>{typeFloorCss("[data-pz-typefloor]") + headingSystemCss("[data-pz-typefloor]", "live") + topPadCssV4((px) => `[data-pz-typefloor] [data-pz-top="${px}"] > section`) + bottomPadCssV4((px) => `[data-pz-typefloor] [data-pz-bot="${px}"] > section`)}</style> : null}
+      {DESIGN_V4_ENABLED ? <style>{typeFloorCss("[data-pz-typefloor]") + headingSystemCss("[data-pz-typefloor]", "live") + topPadCssV4((px) => `[data-pz-typefloor] [data-pz-top="${px}"] > section`) + bottomPadCssV4((px) => `[data-pz-typefloor] [data-pz-bot="${px}"] > section`) + mutedFloorCssLive("[data-pz-typefloor]")}</style> : null}
       {DESIGN_V3_COLOR_ENABLED && v2On ? <style>{paletteInfoCss("[data-pz-v2]", extendedTheme, packLayout.info)}</style> : null}
       {DESIGN_V3_COLOR_ENABLED && !edit?.enabled ? <style>{dividerCss({ scope: "[data-pz-v2]", mode: "live", sections, ext: extendedTheme, category, info: packLayout.info })}</style> : null}
       {fontPair ? (
