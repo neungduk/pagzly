@@ -120,7 +120,7 @@ export function checkDiff(base: string, head: string): Check {
   // 얕은 클론이면 merge-base를 믿을 수 없어(세 점 비교가 0건으로 나옴) 두 커밋의 트리를 직접 비교한다 — main이 앞선 변경은 반대로 나타날 수 있다
   const shallow = sh("git", ["rev-parse", "--is-shallow-repository"]).out.trim() === "true";
   const range = shallow ? [base, head] : [`${base}...${head}`];
-  const names = sh("git", ["diff", "--name-only", ...range]).out.split("\n").filter(Boolean);
+  const names = sh("git", ["-c", "core.quotepath=off", "diff", "--name-only", ...range]).out.split("\n").filter(Boolean);
   const stat = sh("git", ["diff", "--shortstat", ...range]).out.trim();
   const dirs = new Map<string, number>();
   for (const f of names) { const d = f.includes("/") ? f.split("/").slice(0, 2).join("/") : "(루트)"; dirs.set(d, (dirs.get(d) ?? 0) + 1); }

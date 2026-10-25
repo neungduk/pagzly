@@ -28,12 +28,12 @@
 - 목록 파일: docs/required-env-names.md
 
 ## 비밀값 패턴·env 추적 여부 — 합격
-- 검사한 파일 1245개(리뷰·문서 제외), 패턴 9종
+- 검사한 파일 1254개(리뷰·문서 제외), 패턴 9종
 
 ## origin/main...HEAD 변경 요약·결제/인증 경로 — 합격
 - 얕은 클론: 두 커밋 트리 직접 비교(git diff base head)
-- 파일 757개 — 757 files changed, 40599 insertions(+), 719 deletions(-)
-- 상위 디렉터리: public/qa-fixtures 166 · scripts/regression 117 · review/449-verify 36 · "review/445-verify 34 · review/446-verify 29 · review/445-verify 25 · scripts/fixtures 21 · review/448-verify 19 · .cursor/skills 18 · app/api 17 · public/_verify146 10 · review/450-verify 10 · "review/444-verify 7 · review/451-verify 6 · (루트) 5 · lib/cost 4 · supabase/migrations 4 · app/create 3 · review/444-verify 3 · lib/illustrations 2
+- 파일 787개 — 787 files changed, 41482 insertions(+), 721 deletions(-)
+- 상위 디렉터리: public/qa-fixtures 166 · scripts/regression 121 · review/445-verify 59 · review/449-verify 36 · review/446-verify 29 · scripts/fixtures 21 · review/448-verify 19 · review/452-verify 19 · .cursor/skills 18 · app/api 17 · public/_verify146 10 · review/444-verify 10 · review/450-verify 10 · review/451-verify 6 · (루트) 5 · lib/cost 4 · supabase/migrations 4 · app/create 3 · lib/illustrations 2 · loop/prompts 2
 - 결제·인증 경로 변경 0개(app/api/billing·app/billing·lib/toss·app/auth·lib/billing*·components/Billing*)
 
 ## 플래그 기본값 ↔ docs/v4-overview.md — 합격
