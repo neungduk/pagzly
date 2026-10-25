@@ -44,6 +44,8 @@ v4 이전 플래그(`DESIGN_V2`·`DESIGN_V3_COLOR` 등)는 이 문서 범위 밖
 | export 반복 style 묶기 | 448 | `lib/export-detail-html.ts` | v4 | 묶지 않음 | 계산 스타일 동일 검증 필요 |
 | 빈 섹션 껍데기·제목만 항목 생략 | 449 | `lib/display-sections.ts` | v4 | 생략 안 함 | 정상 입력 불변 |
 | 소형 글자 muted 단계(`MUTED_V4`) | 450 | `lib/muted-v4.ts` | v4 | 이전 알파 | 합성 21종 기준 |
+| 한글 타이포 마감(keep-all·행간 상한·알약 어절 묶음) | 452 | `lib/typo-v4.ts`, `lib/illust-sections.ts` | v4 | 예전 줄바꿈·행간 | 단어 중간 끊김은 미개선 |
+| 작은 안내 글 14px(고지·리뷰 요약·스펙 확인 항목·구매 카드 안내) | 452 | `lib/twin-styles-v4.ts`, `lib/beauty-style.ts` | v4 | 12~13px | 린트 점수 지표 정의에 저작 표기 `<footer>` 제외 포함 |
 | 히어로 D 사진 높이 상한·첫 화면 실측 | 451 | `lib/hero-spec.ts`(`HERO_D_PHOTO_MAX_PX`) | v4 | 상한 없음 | 750폭 실측은 합성 21종만 |
 | 일러스트 배너 3안 스위치 | 451 | `lib/design-tokens-v4.ts`(`BANNER_STYLE`) | v4 | 예전 배너 | 기본 `full-scrim`, 실사진 미검증 |
 | 히어로 A 글 블록 압축 | 450 | `lib/hero-spec.ts`(`heroABlockFold`) | v4 | 접지 않음 | 접힌 문구는 마크업에 남고 눈에는 안 보임, 390폭 기준 어림 |
@@ -110,6 +112,9 @@ v4 이전 플래그(`DESIGN_V2`·`DESIGN_V3_COLOR` 등)는 이 문서 범위 밖
 | `scripts/hero-compress-sheet.ts` | 히어로 A 압축 전/후 시트 |
 | `scripts/hero-fold-check.ts` · `scripts/hero-fold-sheet.ts` | 히어로 필수 요소 첫 화면 실측(390·750)·전/후 시트 |
 | `scripts/banner-style-measure.ts` | 배너 3값 대비·노출 측정 |
+| `scripts/predeploy-static.ts` | 배포 전 정적 점검(환경 파일 안 읽음) — `docs/predeploy-static.md` |
+| `scripts/typo-metrics.ts` | 한글 타이포 지표(외톨이·끊김·행간·줄 글자 수) |
+| `scripts/fuzz-stability.ts` | 라이브 퍼징 작업자 4 vs 1 안정성 비교 |
 | `scripts/live-probe.ts` | 라이브 퍼징 사례 한 건의 글자 대비 위반 원천(클래스·배경 사슬) 확인 |
 
 ## 8. 규칙 요약

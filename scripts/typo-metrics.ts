@@ -65,7 +65,7 @@ const MEASURE = `((W) => {
     const isTitle = /^H[1-3]$/.test(e.tagName) || /pagzly-display-headline|pz-fit/.test(e.className || '');
     if (isTitle) { if (ratio < 1.2 - 0.001 || ratio > 1.4 + 0.001) { out.titleLh += 1; out.detail.push({ kind: 'titleLh', text, info: ratio.toFixed(2) }); } }
     else if (fs >= 13 && fs <= 18) {
-      if (ratio < 1.5 - 0.001 || ratio > 1.75 + 0.001) { out.bodyLh += 1; out.detail.push({ kind: 'bodyLh', text, info: ratio.toFixed(2) + ' @' + fs + 'px' }); }
+      if (ratio < 1.5 - 0.001 || ratio > 1.75 + 0.001) { out.bodyLh += 1; out.detail.push({ kind: 'bodyLh', text, info: ratio.toFixed(2) + ' @' + fs + 'px ' + e.tagName + '.' + String(e.className).slice(0, 20) + ' ' + (e.getAttribute('style') || '').slice(0, 90) + ' ^ ' + (e.parentElement ? e.parentElement.tagName + ' ' + (e.parentElement.getAttribute('data-ip') || '') + ' ' + (e.parentElement.getAttribute('style') || '').slice(0, 60) : '') }); }
       const full = rowStr.slice(0, -1).map((s) => s.length).sort((x, y) => x - y);
       const med = full[Math.floor(full.length / 2)];
       if (med < lo || med > hi) { out.lineLen += 1; out.detail.push({ kind: 'lineLen', text, info: med + '자' }); }

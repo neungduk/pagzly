@@ -250,6 +250,7 @@ import { stepChipV4, reviewCaptionV4, highlightCardV4, highlightTitleKey, faqCar
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
 import { bottomPadCssV4, topPadCssV4 } from "@/lib/rhythm-v4";
 import { mutedFloorCssLive, readableOnFace } from "@/lib/muted-v4";
+import { typoCssLive } from "@/lib/typo-v4";
 import { mixHex } from "@/lib/design-tokens";
 import { v4SafeTheme } from "@/lib/palette-v4";
 import { ctaTrustHtml } from "@/lib/layout-variants";
@@ -6136,7 +6137,7 @@ export default function DetailSectionRenderer({
         <style>{packStructureCss(packLayout, "[data-pz-pack]", "live") + infoCss(packLayout.info, "[data-pz-pack]", infoColorsOf(baseTheme), infoBackdrops, { demote: v2Plan?.demoted })}</style>
       )}
       {v2Css ? <style>{v2Css}</style> : null}
-      {DESIGN_V4_ENABLED ? <style>{typeFloorCss("[data-pz-typefloor]") + headingSystemCss("[data-pz-typefloor]", "live") + topPadCssV4((px) => `[data-pz-typefloor] [data-pz-top="${px}"] > section`) + bottomPadCssV4((px) => `[data-pz-typefloor] [data-pz-bot="${px}"] > section`) + mutedFloorCssLive("[data-pz-typefloor]")}</style> : null}
+      {DESIGN_V4_ENABLED ? <style>{typeFloorCss("[data-pz-typefloor]") + headingSystemCss("[data-pz-typefloor]", "live") + topPadCssV4((px) => `[data-pz-typefloor] [data-pz-top="${px}"] > section`) + bottomPadCssV4((px) => `[data-pz-typefloor] [data-pz-bot="${px}"] > section`) + mutedFloorCssLive("[data-pz-typefloor]") + typoCssLive("[data-pz-typefloor]")}</style> : null}
       {DESIGN_V3_COLOR_ENABLED && v2On ? <style>{paletteInfoCss("[data-pz-v2]", extendedTheme, packLayout.info)}</style> : null}
       {DESIGN_V3_COLOR_ENABLED && !edit?.enabled ? <style>{dividerCss({ scope: "[data-pz-v2]", mode: "live", sections, ext: extendedTheme, category, info: packLayout.info })}</style> : null}
       {fontPair ? (

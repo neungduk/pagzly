@@ -8,6 +8,9 @@
  * 텍스트는 흰 바탕 위 ink/deep 색(대비 4.5:1 이상)이고 일러스트는 텍스트 칸과 겹치지 않는 별도 칸이다(안전 영역).
  * 라이브·export는 impactHtml(= 이 파일의 illustHtml)을 그대로 쓴다(패리티 0). 인라인 SVG만 — foreignObject·filter·외부 참조 없음.
  */
+import { bindTail } from "@/lib/typo-rhythm";
+import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
+import { BODY_LINE_HEIGHT } from "@/lib/typo-v4";
 import type { DetailSection, ImpactSection } from "@/lib/types/generate";
 import type { ImpactPalette } from "@/lib/impact-templates";
 import { estimateSectionHeight } from "@/lib/impact-templates";
@@ -58,7 +61,7 @@ function illustBoostHtml(s: ImpactSection, pal: ImpactPalette): string {
   const lines = labels.map((_, i) => `<line x1="${slots[i]!.from[0]}" y1="${slots[i]!.from[1]}" x2="${slots[i]!.to[0]}" y2="${slots[i]!.to[1]}" stroke="${pal.deep}" stroke-opacity="0.6" stroke-width="1.5" vector-effect="non-scaling-stroke"/>`).join("");
   const dots = labels.map((_, i) => `<span style="position:absolute;left:${slots[i]!.to[0]}%;top:${slots[i]!.to[1]}%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:${pal.deep}"></span>`).join("");
   const pills = labels
-    .map((l, i) => `<span style="position:absolute;${slots[i]!.box};max-width:46%;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:7px 12px 7px 7px;border-radius:999px;background:${pal.deep};box-shadow:0 4px 10px ${hexToRgba(pal.ink, 0.16)};${sans};font-size:14px;font-weight:700;line-height:1.3;color:#FFFFFF;word-break:keep-all"><span style="flex:none;display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#FFFFFF;color:${pal.deep};font-size:12px;font-weight:800">${i + 1}</span><span style="min-width:0">${esc(l)}</span></span>`)
+    .map((l, i) => `<span style="position:absolute;${slots[i]!.box};max-width:46%;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:7px 12px 7px 7px;border-radius:999px;background:${pal.deep};box-shadow:0 4px 10px ${hexToRgba(pal.ink, 0.16)};${sans};font-size:14px;font-weight:700;line-height:${DESIGN_V4_ENABLED ? BODY_LINE_HEIGHT : 1.3};color:#FFFFFF;word-break:keep-all"><span style="flex:none;display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#FFFFFF;color:${pal.deep};font-size:12px;font-weight:800">${i + 1}</span><span style="min-width:0">${DESIGN_V4_ENABLED ? bindTail(esc(l)) : esc(l)}</span></span>`)
     .join("");
   return (
     `<section data-pz-impact="illust-center" style="padding:32px 20px;background:${pal.face}"><div style="max-width:576px;margin:0 auto">` +
