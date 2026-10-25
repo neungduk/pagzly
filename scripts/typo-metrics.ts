@@ -30,6 +30,8 @@ const MEASURE = `((W) => {
     const cs = getComputedStyle(e);
     return cs.display !== 'none' && cs.visibility !== 'hidden' && e.getBoundingClientRect().width > 0;
   });
+  // 줄 머리 요소가 display:block(예: 「라벨:」 굵은 머리)이면 의도한 줄바꿈이라 끊김이 아니다
+  const blockEdge = (na, nb) => { const pa = na.parentElement, pb = nb.parentElement; if (!pa || !pb || pa === pb) return false; return getComputedStyle(pa).display === 'block' || getComputedStyle(pb).display === 'block'; };
   const lo = W >= 700 ? 24 : 12, hi = W >= 700 ? 40 : 24;
   for (const e of cand) {
     const cs = getComputedStyle(e);
@@ -43,11 +45,11 @@ const MEASURE = `((W) => {
     const rows = [];
     let curTop = null, cur = [];
     for (const [node, i, ch] of chars) {
-      if (/\\s/.test(ch)) { cur.push([ch, true]); continue; }
+      if (/\\s/.test(ch)) { cur.push([ch, true, node]); continue; }
       r.setStart(node, i); r.setEnd(node, i + 1);
       const b = r.getBoundingClientRect(); if (!b.height) continue;
       if (curTop === null || Math.abs(b.top - curTop) > b.height * 0.6) { if (cur.length) rows.push(cur); cur = []; curTop = b.top; }
-      cur.push([ch, false]);
+      cur.push([ch, false, node]);
     }
     if (cur.length) rows.push(cur);
     if (rows.length < 2) continue;
@@ -60,7 +62,7 @@ const MEASURE = `((W) => {
     for (let k = 0; k < rows.length - 1; k += 1) {
       const a = rows[k], b = rows[k + 1];
       const aEnd = a[a.length - 1], bStart = b[0];
-      if (aEnd && bStart && !aEnd[1] && !bStart[1]) { out.midword += 1; out.detail.push({ kind: 'midword', text, info: '«' + rowStr[k].slice(-3) + '|' + rowStr[k + 1].slice(0, 3) + '»' }); }
+      if (aEnd && bStart && !aEnd[1] && !bStart[1] && !blockEdge(aEnd[2], bStart[2])) { out.midword += 1; out.detail.push({ kind: 'midword', text, info: '«' + rowStr[k].slice(-3) + '|' + rowStr[k + 1].slice(0, 3) + '»' }); }
     }
     const isTitle = /^H[1-3]$/.test(e.tagName) || /pagzly-display-headline|pz-fit/.test(e.className || '');
     if (isTitle) { if (ratio < 1.2 - 0.001 || ratio > 1.4 + 0.001) { out.titleLh += 1; out.detail.push({ kind: 'titleLh', text, info: ratio.toFixed(2) }); } }

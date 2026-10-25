@@ -174,7 +174,7 @@ import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
 import { bottomPadCssV4, topPadCssV4 } from "@/lib/rhythm-v4";
 import { dedupeStyles } from "@/lib/style-dedupe";
 import { mutedFloorCssExport, readableOnFace } from "@/lib/muted-v4";
-import { typoCssExport } from "@/lib/typo-v4";
+import { bindCompoundsHtml, typoCssExport } from "@/lib/typo-v4";
 import { mixHex } from "@/lib/design-tokens";
 import { v4SafeTheme } from "@/lib/palette-v4";
 import { BEAUTY_HERO, HERO_ARCH, HERO_CAPTION, HERO_FRAME, HERO_STAGE_VARIANT, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroStageOn } from "@/lib/hero-variants";
@@ -2409,7 +2409,7 @@ export function buildDetailPageHtml(opts: {
   // 438차 — 본문 사진 로드 실패 시 깨진 이미지·alt 텍스트가 보이지 않게(export 전체 <img>에 오류 시 숨김)
   const finalHtml0 = (html: string): string => (HERO_V2_TUNED ? html.replace(/<img (?![^>]*onerror)([^>]*?)(\s*\/?>)/g,"<img $1 onerror=\"this.style.display='none'\"$2") : html);
   // 448차 5 — 반복 인라인 style 묶기(v4): 규칙·보존 장치는 lib/style-dedupe.ts
-  const finalHtml = (html: string): string => (DESIGN_V4_ENABLED ? dedupeStyles(finalHtml0(html)) : finalHtml0(html));
+  const finalHtml = (html: string): string => (DESIGN_V4_ENABLED ? dedupeStyles(bindCompoundsHtml(finalHtml0(html))) : finalHtml0(html));
   return finalHtml(`<!DOCTYPE html>
 <html lang="ko">
 <head>

@@ -23,3 +23,24 @@ export function typoCssExport(scope: string): string {
 export function typoCssLive(scope: string): string {
   return typoCssExport(scope);
 }
+
+/**
+ * 453차 1 — 가운뎃점으로 이어진 짧은 복합어(「봄·여름에는」「데님·슬랙스」)는 가운뎃점 뒤에서 줄이 바뀌면 한 낱말이 두 줄로 쪼개진다.
+ * export 마지막 HTML의 본문 글 노드에서 공백 없이 이어진 `A·B(·C…)`(어절 합계 18자 이하)를 `white-space:nowrap` 묶음으로 감싼다. 글자는 그대로(태그만 추가).
+ * script·style·head는 건드리지 않는다. 라이브는 편집 가능한 글(contentEditable) 안에 태그를 넣을 수 없어 적용하지 않는다(편집 UI 불변) — export에만 적용.
+ */
+const COMPOUND = /[^\s·&;<>]{1,8}(?:·[^\s·&;<>]{1,8})+/g;
+export function bindCompoundsHtml(html: string): string {
+  const bodyAt = html.indexOf("<body");
+  if (bodyAt < 0) return html;
+  const head = html.slice(0, bodyAt), body = html.slice(bodyAt);
+  const protectedRe = /<(script|style)\b[\s\S]*?<\/\1>/gi;
+  const parts: string[] = [];
+  let last = 0;
+  for (const m of body.matchAll(protectedRe)) { parts.push(wrapText(body.slice(last, m.index!)), m[0]); last = m.index! + m[0].length; }
+  parts.push(wrapText(body.slice(last)));
+  return head + parts.join("");
+}
+function wrapText(chunk: string): string {
+  return chunk.replace(/>([^<>]+)(?=<)/g, (all, text: string) => (text.includes("·") ? ">" + text.replace(COMPOUND, (w) => (w.length <= 18 ? `<span style="white-space:nowrap">${w}</span>` : w)) : all));
+}
