@@ -174,7 +174,7 @@ import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
 import { bottomPadCssV4, topPadCssV4 } from "@/lib/rhythm-v4";
 import { dedupeStyles } from "@/lib/style-dedupe";
 import { mutedFloorCssExport, readableOnFace } from "@/lib/muted-v4";
-import { bindCompoundsHtml, typoCssExport } from "@/lib/typo-v4";
+import { BODY_LINE_HEIGHT, bindCompoundsHtml, typoCssExport } from "@/lib/typo-v4";
 import { mixHex } from "@/lib/design-tokens";
 import { v4SafeTheme } from "@/lib/palette-v4";
 import { BEAUTY_HERO, HERO_ARCH, HERO_CAPTION, HERO_FRAME, HERO_STAGE_VARIANT, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroStageOn } from "@/lib/hero-variants";
@@ -858,7 +858,7 @@ function sectionHtml(
           ${clItems
             .map(
               (item, i) =>
-                `<li style="text-align:center;font-size:${FONT_SIZE.bodySm};padding:20px 16px;border-radius:${RADIUS.lg}px;border:1px solid ${section.boldBlock ? "rgba(250,248,243,.22)" : FLAT_SECTION_SURFACES ? hexToRgba(accent, 0.16) : accent + "3d"};background:${section.boldBlock ? "rgba(250,248,243,.08)" : FLAT_SECTION_SURFACES ? FLAT_PAPER : accent + "0f"}${FLAT_SECTION_SURFACES ? ";font-weight:600;line-height:1.375;word-break:keep-all" : ""}">${FLAT_SECTION_SURFACES ? `<span aria-hidden="true" style="display:flex;justify-content:center;margin-bottom:10px">${summaryIconSvg(clIcons[i] ?? "check", section.boldBlock ? BRAND.paper : deepText, 26)}</span>` : ""}${esc(item)}</li>`,
+                `<li style="text-align:center;font-size:${FONT_SIZE.bodySm};padding:20px 16px;border-radius:${RADIUS.lg}px;border:1px solid ${section.boldBlock ? "rgba(250,248,243,.22)" : FLAT_SECTION_SURFACES ? hexToRgba(accent, 0.16) : accent + "3d"};background:${section.boldBlock ? "rgba(250,248,243,.08)" : FLAT_SECTION_SURFACES ? FLAT_PAPER : accent + "0f"}${FLAT_SECTION_SURFACES ? (";font-weight:600;line-height:" + (DESIGN_V4_ENABLED ? BODY_LINE_HEIGHT : "1.375") + ";word-break:keep-all") : ""}">${FLAT_SECTION_SURFACES ? `<span aria-hidden="true" style="display:flex;justify-content:center;margin-bottom:10px">${summaryIconSvg(clIcons[i] ?? "check", section.boldBlock ? BRAND.paper : deepText, 26)}</span>` : ""}${esc(item)}</li>`,
             )
             .join("")}
         </ul></section>`;
@@ -1550,7 +1550,7 @@ function sectionHtml(
         .join("") + pendingRowHtml;
       const specEdge = `1px solid ${hexToRgba(BRAND.ink, INFO_TABLE.specEdgeInkAlpha)}`;
       const specGrid = FLAT_SECTION_SURFACES && !isShipping && isCompactSpecGrid(tableRows, pendingLabels.length);
-      const tableHtml = `<table${specGrid ? ` class="pagzly-spec-grid"` : ""} style="width:100%;border-collapse:collapse;font-size:${FONT_SIZE.bodySm};line-height:20px${isShipping || specV4 ? "" : `;border-top:${specEdge};border-bottom:${specEdge}`}"><tbody>${rowsHtml}</tbody></table>`;
+      const tableHtml = `<table${specGrid ? ` class="pagzly-spec-grid"` : ""} style="width:100%;border-collapse:collapse;font-size:${FONT_SIZE.bodySm};line-height:${DESIGN_V4_ENABLED ? BODY_LINE_HEIGHT : "20px"}${isShipping || specV4 ? "" : `;border-top:${specEdge};border-bottom:${specEdge}`}"><tbody>${rowsHtml}</tbody></table>`;
       const tableMargin = diagramHtml ? "24px" : "40px";
       return `<section${sectionIdAttr} style="${trustPad}${sectionInset}${specTableBg}${bgCss}" class="${isShipping ? "pagzly-shipping" : ""}">
         ${kickerHtml(`<p style="text-align:center;font-size:${FONT_SIZE.caption};letter-spacing:.2em;color:${deepText}">INFO</p>`)}

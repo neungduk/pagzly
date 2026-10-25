@@ -3698,7 +3698,7 @@ function renderSection(
             {headlineKeywordNodes(section.heading, theme) ?? section.heading}
           </SectionH>
           <div className="mx-auto mt-10 max-w-xl overflow-x-auto overflow-hidden rounded-lg" style={DESIGN_V4_ENABLED ? declObject(compareWrapV4()) : undefined}>
-            <table className="w-full text-sm">
+            <table className={`w-full text-sm${DESIGN_V4_ENABLED ? " leading-normal" : ""}`}>
               <thead>
                 <tr style={{ backgroundColor: hexToRgba(theme.accent, INFO_TABLE.headerBgAlpha) }}>
                   <th className="px-4 py-3 text-left font-medium text-ink/55" style={DESIGN_V4_ENABLED ? declObject(compareCellV4(false)) : undefined} />

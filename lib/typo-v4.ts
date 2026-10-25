@@ -16,7 +16,7 @@ const RULE = "word-break:keep-all;overflow-wrap:anywhere";
 /** export(.pagzly-wrap) 범위 바닥 CSS. 인라인 style이 정한 값은 건드리지 않는다(속성이 없을 때만 적용되는 상속 규칙) */
 export function typoCssExport(scope: string): string {
   // 본문 행간이 1.75를 넘는 클래스(.pagzly-body-lh, 1.8~1.9)는 상한으로 — 인라인 값을 !important로 눌러야 해서 클래스 한정
-  return TAGS.map((t) => `${scope} ${t}`).join(",") + `{${RULE}}` + `${scope} .pagzly-body-lh{line-height:${BODY_LINE_HEIGHT_MAX}!important}`;
+  return TAGS.map((t) => `${scope} ${t}`).join(",") + `{${RULE}}` + `${scope} td,${scope} th,${scope} li{line-height:${BODY_LINE_HEIGHT}}` + `${scope} p[style*="line-height:1.8"]{line-height:${BODY_LINE_HEIGHT_MAX}!important}` + `${scope} .pagzly-body-lh{line-height:${BODY_LINE_HEIGHT_MAX}!important}`;
 }
 
 /** 라이브 범위 바닥 CSS(같은 내용) */
