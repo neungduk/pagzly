@@ -9,7 +9,7 @@
  *  R3 정보 섹션 3연속           warn  표·FAQ·주의가 3개 이어지면 읽기를 포기한다(상위 페이지 실측: 2개 뒤 사진·장식 면)
  *  R4 긴 글 블록               warn  한 문단 180자 초과 — 모바일 390폭 약 9줄, 상위 페이지 문단 최대 6~8줄
  *  R5 큰 글줄/화면             warn  28px 이상 글줄 ÷ 화면(844px) > 1.5 — 428 기준(DOM 지표와 같은 임계)
- *  R6 최소 글자 크기            error 글 12px 미만 / warn 14px 미만 긴 글(20자 초과) — 본문 14·라벨 12 하한. 고지·배송 안내 같은 작은 글(12~13px)은 상위 페이지도 쓰는 크기라 warn
+ *  R6 최소 글자 크기            error 글 12px 미만 / warn 14px 미만 긴 글(20자 초과, 452차: `<footer>`의 저작 표기는 warn 제외 — 12px 미만 error는 그대로) — 본문 14·라벨 12 하한. 고지·배송 안내 같은 작은 글(12~13px)은 상위 페이지도 쓰는 크기라 warn
  *                              (v4 글자 하한 CSS[data-pz-typefloor]가 있으면 12px 미만 인라인 값은 12px로 본다)
  *  R7 대비 미달                error 일반 글 4.5:1, 큰 글(24px+ 또는 19px+ 굵게) 3:1 미만 — 같은 요소·조상의 단색 바탕 기준(사진·그라데이션 위는 생략)
  *                              글자 크기가 CSS 클래스·변수라 인라인으로 안 보이면 큰 글 기준(3:1)으로 본다(제목류가 대부분). 흰 글자가 밝은 바탕에서
@@ -76,8 +76,8 @@ const solidBg = (st: Record<string, string>): string | null | undefined => {
 type Frame = { tag: string; bg: string | null | undefined; color?: string; size?: number; weight?: number; hidden: boolean; photo: boolean };
 
 /** 글 조각마다 (글자, 글자색, 바탕색, 크기, 굵기, 장식 여부)를 뽑는다 — 인라인 스타일만 쓰는 v4·임팩트 마크업 기준 근사 */
-export function textRuns(html: string): Array<{ text: string; color: string | null; bg: string | null; size: number; weight: number; hidden: boolean; titleish: boolean; raw: string; sizeKnown: boolean }> {
-  const out: Array<{ text: string; color: string | null; bg: string | null; size: number; weight: number; hidden: boolean; titleish: boolean; raw: string; sizeKnown: boolean }> = [];
+export function textRuns(html: string): Array<{ text: string; color: string | null; bg: string | null; size: number; weight: number; hidden: boolean; titleish: boolean; raw: string; sizeKnown: boolean; fine?: boolean }> {
+  const out: Array<{ text: string; color: string | null; bg: string | null; size: number; weight: number; hidden: boolean; titleish: boolean; raw: string; sizeKnown: boolean; fine?: boolean }> = [];
   const stack: Frame[] = [{ tag: "root", bg: "#ffffff", hidden: false, photo: false }];
   const re = /<(\/?)([a-zA-Z0-9]+)([^>]*?)(\/?)>|([^<]+)/g;
   let svgDepth = 0;
@@ -93,7 +93,7 @@ export function textRuns(html: string): Array<{ text: string; color: string | nu
       const sizeKnown = [...stack].reverse().find((f) => f.size)?.size;
       const size = sizeKnown ?? 16;
       const weight = [...stack].reverse().find((f) => f.weight)?.weight ?? 400;
-      out.push({ text, color: hexOf(color ?? undefined), bg, size, weight, hidden: stack.some((f) => f.hidden), titleish: stack.some((f) => f.tag === "h1"), raw: "", sizeKnown: sizeKnown !== undefined });
+      out.push({ text, color: hexOf(color ?? undefined), bg, size, weight, hidden: stack.some((f) => f.hidden), titleish: stack.some((f) => f.tag === "h1"), raw: "", sizeKnown: sizeKnown !== undefined, fine: stack.some((f) => f.tag === "footer") });
       continue;
     }
     const closing = m[1] === "/";
@@ -203,7 +203,7 @@ export function lintPage(id: string, html0: string, display: DetailSection[], do
     // R6
     const sz = floor ? Math.max(12, r.size) : r.size;
     if (sz < 12 && len >= 2) add("R6", "error", `글자 ${r.size}px «${r.text.slice(0, 14)}»`);
-    else if (sz < 14 && len > 20) add("R6", "warn", `긴 글 ${r.size}px «${r.text.slice(0, 14)}»`);
+    else if (sz < 14 && len > 20 && !r.fine) add("R6", "warn", `긴 글 ${r.size}px «${r.text.slice(0, 14)}»`);
     // R7
     if (r.color && r.bg) {
       const large = !r.sizeKnown || r.size >= 24 || (r.size >= 19 && r.weight >= 700);

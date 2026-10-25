@@ -3656,7 +3656,7 @@ function renderSection(
                 {pendingLabels.length > 0 ? (
                   <tr data-spec-pending>
                     <td className={`w-[38%] py-3.5 pr-4 ${TYPO.tableLabel}`} style={specV4 ? declObject(specLabelCellV4(theme.accent)) : undefined}>{PENDING_SPEC_ROW_LABEL}</td>
-                    <td className={`py-3.5 text-[13px] leading-relaxed tracking-tight ${DESIGN_V4_ENABLED ? "text-ink/70" : "text-ink/45"}`} style={specV4 ? declObject(specValueCellV4()) : undefined}>
+                    <td className={`py-3.5 ${DESIGN_V4_ENABLED ? "text-sm" : "text-[13px]"} leading-relaxed tracking-tight ${DESIGN_V4_ENABLED ? "text-ink/70" : "text-ink/45"}`} style={specV4 ? declObject(specValueCellV4()) : undefined}>
                       {pendingLabels.join(" · ")}
                     </td>
                   </tr>
@@ -5032,7 +5032,7 @@ function renderSection(
               장기 사용 후기 {section.longTermUseMentionCount}건
             </p>
           ) : null}
-          <p className="mx-auto mt-2 max-w-xl text-center text-xs text-ink/40" style={DESIGN_V4_ENABLED ? declObject(reviewCaptionV4()) : undefined}>
+          <p className="mx-auto mt-2 max-w-xl text-center text-xs text-ink/40" style={DESIGN_V4_ENABLED ? declObject(reviewCaptionV4(true, BRAND.ink, 14)) : undefined}>
             실제 구매자 리뷰에서 자주 나온 내용을 요약했습니다
           </p>
           {FLAT_SECTION_SURFACES ? (
@@ -5919,7 +5919,7 @@ function renderSection(
             {shopperFacingTarget(section.targetCustomer) && (
               <span
                 {...beautyIp(layout, "chip")}
-                className="inline-block rounded-full px-4 py-1.5 text-xs font-medium"
+                className={`inline-block rounded-full px-4 py-1.5 ${DESIGN_V4_ENABLED ? "text-sm" : "text-xs"} font-medium`}
                 style={{
                   backgroundColor: hexToRgba(theme.accent, 0.14),
                   color: DESIGN_V4_ENABLED ? readableOnFace(readableTextDeep(theme), mixHex(flatAccentTint(theme), theme.accent, 0.14)) : readableTextDeep(theme),
@@ -5975,7 +5975,7 @@ function renderSection(
               >
                 지금 구매하기
               </span>
-              <p className={`mt-3 text-xs leading-relaxed ${DESIGN_V4_ENABLED ? "text-ink/70" : "text-ink/50"}`} {...beautyIp(layout, "note")}>
+              <p className={`mt-3 ${DESIGN_V4_ENABLED ? "text-sm" : "text-xs"} leading-relaxed ${DESIGN_V4_ENABLED ? "text-ink/70" : "text-ink/50"}`} {...beautyIp(layout, "note")}>
                 배송·교환·환불은 판매자 정책을 확인해 주세요.
               </p>
             </div>

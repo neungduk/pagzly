@@ -80,7 +80,8 @@ export const noticeBoxV4 = (ink: string = BRAND.ink): Decl => mergeDecl(tokenDec
 export const cautionBoxV4 = (ink: string = BRAND.ink): Decl => mergeDecl(noticeBoxV4(ink), tokenDecl("body-small"));
 /** AI 안내: 문구는 고정(고지 규정) — 크기·굵기·행간만. 제목 14·600, 본문 13(라벨 12 이상)·행간 relaxed */
 export const aiHeadV4 = (): Decl => mergeDecl(tokenDecl("body-small"), [["font-weight", "600"]]);
-export const aiBodyV4 = (): Decl => mergeDecl([["font-size", "13px"]], tokenDecl("line-relaxed"));
+/** 452차 — 고지 본문 13 → 14px(본문 하한, 문구 불변) */
+export const aiBodyV4 = (): Decl => mergeDecl([["font-size", "14px"]], tokenDecl("line-relaxed"));
 
 // ── usage_steps(사용 순서) — 제목은 섹션 제목 시스템 그대로, 여백·행간만 ──────────
 export const stepsListV4 = (): Decl => [["margin-top", `${SPACE_V4.md}px`]];
@@ -92,7 +93,7 @@ export const stepTextV4 = (): Decl => tokenDecl("line-relaxed");
  * 면 위 대비 약 2.6~3.5:1·글자 11px로 라벨 하한(12px)·대비(4.5:1)를 못 맞췄다(합성 픽스처에 후기 섹션을 넣고서야 드러남). 잉크 알파는 spec 라벨과 같은 토큰(SPEC_LABEL_INK_ALPHA),
  * 글자 크기는 라벨 하한 토큰. size=false면 글자 크기는 건드리지 않는다(아쉬운 점 문장은 좁은 12 · 넓은 13 반응형을 각자 유지).
  */
-export const reviewCaptionV4 = (size = true, ink: string = BRAND.ink): Decl => mergeDecl([["color", hexToRgba(ink, SPEC_LABEL_INK_ALPHA)], ["opacity", "1"]], size ? [["font-size", `${MIN_LABEL_PX}px`], ["line-height", String(LINE_HEIGHT_V4.normal)]] : []);
+export const reviewCaptionV4 = (size = true, ink: string = BRAND.ink, px: number = MIN_LABEL_PX): Decl => mergeDecl([["color", hexToRgba(ink, SPEC_LABEL_INK_ALPHA)], ["opacity", "1"]], size ? [["font-size", `${px}px`], ["line-height", String(LINE_HEIGHT_V4.normal)]] : []);
 
 // ── step_card(사진 위 STEP 칩) ───────────────────────────────────────────────
 /** 446차 5 — 사진 위 STEP 칩: 라이브 text-[10px]/[11px]·export 10px/12px가 따로 가던 것을 라벨 토큰(12px·자간 label)으로. 칩 면 위 글자 대비는 테마 보정(v4SafeTheme)이 맡는다 */

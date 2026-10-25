@@ -62,7 +62,7 @@ export function beautyInfoCss(level: InfoLevel | undefined, scope: string, c: In
   rule(ip("badges"), `display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:24rem;margin:28px auto 0;justify-content:stretch`);
   rule(`${ip("badges")}>span`, `display:flex;align-items:center;justify-content:center;text-align:center;padding:14px 10px;font-size:14px;font-weight:700;background:${W};color:${c.deep};border:0;border-radius:12px;clip-path:none`);
   rule(ip("cta"), `display:block;width:100%;max-width:24rem;margin:32px auto 0;padding:22px 16px;box-sizing:border-box;font-size:20px;font-weight:800;text-align:center;border-radius:14px;background:${c.deep};color:${W};box-shadow:0 14px 32px rgba(0,0,0,0.35)`);
-  rule(ip("note"), `color:${DESIGN_V4_ENABLED ? W : "rgba(255,255,255,0.88)"};font-size:13px;margin-top:16px;opacity:1`);
+  rule(ip("note"), `color:${DESIGN_V4_ENABLED ? W : "rgba(255,255,255,0.88)"};font-size:${DESIGN_V4_ENABLED ? 14 : 13}px;margin-top:16px;opacity:1`);
 
   // ── 퀵포인트: 카드 한 장(왼쪽 액센트 띠) · 제목 22px · 본문 16px · 썸네일 112px ──
   const Q = `${scope} [data-info="quick"]`;

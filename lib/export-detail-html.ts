@@ -1524,7 +1524,7 @@ function sectionHtml(
       const labelV4 = specV4 ? `;${declStyle(specLabelCellV4(accent))}` : "";
       const valueV4 = specV4 ? `;${declStyle(specValueCellV4())}` : "";
       const pendingRowHtml = pendingLabels.length
-        ? `<tr style="border-top:1px solid ${hexToRgba(BRAND.ink, INFO_TABLE.specRuleInkAlpha)}"><th style="text-align:left;padding:${thPad};width:38%;opacity:.55;font-weight:500;font-size:${FONT_SIZE.sm};letter-spacing:-0.01em${labelV4}">${PENDING_SPEC_ROW_LABEL}</th><td style="padding:${tdPad};font-size:13px;line-height:1.625;letter-spacing:-0.025em;color:rgba(27,27,24,${DESIGN_V4_ENABLED ? ".72" : ".45"})${valueV4}">${esc(pendingLabels.join(" · "))}</td></tr>`
+        ? `<tr style="border-top:1px solid ${hexToRgba(BRAND.ink, INFO_TABLE.specRuleInkAlpha)}"><th style="text-align:left;padding:${thPad};width:38%;opacity:.55;font-weight:500;font-size:${FONT_SIZE.sm};letter-spacing:-0.01em${labelV4}">${PENDING_SPEC_ROW_LABEL}</th><td style="padding:${tdPad};font-size:13px;line-height:1.625;letter-spacing:-0.025em;color:rgba(27,27,24,${DESIGN_V4_ENABLED ? ".72" : ".45"})${valueV4}${DESIGN_V4_ENABLED ? ";font-size:14px" : ""}">${esc(pendingLabels.join(" · "))}</td></tr>`
         : "";
       const rowsHtml = tableRows
         .map((row, ri) => {
@@ -1758,10 +1758,10 @@ function sectionHtml(
         return `<section${sectionIdAttr}${beautyAttr(layout, "buy")} class="pagzly-cta" style="${ctaPad}background:${flatAccentTint(theme)};border-top:1px solid ${hexToRgba(accent, 0.16)};color:${BRAND.ink};text-align:center">
         ${productName.trim() ? `<p${beautyIpAttr(layout, "name")} style="margin:0 0 12px;font-family:${DETAIL_FONT_STACK.heading};font-size:15px;font-weight:700;line-height:1.375;letter-spacing:-0.025em;color:rgba(27,27,24,.8);word-break:keep-all">${esc(productName.trim())}</p>` : ""}
         <p${beautyIpAttr(layout, "price")} style="font-family:${DETAIL_FONT_STACK.heading};font-size:${titleSizeCss("price")};font-weight:700;line-height:1;letter-spacing:-0.04em;margin:8px 0 0;color:${ensureReadableOnPaper(accent, 3)}">${priceGlyphHtml()}${section.price.toLocaleString("ko-KR")}</p>
-        ${shopperFacingTarget(section.targetCustomer) ? `<p${beautyIpAttr(layout, "chip")} style="display:inline-block;margin:16px 0 0;padding:6px 16px;border-radius:9999px;background:${hexToRgba(accent, 0.14)};color:${DESIGN_V4_ENABLED ? readableOnFace(deepText, mixHex(flatAccentTint(theme), accent, 0.14)) : deepText};font-size:${FONT_SIZE.xs};font-weight:500">${esc(shopperFacingTarget(section.targetCustomer))}</p>` : ""}
+        ${shopperFacingTarget(section.targetCustomer) ? `<p${beautyIpAttr(layout, "chip")} style="display:inline-block;margin:16px 0 0;padding:6px 16px;border-radius:9999px;background:${hexToRgba(accent, 0.14)};color:${DESIGN_V4_ENABLED ? readableOnFace(deepText, mixHex(flatAccentTint(theme), accent, 0.14)) : deepText};font-size:${DESIGN_V4_ENABLED ? "14px" : FONT_SIZE.xs};font-weight:500">${esc(shopperFacingTarget(section.targetCustomer))}</p>` : ""}
         ${section.badges?.length ? `<div${beautyIpAttr(layout, "badges")}${section.badges.length === 4 ? ` class="pagzly-badges4"` : ""} style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:16px">${section.badges.map((b) => `<span style="background:${FLAT_PAPER};border:1px solid ${hexToRgba(accent, 0.3)};border-radius:9999px;color:${deepText};padding:8px 16px;font-size:${FONT_SIZE.xs};font-weight:600">${esc(b)}</span>`).join("")}</div>` : ""}
         ${ctaTrustHtml(section.trust, theme)}${layout.beautyInfo ? `<span${beautyIpAttr(layout, "cta")} style="display:inline-block;margin-top:24px;padding:14px 28px;background:#1B1B18;color:#FAF8F3;font-weight:700">지금 구매하기</span>` : ""}
-        <p${beautyIpAttr(layout, "note")} style="margin-top:20px;font-size:${FONT_SIZE.xs};color:rgba(27,27,24,${DESIGN_V4_ENABLED ? ".72" : ".5"})">배송·교환·환불은 판매자 정책을 확인해 주세요.</p>
+        <p${beautyIpAttr(layout, "note")} style="margin-top:20px;font-size:${DESIGN_V4_ENABLED ? "14px" : FONT_SIZE.xs};color:rgba(27,27,24,${DESIGN_V4_ENABLED ? ".72" : ".5"})">배송·교환·환불은 판매자 정책을 확인해 주세요.</p>
       </section>`;
       }
       return `<section${sectionIdAttr}${beautyAttr(layout, "buy")} class="pagzly-cta" style="${ctaPad}background:${deepFill};color:#FAF8F3;text-align:center;clip-path:polygon(0 44px, 100% 0, 100% 100%, 0 100%);margin-top:-16px">
@@ -2043,7 +2043,7 @@ function sectionHtml(
         return `<section${sectionIdAttr} class="pagzly-review-highlight" style="${pad}${sectionInset}${bgCss}">
         <div style="text-align:center;max-width:576px;margin:0 auto">${twoToneDh2(category, theme, section.heading, `${titleFitCss("section", section.heading, -0.03)};margin:0`)}</div>
         ${countCaption}${petCaption}${repurchaseCaption}${sizeFitCaption}${longTermUseCaption}
-        <p style="text-align:center;font-size:12px;line-height:16px;${DESIGN_V4_ENABLED ? declStyle(reviewCaptionV4()) : "opacity:.45"};margin:8px 0 0">실제 구매자 리뷰에서 자주 나온 내용을 요약했습니다</p>
+        <p style="text-align:center;font-size:12px;line-height:16px;${DESIGN_V4_ENABLED ? declStyle(reviewCaptionV4(true, BRAND.ink, 14)) : "opacity:.45"};margin:8px 0 0">실제 구매자 리뷰에서 자주 나온 내용을 요약했습니다</p>
         <ul style="list-style:none;padding:0;max-width:576px;margin:40px auto 0;display:flex;flex-direction:column;gap:12px">${cards}</ul>
         ${concernsBlock}
       </section>`;
@@ -2051,7 +2051,7 @@ function sectionHtml(
       return `<section${sectionIdAttr} class="pagzly-review-highlight" style="${pad}${sectionInset}${bgCss}">
         ${dh2(category, esc(section.heading), `text-align:center;${titleFitCss("section", section.heading, -0.03)};margin:0`)}
         ${countCaption}${petCaption}${repurchaseCaption}${sizeFitCaption}${longTermUseCaption}
-        <p style="text-align:center;font-size:12px;line-height:16px;${DESIGN_V4_ENABLED ? declStyle(reviewCaptionV4()) : "opacity:.45"};margin:8px 0 0">실제 구매자 리뷰에서 자주 나온 내용을 요약했습니다</p>
+        <p style="text-align:center;font-size:12px;line-height:16px;${DESIGN_V4_ENABLED ? declStyle(reviewCaptionV4(true, BRAND.ink, 14)) : "opacity:.45"};margin:8px 0 0">실제 구매자 리뷰에서 자주 나온 내용을 요약했습니다</p>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;max-width:680px;margin:32px auto 0">
           ${praiseItems
             .map(
@@ -2502,7 +2502,7 @@ ${jsonLd}
 ${anchorNavAfterHero ? "" : anchorNavHtml}
 ${body}
 ${seoBlock}
-<footer style="padding:28px 20px;text-align:center;font-size:${FONT_SIZE.caption};opacity:.45">Pagzly HTML export · 마켓·자사몰용 (통이미지와 별도 텍스트·스키마 포함)</footer>
+<footer style="padding:28px 20px;text-align:center;font-size:${DESIGN_V4_ENABLED ? "12px" : FONT_SIZE.caption};opacity:${DESIGN_V4_ENABLED ? ".65" : ".45"}">Pagzly HTML export · 마켓·자사몰용 (통이미지와 별도 텍스트·스키마 포함)</footer>
 </div>
 </body>
 </html>`);
