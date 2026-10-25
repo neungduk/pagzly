@@ -29,6 +29,8 @@ async function main() {
       const server_ = `--server=http://localhost:${PORT}`;
       if (run(["scripts/png-compare.ts", server_, `--out=${path.join(OUT, "png")}`]) !== 0) code = 1;
       if (run(["scripts/fuzz-live.ts", server_, `--n=${arg("fuzz-n", "40")}`, `--out=${path.join(OUT, "fuzz-live.md")}`]) !== 0) code = 1;
+      // 452차 — 측정 안정성: 같은 앞 30개를 작업자 4·1로 돌려 위반이 같은지(차이가 있으면 실패)
+      if (run(["scripts/fuzz-stability.ts", server_, `--out=${path.join(OUT, "fuzz-stability.md")}`]) !== 0) code = 1;
     }
   } finally {
     if (process.platform === "win32") spawnSync("taskkill", ["/pid", String(server.pid), "/T", "/F"]);

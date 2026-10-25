@@ -77,11 +77,38 @@ export async function checkLive(browser: Browser, server: string, c: FuzzCase, w
 }
 
 /** 페이지(라이브 렌더러 루트 또는 export 문서)의 모든 글자를 픽셀 기준 대비로 검사 — 글자를 투명하게 한 재캡처로 글자 상자 뒤 실제 배경(5·95백분위) */
-export async function contrastPage(page: import("playwright").Page): Promise<Array<{ text: string; px: number; ratio: number; need: number; src?: string }>> {
+type Bad = { text: string; px: number; ratio: number; need: number; src?: string };
+
+/**
+ * 452차 1 — 측정 안정화: 글꼴 로드·이미지 decode 완료를 기다리고, 문서 높이와 글자 상자 표본이 두 프레임 연속 같아질 때까지 기다린다(최대 ~3초).
+ * 위반이 나오면 안정화를 한 번 더 한 뒤 재측정하고, **두 번 다 위반인 것만** 판정한다(레이아웃 이동으로 인한 간헐 오탐 제거).
+ */
+export async function settle(page: import("playwright").Page): Promise<number> {
+  return (await page.evaluate(`(async () => {
+    try { await document.fonts.ready; } catch (e) {}
+    const cap = (p) => Promise.race([p, new Promise((r) => setTimeout(r, 1200))]);\n    await cap(Promise.all(Array.from(document.images).map((i) => (i.decode ? i.decode().catch(() => 0) : 0))));\n    await cap(document.fonts.ready.catch(() => 0));
+    const sig = () => { const els = Array.from(document.querySelectorAll('h1,h2,h3,p,span,li,td,th')).filter((_, k) => k % 7 === 0).slice(0, 160); return document.documentElement.scrollHeight + ':' + els.map((e) => { const r = e.getBoundingClientRect(); return Math.round(r.top + scrollY) + ',' + Math.round(r.left); }).join(';'); };
+    const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    let prev = sig(); let same = 0; let n = 0;
+    while (same < 2 && n < 30) { await frame(); await new Promise((r) => setTimeout(r, 60)); const cur = sig(); if (cur === prev) same += 1; else { same = 0; prev = cur; } n += 1; }
+    return n;
+  })()`)) as number;
+}
+
+export async function contrastPage(page: import("playwright").Page): Promise<Bad[]> {
+  await settle(page);
+  const first = await contrastPageOnce(page);
+  if (!first.length) return first;
+  await settle(page);
+  const second = await contrastPageOnce(page);
+  return first.filter((a) => second.some((b) => b.text === a.text && b.px === a.px));
+}
+
+async function contrastPageOnce(page: import("playwright").Page): Promise<Bad[]> {
   await page.addStyleTag({ content: "*,*::before,*::after{animation:none!important;transition:none!important}" });
   await page.waitForTimeout(100);
   const all = (await page.evaluate(ALL_TEXT)) as TextProbe[];
-  await page.addStyleTag({ content: "*{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important}svg text,svg tspan{fill:transparent!important;stroke:none!important}" });
+  const hideTag = await page.addStyleTag({ content: "*{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important}svg text,svg tspan{fill:transparent!important;stroke:none!important}" });
   // 451차 — 글자 숨김 뒤 레이아웃이 달라질 수 있어(지연 이미지·폰트) 상자 좌표를 숨긴 상태에서 다시 읽는다(같은 순서·같은 글자일 때만 교체). 스크린샷 직전에 한 번 더 안정화
   const vp = page.viewportSize()!;
   const full = await page.evaluate("Math.ceil(document.documentElement.scrollHeight)") as number;
@@ -91,6 +118,7 @@ export async function contrastPage(page: import("playwright").Page): Promise<Arr
   if (again.length === all.length && again.every((q, i) => q.text === all[i]!.text)) again.forEach((q, i) => { const o = all[i]!; o.x = q.x; o.y = q.y; o.w = q.w; o.h = q.h; });
   const buf = await page.screenshot({ fullPage: true });
   await page.setViewportSize(vp);
+  await hideTag.evaluate((e) => e.remove());
   const im = sharp(buf);
   const meta = await im.metadata();
   const raw = await im.ensureAlpha().raw().toBuffer();
@@ -154,7 +182,7 @@ export function liveReport(cases: FuzzCase[], vs: LiveViolation[], exportVs?: Ar
 
 if (/fuzz-live\.ts$/.test(process.argv[1] ?? "")) {
   const arg = (k: string, d: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? d;
-  void runLive({ server: arg("server", "http://localhost:3100"), n: Number(arg("n", "200")), widths: arg("widths", "320,360,390,750").split(",").map(Number), workers: Number(arg("workers", "4")), only: arg("only", "").split(",").filter(Boolean), base: process.argv.includes("--base") }).then(({ cases, violations }) => {
+  void runLive({ server: arg("server", "http://localhost:3100"), n: Number(arg("n", "200")), widths: arg("widths", "320,360,390,750").split(",").map(Number), workers: Number(arg("workers", "4")), subset: Number(arg("subset", "0")) || undefined, only: arg("only", "").split(",").filter(Boolean), base: process.argv.includes("--base") }).then(({ cases, violations }) => {
     const out = arg("out", "review/449-verify/fuzz-live.md");
     fs.mkdirSync(path.dirname(out), { recursive: true });
     const exportVs = arg("export-json", "") ? (JSON.parse(fs.readFileSync(arg("export-json", ""), "utf8")) as Array<{ kind: string; id: string }>) : undefined;
