@@ -5,6 +5,8 @@
  *  - 행간 하한/상한은 자리별 토큰(BODY_LINE_HEIGHT)을 쓰는 곳(구매 카드 혜택 칩 등)에서 가져간다.
  * 선택자에 `:has()`·container query를 쓰지 않는다.
  */
+import { bindTail } from "@/lib/typo-rhythm";
+
 export const BODY_LINE_HEIGHT = 1.5;
 export const BODY_LINE_HEIGHT_MAX = 1.75;
 export const TITLE_LINE_HEIGHT_MIN = 1.2;
@@ -41,6 +43,15 @@ export function bindCompoundsHtml(html: string): string {
   parts.push(wrapText(body.slice(last)));
   return head + parts.join("");
 }
+/** 이스케이프된 글의 마지막 두 어절을 묶는다(마지막 어절 4자 이하, 묶음 14자 이하). 글자는 그대로 */
+export function bindLast(escaped: string): string {
+  const m = /^(.*\S)\s+(\S+)\s+(\S{1,4})$/.exec(escaped);
+  if (!m || m[2]!.length + m[3]!.length > 13) return escaped;
+  return `${m[1]} <span style="white-space:nowrap">${m[2]} ${m[3]}</span>`;
+}
 function wrapText(chunk: string): string {
+  // 453차 3 — 표 값 칸(td 또는 「라벨 span + 값 span」 줄)의 긴 글(14자 이상)은 마지막 짧은 어절을 앞 어절과 묶어 「소매 / 56」처럼 숫자만 다음 줄로 떨어지는 외톨이를 막는다(글자 불변)
+  chunk = chunk.replace(/(<td\b[^>]*>(?:<span\b[^>]*>)?)([^<>]{14,})(?=<\/(?:span|td)>)/g, (_a, open: string, text: string) => open + bindLast(text));
+  chunk = chunk.replace(/(<\/span><span\b[^>]*>)([^<>]{14,})(?=<\/span><\/div>)/g, (_a, open: string, text: string) => open + bindLast(text));
   return chunk.replace(/>([^<>]+)(?=<)/g, (all, text: string) => (text.includes("·") ? ">" + text.replace(COMPOUND, (w) => (w.length <= 18 ? `<span style="white-space:nowrap">${w}</span>` : w)) : all));
 }
