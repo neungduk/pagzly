@@ -351,6 +351,8 @@ const sans = `font-family:${DETAIL_FONT_STACK.sans}`;
  * 라이브·export가 같은 함수를 쓰므로 같은 결정이 나온다(브라우저 측정 없음).
  */
 export const HERO_A_BLOCK_BUDGET = 0.38;
+/** 451차 — 히어로 D(스플릿) 사진 높이 상한: 750폭에서 사진이 900px라 제품명·훅·가격이 첫 화면(1000px) 밖으로 밀렸다. 390폭(468px)은 변화 없음 */
+export const HERO_D_PHOTO_MAX_PX = 640;
 export type HeroAFold = { tags?: boolean; sub?: boolean; nameSub?: boolean; hookLines?: number };
 const FOLD_CSS = "max-height:0!important;margin:0!important;padding:0!important;border:0!important;overflow:hidden!important;";
 const glyphEm = (ch: string): number => (/[0-9]/.test(ch) ? 0.58 : /\s/.test(ch) ? 0.3 : /[\u1100-\u11ff\u3130-\u318f\uac00-\ud7af\u3000-\u9fff\uff00-\uffef]/.test(ch) ? 0.98 : 0.56);
@@ -597,7 +599,7 @@ function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: str
     const deep = mixHex(pal.deepAccent, "#000000", 0.35);
     return (
       wrapOpen("D", "background:#FFFFFF") +
-      `<div data-hero-photo style="position:relative;width:100%;aspect-ratio:4 / 4.8;overflow:hidden;background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}<div style="position:absolute;left:0;top:0;padding:18px 20px">${brandPill(p, "rgba(255,255,255,0.9)", "#1B1B18")}</div>${v3Sticker(p, pal, "right:16px;bottom:16px;z-index:6")}</div>` +
+      `<div data-hero-photo style="position:relative;width:100%;aspect-ratio:4 / 4.8;max-height:${HERO_D_PHOTO_MAX_PX}px;overflow:hidden;background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}<div style="position:absolute;left:0;top:0;padding:18px 20px">${brandPill(p, "rgba(255,255,255,0.9)", "#1B1B18")}</div>${v3Sticker(p, pal, "right:16px;bottom:16px;z-index:6")}</div>` +
       `<div style="position:relative;overflow:hidden;background:${face};padding:28px 24px ${44 + ghostBand(p)}px">${v3Ghost(p, ghostColor(face, "#1B1B18", vp.deep), designV4On() ? "right:8%;bottom:16px;z-index:0" : "right:-6px;bottom:16px;z-index:0")}${v3GhostFade(p, face, "bottom")}` +
       `<div style="position:relative;z-index:4">${p.brand ? `<div data-hero-brand-fallback style="margin:0 0 14px">${brandPill(p, "#FFFFFF", "#1B1B18")}</div>` : ""}${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, deep, hexToRgba("#1B1B18", 0.78))}${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "#FFFFFF", "#1B1B18", hexToRgba("#1B1B18", 0.2))}</div>` : ""}${tagRow(p, "#1B1B18", hexToRgba("#1B1B18", 0.3))}${v3Price(p, darkenForWhite(vp.deep), "#FFFFFF")}</div></div></section>`
     );
