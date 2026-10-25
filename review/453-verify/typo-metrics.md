@@ -1,10 +1,10 @@
 # 한글 타이포 지표 (452차)
 
-합성 21종 × 390,750폭. 글 상자 984개(2줄 이상). 합계: 외톨이 12 · 단어 중간 끊김 0 · 본문 행간 이탈 17 · 제목 행간 이탈 0 · 한 줄 글자 수 이탈 315
+합성 21종 × 390,750폭. 글 상자 984개(2줄 이상). 합계: 외톨이 12 · 단어 중간 끊김 0 · 본문 행간 이탈 17 · 제목 행간 이탈 0 · 한 줄 글자 수 이탈 311
 
 | 세션 | 폭 | 상자 | 외톨이 | 끊김 | 본문행간 | 제목행간 | 줄글자수 |
 |---|---|---|---|---|---|---|---|
-| fx-compare-beauty | 390 | 38 | 0 | 0 | 1 | 0 | 12 |
+| fx-compare-beauty | 390 | 38 | 0 | 0 | 1 | 0 | 11 |
 | fx-compare-beauty | 750 | 16 | 0 | 0 | 0 | 0 | 6 |
 | fx-compare-fashion | 390 | 44 | 0 | 0 | 0 | 0 | 13 |
 | fx-compare-fashion | 750 | 26 | 0 | 0 | 0 | 0 | 14 |
@@ -14,9 +14,9 @@
 | fx-fashion-bottom-denim | 750 | 20 | 0 | 0 | 0 | 0 | 8 |
 | fx-fashion-dress-floral | 390 | 44 | 0 | 0 | 2 | 0 | 12 |
 | fx-fashion-dress-floral | 750 | 25 | 0 | 0 | 0 | 0 | 15 |
-| fx-food-snack | 390 | 32 | 0 | 0 | 1 | 0 | 6 |
+| fx-food-snack | 390 | 32 | 0 | 0 | 1 | 0 | 5 |
 | fx-food-snack | 750 | 15 | 0 | 0 | 0 | 0 | 6 |
-| fx-hairbody-shampoo | 390 | 32 | 0 | 0 | 0 | 0 | 10 |
+| fx-hairbody-shampoo | 390 | 32 | 0 | 0 | 0 | 0 | 9 |
 | fx-hairbody-shampoo | 750 | 17 | 0 | 0 | 0 | 0 | 6 |
 | fx-inner-collagen | 390 | 34 | 0 | 0 | 0 | 0 | 12 |
 | fx-inner-collagen | 750 | 18 | 0 | 0 | 0 | 0 | 7 |
@@ -24,7 +24,7 @@
 | fx-living-storage | 750 | 11 | 2 | 0 | 0 | 0 | 4 |
 | fx-makeup-tint | 390 | 32 | 0 | 0 | 2 | 0 | 10 |
 | fx-makeup-tint | 750 | 18 | 0 | 0 | 0 | 0 | 6 |
-| fx-skincare-serum | 390 | 34 | 0 | 0 | 1 | 0 | 9 |
+| fx-skincare-serum | 390 | 34 | 0 | 0 | 1 | 0 | 8 |
 | fx-skincare-serum | 750 | 16 | 0 | 0 | 0 | 0 | 6 |
 | fx-tech-keyboard | 390 | 25 | 2 | 0 | 0 | 0 | 11 |
 | fx-tech-keyboard | 750 | 13 | 2 | 0 | 0 | 0 | 5 |
