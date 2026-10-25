@@ -44,6 +44,8 @@ v4 이전 플래그(`DESIGN_V2`·`DESIGN_V3_COLOR` 등)는 이 문서 범위 밖
 | export 반복 style 묶기 | 448 | `lib/export-detail-html.ts` | v4 | 묶지 않음 | 계산 스타일 동일 검증 필요 |
 | 빈 섹션 껍데기·제목만 항목 생략 | 449 | `lib/display-sections.ts` | v4 | 생략 안 함 | 정상 입력 불변 |
 | 소형 글자 muted 단계(`MUTED_V4`) | 450 | `lib/muted-v4.ts` | v4 | 이전 알파 | 합성 21종 기준 |
+| 히어로 D 사진 높이 상한·첫 화면 실측 | 451 | `lib/hero-spec.ts`(`HERO_D_PHOTO_MAX_PX`) | v4 | 상한 없음 | 750폭 실측은 합성 21종만 |
+| 일러스트 배너 3안 스위치 | 451 | `lib/design-tokens-v4.ts`(`BANNER_STYLE`) | v4 | 예전 배너 | 기본 `full-scrim`, 실사진 미검증 |
 | 히어로 A 글 블록 압축 | 450 | `lib/hero-spec.ts`(`heroABlockFold`) | v4 | 접지 않음 | 접힌 문구는 마크업에 남고 눈에는 안 보임, 390폭 기준 어림 |
 | 라이브 빈 `src`·`key=""` 정리 | 450 | `components/DetailSectionRenderer.tsx` | v4 | §6 참고 | 빈 입력에서만 off 출력이 달라질 수 있음 |
 
@@ -80,6 +82,20 @@ v4 이전 플래그(`DESIGN_V2`·`DESIGN_V3_COLOR` 등)는 이 문서 범위 밖
 - 목록 키(칩·배지·각주·색상 옵션·FAQ·비교표)에 순번을 넣었다. 키는 출력 문자열에 나오지 않으므로 off 출력은 변하지 않는다.
 - off 출력 변화: 정상 입력 21종 0. 빈 입력에서의 off 차이는 없음(분기가 모두 v4 안).
 
+## 6-1. 배너 3안 스위치와 첫 화면 기준 (451차)
+
+**배너 스위치**: `lib/design-tokens-v4.ts`의 `BANNER_STYLE`(기본 `full-scrim`). 한 줄만 바꾸면 라이브·export가 같이 바뀐다. v4가 꺼져 있으면 값과 상관없이 예전 배너.
+
+| 값 | 모습 | 대비(최저, 합성 사진 17종) | 사진 노출(가림/보존, 평균) |
+|---|---|---|---|
+| `full-scrim` | 전면 스크림 + 가운데 제목 카드(현재) | 14.2 | 1.00 / 0.09 |
+| `card-only` | 전면 스크림 없이 제목 카드 면만 | 12.3 | 0.67 / 0.36 |
+| `split` | 사진은 덮개·글자 없음, 제목은 사진 아래 띠 | 사진 위 글자 없음(띠 위 흰 글자) | 0.00 / 1.00 |
+
+표: `review/451-verify/banner-style.md`(`npx tsx scripts/banner-style-measure.ts`로 다시 만든다). 눈 비교: `review/450-verify/banner-options/`. 합성 사진 기준이며 실사진은 **미검증**.
+
+**첫 화면 기준값**(히어로 필수 요소 실측, `scripts/hero-fold-check.ts`): 390폭 → 844px, 750폭 → 1000px(가정값). 히어로 D는 사진 높이 상한 `HERO_D_PHOTO_MAX_PX`(640px, v4)로 750폭에서도 제품명·훅·가격이 첫 화면 안에 들어온다.
+
 ## 7. 하네스·검증 도구
 
 | 도구 | 용도 |
@@ -92,6 +108,9 @@ v4 이전 플래그(`DESIGN_V2`·`DESIGN_V3_COLOR` 등)는 이 문서 범위 밖
 | `scripts/png-compare.ts` | PNG 다운로드 경로 대조 |
 | `scripts/size-budget.ts` · `scripts/style-dedupe-check.ts` | export 크기 예산·반복 style 묶기 |
 | `scripts/hero-compress-sheet.ts` | 히어로 A 압축 전/후 시트 |
+| `scripts/hero-fold-check.ts` · `scripts/hero-fold-sheet.ts` | 히어로 필수 요소 첫 화면 실측(390·750)·전/후 시트 |
+| `scripts/banner-style-measure.ts` | 배너 3값 대비·노출 측정 |
+| `scripts/live-probe.ts` | 라이브 퍼징 사례 한 건의 글자 대비 위반 원천(클래스·배경 사슬) 확인 |
 
 ## 8. 규칙 요약
 

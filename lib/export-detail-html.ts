@@ -165,7 +165,7 @@ import { archetypeHeroLayout } from "@/lib/archetype-recipes";
 import { HERO_V2_TUNED, heroPalette, heroV2Html } from "@/lib/hero-spec";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
-import { BANNER_SCRIM_INSET_V4, CHIP_V4, LINE_HEIGHT_V4, RADIUS_V4, SPACE_V4, declStyle, tokenStyle } from "@/lib/design-tokens-v4";
+import { BANNER_SCRIM_INSET_V4, BANNER_SPLIT_BAND_BG, bannerStyleNow, CHIP_V4, LINE_HEIGHT_V4, RADIUS_V4, SPACE_V4, declStyle, tokenStyle } from "@/lib/design-tokens-v4";
 import { stepChipV4, reviewCaptionV4, highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, stepTextV4, stepsListV4 } from "@/lib/twin-styles-v4";
 import { ctaTrustHtml } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
@@ -1925,17 +1925,26 @@ function sectionHtml(
         imageUrls[section.imageIndex ?? 0] ||
         imageUrls[0] ||
         "";
+      const bannerStyle = DESIGN_V4_ENABLED ? bannerStyleNow() : "full-scrim";
+      const bannerTexts = `${section.heading ? (DESIGN_V4_ENABLED ? `<h2 style="font-family:${DETAIL_FONT_STACK.heading};${tokenStyle("heading-large")};margin:0;color:#fff">${esc(section.heading)}</h2>` : dh2(category, esc(section.heading), `font-size:${FONT_SIZE.sectionLg};margin:0`)) : ""}
+              ${section.body ? `<p style="margin:12px 0 0;font-size:${FONT_SIZE.body};opacity:.95;max-width:480px">${esc(section.body)}</p>` : ""}`;
+      if (bannerStyle === "split") {
+        // 451차 — BANNER_STYLE=split: 사진 위 덮개·글자 없음, 제목 카드를 아래 띠로
+        return `<section${sectionIdAttr} class="pagzly-illustration-banner" style="position:relative;overflow:hidden;background:${deepFill}">
+        <div style="position:relative;width:100%;aspect-ratio:16/9;overflow:hidden">${illSrc ? `<img src="${esc(illSrc)}" alt="${esc(section.heading ?? "컨셉 배너")}" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"/>` : ""}</div>
+        <div style="box-sizing:border-box;padding:24px;text-align:center;color:#FAF8F3;background:${BANNER_SPLIT_BAND_BG}"><div style="max-width:520px;margin:0 auto">${bannerTexts}</div></div>
+      </section>`;
+      }
       // 249차 — 텍스트 블록 전용 다크 패널 스크림. 문구가 길면 16:9보다 커지도록
       // aspect-ratio는 흐름 안 오버레이의 최소 높이로만 쓴다(라이브와 동일).
       return `<section${sectionIdAttr} class="pagzly-illustration-banner" style="position:relative;overflow:hidden;background:${deepFill}">
         ${illSrc ? `<img src="${esc(illSrc)}" alt="${esc(section.heading ?? "컨셉 배너")}" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"/>` : ""}
-        <div style="position:absolute;inset:0;background:${DESIGN_V4_ENABLED ? bannerScrimV4(deep) : `linear-gradient(180deg,${deep}99,transparent 35%,transparent 55%,${deep}cc)`}"></div>
+        ${bannerStyle === "card-only" ? "" : `<div style="position:absolute;inset:0;background:${DESIGN_V4_ENABLED ? bannerScrimV4(deep) : `linear-gradient(180deg,${deep}99,transparent 35%,transparent 55%,${deep}cc)`}"></div>`}
         <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;aspect-ratio:16/9;box-sizing:border-box;padding:32px 24px;text-align:center;color:#FAF8F3">
           <div style="position:relative;max-width:520px;padding:20px 28px">
             <div aria-hidden="true"${DESIGN_V4_ENABLED ? ' class="pagzly-banner-scrim"' : ""} style="position:absolute;inset:${DESIGN_V4_ENABLED ? BANNER_SCRIM_INSET_V4 : "-10%"};border-radius:${DESIGN_V4_ENABLED ? RADIUS_V4.md : 20}px;pointer-events:none;background:rgba(27,27,24,.9);box-shadow:0 8px 40px rgba(27,27,24,.4)"></div>
             <div style="position:relative;z-index:1">
-              ${section.heading ? (DESIGN_V4_ENABLED ? `<h2 style="font-family:${DETAIL_FONT_STACK.heading};${tokenStyle("heading-large")};margin:0;color:#fff">${esc(section.heading)}</h2>` : dh2(category, esc(section.heading), `font-size:${FONT_SIZE.sectionLg};margin:0`)) : ""}
-              ${section.body ? `<p style="margin:12px 0 0;font-size:${FONT_SIZE.body};opacity:.95;max-width:480px">${esc(section.body)}</p>` : ""}
+              ${bannerTexts}
             </div>
           </div>
         </div>

@@ -245,7 +245,7 @@ import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe"
 import { applyDisplayRules } from "@/lib/display-sections";
 import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
 import { DESIGN_V4_ENABLED, hideImgOnError } from "@/lib/design-v4";
-import { BANNER_SCRIM_INSET_V4, declObject, tokenStyleObject } from "@/lib/design-tokens-v4";
+import { BANNER_SCRIM_INSET_V4, BANNER_SPLIT_BAND_BG, bannerStyleNow, declObject, tokenStyleObject } from "@/lib/design-tokens-v4";
 import { stepChipV4, reviewCaptionV4, highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, stepTextV4, stepsListV4 } from "@/lib/twin-styles-v4";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
 import { bottomPadCssV4, topPadCssV4 } from "@/lib/rhythm-v4";
@@ -4412,6 +4412,47 @@ function renderSection(
     case "illustration_banner": {
       const photoSrc = resolveImage(imageUrls, section.imageIndex ?? 0) || heroFallback;
       const bgSrc = section.illustrationUrl || photoSrc;
+      const bannerStyle = DESIGN_V4_ENABLED ? bannerStyleNow() : "full-scrim";
+      const bannerTexts = (
+        <>
+          {(section.heading || edit?.enabled) && (
+            <EditableText
+              as="h2"
+              enabled={edit?.enabled}
+              value={section.heading ?? ""}
+              onChange={(heading) => edit?.onChange(index, { ...section, heading })}
+              className={`${TYPO.bannerTitle} ${getCategoryRhythm(category).heroTitleExtra}`}
+              style={DESIGN_V4_ENABLED ? tokenStyleObject("heading-large") : undefined}
+            />
+          )}
+          {(section.body || edit?.enabled) && (
+            <EditableText
+              as="p"
+              multiline
+              enabled={edit?.enabled}
+              value={section.body ?? ""}
+              onChange={(body) => edit?.onChange(index, { ...section, body })}
+              className={TYPO.bannerSub}
+            />
+          )}
+        </>
+      );
+      if (bannerStyle === "split") {
+        // 451차 — 사진 위에는 덮개·글자 없음, 제목 카드를 사진 아래 띠로(BANNER_STYLE=split)
+        return (
+          <section key={`illustration_banner-${index}`} className="relative w-full overflow-hidden">
+            <div className="relative aspect-video w-full overflow-hidden">
+              {bgSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img onError={hideImgOnError} src={bgSrc} alt={section.heading ?? "컨셉 배너"} className="absolute inset-0 h-full w-full object-cover" />
+              ) : null}
+            </div>
+            <div className="flex flex-col items-center px-6 py-6 text-center @min-[640px]/pz:px-10" style={{ background: BANNER_SPLIT_BAND_BG }}>
+              <div className="flex max-w-md flex-col items-center @min-[640px]/pz:max-w-lg">{bannerTexts}</div>
+            </div>
+          </section>
+        );
+      }
       return (
         <section
           key={`illustration_banner-${index}`}
@@ -4434,6 +4475,7 @@ function renderSection(
             />
           )}
           {/* 상·하단을 더 짙게 — 모델이 가끔 넣는 가짜 UI/깨진 글자를 가린다 */}
+          {bannerStyle === "card-only" ? null : (
           <div
             className="absolute inset-0"
             style={{
@@ -4446,6 +4488,7 @@ function renderSection(
             }}
             aria-hidden="true"
           />
+          )}
           {/* 문구가 길면 16:9보다 커지도록 오버레이를 흐름 안에 두고 aspect-video는 최소 높이로만 쓴다 */}
           <div className="relative z-20 flex aspect-video w-full flex-col items-center justify-center px-6 py-8 text-center @min-[640px]/pz:px-10">
             {/* 249차 — 텍스트 블록 전용 스크림. 실사진 밝기·복잡도에도 대비 보장. */}
@@ -4460,26 +4503,7 @@ function renderSection(
                 }}
               />
               <div className="relative z-10 flex flex-col items-center">
-                {(section.heading || edit?.enabled) && (
-                  <EditableText
-                    as="h2"
-                    enabled={edit?.enabled}
-                    value={section.heading ?? ""}
-                    onChange={(heading) => edit?.onChange(index, { ...section, heading })}
-                    className={`${TYPO.bannerTitle} ${getCategoryRhythm(category).heroTitleExtra}`}
-                    style={DESIGN_V4_ENABLED ? tokenStyleObject("heading-large") : undefined}
-                  />
-                )}
-                {(section.body || edit?.enabled) && (
-                  <EditableText
-                    as="p"
-                    multiline
-                    enabled={edit?.enabled}
-                    value={section.body ?? ""}
-                    onChange={(body) => edit?.onChange(index, { ...section, body })}
-                    className={TYPO.bannerSub}
-                  />
-                )}
+                {bannerTexts}
               </div>
             </div>
           </div>

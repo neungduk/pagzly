@@ -171,3 +171,21 @@ export const ghostFadeBackground = (face: string, vertical: "top" | "bottom" = "
 // ── 일러스트 배너 글 스크림 카드(444차 눈 검수) ────────────────────────────────
 /** 글 블록 뒤 스크림 카드의 번짐: 위아래 10%, 좌우 4% — 좁은 폭(390)에서 좌우 10%는 카드가 화면 가장자리를 넘어 잘려 보였다 */
 export const BANNER_SCRIM_INSET_V4 = "-10% -4%";
+
+/**
+ * 451차 3 — 일러스트 배너 3안 스위치(DESIGN_V4일 때만 읽음, off면 항상 예전 배너). 값 한 줄만 바꾸면 라이브·export가 같이 바뀐다.
+ *  - `full-scrim`: 사진 전면 스크림 + 가운데 제목 카드 (현재 기본값 — 바꾸지 않음)
+ *  - `card-only` : 전면 스크림을 걷고 제목 카드 면만 남김(카드 둘레 사진 노출 ↑)
+ *  - `split`     : 사진 위에는 덮개·글자 없음, 제목 카드를 사진 아래 띠로 분리
+ * 비교 자료: review/450-verify/banner-options · review/451-verify/banner-style.md
+ */
+export type BannerStyle = "full-scrim" | "card-only" | "split";
+export const BANNER_STYLE: BannerStyle = "full-scrim";
+/** 렌더러가 읽는 현재 값(회귀가 3값을 다 돌릴 때만 setBannerStyleForTests로 바꾼다 — 서비스 코드는 바꾸지 않음) */
+const bannerState: { style: BannerStyle } = { style: BANNER_STYLE };
+export const bannerStyleNow = (): BannerStyle => bannerState.style;
+export function setBannerStyleForTests(v: BannerStyle): void {
+  bannerState.style = v;
+}
+/** split 안의 제목 띠 면(불투명에 가까운 어두운 면 — 흰 글자 대비 고정) */
+export const BANNER_SPLIT_BAND_BG = "rgba(27,27,24,.96)";
