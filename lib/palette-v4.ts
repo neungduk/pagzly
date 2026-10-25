@@ -141,8 +141,8 @@ export function v4Palette(base: { ink?: string; accent: string; deep: string }, 
       const dark = r === "invert";
       const text = dark ? WHITE : ensureContrast(ink, bg);
       const sub = dark ? ensureContrast("#E9E6E1", bg) : ensureContrast(mixHex(ink, WHITE, 0.25), bg);
-      // 450차 — 면 위 작은 라벨은 측정 오차(안티앨리어싱·백분위)로 4.4대가 나와 4.7을 목표로
-      const strong = dark ? ensureContrast(tints[2], bg, 4.7) : ensureContrast(deep, bg, 4.7);
+      // 450차 — 면 위 작은 라벨은 측정 오차(안티앨리어싱·백분위)로 4.4대가 나와 5.1을 목표로(면 위 색 라벨 DETAIL NN이 4.7 목표에서도 측정 4.4)
+      const strong = dark ? ensureContrast(tints[2], bg, 5.1) : ensureContrast(deep, bg, 5.1);
       return [r, { text, sub, strong }];
     }),
   ) as V4Palette["onFace"];

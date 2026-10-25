@@ -82,7 +82,15 @@ export async function contrastPage(page: import("playwright").Page): Promise<Arr
   await page.waitForTimeout(100);
   const all = (await page.evaluate(ALL_TEXT)) as TextProbe[];
   await page.addStyleTag({ content: "*{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important}svg text,svg tspan{fill:transparent!important;stroke:none!important}" });
+  // 451차 — 글자 숨김 뒤 레이아웃이 달라질 수 있어(지연 이미지·폰트) 상자 좌표를 숨긴 상태에서 다시 읽는다(같은 순서·같은 글자일 때만 교체). 스크린샷 직전에 한 번 더 안정화
+  const vp = page.viewportSize()!;
+  const full = await page.evaluate("Math.ceil(document.documentElement.scrollHeight)") as number;
+  await page.setViewportSize({ width: vp.width, height: Math.min(Math.max(full, vp.height), 16000) });
+  await page.waitForTimeout(250);
+  const again = (await page.evaluate(ALL_TEXT)) as TextProbe[];
+  if (again.length === all.length && again.every((q, i) => q.text === all[i]!.text)) again.forEach((q, i) => { const o = all[i]!; o.x = q.x; o.y = q.y; o.w = q.w; o.h = q.h; });
   const buf = await page.screenshot({ fullPage: true });
+  await page.setViewportSize(vp);
   const im = sharp(buf);
   const meta = await im.metadata();
   const raw = await im.ensureAlpha().raw().toBuffer();
@@ -113,7 +121,7 @@ const ALL_TEXT = `(() => {
   const out = []; const w = document.createTreeWalker(document.querySelector('[data-pz-typefloor]') || document.body, NodeFilter.SHOW_TEXT); const seen = new Set();
   while (w.nextNode()) { const n = w.currentNode; const text = (n.textContent || '').trim(); if (!text) continue; const e = n.parentElement; if (!e || seen.has(e) || ['SCRIPT','STYLE','NOSCRIPT'].includes(e.tagName) || e.closest('nextjs-portal,[data-pagzly-bar],nav')) continue;
     const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) === 0 || e.closest('[aria-hidden="true"]') || e.closest('[data-hero-fold]')) continue;
-    const r = document.createRange(); r.selectNodeContents(n); const b = (cs.webkitLineClamp && cs.webkitLineClamp !== 'none') ? e.getBoundingClientRect() : r.getBoundingClientRect(); if (b.width < 4 || b.height < 4) continue; seen.add(e);
+    const r = document.createRange(); r.selectNodeContents(n); const b = (cs.webkitLineClamp && cs.webkitLineClamp !== 'none') ? e.getBoundingClientRect() : r.getBoundingClientRect(); if (b.width < 4 || b.height < 4) continue; let clippedOut = false; for (let a = e.parentElement; a && a !== document.body; a = a.parentElement) { const ac = getComputedStyle(a); if (ac.overflowX !== 'visible' || ac.overflowY !== 'visible') { const ar = a.getBoundingClientRect(); if (b.top >= ar.bottom - 1 || b.bottom <= ar.top + 1 || b.left >= ar.right - 1 || b.right <= ar.left + 1) { clippedOut = true; break; } } } if (clippedOut) continue; seen.add(e);
     const m = rgba(e instanceof SVGElement ? (cs.fill && cs.fill !== 'none' ? cs.fill : cs.color) : cs.color);
     out.push({ x: b.left + scrollX, y: b.top + scrollY, w: b.width, h: b.height, text: text.slice(0, 20), fg: [Number(m[0]), Number(m[1]), Number(m[2]), m[3] === undefined ? 1 : Number(m[3])], px: parseFloat(cs.fontSize), weight: Number(cs.fontWeight) || 400, layout: (e.getAttribute('class') || '').slice(0, 60) + '|' + (e.getAttribute('style') || '').match(/(?:color|opacity)[^;]*/g)?.join(';').slice(0, 70) + '|' + e.tagName + '>' + (e.parentElement ? e.parentElement.tagName + '.' + (e.parentElement.getAttribute('class') || '').slice(0, 30) : '') }); }
   return out;

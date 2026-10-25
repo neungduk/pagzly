@@ -2471,7 +2471,7 @@ function renderSection(
               {!FLAT_SECTION_SURFACES ? (
                 <p className={TYPO.heroCategory}>{category}</p>
               ) : section.badge ? (
-                <span className="mb-4 inline-block rounded-full border border-white/55 px-3.5 py-1 text-xs font-bold tracking-wide text-white">
+                <span className="mb-4 inline-block rounded-full border border-white/55 px-3.5 py-1 text-xs font-bold tracking-wide text-white" style={DESIGN_V4_ENABLED ? { backgroundColor: "rgba(10,10,10,0.56)" } : undefined}>
                   {section.badge}
                 </span>
               ) : null}

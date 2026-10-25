@@ -5,6 +5,8 @@
 
 import { sanitizeText } from "@/lib/cosmetics-compliance";
 import { diagramTitleWithIconHtml } from "@/lib/diagram-icons";
+import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
+import { readableOnFace } from "@/lib/muted-v4";
 
 export type VolumeComparisonEntry = {
   label: string;
@@ -181,6 +183,12 @@ export function buildVolumeComparisonDiagramSvg(
 ): string {
   const safe = filterVolumeLabelsForCompliance(entries);
   if (!safe || safe.length < 2) return "";
+  // 451차 — v4: 라벨 글자 12px(라벨 하한)·가장 어두운 옅은 면(#EDEDE4) 위 4.8:1·보조 병 라벨 불투명도 .85
+  const lc = DESIGN_V4_ENABLED ? readableOnFace(labelColor, "#EDEDE4", 4.8) : labelColor;
+  const topPx = DESIGN_V4_ENABLED ? 12 : 10;
+  const botPx = DESIGN_V4_ENABLED ? 12 : 11;
+  const botDy = DESIGN_V4_ENABLED ? 24 : 18; // v4: 12px 글자 상자가 병 바닥선과 겹치지 않게 내림(viewBox 높이 190 안)
+  const subOpacity = DESIGN_V4_ENABLED ? 0.85 : 0.7;
 
   const maxMl = Math.max(...safe.map((e) => e.ml));
   const maxH = 120;
@@ -197,9 +205,9 @@ export function buildVolumeComparisonDiagramSvg(
     const strokeW = e.isProduct ? 2 : 1.4;
     const topLabel = e.label.replace(/\s*\d+(?:\.\d+)?\s*mL$/i, "").trim() || e.label;
     return `
-      <text x="${x + bottleW / 2}" y="${y - 10}" text-anchor="middle" font-size="10" fill="${labelColor}" font-weight="${e.isProduct ? 700 : 500}" opacity="${e.isProduct ? 1 : 0.7}">${escapeXml(topLabel)}</text>
+      <text x="${x + bottleW / 2}" y="${y - 10}" text-anchor="middle" font-size="${topPx}" fill="${lc}" font-weight="${e.isProduct ? 700 : 500}" opacity="${e.isProduct ? 1 : subOpacity}">${escapeXml(topLabel)}</text>
       <path d="${bottlePath(x, y, bottleW, h)}" fill="none" stroke="${strokeColor}" stroke-width="${strokeW}" opacity="${opacity}"/>
-      <text x="${x + bottleW / 2}" y="${baseY + 18}" text-anchor="middle" font-size="11" fill="${labelColor}" font-weight="${e.isProduct ? 700 : 500}">${e.ml}mL</text>
+      <text x="${x + bottleW / 2}" y="${baseY + botDy}" text-anchor="middle" font-size="${botPx}" fill="${lc}" font-weight="${e.isProduct ? 700 : 500}">${e.ml}mL</text>
     `;
   });
 
