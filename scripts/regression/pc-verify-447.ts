@@ -15,7 +15,7 @@ export async function run(): Promise<string[]> {
   ok(o.out === "review/pc-verify-2026-01-02", `기본 출력 경로: ${o.out}`);
 
   const all = planSteps(o, () => true, 3);
-  ok(all.map((s) => s.id).join(",") === "env,tsc,regression,off-export,off-live,build,sessions,smoke,legibility,exposure,a11y,size,dedupe,fuzz,dev,capture", `단계 순서: ${all.map((s) => s.id)}`);
+  ok(all.map((s) => s.id).join(",") === "env,tsc,regression,off-export,off-live,build,sessions,smoke,predeploy,legibility,exposure,a11y,size,dedupe,fuzz,dev,capture", `단계 순서: ${all.map((s) => s.id)}`);
   ok(all.filter((s) => s.id !== "dev").every((s) => !s.skip), "모두 있을 때 건너뜀 없음(dev는 --full에서만)");
   ok(!!all.find((s) => s.id === "dev")?.skip && !planSteps(parseArgs(["--full"]), () => true, 3).find((s) => s.id === "dev")?.skip, "라이브 하네스는 --full에서만");
   ok(planSteps(parseArgs(["--full"]), () => true, 3).find((s) => s.id === "fuzz")!.cmd.includes("--n=200"), "--full 퍼징은 200개");

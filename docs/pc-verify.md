@@ -27,6 +27,7 @@ npm run pc-verify -- --only=tsc,regression
 | capture | 저장 세션 + 합성 21종을 390·750폭으로 844px 시트 + 첫 화면 접촉 시트 | `--skip-capture` |
 | legibility · exposure | 극단 합성 사진 × 픽스처의 글자 대비(픽셀 기준)와 사진 노출(가림 면적비·휘도 보존율) | 기본은 빠른 부분집합, `--full`이면 전체 |
 | a11y · size · dedupe | 접근성·구조 린트 R19~R23, export 크기 예산(150/220KB), 반복 style 묶기 계산 스타일 동일 | |
+| predeploy | 배포 전 정적 점검 `scripts/predeploy-static.ts` — 마이그레이션 4개 존재·순서, 429 사전 점검 SQL 존재, 환경변수 이름 목록(`docs/required-env-names.md`), 비밀값 패턴(파일·줄만), main 대비 변경·결제/인증 경로 변경 0, 플래그 기본값 ↔ `docs/v4-overview.md`. 환경 파일은 열지 않고 값은 출력하지 않는다. 사용법 `docs/predeploy-static.md` | 빠른 부분집합에 포함 |
 | fuzz | 입력 퍼징(export): 기본 30개 · `--full` 200개, 320·360·390·750폭 | |
 | dev | **`--full`에서만** — `next dev -p 3188`을 띄워 PNG 다운로드 대조(png-compare) + 라이브 퍼징(fuzz-live) 후 끈다 | 환경 파일은 읽지 않는다(PC의 환경값 그대로 이어받음) |
 
