@@ -56,10 +56,11 @@ export function checkMigrations(files = tracked()): Check {
 }
 
 export function checkPremigration(files = tracked()): Check {
-  const hit = files.filter((f) => /premigration/i.test(f) || /^429-/.test(path.basename(f)));
-  return hit.length
-    ? { id: "premigration", title: "429 사전 점검 SQL", status: "합격", detail: hit }
-    : { id: "premigration", title: "429 사전 점검 SQL", status: "불합격", detail: ["저장소에 `429-premigration-checks.sql`(또는 premigration 이름 파일)이 없다 — 지시서가 가리키는 파일이 추적되지 않음"] };
+  const orig = files.filter((f) => /premigration/i.test(f) && !/draft/i.test(f));
+  const draft = files.filter((f) => /premigration.*draft/i.test(f));
+  if (orig.length) return { id: "premigration", title: "429 사전 점검 SQL", status: "합격", detail: [...orig, ...(draft.length ? [`초안도 있음: ${draft.join(", ")}`] : [])] };
+  if (draft.length) return { id: "premigration", title: "429 사전 점검 SQL", status: "건너뜀", detail: ["원본 없음, 초안 있음 — 저장소에 `429-premigration-checks.sql`(원본)은 없다. 초안은 읽기 전용 SELECT만 있다(원본이 PC에 있으면 그것을 우선하고 초안과 비교).", ...draft] };
+  return { id: "premigration", title: "429 사전 점검 SQL", status: "불합격", detail: ["저장소에 `429-premigration-checks.sql`(또는 premigration 이름 파일)이 없고 초안도 없다"] };
 }
 
 export function collectEnvNames(files = tracked()): Map<string, string[]> {
