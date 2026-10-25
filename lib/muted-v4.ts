@@ -30,9 +30,13 @@ export function mutedFloorCssExport(scope: string): string {
   return out.join("");
 }
 
-/** 라이브(Tailwind text-ink/NN) 바닥 CSS */
+/** 라이브(Tailwind text-ink/NN) 바닥 CSS + 인라인 `color: rgba(27,27,24,A)`(React 직렬화 두 철자) */
 export function mutedFloorCssLive(scope: string): string {
-  return MUTED_MAP.map((m) => `${scope} .text-ink\\/${Math.round(m.from * 100)}{color:${hexToRgba(BRAND.ink, m.to)}!important}`).join("");
+  const inline: string[] = [];
+  for (const m of MUTED_MAP) for (const sp of spell(m.from)) for (const lit of [`color:rgba(${INK},${sp})`, `color: rgba(${INK.replace(/,/g, ", ")}, ${sp})`]) {
+    inline.push(`${scope} [style^="${lit}"],${scope} [style*=";${lit}"],${scope} [style*=" ${lit}"]{color:${hexToRgba(BRAND.ink, m.to)}!important}`);
+  }
+  return inline.join("") + MUTED_MAP.map((m) => `${scope} .text-ink\\/${Math.round(m.from * 100)}{color:${hexToRgba(BRAND.ink, m.to)}!important}`).join("");
 }
 
 /**

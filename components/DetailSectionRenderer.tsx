@@ -1444,7 +1444,7 @@ function TrustStrip({
             {chips.map((chip, i) => {
               const caption = splitChipCaption(chip);
               return (
-                <Fragment key={chip}>
+                <Fragment key={`${i}-${chip}`}>
                   {i > 0 ? <span aria-hidden="true" style={{ width: 1, height: V.dividerHeightPx, backgroundColor: V.borderColor }} /> : null}
                   <span style={{ fontSize: V.stripSizePx, fontWeight: 600, wordBreak: "keep-all", color: DESIGN_V4_ENABLED ? readableTextDeep(theme, 4.6) : theme.deepAccent }}>
                     {caption.main}
@@ -1471,7 +1471,7 @@ function TrustStrip({
               const caption = splitChipCaption(chip);
               return (
                 <li
-                  key={chip}
+                  key={`${i}-${chip}`}
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
@@ -1525,7 +1525,7 @@ function TrustStrip({
             FLAT_SECTION_SURFACES && chipIndex % summaryGridColumns(chips.length) !== 0;
           return (
             <div
-              key={chip}
+              key={`${chipIndex}-${chip}`}
               className="relative flex flex-col items-center gap-2 text-center"
               style={{ width: summaryChipWidth(chips.length) }}
             >
@@ -3707,7 +3707,7 @@ function renderSection(
                   <th
                     className="px-4 py-3 text-left font-semibold"
                     style={{
-                      color: readableTextDeep(theme),
+                      color: DESIGN_V4_ENABLED ? readableOnFace(readableTextDeep(theme), mixHex(FLAT_PAPER, theme.accent, 0.28), 4.6) : readableTextDeep(theme),
                       backgroundColor: hexToRgba(theme.accent, INFO_TABLE.oursHighlightAlpha),
                       ...(DESIGN_V4_ENABLED ? declObject(compareCellV4(cmpNum1)) : {}),
                     }}
@@ -3725,7 +3725,9 @@ function renderSection(
                       borderColor: hexToRgba(theme.accent, INFO_TABLE.rowBorderAlpha),
                       backgroundColor:
                         rowIndex % 2 === 0
-                          ? theme.baseNeutral
+                          ? DESIGN_V4_ENABLED
+                            ? "transparent" // 450차 — export와 같이 짝수 행은 섹션 면 그대로(테마 baseNeutral이 중간 톤이면 muted 글자 대비가 3:1대로 떨어졌다)
+                            : theme.baseNeutral
                           : hexToRgba(theme.accent, INFO_TABLE.stripeAlpha),
                     }}
                   >
@@ -4385,8 +4387,8 @@ function renderSection(
           )}
           {footnotes.length > 0 && (
             <div className="mx-auto mt-4 max-w-xl space-y-0.5">
-              {footnotes.map((fn) => (
-                <p key={fn.number} className="text-center text-[11px] leading-relaxed text-ink/40">
+              {footnotes.map((fn, fnIndex) => (
+                <p key={`${fnIndex}-${fn.number}`} className="text-center text-[11px] leading-relaxed text-ink/40">
                   {fn.number}. {fn.text}
                 </p>
               ))}
@@ -5911,9 +5913,9 @@ function renderSection(
                     : "flex flex-wrap"
                 }`}
               >
-                {section.badges.map((badge) => (
+                {section.badges.map((badge, badgeIndex) => (
                   <span
-                    key={badge}
+                    key={`${badgeIndex}-${badge}`}
                     className={`inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold tracking-wide ${FLAT_SECTION_SURFACES ? "rounded-full border" : ""}`}
                     style={
                       FLAT_SECTION_SURFACES
@@ -6258,8 +6260,8 @@ export default function DetailSectionRenderer({
                 <div data-pz-strip>
                   <span data-pz-strip-price>{v2Strip.price}</span>
                   {v2Strip.name ? <span data-pz-strip-name>{v2Strip.name}</span> : null}
-                  {v2Strip.chips.map((chip) => (
-                    <span key={chip} data-pz-strip-chip>{chip}</span>
+                  {v2Strip.chips.map((chip, chipIdx) => (
+                    <span key={`${chipIdx}-${chip}`} data-pz-strip-chip>{chip}</span>
                   ))}
                 </div>
               ) : null}

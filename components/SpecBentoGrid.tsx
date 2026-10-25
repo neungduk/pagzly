@@ -1,4 +1,6 @@
 import type { CSSProperties } from "react";
+import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
+import { MUTED_V4 } from "@/lib/muted-v4";
 import type { CategoryTheme } from "@/lib/category-theme";
 import {
   BRAND,
@@ -43,7 +45,7 @@ export default function SpecBentoGrid({ facts, theme }: SpecBentoGridProps) {
                 borderRadius: RADIUS.lg,
               }}
             >
-              <p className="mb-1.5 text-[10px] tracking-wide" style={{ color: hexToRgba(BRAND.ink, 0.55) }}>
+              <p className={`mb-1.5 tracking-wide ${DESIGN_V4_ENABLED ? "text-xs" : "text-[10px]"}`} style={{ color: hexToRgba(BRAND.ink, DESIGN_V4_ENABLED ? MUTED_V4.normal : 0.55) }}>
                 {f.label}
               </p>
               <p

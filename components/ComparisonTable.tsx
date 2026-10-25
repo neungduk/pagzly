@@ -96,7 +96,7 @@ export default function ComparisonTable() {
             <tbody>
               {rows.map((row, i) => (
                 <tr
-                  key={row.label}
+                  key={`${i}-${row.label}`}
                   className={i !== rows.length - 1 ? "border-b border-line" : ""}
                 >
                   <th

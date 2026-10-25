@@ -13,7 +13,7 @@ export default function FaqAccordion() {
       {faqs.map((faq, index) => {
         const isOpen = openIndex === index;
         return (
-          <div key={faq.question}>
+          <div key={`${index}-${faq.question}`}>
             <button
               type="button"
               onClick={() => setOpenIndex(isOpen ? null : index)}

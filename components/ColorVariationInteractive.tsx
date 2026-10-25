@@ -65,7 +65,7 @@ export default function ColorVariationInteractive({
       <div className="mt-12 flex flex-wrap justify-center gap-3">
         {section.options.map((option, optIndex) => (
           <button
-            key={option.label}
+            key={`${optIndex}-${option.label}`}
             type="button"
             onClick={() => setActive(optIndex)}
             className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors ${
@@ -92,11 +92,14 @@ export default function ColorVariationInteractive({
       {activeOption && (
         <div className="mx-auto mt-8 max-w-sm">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img onError={hideImgOnError}
-            src={resolveImage(imageUrls, activeOption.imageIndex)}
-            alt={activeOption.label}
-            className={`${ratioClass} w-full object-cover`}
-          />
+          {/* 450차 — v4: 사진이 없으면 빈 src 이미지를 그리지 않는다(export와 같이 생략) */}
+          {DESIGN_V4_ENABLED && !resolveImage(imageUrls, activeOption.imageIndex) ? null : (
+            <img onError={hideImgOnError}
+              src={resolveImage(imageUrls, activeOption.imageIndex)}
+              alt={activeOption.label}
+              className={`${ratioClass} w-full object-cover`}
+            />
+          )}
         </div>
       )}
     </section>

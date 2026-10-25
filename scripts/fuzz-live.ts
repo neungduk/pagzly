@@ -36,12 +36,12 @@ const DOM = `(() => {
   return { over, clipped: clipped.slice(0, 4), empties, textLen: (document.body.innerText || '').trim().length };
 })()`;
 
-async function openCase(browser: Browser, server: string, c: FuzzCase, W: number): Promise<{ page: import("playwright").Page; errors: string[]; close: () => Promise<void> }> {
+export async function openCase(browser: Browser, server: string, c: FuzzCase, W: number): Promise<{ page: import("playwright").Page; errors: string[]; close: () => Promise<void> }> {
   const ctx = await browser.newContext({ viewport: { width: W, height: 844 }, deviceScaleFactor: 1 });
   await ctx.addInitScript(`try{window.sessionStorage.setItem(${JSON.stringify(SESSION_KEY)}, ${JSON.stringify(JSON.stringify(presetOfSession(c.session)))})}catch(e){}; window.__name = (f) => f;`);
   const page = await ctx.newPage();
   const errors: string[] = [];
-  page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource|net::ERR|favicon|hydrated but some attributes|hydration/i.test(m.text())) errors.push(m.text().slice(0, 140)); });
+  page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource|net::ERR|favicon|hydrated but some attributes|hydration/i.test(m.text())) errors.push(m.text().slice(0, 700)); });
   page.on("pageerror", (e) => errors.push(`pageerror: ${String(e).slice(0, 140)}`));
   await page.route("**/*", (r) => (new URL(r.request().url()).origin === new URL(server).origin ? r.continue() : r.abort()));
   await page.goto(`${server}/dev/detail-preview?capture=session`, { waitUntil: "load" });
