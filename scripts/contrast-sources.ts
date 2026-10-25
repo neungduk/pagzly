@@ -8,15 +8,17 @@ import { corpus, exportHtmlOf } from "./design-corpus";
 import { launch, openHtml } from "./eye-lib";
 import { contrastPage } from "./fuzz-live";
 
-export type Hit = { fixture: string; text: string; px: number; ratio: number; need: number; src: string };
+export type Hit = { width?: number; fixture: string; text: string; px: number; ratio: number; need: number; src: string };
 
-export async function collectExport(): Promise<Hit[]> {
+export async function collectExport(widths: number[] = [390]): Promise<Hit[]> {
   const b = await launch();
   const out: Hit[] = [];
   for (const [id, f] of corpus().filter(([i]) => i.startsWith("fx-"))) {
-    const ex = await openHtml(b, exportHtmlOf(f), 390);
-    for (const x of await contrastPage(ex.page)) out.push({ fixture: id, text: x.text, px: x.px, ratio: x.ratio, need: x.need, src: x.src ?? "" });
-    await ex.close();
+    for (const W of widths) {
+      const ex = await openHtml(b, exportHtmlOf(f), W);
+      for (const x of await contrastPage(ex.page)) out.push({ width: W, fixture: id, text: x.text, px: x.px, ratio: x.ratio, need: x.need, src: x.src ?? "" });
+      await ex.close();
+    }
   }
   await b.close();
   return out;
@@ -30,9 +32,9 @@ export function groupBySource(hits: Hit[]): Array<{ key: string; n: number; min:
 
 if (/contrast-sources\.ts$/.test(process.argv[1] ?? "")) {
   const arg = (k: string, d: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? d;
-  void collectExport().then((hits) => {
+  void collectExport(arg("widths", "390").split(",").map(Number)).then((hits) => {
     const g = groupBySource(hits);
-    const md = ["# 소형 글자 대비 위반 원천 (export 합성 21종, 390px)", "", `위반 ${hits.length}곳`, "", "| 건수 | 최소 대비 | 원천(클래스 | 인라인 색·불투명도 | 태그>부모) | 예 |", "|---|---|---|---|", ...g.slice(0, 30).map((x) => `| ${x.n} | ${x.min.toFixed(2)} | \`${x.key}\` | «${x.sample.text}» ${x.sample.px}px (${x.sample.fixture}) |`)].join("\n") + "\n";
+    const md = ["# 소형 글자 대비 위반 원천 (export 합성 21종 × 390·750px)", "", `위반 ${hits.length}곳`, "", "| 건수 | 최소 대비 | 원천(클래스 | 인라인 색·불투명도 | 태그>부모) | 예 |", "|---|---|---|---|", ...g.slice(0, 30).map((x) => `| ${x.n} | ${x.min.toFixed(2)} | \`${x.key}\` | «${x.sample.text}» ${x.sample.px}px (${x.sample.fixture}) |`)].join("\n") + "\n";
     const out = arg("out", "review/450-verify/contrast-sources.md");
     fs.mkdirSync(path.dirname(out), { recursive: true });
     fs.writeFileSync(out, md);
