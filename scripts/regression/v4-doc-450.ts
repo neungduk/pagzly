@@ -4,10 +4,17 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 
 export const name = "v4 총정리 문서 — 플래그 이름이 코드와 일치·참조 경로 존재·롤백 3단계";
 
-const walk = (dir: string, out: string[] = []): string[] => {
+/** 저장소에 추적되는 파일 집합(git ls-files). 작업 폴더에만 있는 파일이 통과를 가리지 않게 한다. git을 못 쓰면 null */
+const trackedFiles = (): Set<string> | null => {
+  const r = spawnSync("git", ["ls-files"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  return r.status === 0 ? new Set(r.stdout.split(/\r?\n/).filter(Boolean)) : null;
+};
+
+const walk =(dir: string, out: string[] = []): string[] => {
   for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
     if (["node_modules", ".next", ".git", "review"].includes(f.name)) continue;
     const p = path.join(dir, f.name);
@@ -34,11 +41,13 @@ export async function run(): Promise<string[]> {
   code("HERO_STAGE", /NEXT_PUBLIC_HERO_STAGE === "on"/);
   // 참조 경로
   const paths = new Set([...md.matchAll(/`((?:lib|scripts|docs|components|review)\/[A-Za-z0-9_./-]+?)`/g)].map((m) => m[1]!));
+  const tracked = trackedFiles();
   for (const p of paths) {
     const base = p.replace(/\(.*$/, "");
     if (/\/$/.test(base) || /\*/.test(base)) continue;
     const candidates = [base, `${base}.ts`, `${base}.tsx`];
-    if (!candidates.some((c) => fs.existsSync(c))) fails.push(`문서의 경로가 저장소에 없음: ${p}`);
+    if (/(^|\/)(_[^/]*|[^/]*\.tmp[^/]*)$/.test(base)) fails.push(`문서가 임시·로컬 전용 이름을 가리킴: ${p}`);
+    else if (!candidates.some((c) => (tracked ? tracked.has(c) || [...tracked].some((t) => t.startsWith(`${c}/`)) : fs.existsSync(c)))) fails.push(`문서의 경로가 저장소(git 추적)에 없음: ${p}`);
   }
   for (const s of ["1 히어로만 이전 사양", "2 v4 전체 off", "3 이전 상태"]) if (!md.includes(s)) fails.push(`롤백 단계 누락: ${s}`);
   if (!md.includes("미검증")) fails.push("미검증 표시가 없음");

@@ -65,7 +65,7 @@ v4 이전 플래그(`DESIGN_V2`·`DESIGN_V3_COLOR` 등)는 이 문서 범위 밖
 
 ## 4. off = 이전 차수 검증 근거
 
-- 스크립트: `scripts/check-v4-off.ts`(export), `scripts/check-v4-off-live.tsx`(라이브), `scripts/_snap-iso.tmp.tsx`(섹션 단독).
+- 스크립트: `scripts/check-v4-off.ts`(export), `scripts/check-v4-off-live.tsx`(라이브), `scripts/check-v4-off-section.tsx`(섹션 단독 — 섹션을 하나씩만 담아 export·라이브로 렌더, 기준 `review/454-verify/snap-section/`은 커밋하지 않으며 없으면 건너뜀. 기준 만들기: 기준 커밋 worktree에서 `OUT=review/454-verify/snap-section npx tsx scripts/check-v4-off-section.tsx --write`).
 - 매 차수 보고서의 "off diff 3종 0" 줄이 근거다(예: `review/449cha-report.md`). 450차도 같은 방식으로 7ae6336(449차 끝) 대비 정상 입력 0을 확인했다.
 - 한계: 비교는 합성 픽스처 21종 + 저장 세션 6종 기준. 실제 운영 데이터는 미검증.
 

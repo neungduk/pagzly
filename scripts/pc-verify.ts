@@ -35,6 +35,7 @@ export type Options = { dryRun: boolean; skipCapture: boolean; skipBuild: boolea
 export const ENV_NAMES = ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "NEXT_PUBLIC_SITE_URL"] as const;
 export const SNAP_EXPORT = "review/439-verify/snap-438";
 export const SNAP_LIVE = "review/442-verify/snap-438-live";
+export const SNAP_SECTION = "review/454-verify/snap-section";
 const NPX = process.platform === "win32" ? "npx.cmd" : "npx";
 
 export function parseArgs(argv: string[]): Options {
@@ -53,6 +54,7 @@ export function planSteps(o: Options, exists: (p: string) => boolean = fs.exists
     { id: "regression", title: "3. 회귀 전체", cmd: [NPX, "tsx", "scripts/regression/run-all.ts"], etaMin: 8, hints: [{ re: /Executable doesn't exist|playwright install/i, text: "Playwright 브라우저가 없음 → `npx playwright install chromium` 뒤 다시 실행" }] },
     { id: "off-export", title: "4a. v4 off 동일(export)", cmd: [NPX, "tsx", "scripts/check-v4-off.ts"], skip: baseline ? undefined : noBase, etaMin: 1 },
     { id: "off-live", title: "4b. v4 off 동일(라이브 렌더)", cmd: [NPX, "tsx", "scripts/check-v4-off-live.tsx"], skip: baseline ? undefined : noBase, etaMin: 1 },
+    { id: "off-section", title: "4c. v4 off 동일(섹션 단독 렌더, export·라이브)", cmd: [NPX, "tsx", "scripts/check-v4-off-section.tsx"], skip: exists(SNAP_SECTION) ? undefined : `기준 스냅샷(${SNAP_SECTION})이 없음 — 기준 커밋 worktree에서 OUT=${SNAP_SECTION} npx tsx scripts/check-v4-off-section.tsx --write`, etaMin: 2 },
     { id: "build", title: "5. next build(PC 환경값 상속)", cmd: [NPX, "next", "build"], skip: o.skipBuild ? "--skip-build" : undefined, etaMin: 3, hints: [{ re: /NEXT_PUBLIC_|Supabase|supabaseUrl/i, text: "환경값 문제 가능 — 환경 점검 단계의 '없음' 항목 확인" }] },
     { id: "sessions", title: "6. 저장 세션 6종(패리티·428 DOM·750 넘침·린트)", cmd: [NPX, "tsx", "scripts/pc-verify-sessions.ts", `--out=${o.out}`], skip: sessionCount ? undefined : "저장 세션 없음 — review/*-live/**/session.json 또는 review/pexels-*/session.json을 두면 자동 탐색", etaMin: 3 },
     { id: "smoke", title: "7. launch-smoke(next start로 띄워 호출)", cmd: [NPX, "tsx", "scripts/launch-smoke.ts"], needs: ["build"], kind: "smoke", skip: o.skipSmoke ? "--skip-smoke" : exists("scripts/launch-smoke.ts") ? undefined : "scripts/launch-smoke.ts 없음", etaMin: 2 },

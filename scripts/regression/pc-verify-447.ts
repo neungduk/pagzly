@@ -15,7 +15,7 @@ export async function run(): Promise<string[]> {
   ok(o.out === "review/pc-verify-2026-01-02", `기본 출력 경로: ${o.out}`);
 
   const all = planSteps(o, () => true, 3);
-  ok(all.map((s) => s.id).join(",") === "env,tsc,regression,off-export,off-live,build,sessions,smoke,predeploy,legibility,exposure,a11y,size,dedupe,fuzz,dev,capture", `단계 순서: ${all.map((s) => s.id)}`);
+  ok(all.map((s) => s.id).join(",") === "env,tsc,regression,off-export,off-live,off-section,build,sessions,smoke,predeploy,legibility,exposure,a11y,size,dedupe,fuzz,dev,capture", `단계 순서: ${all.map((s) => s.id)}`);
   ok(all.filter((s) => s.id !== "dev").every((s) => !s.skip), "모두 있을 때 건너뜀 없음(dev는 --full에서만)");
   ok(!!all.find((s) => s.id === "dev")?.skip && !planSteps(parseArgs(["--full"]), () => true, 3).find((s) => s.id === "dev")?.skip, "라이브 하네스는 --full에서만");
   ok(planSteps(parseArgs(["--full"]), () => true, 3).find((s) => s.id === "fuzz")!.cmd.includes("--n=200"), "--full 퍼징은 200개");
@@ -24,6 +24,7 @@ export async function run(): Promise<string[]> {
   const noBase = planSteps(o, (p) => !p.includes("snap-438"), 3);
   ok(!!noBase.find((s) => s.id === "off-export")?.skip && !!noBase.find((s) => s.id === "off-live")?.skip, "기준 스냅샷 없으면 off 단계 건너뜀");
   ok(!!noBase.find((s) => s.id === "off-export")?.skip?.includes("--make-baseline"), "건너뜀 안내에 --make-baseline");
+  ok(!!planSteps(o, (p) => !p.includes("snap-section"), 3).find((s) => s.id === "off-section")?.skip?.includes("--write"), "섹션 단독 기준이 없으면 4c 건너뜀 + 만드는 명령 안내");
   ok(!!planSteps(o, () => true, 0).find((s) => s.id === "sessions")?.skip, "세션 없으면 6단계 건너뜀");
   const flags = planSteps(parseArgs(["--skip-capture", "--skip-build", "--skip-smoke"]), () => true, 1);
   ok(["capture", "build", "smoke"].every((id) => !!flags.find((s) => s.id === id)?.skip), "--skip-* 건너뜀");

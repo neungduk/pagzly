@@ -23,6 +23,7 @@ npm run pc-verify -- --only=tsc,regression
 | tsc | `npx tsc --noEmit` | |
 | regression | `scripts/regression/run-all.ts` | 브라우저 리비전 안내 포함 |
 | off-export / off-live | v4 off 동일(`check-v4-off`, `check-v4-off-live`) | 기준 스냅샷이 없으면 건너뜀 |
+| off-section | v4 off 동일(섹션 단독 렌더, `check-v4-off-section`) | 기준 스냅샷 `review/454-verify/snap-section`이 없으면 건너뜀(만드는 명령은 요약에 출력) |
 | build | `npx next build` | PC의 환경값을 그대로 이어받음 |
 | sessions | 저장 세션 6종: 섹션 수 패리티·428 DOM 지표·750폭 가로 넘침·린트(R7·R16·R17·R18) | `review/*-live/**/session.json`, `review/pexels-*/session.json` 자동 탐색, 없으면 건너뜀 |
 | smoke | `next start -p 3199`로 띄워 `launch-smoke` 호출 후 종료 | build 합격 필요 |
