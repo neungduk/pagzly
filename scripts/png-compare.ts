@@ -21,7 +21,9 @@ const TARGET = Number(arg("target", "860"));
 const DESIGN_W = 640;
 const BAND = 420; // 출력 기준 구간 높이(px)
 
-type Band = { y: number; mean: number; corr: number };
+type Band = { y: number; mean: number; corr: number; shift: number; alignedCorr: number; alignedMean: number };
+/** 458차 — 앱 PNG와 화면은 구간마다 몇 px씩 어긋난다(누적 높이 차 ~26px). 어긋남을 상관 하락으로 오해하지 않도록 구간마다 ±SHIFT_MAX px(3px 간격)로 화면 쪽을 밀어 가장 잘 맞는 상관을 따로 잰다 */
+const SHIFT_MAX = 40;
 
 async function gray(buf: Buffer, w: number, h: number): Promise<Float32Array> {
   const raw = await sharp(buf).resize(w, h, { fit: "fill" }).greyscale().raw().toBuffer();
@@ -33,6 +35,8 @@ function corr(a: Float32Array, b: Float32Array): number {
   ma /= a.length; mb /= b.length;
   let sab = 0, saa = 0, sbb = 0;
   for (let i = 0; i < a.length; i += 1) { const x = a[i]! - ma, y = b[i]! - mb; sab += x * y; saa += x * x; sbb += y * y; }
+  // 458차 — 둘 다 거의 단색(분산 4 미만, 꼬리 구간·여백)이면 구조가 없는 것이라 같은 것으로 본다
+  if (saa / a.length < 4 && sbb / a.length < 4) return 1;
   return saa === 0 || sbb === 0 ? (saa === sbb ? 1 : 0) : sab / Math.sqrt(saa * sbb);
 }
 
@@ -51,7 +55,36 @@ export async function compareImages(app: Buffer, shot: Buffer, target: number): 
     const rb = await sharp(b).resize(target / 4 | 0, Math.max(1, h / 4 | 0), { fit: "fill" }).removeAlpha().raw().toBuffer();
     let s = 0;
     for (let i = 0; i < ra.length; i += 1) s += Math.abs(ra[i]! - rb[i]!);
-    bands.push({ y, mean: s / ra.length, corr: corr(await gray(a, target / 4 | 0, Math.max(1, h / 4 | 0)), await gray(b, target / 4 | 0, Math.max(1, h / 4 | 0))) });
+    const gw = target / 4 | 0, gh = Math.max(1, h / 4 | 0);
+    const ga = await gray(a, gw, gh);
+    const rawCorr = corr(ga, await gray(b, gw, gh));
+    // 구간 안에서도 줄 바꿈 차이로 위·아래가 서로 다르게 밀리므로 140px 소구간마다 따로 맞춘 뒤 평균한다(구간 상관 = 소구간 최고 상관의 평균, 밀림 = 소구간 중앙값)
+    const SUB = 140;
+    const shifts: number[] = [], cs: number[] = [], means: number[] = [];
+    for (let sy = 0; sy < h; sy += SUB) {
+      const sh0 = Math.min(SUB, h - sy);
+      if (sh0 < 60) continue;
+      const aSub = await sharp(app).extract({ left: 0, top: y + sy, width: target, height: sh0 }).png().toBuffer();
+      const gws = target / 4 | 0, ghs = Math.max(1, sh0 / 4 | 0);
+      const gaS = await gray(aSub, gws, ghs);
+      const raSub = await sharp(aSub).resize(gws, ghs, { fit: "fill" }).removeAlpha().raw().toBuffer();
+      let bestS = { shift: 0, c: -2, mean: 0 };
+      const tryShift = async (sh: number) => {
+        if (h < BAND || y + sy + sh < 0 || y + sy + sh + sh0 > ssm.height!) return;
+        const bb = await sharp(shotScaled).extract({ left: 0, top: y + sy + sh, width: target, height: sh0 }).png().toBuffer();
+        const c = corr(gaS, await gray(bb, gws, ghs));
+        if (c > bestS.c) {
+          const rb2 = await sharp(bb).resize(gws, ghs, { fit: "fill" }).removeAlpha().raw().toBuffer();
+          let s2 = 0; for (let i = 0; i < raSub.length; i += 1) s2 += Math.abs(raSub[i]! - rb2[i]!);
+          bestS = { shift: sh, c, mean: s2 / raSub.length };
+        }
+      };
+      for (let sh = -SHIFT_MAX; sh <= SHIFT_MAX; sh += 4) await tryShift(sh);
+      if (bestS.c > -2) { shifts.push(bestS.shift); cs.push(bestS.c); means.push(bestS.mean); }
+    }
+    const med = (xs: number[]) => [...xs].sort((p, q) => p - q)[Math.floor(xs.length / 2)] ?? 0;
+    const best = cs.length ? { shift: med(shifts), c: Math.max(rawCorr, cs.reduce((p, q) => p + q, 0) / cs.length), mean: Math.min(s / ra.length, means.reduce((p, q) => p + q, 0) / means.length) } : { shift: 0, c: rawCorr, mean: s / ra.length };
+    bands.push({ y, mean: s / ra.length, corr: rawCorr, shift: best.shift, alignedCorr: best.c, alignedMean: best.mean });
   }
   return { bands, mean: bands.reduce((s, b) => s + b.mean, 0) / Math.max(1, bands.length), appH: am.height!, shotH: sm.height! };
 }
@@ -60,7 +93,7 @@ async function main() {
   const files = new Map(corpus({ only: ONLY }));
   fs.mkdirSync(OUT, { recursive: true });
   const browser = await chromium.launch();
-  const lines = ["# PNG 다운로드 경로 대조 (448차)", "", `앱 모듈(captureDetailToPngBlobs, 출력 폭 ${TARGET}px, 화면 ${DESIGN_W}px 기준) vs 같은 폭 브라우저 요소 스크린샷. 구간 ${BAND}px 단위: 평균 색 차이(0~255, 작을수록 같음) · 구조 상관(1에 가까울수록 같음).`, "", "| 픽스처 | PNG 장수 | PNG 크기 | 평균 색 차이 | 최악 구간(y: 차이 / 상관) | 상관 < 0.9 구간 수 |", "|---|---|---|---|---|---|"];
+  const lines = ["# PNG 다운로드 경로 대조 (448차)", "", `앱 모듈(captureDetailToPngBlobs, 출력 폭 ${TARGET}px, 화면 ${DESIGN_W}px 기준) vs 같은 폭 브라우저 요소 스크린샷. 구간 ${BAND}px 단위: 평균 색 차이(0~255, 작을수록 같음) · 구조 상관(1에 가까울수록 같음).`, "", "| 픽스처 | PNG 장수 | PNG 크기 | 평균 색 차이 | 최악 구간(y: 차이 / 상관) | 상관 < 0.9 구간 수 | 정렬 후 최악 상관(y: 상관, 밀림 px) | 정렬 후 < 0.80 |", "|---|---|---|---|---|---|---|---|"];
   for (const [id, file] of files) {
     const live = await openLive(browser, SERVER, file, DESIGN_W);
     try {
@@ -86,7 +119,7 @@ async function main() {
       const r = await compareImages(stacked, shot, TARGET);
       const worst = [...r.bands].sort((a, b) => b.mean - a.mean).slice(0, 3);
       const lowCorr = r.bands.filter((b) => b.corr < 0.9);
-      lines.push(`| ${id} | ${parts.length} | ${TARGET}×${totalH} (화면 ${DESIGN_W}×${r.shotH}) | ${r.mean.toFixed(1)} | ${worst.map((b) => `${b.y}: ${b.mean.toFixed(1)} / ${b.corr.toFixed(2)}`).join(" · ")} | ${lowCorr.length}/${r.bands.length} |`);
+      lines.push(`| ${id} | ${parts.length} | ${TARGET}×${totalH} (화면 ${DESIGN_W}×${r.shotH}) | ${r.mean.toFixed(1)} | ${worst.map((b) => `${b.y}: ${b.mean.toFixed(1)} / ${b.corr.toFixed(2)}`).join(" · ")} | ${lowCorr.length}/${r.bands.length} | ${[...r.bands].sort((a, b) => a.alignedCorr - b.alignedCorr).slice(0, 2).map((b) => `${b.y}: ${b.alignedCorr.toFixed(2)}, ${b.shift}px`).join(" · ")} | ${r.bands.filter((b) => b.alignedCorr < 0.8).length}/${r.bands.length} |`);
       // 시트: 가장 다른 구간 3개를 앱 PNG | 화면 | 차이로
       const shotScaled = await sharp(shot).resize({ width: TARGET }).png().toBuffer();
       const tiles: Array<{ input: Buffer; left: number; top: number }> = [];
@@ -99,8 +132,23 @@ async function main() {
         row += Math.round((h * 300) / TARGET) + 8;
       }
       await sharp({ create: { width: 612, height: Math.max(8, row), channels: 3, background: "#777777" } }).composite(tiles).png().toFile(path.join(OUT, `${id}-worst.png`));
+      // 458차 — 구간 시트(앱 | 화면 | 밀림 보정한 화면): y≈5880~6720 + 정렬 후 최악 2구간
+      const pick = [...new Set([5880, 6300, 6720, ...[...r.bands].sort((a, b) => a.alignedCorr - b.alignedCorr).slice(0, 2).map((b) => b.y)])].filter((yy) => yy < totalH - 100);
+      const t2: Array<{ input: Buffer; left: number; top: number }> = [];
+      let row2 = 0;
+      for (const yy of pick) {
+        const bd = r.bands.find((b) => b.y === yy);
+        const h = Math.min(BAND, totalH - yy);
+        const sh = bd?.shift ?? 0;
+        const sH = (await sharp(shotScaled).metadata()).height!;
+        const mk = async (src: Buffer, top: number) => sharp(src).extract({ left: 0, top: Math.max(0, Math.min(top, sH - 1)), width: TARGET, height: Math.max(1, Math.min(h, (src === stacked ? totalH : sH) - Math.max(0, top))) }).resize({ width: 280 }).png().toBuffer();
+        t2.push({ input: await mk(stacked, yy), left: 0, top: row2 }, { input: await mk(shotScaled, yy), left: 286, top: row2 }, { input: await mk(shotScaled, yy + sh), left: 572, top: row2 });
+        row2 += Math.round((h * 280) / TARGET) + 8;
+      }
+      await sharp({ create: { width: 852, height: Math.max(8, row2), channels: 3, background: "#777777" } }).composite(t2).png().toFile(path.join(OUT, `${id}-bands.png`));
+      fs.writeFileSync(path.join(OUT, `${id}-bands.txt`), r.bands.filter((b) => pick.includes(b.y)).map((b) => `y=${b.y} 원 상관 ${b.corr.toFixed(2)} → 정렬 ${b.alignedCorr.toFixed(2)} (밀림 ${b.shift}px) 색차 ${b.mean.toFixed(1)} → ${b.alignedMean.toFixed(1)}`).join("\n") + "\n");
     } catch (e) {
-      lines.push(`| ${id} | - | - | - | 실패: ${e instanceof Error ? e.message.slice(0, 120) : String(e)} | - |`);
+      lines.push(`| ${id} | - | - | - | 실패: ${e instanceof Error ? e.message.slice(0, 120) : String(e)} | - | - | - |`);
     } finally {
       await live.close();
     }
@@ -109,7 +157,7 @@ async function main() {
   lines.push("", "구간 시트(`*-worst.png`)는 왼쪽 = 앱 PNG, 오른쪽 = 브라우저 화면(같은 폭으로 맞춤)의 차이가 큰 구간 3개.");
   fs.writeFileSync(path.join(OUT, "report.md"), lines.join("\n") + "\n");
   console.log(lines.join("\n"));
-  const bad = lines.filter((l) => l.startsWith("| fx-") && (/실패/.test(l) || Number(l.split("|")[4]!.trim()) > 6));
+  const bad = lines.filter((l) => l.startsWith("| fx-") && (/실패/.test(l) || Number(l.split("|")[4]!.trim()) > 6 || Number(l.split("|")[9]!.trim().split("/")[0]) > 0));
   process.exit(bad.length ? 1 : 0);
 }
 if (/png-compare\.ts$/.test(process.argv[1] ?? "")) void main();
