@@ -6,6 +6,8 @@ import {
   useSellerImageMeta,
 } from "@/components/SellerImageMetaContext";
 import { HERO_V2_TUNED } from "@/lib/hero-spec";
+import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
+import { markNoPhotoFrame } from "@/lib/photo-fallback";
 
 type SectionImageProps = {
   src: string;
@@ -64,10 +66,11 @@ export default function SectionImage({
       crossOrigin={
         resolved.startsWith("data:") || resolved.startsWith("blob:") ? undefined : "anonymous"
       }
-      onError={() => {
+      onError={(e) => {
         if (fallbackSrc && current !== fallbackSrc) {
           setCurrent(fallbackSrc);
         } else if (HERO_V2_TUNED) {
+          if (DESIGN_V4_ENABLED) markNoPhotoFrame(e.currentTarget); // 455차: 사진 틀이면 빈 틀 면 표시(사진 상자를 읽으므로 숨김 상태 반영 전에)
           setFailedSrc(resolved);
         }
       }}

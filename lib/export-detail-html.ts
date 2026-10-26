@@ -177,6 +177,7 @@ import { mutedFloorCssExport, readableOnFace } from "@/lib/muted-v4";
 import { BODY_LINE_HEIGHT, bindCompoundsHtml, typoCssExport } from "@/lib/typo-v4";
 import { mixHex } from "@/lib/design-tokens";
 import { v4SafeTheme } from "@/lib/palette-v4";
+import { NO_PHOTO_EXPORT_SCRIPT, noPhotoCss } from "@/lib/photo-fallback";
 import { BEAUTY_HERO, HERO_ARCH, HERO_CAPTION, HERO_FRAME, HERO_STAGE_VARIANT, beautyHeroVariant, heroCaptionAlign, heroCaptionBackground, heroCaptionRatio, heroStageOn } from "@/lib/hero-variants";
 import { GALLERY_VARIANT, galleryCell, galleryColumns } from "@/lib/gallery-variants";
 import { packStructureCss } from "@/lib/pack-css";
@@ -2420,7 +2421,8 @@ export function buildDetailPageHtml(opts: {
 ${v3Pair ? v3Links : `<link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link rel="stylesheet" href="${DETAIL_GOOGLE_FONTS_URL}"/>`}
-${jsonLd}
+${jsonLd}${DESIGN_V4_ENABLED ? `
+${NO_PHOTO_EXPORT_SCRIPT}` : ""}
 <style>
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
@@ -2463,7 +2465,7 @@ ${jsonLd}
   ${DESIGN_V3_COLOR_ENABLED && designV2On(opts.category) ? paletteInfoCss(".pagzly-wrap", extended, v2Layout.info) : ""}
   ${DESIGN_V3_COLOR_ENABLED ? dividerCss({ scope: ".pagzly-wrap", mode: "export", sections: visibleSections, ext: extended, category: opts.category, info: v2Layout.info }) : ""}
   ${v3Pair ? fontPairCss(".pagzly-wrap", v3Pair) : ""}${DESIGN_V4_ENABLED ? `
-  ${typeFloorCss(".pagzly-wrap[data-pz-typefloor]") + headingSystemCss(".pagzly-wrap[data-pz-typefloor]", "export") + topPadCssV4((px) => `.pagzly-wrap section[data-pz-top="${px}"]`) + bottomPadCssV4((px) => `.pagzly-wrap section[data-pz-bot="${px}"]`) + mutedFloorCssExport(".pagzly-wrap[data-pz-typefloor]") + typoCssExport(".pagzly-wrap[data-pz-typefloor]")}` : ""}
+  ${typeFloorCss(".pagzly-wrap[data-pz-typefloor]") + headingSystemCss(".pagzly-wrap[data-pz-typefloor]", "export") + topPadCssV4((px) => `.pagzly-wrap section[data-pz-top="${px}"]`) + bottomPadCssV4((px) => `.pagzly-wrap section[data-pz-bot="${px}"]`) + mutedFloorCssExport(".pagzly-wrap[data-pz-typefloor]") + typoCssExport(".pagzly-wrap[data-pz-typefloor]") + noPhotoCss(".pagzly-wrap", opts.theme.deepAccent)}` : ""}
   @media (min-width:640px){.pagzly-usage{flex-direction:row!important;align-items:flex-start;gap:16px!important}.pagzly-usage-line{left:var(--pz-step-edge)!important;right:var(--pz-step-edge);bottom:auto!important;width:auto!important;height:1px}.pagzly-usage-step{flex:1;flex-direction:column;align-items:center!important;gap:12px!important;text-align:center}.pagzly-usage-step>div{flex:none!important;padding-top:0!important}.pagzly-usage-text{max-width:14rem;margin:0 auto}.pagzly-persona-pairs{grid-template-columns:repeat(2,1fr)!important}.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}.pagzly-hl-grid{grid-template-columns:var(--pz-hl-wide)!important}.pagzly-cl-grid{grid-template-columns:var(--pz-cl-wide)!important}.pagzly-step-rows{grid-template-columns:repeat(3,1fr)!important;gap:32px!important;margin-top:48px!important}.pagzly-step-pairs{gap:32px!important}.pagzly-step-row{display:block!important}.pagzly-step-row h3{margin-top:12px!important}.pagzly-step-row .pagzly-step-tag{margin-top:12px!important}.pagzly-step-row .pagzly-step-tag+h3{margin-top:0!important}.pagzly-step-row p,.pagzly-step-pairs p{font-size:14px!important}}
   .pagzly-wrap .pz-fit{font-size:max(min(var(--pz-fs),0.6875rem),min(var(--pz-fs),calc(100cqi / var(--pz-fit-em,0.01))))!important}
   .pagzly-anchor-nav a{scroll-margin-top:52px}

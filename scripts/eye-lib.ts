@@ -23,10 +23,12 @@ export const EXTRA_ROOTS: Record<string, string> = {};
 export const launch = (): Promise<Browser> => chromium.launch();
 
 /** html을 W폭 화면으로 열고 폰트·사진 로드를 기다린 페이지를 돌려준다 */
-export async function openHtml(browser: Browser, html: string, W: number, css = fontCss(), allowNet = false): Promise<{ page: Page; close: () => Promise<void> }> {
+export async function openHtml(browser: Browser, html: string, W: number, css = fontCss(), allowNet = false, failImages = false): Promise<{ page: Page; close: () => Promise<void> }> {
   const ctx = await browser.newContext({ viewport: { width: W, height: 844 }, deviceScaleFactor: 1 });
   const page = await ctx.newPage();
   await page.route("**/*", async (route) => {
+    // 455차: failImages면 모든 사진 요청이 실패한다(만료·삭제·네트워크 오류 재현 — 외부 호출 없음)
+    if (failImages && route.request().resourceType() === "image") return route.abort();
     const u = new URL(route.request().url());
     if (u.origin === ORIGIN) {
       if (u.pathname === "/") return route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: html });
@@ -42,7 +44,7 @@ export async function openHtml(browser: Browser, html: string, W: number, css = 
   await page.goto(`${ORIGIN}/`, { waitUntil: "load" });
   await page.evaluate("document.fonts.ready.then(() => 1)");
   // loading="lazy" 사진은 화면 밖이면 캡처 때 안 불러와져 빈 칸으로 찍힌다 → 모두 즉시 로드로 바꾸고 끝날 때까지 기다린다
-  await page.evaluate("Promise.all(Array.from(document.images).map((i) => { i.loading = 'eager'; return i.complete ? 1 : new Promise((r) => { i.onload = i.onerror = () => r(1); }); }))");
+  await page.evaluate("Promise.all(Array.from(document.images).map((i) => { i.loading = 'eager'; return i.complete ? 1 : new Promise((r) => { i.addEventListener('load', () => r(1)); i.addEventListener('error', () => r(1)); }); }))"); // 455차: 속성(onload/onerror)을 덮어쓰면 사진 실패 폴백(onerror로 숨김)이 꺼져 alt 글자가 보이던 캡처 오탐이 생겼다 → 리스너로 추가
   await page.evaluate("Promise.all(Array.from(document.images).map((i) => (i.decode ? i.decode().catch(() => 0) : 0)))"); // decoding=async 사진은 화면 밖이면 디코드 전에 찍힐 수 있다
   await page.waitForTimeout(150);
   return { page, close: () => ctx.close() };
