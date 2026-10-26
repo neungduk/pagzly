@@ -54,3 +54,7 @@ npx tsx scripts/section-parity-table.ts            # 저장 세션 + 합성 픽�
 npx tsx scripts/section-parity-table.ts --only=s411,s418
 ```
 불일치가 있으면 표 아래에 계획 종류 목록·라이브 번호·export 최상위 종류 목록을 붙여 어느 쪽에만 있는지 지목하고 종료 코드 1을 낸다.
+
+## PC에서 cloud-work 받는 법 (454차)
+클라우드에서 만든 `cloud-work`를 PC에 받을 때 로컬에 따로 고친 `AGENTS.md`·`review/442cha-report.md` 같은 파일이 있으면 충돌한다(PC에서 실제로 발생). 순서: ① 충돌하는 로컬 파일을 다른 이름으로 백업(예: `copy AGENTS.md AGENTS.md.bak`) ② `git fetch origin` ③ 충돌 파일을 `git checkout -- <파일>`로 되돌리거나 `git stash` 한 뒤 `git merge --ff-only origin/cloud-work` ④ 백업과 비교해 필요한 줄만 다시 반영. `--ff-only`라 병합 커밋이 생기지 않고, 앞서 나갈 수 없으면 실패하니 그때는 멈추고 확인한다.
+요약 상단의 "git" 표시는 추적 수정·삭제·미추적 개수로 나뉘어 나온다(미추적 폴더가 많아도 변경이 많은 것처럼 보이지 않게).

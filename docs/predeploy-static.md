@@ -26,3 +26,6 @@ npm run pc-verify -- --only=predeploy
 - 사용 순서: ① PC에 원본이 있으면 원본을 먼저 실행하고 이 초안과 비교해 차이를 확인한다 ② 읽기 전용 계정으로 초안을 번호 순서대로 실행한다(마이그레이션 **적용 전**) ③ 각 쿼리의 「기대」와 다르면 해당 마이그레이션을 적용하지 않고 사람이 판단한다.
 - 점검 항목: 100000(새 테이블·함수·정책 이름 충돌, auth.users) · 110000(images 버킷 현재 설정 기록, storage.objects 정책·이름 충돌, 본인 폴더 규칙 밖 경로, 10MB 초과·허용 형식 밖 기존 파일) · 120000(completion 원장 중복, 인덱스 이름 충돌, 컬럼, deduct_credits 본문) · 130000(함수·트리거 존재, 현재 지급 수치, 이미 100으로 바뀌었는지).
 - 회귀 `premigration-draft-453`이 SELECT/WITH 전용·금지 키워드 0·번호별 섹션을 확인한다. 이 초안은 마이그레이션 파일을 수정하지 않으며 어떤 SQL도 실행하지 않는다.
+
+## `next build`의 `metadataBase` 경고 (454차)
+`NEXT_PUBLIC_SITE_URL`이 비어 있거나 올바른 주소가 아니면 `app/layout.tsx`의 `siteBase()`가 `undefined`를 돌려줘 `metadata.metadataBase`가 설정되지 않고, `next build`가 "metadataBase property in metadata export is not set" 경고를 낸다(OG 이미지 같은 상대 경로를 절대 주소로 바꿀 기준이 없기 때문; 잘못된 주소를 만들지 않으려는 의도적 동작이다). 같은 변수를 `app/robots.ts`(sitemap 줄), `app/sitemap.ts`(빈 목록), `lib/font-pairs.ts`(export가 폰트 CSS를 불러올 출처)도 읽는다. 배포 시에는 Vercel 프로젝트 설정에 `NEXT_PUBLIC_SITE_URL=https://<실제 도메인>`(끝 슬래시 없이)을 넣고 **다시 배포**해야 반영된다(`NEXT_PUBLIC_*`는 빌드 때 들어간다). 코드 변경은 필요 없다.
