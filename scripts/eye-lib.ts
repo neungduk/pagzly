@@ -23,12 +23,13 @@ export const EXTRA_ROOTS: Record<string, string> = {};
 export const launch = (): Promise<Browser> => chromium.launch();
 
 /** html을 W폭 화면으로 열고 폰트·사진 로드를 기다린 페이지를 돌려준다 */
-export async function openHtml(browser: Browser, html: string, W: number, css = fontCss(), allowNet = false, failImages = process.env.PZ_FAIL_IMAGES === "1"): Promise<{ page: Page; close: () => Promise<void> }> {
+export async function openHtml(browser: Browser, html: string, W: number, css = fontCss(), allowNet = false, failImages: boolean | "half" = process.env.PZ_FAIL_IMAGES === "1" ? true : process.env.PZ_FAIL_IMAGES === "half" ? "half" : false): Promise<{ page: Page; close: () => Promise<void> }> {
   const ctx = await browser.newContext({ viewport: { width: W, height: 844 }, deviceScaleFactor: 1 });
   const page = await ctx.newPage();
+  let imgN = 0;
   await page.route("**/*", async (route) => {
     // 455차: failImages(또는 환경변수 PZ_FAIL_IMAGES=1)면 모든 사진 요청이 실패한다(만료·삭제·네트워크 오류 재현 — 외부 호출 없음). 퍼징·린트 도구를 사진 실패 상태로 돌릴 때 쓴다
-    if (failImages && route.request().resourceType() === "image") return route.abort();
+    if (failImages && route.request().resourceType() === "image") { imgN += 1; if (failImages === true || imgN % 2 === 0) return route.abort(); } // 456차: "half"는 짝수번째 사진 요청만 실패(일부 실패)
     const u = new URL(route.request().url());
     if (u.origin === ORIGIN) {
       if (u.pathname === "/") return route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: html });
