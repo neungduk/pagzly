@@ -1,5 +1,7 @@
 # PC 원커맨드 검증 (`npm run pc-verify`)
 
+**PC 첫 실행 순서**: `npm ci` → `npm run pc-verify`. `tsx`는 `devDependencies`에 있어 `npm ci`가 설치하고 `npm run`이 로컬 `tsx`를 쓴다(전역 설치·`npx --yes tsx` 불필요). `pc-verify`가 단계마다 부르는 `npx tsx …`도 로컬 `tsx`가 있으면 그것을 쓴다.
+
 PC(`.env.local`·네트워크·사진 파일이 있는 곳)에서 한 번에 돌려 결과를 `review/pc-verify-<날짜>/summary.md`에 모은다.
 도구는 `.env*` 파일을 열지 않고 환경값을 읽어 출력하지 않는다(존재 여부만 표시). 결제·AI·생성 호출은 하지 않는다.
 
