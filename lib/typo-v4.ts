@@ -28,9 +28,11 @@ export function typoCssLive(scope: string): string {
 
 /**
  * 453차 1 — 가운뎃점으로 이어진 짧은 복합어(「봄·여름에는」「데님·슬랙스」)는 가운뎃점 뒤에서 줄이 바뀌면 한 낱말이 두 줄로 쪼개진다.
- * export 마지막 HTML의 본문 글 노드에서 공백 없이 이어진 `A·B(·C…)`(어절 합계 18자 이하)를 `white-space:nowrap` 묶음으로 감싼다. 글자는 그대로(태그만 추가).
+ * export 마지막 HTML의 본문 글 노드에서 공백 없이 이어진 `A·B(·C…)`(10자 이하)를 `white-space:nowrap` 묶음으로 감싼다. 글자는 그대로(태그만 추가).
  * script·style·head는 건드리지 않는다. 라이브는 편집 가능한 글(contentEditable) 안에 태그를 넣을 수 없어 적용하지 않는다(편집 UI 불변) — export에만 적용.
  */
+/** 458차 — 묶음 최대 글자 수. 18자까지 묶었더니 큰 글자(26px 안팎) 진술문의 「동백·히알루론산·판테놀·병풀」(15자)이 395px로 390폭 밖으로 넘쳤다(사진 0장 퍼징). 10자 이하만 묶는다 */
+export const COMPOUND_MAX_CHARS = 10;
 const COMPOUND = /[^\s·&;<>]{1,8}(?:·[^\s·&;<>]{1,8})+/g;
 export function bindCompoundsHtml(html: string): string {
   const bodyAt = html.indexOf("<body");
@@ -53,5 +55,5 @@ function wrapText(chunk: string): string {
   // 453차 3 — 표 값 칸(td 또는 「라벨 span + 값 span」 줄)의 긴 글(14자 이상)은 마지막 짧은 어절을 앞 어절과 묶어 「소매 / 56」처럼 숫자만 다음 줄로 떨어지는 외톨이를 막는다(글자 불변)
   chunk = chunk.replace(/(<td\b[^>]*>(?:<span\b[^>]*>)?)([^<>]{14,})(?=<\/(?:span|td)>)/g, (_a, open: string, text: string) => open + bindLast(text));
   chunk = chunk.replace(/(<\/span><span\b[^>]*>)([^<>]{14,})(?=<\/span><\/div>)/g, (_a, open: string, text: string) => open + bindLast(text));
-  return chunk.replace(/>([^<>]+)(?=<)/g, (all, text: string) => (text.includes("·") ? ">" + text.replace(COMPOUND, (w) => (w.length <= 18 ? `<span style="white-space:nowrap">${w}</span>` : w)) : all));
+  return chunk.replace(/>([^<>]+)(?=<)/g, (all, text: string) => (text.includes("·") ? ">" + text.replace(COMPOUND, (w) => (w.length <= COMPOUND_MAX_CHARS ? `<span style="white-space:nowrap">${w}</span>` : w)) : all));
 }

@@ -992,11 +992,13 @@ function sectionHtml(
               const alt = buildSectionImageAlt(productName, step.title, section.slot);
               const badge = `STEP ${String(i + 1).padStart(2, "0")}`;
               // 404차 — 착용컷(사람)이 있는 단계 묶음은 태그를 사진 대신 글 칸 제목 위에 둔다(라이브와 같음)
-              const offImage = section.stepBadgeOffImage === true;
-              return `<div${rowMode ? ` class="pagzly-step-row" style="display:grid;grid-template-columns:40% 1fr;gap:16px;align-items:center"` : ""}><div style="position:relative;aspect-ratio:1;border-radius:${RADIUS.md}px;overflow:hidden;background:#eee">
+              // 458차 — v4: 사진이 없으면 회색 빈 틀 대신 사진 칸을 없애고 STEP 표지를 글 칸 위에 둔다(라이브와 같음, 편집 중이 아닐 때)
+              const noPhoto = DESIGN_V4_ENABLED && !src;
+              const offImage = section.stepBadgeOffImage === true || noPhoto;
+              return `<div${rowMode && !noPhoto ? ` class="pagzly-step-row" style="display:grid;grid-template-columns:40% 1fr;gap:16px;align-items:center"` : ""}>${noPhoto ? "" : `<div style="position:relative;aspect-ratio:1;border-radius:${RADIUS.md}px;overflow:hidden;background:#eee">
                 ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover"/>` : ""}
                 ${offImage ? "" : `<span style="position:absolute;left:${rowMode ? 8 : 10}px;top:${rowMode ? 8 : 10}px;background:${DESIGN_V4_ENABLED ? deepText : deepFill};color:#FAF8F3;font-size:${rowMode ? "10px" : FONT_SIZE.label};padding:${rowMode ? "4px 10px" : "4px 10px"};border-radius:${RADIUS.pill}px;font-weight:700;letter-spacing:${rowMode ? ".18em" : ".24em"}${DESIGN_V4_ENABLED ? `;${declStyle(stepChipV4())}` : ""}">${badge}</span>`}
-              </div><div style="min-width:0">${offImage ? `<span class="pagzly-step-tag" style="display:block;margin:${rowMode ? "0" : "12px"} 0 6px;font-family:${DETAIL_FONT_STACK.label};font-size:11px;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:${v4TextOn(accentText, sectionBg)}">${badge}</span>` : ""}<h3 style="margin:${rowMode || offImage ? "0" : "12px"} 0 4px;font-size:16px;font-weight:700;letter-spacing:-0.02em">${esc(step.title)}</h3><p style="margin:0;font-size:${rowMode ? "13px" : FONT_SIZE.sm};line-height:1.625;opacity:.8;word-break:keep-all">${esc(step.body)}</p></div></div>`;
+              </div>`}<div style="min-width:0">${offImage ? `<span class="pagzly-step-tag" style="display:block;margin:${rowMode ? "0" : "12px"} 0 6px;font-family:${DETAIL_FONT_STACK.label};font-size:11px;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:${v4TextOn(accentText, sectionBg)}">${badge}</span>` : ""}<h3 style="margin:${rowMode || offImage ? "0" : "12px"} 0 4px;font-size:16px;font-weight:700;letter-spacing:-0.02em">${esc(step.title)}</h3><p style="margin:0;font-size:${rowMode ? "13px" : FONT_SIZE.sm};line-height:1.625;opacity:.8;word-break:keep-all">${esc(step.body)}</p></div></div>`;
             })
             .join("");
           return rowMode

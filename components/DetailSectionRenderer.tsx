@@ -4684,22 +4684,26 @@ function renderSection(
             {steps.map((step, stepIndex) => {
               const src = resolveImage(imageUrls, step.imageIndex);
               const rowMode = steps.length !== 2 && steps.length !== 4;
+              // 458차 — v4: 사진이 없으면(편집 중이 아닐 때) 회색 빈 틀 대신 사진 칸을 없애고 STEP 표지를 글 칸 위에 둔다(사진 0장 퍼징의 빈 틀)
+              const noPhoto = DESIGN_V4_ENABLED && !src && !edit?.enabled;
+              const offImage = Boolean(section.stepBadgeOffImage) || noPhoto;
               return (
                 <div
                   key={stepIndex}
                   className={
-                    rowMode
+                    rowMode && !noPhoto
                       ? "grid grid-cols-[40%_1fr] items-center gap-4 @min-[640px]/pz:flex @min-[640px]/pz:flex-col @min-[640px]/pz:items-stretch @min-[640px]/pz:gap-0"
                       : "flex flex-col"
                   }
                 >
+                  {noPhoto ? null : (
                   <div className={`relative overflow-hidden rounded-xl ${ratioClass}`}>
                     <SectionImage
                       src={src}
                       alt={buildSectionImageAlt(productName ?? "", step.title, section.slot)}
                       className="h-full w-full object-cover"
                     />
-                    {section.stepBadgeOffImage ? null : (
+                    {offImage ? null : (
                     <span
                       className={`absolute rounded-full font-bold uppercase text-paper shadow-sm ${
                         rowMode
@@ -4716,8 +4720,9 @@ function renderSection(
                       onReplace={() => edit?.onReplaceImage?.(step.imageIndex)}
                     />
                   </div>
+                  )}
                   <div className="min-w-0">
-                    {section.stepBadgeOffImage ? (
+                    {offImage ? (
                       <span
                         className={`block mb-1.5 ${rowMode ? "mt-0 @min-[640px]/pz:mt-3" : "mt-3"} ${TYPO.sectionLabel}`}
                         style={{ color: v4TextOn(readableTextAccent(theme), textSectionStyle(theme, pattern, category).background as string | undefined) }}
@@ -4734,7 +4739,7 @@ function renderSection(
                         nextSteps[stepIndex] = { ...nextSteps[stepIndex], title };
                         edit?.onChange(index, { ...section, steps: nextSteps });
                       }}
-                      className={`${section.stepBadgeOffImage ? "mt-0" : rowMode ? "mt-0 @min-[640px]/pz:mt-3" : "mt-3"} font-heading text-base font-bold tracking-[-0.02em] text-ink`}
+                      className={`${offImage ? "mt-0" : rowMode ? "mt-0 @min-[640px]/pz:mt-3" : "mt-3"} font-heading text-base font-bold tracking-[-0.02em] text-ink`}
                     />
                     <EditableText
                       as="p"

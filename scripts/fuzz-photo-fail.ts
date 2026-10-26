@@ -37,7 +37,8 @@ export async function run(opts: { n: number; widths: number[]; modes: Mode[]; fx
         html = buildDetailPageHtml(args);
         const display = applyDisplayRules(applySectionDisplayBudget(args.category, args.sections, { chartRemoved: comparisonPolicyRemovesChart(args.claimFacts) }), args.imageUrls, { imageHashByUrl: args.imageHashByUrl, roles: args.imageRoles, origins: args.imageOrigins, category: args.category, tags: args.imageTags, hasSizeInfo: args.hasSizeInfo, claimFacts: args.claimFacts, brandName: args.brandName });
         const lint = lintPage(c.id, html, display.sections ?? (display as never));
-        for (const i of lint.issues.filter((x) => x.sev === "error")) add(0, "린트 error", `${i.rule} ${i.msg}`.slice(0, 120));
+        // 457차 2와 같은 제외: 제품명이 공백뿐인 입력은 앱이 막으므로 R10 «히어로 제품명 없음»은 정상 결과
+        for (const i of lint.issues.filter((x) => x.sev === "error")) { if (i.rule === "R10" && String((c.session as { productName?: string }).productName ?? "x").trim() === "") continue; add(0, "린트 error", `${i.rule} ${i.msg}`.slice(0, 120)); }
       } catch (e) {
         add(0, "예외", e instanceof Error ? e.message.slice(0, 100) : String(e));
         continue;
@@ -83,6 +84,7 @@ if (/fuzz-photo-fail\.ts$/.test((process.argv[1] ?? "").replace(/\\/g, "/"))) {
     fs.mkdirSync(path.dirname(out), { recursive: true });
     const md = report(total, violations, modes, widths);
     fs.writeFileSync(out, md);
+    if (arg("json", "")) fs.writeFileSync(arg("json", ""), JSON.stringify(violations));
     console.log(md.split("\n").slice(0, 14).join("\n"));
     process.exit(violations.length ? 1 : 0);
   });
