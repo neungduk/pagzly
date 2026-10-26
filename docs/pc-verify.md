@@ -46,3 +46,11 @@ node_modules를 링크하지 않는다(Turbopack이 거부). 임시 worktree에�
 
 ## 눈으로 볼 것
 요약 맨 아래 체크리스트를 따른다. 합격이 아닌 단계가 있으면 434차 배포 점검으로 가지 않는다.
+
+## 섹션 패리티 판정 (454차)
+`sessions` 단계의 섹션 수 패리티는 예전 근사(export 전체 `<section>` 수 vs 계획 ±2)를 버리고 정확한 비교로 바뀌었다. 계획 = 라이브(`data-section-index` 번호 기준) = export 최상위(`.pagzly-wrap` 직계 `<section>`)이고, 검색용 평문 블록 등 안쪽에 중첩된 `<section>`은 "내부 중첩"으로 따로 센다(옛 오탐: 계획 29·export 34). 한 계획 섹션이 export에서 둘로 나뉘는 경우(예: 지표 3개짜리 `stat_infographic`)는 단독 렌더로 확인해 차이가 정확히 설명될 때만 허용한다.
+```
+npx tsx scripts/section-parity-table.ts            # 저장 세션 + 합성 픽스처 전부, review/454-verify/section-parity.md 에 표
+npx tsx scripts/section-parity-table.ts --only=s411,s418
+```
+불일치가 있으면 표 아래에 계획 종류 목록·라이브 번호·export 최상위 종류 목록을 붙여 어느 쪽에만 있는지 지목하고 종료 코드 1을 낸다.
