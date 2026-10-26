@@ -35,7 +35,7 @@ export type Options = { dryRun: boolean; skipCapture: boolean; skipBuild: boolea
 export const ENV_NAMES = ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "NEXT_PUBLIC_SITE_URL"] as const;
 export const SNAP_EXPORT = "review/439-verify/snap-438";
 export const SNAP_LIVE = "review/442-verify/snap-438-live";
-export const SNAP_SECTION = "review/454-verify/snap-section";
+export const SNAP_SECTION = "review/455-verify/snap-section-438"; // 455차: 438차 코드로 만든 기준(454차의 snap-section은 453차 코드로 만들어 기준이 어긋났다)
 const NPX = process.platform === "win32" ? "npx.cmd" : "npx";
 
 export function parseArgs(argv: string[]): Options {
@@ -214,7 +214,10 @@ export function makeBaseline(commit: string, skipInstall: boolean): number {
     if (run([NPX, "tsx", "scripts/check-v4-off.ts", "--write"]) !== 0) throw new Error("export 기준 저장 실패");
     if (run([NPX, "tsx", "scripts/check-v4-off-live.tsx", "--write"], { OUT: SNAP_LIVE }) !== 0) throw new Error("라이브 기준 저장 실패");
     for (const p of [SNAP_EXPORT, SNAP_LIVE]) { fs.rmSync(p, { recursive: true, force: true }); fs.mkdirSync(path.dirname(p), { recursive: true }); fs.cpSync(path.join(dir, p), p, { recursive: true }); }
-    console.log(`기준 저장 완료: ${SNAP_EXPORT}, ${SNAP_LIVE} (커밋 ${commit})`);
+    // 455차: 4c(섹션 단독)도 같은 커밋 코드로 만든다
+    if (run([NPX, "tsx", "scripts/check-v4-off-section.tsx", "--write"], { OUT: SNAP_SECTION }) !== 0) throw new Error("섹션 단독 기준 저장 실패");
+    for (const p of [SNAP_SECTION]) { fs.rmSync(p, { recursive: true, force: true }); fs.mkdirSync(path.dirname(p), { recursive: true }); fs.cpSync(path.join(dir, p), p, { recursive: true }); }
+    console.log(`기준 저장 완료: ${SNAP_EXPORT}, ${SNAP_LIVE}, ${SNAP_SECTION} (커밋 ${commit})`);
     code = 0;
   } catch (e) { console.error(String(e)); }
   sh(["git", "worktree", "remove", "--force", dir]);

@@ -36,3 +36,28 @@ export function noPhotoCss(scope: string, deepAccent: string): string {
   const light = "rgba(255,255,255,0.14)";
   return `${scope} [${NO_PHOTO_ATTR}]{background-image:linear-gradient(${tint},${tint}),linear-gradient(${lift},${lift}),repeating-linear-gradient(135deg,${dark} 0,${dark} 1px,transparent 1px,transparent 7px,${light} 7px,${light} 8px,transparent 8px,transparent 14px)!important}`;
 }
+
+/**
+ * 라이브용: 렌더러 루트 안의 모든 <img>(React 이미지 + dangerouslySetInnerHTML 문자열 속 이미지)의 실패를 캡처 단계로 듣는다. 하이드레이션 전에 이미 실패한 사진은 마운트 때 한 번 훑는다.
+ * 라이브는 export 문서 머리 스크립트가 없어서 이 함수가 같은 일을 한다. 반환값은 해제 함수.
+ */
+export function watchNoPhotoFrames(root: HTMLElement): () => void {
+  const hide = (img: HTMLImageElement) => {
+    if (img.style.visibility !== "hidden") img.style.setProperty("display", "none", "important");
+  };
+  const on = (e: Event) => {
+    const t = e.target;
+    if (t instanceof HTMLImageElement) {
+      markNoPhotoFrame(t);
+      hide(t);
+    }
+  };
+  root.addEventListener("error", on, true);
+  root.querySelectorAll("img").forEach((i) => {
+    if (i.complete && i.naturalWidth === 0 && i.getAttribute("src")) {
+      markNoPhotoFrame(i);
+      hide(i);
+    }
+  });
+  return () => root.removeEventListener("error", on, true);
+}

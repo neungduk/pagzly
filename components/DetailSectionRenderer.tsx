@@ -245,7 +245,7 @@ import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe"
 import { applyDisplayRules } from "@/lib/display-sections";
 import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
 import { DESIGN_V4_ENABLED, hideImgOnError } from "@/lib/design-v4";
-import { noPhotoCss } from "@/lib/photo-fallback";
+import { noPhotoCss, watchNoPhotoFrames } from "@/lib/photo-fallback";
 import { BANNER_SCRIM_INSET_V4, BANNER_SPLIT_BAND_BG, bannerStyleNow, declObject, tokenStyleObject } from "@/lib/design-tokens-v4";
 import { stepChipV4, reviewCaptionV4, highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, stepTextV4, stepsListV4 } from "@/lib/twin-styles-v4";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
@@ -6037,6 +6037,8 @@ export default function DetailSectionRenderer({
   stickyBuyBar = false,
 }: DetailSectionRendererProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
+  // 455차(v4): 사진 로드 실패 틀 표시 — 문자열 HTML 속 사진까지 루트에서 듣는다(export의 문서 머리 스크립트와 같은 일)
+  useEffect(() => (DESIGN_V4_ENABLED && rootRef.current ? watchNoPhotoFrames(rootRef.current) : undefined), []);
   const pack = resolveStylePack(category, stylePackId);
   const packLayout = beautyInfoLayout(getPackLayout(pack), category);
   const v2On = designV2On(category);

@@ -23,7 +23,7 @@ npm run pc-verify -- --only=tsc,regression
 | tsc | `npx tsc --noEmit` | |
 | regression | `scripts/regression/run-all.ts` | 브라우저 리비전 안내 포함 |
 | off-export / off-live | v4 off 동일(`check-v4-off`, `check-v4-off-live`) | 기준 스냅샷이 없으면 건너뜀 |
-| off-section | v4 off 동일(섹션 단독 렌더, `check-v4-off-section`) | 기준 스냅샷 `review/454-verify/snap-section`이 없으면 건너뜀(만드는 명령은 요약에 출력) |
+| off-section | v4 off 동일(섹션 단독 렌더, `check-v4-off-section`) | 기준 스냅샷 `review/455-verify/snap-section-438`(**438차 커밋 `08c4e73` 코드로 만든 것**)이 없으면 건너뜀(만드는 명령은 요약에 출력) |
 | build | `npx next build` | PC의 환경값을 그대로 이어받음 |
 | sessions | 저장 세션 6종: 섹션 수 패리티·428 DOM 지표·750폭 가로 넘침·린트(R7·R16·R17·R18) | `review/*-live/**/session.json`, `review/pexels-*/session.json` 자동 탐색, 없으면 건너뜀 |
 | smoke | `next start -p 3199`로 띄워 `launch-smoke` 호출 후 종료 | build 합격 필요 |
@@ -58,3 +58,23 @@ npx tsx scripts/section-parity-table.ts --only=s411,s418
 ## PC에서 cloud-work 받는 법 (454차)
 클라우드에서 만든 `cloud-work`를 PC에 받을 때 로컬에 따로 고친 `AGENTS.md`·`review/442cha-report.md` 같은 파일이 있으면 충돌한다(PC에서 실제로 발생). 순서: ① 충돌하는 로컬 파일을 다른 이름으로 백업(예: `copy AGENTS.md AGENTS.md.bak`) ② `git fetch origin` ③ 충돌 파일을 `git checkout -- <파일>`로 되돌리거나 `git stash` 한 뒤 `git merge --ff-only origin/cloud-work` ④ 백업과 비교해 필요한 줄만 다시 반영. `--ff-only`라 병합 커밋이 생기지 않고, 앞서 나갈 수 없으면 실패하니 그때는 멈추고 확인한다.
 요약 상단의 "git" 표시는 추적 수정·삭제·미추적 개수로 나뉘어 나온다(미추적 폴더가 많아도 변경이 많은 것처럼 보이지 않게).
+
+## 4c 기준은 438차 코드로 (455차)
+454차의 4c 기준(`review/454-verify/snap-section`)은 453차 코드로 만들어져 "438차 기준 off 동일"을 보장하지 못했다. 455차에 438차 커밋(`08c4e73`) 코드로 다시 만들었고 경로를 `review/455-verify/snap-section-438`로 바꿨다(1298 섹션, 현재 코드 diff 0).
+`npm run pc-verify -- --make-baseline 08c4e73`가 이제 4a·4b·4c 기준 셋을 한 번에 만든다(임시 worktree에서 `npm ci` 후 현재 `scripts/`를 덮어 그 커밋의 `lib`·`app`으로 `check-v4-off*.ts(x) --write` 실행, 끝나면 worktree 삭제).
+직접 만들 때(저장 세션 `session.json`도 worktree의 같은 경로에 복사해야 6종이 포함된다):
+```
+git worktree add --detach ..\wt438 08c4e73 ; cd ..\wt438 ; npm ci
+(현재 저장소의 scripts\ 를 wt438\scripts\ 로 덮어쓰기, review\4xx-live\...\session.json 6개도 같은 경로로 복사)
+$env:NEXT_PUBLIC_DESIGN_V4="off"; $env:OUT="review/455-verify/snap-section-438"; npx tsx scripts/check-v4-off-section.tsx --write
+(만든 폴더를 현재 저장소의 review/455-verify/snap-section-438 로 복사 → git worktree remove --force ..\wt438)
+```
+
+## 사진 로드 실패 검증 (455차)
+사진 주소가 만료·삭제됐거나 네트워크가 끊긴 상태의 화면을 재현한다. 외부 호출은 없고(브라우저에서 사진 요청만 전부 실패시킨다) 결과는 보이는 깨진 `<img>`(대체 글자) · 빈 큰 틀 · 높이 0으로 무너진 틀 · 가로 넘침 개수다.
+```
+npx tsx scripts/broken-photo-eye.ts --out=review/455-verify/broken-after                 # export (저장 세션 + 합성 21종, 390·750 시트)
+npx tsx scripts/broken-photo-live.ts --server=http://localhost:3200 --out=...            # 라이브 — 더미 환경 next dev 필요(스크립트 머리말에 명령)
+```
+정상 동작은 `lib/photo-fallback.ts`(v4): 실패한 사진의 틀(overflow:hidden)에 `data-pz-np`를 달아 면 톤 + 사선 무늬를 깔고, 틀에 비율이 없으면 사진 비율을 예약한다. 사진이 정상 로드되면 아무것도 붙지 않는다.
+**캡처 도구 주의**: `scripts/eye-lib.ts`가 예전에 사진의 `onload/onerror` 속성을 덮어써, 실패한 사진의 alt 글자가 화면에 보이는 것처럼 찍혔다(442차의 "배경 사진 속 라벨 글자" 오진과 같은 계열). 455차에 `addEventListener`로 고쳤다 — 실제 브라우저의 export는 438차부터 실패한 사진을 숨겼다.

@@ -4,7 +4,7 @@
  * (443~452차 보고서의 "섹션 단독 off diff"가 쓰던 임시 스크립트 `_snap-iso.tmp.tsx`를 정식 이름으로 저장소에 옮긴 것 — 원본은 저장소에 없어 역할을 보고서에서 읽어 다시 썼다.)
  *   기준 저장(기준 차수 코드 worktree에서 한 번):  OUT=<폴더> npx tsx scripts/check-v4-off-section.tsx --write
  *   비교(이후 매 항목):                           npx tsx scripts/check-v4-off-section.tsx
- * 기준은 review/454-verify/snap-section/<입력id>.json (커밋 안 함). 기준이 없으면 "건너뜀"으로 통과한다(새 체크아웃).
+ * 기준은 review/455-verify/snap-section-438/<입력id>.json — 438차 커밋(08c4e73) 코드로 만든다(455차; 454차는 453차 코드로 만들어 기준이 어긋났다). 커밋 안 함. 기준이 없으면 "건너뜀"으로 통과한다(새 체크아웃).
  * 만드는 법 안내는 `npm run pc-verify -- --make-baseline <커밋>` 이후 같은 커밋 worktree에서 위 --write.
  */
 import React from "react";
@@ -14,7 +14,7 @@ import { spawnSync } from "node:child_process";
 import { renderToStaticMarkup } from "react-dom/server";
 
 export const name = "v4 off 동일(섹션 단독) — 기준 export·라이브 섹션 단독 렌더 문자열 diff 0";
-export const SNAP_DIR = "review/454-verify/snap-section";
+export const SNAP_DIR = "review/455-verify/snap-section-438";
 
 type Snap = { export: string[]; live: string[] };
 
