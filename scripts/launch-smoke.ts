@@ -43,8 +43,13 @@ const status = async (path: string, init?: RequestInit) => {
     const errors: string[] = [];
     page.on("console", (m) => { if (m.type() === "error") errors.push(m.text().slice(0, 100)); });
     page.on("pageerror", (e) => errors.push(String(e.message).slice(0, 100)));
+    // 457차 — 콘솔의 «하위 리소스 500»에는 주소가 없어 원인을 못 찾는다: 4xx/5xx 응답의 URL·상태·본문 앞부분을 따로 모은다
+    const bad: string[] = [];
+    page.on("response", (r) => { if (r.status() >= 400 && new URL(r.url()).origin === new URL(base).origin) bad.push(`${r.status()} ${r.request().method()} ${r.url().replace(base, "")}`); });
+    page.on("requestfailed", (q) => bad.push(`실패 ${q.method()} ${q.url().replace(base, "").slice(0, 80)} (${q.failure()?.errorText ?? "?"})`));
     const resp = await page.goto(base + path, { waitUntil: "networkidle", timeout: 60_000 }).catch(() => null);
-    add(resp?.status() === 200 && errors.length === 0, `페이지 ${path}`, `${resp?.status() ?? "연결 실패"}${errors.length ? ` · 콘솔 오류 ${errors.length}: ${errors[0]}` : ""}`);
+    const errBody = bad.length && bad[0]!.startsWith("5") ? await fetch(base + bad[0]!.split(" ").slice(2).join(" ")).then((r) => r.text()).then((t) => t.replace(/\s+/g, " ").slice(0, 120)).catch(() => "") : "";
+    add(resp?.status() === 200 && errors.length === 0, `페이지 ${path}`, `${resp?.status() ?? "연결 실패"}${errors.length ? ` · 콘솔 오류 ${errors.length}: ${errors[0]}` : ""}${bad.length ? ` · 요청 ${bad.slice(0, 3).join(" | ")}${errBody ? ` «${errBody}»` : ""}` : ""}`);
     await ctx.close();
   }
   await browser.close();
