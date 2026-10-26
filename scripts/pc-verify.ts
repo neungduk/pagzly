@@ -84,10 +84,16 @@ export const EYE_CHECKLIST: string[] = [
 
 export type EnvReport = { node: string; fonts: boolean; env: Array<{ name: string; present: boolean }>; git: string };
 /** 환경 점검 — 값은 읽지 않고 존재 여부(boolean)만 */
+export function gitSummary(lines: string[]): string {
+  const untracked = lines.filter((l) => l.startsWith("??")).length;
+  const deleted = lines.filter((l) => !l.startsWith("??") && /D/.test(l.slice(0, 2))).length;
+  return `추적 수정 ${lines.length - untracked - deleted} · 삭제 ${deleted} · 미추적 ${untracked}`;
+}
+
 export function envReport(exists: (p: string) => boolean = fs.existsSync, env: NodeJS.ProcessEnv = process.env): EnvReport {
   const g = spawnSync("git", ["status", "--short"], { encoding: "utf8" });
   const lines = (g.stdout ?? "").split("\n").filter(Boolean);
-  return { node: process.version, fonts: exists("public/fonts"), env: ENV_NAMES.map((name) => ({ name, present: env[name] !== undefined && env[name] !== "" })), git: `${lines.length}개 변경(${lines.slice(0, 5).map((l) => l.slice(0, 3).trim()).join(",")}${lines.length > 5 ? "…" : ""})` };
+  return { node: process.version, fonts: exists("public/fonts"), env: ENV_NAMES.map((name) => ({ name, present: env[name] !== undefined && env[name] !== "" })), git: gitSummary(lines) };
 }
 
 export type Result = { step: Step; status: StepStatus; ms: number; code: number | null; log: string; note: string };

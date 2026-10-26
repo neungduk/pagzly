@@ -3,7 +3,7 @@
  * ④ 세션 탐색(주입), ⑤ 환경 점검은 존재 여부(boolean)만 돌려줌, ⑥ 요약 표, ⑦ 소스 정적 검사: .env 읽기·값 출력 없음. 호출 0·서버 0.
  */
 import fs from "node:fs";
-import { ENV_NAMES, envReport, parseArgs, planSteps, summaryMd, type Result } from "../pc-verify";
+import { ENV_NAMES, envReport, gitSummary, parseArgs, planSteps, summaryMd, type Result } from "../pc-verify";
 import { findSessions } from "../pc-sessions-find";
 
 export const name = "PC 검증 도구 — 단계 순서·건너뜀 규칙·세션 탐색·환경값 비출력(.env 읽지 않음)";
@@ -37,6 +37,7 @@ export async function run(): Promise<string[]> {
   ok(found.length === 2 && found[0][0] === "s411" && found[1][0].startsWith("x-"), `세션 탐색: ${JSON.stringify(found)}`);
   ok(findSessions("review", () => false, () => []).length === 0, "없으면 빈 목록");
 
+  ok(gitSummary([" M a", "M  b", " D c", "D  d", "?? e", "?? f", "?? g"]) === "추적 수정 2 · 삭제 2 · 미추적 3", "git 요약은 추적/삭제/미추적으로 분리");
   // 환경 점검: boolean만
   const r = envReport(() => true, { NEXT_PUBLIC_SUPABASE_URL: "secret-dummy-value", NEXT_PUBLIC_SITE_URL: "" } as NodeJS.ProcessEnv);
   ok(r.env.length === ENV_NAMES.length && r.env.every((e) => typeof e.present === "boolean"), "환경 항목은 boolean");
