@@ -114,6 +114,13 @@ export async function runFuzz(opts: { n: number; live: number; widths: number[];
   return { cases, violations };
 }
 
+/**
+ * 457차 2 — 제외 입력: 제품명이 공백뿐인 사례. 앱 화면은 제품명이 비면 막고(`CreateProductForm` 「제품명을 입력」 검사, 전송도 `productName.trim()`) 저장 세션에 비어 있는 제품명이 들어갈 수 없다.
+ * 그래서 이 입력에서만 나오는 린트 R10 「히어로 제품명 없음」은 정상 결과로 보고 error 판정에서 뺀다(가로 넘침 제품명 공백 제외와 같은 처리). 다른 error는 그대로 센다.
+ */
+export const isBlankNameCase = (c: FuzzCase): boolean => c.ops.includes("제품명 공백");
+export const isExcludedViolation = (c: FuzzCase | undefined, v: Violation): boolean => Boolean(c && isBlankNameCase(c) && v.kind === "린트 error" && /R10/.test(v.detail));
+
 export function report(cases: FuzzCase[], vs: Violation[]): string {
   const lines = ["# 퍼징 보고 (448차)", "", `사례 ${cases.length}개(시드 448 고정) · 위반 ${vs.length}건 · 위반 사례 ${new Set(vs.map((x) => x.id)).size}개`, "", "| 종류 | 건수 | 사례 수 |", "|---|---|---|"];
   for (const k of KINDS) { const xs = vs.filter((x) => x.kind === k); lines.push(`| ${k} | ${xs.length} | ${new Set(xs.map((x) => x.id)).size} |`); }
@@ -137,7 +144,9 @@ if (/fuzz-check\.ts$/.test(process.argv[1] ?? "")) {
     fs.writeFileSync(out, md);
     if (arg("json", "")) fs.writeFileSync(arg("json", ""), JSON.stringify(violations));
     console.log(md.split("\n").slice(0, 16).join("\n"));
-    const blank = new Set(cases.filter((c) => c.ops.includes("제품명 공백")).map((c) => c.id));
-    process.exit(violations.some((v) => v.kind !== "렌더 느림" && !(v.kind === "린트 error" && /R10/.test(v.detail) && blank.has(v.id))) ? 1 : 0);
+    const byId = new Map(cases.map((c) => [c.id, c]));
+    const excluded = violations.filter((v) => isExcludedViolation(byId.get(v.id), v));
+    if (excluded.length) console.log(`제외(제품명 공백 R10): ${excluded.length}건 — ${[...new Set(excluded.map((v) => v.id))].join(", ")}`);
+    process.exit(violations.some((v) => v.kind !== "렌더 느림" && !isExcludedViolation(byId.get(v.id), v)) ? 1 : 0);
   });
 }
