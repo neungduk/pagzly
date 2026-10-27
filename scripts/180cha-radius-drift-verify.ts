@@ -2,6 +2,8 @@
  * 180차 — bento/radius/drift 전후 캡처 (이미지 API 0)
  *   npx tsx scripts/180cha-radius-drift-verify.ts before|after|diff
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("180cha-radius-drift-verify", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";

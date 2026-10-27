@@ -3,6 +3,8 @@
  *   npx tsx scripts/capture-57cha-size-compare.ts
  */
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-57cha-size-compare", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

@@ -1,3 +1,5 @@
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("180cha-bento-snippet", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

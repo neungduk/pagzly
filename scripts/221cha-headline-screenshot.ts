@@ -2,6 +2,8 @@
  * 221차 — break-words 적용 후 더미 헤드라인 스크린샷 (API 0).
  *   npx tsx scripts/221cha-headline-screenshot.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("221cha-headline-screenshot", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";

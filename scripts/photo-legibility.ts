@@ -6,6 +6,8 @@
  *   npx tsx scripts/photo-legibility.ts [--out=review/448-verify/photo-stress.md] [--fixtures=id,id] [--photos=id,id] [--json=경로]
  * 사진은 scripts/gen-photo-stress.ts가 review/448-verify/photos에 만든다(없으면 만든다).
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("photo-legibility", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";

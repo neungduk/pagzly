@@ -1,6 +1,8 @@
 /**
  * 445차 — 라이브 캡처 공용: 합성 픽스처 → 개발 미리보기 preset, 라이브 페이지 열기(외부 요청 차단·스크롤 reveal·이슈 배지 숨김).
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("live-lib", typeof module !== "undefined" ? require.main === module : true);
 import { type Browser, type Page } from "playwright";
 import { applySectionDisplayBudget } from "../lib/section-display-budget";
 import { comparisonPolicyRemovesChart } from "../lib/comparison-policy";

@@ -2,6 +2,8 @@
  * 450차 1 — 소형 글자 대비 위반을 원천(클래스·인라인 색/불투명도)별로 분류. export 합성 21종(+선택 라이브)의 전수 픽셀 대비 위반을 모아 상위 원천을 표로.
  *   npx tsx scripts/contrast-sources.ts [--out=review/450-verify/contrast-sources.md] [--json=경로]
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("contrast-sources", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import { corpus, exportHtmlOf } from "./design-corpus";

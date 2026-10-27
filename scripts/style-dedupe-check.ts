@@ -2,6 +2,8 @@
  * 448차 5 — 반복 style 묶기가 화면을 바꾸지 않는지: 묶은 문서와 되돌린(expand) 문서를 같은 폭에서 열어 모든 요소의 계산 스타일을 비교한다.
  *   npx tsx scripts/style-dedupe-check.ts [--widths=390,750] [--only=id,id]
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("style-dedupe-check", typeof module !== "undefined" ? require.main === module : true);
 import { corpus, exportHtmlOf } from "./design-corpus";
 import { expandDedupedStyles } from "../lib/style-dedupe";
 import { launch, openHtml } from "./eye-lib";

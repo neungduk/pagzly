@@ -7,6 +7,8 @@
  *
  * 필요: :3000, auth-state.json, PEXELS_API_KEY
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("181cha-live-generate", typeof module !== "undefined" ? require.main === module : true);
 import { chromium, type Page } from "playwright";
 import fs from "fs";
 import path from "path";

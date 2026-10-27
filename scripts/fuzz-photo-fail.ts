@@ -4,6 +4,8 @@
  *   npx tsx scripts/fuzz-photo-fail.ts [--n=60] [--widths=320,360,390,750] [--modes=all,half,none] [--out=review/456-verify/fuzz-photo-fail.md] [--no-fx]
  * 사진 전부 실패는 R7처럼 사진이 있어야 성립하는 규칙이 생략되지 않도록 사진 0장 모드와 따로 센다.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("fuzz-photo-fail", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import { buildDetailPageHtml } from "../lib/export-detail-html";

@@ -6,6 +6,8 @@
  *   npx tsx scripts/fuzz-live.ts --server=http://localhost:3100 [--n=200] [--widths=320,360,390,750] [--workers=4] [--out=review/449-verify/fuzz-live.md] [--json=경로] [--only=fz003]
  * export 결과(scripts/fuzz-check.ts --json)와 같은 종류 표로 비교한다(--export-json=경로).
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("fuzz-live", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";

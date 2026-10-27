@@ -4,6 +4,8 @@
  *   npx tsx scripts/broken-photo-eye.ts [--out=review/455-verify/broken-before] [--widths=390,750] [--only=id,id] [--no-sheets] [--json=경로]
  * 시트는 pc-verify-eye와 같은 방식(844px 단위, 390은 3장·750은 2장 가로).
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("broken-photo-eye", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";

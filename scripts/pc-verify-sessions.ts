@@ -5,6 +5,8 @@
  *   npx tsx scripts/pc-verify-sessions.ts [--out=review/pc-verify-날짜] [--offline]
  * 사진은 PC의 실제 주소를 그대로 불러온다(--offline이면 외부 요청 차단). 값(키·토큰)은 읽지도 출력하지도 않는다. 불합격이 있으면 종료 코드 1.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("pc-verify-sessions", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "playwright";

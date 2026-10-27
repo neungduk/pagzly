@@ -3,6 +3,8 @@
  *   npx tsx scripts/capture-70cha-autofill.ts
  */
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-70cha-autofill", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

@@ -2,6 +2,8 @@
  * 195차 — editorial bleed overlay 검증 (API 0).
  *   npx tsx scripts/195cha-editorial-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("195cha-editorial-verify", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

@@ -2,6 +2,8 @@
  * 128차 — circle+comparison 병합 캡처 (무비용)
  * npx tsx scripts/128cha-circle-comparison-capture.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("128cha-circle-comparison-capture", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

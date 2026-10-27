@@ -2,6 +2,8 @@
  * 191차 — lazy-load 검증 (API 0). living 세션 export → img loading 속성 집계.
  *   npx tsx scripts/191cha-lazy-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("191cha-lazy-verify", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

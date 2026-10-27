@@ -3,6 +3,8 @@
  * 실행: npx tsx scripts/capture-beauty-type.ts 세럼
  */
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-beauty-type", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import path from "path";
 import fs from "fs";

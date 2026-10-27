@@ -7,6 +7,8 @@
  *  R23 이미지 비율 예약 warn  width·height 속성이 없고 부모가 높이·aspect-ratio를 정하지 않은 <img>(DOM, 로드 뒤 레이아웃 이동 위험)
  * 사용: npx tsx scripts/a11y-lint.ts [--out=review/448-verify/a11y-report.md] [--json=경로]
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("a11y-lint", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import React from "react";

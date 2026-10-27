@@ -2,6 +2,8 @@
  * 142차 — 선별 recraft 검증 (TEST_MODE 아이콘4+배너1)
  *   npx tsx scripts/142cha-selective-recraft.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("142cha-selective-recraft", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import sharp, { type OverlayOptions } from "sharp";

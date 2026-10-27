@@ -3,6 +3,8 @@
  *   npx tsx scripts/fuzz-stability.ts [--server=http://localhost:3100] [--n=30] [--workers-a=4] [--workers-b=1] [--out=review/452-verify/fuzz-stability-run.md]
  * 같은 사례 id·종류·글자(대비 위반은 «글자»)가 양쪽에 같으면 차이 0. 차이가 있으면 종료 코드 1.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("fuzz-stability", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import { runLive, type LiveViolation } from "./fuzz-live";

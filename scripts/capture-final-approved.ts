@@ -5,6 +5,8 @@
  * 실행: npx tsx scripts/capture-final-approved.ts
  */
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-final-approved", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import path from "path";
 import fs from "fs";

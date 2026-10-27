@@ -6,6 +6,8 @@
  * 라이브 750은 데스크톱 뷰포트에서 프리뷰 칼럼을 750px로 고정해 컨테이너 쿼리를 wide로 맞춘다.
  *   npm run dev (별도) → LABEL=before|after npx tsx scripts/286cha-type-parity-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("286cha-type-parity-verify", typeof module !== "undefined" ? require.main === module : true);
 import { chromium, type Browser, type Page } from "playwright";
 import fs from "fs";
 import path from "path";

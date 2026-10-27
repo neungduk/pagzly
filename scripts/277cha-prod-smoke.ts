@@ -6,6 +6,8 @@
  * 재실행 방지: review/277cha-live/.ran 잠금 파일이 있으면 브라우저 열기 전에 중단.
  * 로그인: 브라우저 창을 띄워 사용자가 직접 로그인하면 같은 창에서 이어서 진행.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("277cha-prod-smoke", typeof module !== "undefined" ? require.main === module : true);
 import { chromium, type Page } from "playwright";
 import fs from "fs";
 import path from "path";

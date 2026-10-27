@@ -7,6 +7,8 @@
  *   npx tsx scripts/67cha-paid-qa.ts --task=both
  */
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("67cha-paid-qa", typeof module !== "undefined" ? require.main === module : true);
 import { chromium, type Page } from "playwright";
 import fs from "fs";
 import path from "path";

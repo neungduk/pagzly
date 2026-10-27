@@ -5,6 +5,8 @@
  * 전제: dev 서버 localhost:3000 실행 중
  */
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-56cha-preview", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

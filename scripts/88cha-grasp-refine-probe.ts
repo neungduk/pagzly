@@ -4,6 +4,8 @@
  * grasp 매칭만 0.15 완화(또는 첫 graspRegion) — QA 관찰용.
  *   $env:TEST_MODE="false"; npx tsx scripts/88cha-grasp-refine-probe.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("88cha-grasp-refine-probe", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import Replicate from "replicate";

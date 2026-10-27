@@ -10,6 +10,8 @@
  * 예:
  *   npx tsx scripts/experiment-bria-backdrop-capture.ts replace bria-v3-home 생활용품 "린넨 데코 쿠션" 34900
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("experiment-bria-backdrop-capture", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import path from "path";
 import fs from "fs";

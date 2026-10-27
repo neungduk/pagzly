@@ -19,6 +19,8 @@
 // ⚠️ 셀렉터(#productName 등)는 CreateProductForm.tsx의 실제 구조와
 // 맞아야 합니다. 폼 구조가 바뀌면 이 스크립트도 같이 고쳐야 해요.
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-detail-page", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import path from "path";
 import fs from "fs";

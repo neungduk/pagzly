@@ -1,3 +1,5 @@
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("_197cha-reshoot-food", typeof module !== "undefined" ? require.main === module : true);
 import path from "path";
 import { chromium } from "playwright";
 

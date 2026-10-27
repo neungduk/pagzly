@@ -2,6 +2,8 @@
  * 화장품/뷰티 상세페이지 전체 파이프라인 캡처.
  * npx tsx scripts/capture-beauty-detail.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-beauty-detail", typeof module !== "undefined" ? require.main === module : true);
 import { chromium, type Page } from "playwright";
 import path from "path";
 import fs from "fs";

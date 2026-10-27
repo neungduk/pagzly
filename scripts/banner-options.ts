@@ -6,6 +6,8 @@
  * 지표: 글자 대비(최악 백분위, photo-legibility measure) · 노출(가림 면적비·휘도 보존율, photo-exposure). 시트 `sheet.jpg`, 폰 확인용 `summary.png`, 표 `summary.md`.
  *   npx tsx scripts/banner-options.ts [--out=review/450-verify/banner-options] [--fixture=fx-food-snack]
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("banner-options", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";

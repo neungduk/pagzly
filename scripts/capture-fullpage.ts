@@ -12,6 +12,8 @@
  *   review/fullpage-{slug}-shadow-crop.png
  */
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-fullpage", typeof module !== "undefined" ? require.main === module : true);
 import { chromium, type Page } from "playwright";
 import path from "path";
 import fs from "fs";

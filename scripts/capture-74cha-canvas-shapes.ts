@@ -2,6 +2,8 @@
  * 74차 — 캔버스 도형·표·색상 테마 QA
  *   npx tsx scripts/capture-74cha-canvas-shapes.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-74cha-canvas-shapes", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

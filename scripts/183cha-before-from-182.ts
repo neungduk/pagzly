@@ -2,6 +2,8 @@
  * 183차 before 기준선: 182 after export HTML을 그대로 스크린샷 (API 0).
  * 182 = 183 레이아웃/예산 변경 직전 상태.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("183cha-before-from-182", typeof module !== "undefined" ? require.main === module : true);
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";

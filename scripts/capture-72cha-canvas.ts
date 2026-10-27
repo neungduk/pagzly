@@ -2,6 +2,8 @@
  * 72차 — 자유 캔버스 Phase 1 QA 캡처 (미리보기 / export HTML / 모바일)
  *   npx tsx scripts/capture-72cha-canvas.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-72cha-canvas", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

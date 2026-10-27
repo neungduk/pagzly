@@ -2,6 +2,8 @@
  * 136차 — 삭제 후 스모크 (유료 generate 없음, 세션 시드 + 모듈 import)
  *   npx tsx scripts/136cha-deadcode-smoke.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("136cha-deadcode-smoke", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

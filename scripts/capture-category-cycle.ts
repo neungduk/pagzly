@@ -1,6 +1,8 @@
 // 저장된 session.json으로 /create/result 를 다시 열어 스크린샷만 저장한다 (재생성 없음).
 // 실행: npx tsx scripts/capture-category-cycle.ts 패션-소품 02
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-category-cycle", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

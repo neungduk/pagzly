@@ -7,6 +7,8 @@
  *   npx tsx scripts/160cha-live-generate.ts food
  *   npx tsx scripts/160cha-live-generate.ts beauty
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("160cha-live-generate", typeof module !== "undefined" ? require.main === module : true);
 import { chromium, type Page } from "playwright";
 import fs from "fs";
 import path from "path";

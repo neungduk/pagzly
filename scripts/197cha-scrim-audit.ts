@@ -5,6 +5,8 @@
  * living/pet illustration_banner는 display-budget demote 대상이라,
  * 테마만 유지한 채 budget 비활성 카테고리 라벨로 단독 렌더해 실사한다.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("197cha-scrim-audit", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

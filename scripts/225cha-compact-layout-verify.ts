@@ -2,6 +2,8 @@
  * 225차 — export layout:"compact" 분기 검증 (API 0).
  *   npx tsx scripts/225cha-compact-layout-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("225cha-compact-layout-verify", typeof module !== "undefined" ? require.main === module : true);
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";

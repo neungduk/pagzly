@@ -4,6 +4,8 @@
  * 279차 저장 결과를 결과 페이지 가운데 칼럼 폭(501px)으로 렌더하고, 출력 PNG의 실제 픽셀 크기를 확인한다.
  *   npm run dev (별도) → npx tsx scripts/283cha-capture-width-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("283cha-capture-width-verify", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import { execSync } from "child_process";
 import fs from "fs";

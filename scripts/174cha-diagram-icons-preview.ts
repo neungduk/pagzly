@@ -2,6 +2,8 @@
  * 174차 — 다이어그램 아이콘 전/후 + 카테고리 tint 스모크
  *   npx tsx scripts/174cha-diagram-icons-preview.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("174cha-diagram-icons-preview", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

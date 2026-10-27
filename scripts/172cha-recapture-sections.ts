@@ -1,3 +1,5 @@
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("172cha-recapture-sections", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

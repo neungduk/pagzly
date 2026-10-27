@@ -2,6 +2,8 @@
  * 75차 — 캔버스 AI 이미지 요소 QA
  *   npx tsx scripts/capture-75cha-canvas-ai-image.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-75cha-canvas-ai-image", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

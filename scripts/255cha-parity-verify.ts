@@ -7,6 +7,8 @@
  * 라이브: /dev/detail-preview?capture=255-* / 128-* (430px 컨테이너)
  * export: 같은 픽스처를 buildDetailPageHtml()에 넣고 430px 뷰포트로 렌더
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("255cha-parity-verify", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium, type Locator, type Page } from "playwright";

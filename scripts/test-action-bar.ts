@@ -1,3 +1,5 @@
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("test-action-bar", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import path from "path";
 import fs from "fs";

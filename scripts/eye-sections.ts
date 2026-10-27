@@ -4,6 +4,8 @@
  *   npx tsx scripts/eye-sections.ts [--out=review/444-verify/sections] [--widths=390,750] [--types=faq,spec_table] [--fixtures=fx-tech-keyboard,...]
  * 합성 입력(말뭉치에 없는 섹션)은 SYNTH에 있다 — 검사 전용 문구이며 서비스 문구가 아니다.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("eye-sections", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";

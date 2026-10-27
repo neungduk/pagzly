@@ -2,6 +2,8 @@
  * 227차 — Before/After 입력·삽입·게이팅 검증 (API 0).
  *   npx tsx scripts/227cha-before-after-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("227cha-before-after-verify", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

@@ -3,6 +3,8 @@
  *   npx tsx scripts/capture-53cha-spec-table.ts
  */
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-53cha-spec-table", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

@@ -6,6 +6,8 @@
  * 결과: <out>/<픽스처>/w390/sheet-NN.png(844px 화면 3장을 가로로), <out>/first-screens-18.png(첫 화면 접촉 시트).
  * 브라우저 리비전이 안 맞으면 PLAYWRIGHT_BROWSERS_PATH를 설치된 chromium 링크 폴더로 바꿔 실행한다(저장소 변경 없음).
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("eye-capture", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";

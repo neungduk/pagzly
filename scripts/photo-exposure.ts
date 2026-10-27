@@ -7,6 +7,8 @@
  * 사진 영역 = 화면에 실제로 보이는 <img>(부모 overflow 잘림 반영) + 사진 url을 배경으로 쓰는 요소. 레이아웃 이름은 가장 가까운 히어로·v4 블록·임팩트·정보 구간.
  *   npx tsx scripts/photo-exposure.ts [--out=review/449-verify/exposure.md] [--fixtures=id,id] [--json=경로]
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("photo-exposure", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";

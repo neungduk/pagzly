@@ -2,6 +2,8 @@
  * 80차 — 구독 페이지 리뉴얼 QA
  *   npx tsx scripts/capture-80cha-subscribe-ui.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-80cha-subscribe-ui", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

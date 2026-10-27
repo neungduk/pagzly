@@ -4,6 +4,8 @@
  *   npx tsx scripts/fuzz-check.ts [--n=200] [--live=30] [--widths=360,390,750] [--out=review/448-verify/fuzz-report.md] [--json=경로] [--only=fz003,fz010]
  * 무료·서버 불필요(export는 eye-lib의 Playwright route, 라이브는 renderToStaticMarkup).
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("fuzz-check", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import React from "react";

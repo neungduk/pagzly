@@ -2,6 +2,8 @@
 // 실행: npx tsx scripts/qa-visual-check.ts
 // (dev 서버 BASE_URL 필요, 기본 http://localhost:3001)
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("qa-visual-check", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import crypto from "crypto";
 import fs from "fs";

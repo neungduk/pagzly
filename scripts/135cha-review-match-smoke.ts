@@ -5,6 +5,8 @@
  * A: 로컬 문자열 매칭만 (유료 0)
  * B: 기존 카피 파이프라인 2회 (신규 API/모델 없음, 지시문만 추가)
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("135cha-review-match-smoke", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

@@ -4,6 +4,8 @@
  *   npx tsx scripts/live-vs-export.ts --server=http://localhost:3100 [--out=review/445-verify/live-vs-export] [--widths=390] [--only=id,id]
  * 결과: <out>/summary.md(표), <out>/<픽스처>-w<폭>.json, <out>/<픽스처>/w<폭>/NN-<서명>.png(차이 있는 섹션 최대 8장).
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("live-vs-export", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";

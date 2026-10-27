@@ -2,6 +2,8 @@
  * 160차 — detail-preview 캡처 + export HTML 스모크 (노이즈/IP/각주/성분각주).
  * 실행: npx tsx scripts/160cha-capture-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("160cha-capture-verify", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

@@ -1,6 +1,8 @@
 /**
  * 451차 2 — 히어로 D 750폭 전/후 첫 화면 시트(전 = 사진 높이 상한을 걷은 마크업). `npx tsx scripts/hero-fold-sheet.ts [--out=review/451-verify/hero-fold/sheet.jpg]`
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("hero-fold-sheet", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";

@@ -5,6 +5,8 @@
  * /api/generate 미호출. 기존 세션 + 결정론 섹션 삽입 + detail-preview 캡처로
  * 카테고리 5종(+리뷰 유무) 렌더/사이드바/스와치/KC를 검증한다.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("139cha-regression-qa", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium, type Browser, type Page } from "playwright";

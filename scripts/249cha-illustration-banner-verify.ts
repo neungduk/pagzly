@@ -2,6 +2,8 @@
  * 249차 — illustration_banner 텍스트 스크림/clamp 검증 (API 0, 기존 일러스트 재사용).
  *   npx tsx scripts/249cha-illustration-banner-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("249cha-illustration-banner-verify", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

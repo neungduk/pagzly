@@ -30,6 +30,8 @@
  * 글자 수 어림(R5)은 DOM 지표보다 낮게 나와(s411 0.2 vs 1.70) 위반을 놓쳤다. DOM 값이 없으면(단위 검사) 이전 어림식.
  * 점수 = 100 − Σ(error 8, warn 3, info 1), 규칙별 감점 상한 24 — 한 규칙이 점수를 독점하지 않게.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("design-lint", typeof module !== "undefined" ? require.main === module : true);
 import { expandDedupedStyles } from "../lib/style-dedupe";
 import { MAX_HUE_GROUPS, budgetOf } from "./color-budget";
 import fs from "node:fs";

@@ -2,6 +2,8 @@
  * 84차 — 실루엣 없이 원본+Vision 배치+직접 paste QA
  *   $env:TEST_MODE="false"; npx tsx scripts/84cha-lifestyle-direct-paste-qa.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("84cha-lifestyle-direct-paste-qa", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";

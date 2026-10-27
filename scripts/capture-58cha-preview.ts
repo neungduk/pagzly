@@ -3,6 +3,8 @@
  *   npx tsx scripts/capture-58cha-preview.ts
  */
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-58cha-preview", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

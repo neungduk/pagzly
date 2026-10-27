@@ -2,6 +2,8 @@
  * 169차 Track A — A/B/D/E 섹션 배경 전/후 나란히 보드 (유료 API 0).
  * before = 166 커밋 시점 알파·각도, after = 현재 getSectionBackground.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("169cha-rhythm-board", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

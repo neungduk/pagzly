@@ -2,6 +2,8 @@
  * 87차 — graspRegions(쥐는 지점) 좌표 강제 QA
  *   $env:TEST_MODE="false"; npx tsx scripts/87cha-grasp-region-qa.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("87cha-grasp-region-qa", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

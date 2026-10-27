@@ -2,6 +2,8 @@
  * 195 — capture reconstructed "before" editorial shot (API 0).
  *   npx tsx scripts/195cha-before-shot.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("195cha-before-shot", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

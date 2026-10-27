@@ -2,6 +2,8 @@
  * 181차 — Behance 레퍼런스 재캡처 (headless + project module 스크롤).
  *   npx tsx scripts/181cha-behance-recapture.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("181cha-behance-recapture", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

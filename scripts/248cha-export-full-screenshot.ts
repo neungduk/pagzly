@@ -2,6 +2,8 @@
  * 248차 — 247차 export HTML 풀페이지 스크린샷 (API 0).
  *   npx tsx scripts/248cha-export-full-screenshot.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("248cha-export-full-screenshot", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

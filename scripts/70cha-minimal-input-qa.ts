@@ -5,6 +5,8 @@
  *   npx tsx scripts/70cha-minimal-input-qa.ts
  */
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("70cha-minimal-input-qa", typeof module !== "undefined" ? require.main === module : true);
 import { chromium, type Page } from "playwright";
 import fs from "fs";
 import path from "path";

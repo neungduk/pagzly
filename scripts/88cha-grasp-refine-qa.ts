@@ -2,6 +2,8 @@
  * 88차 — grasp 국소 재생성 QA
  *   $env:TEST_MODE="false"; npx tsx scripts/88cha-grasp-refine-qa.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("88cha-grasp-refine-qa", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

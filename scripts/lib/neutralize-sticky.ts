@@ -1,3 +1,5 @@
+import { assertHeavyEntry } from "./heavy-guard";
+assertHeavyEntry("neutralize-sticky", typeof module !== "undefined" ? require.main === module : true);
 import type { Page } from "playwright";
 import sharp from "sharp";
 

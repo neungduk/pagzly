@@ -5,6 +5,8 @@
  * before 캡처: 제품 코드 stash 후 실행 (section-display-budget 없을 수 있음)
  * after 캡처: stash pop 후 실행
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("183cha-export-verify", typeof module !== "undefined" ? require.main === module : true);
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";

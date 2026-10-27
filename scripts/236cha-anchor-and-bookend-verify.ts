@@ -2,6 +2,8 @@
  * 236차 — FOOD TOC 제품정보 앵커 + export 북엔드 클립 검증 (API 0).
  *   npx tsx scripts/236cha-anchor-and-bookend-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("236cha-anchor-and-bookend-verify", typeof module !== "undefined" ? require.main === module : true);
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";

@@ -3,6 +3,8 @@
 //
 // 실행: npx tsx scripts/capture-iteration.ts 01
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-iteration", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

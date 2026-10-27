@@ -3,6 +3,8 @@
  * prepareCaptureRoot + captureDetailToPngBlob 을 실행한다. 이미지는 279차 결과의 실제 원격 이미지로 교체. 무료.
  *   npm run dev (별도) → npx tsx scripts/280cha-capture-lib-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("280cha-capture-lib-verify", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import { execSync } from "child_process";
 import fs from "fs";

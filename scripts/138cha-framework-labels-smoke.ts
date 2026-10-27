@@ -2,6 +2,8 @@
  * 138차 — 설득 프레임워크 라벨 손검산 + 사이드바 스크린샷 + 구매자 경로 미노출
  *   npx tsx scripts/138cha-framework-labels-smoke.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("138cha-framework-labels-smoke", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

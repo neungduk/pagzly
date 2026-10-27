@@ -2,6 +2,8 @@
  * draft만 생성 (mode=draft) — QA 로그 확인용. 이미지 보정 없음.
  * npx tsx scripts/capture-draft-qa-only.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-draft-qa-only", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import path from "path";
 import fs from "fs";

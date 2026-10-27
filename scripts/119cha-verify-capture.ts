@@ -2,6 +2,8 @@
  * 119차 — 워드마크/식품 다이어그램/생활 패턴 검증 캡처 (API 없음)
  * npx tsx scripts/119cha-verify-capture.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("119cha-verify-capture", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

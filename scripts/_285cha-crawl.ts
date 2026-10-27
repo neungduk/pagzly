@@ -3,6 +3,8 @@
  *   npx tsx scripts/_285cha-crawl.ts [targetKey...]
  * 결과: review/285cha-bench/<key>/<n>/img-XX.* + overview.png + meta.json
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("_285cha-crawl", typeof module !== "undefined" ? require.main === module : true);
 import { chromium, type Page, type BrowserContext } from "playwright";
 import fs from "fs";
 import path from "path";

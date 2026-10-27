@@ -2,6 +2,8 @@
  * 196차 — editorial bleed 중립 스크림 검증 + 전체 섹션 스크린샷 (API 0).
  *   npx tsx scripts/196cha-editorial-scrim-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("196cha-editorial-scrim-verify", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

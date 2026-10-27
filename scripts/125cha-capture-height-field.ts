@@ -2,6 +2,8 @@
  * 125차 — 제품 높이 필드 UI 스크린샷 (무비용)
  * npx tsx scripts/125cha-capture-height-field.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("125cha-capture-height-field", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

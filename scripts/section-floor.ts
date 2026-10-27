@@ -7,6 +7,8 @@
  * 점수 = 100 − 8×외톨이 − 20×겹침 − 15×넘침 − 빈 띠 비율×120  (0~100). 종류 키 = data-pz-v4 → data-pz-impact → data-info → 첫 클래스 → data-hero-v2 → tag
  *   npx tsx scripts/section-floor.ts [--out=review/453-verify/section-floor.md] [--json=경로] [--width=390]
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("section-floor", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import { corpus, exportHtmlOf } from "./design-corpus";

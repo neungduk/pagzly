@@ -4,6 +4,8 @@
  * 860 PNG 기준 실효 글자 크기(본문·섹션 타이틀·히어로)와 출력 크기를 잰다.
  *   npm run dev (별도) → npx tsx scripts/288cha-capture-design-width-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("288cha-capture-design-width-verify", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import { execSync } from "child_process";
 import fs from "fs";

@@ -2,6 +2,8 @@
  * 81차 — 라이프스타일 픽셀 합성 QA (유료, 2~3케이스)
  *   npx tsx scripts/81cha-lifestyle-pixel-paste-qa.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("81cha-lifestyle-pixel-paste-qa", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";

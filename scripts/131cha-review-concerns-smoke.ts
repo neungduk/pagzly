@@ -2,6 +2,8 @@
  * 131차 — review_highlight concerns 배선 검증 (무비용)
  *   npx tsx scripts/131cha-review-concerns-smoke.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("131cha-review-concerns-smoke", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

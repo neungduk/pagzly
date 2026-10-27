@@ -1,3 +1,5 @@
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("_197cha-pet-banner", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

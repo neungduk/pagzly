@@ -2,6 +2,8 @@
  * 117차 — 카테고리별 히어로 타이포 스크린샷 (로컬 HTML, 비용 $0)
  * 실행: npx tsx scripts/117cha-typography-screenshots.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("117cha-typography-screenshots", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "playwright";

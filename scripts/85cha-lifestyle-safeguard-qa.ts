@@ -2,6 +2,8 @@
  * 85차 — Vision confidence 보정 + 얼굴/목 배치 하드 세이프가드 QA
  *   $env:TEST_MODE="false"; npx tsx scripts/85cha-lifestyle-safeguard-qa.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("85cha-lifestyle-safeguard-qa", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

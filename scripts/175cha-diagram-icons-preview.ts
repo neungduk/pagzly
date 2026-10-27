@@ -2,6 +2,8 @@
  * 175차 — 5개 다이어그램 아이콘 전/후 + tint 스모크
  *   npx tsx scripts/175cha-diagram-icons-preview.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("175cha-diagram-icons-preview", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

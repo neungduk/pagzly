@@ -6,6 +6,8 @@
  * 옵션: --dry-run(명령만 출력) --skip-capture --skip-build --skip-smoke --only=id,id --out=<폴더> --date=YYYY-MM-DD
  *       --make-baseline <commit> [--skip-install]   (기준 스냅샷을 그 커밋의 코드로 만든다 — docs/pc-verify.md)
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("pc-verify", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";

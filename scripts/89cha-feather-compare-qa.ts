@@ -2,6 +2,8 @@
  * 89차 — 페더링 전/후 비교 + labelDelta 누적
  *   $env:TEST_MODE="false"; npx tsx scripts/89cha-feather-compare-qa.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("89cha-feather-compare-qa", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import Replicate from "replicate";

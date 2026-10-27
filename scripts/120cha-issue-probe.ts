@@ -2,6 +2,8 @@
  * 120차 — Next.js "1 Issue" 배지 원인 조사 (수정 없음, API 없음)
  * npx tsx scripts/120cha-issue-probe.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("120cha-issue-probe", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

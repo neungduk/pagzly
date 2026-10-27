@@ -2,6 +2,8 @@
  * 회원가입(가능하면) 또는 기존 세션으로 온보딩 3단계 제출 → /create 진입 확인.
  * 실행: npx tsx scripts/capture-onboarding.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-onboarding", typeof module !== "undefined" ? require.main === module : true);
 import { chromium, type Page } from "playwright";
 import path from "path";
 import fs from "fs";

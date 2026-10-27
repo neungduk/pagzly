@@ -6,6 +6,8 @@
  *
  *   npx tsx scripts/198cha-reshoot-with-local-assets.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("198cha-reshoot-with-local-assets", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import http from "http";
 import path from "path";

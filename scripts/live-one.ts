@@ -13,6 +13,8 @@
  * 실행 후: npx tsx scripts/audit-session.ts <출력 폴더>/<시나리오>/session.json <출력 폴더>/<시나리오>/audit
  * 절차서: review/399-after-generation-runbook.md, 비용 근거: review/397-paid-verify-plan.md
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("live-one", typeof module !== "undefined" ? require.main === module : true);
 import { chromium, type Page } from "playwright";
 import fs from "fs";
 import path from "path";

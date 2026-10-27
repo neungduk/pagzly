@@ -6,6 +6,8 @@
  *
  *   npx tsx scripts/252cha-sticky-screenshot-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("252cha-sticky-screenshot-verify", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium, type Page } from "playwright";

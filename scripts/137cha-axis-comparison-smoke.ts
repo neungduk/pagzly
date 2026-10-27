@@ -2,6 +2,8 @@
  * 137차 — 리뷰 축 comparison 손검산 + 중복 방지 + 스크린샷
  *   npx tsx scripts/137cha-axis-comparison-smoke.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("137cha-axis-comparison-smoke", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

@@ -2,6 +2,8 @@
  * 241차 — stat_infographic ring export 원형 게이지 검증 (API 0).
  *   npx tsx scripts/241cha-stat-infographic-ring-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("241cha-stat-infographic-ring-verify", typeof module !== "undefined" ? require.main === module : true);
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";

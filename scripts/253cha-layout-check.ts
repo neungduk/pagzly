@@ -2,6 +2,8 @@
  * 253차 — 배치 이상 증거 수집 (조사만, API 0, 코드 수정 없음)
  *   npx tsx scripts/253cha-layout-check.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("253cha-layout-check", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

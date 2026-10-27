@@ -4,6 +4,8 @@
  *   npx tsx scripts/live-audit.ts --server=http://localhost:3100 --fixture=fx-compare-beauty --type=review_highlight [--width=390]
  * (원본 섹션 목록에서 type이 같은 첫 섹션 하나만 쓴다. 표시 규칙이 임팩트로 바꾸는 brand_story 같은 섹션도 원형 그대로 본다.)
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("live-audit", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import { buildDetailPageHtml } from "../lib/export-detail-html";
 import { corpus, exportArgsOf, readSession } from "./design-corpus";

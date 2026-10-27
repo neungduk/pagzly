@@ -2,6 +2,8 @@
  * draft → 승인 → result 까지 1회 생성 후 review_highlight / usage_steps 스크린샷.
  * 실행: npx tsx scripts/capture-review-usage-features.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-review-usage-features", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import path from "path";
 import fs from "fs";

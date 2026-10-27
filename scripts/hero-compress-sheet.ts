@@ -4,6 +4,8 @@
  *   npx tsx scripts/hero-compress-sheet.ts [--out=review/450-verify/hero-compress]
  * 무료·서버 불필요(export HTML을 eye-lib의 Playwright route로 연다).
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("hero-compress-sheet", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";

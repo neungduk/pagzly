@@ -2,6 +2,8 @@
  * 444차 — 눈 검수 캡처 공용: export HTML을 서버 없이 Playwright route로 연다(페이지·/qa-fixtures·/fonts는 저장소 파일, Google Fonts CSS는 로컬 Noto Sans KR로 대체, 그 밖은 차단).
  * 폰트는 `node scripts/build-detail-fonts.mjs`가 만든 public/fonts(gitignore)를 쓴다.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("eye-lib", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import { chromium, type Browser, type Page } from "playwright";

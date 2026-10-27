@@ -2,6 +2,8 @@
  * 레퍼런스/리뷰/기획안 각각 1건씩 화장품 생성 후 결과 캡처.
  * 실행: npx tsx scripts/capture-input-sources.ts [reference|review|planning|all]
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-input-sources", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import path from "path";
 import fs from "fs";

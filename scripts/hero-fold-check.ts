@@ -4,6 +4,8 @@
  *   npx tsx scripts/hero-fold-check.ts [--out=review/451-verify/hero-fold/summary.md] [--json=경로]
  * 가격은 히어로 v3 레이어 `data-hl="price"`만 본다(없는 변형·가격 없는 입력은 "없음"으로 구분하고 위반으로 세지 않는다).
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("hero-fold-check", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import { corpus, exportHtmlOf } from "./design-corpus";

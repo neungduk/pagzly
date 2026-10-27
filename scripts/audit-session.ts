@@ -15,6 +15,8 @@
  *   5) audit.json + audit.md(한국어 통과/실패 표)
  * 종료 코드: 실패가 하나라도 있으면 1.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("audit-session", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";

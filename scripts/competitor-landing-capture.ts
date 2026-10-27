@@ -1,6 +1,8 @@
 /**
  * 경쟁사 랜딩 풀페이지 스크린샷 — scripts/competitor-gap-scan.ts, marketplace-pdp-scan.ts 공용.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("competitor-landing-capture", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

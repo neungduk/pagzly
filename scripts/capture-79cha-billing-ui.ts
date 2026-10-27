@@ -2,6 +2,8 @@
  * 79차 — 결제 페이지 UI 개편 QA
  *   npx tsx scripts/capture-79cha-billing-ui.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-79cha-billing-ui", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

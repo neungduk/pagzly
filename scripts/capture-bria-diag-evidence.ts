@@ -9,6 +9,8 @@
  * 환경: REPLICATE_API_TOKEN (.env.local), BASE_URL (기본 http://localhost:3001)
  */
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-bria-diag-evidence", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

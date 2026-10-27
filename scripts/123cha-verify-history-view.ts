@@ -2,6 +2,8 @@
  * 123차 — history "보기" + missing-id toast 검증 (API 생성 호출 없음)
  * npx tsx scripts/123cha-verify-history-view.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("123cha-verify-history-view", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import path from "path";
 import fs from "fs";

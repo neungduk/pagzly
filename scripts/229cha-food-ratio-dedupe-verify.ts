@@ -2,6 +2,8 @@
  * 229차 — spec_table 식품 도넛 중복 제거 검증 (API 0).
  *   npx tsx scripts/229cha-food-ratio-dedupe-verify.ts [--phase=before|after|all]
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("229cha-food-ratio-dedupe-verify", typeof module !== "undefined" ? require.main === module : true);
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";

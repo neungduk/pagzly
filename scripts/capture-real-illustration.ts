@@ -2,6 +2,8 @@
  * 실제 /create 플로우로 화장품 1건 생성 후 illustration_banner 섹션 캡처.
  * 실행: npx tsx scripts/capture-real-illustration.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-real-illustration", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import path from "path";
 import fs from "fs";

@@ -2,6 +2,8 @@
  * TEST_MODE generate-backdrop 1회 호출 → 이미지/메타 저장.
  * 실행: npx tsx scripts/test-backdrop-once.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("test-backdrop-once", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

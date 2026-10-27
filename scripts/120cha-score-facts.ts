@@ -2,6 +2,8 @@
  * 120차 — 채점용 DOM facts (API 없음)
  * npx tsx scripts/120cha-score-facts.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("120cha-score-facts", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

@@ -3,6 +3,8 @@
  * 인증 만료 시 /dev/generating-overlay 로 폴백 (동일 컴포넌트).
  * 실행: npx tsx scripts/capture-generating-overlay.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-generating-overlay", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import path from "path";
 import fs from "fs";

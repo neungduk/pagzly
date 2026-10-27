@@ -2,6 +2,8 @@
  * 223차 — annotated overlay export 검증 (API 0).
  *   npx tsx scripts/223cha-annotated-overlay-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("223cha-annotated-overlay-verify", typeof module !== "undefined" ? require.main === module : true);
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";

@@ -6,6 +6,8 @@
  *   npx tsx scripts/live-capture.ts --server=http://localhost:3100 [--out=review/445-verify/live] [--widths=390,750] [--only=id,id] [--sheets]
  * 외부 네트워크 요청은 모두 막는다(사진·폰트는 같은 서버의 public/). --sheets가 있으면 export 캡처(eye-capture)와 같은 모양의 시트(3·2장 가로)도 만든다.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("live-capture", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";

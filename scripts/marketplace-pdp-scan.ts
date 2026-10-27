@@ -4,6 +4,8 @@
  * 실행: npx tsx scripts/marketplace-pdp-scan.ts
  * 산출: review/marketplace-pdp-learning-2026.md
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("marketplace-pdp-scan", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { MARKETPLACE_PDP_MODULES, scoreMarketplaceModules } from "../lib/marketplace-pdp-patterns";

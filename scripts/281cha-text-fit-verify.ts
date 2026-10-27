@@ -7,6 +7,8 @@
  * 를 검출하고 대상 섹션 스크린샷을 남긴다.
  *   npm run dev (별도) → LABEL=before|after npx tsx scripts/281cha-text-fit-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("281cha-text-fit-verify", typeof module !== "undefined" ? require.main === module : true);
 import { chromium, type Page } from "playwright";
 import fs from "fs";
 import path from "path";

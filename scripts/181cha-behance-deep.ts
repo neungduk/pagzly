@@ -2,6 +2,8 @@
  * 181차 — Behance food/pet 딥스크롤 재캡처 (프로젝트 본문 UI 프레임).
  *   npx tsx scripts/181cha-behance-deep.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("181cha-behance-deep", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

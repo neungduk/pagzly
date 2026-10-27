@@ -4,6 +4,8 @@
  *
  * 기존 review/181cha-live/{electronics,pet}/session.json 재사용.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("219cha-clamp-overflow-verify", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium, type Page } from "playwright";

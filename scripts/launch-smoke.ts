@@ -6,6 +6,8 @@
  *       ④ 보안 헤더 ⑤ robots·sitemap. 모든 요청은 빈 본문 `{}` 또는 GET이라 비용이 들지 않는다(인증 단계에서 거절되는 것을 확인하는 점검).
  * 종료 코드: 실패가 하나라도 있으면 1.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("launch-smoke", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 
 const base = (process.argv[2] ?? "").replace(/\/+$/, "");

@@ -2,6 +2,8 @@
  * 78차 — 상단 계정/토큰 배지 QA
  *   npx tsx scripts/capture-78cha-account-badge.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-78cha-account-badge", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

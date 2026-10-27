@@ -4,6 +4,8 @@
  * 필요: dev 서버(:3000). /dev/detail-preview?capture=session에 세션을 sessionStorage로 넣어 그린다.
  * 출력: review/<label>-verify/packs/<팩>-<폭>-live.png (+ export HTML 렌더 -export.png), 첫 3화면 크롭 포함.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("verify-411-capture", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "playwright";

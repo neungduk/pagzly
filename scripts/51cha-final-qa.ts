@@ -8,6 +8,8 @@
  * 환경: .env.local PEXELS_API_KEY, scripts/auth-state.json
  */
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("51cha-final-qa", typeof module !== "undefined" ? require.main === module : true);
 import { chromium, type Page } from "playwright";
 import fs from "fs";
 import path from "path";

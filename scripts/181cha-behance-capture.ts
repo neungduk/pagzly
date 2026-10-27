@@ -2,6 +2,8 @@
  * 181차 — Behance 카테고리 겹치는 PDP 레퍼런스 스크린샷 (이미지 생성 API 0).
  *   npx tsx scripts/181cha-behance-capture.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("181cha-behance-capture", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

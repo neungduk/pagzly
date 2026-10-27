@@ -2,6 +2,8 @@
  * 129차 — apply 후 인접 circle+chart 가 128 combo로 발동하는지 캡처
  *   npx tsx scripts/129cha-circle-combo-capture.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("129cha-circle-combo-capture", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

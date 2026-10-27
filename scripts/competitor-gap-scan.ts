@@ -5,6 +5,8 @@
  * 산출: review/competitor-gap-2026.md, review/competitor-screens/*.png
  */
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("competitor-gap-scan", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { extractUrlSummary } from "../lib/url-crawler";

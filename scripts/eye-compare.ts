@@ -6,6 +6,8 @@
  *   (현재 트리)                  npx tsx scripts/eye-compare.ts --compose=/tmp/before,/tmp/after --out=review/444-verify/before-after
  * 사진·폰트는 두 트리가 같은 public/ 파일을 쓰게 맞춘 뒤 돌려야 코드 차이만 보인다.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("eye-compare", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";

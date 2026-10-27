@@ -4,6 +4,8 @@
  *   npm run dev (별도) → npx tsx scripts/280cha-capture-heavy-local.ts
  * 이미지 URL 은 로그에 남기지 않는다.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("280cha-capture-heavy-local", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

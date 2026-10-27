@@ -4,6 +4,8 @@
  *   npx tsx scripts/pc-verify-eye.ts [--out=review/pc-verify-날짜/eye] [--widths=390,750] [--only=id,id] [--offline]
  * 사진은 PC의 실제 주소를 불러온다(--offline이면 차단). 폰트는 public/fonts(없으면 `node scripts/build-detail-fonts.mjs`).
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("pc-verify-eye", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";

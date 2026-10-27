@@ -2,6 +2,8 @@
  * 169차 — 픽스처 세션을 export HTML로 무료 렌더 캡처 (유료 API 0).
  * 리듬 대비·네이티브 섹션 트리 육안용.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("169cha-export-fixture-captures", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

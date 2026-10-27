@@ -2,6 +2,8 @@
  * 134차 — 결과 화면 "직접 편집" 사이드바 UI 스크린샷
  *   npx tsx scripts/134cha-edit-panel-capture.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("134cha-edit-panel-capture", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

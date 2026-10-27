@@ -7,6 +7,8 @@
  * 환경: .env.local 의 PEXELS_API_KEY, scripts/auth-state.json, BASE_URL(기본 :3000)
  */
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("generate-one-pexels-detail", typeof module !== "undefined" ? require.main === module : true);
 import { chromium, type Page } from "playwright";
 import fs from "fs";
 import path from "path";

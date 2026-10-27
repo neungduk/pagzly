@@ -5,6 +5,8 @@
  *
  * 이미지 생성 API 정확히 1회. 필요: :3000, auth-state.json, PEXELS_API_KEY
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("172cha-live-fashion", typeof module !== "undefined" ? require.main === module : true);
 import { chromium, type Page } from "playwright";
 import fs from "fs";
 import path from "path";

@@ -2,6 +2,8 @@
  * 220차 — image_text 헤드라인 스크린샷만 (코드 변경 없음, API 0).
  *   npx tsx scripts/220cha-headline-screenshot.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("220cha-headline-screenshot", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium, type Page } from "playwright";

@@ -2,6 +2,8 @@
  * 71차 — result 3분할 레이아웃 스크린샷 (데스크톱 + 모바일)
  *   npx tsx scripts/capture-71cha-result-layout.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-71cha-result-layout", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

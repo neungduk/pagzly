@@ -2,6 +2,8 @@
  * 77차 — 캔버스 표 셀 편집 QA
  *   npx tsx scripts/capture-77cha-canvas-table-edit.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-77cha-canvas-table-edit", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

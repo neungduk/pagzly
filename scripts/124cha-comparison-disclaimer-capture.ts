@@ -2,6 +2,8 @@
  * 124차 — comparison_chart self_assessed 디스클레이머 캡처 (무비용)
  * npx tsx scripts/124cha-comparison-disclaimer-capture.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("124cha-comparison-disclaimer-capture", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

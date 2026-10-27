@@ -2,6 +2,8 @@
  * 237차 — 패션 사이즈 실측 다이어그램 측정/체형 안내 문구 검증 (API 0).
  *   npx tsx scripts/237cha-size-disclaimer-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("237cha-size-disclaimer-verify", typeof module !== "undefined" ? require.main === module : true);
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";

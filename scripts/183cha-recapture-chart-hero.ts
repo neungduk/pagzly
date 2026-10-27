@@ -1,4 +1,6 @@
 /** 183차 — COMPARE 섹션만 재캡처 (before=182 HTML, after=현재 export). API 0. */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("183cha-recapture-chart-hero", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

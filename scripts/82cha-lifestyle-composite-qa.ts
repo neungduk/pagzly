@@ -2,6 +2,8 @@
  * 82차 — 라이프스타일 합성 QA (폴백 브랜드 방지 + 라벨 픽스처 + 중앙 정렬)
  *   $env:TEST_MODE="false"; npx tsx scripts/82cha-lifestyle-composite-qa.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("82cha-lifestyle-composite-qa", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";

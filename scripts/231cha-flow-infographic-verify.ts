@@ -2,6 +2,8 @@
  * 231차 — 트랙 A(펫 성분 링) / B(export 브리더) / C(선명도 양방향) 검증. API 0.
  *   npx tsx scripts/231cha-flow-infographic-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("231cha-flow-infographic-verify", typeof module !== "undefined" ? require.main === module : true);
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";

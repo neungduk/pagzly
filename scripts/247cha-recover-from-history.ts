@@ -2,6 +2,8 @@
  * 247차 — /create/history에서 246차 생성물 복구 (유료 API 0).
  *   npx tsx scripts/247cha-recover-from-history.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("247cha-recover-from-history", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

@@ -3,6 +3,8 @@
  * 중립(chroma < 0.055 또는 거의 흰색/검정)은 세지 않는다. design-lint R18과 회귀가 같은 함수를 쓴다.
  *   npx tsx scripts/color-budget.ts [--out=review/446-verify/color-budget.md] [id...]
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("color-budget", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import { corpus, exportHtmlOf } from "./design-corpus";
 import { launch, openHtml } from "./eye-lib";

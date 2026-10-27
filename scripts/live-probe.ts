@@ -2,6 +2,8 @@
  * 451차 — 라이브 퍼징 사례 한 건을 열어 글자 대비 위반 요소의 원천(클래스·인라인 색·부모 배경 사슬)을 찍는다.
  *   npx tsx scripts/live-probe.ts fz067 fz138 [--width=390] [--server=http://localhost:3100]
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("live-probe", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import { fuzzCases } from "./fuzz-sessions";
 import { contrastPage, openCase } from "./fuzz-live";

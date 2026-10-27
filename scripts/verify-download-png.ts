@@ -2,6 +2,8 @@
  * 다운로드 PNG 검증 (콘솔 로그 포함)
  *   npx tsx scripts/verify-download-png.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("verify-download-png", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

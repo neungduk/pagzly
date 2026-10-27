@@ -5,6 +5,8 @@
  * B만 DeepSeek/Claude 기존 카피 파이프라인 호출 (신규 모델·이미지 API 없음).
  * A/C는 로컬만 — 유료 0.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("133cha-density-evidence-smoke", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

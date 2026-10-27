@@ -8,6 +8,8 @@
  * export: buildDetailPageHtml → Playwright setContent 스크린샷 + HTML 저장
  * live: BASE_URL 가능 시 result 미리보기 캡처 (불가하면 export만 보고)
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("179cha-elevation-pixel-compare", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";

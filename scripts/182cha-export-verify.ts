@@ -2,6 +2,8 @@
  * 182차 — 181 저장 세션으로 export HTML 렌더 + sha256 + 스크린샷 (API 0).
  *   npx tsx scripts/182cha-export-verify.ts before|after
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("182cha-export-verify", typeof module !== "undefined" ? require.main === module : true);
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";

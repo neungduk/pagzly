@@ -2,6 +2,8 @@
  * 242차 — comparison_table 불린 셀 export 배지 검증 (API 0).
  *   npx tsx scripts/242cha-comparison-table-boolish-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("242cha-comparison-table-boolish-verify", typeof module !== "undefined" ? require.main === module : true);
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";

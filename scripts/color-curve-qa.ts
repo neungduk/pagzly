@@ -11,6 +11,8 @@
  *   review/color-curve-qa/report.md
  */
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("color-curve-qa", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

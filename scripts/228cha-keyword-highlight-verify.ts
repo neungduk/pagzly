@@ -2,6 +2,8 @@
  * 228차 — splitTextByKeywords 단위 + export/live 강조 검증 (API 0).
  *   npx tsx scripts/228cha-keyword-highlight-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("228cha-keyword-highlight-verify", typeof module !== "undefined" ? require.main === module : true);
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";

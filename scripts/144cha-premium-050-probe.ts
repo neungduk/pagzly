@@ -8,6 +8,8 @@
  * - .env.local 임시 변경 시 finally에서 원복 필수
  * - TEST_MODE=true면 lifestyle/composite 유료 경로가 $0이므로, C/D/G는 일시적으로 false
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("144cha-premium-050-probe", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import sharp, { type OverlayOptions } from "sharp";

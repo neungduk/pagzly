@@ -3,6 +3,8 @@
  *   npx tsx scripts/64cha-lifestyle-composite-qa.ts
  */
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("64cha-lifestyle-composite-qa", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

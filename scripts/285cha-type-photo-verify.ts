@@ -8,6 +8,8 @@
  * 를 기록하고 전체 스크린샷을 남긴다.
  *   npm run dev (별도) → LABEL=before|after npx tsx scripts/285cha-type-photo-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("285cha-type-photo-verify", typeof module !== "undefined" ? require.main === module : true);
 import { chromium, type Browser } from "playwright";
 import fs from "fs";
 import path from "path";

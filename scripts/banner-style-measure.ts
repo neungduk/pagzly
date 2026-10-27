@@ -3,6 +3,8 @@
  * 글자 대비(최악 백분위, photo-legibility measure)와 사진 노출(가림·보존, photo-exposure)을 잰다. 기본값은 바꾸지 않는다(setBannerStyleForTests는 측정 중에만).
  *   npx tsx scripts/banner-style-measure.ts [--out=review/451-verify/banner-style.md] [--photos=all|fast]
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("banner-style-measure", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import { BANNER_STYLE, setBannerStyleForTests, type BannerStyle } from "../lib/design-tokens-v4";

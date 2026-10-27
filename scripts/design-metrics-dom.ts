@@ -10,6 +10,8 @@
  *  - 명암 반전: 밝은 면 ↔ 어두운 면(상대 휘도 0.18 기준)으로 바뀐 횟수. 기준 ≤6 — 반전이 잦으면 눈이 쉬지 못하고 조각난 느낌이 난다.
  * 라이브와 export는 마크업이 같아(패리티 0) export로 잰 값이 라이브와 같다. 사진은 기다리지 않는다(크기는 aspect-ratio로 고정).
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("design-metrics-dom", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import { chromium } from "playwright";
 

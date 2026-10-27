@@ -2,6 +2,8 @@
  * 251차 — illustration_banner 실사진 배정 + export 검증 (API 0).
  *   npx tsx scripts/251cha-illustration-banner-photo-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("251cha-illustration-banner-photo-verify", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

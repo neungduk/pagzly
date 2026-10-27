@@ -1,3 +1,5 @@
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-utils", typeof module !== "undefined" ? require.main === module : true);
 import type { Page } from "playwright";
 
 /** GSAP ScrollTrigger가 opacity:0으로 숨긴 섹션을 캡처 전에 전부 표시 */

@@ -2,6 +2,8 @@
  * 직접 편집 → DB PATCH 저장 → sessionStorage 비우고 재진입 시 유지 검증.
  * npx tsx scripts/verify-edit-save-db.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("verify-edit-save-db", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import path from "path";
 import fs from "fs";

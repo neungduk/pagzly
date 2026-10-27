@@ -3,6 +3,8 @@
  *   npx tsx scripts/280cha-font-embed-prod.ts
  * 결과 페이지와 같은 next/font(Noto Sans/Serif KR) CSS를 쓰므로 getWebFontCSS 단계 비용을 그대로 잰다.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("280cha-font-embed-prod", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

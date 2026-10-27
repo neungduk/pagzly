@@ -2,6 +2,8 @@
  * 265차 — certificate_evidence(판매자 업로드 인증·허가 서류) 삽입·export 검증 (API 0).
  *   npx tsx scripts/265cha-certificate-evidence-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("265cha-certificate-evidence-verify", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

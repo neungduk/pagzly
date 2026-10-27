@@ -2,6 +2,8 @@
  * 449차 1-2 — 스크림 전/후 눈 검수 시트: 사진 6종(밝은 하늘·흰 벽·밝은 옷 대용 파스텔·어두운·고채도·복잡한 노이즈) × 히어로 A·정보 포인트 구간·배너를 한 장에.
  *   npx tsx scripts/scrim-sheet.ts --tag=before|after [--out=review/449-verify/scrim-before-after]
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("scrim-sheet", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";

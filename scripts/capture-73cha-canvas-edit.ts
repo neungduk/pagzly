@@ -2,6 +2,8 @@
  * 73차 — 캔버스 드래그/리사이즈 편집 QA
  *   npx tsx scripts/capture-73cha-canvas-edit.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-73cha-canvas-edit", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

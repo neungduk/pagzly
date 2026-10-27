@@ -2,6 +2,8 @@
  * 196 — before shots from 195 export HTML (brand-colored scrim), full section.
  *   npx tsx scripts/196cha-before-shot.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("196cha-before-shot", typeof module !== "undefined" ? require.main === module : true);
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";

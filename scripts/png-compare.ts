@@ -6,6 +6,8 @@
  *   npx tsx scripts/png-compare.ts --server=http://localhost:3100 [--out=review/448-verify/png] [--only=id,id] [--target=860]
  * 외부 네트워크·유료 호출 없음(openLive가 서버 밖 요청을 모두 막는다).
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("png-compare", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";

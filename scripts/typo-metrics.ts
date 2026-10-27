@@ -8,6 +8,8 @@
  *   npx tsx scripts/typo-metrics.ts [--out=review/452-verify/typo/metrics.md] [--json=경로] [--widths=390,750]
  * 문구는 건드리지 않는다. 글자 폭·행간은 폰트(Noto Sans KR)가 로드된 뒤 잰다.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("typo-metrics", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import type { Page } from "playwright";

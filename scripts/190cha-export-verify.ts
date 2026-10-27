@@ -3,6 +3,8 @@
  * 181 저장 세션으로 demote 수치 + living export 스크린샷.
  *   npx tsx scripts/190cha-export-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("190cha-export-verify", typeof module !== "undefined" ? require.main === module : true);
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";

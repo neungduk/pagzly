@@ -5,6 +5,8 @@
  * 51cha-final-qa.ts 기반, 출력만 57cha-backdrop-*.png
  */
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("57cha-backdrop-qa", typeof module !== "undefined" ? require.main === module : true);
 import { chromium, type Page } from "playwright";
 import fs from "fs";
 import path from "path";

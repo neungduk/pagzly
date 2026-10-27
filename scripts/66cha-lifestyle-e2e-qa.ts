@@ -5,6 +5,8 @@
  * dev :3000, scripts/auth-state.json, REPLICATE_API_TOKEN, PEXELS_API_KEY(선택)
  */
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("66cha-lifestyle-e2e-qa", typeof module !== "undefined" ? require.main === module : true);
 import { chromium, type Page } from "playwright";
 import fs from "fs";
 import path from "path";

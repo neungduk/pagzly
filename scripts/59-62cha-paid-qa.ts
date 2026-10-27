@@ -8,6 +8,8 @@
  * dev 서버 :3000, scripts/auth-state.json, PEXELS_API_KEY 필요
  */
 
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("59-62cha-paid-qa", typeof module !== "undefined" ? require.main === module : true);
 import { chromium, type Page } from "playwright";
 import fs from "fs";
 import path from "path";

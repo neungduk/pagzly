@@ -4,6 +4,8 @@
  *   NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy NEXT_PUBLIC_SITE_URL=http://127.0.0.1:3200 npx next dev -p 3200
  *   npx tsx scripts/broken-photo-live.ts --server=http://localhost:3200 [--out=review/455-verify/live-after] [--widths=390,750] [--only=id,id] [--no-sheets] [--json=경로]
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("broken-photo-live", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";

@@ -3,6 +3,8 @@
  * 합성 픽스처를 export로 그려 린트 R7(대비)을 센다. 회귀와 보고서가 같은 함수를 쓴다.
  *   npx tsx scripts/contrast-sweep.ts [--hues=0,15,...] [--fixtures=id,id]
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("contrast-sweep", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import { STUDIO_NEUTRAL_SAMPLE, buildThemeFromHueWithNeutral } from "../lib/color-extract";
 import { buildDetailPageHtml } from "../lib/export-detail-html";

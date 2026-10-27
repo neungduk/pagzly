@@ -4,6 +4,8 @@
  * 결과 페이지 가운데 칼럼 폭(501px)으로 렌더하고, 플랫폼별 "이미지로 다운로드"·"분할 ZIP"과 같은 인자로 캡처한다.
  *   npm run dev (별도) → LABEL=before|after npx tsx scripts/284cha-platform-size-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("284cha-platform-size-verify", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import { execSync } from "child_process";
 import fs from "fs";

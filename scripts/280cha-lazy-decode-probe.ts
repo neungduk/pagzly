@@ -3,6 +3,8 @@
  * 적용했을 때 decode 가 끝나는지 확인 (무료, 로컬 /dev/detail-preview).
  *   npm run dev (별도) → npx tsx scripts/280cha-lazy-decode-probe.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("280cha-lazy-decode-probe", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

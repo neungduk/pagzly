@@ -2,6 +2,8 @@
  * 실제 /create 플로우로 화장품 1건 생성 후 FAQ/추천대상/브랜드스토리/배송 섹션 캡처.
  * 실행: npx tsx scripts/capture-real-sections.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-real-sections", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import path from "path";
 import fs from "fs";

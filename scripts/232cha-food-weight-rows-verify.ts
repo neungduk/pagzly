@@ -2,6 +2,8 @@
  * 232차 — FOOD nutrition_table 무게 게이트 + export visibleRows 동기화 검증 (API 0).
  *   npx tsx scripts/232cha-food-weight-rows-verify.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("232cha-food-weight-rows-verify", typeof module !== "undefined" ? require.main === module : true);
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";

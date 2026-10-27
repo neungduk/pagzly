@@ -2,6 +2,8 @@
  * 76차 — 캔버스 안정화 QA (회귀·모바일·스트레스·export)
  *   npx tsx scripts/capture-76cha-canvas-stabilization.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("capture-76cha-canvas-stabilization", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

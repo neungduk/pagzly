@@ -3,6 +3,8 @@
  *   npm run dev  (별도)  →  npx tsx scripts/280cha-capture-timing-local.ts
  * captureDetailToPngBlob 과 같은 옵션으로 toPng 를 호출하고, 폰트 임베드(skipFonts) 유무를 비교한다.
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("280cha-capture-timing-local", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";

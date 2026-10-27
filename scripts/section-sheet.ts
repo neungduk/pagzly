@@ -2,6 +2,8 @@
  * 453차 3 — 섹션 종류별 눈 검수 캡처. 종류 키가 같은 구간을 입력 풍부(tier-rich)·보통(tier-normal)·빈약(tier-sparse) 합성 세션에서 390폭으로 찍어 저장한다.
  *   npx tsx scripts/section-sheet.ts --dir=review/453-verify/section-sheet/after   (코드 바꾸기 전/후에 각각 실행)
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("section-sheet", typeof module !== "undefined" ? require.main === module : true);
 import fs from "node:fs";
 import path from "node:path";
 import { corpus, exportHtmlOf } from "./design-corpus";

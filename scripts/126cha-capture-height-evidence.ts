@@ -2,6 +2,8 @@
  * 126차 — /create/detail 에서 #productHeightCm 스크린샷 + 로그 증거
  * npx tsx scripts/126cha-capture-height-evidence.ts
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry("126cha-capture-height-evidence", typeof module !== "undefined" ? require.main === module : true);
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";
