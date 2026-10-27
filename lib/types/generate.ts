@@ -584,7 +584,7 @@ export type ImpactSection = {
 
 /** 439차 — v4 블록 데이터(문구는 모두 기존 섹션·입력 원문) */
 export type V4Block = {
-  family: "benefits" | "concern" | "story" | "spec" | "phototext" | "touch" | "breather";
+  family: "benefits" | "concern" | "story" | "spec" | "phototext" | "touch" | "breather" | "steps" | "statement";
   variant: string;
   /** 아이브로우 순번(1부터) */
   no: number;

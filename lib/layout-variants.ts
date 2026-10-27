@@ -27,13 +27,14 @@
 import type { DetailSection, ImpactSection, V4Block } from "@/lib/types/generate";
 import type { ImpactPalette } from "@/lib/impact-templates";
 import type { ProductImageOrigin } from "@/lib/image-origins";
-import { designV4On } from "@/lib/design-v4";
+import { designUp1On, designV4On } from "@/lib/design-v4";
 import { contrastRatioToken, hexToRgba, mixHex } from "@/lib/design-tokens";
 import { depthShadow, hairline, v4Palette, type FaceRole, type V4Palette } from "@/lib/palette-v4";
 import { dividerFor, dividerHtml, type DividerKind } from "@/lib/dividers";
 import { motifHtml, motifSvg, planMotifs, type MotifColors, type MotifPlacement } from "@/lib/motifs";
 import { EYEBROW_LABEL, SANS_FF, TITLE_FF, esc, ghostHtml, highlightKeyword, keywordCandidates, numberStatHtml, polishCardTitles, titleBlock, titlePresetFor, typeCss } from "@/lib/type-treatments";
 import { splitSentences } from "@/lib/impact-boost";
+import { splitLead } from "@/lib/info-style";
 import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import { groupPendingSpecRows, isPlaceholderValue, PENDING_SPEC_ROW_LABEL } from "@/lib/spec-placeholder";
 import { extraIconFor, iconV4Svg, pickIconsV4 } from "@/lib/icons";
@@ -50,6 +51,21 @@ export const V4_VARIANTS: Record<V4Family, string[]> = {
   phototext: ["overlap", "offset", "arch", "caption", "collage"],
   touch: ["band"],
   breather: ["motif"],
+  // 463차 — UP1 전용 계열(꺼짐에서는 후보를 만들지 않으므로 기존 변형 목록·감사에는 나타나지 않는다)
+  steps: [],
+  statement: [],
+};
+
+/**
+ * 463차 — UP1(NEXT_PUBLIC_DESIGN_V4_UP1=on)에서만 쓰는 추가 변형. 기존 계열은 선호 순서의 3번째 자리에 끼워 시드 회전에 들게 하고(기존 상위 2개는 그대로),
+ * 새 계열(steps·statement)은 이 목록만 쓴다. UP1이 꺼져 있으면 variantOrder가 이 목록을 보지 않는다(출력 불변).
+ */
+export const V4_UP1_VARIANTS: Partial<Record<V4Family, string[]>> = {
+  benefits: ["linelist"],
+  story: ["pullband"],
+  spec: ["cards"],
+  steps: ["vtimeline", "bignum", "chipflow"],
+  statement: ["band"],
 };
 
 /** mood별 선호 순서(앞이 우선). 없는 mood는 기본 순서 */
@@ -79,7 +95,9 @@ export function seedOf(s: string): number {
 
 /** mood 선호 순서를 시드로 회전(앞 3개 안에서) — 같은 mood라도 상품마다 첫 변형이 달라진다 */
 export function variantOrder(family: V4Family, mood: string | null | undefined, seed: number): string[] {
-  const pref = (mood && MOOD_PREF[mood]?.[family]) || V4_VARIANTS[family];
+  let pref = (mood && MOOD_PREF[mood]?.[family]) || V4_VARIANTS[family];
+  const extra = designUp1On() ? V4_UP1_VARIANTS[family] ?? [] : [];
+  if (extra.length) pref = pref.length ? [...pref.slice(0, 2), ...extra, ...pref.slice(2)] : [...extra]; // 463차 UP1: 기존 상위 2개 뒤에 끼운다
   const k = Math.min(3, pref.length);
   const r = seed % k;
   const head = pref.slice(0, k);
@@ -110,6 +128,13 @@ export function variantFits(family: V4Family, variant: string, d: { items: Item[
     case "spec.line": return n >= 1;
     case "phototext.overlap": case "phototext.offset": case "phototext.arch": case "phototext.caption": return n === 1 && photos === 1;
     case "phototext.collage": return n === 2 && photos === 2;
+    // 463차 UP1 — 새 변형의 입력 요건(글 길이는 한 줄·두 줄 안에 들어가는 범위). 요건 미달이면 다른 변형이나 기존 레이아웃으로 폴백
+    case "benefits.linelist": return designUp1On() && n >= 3 && n <= 6 && d.items.every((i) => len(i.title) <= 36 && len(i.body) <= 70);
+    case "story.pullband": return designUp1On() && len(d.quote) >= 8 && len(d.quote) <= 80;
+    case "spec.cards": return designUp1On() && n >= 2 && n <= 6 && d.items.every((i) => len(i.title) <= 20 && len(i.body) >= 1 && len(i.body) <= 48 && !isPlaceholderValue(i.body ?? ""));
+    case "steps.vtimeline": return designUp1On() && n >= 2 && n <= 6 && d.items.every((i) => len(i.title) >= 2 && len(i.title) <= 90);
+    case "steps.bignum": return designUp1On() && n >= 2 && n <= 6 && d.items.every((i) => len(i.title) >= 2 && len(i.title) <= 60);
+    case "steps.chipflow": return designUp1On() && n >= 2 && n <= 5 && d.items.every((i) => len(i.title) >= 2 && len(i.title) <= 32);
     default: return false;
   }
 }
@@ -148,6 +173,20 @@ function benefitsHtml(s: ImpactSection, b: V4Block, p: V4Palette, alt: string): 
   const items = b.items ?? [];
   const on = p.onFace[faceRole(b)];
   const head = headingHtml(s.text, b, p);
+  if (b.variant === "linelist") {
+    // 463차 UP1 — 번호 + 제목 + (있으면) 설명을 한 줄에 늘어놓는 목록. 아이콘·카드 없이 가는 선으로만 나눈다(글이 길면 설명이 아래 줄로 내려간다)
+    const rows = items
+      .map(
+        (it, i) =>
+          `<div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;padding:16px 0;border-top:${i ? `1px solid ${hexToRgba(p.ink, 0.12)}` : `2px solid ${p.ink}`}${i === items.length - 1 ? `;border-bottom:1px solid ${hexToRgba(p.ink, 0.12)}` : ""}">` +
+          `<span aria-hidden="true" style="flex:none;${TITLE_FF};font-size:15px;font-weight:800;color:${zigzagLabelColor(b, p, on.strong)}">${NUM(i + 1)}</span>` +
+          `<span style="flex:1 1 9em;min-width:0;overflow-wrap:anywhere;${typeCss("card", p.ink, "font-size:17px")}">${esc(it.title)}</span>` +
+          (it.body ? `<span style="flex:1 1 12em;min-width:0;overflow-wrap:anywhere;${typeCss("small", on.sub)}">${esc(it.body)}</span>` : "") +
+          `</div>`,
+      )
+      .join("");
+    return wrap(b, p, rows, { head });
+  }
   if (b.variant === "bento") {
     const [first, ...rest] = items;
     const big =
@@ -257,6 +296,18 @@ function storyHtml(s: ImpactSection, b: V4Block, p: V4Palette, alt: string): str
   const photo = s.images?.[0];
   const photoHtml = photo ? `<div style="margin:28px 0 0;aspect-ratio:4 / 3;overflow:hidden;border-radius:20px;box-shadow:${depthShadow("float", p.ink)}">${img(photo.url, alt, photo.pos)}</div>` : "";
   const head = headingHtml(s.text, b, p, "color");
+  if (b.variant === "pullband") {
+    // 463차 UP1 — 인용문 한 줄을 어두운 띠에 크게(왼쪽 정렬), 본문은 띠 아래에 그대로. 가운데 정렬 인용(quote)과 구조가 다르다
+    const bandBg = contrastRatioToken("#FFFFFF", p.deep) >= 4.5 ? p.deep : p.ink;
+    const inner =
+      `${chip ? `<div style="margin:0 0 14px">${chip}</div>` : ""}${head ? `<p style="margin:0 0 16px;${typeCss("card", on.strong)}">${head}</p>` : ""}` +
+      `<div style="position:relative;box-sizing:border-box;padding:28px 22px 26px 26px;border-radius:22px;background:${bandBg};box-shadow:${depthShadow("float", p.ink)}">` +
+      `<span aria-hidden="true" data-pz-deco style="display:block;${TITLE_FF};font-size:56px;font-weight:900;line-height:0.6;height:26px;color:${hexToRgba("#FFFFFF", 0.5)}">“</span>` +
+      `<p style="margin:0;text-align:left;overflow-wrap:anywhere;${typeCss("display", "#FFFFFF", "font-size:26px")}">${esc(s.quote ?? "")}</p></div>` +
+      (s.body ? `<p style="margin:22px 0 0;${typeCss("body", on.sub, "white-space:pre-line")}">${esc(s.body)}</p>` : "") +
+      photoHtml;
+    return wrap(b, p, inner, { head: "" });
+  }
   if (b.variant === "editorial") {
     const inner =
       `<div style="display:flex;gap:14px;align-items:flex-start"><span aria-hidden="true" data-pz-deco style="flex:0 0 48px;${TITLE_FF};font-size:96px;font-weight:900;line-height:0.75;color:${p.tints[3]}">“</span>` +
@@ -303,6 +354,19 @@ function specHtml(s: ImpactSection, b: V4Block, p: V4Palette): string {
       ? `<p style="margin:0;${typeCss("card", p.ink, "font-size:16px")}">${items.map((it) => esc(it.title)).join(" · ")}</p><p style="margin:6px 0 0;${typeCss("small", on.sub)}">${esc(items[0]!.body ?? "")}</p>`
       : items.map((it, i) => `<p style="margin:${i ? 8 : 0}px 0 0;${typeCss("small", on.text)}"><b style="font-weight:700;color:${p.ink}">${esc(it.title)}</b> — ${esc(it.body ?? "")}</p>`).join("");
     return wrap(b, p, `<div style="display:flex;gap:14px;align-items:flex-start;padding:18px 18px 20px;border-radius:16px;background:#FFFFFF;border:${hairline(p.ink)}"><span style="flex:none;margin-top:2px">${iconV4Svg("info", { color: p.deep, px: 22, tint: p.tints[0] })}</span><div style="flex:1 1 0%;min-width:0">${lines}</div></div>`, { head });
+  }
+  if (b.variant === "cards") {
+    // 463차 UP1 — 값을 먼저 크게, 라벨은 아래 작은 글. 색 면 카드(테두리 없음) 2열 — 표·줄무늬(line)나 흰 카드(grid)와 다르다
+    const cards = items
+      .map(
+        (it, i) =>
+          `<div style="flex:1 1 calc(50% - 5px);min-width:140px;box-sizing:border-box;padding:18px 16px 16px;border-radius:18px;background:${i % 2 ? mixHex(p.secondary, "#FFFFFF", 0.86) : p.tints[0]};border-top:4px solid ${p.deep}">` +
+          // 짧은 값(8자 이하)만 큰 숫자 꼴(줄바꿈 없는 한 덩어리). 긴 값은 줄바꿈이 되는 일반 글로 — 2열 칸(320폭에서 140px 안팎)을 넘지 않게
+          `<p style="margin:0;overflow-wrap:anywhere;line-height:1.2">${len((it.body ?? "").trim()) <= 8 ? numberStatHtml(it.body ?? "", p.ink, 26) : `<span style="overflow-wrap:anywhere;${typeCss("card", p.ink, "font-size:19px")}">${esc((it.body ?? "").trim())}</span>`}</p>` +
+          `<p style="margin:8px 0 0;overflow-wrap:anywhere;${typeCss("label", on.sub, "letter-spacing:0.04em")}">${esc(it.title)}</p></div>`,
+      )
+      .join("");
+    return wrap(b, p, `<div style="display:flex;flex-wrap:wrap;gap:10px">${cards}</div>`, { head });
   }
   if (b.variant === "strip") {
     const cells = items
@@ -453,9 +517,74 @@ export function v4Html(s: ImpactSection, pal: ImpactPalette, alt: string): strin
     case "spec": html = specHtml(s, b, p); break;
     case "phototext": html = phototextHtml(b, p, alt); break;
     case "touch": html = touchHtml(s, b, p); break;
+    case "steps": html = stepsHtml(s, b, p); break;
+    case "statement": html = statementHtml(s, b, p); break;
     default: html = wrap({ ...b, motifs: [] }, p, `<div aria-hidden="true" style="display:flex;align-items:center;justify-content:center;gap:18px">${motifSvg("wave", 96, 20, motifColors(p), b.no)}${motifSvg("sparkle", 18, 18, motifColors(p))}${motifSvg("wave", 96, 20, motifColors(p), b.no + 1)}</div>`, { pad: "32px 24px" });
   }
   return polishCardTitles(html);
+}
+
+/** 463차 UP1 — 사용 순서(usage_steps 원문 문장 그대로). 번호만 붙인다 */
+function stepsHtml(s: ImpactSection, b: V4Block, p: V4Palette): string {
+  const items = b.items ?? [];
+  const on = p.onFace[faceRole(b)];
+  const head = headingHtml(s.text, b, p);
+  const dot = contrastRatioToken("#FFFFFF", p.deep) >= 4.5 ? p.deep : p.ink; // 흰 숫자가 올라가는 원
+  // "라벨: 설명" 꼴이면 라벨을 굵게 한 줄, 설명을 아래 줄로(원문 그대로 나눌 뿐). 아니면 한 문장 그대로
+  const stepText = (t: string, strong: string, body: string): string => {
+    const sp = splitLead(t);
+    return sp
+      ? `<span style="display:block;overflow-wrap:anywhere;${typeCss("card", strong, "font-size:16px")}">${esc(sp.lead)}</span><span style="display:block;margin-top:4px;overflow-wrap:anywhere;${typeCss("small", body)}">${esc(sp.rest)}</span>`
+      : `<span style="display:block;overflow-wrap:anywhere;${typeCss("body", strong, "font-weight:600")}">${esc(t)}</span>`;
+  };
+  if (b.variant === "bignum") {
+    const cards = items
+      .map(
+        (it, i) =>
+          `<div style="flex:1 1 calc(50% - 5px);min-width:150px;box-sizing:border-box;padding:16px 16px 18px;border-radius:18px;background:#FFFFFF;border:${hairline(p.ink)};box-shadow:${depthShadow("soft", p.ink)}">` +
+          `<span aria-hidden="true" data-pz-deco style="display:block;${TITLE_FF};font-size:44px;font-weight:900;letter-spacing:-0.05em;line-height:1;color:${p.tints[3]}">${NUM(i + 1)}</span>` +
+          `<div style="margin:10px 0 0">${stepText(it.title, p.ink, mixHex(p.ink, "#FFFFFF", 0.18))}</div></div>`,
+      )
+      .join("");
+    return wrap(b, p, `<div style="display:flex;flex-wrap:wrap;gap:10px">${cards}</div>`, { head });
+  }
+  if (b.variant === "chipflow") {
+    const arrow = `<span aria-hidden="true" style="flex:none;display:flex;align-items:center">${`<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="display:block"><path d="M9 6 L15 12 L9 18" fill="none" stroke="${p.deep}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`}</span>`;
+    const chips = items
+      .map(
+        (it, i) =>
+          (i ? arrow : "") +
+          `<span style="display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;max-width:100%;padding:10px 14px 10px 10px;border-radius:20px;background:${p.tints[0]};border:${hairline(p.ink)}">` +
+          `<span aria-hidden="true" style="flex:none;display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:${dot};color:#FFFFFF;${SANS_FF};font-size:13px;font-weight:800">${i + 1}</span>` +
+          `<span style="min-width:0;overflow-wrap:anywhere;${typeCss("body", p.ink, "font-weight:600")}">${esc(it.title)}</span></span>`,
+      )
+      .join("");
+    return wrap(b, p, `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 8px">${chips}</div>`, { head });
+  }
+  // vtimeline: 세로 선 + 번호 원
+  const nodes = items
+    .map(
+      (it, i) =>
+        `<div style="position:relative;padding:0 0 ${i === items.length - 1 ? 0 : 24}px 46px;min-height:32px">` +
+        (i < items.length - 1 ? `<span aria-hidden="true" style="position:absolute;left:15px;top:32px;bottom:0;width:2px;background:${p.tints[2]}"></span>` : "") +
+        `<span aria-hidden="true" style="position:absolute;left:0;top:0;display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:${dot};color:#FFFFFF;${SANS_FF};font-size:14px;font-weight:800">${i + 1}</span>` +
+        `<div style="padding-top:3px">${stepText(it.title, on.text, on.sub)}</div></div>`,
+    )
+    .join("");
+  return wrap(b, p, nodes, { head });
+}
+
+/** 463차 UP1 — 강조 띠: 입력에 이미 있는 문장 한 줄을 원문 그대로 크게(가공 없음). 왼쪽 정렬 + 왼쪽 세로 띠 — 가운데 정렬 제목이 이어지는 구간에 정렬 변주를 준다 */
+function statementHtml(s: ImpactSection, b: V4Block, p: V4Palette): string {
+  const on = p.onFace[faceRole(b)];
+  const text = highlightKeyword(s.text, b.keywords ?? [], "color", p.deep).html;
+  return wrap(
+    b,
+    p,
+    `<div style="display:flex;align-items:stretch;gap:18px"><span aria-hidden="true" style="flex:none;width:5px;border-radius:3px;background:${p.deep}"></span>` +
+      `<p style="flex:1 1 0%;min-width:0;margin:0;text-align:left;overflow-wrap:anywhere;${typeCss("display", on.text, "font-size:28px")}">${text}</p></div>`,
+    { pad: "56px 24px" },
+  );
 }
 
 // ── 계획 ──────────────────────────────────────────────────────────────────────
@@ -501,6 +630,12 @@ function findCandidates(secs: DetailSection[], ctx: V4Ctx): Cand[] {
       const items = run.map((t) => ({ title: t.heading.trim(), ...(t.body?.trim() ? { body: t.body.trim() } : {}), ...(t.layout === "compact" && !t.noPhoto && urlOf(t.imageIndex) ? { img: { url: urlOf(t.imageIndex), pos: "50% 45%" } } : {}) }));
       if (run.length >= 2 && items.every((x) => x.title)) out.push({ family: "benefits", at: i, len: run.length, text: "", items, from: `quick_points×${run.length}` });
       i = j - 1;
+      continue;
+    }
+    // 463차 UP1 — 사용 순서(usage_steps) 문장 2~6개를 steps 계열 변형으로. 원 섹션 종류는 origin으로 남겨 앵커 내비가 그대로 동작한다
+    if (designUp1On() && s.type === "usage_steps") {
+      const steps = (s.steps ?? []).map((t) => (t ?? "").trim()).filter(Boolean);
+      if (steps.length >= 2 && steps.length <= 6) out.push({ family: "steps", at: i, len: 1, text: (s.heading ?? "").trim(), items: steps.map((t) => ({ title: t })), origin: { type: "usage_steps", slot: s.slot }, from: "usage_steps" });
       continue;
     }
     if (s.type === "highlight_box" && !s.boldBlock && s.cards.length >= 2 && s.cards.length <= 4) {
@@ -612,11 +747,50 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
   }
   const hooked = applyHookStructure(outS, outI, placed, keywords, ctx);
   const rhythm0 = applyRhythm(hooked.sections, hooked.sourceIndexes, ctx, seed);
-  const rhythm = applyTrust(rhythm0, ctx);
+  const rhythm1 = applyTrust(rhythm0, ctx);
+  // 463차 UP1 — 강조 띠 1개(입력에 이미 있는 문장 원문). 꺼짐이면 건너뛴다(출력 불변)
+  const band = designUp1On() ? insertStatementBand(rhythm1.sections, rhythm1.sourceIndexes, sections, keywords, ctx) : null;
+  const rhythm = band ? { ...rhythm1, sections: band.sections, sourceIndexes: band.sourceIndexes, inserted: [...rhythm1.inserted, band.note] } : rhythm1;
   const withMotifs = assignMotifs(assignFaces(rhythm.sections, seed), ctx.mood, seed);
   const finalPlaced: V4Placed[] = [];
   withMotifs.forEach((s, at) => { if (s.type === "impact" && s.kind === "v4" && s.v4) finalPlaced.push({ family: s.v4.family, variant: s.v4.variant, at, from: "" }); });
   return { sections: withMotifs, sourceIndexes: rhythm.sourceIndexes, placed: finalPlaced, moved: hooked.moved, inserted: rhythm.inserted };
+}
+
+/**
+ * 463차 UP1 — 강조 띠. 문장은 입력에 이미 있는 것만 원문 그대로: 브랜드 스토리 인용문(quote) → 강조 박스 카드 제목 순으로 8~48자 한 줄, 수치 검사(checkText)를 통과한 것.
+ * 위치는 페이지 높이의 55% 근처 경계. 히어로·접점·숨 고르기·기존 강조 띠·구매 카드와 맞닿지 않고, 같은 문장이 든 섹션 바로 옆에는 두지 않는다. 페이지당 최대 1개.
+ * 우선순위: 기존 규칙(INFO_RUN_MAX·MAX_BREATHERS·TOUCH_AT로 이미 놓인 접점·모티프 면)이 먼저 놓인 뒤에 남는 경계에만 끼운다 — 충돌하면 띠를 만들지 않는다.
+ */
+export const STATEMENT_AT = 0.55;
+export function statementCandidates(orig: DetailSection[]): string[] {
+  const out: string[] = [];
+  for (const s of orig) if (s.type === "impact" && s.kind === "story" && s.quote) out.push(s.quote.trim());
+  for (const s of orig) if (s.type === "highlight_box") for (const c of s.cards) out.push((c.title ?? "").trim());
+  return out;
+}
+export function insertStatementBand(secs: DetailSection[], idx: number[], orig: DetailSection[], keywords: readonly string[], ctx: V4Ctx): { sections: DetailSection[]; sourceIndexes: number[]; note: string } | null {
+  const text = statementCandidates(orig).find((t) => len(t) >= 8 && len(t) <= 48 && !/[\r\n]/.test(t) && !checkText(t, ctx.facts).bad);
+  if (!text || secs.length < 8) return null;
+  const hs = secs.map((s) => ctx.height(s));
+  const total = hs.reduce((a, b) => a + b, 0);
+  const blocked = (s: DetailSection | undefined): boolean => !s || s.type === "hero" || s.type === "cta_price" || (s.type === "impact" && s.kind === "v4" && (s.v4?.family === "touch" || s.v4?.family === "breather" || s.v4?.family === "statement"));
+  const holdsText = (s: DetailSection | undefined): boolean => !!s && JSON.stringify(s).includes(JSON.stringify(text).slice(1, -1));
+  let y = 0;
+  let best = -1;
+  let bestD = Infinity;
+  for (let k = 0; k < secs.length; k += 1) {
+    const d = Math.abs(y - total * STATEMENT_AT);
+    if (k >= 4 && k <= secs.length - 3 && !blocked(secs[k - 1]) && !blocked(secs[k]) && !holdsText(secs[k - 1]) && !holdsText(secs[k]) && d < bestD) { bestD = d; best = k; }
+    y += hs[k]!;
+  }
+  if (best < 0) return null;
+  const sec = { type: "impact", slot: "impact", kind: "v4", text, ...(ctx.mood ? { mood: ctx.mood } : {}), v4: { family: "statement", variant: "band", no: 0, face: "emphasis", keywords: keywords.slice(0, 12) } } as ImpactSection;
+  const S = [...secs];
+  const I = [...idx];
+  S.splice(best, 0, sec as DetailSection);
+  I.splice(best, 0, I[best - 1]!);
+  return { sections: S, sourceIndexes: I, note: `강조 띠 @${best}` };
 }
 
 /** 첫 3화면: ① 히어로(+패션 첫 갤러리) ② 한눈에 보기(점수 최고 benefits) ③ 고민(concern 계열) — 이미 있는 블록을 앞으로 옮긴다 */
@@ -794,6 +968,34 @@ function assignFaces(secs: DetailSection[], seed: number): DetailSection[] {
     const s = out[i]!;
     if (s.type !== "impact" || s.kind === "v4" || s.kind === "note" || s.kind === "number" || s.kind === "statement" || s.kind === "reviewstat" || PHOTO_KINDS.has(s.kind) || faceClass(s) !== "white") continue;
     if (faceClass(out[i - 1]) === "white" && faceClass(out[i + 1]) !== "tint") out[i] = { ...s, faceTone: "warm" } as DetailSection;
+  }
+  // 463차 UP1 3회차: 흰 면(임팩트 흰 면 + 흰 바탕인 일반 섹션 종류)이 3개 이상 이어지면 그 안의 바꿀 수 있는 임팩트 하나를 색 면으로(한 구간에 하나)
+  if (designUp1On()) {
+    const WHITE_TYPES = new Set(["spec_table", "caution", "faq", "usage_steps", "ai_disclosure"]);
+    const whiteish = (t: DetailSection | undefined): boolean => !!t && (t.type === "impact" ? faceClass(t) === "white" : WHITE_TYPES.has(t.type) || (t.type === "image_text" && t.layout === "text_only"));
+    const changeable = (t: DetailSection): boolean => t.type === "impact" && faceClass(t) === "white" && t.kind !== "note" && t.kind !== "number" && t.kind !== "statement" && t.kind !== "reviewstat" && !PHOTO_KINDS.has(t.kind) && !(t.kind === "v4" && t.v4 && (t.v4.family === "touch" || (t.v4.family === "phototext" && t.v4.variant === "caption")));
+    for (let i = 0; i < out.length; ) {
+      if (!whiteish(out[i])) { i += 1; continue; }
+      let j = i;
+      while (j < out.length && whiteish(out[j])) j += 1;
+      if (j - i >= 3) {
+        const mid = (i + j - 1) / 2;
+        const pick = [...Array(j - i).keys()].map((k) => i + k).filter((k) => changeable(out[k]!)).sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid))[0];
+        if (pick !== undefined) {
+          const t = out[pick] as ImpactSection;
+          out[pick] = (t.kind === "v4" && t.v4 ? { ...t, v4: { ...t.v4, face: "bgB" } } : { ...t, faceTone: "warm" }) as DetailSection;
+        }
+      }
+      i = j;
+    }
+    // 숨 고르기 면이 색 면과 흰 면 사이에서 흰 면(bgA)이 되면 뒤의 흰 면과 같은 바탕이 된다 → 따뜻한 중립 면(bgB)으로(세 번째 면이라 이웃과 모두 다르다)
+    for (let i = 1; i < out.length - 1; i += 1) {
+      const t = out[i]!;
+      if (t.type !== "impact" || t.kind !== "v4" || t.v4?.family !== "breather" || (t.v4.face ?? "bgA") !== "bgA") continue;
+      const a = faceClass(out[i - 1]);
+      const c = faceClass(out[i + 1]);
+      if ((a === "tint" && c === "white") || (a === "white" && c === "tint")) out[i] = { ...t, v4: { ...t.v4, face: "bgB" } } as DetailSection;
+    }
   }
   return out;
 }
