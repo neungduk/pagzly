@@ -146,3 +146,6 @@ v4 이전 플래그(`DESIGN_V2`·`DESIGN_V3_COLOR` 등)는 이 문서 범위 밖
 - 밀도 교대(여백 32/48/64 선택): 시도했으나 여백 3연속이 줄지 않고 오히려 늘어(27→32곳) **되돌렸다**. 새 변형·띠의 기본 여백을 그대로 쓴다.
 - 편집 모드: `applyDisplayRules`가 편집 중이면 v4 계획 앞에서 끝나므로(`lib/display-sections.ts` 편집 조기 반환) `usage_steps`는 UP1에서도 편집 중에는 원본 섹션 그대로다.
 - 롤백: `NEXT_PUBLIC_DESIGN_V4_UP1`을 지우거나 `off`로 두고 재배포(한 줄). UP1 꺼짐 출력은 변하지 않는다.
+
+## 10. V5 (465차)
+페이지 아키타입·스토리보드·부품 확장은 `NEXT_PUBLIC_DESIGN_V5=on` 뒤에 있다(기본 꺼짐, UP1 포함). 개요·롤백은 [`docs/v5-overview.md`](v5-overview.md), 코드 지도는 [`docs/v5-architecture-465.md`](v5-architecture-465.md).

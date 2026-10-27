@@ -71,3 +71,6 @@ review/*.txt
 loop/STOP
 loop/STOPPED.txt
 loop/DONE.txt
+
+# 465차 V5 갤러리 도구 산출물(집 PC에서 열어 보는 정적 HTML, 커밋 안 함)
+review/465-gallery/

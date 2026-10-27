@@ -32,3 +32,12 @@ UP1을 끄고 재배포하면 모두 사라지고 이전 모양으로 돌아오�
 | 흰·색·중립 면 조합 | 숨 고르기 면이 색 면과 흰 면 사이에서 중립 면(bgB)이 될 때 색이 3종을 넘는 느낌이 없는지(446차 색 예산, 브라우저 측정 `scripts/color-budget.ts`는 집 PC에서) |
 | 편집 모드의 사용 순서 | 편집을 켜면 사용 순서가 원본 편집 가능한 섹션으로 돌아오고, 편집을 끄면 `steps.*` 변형으로 바뀌는지(코드상 편집 중에는 v4 계획을 건너뜀) |
 | 새 변형 320px 줄바꿈 | `linelist`·`pullband`·`spec.cards`·`steps.*`에서 긴 한글·숫자 혼합이 넘치지 않는지 |
+
+## V5 눈 검수 (465차) — 이전(R2) 완료 후에만, placeholder 모드부터
+**전제**: `NEXT_PUBLIC_DESIGN_V5=on`은 프리뷰/로컬에서만 켠다(프로덕션 기본 꺼짐). 먼저 갤러리로 본다.
+1. `npx tsx scripts/v5-gallery-465.ts --compare=fx-skincare-serum` (그리고 `fx-tech-keyboard`·`fx-food-snack`·`fx-fashion-dress-floral`) → `review/465-gallery/index.html`을 연다. 사진은 로컬 placeholder다. 아키타입 8종 + 기준(UP1)을 나란히 본다.
+2. 보는 항목: ① 8종이 서로 확연히 다르게 보이는지(반경·선·그림자·종이색·제목 정렬·장식) ② 글자 가독성·넘침·잘림(320/360/390/750폭) ③ 규정 문구·구매 카드·주의 박스가 그대로인지 ④ 아키타입이 상품 성격과 맞는지(카테고리 적합표 조정 필요?) ⑤ 장식(스티커·눈금·척추·빛)이 글을 가리지 않는지 ⑥ 마무리 띠·가운데 띠의 문장이 위쪽 본문과 중복처럼 보이지 않는지 ⑦ 흰·색·중립 면 조합이 3계열을 넘는 느낌이 없는지(`scripts/color-budget.ts` 실측) ⑧ 새 변형의 극단 입력(긴 질문·긴 값)
+3. 새 변형별(어느 입력에서 나오는지는 `docs/v5-overview.md` 표): `faq.*` 5종(번호·2열·질문 띠·대화·탭), `proof.*` 4종(신뢰 근거 박스가 있는 상품만), `spec.panel/tags/big3`, `phototext.stack/polaroid/dframe`(사진 없음 폴백 포함 — 사진 URL을 깨뜨려 빈 틀이 흉하지 않은지), `concern.memo/deck`, `benefits.stackbig/rows2/iconlist`, `story.chapter/letter`, `touch.ticket/ledger`.
+4. 실사진은 마지막에 **한 번만**(egress 주의): 마음에 드는 아키타입 1~2개로.
+5. 편집 모드: 켜면 V5가 적용되지 않고(원본 섹션), 끄면 다시 V5가 보이는지. 라이브↔export 같은 모양인지, PNG 다운로드 경로(`html-to-image`)에서 새 장식·프레임이 깨지지 않는지.
+6. 롤백 확인: `NEXT_PUBLIC_DESIGN_V5` 제거 후 재배포하면 464차 모양으로 돌아오는지.
