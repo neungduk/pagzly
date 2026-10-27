@@ -32,6 +32,7 @@ import { polishHtml } from "@/lib/polish-sections";
 import { v4Html } from "@/lib/layout-variants";
 import { V5_PARTS } from "@/lib/v5-parts";
 import { ARCHETYPES, applyArchetypeHtml, typographyV5, type ArchetypeId } from "@/lib/page-archetype-v5";
+import { applyDynamicsHtml } from "@/lib/dynamics-layer-v5";
 import { PHOTO_LAYOUT_V2_ENABLED, photoLayoutHtml } from "@/lib/photo-layouts";
 import { ILLUSTRATION_V1_ENABLED, illustStyleFor, pickIllustration } from "@/lib/illustration-map";
 import { isWornFashionPhoto } from "@/lib/fashion-composite-policy";
@@ -81,7 +82,9 @@ export function impactHtml(s: ImpactSection, pal: ImpactPalette, alt: string): s
   const archetyped = s.ax && designV5On() && s.ax in ARCHETYPES ? applyArchetypeHtml(spaced, ARCHETYPES[s.ax as ArchetypeId], { ink: pal.ink, accent: pal.accent, deep: pal.deep }, s.axAlign) : spaced;
   const tiered = polishTitles(designV4On() ? tierHeadingWeights(archetyped) : archetyped);
   // 466차 V5 — 제목 타이포(굵기·자간·크기 배율)는 제목 위계가 끝난 뒤
-  return s.ax && designV5On() && s.ax in ARCHETYPES ? typographyV5(tiered, ARCHETYPES[s.ax as ArchetypeId]) : tiered;
+  const typed = s.ax && designV5On() && s.ax in ARCHETYPES ? typographyV5(tiered, ARCHETYPES[s.ax as ArchetypeId]) : tiered;
+  // 467차 V5 — 다이나믹 레이어(큰 순번·스티커·테이프·카드 변주·이음새·걸침). 계획(s.dyn)이 있을 때만
+  return s.dyn && s.ax && designV5On() && s.ax in ARCHETYPES ? applyDynamicsHtml(typed, s, ARCHETYPES[s.ax as ArchetypeId], { ink: pal.ink, accent: pal.accent, deep: pal.deep }) : typed;
 }
 
 function impactHtmlBase(s: ImpactSection, pal: ImpactPalette, alt: string): string {

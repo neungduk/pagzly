@@ -578,6 +578,20 @@ export type ImpactSection = {
   ax?: string;
   /** 466차 V5 — 이 블록의 제목 정렬(표시 단계가 아키타입 정렬 계획으로 찍음). 없으면 아키타입 기본 */
   axAlign?: "left" | "center";
+  /** 467차 V5 — 다이나믹 레이어 계획(표시 단계가 찍음, 저장 안 함): 큰 순번 배경·스티커·테이프·카드 변주·이음새·걸침 */
+  dyn?: {
+    ghost?: boolean;
+    sticker?: string;
+    tape?: boolean;
+    cards?: 1;
+    /** 기울인 판(+1/-1 = 기울임 방향) */
+    plate?: 1 | -1;
+    seam?: { kind: "slant" | "wave" | "scallop" | "zigzag" | "step" };
+    /** 기존 임팩트의 큰 배경 글자(제목 첫 단어, 입력 원문) */
+    word?: string;
+    rise?: number;
+    extraBottom?: number;
+  };
   /** 439차 — 면 리듬: 흰 바탕 임팩트 블록이 흰 면 사이에 끼면 따뜻한 중립 면으로(린트 R2 2회차, v4 계획만 설정) */
   faceTone?: "warm";
   /** 444차 — 앞 섹션과 면이 같으면 위 여백을 줄인다(lib/rhythm-v4.ts, v4 계획만 설정) */

@@ -138,7 +138,7 @@ export function sticker(label: string, p: V4Palette, o: { shape?: "circle" | "st
     ? `<polygon points="50,2 61,22 84,16 80,40 98,56 77,67 76,92 52,84 36,98 28,75 4,70 18,50 6,30 28,28" fill="${bg}"/>`
     : `<circle cx="50" cy="50" r="48" fill="${bg}"/><circle cx="50" cy="50" r="41" fill="none" stroke="${fg}" stroke-opacity="0.6" stroke-width="1.5" stroke-dasharray="3 4"/>`;
   return `<span ${mark("sticker")} style="position:absolute;${o.pos ?? "right:6%;top:-10px"};z-index:4;width:${size}px;height:${size}px;transform:rotate(${o.deg ?? -8}deg)"><svg viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true" focusable="false" style="display:block">${shape}</svg>` +
-    `<span style="position:absolute;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:10px;text-align:center;${SANS_FF};font-size:13px;font-weight:800;line-height:1.15;color:${fg};overflow:hidden;overflow-wrap:anywhere">${esc(t)}</span></span>`;
+    `<span style="position:absolute;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:10px;${SANS_FF};font-size:13px;font-weight:800;line-height:1.15;color:${fg};overflow:hidden;overflow-wrap:anywhere">${esc(t)}</span></span>`;
 }
 
 /** 코너 리본(가로 글자). clip 래퍼 안에서 카드 모서리에 */
@@ -157,7 +157,7 @@ export function stampBadge(label: string, p: V4Palette, o: { size?: number; deg?
   const size = Math.max(64, Math.min(104, o.size ?? 84));
   const c = p.deep;
   return `<span ${mark("stampBadge")} style="display:inline-flex;position:relative;width:${size}px;height:${size}px;transform:rotate(${o.deg ?? -10}deg)"><svg viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true" focusable="false" style="display:block"><circle cx="50" cy="50" r="47" fill="none" stroke="${c}" stroke-width="3"/><circle cx="50" cy="50" r="40" fill="none" stroke="${c}" stroke-width="1.2" stroke-dasharray="2 3"/></svg>` +
-    `<span style="position:absolute;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;padding:14px;text-align:center;${TITLE_FF};font-size:15px;font-weight:900;line-height:1.1;color:${c};overflow:hidden;overflow-wrap:anywhere">${esc(t)}</span></span>`;
+    `<span style="position:absolute;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;padding:14px;${TITLE_FF};font-size:15px;font-weight:900;line-height:1.1;color:${c};overflow:hidden;overflow-wrap:anywhere">${esc(t)}</span></span>`;
 }
 
 // ── 면 전환 도형(이음새) ──────────────────────────────────────────────────────
@@ -173,6 +173,10 @@ export function seam(kind: SeamKind, top: string, bottom: string, o: { h?: numbe
   else if (kind === "zigzag") { const n = 10; const w = W / n; d = `M0 ${h} V${h * 0.4}` + [...Array(n).keys()].map((i) => ` L${i * w + w / 2} ${h * 0.05} L${(i + 1) * w} ${h * 0.4}`).join("") + ` V${h} Z`; }
   else { const n = 5; const w = W / n; d = `M0 ${h}` + [...Array(n).keys()].map((i) => ` V${h * (1 - (i + 1) / (n + 1))} H${(i + 1) * w}`).join("") + ` V${h} Z`; }
   return `<span aria-hidden="true" data-pz-dyn-deco data-pz-seam="${kind}" style="display:block;pointer-events:none;width:100%;height:${h}px;line-height:0;background:${top}"><svg viewBox="0 0 ${W} ${h}" width="100%" height="${h}" preserveAspectRatio="none" aria-hidden="true" focusable="false" style="display:block"><path d="${d}" fill="${bottom}"/></svg></span>`;
+}
+/** 이 섹션 자기 색(own)만 칠한 가장자리 도형: 위쪽 가장자리가 도형을 이루고 그 위는 투명(위 섹션이 비친다). 이음새 레이어 전용 */
+export function seamShape(kind: SeamKind, own: string, h: number): string {
+  return seam(kind, "transparent", own, { h });
 }
 export const slantSeam = (top: string, bottom: string, h?: number): string => seam("slant", top, bottom, { h });
 export const waveSeam = (top: string, bottom: string, h?: number): string => seam("wave", top, bottom, { h });

@@ -110,7 +110,7 @@ export function macroMetrics(html: string): MacroMetrics {
   const radii = [...body.matchAll(/border-radius:\s*(\d+)px/g)].map((m) => Number(m[1])).filter((x) => x > 0 && x < 100);
   const shadows = [...body.matchAll(/box-shadow:\s*([^;"]+)/g)].filter((m) => !/^none/.test(m[1]!.trim())).length;
   const radiusN = [...body.matchAll(/border-radius:/g)].length;
-  const weights = [...body.matchAll(/font-size:\s*(\d+)px[^"]*?font-weight:\s*(\d+)/g)].filter((m) => Number(m[1]) >= 22).map((m) => Number(m[2]));
+  const weights = [...body.matchAll(/font-size:\s*(\d+)px[^"]*?font-weight:\s*(\d+)/g)].filter((m) => Number(m[1]) >= 22 && Number(m[1]) <= 60).map((m) => Number(m[2]));
   const hero = heroOf(html);
   return {
     darkRatio: total ? dark / total : 0, bannerRatio: total ? bannerDark / total : 0, darkBands, heroDark: hero.dark, heroVariant: hero.variant,

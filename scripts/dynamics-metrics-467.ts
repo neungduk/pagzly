@@ -36,10 +36,11 @@ export function dynMetrics(html: string): DynMetrics {
     asym += (s.match(/flex:\s*0 0 (\d+)%/g) ?? []).filter((m) => !/ 50%/.test(m)).length + (s.match(/grid-template-columns:\s*[^;"]*(?:fr|%)[^;"]*/g) ?? []).filter((m) => !/repeat\(\d+,\s*1fr\)|1fr 1fr/.test(m)).length;
     const sizes = px(s).filter((v) => v < 200);
     if (sizes.length) focal.push(Math.max(...sizes) / 15);
-    for (const m of s.matchAll(/<div[^>]*style="([^"]*background[^"]*border-radius:\s*(\d+)px[^"]*)"/g)) {
+    for (const m of s.matchAll(/<div[^>]*style="([^"]*)"/g)) {
       const st = m[1]!;
-      if (!/border:|box-shadow:/.test(st)) continue;
-      const sig = `${m[2]}|${/box-shadow:\s*([^;"]+)/.exec(st)?.[1]?.replace(/\s+/g, "") ?? "none"}`;
+      const rad = /border-radius:\s*(\d+(?:px)?(?:\s+\d+(?:px)?){0,3})/.exec(st)?.[1];
+      if (!rad || !/background/.test(st) || !/border:|box-shadow:/.test(st) || /overflow:hidden[^"]*aspect-ratio|aspect-ratio[^"]*overflow:hidden/.test(st)) continue;
+      const sig = `${rad.replace(/px/g, "").trim()}|${/box-shadow:\s*([^;"]+)/.exec(st)?.[1]?.replace(/\s+/g, "") ?? "none"}`;
       cards.set(sig, (cards.get(sig) ?? 0) + 1);
     }
     for (const m of s.matchAll(/<div[^>]*style="([^"]*overflow:hidden[^"]*)"[^>]*>\s*<img/g)) {
@@ -48,8 +49,8 @@ export function dynMetrics(html: string): DynMetrics {
     }
     if (i > 0) {
       boundaries += 1;
-      const head = s.slice(0, 900);
-      if (!/data-pz-divider|data-pz-seam|<svg[^>]*preserveAspectRatio/.test(head) && !/margin-top:\s*-\d/.test(s.slice(0, s.indexOf(">") + 1))) straight += 1;
+      // 이음새: 맨 위 구분선(data-pz-divider) · 이음새 도형(data-pz-seam — 466/467차 레이어는 섹션 끝에 붙는다) · 걸침(루트 margin-top 음수)
+      if (!/data-pz-divider/.test(s.slice(0, 900)) && !/data-pz-seam/.test(s) && !/margin-top:\s*-\d/.test(s.slice(0, s.indexOf(">") + 1))) straight += 1;
     }
   });
   const total = [...cards.values()].reduce((a, b) => a + b, 0);
