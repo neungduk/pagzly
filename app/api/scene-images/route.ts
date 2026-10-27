@@ -1,3 +1,5 @@
+import { getStorage } from "@/lib/storage";
+import { CACHE_IMMUTABLE } from "@/lib/storage/policy";
 import { NextResponse } from "next/server";
 import Replicate from "replicate";
 import { usageGate } from "@/lib/usage-guard-server";
@@ -142,12 +144,14 @@ export async function POST(request: Request) {
         try {
           const png = await sharp(r.buffer).png().toBuffer();
           const storagePath = `${user.id}/scene-images/${stamp}-${r.slot}.png`;
-          const { error } = await supabase.storage.from("images").upload(storagePath, png, { contentType: "image/png", upsert: true });
+          // 459차: lib/storage 경유. stamp가 요청마다 달라 경로가 고유 → 1년 immutable(upsert는 재시도용)
+          const storage = getStorage(supabase);
+          const { error } = await storage.putObject({ path: storagePath, body: png, contentType: "image/png", upsert: true, cacheControl: CACHE_IMMUTABLE });
           if (error) {
             console.warn(`[scene-images] slot=${r.slot} 업로드 실패 → 슬롯 비움: ${error.message}`);
             return { slot: r.slot, url: null };
           }
-          return { slot: r.slot, url: supabase.storage.from("images").getPublicUrl(storagePath).data.publicUrl };
+          return { slot: r.slot, url: storage.getPublicUrl(storagePath) };
         } catch (e) {
           console.warn(`[scene-images] slot=${r.slot} 이미지 처리 실패 → 슬롯 비움: ${e instanceof Error ? e.message : String(e)}`);
           return { slot: r.slot, url: null };

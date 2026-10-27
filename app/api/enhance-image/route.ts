@@ -1,3 +1,5 @@
+import { getStorage } from "@/lib/storage";
+import { CACHE_SHORT } from "@/lib/storage/policy";
 import { NextResponse } from "next/server";
 import { usageGate } from "@/lib/usage-guard-server";
 import { USAGE_EST_COST_USD } from "@/lib/usage-guard";
@@ -7,7 +9,6 @@ import type { ConceptBrief } from "@/lib/concept-brief";
 import { productImageProtectedUntil } from "@/lib/product-image-protection";
 import { logCostLogTallySummaries, resetCostLogTallies } from "@/lib/cost-log-tally";
 
-const STORAGE_BUCKET = "images";
 
 const COST_TALLY_SUMMARY_KEYS = [
   "sharpenCutout",
@@ -136,20 +137,21 @@ export async function POST(request: Request) {
     const suffix = pathSuffix?.replace(/[^a-zA-Z0-9_-]/g, "") || "enhanced";
     const enhancedPath = storagePath.replace(/\.[^./]+$/, "") + `-${suffix}.png`;
 
-    const { error: uploadError } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(enhancedPath, enhancedBuffer, {
-        contentType: "image/png",
-        upsert: true,
-      });
+    // 459차: 저장소는 lib/storage 경유(기본 supabase = 이전과 같은 호출). 경로가 원본에서 정해져 upsert로 덮어쓰므로 캐시는 짧게
+    const storage = getStorage(supabase);
+    const { error: uploadError } = await storage.putObject({
+      path: enhancedPath,
+      body: enhancedBuffer,
+      contentType: "image/png",
+      upsert: true,
+      cacheControl: CACHE_SHORT,
+    });
 
     if (uploadError) {
       throw new Error(`보정 이미지 업로드 실패: ${uploadError.message}`);
     }
 
-    const { data: publicUrlData } = supabase.storage
-      .from(STORAGE_BUCKET)
-      .getPublicUrl(enhancedPath);
+    const publicUrlData = { publicUrl: storage.getPublicUrl(enhancedPath) };
 
     if (keepOriginal) {
       const { error: insertError } = await supabase.from("product_images").insert({

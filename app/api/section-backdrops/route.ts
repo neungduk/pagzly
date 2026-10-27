@@ -1,3 +1,5 @@
+import { getStorage } from "@/lib/storage";
+import { CACHE_IMMUTABLE } from "@/lib/storage/policy";
 import { NextResponse } from "next/server";
 import { usageGate } from "@/lib/usage-guard-server";
 import { USAGE_EST_COST_USD } from "@/lib/usage-guard";
@@ -105,18 +107,20 @@ export async function POST(request: Request) {
         fileBuffer = Buffer.from(await response.arrayBuffer());
       }
       const storagePath = `${userId}/section-backdrops/${stamp}-${kind}.png`;
-      const { error: uploadError } = await supabase.storage
-        .from("images")
-        .upload(storagePath, fileBuffer, {
-          contentType: "image/png",
-          upsert: true,
-        });
+      // 459차: lib/storage 경유. stamp가 요청마다 달라 경로가 고유 → 1년 immutable
+      const storage = getStorage(supabase);
+      const { error: uploadError } = await storage.putObject({
+        path: storagePath,
+        body: fileBuffer,
+        contentType: "image/png",
+        upsert: true,
+        cacheControl: CACHE_IMMUTABLE,
+      });
       if (uploadError) {
         console.warn("[section-backdrops] 업로드 실패, 원본 URL 유지:", uploadError.message);
         return url.startsWith("data:") ? null : url;
       }
-      const { data } = supabase.storage.from("images").getPublicUrl(storagePath);
-      return data.publicUrl;
+      return storage.getPublicUrl(storagePath);
     }
 
     const [ingredient, texture] = await Promise.all([

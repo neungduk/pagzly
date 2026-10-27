@@ -1,3 +1,5 @@
+import { getStorage } from "@/lib/storage";
+import { CACHE_SHORT } from "@/lib/storage/policy";
 import { NextResponse } from "next/server";
 import { usageGate } from "@/lib/usage-guard-server";
 import { USAGE_EST_COST_USD } from "@/lib/usage-guard";
@@ -18,7 +20,6 @@ import { analyzeSocialProductImages } from "@/lib/social-mini/analyze-images";
 import { generateSocialMiniCopy } from "@/lib/social-mini/generate-copy";
 import type { GeneratedCopy } from "@/lib/types/generate";
 
-const STORAGE_BUCKET = "images";
 
 type SocialGenerateBody = {
   productName?: string;
@@ -136,22 +137,21 @@ export async function POST(request: Request) {
       enhanceCost += cost + claudeCost;
 
       const enhancedPath = sourcePath.replace(/\.[^./]+$/, "") + "-social-enhanced.png";
-      const { error: uploadError } = await supabase.storage
-        .from(STORAGE_BUCKET)
-        .upload(enhancedPath, buffer, { contentType: "image/png", upsert: true });
+      // 459차: lib/storage 경유. 경로가 원본에서 정해져 upsert로 덮어쓰므로 캐시는 짧게
+      const storage = getStorage(supabase);
+      const { error: uploadError } = await storage.putObject({ path: enhancedPath, body: buffer, contentType: "image/png", upsert: true, cacheControl: CACHE_SHORT });
 
       if (uploadError) {
         throw new Error(`보정 이미지 업로드 실패: ${uploadError.message}`);
       }
 
-      const { data: publicUrl } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(enhancedPath);
-      enhancedUrls.push(publicUrl.publicUrl);
+      enhancedUrls.push(storage.getPublicUrl(enhancedPath));
       enhancedPaths.push(enhancedPath);
 
       await supabase.from("product_images").insert({
         user_id: user.id,
         storage_path: enhancedPath,
-        image_url: publicUrl.publicUrl,
+        image_url: storage.getPublicUrl(enhancedPath),
         image_uploaded_at: new Date().toISOString(),
         protected_until: productImageProtectedUntil(),
       });

@@ -1,3 +1,5 @@
+import { getStorage } from "@/lib/storage";
+import { CACHE_IMMUTABLE } from "@/lib/storage/policy";
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import {
@@ -126,7 +128,6 @@ const CLAUDE_MODEL = "claude-sonnet-5";
 const TEST_MODE_ANALYSIS_MAX_IMAGES = 2;
 const DEEPSEEK_MODEL = "deepseek-v4-flash";
 const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
-const ICON_STORAGE_BUCKET = "images";
 
 /** base64 data URL → Supabase Storage 공개 URL (sessionStorage 용량 초과 방지) */
 /**
@@ -149,12 +150,11 @@ async function uploadDataUrlAndGetPublicUrl(
 
   let lastError: unknown;
   for (let attempt = 1; attempt <= 2; attempt++) {
-    const { error } = await supabase.storage
-      .from(ICON_STORAGE_BUCKET)
-      .upload(path, buffer, { contentType: "image/png", upsert: true });
+    // 459차: lib/storage 경유. 경로에 Date.now가 들어 고유 → 1년 immutable(재시도는 같은 경로 upsert)
+    const storage = getStorage(supabase);
+    const { error } = await storage.putObject({ path, body: buffer, contentType: "image/png", upsert: true, cacheControl: CACHE_IMMUTABLE });
     if (!error) {
-      const { data } = supabase.storage.from(ICON_STORAGE_BUCKET).getPublicUrl(path);
-      return data.publicUrl;
+      return storage.getPublicUrl(path);
     }
     lastError = error;
     if (attempt < 2) {

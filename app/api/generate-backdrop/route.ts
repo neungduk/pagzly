@@ -1,3 +1,5 @@
+import { getStorage } from "@/lib/storage";
+import { CACHE_IMMUTABLE } from "@/lib/storage/policy";
 import { NextResponse } from "next/server";
 import { usageGate } from "@/lib/usage-guard-server";
 import { USAGE_EST_COST_USD } from "@/lib/usage-guard";
@@ -225,17 +227,21 @@ export async function POST(request: Request) {
         if (!response.ok) continue;
         const fileBuffer = Buffer.from(await response.arrayBuffer());
         const path = `${user.id}/backdrop-candidates/${stamp}-${i}.png`;
-        const { error: uploadError } = await supabase.storage.from("images").upload(path, fileBuffer, {
+        // 459차: lib/storage 경유. stamp가 요청마다 달라 경로가 고유 → 1년 immutable
+        const storage = getStorage(supabase);
+        const { error: uploadError } = await storage.putObject({
+          path,
+          body: fileBuffer,
           contentType: "image/png",
           upsert: true,
+          cacheControl: CACHE_IMMUTABLE,
         });
         if (uploadError) {
           console.warn("[generate-backdrop] 후보 업로드 실패, 원본 URL 유지:", uploadError.message);
           storedCandidateUrls.push(candidateUrls[i]);
           continue;
         }
-        const { data: publicData } = supabase.storage.from("images").getPublicUrl(path);
-        storedCandidateUrls.push(publicData.publicUrl);
+        storedCandidateUrls.push(storage.getPublicUrl(path));
       }
     }
 

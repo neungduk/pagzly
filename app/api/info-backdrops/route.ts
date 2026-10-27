@@ -1,3 +1,5 @@
+import { getStorage } from "@/lib/storage";
+import { CACHE_IMMUTABLE } from "@/lib/storage/policy";
 import { NextResponse } from "next/server";
 import Replicate from "replicate";
 import { usageGate } from "@/lib/usage-guard-server";
@@ -107,12 +109,14 @@ export async function POST(request: Request) {
         try {
           const png = await sharp(r.buffer).png().toBuffer();
           const storagePath = `${user.id}/section-backdrops/${stamp}-info-${r.zone}.png`;
-          const { error } = await supabase.storage.from("images").upload(storagePath, png, { contentType: "image/png", upsert: true });
+          // 459차: lib/storage 경유. stamp가 요청마다 달라 경로가 고유 → 1년 immutable
+          const storage = getStorage(supabase);
+          const { error } = await storage.putObject({ path: storagePath, body: png, contentType: "image/png", upsert: true, cacheControl: CACHE_IMMUTABLE });
           if (error) {
             console.warn(`[info-backdrops] zone=${r.zone} 업로드 실패 → 폴백: ${error.message}`);
             return { zone: r.zone, ok: false, url: null };
           }
-          return { zone: r.zone, ok: true, url: supabase.storage.from("images").getPublicUrl(storagePath).data.publicUrl };
+          return { zone: r.zone, ok: true, url: storage.getPublicUrl(storagePath) };
         } catch (e) {
           console.warn(`[info-backdrops] zone=${r.zone} 이미지 처리 실패 → 폴백: ${e instanceof Error ? e.message : String(e)}`);
           return { zone: r.zone, ok: false, url: null };

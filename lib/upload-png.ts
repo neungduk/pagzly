@@ -1,9 +1,10 @@
 import sharp from "sharp";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const STORAGE_BUCKET = "images";
+import { getStorage } from "@/lib/storage";
+import { CACHE_SHORT } from "@/lib/storage/policy";
 
-/** Sharp로 PNG 재인코딩 후 Supabase Storage에 업로드 (Bad Request 방지) */
+/** Sharp로 PNG 재인코딩 후 이미지 저장소(기본 Supabase Storage)에 업로드 (Bad Request 방지) */
 export async function uploadPngBuffer(
   supabase: SupabaseClient,
   storagePath: string,
@@ -24,17 +25,13 @@ export async function uploadPngBuffer(
     return { error: "png buffer too small" };
   }
 
-  const { error: uploadError } = await supabase.storage
-    .from(STORAGE_BUCKET)
-    .upload(storagePath, png, {
-      contentType: "image/png",
-      upsert: true,
-    });
+  // 459차: lib/storage 경유(기본 supabase = 이전과 같은 호출). 호출부가 정하는 경로는 upsert로 덮어쓸 수 있어 캐시는 짧게
+  const storage = getStorage(supabase);
+  const { error: uploadError } = await storage.putObject({ path: storagePath, body: png, contentType: "image/png", upsert: true, cacheControl: CACHE_SHORT });
 
   if (uploadError) {
     return { error: uploadError.message };
   }
 
-  const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath);
-  return { publicUrl: data.publicUrl, path: storagePath };
+  return { publicUrl: storage.getPublicUrl(storagePath), path: storagePath };
 }
