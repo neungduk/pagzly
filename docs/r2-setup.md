@@ -53,7 +53,7 @@
 `STORAGE_PROVIDER`와 `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL`을 제거하고 재배포 → 다시 Supabase Storage로 업로드한다. R2에 이미 올라간 이미지는 R2 주소로 저장돼 있으므로 **R2 버킷·공개 주소는 지우지 말 것**(지우면 그 이미지가 깨진다).
 
 ## 6. 기존 이미지와 이전(460차)
-기존 이미지는 이번 차수에서 옮기지 않는다. 이전 전까지 Supabase 주소가 계속 동작하고(`next.config`·proxy 허용 호스트 유지), 새 업로드만 R2로 간다. egress를 줄이는 임시 조치로 쓸 수 있으나 **기존 이미지 조회 egress는 줄지 않는다**(이전은 460차: 복사·DB 주소 교체·검증).
+기존 이미지의 복사·DB 주소 교체·검증 절차는 `docs/migration-r2/README.md`에 있다(스크립트 `scripts/migrate-storage-to-r2.ts`, SQL `docs/migration-r2/01~04·99`). 이전 전까지 Supabase 주소가 계속 동작하고 새 업로드만 R2로 간다. 이전 후에도 옛 Supabase 객체는 최소 90일 유지한다.
 
 ## 7. 만료 이미지 정리 (460차 갱신)
 `supabase/functions/cleanup-expired-images`(Supabase cron, 마이그레이션 `20260916120000`)는 **Supabase Storage만** 지운다 — R2 객체는 못 지운다. **버킷 전체에 나이 기반 수명 주기 삭제 규칙을 걸지 말 것**(완성된 상품 이미지는 영구 보존 대상이라 같이 지워진다).
