@@ -17,7 +17,7 @@ import { contrastFindings } from "../contrast-audit-466";
 import { macroMetrics, type MacroMetrics } from "../variety-metrics-466";
 import { pickHeroV5 } from "../../lib/hero-spec";
 
-export const name = "V5 거시 차별화 466 — 면 전략(진한 면 비율·진한 면 대비 전수)·변형 확정 선호(계열별 ≥5·선택 조건)·히어로 선호";
+export const name = "V5 거시 차별화 466 — 면 전략(진한 면 비율·진한 면 대비 전수)·변형 확정 선호(계열별 ≥5·선택 조건)·히어로 선호·정렬/타이포";
 
 const MOODS: Array<string | null> = [null, "minimal-luxe", "clinic", "natural", "playful", "street", "warm"];
 
@@ -138,6 +138,19 @@ export async function run(): Promise<string[]> {
     ok(pickHeroV5(["B", "C"], { hasPhoto: true, kind: "unknown", confidence: 0 }, "A") === "A", "종류를 모르면 B·C 요건 불충족 → 기존 선택");
     ok(pickHeroV5(["D", "A"], { hasPhoto: false, kind: "unknown", confidence: 0 }, "E") === "E", "사진이 없으면 기존 선택(E)");
     ok(/v5Hero: v5tokens\.hero/.test(srcDs) && /i\.v5Hero\?\.length/.test(fs.readFileSync("lib/hero-spec.ts", "utf8")), "히어로 선호가 V5 토큰(편집 모드면 null) 뒤에서만 전달되지 않음");
+
+    // ── ⑦ 정렬·타이포: 중앙 정렬 비율 각 ≤ 0.40·평균 ≤ 0.33(UP1 0.334)·연속 ≤ 4, 제목 굵기 평균이 갈린다 ──────────
+    const centerAvg = ARCHETYPE_IDS.reduce((a, arch) => a + rows[arch]!.reduce((x, m) => x + m.centerRatio, 0) / rows[arch]!.length, 0) / ARCHETYPE_IDS.length;
+    ok(centerAvg <= 0.33, `8종 평균 중앙 정렬 비율 ${centerAvg.toFixed(3)} > 0.33`);
+    for (const arch of ARCHETYPE_IDS) {
+      const r = rows[arch]!.reduce((x, m) => x + m.centerRatio, 0) / rows[arch]!.length;
+      ok(r <= 0.4, `${arch}: 중앙 정렬 비율 ${r.toFixed(3)} > 0.40`);
+      ok(Math.max(...rows[arch]!.map((m) => m.centerRun)) <= 4, `${arch}: 중앙 정렬 연속 > 4`);
+      // 평탄 구간은 목표(≤ 37, UP1)에 못 미친다 — 아래는 목표가 아니라 더 나빠지지 않게 하는 가드(보고서에 수치와 원인)
+      ok(rows[arch]!.reduce((x, m) => x + m.flatZones, 0) <= 80, `${arch}: 평탄 구간 합 ${rows[arch]!.reduce((x, m) => x + m.flatZones, 0)} > 80(가드)`);
+    }
+    const tw = ARCHETYPE_IDS.map((arch) => rows[arch]!.reduce((x, m) => x + m.titleWeight, 0) / rows[arch]!.length);
+    ok(Math.max(...tw) - Math.min(...tw) >= 250, `제목 굵기 평균 폭 ${(Math.max(...tw) - Math.min(...tw)).toFixed(0)} < 250`);
 
     // 서로 다른 구간 3개 이상: 밝음(<0.12) / 중간·진한 두 구간
     const avgOf = (a: ArchetypeId) => rows[a]!.reduce((s, m) => s + m.darkRatio, 0) / rows[a]!.length;

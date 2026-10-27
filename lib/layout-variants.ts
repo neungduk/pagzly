@@ -795,7 +795,8 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
     const order = ctx.v5 && prefList?.length
       ? [...order0].sort((a, b) => Number(prefRank(a) === 99) - Number(prefRank(b) === 99) || (prevLow ? Number(variantStrength(cc.family, a) < 3) - Number(variantStrength(cc.family, b) < 3) : 0) || prefRank(a) - prefRank(b) || (counts.get(`${cc.family}.${a}`) ?? 0) - (counts.get(`${cc.family}.${b}`) ?? 0) || order0.indexOf(a) - order0.indexOf(b))
       : [...order0].sort((a, b) => (need ? Number(variantStrength(cc.family, a) < need) - Number(variantStrength(cc.family, b) < need) : 0) || (counts.get(`${cc.family}.${a}`) ?? 0) - (counts.get(`${cc.family}.${b}`) ?? 0) || order0.indexOf(a) - order0.indexOf(b));
-    const variant = order.find((v) => variantFits(cc.family, v, cc) && `${cc.family}.${v}` !== prevKey && (counts.get(`${cc.family}.${v}`) ?? 0) < MAX_SAME_VARIANT && (pairWith ? v === "collage" : v !== "collage"));
+    const okVariant = (v: string): boolean => variantFits(cc.family, v, cc) && `${cc.family}.${v}` !== prevKey && (counts.get(`${cc.family}.${v}`) ?? 0) < MAX_SAME_VARIANT && (pairWith ? v === "collage" : v !== "collage");
+    const variant = order.find((v) => okVariant(v));
     if (!variant) {
       for (let k = 0; k < c.len; k += 1) { outS.push(sections[i + k]!); outI.push(sourceIndexes[i + k]!); }
       i += c.len - 1;
@@ -985,6 +986,7 @@ function bandFace(ctx: V4Ctx, a: DetailSection | undefined, b: DetailSection | u
   const dark = (x: DetailSection | undefined): boolean => !!x && ((x.type === "impact" && x.kind === "v4" && x.v4?.face === "invert") || ((x.type === "highlight_box" || x.type === "checklist") && !!x.boldBlock) || x.type === "illustration_banner");
   return dark(a) || dark(b) ? "emphasis" : "invert";
 }
+
 
 /** 466차 V5 — 접점 띠 변형: 아키타입 1순위 약 60%, 2순위 약 40%(시드, 결정적). 선호가 없으면 3종 시드 순환 */
 function touchVariantV5(prefer: readonly string[] | undefined, seed: number): string {

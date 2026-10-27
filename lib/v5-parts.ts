@@ -173,7 +173,7 @@ function phototextV5(s: ImpactSection, b: V4Block, p: V4Palette, alt: string, t:
   if (b.variant === "polaroid") {
     return wrap(b, p,
       `<div style="width:84%;margin:8px auto 0;box-sizing:border-box;padding:10px 10px 36px;background:#FFFFFF;border:${hairline(p.ink)};box-shadow:${depthShadow("float", p.ink)};transform:rotate(-2deg)"><div style="position:relative;aspect-ratio:1 / 1;overflow:hidden;background:${p.tints[1]}">${img(it.img.url, alt, it.img.pos)}</div></div>` +
-      `<div style="margin-top:26px">${text(true)}</div>`);
+      `<div style="margin-top:26px">${text(false)}</div>`); // 466차: 캡션 왼쪽(중앙 정렬 비율)
   }
   if (b.variant === "dframe") {
     return wrap(b, p, `${photoFrame("double", it.img.url, alt, it.img.pos, p, "4 / 5")}<div style="margin-top:22px;display:flex;gap:14px;align-items:flex-start">${numberMark(t.number, 0, b, p)}<div style="flex:1 1 0%;min-width:0">${title}${bodyP(it.body, p, on.sub, 8)}</div></div>`);

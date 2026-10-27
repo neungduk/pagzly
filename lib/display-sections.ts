@@ -32,6 +32,7 @@ import { planV4 } from "@/lib/layout-variants";
 import { getArchetypeTokens, type ArchetypeId } from "@/lib/page-archetype-v5";
 import { planStoryboard, type Marks, type StoryboardReport } from "@/lib/storyboard-v5";
 import { lightenBoldBlocks, lightensBoldBlock } from "@/lib/face-strategy-v5";
+import { planAlignV5 } from "@/lib/align-v5";
 import { estimateSectionHeight } from "@/lib/impact-templates";
 
 export type DisplaySections = {
@@ -470,7 +471,9 @@ export function applyDisplayRules(
   const topPads = designV4On() ? legacyTopPads(numbered, rhythmKey, opts.category ?? "") : {};
   const bottomPads = designV4On() ? motifBottomPads(numbered, rhythmKey, opts.category ?? "") : {};
   // 465차 V5 — 아키타입 표식(임팩트 블록에 id, 일반 섹션에 박자.강도 표식) + 스토리보드 점검. 섹션 순서는 바꾸지 않는다
-  const v5Sections = v5tokens ? rhythmSections.map((x) => (x.type === "impact" ? ({ ...x, ax: v5tokens.id } as DetailSection) : x)) : rhythmSections;
+  const v5Sections0 = v5tokens ? rhythmSections.map((x) => (x.type === "impact" ? ({ ...x, ax: v5tokens.id } as DetailSection) : x)) : rhythmSections;
+  // 466차 V5 — 제목 정렬 계획(가운데 성격은 예산만큼만 가운데, 나머지 왼쪽)
+  const v5Sections = v5tokens ? planAlignV5(v5Sections0, v5tokens) : v5Sections0;
   const sb = v5tokens ? planStoryboard(v5Sections) : null;
   return { sections: v5Sections, ...(v5tokens && sb ? { v5: { id: v5tokens.id, marks: sb.marks, report: sb.report } } : {}), ...(Object.keys(topPads).length ? { topPads } : {}), ...(Object.keys(bottomPads).length ? { bottomPads } : {}), sourceIndexes: keptMap ? finalOut.sourceIndexes.map((i) => keptMap(i)) : finalOut.sourceIndexes, ...(policyChanges ? { policyChanges } : {}), ...(arche ? { archetype: { result: arche, mood, hero: recipe?.hero ?? null } } : {}) };
 }
