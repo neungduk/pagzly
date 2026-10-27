@@ -125,7 +125,7 @@
 | 아키타입 | 면 전략 | 히어로 선호 | 말뭉치 21 분포 | 진한 히어로 |
 |---|---|---|---|---|
 | editorial | lightOnly | D, A | D 21 | 0 |
-| catalog | tintAlt | D, B | D 21 | 0 |
+| catalog | tintAlt | B, D (Phase 6에서 D,B→B,D: editorial·techsheet와 히어로까지 같던 쌍을 가름) | B 16 · D 5 | 15 |
 | softlife | tintAlt | B, D | B 16 · D 5 | 15 |
 | impact | blockAlt | C, B, A | C 16 · A 5 | 21 |
 | techsheet | lightOnly | D | D 21 | 0 |
@@ -133,7 +133,7 @@
 | luxe | lightOnly | E, D | E 21 | 0 |
 | pop | colorCollide | B, C | B 16 · A 5(사람 사진은 B·C 요건 밖 → A) | 20 |
 | (UP1 기준) | - | 기존 선택 | B 9 · A 5 · C 4 · D 3 | 18 |
-lightOnly 3종은 21페이지 모두 밝은 히어로(목표 "lightOnly면 히어로도 밝은 면" ○). 8종이 쓴 히어로 변형 5종(A~E). 한계: lightOnly·tintAlt 중 4종(editorial·catalog·techsheet 외 luxe는 E)이 D를 공유한다 — 새 히어로 신설이 금지라 D 하나로는 이 이상 갈리지 않는다(나머지 축은 면·변형·정렬로 갈림).
+lightOnly 3종은 21페이지 모두 밝은 히어로(목표 "lightOnly면 히어로도 밝은 면" ○). 8종이 쓴 히어로 변형 5종(A~E). 한계: lightOnly 중 editorial·techsheet가 D를 공유한다(catalog는 Phase 6에서 B로 옮김, luxe는 E) — 새 히어로 신설이 금지라 D 하나로는 이 이상 갈리지 않는다(나머지 축은 면·변형·정렬로 갈림).
 
 ## 10. Phase 4 결과 — 타이포·정렬
 **정렬**: 가운데 성격(softlife·luxe·pop)이 모든 블록 제목을 가운데로 만들면 중앙 정렬 비율이 0.43~0.58이었다. 원인 분해(말뭉치 UP1): 가운데 정렬은 대부분 **일반 섹션**(`plain` 60, 구매 카드 20, 텍스트 전용 15, 사진 배너 15, 갤러리 9, 인포 8, 페르소나 5 …, 전체의 약 27%)이고 V5가 바꿀 수 있는 임팩트·v4 블록은 일부뿐이다. 그래서 목표(평균 ≤ 0.33)를 맞추려면 가운데 성격도 블록 대부분을 왼쪽으로 둬야 한다. 구현:
