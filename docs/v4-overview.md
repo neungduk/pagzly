@@ -120,3 +120,11 @@ v4 이전 플래그(`DESIGN_V2`·`DESIGN_V3_COLOR` 등)는 이 문서 범위 밖
 ## 8. 규칙 요약
 
 새 문구·수치를 만들지 않는다. 고지 문구·결제 코드·`cta_price` 구조·`data-pz-buy`·스티키 바·편집 UI·인터랙션은 바꾸지 않는다. 디자인 변경은 모두 v4 안이고 off 출력은 이전 차수와 같아야 한다. export에서는 `:has()`·container query·`text-wrap`·`mix-blend-mode`·`clip-path`·`mask`·`-webkit-text-stroke`를 쓰지 않는다. 글자 대비 4.5:1(큰 글자 3:1은 24px 이상 또는 18.66px 이상 굵은 글자).
+
+## 9. UP1 — 업그레이드 1차 하위 플래그 (462차)
+- 플래그: `NEXT_PUBLIC_DESIGN_V4_UP1=on`일 때만 켜진다(**기본 꺼짐**). v4가 꺼져 있으면(`NEXT_PUBLIC_DESIGN_V4=off`) 항상 꺼진다. 코드: `lib/design-v4.ts`의 `DESIGN_V4_UP1_ENABLED`.
+- UP1 안에서만 바뀌는 것(라이브·export 같은 규칙): ① 페르소나 줄 글이 22자를 넘으면 3줄 말줄임 대신 4줄까지 표시(`lib/robust-462.ts` `personaClampLines`) ② 하이라이트 카드가 4장이면 넓은 폭에서도 2×2 격자(4열이면 칸 글 폭이 120px 안팎).
+- v4 안에서 항상 적용되지만 **긴 입력에서만** 달라지는 것(정상 길이 출력은 문자열 그대로): ③ 비교 막대의 값 칸 — 단위가 4자를 넘으면 줄바꿈 허용(`isLongUnit`) ④ 통계 막대의 값 칸 — 값이 10자를 넘으면 줄바꿈 허용(`isLongStatValue`).
+- 확인: 말뭉치 전체(export HTML 21개 + 섹션 단독 export·라이브)에서 **UP1 꺼짐 = 462차 이전 출력과 문자열 동일**(개발 중 stash 비교), 438차 기준 off 비교(`scripts/check-v4-off.ts`) 통과. 회귀 `scripts/regression/robust-462.ts`.
+- 롤백: `NEXT_PUBLIC_DESIGN_V4_UP1`을 지우거나 `off`로 두고 재배포(한 줄). ③④는 플래그가 없다 — 긴 입력의 줄바꿈 허용만 바뀌므로 필요하면 `lib/robust-462.ts`의 두 함수를 `false`로 돌려주게 하면 이전과 같다.
+- 감사 표와 고르지 않은 항목: `docs/upgrade-backlog-462.md`.
