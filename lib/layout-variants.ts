@@ -65,7 +65,7 @@ export const V4_UP1_VARIANTS: Partial<Record<V4Family, string[]>> = {
   story: ["pullband"],
   spec: ["cards"],
   steps: ["vtimeline", "bignum", "chipflow"],
-  statement: ["band"],
+  statement: ["band", "quote", "rule"],
 };
 
 /** mood별 선호 순서(앞이 우선). 없는 mood는 기본 순서 */
@@ -574,16 +574,30 @@ function stepsHtml(s: ImpactSection, b: V4Block, p: V4Palette): string {
   return wrap(b, p, nodes, { head });
 }
 
-/** 463차 UP1 — 강조 띠: 입력에 이미 있는 문장 한 줄을 원문 그대로 크게(가공 없음). 왼쪽 정렬 + 왼쪽 세로 띠 — 가운데 정렬 제목이 이어지는 구간에 정렬 변주를 준다 */
+/**
+ * 463·464차 UP1 — 강조 띠: 입력에 이미 있는 문장 한 줄을 원문 그대로 크게(가공 없음). 형태 3가지(시드로 선택):
+ *  band  — 왼쪽 정렬 + 왼쪽 세로 띠 / quote — 가운데 정렬 짧은 인용(따옴표 장식) / rule — 위아래 가는 선 사이 왼쪽 정렬
+ */
 function statementHtml(s: ImpactSection, b: V4Block, p: V4Palette): string {
   const on = p.onFace[faceRole(b)];
   const text = highlightKeyword(s.text, b.keywords ?? [], "color", p.deep).html;
+  const pad = { pad: "56px 24px" };
+  if (b.variant === "quote") {
+    return wrap(b, p,
+      `<div style="text-align:center"><span aria-hidden="true" data-pz-deco style="display:block;${TITLE_FF};font-size:56px;font-weight:900;line-height:0.6;height:26px;color:${hexToRgba(p.deep, 0.55)}">“</span>` +
+        `<p style="margin:0 auto;max-width:20em;overflow-wrap:anywhere;${typeCss("display", on.text, "font-size:26px")}">${text}</p></div>`,
+      pad);
+  }
+  if (b.variant === "rule") {
+    const line = `<span aria-hidden="true" style="display:block;height:2px;background:${p.ink}"></span>`;
+    return wrap(b, p, `${line}<p style="margin:20px 0;text-align:left;overflow-wrap:anywhere;${typeCss("display", on.text, "font-size:28px")}">${text}</p><span aria-hidden="true" style="display:block;height:1px;background:${hexToRgba(p.ink, 0.25)}"></span>`, pad);
+  }
   return wrap(
     b,
     p,
     `<div style="display:flex;align-items:stretch;gap:18px"><span aria-hidden="true" style="flex:none;width:5px;border-radius:3px;background:${p.deep}"></span>` +
       `<p style="flex:1 1 0%;min-width:0;margin:0;text-align:left;overflow-wrap:anywhere;${typeCss("display", on.text, "font-size:28px")}">${text}</p></div>`,
-    { pad: "56px 24px" },
+    pad,
   );
 }
 
@@ -749,7 +763,7 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
   const rhythm0 = applyRhythm(hooked.sections, hooked.sourceIndexes, ctx, seed);
   const rhythm1 = applyTrust(rhythm0, ctx);
   // 463차 UP1 — 강조 띠 1개(입력에 이미 있는 문장 원문). 꺼짐이면 건너뛴다(출력 불변)
-  const band = designUp1On() ? insertStatementBand(rhythm1.sections, rhythm1.sourceIndexes, sections, keywords, ctx) : null;
+  const band = designUp1On() ? insertStatementBand(rhythm1.sections, rhythm1.sourceIndexes, sections, keywords, ctx, seed) : null;
   const rhythm = band ? { ...rhythm1, sections: band.sections, sourceIndexes: band.sourceIndexes, inserted: [...rhythm1.inserted, band.note] } : rhythm1;
   const withMotifs = assignMotifs(assignFaces(rhythm.sections, seed), ctx.mood, seed);
   const finalPlaced: V4Placed[] = [];
@@ -758,39 +772,76 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
 }
 
 /**
- * 463차 UP1 — 강조 띠. 문장은 입력에 이미 있는 것만 원문 그대로: 브랜드 스토리 인용문(quote) → 강조 박스 카드 제목 순으로 8~48자 한 줄, 수치 검사(checkText)를 통과한 것.
- * 위치는 페이지 높이의 55% 근처 경계. 히어로·접점·숨 고르기·기존 강조 띠·구매 카드와 맞닿지 않고, 같은 문장이 든 섹션 바로 옆에는 두지 않는다. 페이지당 최대 1개.
- * 우선순위: 기존 규칙(INFO_RUN_MAX·MAX_BREATHERS·TOUCH_AT로 이미 놓인 접점·모티프 면)이 먼저 놓인 뒤에 남는 경계에만 끼운다 — 충돌하면 띠를 만들지 않는다.
+ * 463·464차 UP1 — 강조 띠. 문장은 입력에 이미 있는 것만 원문 그대로 8~48자 한 줄, 수치 검사(checkText) 통과.
+ * 464차 쏠림 해소: ① 시드 기반으로 약 절반 페이지에서만(결정적) ② 위치는 높이의 45~65%를 시드로 ③ 형태 3가지를 시드로 ④ 후보도 여러 개 중 시드로 고른다.
+ * 중복 방지: 후보 문장이 같은 페이지의 다른 섹션에 **한 글 노드 그대로**(필드 값이 문장과 같거나 타임라인 변형이 문장 단위로 쪼개 보이는 경우) 이미 있으면 제외한다 —
+ *   긴 본문 문단 안의 한 문장은 그 문단과 다른 글 노드이므로 허용한다(브랜드 스토리 인용문은 필드 값이 그대로 보이므로 항상 제외된다).
+ * 위치는 히어로·접점·숨 고르기·기존 강조 띠·구매 카드와 맞닿지 않는 경계. 우선순위: 기존 규칙(INFO_RUN_MAX·MAX_BREATHERS·TOUCH_AT로 이미 놓인 접점·모티프 면)이 먼저 놓이고 남는 경계에만 끼운다 — 충돌하면 만들지 않는다.
  */
-export const STATEMENT_AT = 0.55;
+export const STATEMENT_MIN_AT = 0.45;
+export const STATEMENT_MAX_AT = 0.65;
+export const STATEMENT_FORMS = ["band", "quote", "rule"] as const;
+/** 후보 문장(원문 그대로, 8~48자 한 줄): 브랜드 스토리 본문의 문장 → 강조 박스 카드 본문 → 강조 박스 카드 제목 → 스토리 인용문 순으로 모은다 */
 export function statementCandidates(orig: DetailSection[]): string[] {
   const out: string[] = [];
-  for (const s of orig) if (s.type === "impact" && s.kind === "story" && s.quote) out.push(s.quote.trim());
+  for (const s of orig) if (s.type === "impact" && s.kind === "story" && s.body) for (const t of splitSentences(s.body)) out.push(t.trim());
+  for (const s of orig) if (s.type === "highlight_box") for (const c of s.cards) if (c.body) out.push(c.body.trim());
   for (const s of orig) if (s.type === "highlight_box") for (const c of s.cards) out.push((c.title ?? "").trim());
+  for (const s of orig) if (s.type === "impact" && s.kind === "story" && s.quote) out.push(s.quote.trim());
+  return out.filter((t, i) => out.indexOf(t) === i);
+}
+/** 화면에 한 글 노드로 이미 보이는 문장 집합(섹션의 모든 문자열 필드 값 + 타임라인 변형이 문장 단위로 쪼갠 글) */
+function shownNodes(secs: DetailSection[]): Set<string> {
+  const out = new Set<string>();
+  const walk = (v: unknown): void => {
+    if (typeof v === "string") out.add(v.trim());
+    else if (Array.isArray(v)) v.forEach(walk);
+    else if (v && typeof v === "object") Object.values(v as Record<string, unknown>).forEach(walk);
+  };
+  for (const s of secs) {
+    walk(s);
+    if (s.type === "impact" && s.kind === "v4" && s.v4?.family === "story" && s.v4.variant === "linetime") for (const t of splitSentences(`${s.quote ?? ""} ${s.body ?? ""}`.trim())) out.add(t.trim());
+  }
   return out;
 }
-export function insertStatementBand(secs: DetailSection[], idx: number[], orig: DetailSection[], keywords: readonly string[], ctx: V4Ctx): { sections: DetailSection[]; sourceIndexes: number[]; note: string } | null {
-  const text = statementCandidates(orig).find((t) => len(t) >= 8 && len(t) <= 48 && !/[\r\n]/.test(t) && !checkText(t, ctx.facts).bad);
-  if (!text || secs.length < 8) return null;
+/** 제목·본문을 가운데 정렬로 그리는 경향이 있는 섹션 종류(말뭉치 마크업에서 관찰한 것 — 추정) */
+const CENTER_IMPACT = new Set(["frame", "inset", "zoom", "statement", "number", "illust-center", "bleed", "textboost"]);
+function leansCenter(s: DetailSection | undefined): boolean {
+  if (!s) return false;
+  if (s.type === "impact") return s.kind === "v4" ? (s.v4?.family === "phototext" && s.v4.variant === "arch") || s.v4?.family === "breather" : CENTER_IMPACT.has(s.kind);
+  return s.type === "gallery" || s.type === "illustration_banner" || s.type === "usage_steps" || s.type === "ai_disclosure" || s.type === "hero" || (s.type === "image_text" && s.layout === "text_only");
+}
+/** 시드로 이 페이지에 띠를 만들지 — 결정적 */
+/** 후보가 없는 페이지(작은 상품 등)가 빠지므로 시드 통과율은 60%로 둔다(전체 등장 비율이 약 절반 안팎이 되게) */
+export const statementWanted = (seed: number): boolean => ((seed >>> 7) % 5) < 3;
+export function insertStatementBand(secs: DetailSection[], idx: number[], orig: DetailSection[], keywords: readonly string[], ctx: V4Ctx, seed = 0): { sections: DetailSection[]; sourceIndexes: number[]; note: string } | null {
+  if (!statementWanted(seed) || secs.length < 8) return null;
+  const shown = shownNodes(secs.filter((x) => x.type === "impact")); // 지시: 같은 페이지의 다른 임팩트/스토리 섹션에 그대로 보이는 문장만 제외
+  const cands = statementCandidates(orig).filter((t) => len(t) >= 8 && len(t) <= 48 && !/[\r\n]/.test(t) && !checkText(t, ctx.facts).bad && !shown.has(t));
+  if (!cands.length) return null;
+  const text = cands[(seed >>> 11) % cands.length]!;
+  const at = STATEMENT_MIN_AT + (((seed >>> 5) % 21) / 100); // 0.45 ~ 0.65
+  const form0 = STATEMENT_FORMS[(seed >>> 17) % STATEMENT_FORMS.length]!;
   const hs = secs.map((s) => ctx.height(s));
   const total = hs.reduce((a, b) => a + b, 0);
   const blocked = (s: DetailSection | undefined): boolean => !s || s.type === "hero" || s.type === "cta_price" || (s.type === "impact" && s.kind === "v4" && (s.v4?.family === "touch" || s.v4?.family === "breather" || s.v4?.family === "statement"));
-  const holdsText = (s: DetailSection | undefined): boolean => !!s && JSON.stringify(s).includes(JSON.stringify(text).slice(1, -1));
   let y = 0;
   let best = -1;
   let bestD = Infinity;
   for (let k = 0; k < secs.length; k += 1) {
-    const d = Math.abs(y - total * STATEMENT_AT);
-    if (k >= 4 && k <= secs.length - 3 && !blocked(secs[k - 1]) && !blocked(secs[k]) && !holdsText(secs[k - 1]) && !holdsText(secs[k]) && d < bestD) { bestD = d; best = k; }
+    const d = Math.abs(y - total * at);
+    if (k >= 4 && k <= secs.length - 3 && !blocked(secs[k - 1]) && !blocked(secs[k]) && d < bestD) { bestD = d; best = k; }
     y += hs[k]!;
   }
   if (best < 0) return null;
-  const sec = { type: "impact", slot: "impact", kind: "v4", text, ...(ctx.mood ? { mood: ctx.mood } : {}), v4: { family: "statement", variant: "band", no: 0, face: "emphasis", keywords: keywords.slice(0, 12) } } as ImpactSection;
+  // 가운데 정렬 인용 형태는 이웃이 가운데 정렬 쪽 섹션이면 정렬 연속을 늘리므로 왼쪽 정렬 띠로 바꾼다(이웃의 실제 정렬은 모르는 일반 섹션이 있어 종류로 추정)
+  const variant = form0 === "quote" && (leansCenter(secs[best - 1]) || leansCenter(secs[best])) ? "band" : form0;
+  const sec = { type: "impact", slot: "impact", kind: "v4", text, ...(ctx.mood ? { mood: ctx.mood } : {}), v4: { family: "statement", variant, no: 0, face: "emphasis", keywords: keywords.slice(0, 12) } } as ImpactSection;
   const S = [...secs];
   const I = [...idx];
   S.splice(best, 0, sec as DetailSection);
   I.splice(best, 0, I[best - 1]!);
-  return { sections: S, sourceIndexes: I, note: `강조 띠 @${best}` };
+  return { sections: S, sourceIndexes: I, note: `강조 띠(${variant}) @${best}` };
 }
 
 /** 첫 3화면: ① 히어로(+패션 첫 갤러리) ② 한눈에 보기(점수 최고 benefits) ③ 고민(concern 계열) — 이미 있는 블록을 앞으로 옮긴다 */
