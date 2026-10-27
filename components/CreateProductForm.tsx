@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { removeUploaded, uploadImage } from "@/lib/storage/client-upload";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import GeneratingOverlay, { type GeneratingStage, SNAP_HOLD_MS } from "@/components/GeneratingOverlay";
 import { createClient } from "@/lib/supabase";
@@ -50,7 +51,6 @@ const PLANNING_TYPES = [
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
-const STORAGE_BUCKET = "images";
 const SESSION_KEY = "pagzly-create-result";
 /** 기획 초안(draft) — payload + sections */
 export const DRAFT_SESSION_KEY = "pagzly-create-draft";
@@ -300,15 +300,12 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       const ext = file.type === "image/png" ? "png" : "jpg";
       const path = `${userId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from(STORAGE_BUCKET)
-        .upload(path, file, { contentType: file.type, upsert: false });
-
-      if (uploadError) {
-        throw new Error(`이미지 업로드 실패: ${uploadError.message}`);
+      // 459차: 저장소 전환 계층(기본 supabase = 이전과 같은 호출)
+      const up = await uploadImage(supabase, file, { path, contentType: file.type, upsert: false });
+      if ("error" in up) {
+        throw new Error(`이미지 업로드 실패: ${up.error}`);
       }
-
-      const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+      const data = { publicUrl: up.publicUrl };
 
       // product_images: 완성 전 임시 추적. product_id 연결 전에도
       // protected_until(24h) 동안 cleanup 대상에서 제외 (30차).
@@ -321,7 +318,7 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
       });
 
       if (dbError) {
-        await supabase.storage.from(STORAGE_BUCKET).remove([path]);
+        await removeUploaded(supabase, [path]);
         throw new Error(`이미지 정보 저장 실패: ${dbError.message}`);
       }
 
@@ -338,16 +335,11 @@ export default function CreateProductForm({ userId }: CreateProductFormProps) {
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
     const path = `${userId}/aux/${prefix}-${Date.now()}-${crypto.randomUUID()}.${ext}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(path, file, { contentType: file.type || undefined, upsert: false });
-
-    if (uploadError) {
-      throw new Error(`파일 업로드 실패: ${uploadError.message}`);
+    const up = await uploadImage(supabase, file, { path, contentType: file.type || undefined, upsert: false });
+    if ("error" in up) {
+      throw new Error(`파일 업로드 실패: ${up.error}`);
     }
-
-    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-    return data.publicUrl;
+    return up.publicUrl;
   }
 
   function handleReferenceImage(file: File | null) {

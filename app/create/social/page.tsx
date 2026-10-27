@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { removeUploaded, uploadImage } from "@/lib/storage/client-upload";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import GeneratingOverlay, { type GeneratingStage, SNAP_HOLD_MS } from "@/components/GeneratingOverlay";
@@ -13,7 +14,6 @@ import {
 } from "@/lib/cost/saas-pricing-config";
 import { productImageProtectedUntil } from "@/lib/product-image-protection";
 
-const STORAGE_BUCKET = "images";
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/jpg"];
 
 const CATEGORIES = [
@@ -72,13 +72,10 @@ export default function CreateSocialPage() {
       const ext = file.type === "image/png" ? "png" : "jpg";
       const path = `${uid}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from(STORAGE_BUCKET)
-        .upload(path, file, { contentType: file.type, upsert: false });
-
-      if (uploadError) throw new Error(`이미지 업로드 실패: ${uploadError.message}`);
-
-      const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+      // 459차: 저장소 전환 계층(기본 supabase = 이전과 같은 호출)
+      const up = await uploadImage(supabase, file, { path, contentType: file.type, upsert: false });
+      if ("error" in up) throw new Error(`이미지 업로드 실패: ${up.error}`);
+      const data = { publicUrl: up.publicUrl };
 
       const { error: dbError } = await supabase.from("product_images").insert({
         user_id: uid,
@@ -89,7 +86,7 @@ export default function CreateSocialPage() {
       });
 
       if (dbError) {
-        await supabase.storage.from(STORAGE_BUCKET).remove([path]);
+        await removeUploaded(supabase, [path]);
         throw new Error(`이미지 정보 저장 실패: ${dbError.message}`);
       }
 

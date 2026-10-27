@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { uploadImage } from "@/lib/storage/client-upload";
 import { hasSizeHeight } from "@/lib/scene-size";
 import { displayStateOf } from "@/lib/saved-display";
 import { claimFactsOf, type ClaimInput } from "@/lib/numeric-claim-gate";
@@ -617,12 +618,10 @@ function CreateResultContent() {
       } = await supabase.auth.getUser();
       if (user) {
         const path = `${user.id}/${Date.now()}-${crypto.randomUUID()}.gif`;
-        const { error: uploadError } = await supabase.storage
-          .from("images")
-          .upload(path, file, { contentType: "image/gif", upsert: false });
-        if (!uploadError) {
-          const { data: publicData } = supabase.storage.from("images").getPublicUrl(path);
-          gifUrl = publicData.publicUrl;
+        // 459차: 저장소 전환 계층(기본 supabase = 이전과 같은 호출)
+        const up = await uploadImage(supabase, file, { path, contentType: "image/gif", upsert: false });
+        if (!("error" in up)) {
+          gifUrl = up.publicUrl;
         }
       }
     } catch (err) {
@@ -710,16 +709,13 @@ function CreateResultContent() {
       const cleaned = await prepareUploadFile(file);
       const ext = cleaned.type === "image/png" ? "png" : "jpg";
       const path = `${user.id}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("images")
-        .upload(path, cleaned, { contentType: cleaned.type, upsert: false });
-      if (uploadError) {
-        setToast({ tone: "error", message: `업로드 실패: ${uploadError.message}` });
+      const up = await uploadImage(supabase, cleaned, { path, contentType: cleaned.type, upsert: false });
+      if ("error" in up) {
+        setToast({ tone: "error", message: `업로드 실패: ${up.error}` });
         return;
       }
-      const { data: publicData } = supabase.storage.from("images").getPublicUrl(path);
       const uploaded = [...nextUrls];
-      uploaded[target] = publicData.publicUrl;
+      uploaded[target] = up.publicUrl;
       persist({ ...data, imageUrls: uploaded });
     } catch (err) {
       console.warn("[one-click-upload] storage skip", err);
