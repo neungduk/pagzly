@@ -6,6 +6,12 @@ import { markNoPhotoFrame } from "@/lib/photo-fallback";
 
 export const DESIGN_V4_ENABLED = process.env.NEXT_PUBLIC_DESIGN_V4 !== "off";
 
+/**
+ * 462차 — 업그레이드 1차(UP1) 하위 플래그. 기본 꺼짐: `NEXT_PUBLIC_DESIGN_V4_UP1=on`일 때만 켜지고, v4가 꺼져 있으면 항상 꺼진다.
+ * 두 플래그가 꺼진 상태 = 438차 기준 export 문자열과 같다. 롤백: 이 변수를 지우고(또는 off) 재배포.
+ */
+export const DESIGN_V4_UP1_ENABLED = DESIGN_V4_ENABLED && process.env.NEXT_PUBLIC_DESIGN_V4_UP1 === "on";
+
 /** 표시 계획(planV4)이 읽는 실행 중 상태. 회귀가 이전 차수(433~438) 단계 검사를 v4 없이 돌릴 때만 바꾼다(서비스 코드는 바꾸지 않음) */
 const state = { on: DESIGN_V4_ENABLED };
 export const designV4On = (): boolean => state.on;

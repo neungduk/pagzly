@@ -1,4 +1,5 @@
 import type { CategoryTheme } from "@/lib/category-theme";
+import { isLongStatValue, isLongUnit, personaClampLines } from "@/lib/robust-462";
 import { renderCanvasSectionHtml } from "@/lib/canvas-section-export-html";
 import {
   CHECKLIST_HUB_LABEL_W,
@@ -164,7 +165,7 @@ import { applyPackTone, classicFashionHeroStrength, isClassicPack, CLASSIC_LAYOU
 import { archetypeHeroLayout } from "@/lib/archetype-recipes";
 import { HERO_V2_TUNED, heroPalette, heroV2Html } from "@/lib/hero-spec";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
-import { DESIGN_V4_ENABLED } from "@/lib/design-v4";
+import { DESIGN_V4_ENABLED, DESIGN_V4_UP1_ENABLED } from "@/lib/design-v4";
 import { BANNER_SCRIM_INSET_V4, BANNER_SPLIT_BAND_BG, bannerStyleNow, CHIP_V4, LINE_HEIGHT_V4, RADIUS_V4, SPACE_V4, declStyle, tokenStyle } from "@/lib/design-tokens-v4";
 import { stepChipV4, reviewCaptionV4, highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, stepTextV4, stepsListV4 } from "@/lib/twin-styles-v4";
 import { ctaTrustHtml } from "@/lib/layout-variants";
@@ -565,7 +566,7 @@ function comparisonChartBodyHtml(
           const ourP = Math.min(100, (m.ourValue / max) * 100);
           const baseP = Math.min(100, (m.baselineValue / max) * 100);
           if (FLAT_SECTION_SURFACES) {
-            return `<div><div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px"><p style="margin:0;font-size:${FONT_SIZE.body};font-weight:600;line-height:1.375;color:rgba(27,27,24,.8)">${esc(m.label)}</p><span style="flex-shrink:0;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:16px;line-height:1.5"><span style="font-family:${DETAIL_FONT_STACK.heading};font-size:22px;font-weight:900;line-height:1;color:${deepText}">${m.ourValue}<span style="margin-left:2px;font-size:13px;font-weight:700">${esc(unit)}</span></span><span style="margin-left:6px;font-size:${FONT_SIZE.sm};color:rgba(27,27,24,.45)">/ ${m.baselineValue}${esc(unit)}</span></span></div>
+            return `<div><div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px"><p style="margin:0;font-size:${FONT_SIZE.body};font-weight:600;line-height:1.375;color:rgba(27,27,24,.8)">${esc(m.label)}</p><span style="${isLongUnit(unit) ? "min-width:0;max-width:60%;text-align:right" : "flex-shrink:0;white-space:nowrap"};font-variant-numeric:tabular-nums;font-size:16px;line-height:1.5"><span style="font-family:${DETAIL_FONT_STACK.heading};font-size:22px;font-weight:900;line-height:1;color:${deepText}">${m.ourValue}<span style="margin-left:2px;font-size:13px;font-weight:700">${esc(unit)}</span></span><span style="margin-left:6px;font-size:${FONT_SIZE.sm};color:rgba(27,27,24,.45)">/ ${m.baselineValue}${esc(unit)}</span></span></div>
             <div style="margin-top:12px;height:12px;background:${hexToRgba(accent, 0.16)};border-radius:${RADIUS.pill}px;overflow:hidden"><div class="fill-bar" style="height:100%;width:${ourP}%;background:${accent};border-radius:${RADIUS.pill}px"></div></div>
             <div style="margin-top:6px;height:8px;background:${hexToRgba(BRAND.ink, 0.06)};border-radius:${RADIUS.pill}px;overflow:hidden"><div class="fill-bar" style="height:100%;width:${baseP}%;background:${hexToRgba(BRAND.ink, 0.28)};border-radius:${RADIUS.pill}px"></div></div></div>`;
           }
@@ -927,7 +928,7 @@ function sectionHtml(
       return `<section${sectionIdAttr}${infoAttr(layout, "points")} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${headerHtml}
         ${productPhotoHtml}
-        <div class="pagzly-hl-grid"${ipAttr(layout, "pgrid")} style="display:grid;grid-template-columns:repeat(${cards.length === 4 ? 2 : 1},1fr);--pz-hl-wide:repeat(${cards.length},1fr);gap:${FLAT_SECTION_SURFACES ? 16 : 12}px;margin-top:${FLAT_SECTION_SURFACES ? (DESIGN_V4_ENABLED ? SPACE_V4.md : 40) : 32}px">
+        <div class="pagzly-hl-grid"${ipAttr(layout, "pgrid")} style="display:grid;grid-template-columns:repeat(${cards.length === 4 ? 2 : 1},1fr);--pz-hl-wide:repeat(${DESIGN_V4_UP1_ENABLED && cards.length === 4 ? 2 : cards.length},1fr);gap:${FLAT_SECTION_SURFACES ? 16 : 12}px;margin-top:${FLAT_SECTION_SURFACES ? (DESIGN_V4_ENABLED ? SPACE_V4.md : 40) : 32}px">
           ${cards
             .map((card, i) => {
               const em = i === center;
@@ -1054,7 +1055,7 @@ function sectionHtml(
               </div>`;
           }
           const barColor = section.barAccent === "emphasis" ? deep : accent;
-          return `<div${infoOn(layout) && pct > 0 && pct === Math.max(...listBars.map((b) => b.percent ?? 0)) ? ' data-top="1"' : ""}><div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;font-size:${FONT_SIZE.bodySm}"><span class="pagzly-stat-bar-label" style="font-weight:500;color:rgba(27,27,24,.65)">${esc(m.label)}</span><span style="flex-shrink:0;white-space:nowrap;font-size:16px;line-height:1.5"><strong style="font-family:${DETAIL_FONT_STACK.heading};font-size:${titleSizeCss("statBar")};font-weight:900;line-height:1;letter-spacing:-0.05em;font-variant-numeric:tabular-nums;color:${BRAND.ink}">${statValueHtml(m.value)}</strong>${footnoteMarkFor(m)}</span></div>
+          return `<div${infoOn(layout) && pct > 0 && pct === Math.max(...listBars.map((b) => b.percent ?? 0)) ? ' data-top="1"' : ""}><div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;font-size:${FONT_SIZE.bodySm}"><span class="pagzly-stat-bar-label" style="font-weight:500;color:rgba(27,27,24,.65)">${esc(m.label)}</span><span style="${isLongStatValue(m.value) ? "min-width:0;max-width:60%;text-align:right" : "flex-shrink:0;white-space:nowrap"};font-size:16px;line-height:1.5"><strong style="font-family:${DETAIL_FONT_STACK.heading};font-size:${titleSizeCss("statBar")};font-weight:900;line-height:1;letter-spacing:-0.05em;font-variant-numeric:tabular-nums;color:${BRAND.ink}">${statValueHtml(m.value)}</strong>${footnoteMarkFor(m)}</span></div>
                 ${
                   FLAT_SECTION_SURFACES && isConcentrationMetricLabel(m.label)
                     ? `<div style="height:1px;background:${hexToRgba(accent, 0.2)};margin-top:12px"></div>`
@@ -1680,7 +1681,7 @@ function sectionHtml(
               .map((p, i) => {
                 const flip = i % 2 === 1;
                 const alt = buildSectionImageAlt(productName, p, section.slot);
-                return `<li style="display:flex;align-items:center;flex-direction:${flip ? "row-reverse" : "row"};overflow:hidden;border-radius:9999px;border:1px solid ${hexToRgba(theme.accent, 0.16)};background:${FLAT_PAPER};aspect-ratio:${ps.rowAspect}"><div style="position:relative;height:100%;flex-shrink:0;width:${ps.photoWidthPct}%"><img src="${esc(imageUrls[stripIndexes[i]!] ?? "")}" alt="${esc(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover"/><div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(${flip ? "270deg" : "90deg"},transparent ${100 - ps.fadePct}%,${FLAT_PAPER} 100%)"></div></div><span style="min-width:0;flex:1;text-align:center;${DESIGN_V4_ENABLED ? "" : "font-weight:500;"}padding:0 ${ps.padXPx}px;font-size:${ps.textPx}px;line-height:${ps.lineHeight};color:${BRAND.ink};word-break:keep-all;text-wrap:balance;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden${DESIGN_V4_ENABLED ? `;${declStyle(personaTextV4())}` : ""}">${esc(p)}</span></li>`;
+                return `<li style="display:flex;align-items:center;flex-direction:${flip ? "row-reverse" : "row"};overflow:hidden;border-radius:9999px;border:1px solid ${hexToRgba(theme.accent, 0.16)};background:${FLAT_PAPER};aspect-ratio:${ps.rowAspect}"><div style="position:relative;height:100%;flex-shrink:0;width:${ps.photoWidthPct}%"><img src="${esc(imageUrls[stripIndexes[i]!] ?? "")}" alt="${esc(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover"/><div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(${flip ? "270deg" : "90deg"},transparent ${100 - ps.fadePct}%,${FLAT_PAPER} 100%)"></div></div><span style="min-width:0;flex:1;text-align:center;${DESIGN_V4_ENABLED ? "" : "font-weight:500;"}padding:0 ${ps.padXPx}px;font-size:${ps.textPx}px;line-height:${ps.lineHeight};color:${BRAND.ink};word-break:keep-all;text-wrap:balance;display:-webkit-box;-webkit-line-clamp:${personaClampLines(p)};-webkit-box-orient:vertical;overflow:hidden${DESIGN_V4_ENABLED ? `;${declStyle(personaTextV4())}` : ""}">${esc(p)}</span></li>`;
               })
               .join("")}</ul>`
           : "";

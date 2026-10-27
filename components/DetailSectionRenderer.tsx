@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { isLongStatValue, isLongUnit, personaClampLines } from "@/lib/robust-462";
 import StickyBuyBar from "@/components/StickyBuyBar";
 import { COMPOSITION_V2_ENABLED } from "@/lib/detail-story-order";
 import {
@@ -244,7 +245,7 @@ import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/li
 import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe";
 import { applyDisplayRules } from "@/lib/display-sections";
 import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
-import { DESIGN_V4_ENABLED, hideImgOnError } from "@/lib/design-v4";
+import { DESIGN_V4_ENABLED, DESIGN_V4_UP1_ENABLED, hideImgOnError } from "@/lib/design-v4";
 import { noPhotoCss, watchNoPhotoFrames } from "@/lib/photo-fallback";
 import { BANNER_SCRIM_INSET_V4, BANNER_SPLIT_BAND_BG, bannerStyleNow, declObject, tokenStyleObject } from "@/lib/design-tokens-v4";
 import { stepChipV4, reviewCaptionV4, highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, stepTextV4, stepsListV4 } from "@/lib/twin-styles-v4";
@@ -786,7 +787,7 @@ function ComparisonMetricRow({
       <div>
         <div className="flex items-baseline justify-between gap-4">
           <p className="text-[15px] font-semibold leading-snug text-ink/80">{label}</p>
-          <span className="shrink-0 whitespace-nowrap tabular-nums">
+          <span className={`${isLongUnit(unit) ? "min-w-0 max-w-[60%] text-right" : "shrink-0 whitespace-nowrap"} tabular-nums`}>
             <span
               className="font-heading text-[22px] font-black leading-none"
               style={{ color: readableTextDeep(theme) }}
@@ -1767,7 +1768,7 @@ function PersonaStrip({
                 personas[i] = next;
                 onChange(personas);
               }}
-              className={DESIGN_V4_ENABLED ? "line-clamp-3 min-w-0 flex-1 text-center" : "line-clamp-3 min-w-0 flex-1 text-center font-medium"}
+              className={`${personaClampLines(persona) === 4 ? "line-clamp-4" : "line-clamp-3"} min-w-0 flex-1 text-center${DESIGN_V4_ENABLED ? "" : " font-medium"}`}
               style={{
                 padding: `0 ${s.padXPx}px`,
                 fontSize: s.textPx,
@@ -3877,6 +3878,8 @@ function renderSection(
           ? "max-w-xl grid-cols-1 @min-[640px]/pz:grid-cols-2"
           : cards.length === 3
             ? "max-w-4xl grid-cols-1 @min-[640px]/pz:grid-cols-3"
+            : DESIGN_V4_UP1_ENABLED
+            ? "max-w-5xl grid-cols-2" // 462차 UP1 — 카드 4장은 넓은 폭에서도 2×2(4열이면 칸당 글 폭이 120px 안팎으로 좁아진다)
             : "max-w-5xl grid-cols-2 @min-[640px]/pz:grid-cols-4";
       return (
         <section
@@ -4357,7 +4360,7 @@ function renderSection(
                           className="text-sm font-medium text-ink/65 @min-[640px]/pz:text-base"
                         />
                       </div>
-                      <span className="shrink-0 whitespace-nowrap">
+                      <span className={isLongStatValue(metric.value) ? "min-w-0 max-w-[60%] text-right" : "shrink-0 whitespace-nowrap"}>
                         <StatValue
                           editEnabled={edit?.enabled}
                           value={metric.value}
