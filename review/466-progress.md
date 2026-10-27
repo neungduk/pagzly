@@ -6,7 +6,7 @@
 | 2 변형 확정 선호 | 완료 — 계열별 합집합 benefits7·concern6·story6·spec6·phototext7·faq5, story 100% pullband·faq 100% chat 해소, 접점·띠도 선호, 합성 입력 회귀(rows2·big3·iconlist·chapter·letter) |
 | 3 히어로 | 완료 — `pickHeroV5`, 아키타입별 히어로 선호(기존 A~E), lightOnly 3종 히어로 전부 밝음, 8종이 A~E 5종 사용 |
 | 4 타이포·정렬 | 부분 완료 — 중앙 정렬 평균 0.325(≤0.33)·각 ≤0.40·연속 ≤4 달성, 제목 굵기 534~895로 갈림(`typographyV5`, `planAlignV5`). **평탄 구간 48~71(목표 ≤37) 미달** — 시도 3종 효과 없어 되돌림, 원인 보고 |
-| 5 빈 사진 면 | 남음 |
+| 5 빈 사진 면 | 완료(조치: 갤러리 `--localize-blocked`, pc-todo 확인 한 줄) — 분류 "불확실, 가짜 현상 가능성 높음", 앱 출력 변경 없음 |
 | 6 안전망 | 남음 |
 | 7 문서·보고서 | 남음 |
 

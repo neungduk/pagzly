@@ -41,3 +41,8 @@ UP1을 끄고 재배포하면 모두 사라지고 이전 모양으로 돌아오�
 4. 실사진은 마지막에 **한 번만**(egress 주의): 마음에 드는 아키타입 1~2개로.
 5. 편집 모드: 켜면 V5가 적용되지 않고(원본 섹션), 끄면 다시 V5가 보이는지. 라이브↔export 같은 모양인지, PNG 다운로드 경로(`html-to-image`)에서 새 장식·프레임이 깨지지 않는지.
 6. 롤백 확인: `NEXT_PUBLIC_DESIGN_V5` 제거 후 재배포하면 464차 모양으로 돌아오는지.
+
+## 빈 사진 면 확인 (466차 Phase 5 — 원인 "불확실, 오프라인 캡처 가짜 현상 가능성 높음")
+기획 담당 캡처에서 구매 가격 스트립 아래 약 1000px의 빈 연한 패널이 기준(UP1)과 8종 모두에 있었다. 코드상 후보는 ① 합성 placeholder 사진(480×601, 거의 단색)이 전폭 4/5 틀(`phototext.caption`, 750폭에서 약 940px)·히어로 아치 사진(약 936px)으로 늘어난 것 ② 막힌 `*.invalid` 인포 배경(스크림만 남음). `photo-fallback`은 파일이 있고 로드되면 정상 사진으로 취급하므로 단색 placeholder는 폴백 대상이 아니다.
+- 집 PC에서 한 줄: `npx tsx scripts/v5-gallery-465.ts --compare=fx-skincare-serum --localize-blocked` 후 `review/465-gallery/index.html`을 750폭으로 열어, 빈 패널이 **실사진(또는 `docs`의 ph2 placeholder)에서도** 같은 자리에 같은 크기로 생기는지 본다. 생기면 어떤 섹션(`data-pz-v4`/클래스)인지 개발자 도구로 확인해 알려 주세요(실제 결함이면 V5 켜짐 한정으로 비율 예약 상한을 두는 수정 후보: 전폭 4/5 틀에 `max-height`).
+- `--localize-blocked`는 갤러리 파일만 바꾼다(말뭉치·앱 출력 불변).

@@ -5,6 +5,7 @@
  *   npx tsx scripts/v5-gallery-465.ts                      # 전부 (21 × 8)
  *   npx tsx scripts/v5-gallery-465.ts --only=fx-skincare-serum --arch=editorial,pop
  *   npx tsx scripts/v5-gallery-465.ts --compare=fx-skincare-serum   # 한 픽스처를 8종 + 비교(UP1) 나란히 보는 index
+ *   --localize-blocked   # 466차: 막힌 합성 주소(`*.invalid` 인포 구간 배경 사진)를 같은 카테고리의 로컬 placeholder 사진으로 바꿔 배경이 비지 않게 한다(말뭉치·앱 출력은 그대로, 갤러리 파일만)
  * 외부 주소가 하나라도 있으면(xmlns·로컬 경로 제외) 경고하고 종료 코드 1.
  */
 import fs from "node:fs";
@@ -25,6 +26,19 @@ export function localizeAssets(html: string, depth: number): string {
  * 실제로 요청이 나갈 수 있는 외부 주소 목록. 제외: SVG xmlns(w3.org), JSON-LD 어휘 주소(schema.org — 요청 아님),
  * 해석되지 않는 예약 도메인(.invalid — 말뭉치 픽스처의 합성 배경 자리표시자라 요청이 실패하고 사진 폴백이 동작한다)
  */
+/**
+ * 466차 — 막힌 합성 주소(`https://*.invalid/...`)를 같은 페이지가 이미 쓰는 로컬 placeholder 사진 한 장으로 바꾼다(없으면 그대로).
+ * 인포 구간 배경은 `linear-gradient(스크림), url(...)`이라 막히면 스크림만 남는다 — 갤러리에서 실제 배경이 있을 때의 모양을 흉내 내기 위한 옵션이다.
+ */
+export function localizeBlocked(html: string, depth: number): string {
+  const dir = /\/qa-fixtures\/ph\/([a-z]+)\//.exec(html)?.[1] ?? /public\/qa-fixtures\/ph\/([a-z]+)\//.exec(html)?.[1];
+  if (!dir || !fs.existsSync(`public/qa-fixtures/ph/${dir}`)) return html;
+  const file = fs.readdirSync(`public/qa-fixtures/ph/${dir}`).filter((n) => n.endsWith(".png")).sort()[0];
+  if (!file) return html;
+  const local = `${"../".repeat(depth)}public/qa-fixtures/ph/${dir}/${file}`;
+  return html.replace(/https?:\/\/[^\s"')<>]*\.invalid\/[^\s"')<>]*/g, local);
+}
+
 export function externalUrls(html: string): string[] {
   return [...html.matchAll(/https?:\/\/[^\s"')<>]+/g)].map((m) => m[0]).filter((u) => !/^https?:\/\/(www\.w3\.org|schema\.org)(\/|$)/.test(u) && !/^https?:\/\/[^/]+\.invalid(\/|$)/.test(u));
 }
@@ -36,6 +50,8 @@ function arg(name: string): string | undefined {
 async function main() {
   const only = arg("only")?.split(",").filter(Boolean);
   const compare = arg("compare");
+  const blocked = process.argv.includes("--localize-blocked");
+  const prep = (h: string): string => (blocked ? localizeBlocked(localizeAssets(h, 3), 3) : localizeAssets(h, 3));
   const archs = (arg("arch")?.split(",").filter(Boolean) as ArchetypeId[] | undefined) ?? [...ARCHETYPE_IDS];
   const files = corpus({ only: compare ? [compare] : only });
   let bad = 0;
@@ -45,14 +61,14 @@ async function main() {
     // 기준(UP1): V5 꺼짐
     setDesignV5ForTests(false);
     setDesignUp1ForTests(true);
-    const base = localizeAssets(exportHtmlOf(file), 3);
+    const base = prep(exportHtmlOf(file));
     fs.mkdirSync(path.join(OUT_DIR, "_up1"), { recursive: true });
     fs.writeFileSync(path.join(OUT_DIR, "_up1", `${id}.html`), base);
     links.push(`<tr><td>${id}</td><td><a href="_up1/${id}.html">UP1(기준)</a></td>`);
     for (const a of archs) {
       setDesignV5ForTests(true);
       setV5ArchetypeForTests(a);
-      const html = localizeAssets(exportHtmlOf(file), 3);
+      const html = prep(exportHtmlOf(file));
       const ext = externalUrls(html);
       if (ext.length) { bad += 1; console.error(`외부 주소 ${a}/${id}: ${ext.slice(0, 3).join(" ")}`); }
       fs.mkdirSync(path.join(OUT_DIR, a), { recursive: true });
