@@ -29,6 +29,7 @@ import type { ImpactPalette } from "@/lib/impact-templates";
 import type { ProductImageOrigin } from "@/lib/image-origins";
 import { designUp1On, designV4On, designV5On } from "@/lib/design-v4";
 import type { ArchetypeTokens } from "@/lib/page-archetype-v5";
+import { intrinsicStrength, variantStrength } from "@/lib/storyboard-v5";
 import { contrastRatioToken, hexToRgba, mixHex } from "@/lib/design-tokens";
 import { depthShadow, hairline, v4Palette, type FaceRole, type V4Palette } from "@/lib/palette-v4";
 import { dividerFor, dividerHtml, type DividerKind } from "@/lib/dividers";
@@ -781,7 +782,11 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
     }
     // 페이지 안에서 덜 쓴 변형을 먼저(같은 순위면 mood·시드 순서) — 같은 모양이 반복되지 않게
     const order0 = variantOrder(cc.family, ctx.mood, seed + i * 7, (ctx.v5?.prefer as Partial<Record<string, string[]>> | undefined)?.[cc.family]);
-    const order = [...order0].sort((a, b) => (counts.get(`${cc.family}.${a}`) ?? 0) - (counts.get(`${cc.family}.${b}`) ?? 0) || order0.indexOf(a) - order0.indexOf(b));
+    // 465차 V5 — 스토리보드: 페이지 앞 1/3 자리는 강도 4 이상(큰 변형)을 먼저(곡선 규칙 "처음 1/3에 높음 2회 이상"). V5 꺼짐이면 기존 정렬 그대로
+    // 앞 섹션이 낮은 강도(≤2)면 낮은 것이 3연속 되지 않게 강도 3 이상을 먼저
+    const prevLow = Boolean(ctx.v5) && outS.length > 0 && intrinsicStrength(outS[outS.length - 1]!) <= 2;
+    const need = ctx.v5 ? (i / sections.length < 0.34 ? 4 : prevLow ? 3 : 0) : 0;
+    const order = [...order0].sort((a, b) => (need ? Number(variantStrength(cc.family, a) < need) - Number(variantStrength(cc.family, b) < need) : 0) || (counts.get(`${cc.family}.${a}`) ?? 0) - (counts.get(`${cc.family}.${b}`) ?? 0) || order0.indexOf(a) - order0.indexOf(b));
     const variant = order.find((v) => variantFits(cc.family, v, cc) && `${cc.family}.${v}` !== prevKey && (counts.get(`${cc.family}.${v}`) ?? 0) < MAX_SAME_VARIANT && (pairWith ? v === "collage" : v !== "collage"));
     if (!variant) {
       for (let k = 0; k < c.len; k += 1) { outS.push(sections[i + k]!); outI.push(sourceIndexes[i + k]!); }
@@ -821,7 +826,10 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
   const rhythm1 = applyTrust(rhythm0, ctx);
   // 463차 UP1 — 강조 띠 1개(입력에 이미 있는 문장 원문). 꺼짐이면 건너뛴다(출력 불변)
   const band = designUp1On() ? insertStatementBand(rhythm1.sections, rhythm1.sourceIndexes, sections, keywords, ctx, seed) : null;
-  const rhythm = band ? { ...rhythm1, sections: band.sections, sourceIndexes: band.sourceIndexes, inserted: [...rhythm1.inserted, band.note] } : rhythm1;
+  const rhythm0b = band ? { ...rhythm1, sections: band.sections, sourceIndexes: band.sourceIndexes, inserted: [...rhythm1.inserted, band.note] } : rhythm1;
+  // 465차 V5 — 마무리 띠: 구매 카드 바로 앞에 큰 문장 한 줄(곡선 규칙 "마무리 직전 높음 1회"). 가운데 띠와 다른 문장, 시드 약 60%
+  const closing = ctx.v5 ? insertClosingStatement(rhythm0b.sections, rhythm0b.sourceIndexes, sections, keywords, ctx, seed) : null;
+  const rhythm = closing ? { ...rhythm0b, sections: closing.sections, sourceIndexes: closing.sourceIndexes, inserted: [...rhythm0b.inserted, closing.note] } : rhythm0b;
   const withMotifs = assignMotifs(assignFaces(rhythm.sections, seed), ctx.mood, seed, ctx.v5 ?? null);
   const finalPlaced: V4Placed[] = [];
   withMotifs.forEach((s, at) => { if (s.type === "impact" && s.kind === "v4" && s.v4) finalPlaced.push({ family: s.v4.family, variant: s.v4.variant, at, from: "" }); });
@@ -899,6 +907,29 @@ export function insertStatementBand(secs: DetailSection[], idx: number[], orig: 
   S.splice(best, 0, sec as DetailSection);
   I.splice(best, 0, I[best - 1]!);
   return { sections: S, sourceIndexes: I, note: `강조 띠(${variant}) @${best}` };
+}
+
+/**
+ * 465차 V5 — 마무리 띠. 구매 카드(cta_price) 바로 앞 경계에 입력 문장 한 줄을 원문 그대로 크게(형태는 시드로). 가운데 띠와 같은 규칙(8~48자·수치 검사·다른 임팩트에 같은 글 노드가 없음)이고
+ * 가운데 띠에 쓴 문장은 제외한다. 앞 섹션이 접점·숨 고르기·띠·히어로면 만들지 않는다.
+ */
+export function insertClosingStatement(secs: DetailSection[], idx: number[], orig: DetailSection[], keywords: readonly string[], ctx: V4Ctx, seed = 0): { sections: DetailSection[]; sourceIndexes: number[]; note: string } | null {
+  if (((seed >>> 19) % 5) >= 3 || secs.length < 8) return null;
+  const at = secs.findIndex((x) => x.type === "cta_price");
+  if (at < 4) return null;
+  const prev = secs[at - 1];
+  if (!prev || prev.type === "hero" || (prev.type === "impact" && prev.kind === "v4" && (prev.v4?.family === "touch" || prev.v4?.family === "breather" || prev.v4?.family === "statement"))) return null;
+  const shown = shownNodes(secs.filter((x) => x.type === "impact"));
+  const cands = statementCandidates(orig).filter((t) => len(t) >= 8 && len(t) <= 48 && !/[\r\n]/.test(t) && !checkText(t, ctx.facts).bad && !shown.has(t));
+  if (!cands.length) return null;
+  const text = cands[(seed >>> 23) % cands.length]!;
+  const variant = STATEMENT_FORMS[((seed >>> 17) + 1) % STATEMENT_FORMS.length]!;
+  const sec = { type: "impact", slot: "impact", kind: "v4", text, ...(ctx.mood ? { mood: ctx.mood } : {}), v4: { family: "statement", variant, no: 0, face: "emphasis", keywords: keywords.slice(0, 12) } } as ImpactSection;
+  const S = [...secs];
+  const I = [...idx];
+  S.splice(at, 0, sec as DetailSection);
+  I.splice(at, 0, I[at - 1]!);
+  return { sections: S, sourceIndexes: I, note: `마무리 띠(${variant}) @${at}` };
 }
 
 /** 첫 3화면: ① 히어로(+패션 첫 갤러리) ② 한눈에 보기(점수 최고 benefits) ③ 고민(concern 계열) — 이미 있는 블록을 앞으로 옮긴다 */

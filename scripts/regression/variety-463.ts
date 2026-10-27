@@ -50,7 +50,7 @@ export async function run(): Promise<string[]> {
   const src = fs.readFileSync("lib/layout-variants.ts", "utf8");
   ok(/if \(designUp1On\(\) && s\.type === "usage_steps"\)/.test(src), "steps 후보가 UP1 뒤가 아님");
   ok(/const band = designUp1On\(\) \? insertStatementBand\(/.test(src), "강조 띠가 UP1 뒤가 아님");
-  ok(/const extra = designUp1On\(\) \? V4_UP1_VARIANTS\[family\]/.test(src), "변형 순서가 UP1 뒤가 아님");
+  ok(/const extra = \[\.\.\.\(designUp1On\(\) \? V4_UP1_VARIANTS\[family\]/.test(src), "변형 순서가 UP1 뒤가 아님");
   ok(/if \(designUp1On\(\)\) \{\s*\n\s*const WHITE_TYPES/.test(src), "면 교대 3회차가 UP1 뒤가 아님");
   for (const k of ["benefits.linelist", "story.pullband", "spec.cards", "steps.vtimeline", "steps.bignum", "steps.chipflow"]) ok(new RegExp(`case "${k}": return designUp1On\\(\\)`).test(src), `${k} 요건이 UP1 뒤가 아님`);
   // 라이브·export가 같은 v4Html 한 벌

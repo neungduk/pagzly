@@ -26,7 +26,13 @@ const V4_STRENGTH: Record<string, number> = {
   "phototext.overlap": 4, "phototext.offset": 4, "phototext.arch": 4, "phototext.caption": 5, "phototext.collage": 4,
   "touch.band": 3, "breather.motif": 1, "statement.band": 4, "statement.quote": 4, "statement.rule": 4,
   "steps.vtimeline": 2, "steps.bignum": 3, "steps.chipflow": 2,
+  // V5 새 변형
+  "benefits.stackbig": 3, "benefits.rows2": 3, "benefits.iconlist": 2, "concern.memo": 2, "concern.deck": 3, "story.chapter": 3, "story.letter": 2,
+  "spec.panel": 2, "spec.tags": 2, "spec.big3": 4, "phototext.stack": 4, "phototext.polaroid": 4, "phototext.dframe": 4,
+  "faq.numlist": 1, "faq.twocol": 2, "faq.qband": 2, "faq.chat": 3, "faq.tabs": 2, "proof.lead": 3, "proof.wall": 3, "proof.badges": 3, "proof.seal": 3,
+  "touch.ticket": 3, "touch.ledger": 2,
 };
+export const variantStrength = (family: string, variant: string): number => V4_STRENGTH[`${family}.${variant}`] ?? 3;
 const TYPE_STRENGTH: Record<string, number> = {
   hero: 5, gallery: 4, image_text: 3, spec_table: 1, faq: 1, checklist: 2, target_persona: 3, stat_infographic: 4, comparison_chart: 3, comparison_table: 2,
   tradeoff_card: 2, usage_steps: 2, step_card: 3, color_variation: 3, illustration_banner: 4, caution: 1, ai_disclosure: 1, cta_price: 5, review_highlight: 3,
