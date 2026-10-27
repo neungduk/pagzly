@@ -55,8 +55,18 @@
 ## 6. 기존 이미지와 이전(460차)
 기존 이미지는 이번 차수에서 옮기지 않는다. 이전 전까지 Supabase 주소가 계속 동작하고(`next.config`·proxy 허용 호스트 유지), 새 업로드만 R2로 간다. egress를 줄이는 임시 조치로 쓸 수 있으나 **기존 이미지 조회 egress는 줄지 않는다**(이전은 460차: 복사·DB 주소 교체·검증).
 
-## 7. 만료 이미지 정리 — 주의
-`supabase/functions/cleanup-expired-images`는 R2 객체를 지우지 못한다(고아 객체가 남는다). **버킷 전체에 나이 기반 수명 주기 삭제 규칙을 걸지 말 것** — 완성된 상품의 이미지가 영구 보존 대상이라 같이 지워진다. 대안과 근거는 `review/459-verify/url-assumptions.md`.
+## 7. 만료 이미지 정리 (460차 갱신)
+`supabase/functions/cleanup-expired-images`(Supabase cron, 마이그레이션 `20260916120000`)는 **Supabase Storage만** 지운다 — R2 객체는 못 지운다. **버킷 전체에 나이 기반 수명 주기 삭제 규칙을 걸지 말 것**(완성된 상품 이미지는 영구 보존 대상이라 같이 지워진다).
+
+대체: `GET /api/cron/cleanup-expired-images` (헤더 `Authorization: Bearer $CRON_SECRET`, 없거나 틀리면 401). 판정은 엣지 함수와 같다 — `product_id` 없음 + 업로드 3일 경과 + `protected_until` 없음/과거. 차이점은 둘: ① 저장소 삭제가 실패한 묶음의 행은 **지우지 않고 남겨 다음 실행이 재시도** ② 1회 최대 500행(남은 건 다음 실행). 응답은 개수만(`selected/deleted/failedChunks`), 경로·키는 로그에 남기지 않는다.
+
+**기본은 등록하지 않았다.** 켜는 순서(이중 실행 방지):
+1. `STORAGE_PROVIDER=r2` 로 전환하고 새 업로드가 R2로 가는 것을 확인한 **뒤에** 진행.
+2. Vercel 환경변수 `CRON_SECRET` 이 있는지 확인(결제 갱신 cron 이 이미 사용).
+3. 먼저 `curl -H "Authorization: Bearer $CRON_SECRET" https://<도메인>/api/cron/cleanup-expired-images` 로 한 번 수동 호출해 응답(`ok:true`)을 확인.
+4. `vercel.json` 의 `crons` 에 `{ "path": "/api/cron/cleanup-expired-images", "schedule": "30 2 * * *" }` 를 **추가**(문서화만 — 이 저장소에는 넣지 않았다).
+5. 그 다음에 Supabase 쪽 cron 을 끈다: SQL Editor 에서 `select cron.unschedule('<작업 이름>');` (작업 이름은 `select jobname from cron.job;` 로 확인). 두 곳이 동시에 돌면 같은 행을 두 번 처리하지만, 삭제는 멱등이라 데이터 손상은 없다(낭비일 뿐). 되돌리려면 vercel.json 에서 제거하고 cron 을 다시 등록.
+주의: 이전(`docs/migration-r2/`) 후 옛 Supabase 객체는 90일 유지하는 안전망이라, 이 라우트가 지우는 것은 R2 쪽 사본뿐이다(만료 이미지의 옛 Supabase 사본은 90일 뒤 일괄 정리 대상).
 
 ## 8. 비용 메모(직접 확인 필요 — 미검증)
 R2는 이그레스(전송) 요금이 없고 저장 용량·요청 수에 과금되며 무료 구간이 있다고 알려져 있으나 **요금표는 Cloudflare 문서에서 직접 확인**해야 한다.

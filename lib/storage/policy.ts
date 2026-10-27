@@ -25,3 +25,10 @@ export function isOwnPath(path: string, userId: string): boolean {
   if (path.length > 300 || /[\u0000-\u001f\\]/.test(path)) return false;
   return path.split("/").every((seg) => seg.length > 0 && seg !== "." && seg !== "..");
 }
+
+/** 460차 — 만료 이미지 정리(엣지 함수 cleanup-expired-images 와 같은 기준). 상품에 이어지지 않은 업로드를 3일 뒤 지운다 */
+export const EXPIRED_IMAGE_DAYS = 3;
+/** 1회 실행 처리 상한(함수 시간 제한 안에서 끝나도록). 남은 행은 다음 실행이 이어받는다 */
+export const CLEANUP_MAX_PER_RUN = 500;
+/** 저장소 삭제 요청 묶음 크기(R2 DeleteObjects 상한 1000 아래). 묶음이 실패하면 그 묶음의 행만 남겨 재시도 */
+export const CLEANUP_CHUNK_SIZE = 100;
