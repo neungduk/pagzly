@@ -22,7 +22,7 @@ import type { IllustColors } from "@/lib/illustrations/core";
 import { illustFor, illustHtml } from "@/lib/illust-sections";
 import { NEUTRAL_MOOD, applyMood, moodOf } from "@/lib/mood";
 import { tightenTopPad } from "@/lib/rhythm-v4";
-import { designV4On } from "@/lib/design-v4";
+import { designV4On, designV5On } from "@/lib/design-v4";
 import { tierHeadingWeights } from "@/lib/type-treatments";
 import { polishTitles } from "@/lib/typo-rhythm";
 import { HERO_V2_TUNED } from "@/lib/hero-spec";
@@ -30,6 +30,7 @@ import { specialHtml } from "@/lib/special-sections";
 import { referenceHtml } from "@/lib/reference-sections";
 import { polishHtml } from "@/lib/polish-sections";
 import { v4Html } from "@/lib/layout-variants";
+import { ARCHETYPES, applyArchetypeHtml, type ArchetypeId } from "@/lib/page-archetype-v5";
 import { PHOTO_LAYOUT_V2_ENABLED, photoLayoutHtml } from "@/lib/photo-layouts";
 import { ILLUSTRATION_V1_ENABLED, illustStyleFor, pickIllustration } from "@/lib/illustration-map";
 import { isWornFashionPhoto } from "@/lib/fashion-composite-policy";
@@ -75,7 +76,9 @@ export function impactHtml(s: ImpactSection, pal: ImpactPalette, alt: string): s
   // 441차 1-1 — 제목 굵기 위계 3단(v4)
   // 444차 3 — 같은 면 이웃이면 위 여백을 스케일 가장 작은 값으로(간격 해석 규칙, lib/rhythm-v4.ts)
   const spaced = s.rhythm === "tight" && designV4On() ? tightenTopPad(moodHtml) : moodHtml;
-  return polishTitles(designV4On() ? tierHeadingWeights(spaced) : spaced);
+  // 465차 V5 — 페이지 아키타입 후처리(반경·테두리·그림자·종이색·여백 척도·제목 정렬·장식). 표식(s.ax)이 없거나 V5가 꺼져 있으면 지금 마크업 그대로
+  const archetyped = s.ax && designV5On() && s.ax in ARCHETYPES ? applyArchetypeHtml(spaced, ARCHETYPES[s.ax as ArchetypeId], { ink: pal.ink, accent: pal.accent, deep: pal.deep }) : spaced;
+  return polishTitles(designV4On() ? tierHeadingWeights(archetyped) : archetyped);
 }
 
 function impactHtmlBase(s: ImpactSection, pal: ImpactPalette, alt: string): string {

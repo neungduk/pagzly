@@ -29,6 +29,8 @@ import { MOODS, pickMood, recipeFor, type MoodId } from "@/lib/archetype-recipes
 import type { HeroVariant } from "@/lib/style-packs";
 import { planPhotoLayouts } from "@/lib/photo-layouts";
 import { planV4 } from "@/lib/layout-variants";
+import { getArchetypeTokens, type ArchetypeId } from "@/lib/page-archetype-v5";
+import { planStoryboard, type Marks, type StoryboardReport } from "@/lib/storyboard-v5";
 import { estimateSectionHeight } from "@/lib/impact-templates";
 
 export type DisplaySections = {
@@ -43,6 +45,8 @@ export type DisplaySections = {
   topPads?: Record<number, number>;
   /** 447차 2-b — 모티프 블록 이웃의 앞 섹션 아래 여백을 줄일 곳(섹션 번호 → px, DESIGN_V4). data-pz-bot 표식 + 같은 CSS */
   bottomPads?: Record<number, number>;
+  /** 465차 V5 — 페이지 아키타입 id, 일반 섹션 래퍼 표식(섹션 번호 → "박자.강도"), 스토리보드 점검 결과. V5 꺼짐·편집 모드에서는 없음 */
+  v5?: { id: ArchetypeId; marks: Marks; report: StoryboardReport };
 };
 
 /** 448차 — 글(제목·본문·항목)도 사진도 없는 섹션 껍데기. 히어로·갤러리·구매 접점·AI 고지·임팩트(자기 판정)는 제외 */
@@ -381,6 +385,8 @@ export function applyDisplayRules(
   const arche = ARCHETYPE_V1_ENABLED && opts.claimFacts && !opts.editing ? detectArchetype({ category: opts.category, productName: opts.claimFacts.productName, brandName: opts.brandName, keyFeatures: opts.claimFacts.source.keyFeatures, targetCustomer: opts.claimFacts.source.targetCustomer, ingredients: opts.claimFacts.source.ingredients }) : null;
   const recipe = arche && !arche.fallback ? recipeFor(arche.id) : null;
   const mood: MoodId | null = recipe ? pickMood(recipe, `${opts.claimFacts?.productName ?? ""} ${opts.brandName ?? ""} ${opts.claimFacts?.source.keyFeatures ?? ""}`) : null;
+  // 465차 V5 — 페이지 아키타입(꺼짐·편집 모드면 null). 편집 모드는 바로 아래에서 조기 반환하므로 여기까지 오지 않는다
+  const v5tokens = opts.claimFacts ? getArchetypeTokens({ category: opts.category, mood, seedKey: `${opts.claimFacts.productName}|${opts.category ?? ""}`, editing: opts.editing }) : null;
   const recipeOrdered = recipe ? applyRecipeOrder(ordered, recipe) : ordered;
   const orderIndexes = recipeOrdered.map((s) => sections.indexOf(s));
   if (opts.editing) return { sections: recipeOrdered, sourceIndexes: orderIndexes };
@@ -440,7 +446,7 @@ export function applyDisplayRules(
   // 436차 — mood를 모든 임팩트 블록에 찍는다(여백·반경·그림자·구분선·제목 굵기 토큰). mood가 없으면(유형 미정·플래그 off) 지금 화면 그대로
   const finalOut1a = mood ? { sections: finalOut0.sections.map((s) => (s.type === "impact" && !s.mood ? ({ ...s, mood } as DetailSection) : s)), sourceIndexes: finalOut0.sourceIndexes } : finalOut0;
   // 439차 — 디자인 엔진 v4(레이아웃 변주·후킹 구조·모티프·타이포 연출). DESIGN_V4=off면 입력 그대로(438차와 같은 화면)
-  const v4 = opts.claimFacts && COMPOSITION_V2_ENABLED ? planV4(finalOut1a.sections, finalOut1a.sourceIndexes, { mood, seedKey: `${opts.claimFacts.productName}|${opts.category ?? ""}`, imageUrls, origins: opts.origins, facts: opts.claimFacts, category: opts.category, height: estimateSectionHeight }) : null;
+  const v4 = opts.claimFacts && COMPOSITION_V2_ENABLED ? planV4(finalOut1a.sections, finalOut1a.sourceIndexes, { mood, seedKey: `${opts.claimFacts.productName}|${opts.category ?? ""}`, imageUrls, origins: opts.origins, facts: opts.claimFacts, category: opts.category, v5: v5tokens, height: estimateSectionHeight }) : null;
   const finalOut1 = v4 && (v4.placed.length > 0 || v4.moved.length > 0 || v4.inserted.length > 0) ? { sections: v4.sections, sourceIndexes: v4.sourceIndexes } : finalOut1a;
   // 437차 — 첫 화면 히어로 재설계 계획(제품명이 입력에 있을 때만, 편집 모드·claimFacts 없음은 기존 히어로)
   const heroSec = finalOut1.sections[0];
@@ -460,5 +466,8 @@ export function applyDisplayRules(
   const rhythmSections = designV4On() ? markTightTops(numbered, rhythmKey) : finalOut.sections;
   const topPads = designV4On() ? legacyTopPads(numbered, rhythmKey, opts.category ?? "") : {};
   const bottomPads = designV4On() ? motifBottomPads(numbered, rhythmKey, opts.category ?? "") : {};
-  return { sections: rhythmSections, ...(Object.keys(topPads).length ? { topPads } : {}), ...(Object.keys(bottomPads).length ? { bottomPads } : {}), sourceIndexes: keptMap ? finalOut.sourceIndexes.map((i) => keptMap(i)) : finalOut.sourceIndexes, ...(policyChanges ? { policyChanges } : {}), ...(arche ? { archetype: { result: arche, mood, hero: recipe?.hero ?? null } } : {}) };
+  // 465차 V5 — 아키타입 표식(임팩트 블록에 id, 일반 섹션에 박자.강도 표식) + 스토리보드 점검. 섹션 순서는 바꾸지 않는다
+  const v5Sections = v5tokens ? rhythmSections.map((x) => (x.type === "impact" ? ({ ...x, ax: v5tokens.id } as DetailSection) : x)) : rhythmSections;
+  const sb = v5tokens ? planStoryboard(v5Sections) : null;
+  return { sections: v5Sections, ...(v5tokens && sb ? { v5: { id: v5tokens.id, marks: sb.marks, report: sb.report } } : {}), ...(Object.keys(topPads).length ? { topPads } : {}), ...(Object.keys(bottomPads).length ? { bottomPads } : {}), sourceIndexes: keptMap ? finalOut.sourceIndexes.map((i) => keptMap(i)) : finalOut.sourceIndexes, ...(policyChanges ? { policyChanges } : {}), ...(arche ? { archetype: { result: arche, mood, hero: recipe?.hero ?? null } } : {}) };
 }

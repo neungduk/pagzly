@@ -574,6 +574,8 @@ export type ImpactSection = {
   origin?: { type: string; slot?: string };
   /** 436차 — 아키타입 mood(여백·반경·그림자·구분선·제목 굵기 토큰). 없으면 지금 화면과 같다 */
   mood?: string;
+  /** 465차 V5 — 페이지 아키타입 id(표시 단계가 찍음, 저장하지 않음). 있으면 impactHtml이 아키타입 후처리를 한다 */
+  ax?: string;
   /** 439차 — 면 리듬: 흰 바탕 임팩트 블록이 흰 면 사이에 끼면 따뜻한 중립 면으로(린트 R2 2회차, v4 계획만 설정) */
   faceTone?: "warm";
   /** 444차 — 앞 섹션과 면이 같으면 위 여백을 줄인다(lib/rhythm-v4.ts, v4 계획만 설정) */

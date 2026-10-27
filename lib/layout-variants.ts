@@ -28,6 +28,7 @@ import type { DetailSection, ImpactSection, V4Block } from "@/lib/types/generate
 import type { ImpactPalette } from "@/lib/impact-templates";
 import type { ProductImageOrigin } from "@/lib/image-origins";
 import { designUp1On, designV4On } from "@/lib/design-v4";
+import type { ArchetypeTokens } from "@/lib/page-archetype-v5";
 import { contrastRatioToken, hexToRgba, mixHex } from "@/lib/design-tokens";
 import { depthShadow, hairline, v4Palette, type FaceRole, type V4Palette } from "@/lib/palette-v4";
 import { dividerFor, dividerHtml, type DividerKind } from "@/lib/dividers";
@@ -94,10 +95,12 @@ export function seedOf(s: string): number {
 }
 
 /** mood 선호 순서를 시드로 회전(앞 3개 안에서) — 같은 mood라도 상품마다 첫 변형이 달라진다 */
-export function variantOrder(family: V4Family, mood: string | null | undefined, seed: number): string[] {
+export function variantOrder(family: V4Family, mood: string | null | undefined, seed: number, prefer?: readonly string[]): string[] {
   let pref = (mood && MOOD_PREF[mood]?.[family]) || V4_VARIANTS[family];
   const extra = designUp1On() ? V4_UP1_VARIANTS[family] ?? [] : [];
   if (extra.length) pref = pref.length ? [...pref.slice(0, 2), ...extra, ...pref.slice(2)] : [...extra]; // 463차 UP1: 기존 상위 2개 뒤에 끼운다
+  // 465차 V5 — 아키타입 선호 변형을 순서 맨 앞으로(선호 목록에 있고 후보에도 있는 것만, 선호 순서 유지)
+  if (prefer?.length) pref = [...prefer.filter((x) => pref.includes(x)), ...pref.filter((x) => !prefer.includes(x))];
   const k = Math.min(3, pref.length);
   const r = seed % k;
   const head = pref.slice(0, k);
@@ -611,6 +614,8 @@ export type V4Ctx = {
   category?: string;
   /** 섹션 높이 추정(impact-templates.estimateSectionHeight — 순환 import를 피해 주입) */
   height: (s: DetailSection) => number;
+  /** 465차 V5 — 페이지 아키타입 토큰(변형 선호·면 교대·아이브로·구분선). 없으면 기존 동작 */
+  v5?: ArchetypeTokens | null;
 };
 
 export type V4Placed = { family: V4Family; variant: string; at: number; from: string };
@@ -706,7 +711,10 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
   const outI: number[] = [];
   const placed: V4Placed[] = [];
   let no = 0;
-  const faceCycle: NonNullable<V4Block["face"]>[] = ["bgA", "emphasis", "bgB", "grad0", "bgA", "grad1"];
+  // 465차 V5 — 아키타입 면 교대 전략(paper: 종이 위주 / tint: 색 면 위주 / alt: 중립·색 교대). 없으면 기존 순환
+  const faceCycle: NonNullable<V4Block["face"]>[] = ctx.v5
+    ? ctx.v5.surface === "paper" ? ["bgA", "bgB", "bgA", "emphasis", "bgA", "grad0"] : ctx.v5.surface === "tint" ? ["emphasis", "bgB", "grad0", "emphasis", "bgA", "grad1"] : ["bgA", "emphasis", "bgB", "grad1", "emphasis", "bgA"]
+    : ["bgA", "emphasis", "bgB", "grad0", "bgA", "grad1"];
   let faceIdx = seed % faceCycle.length;
   for (let i = 0; i < sections.length; i += 1) {
     const c = byAt.get(i);
@@ -723,7 +731,7 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
       if (variantOrder("phototext", ctx.mood, seed + i).indexOf("collage") <= 3 && (counts.get("phototext.collage") ?? 0) < 1) { cc = pair; consumed = 2; pairWith = true; }
     }
     // 페이지 안에서 덜 쓴 변형을 먼저(같은 순위면 mood·시드 순서) — 같은 모양이 반복되지 않게
-    const order0 = variantOrder(cc.family, ctx.mood, seed + i * 7);
+    const order0 = variantOrder(cc.family, ctx.mood, seed + i * 7, (ctx.v5?.prefer as Partial<Record<string, string[]>> | undefined)?.[cc.family]);
     const order = [...order0].sort((a, b) => (counts.get(`${cc.family}.${a}`) ?? 0) - (counts.get(`${cc.family}.${b}`) ?? 0) || order0.indexOf(a) - order0.indexOf(b));
     const variant = order.find((v) => variantFits(cc.family, v, cc) && `${cc.family}.${v}` !== prevKey && (counts.get(`${cc.family}.${v}`) ?? 0) < MAX_SAME_VARIANT && (pairWith ? v === "collage" : v !== "collage"));
     if (!variant) {
@@ -745,7 +753,7 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
     no += 1;
     const face = cc.family === "phototext" && variant === "caption" ? "bgA" : faceCycle[faceIdx++ % faceCycle.length]!;
     const block: V4Block = {
-      family: cc.family, variant, no, items: cc.items, face, keywords: keywords.slice(0, 12), preset: titlePresetFor(ctx.mood),
+      family: cc.family, variant, no, items: cc.items, face, keywords: keywords.slice(0, 12), preset: ctx.v5 ? ctx.v5.eyebrow : titlePresetFor(ctx.mood),
       ...(ghostAllowed(cc.family, variant) ? { ghost: String(no).padStart(2, "0") } : {}),
     };
     const sec: ImpactSection = {
@@ -765,7 +773,7 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
   // 463차 UP1 — 강조 띠 1개(입력에 이미 있는 문장 원문). 꺼짐이면 건너뛴다(출력 불변)
   const band = designUp1On() ? insertStatementBand(rhythm1.sections, rhythm1.sourceIndexes, sections, keywords, ctx, seed) : null;
   const rhythm = band ? { ...rhythm1, sections: band.sections, sourceIndexes: band.sourceIndexes, inserted: [...rhythm1.inserted, band.note] } : rhythm1;
-  const withMotifs = assignMotifs(assignFaces(rhythm.sections, seed), ctx.mood, seed);
+  const withMotifs = assignMotifs(assignFaces(rhythm.sections, seed), ctx.mood, seed, ctx.v5 ?? null);
   const finalPlaced: V4Placed[] = [];
   withMotifs.forEach((s, at) => { if (s.type === "impact" && s.kind === "v4" && s.v4) finalPlaced.push({ family: s.v4.family, variant: s.v4.variant, at, from: "" }); });
   return { sections: withMotifs, sourceIndexes: rhythm.sourceIndexes, placed: finalPlaced, moved: hooked.moved, inserted: rhythm.inserted };
@@ -1053,7 +1061,7 @@ function assignFaces(secs: DetailSection[], seed: number): DetailSection[] {
 const PHOTO_KINDS = new Set(["bleed", "inset", "frame", "zoom", "asym2", "mosaic3", "stagger", "callout"]);
 
 /** 모티프: v4 블록마다 1개(스토리·접점·모티프 면은 2개), 격번으로 위 경계 걸침 — 앞 섹션이 사진 하단 캡션형(bleed·caption)이면 걸치지 않는다 */
-function assignMotifs(secs: DetailSection[], mood: string | null, seed: number): DetailSection[] {
+function assignMotifs(secs: DetailSection[], mood: string | null, seed: number, v5: ArchetypeTokens | null = null): DetailSection[] {
   let k = 0;
   return secs.map((s, i) => {
     if (s.type !== "impact" || s.kind !== "v4" || !s.v4) return s;
@@ -1064,7 +1072,7 @@ function assignMotifs(secs: DetailSection[], mood: string | null, seed: number):
     const cross = !prevPhotoBottom && prev?.type !== "hero" && k % 2 === 1;
     const motifs = planMotifs(mood, seed + i, { count: two ? 2 : 1, cross });
     // 441차 1-4 — 걸치는 모티프가 없는 경계(짝수 번째·히어로·사진 하단 캡션 뒤 제외)에는 mood 구분선을 번갈아
-    const divider = !cross && k % 2 === 0 && !prevPhotoBottom && prev && prev.type !== "hero" ? dividerFor(mood, k / 2) : undefined;
+    const divider = !cross && k % 2 === 0 && !prevPhotoBottom && prev && prev.type !== "hero" ? (v5 ? v5.dividers[Math.floor(k / 2) % v5.dividers.length]! : dividerFor(mood, k / 2)) : undefined;
     // 442차 1 — 구분선이 있는 경계에서는 위쪽 모티프를 뺀다(점 격자·블롭과 구분선이 겹쳐 보이던 것, 눈 검수 s411·s418·makeup). 아래쪽 모티프는 유지
     const placed = divider ? motifs.filter((m) => m.anchor !== "top") : motifs;
     return { ...s, v4: { ...s.v4, motifs: placed, ...(divider ? { divider } : {}) } } as DetailSection;

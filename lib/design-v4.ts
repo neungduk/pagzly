@@ -12,12 +12,24 @@ export const DESIGN_V4_ENABLED = process.env.NEXT_PUBLIC_DESIGN_V4 !== "off";
  */
 export const DESIGN_V4_UP1_ENABLED = DESIGN_V4_ENABLED && process.env.NEXT_PUBLIC_DESIGN_V4_UP1 === "on";
 
+/**
+ * 465차 — 디자인 V5(페이지 아키타입·스토리보드·부품 확장). `NEXT_PUBLIC_DESIGN_V5=on`일 때만 켜지고(기본 꺼짐) v4가 꺼져 있으면 항상 꺼진다.
+ * V5 켜짐은 UP1 기능을 포함한다(`designUp1On()`이 V5도 참으로 본다). 꺼짐 출력은 464차 끝과 같다. 롤백: 이 변수를 지우고 재배포.
+ */
+export const DESIGN_V5_ENABLED = DESIGN_V4_ENABLED && process.env.NEXT_PUBLIC_DESIGN_V5 === "on";
+
 /** 표시 계획(planV4)이 읽는 실행 중 상태. 회귀가 이전 차수(433~438) 단계 검사를 v4 없이 돌릴 때만 바꾼다(서비스 코드는 바꾸지 않음) */
 const state = { on: DESIGN_V4_ENABLED };
 export const designV4On = (): boolean => state.on;
 /** 463차 — UP1 실행 중 상태(계획·렌더가 읽는다). 회귀가 켜짐 쪽을 같은 프로세스에서 검사할 때만 바꾼다(서비스 코드는 바꾸지 않음). v4가 꺼지면 항상 꺼짐 */
 const up1State = { on: DESIGN_V4_UP1_ENABLED };
-export const designUp1On = (): boolean => up1State.on && state.on;
+const v5State = { on: DESIGN_V5_ENABLED };
+/** 465차 — V5 실행 중 상태. 회귀가 켜짐을 같은 프로세스에서 검사할 때만 바꾼다. v4가 꺼지면 항상 꺼짐 */
+export const designV5On = (): boolean => v5State.on && state.on;
+export function setDesignV5ForTests(on: boolean): void {
+  v5State.on = on;
+}
+export const designUp1On = (): boolean => (up1State.on || v5State.on) && state.on;
 export function setDesignUp1ForTests(on: boolean): void {
   up1State.on = on;
 }
