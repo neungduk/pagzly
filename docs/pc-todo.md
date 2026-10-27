@@ -11,3 +11,16 @@
 4. 비교 막대: 단위가 긴 경우(예: 문장형 단위) 값 칸이 라벨을 밀어내지 않고 줄바꿈되는지(320px).
 5. 통계 막대: 값이 긴 문구인 경우 같은 확인(320px).
 명령(이전 완료 후): `git pull origin cloud-work` → `npm ci` → `npx tsc --noEmit` → `npx tsx scripts/regression/run-all.ts` → 눈 검수.
+
+## UP1 확장(463차) 눈 검수 목록 — 이전 완료 후에만, placeholder 모드부터
+`NEXT_PUBLIC_DESIGN_V4_UP1=on`. 변형은 시드로 고르므로 상품·카테고리에 따라 안 나올 수 있다 — 말뭉치(`scripts/fixtures`)에서 나온 곳을 알려 준다.
+| 변형 | 어느 입력에서 나오나 | 무엇을 볼까 |
+|---|---|---|
+| `benefits.linelist` | 퀵포인트/강조 박스 3~6개, 제목 ≤36자(fx-compare-tech, fx-fashion-dress-floral, fx-tier-rich-fashion-6p 등) | 번호·제목·설명이 한 줄로 정렬되는지, 설명이 길 때 아래 줄로 자연스럽게 내려가는지(320px), 위아래 선 |
+| `story.pullband` | 브랜드 스토리에 인용문 8~80자(fx-food-snack, fx-inner-collagen, fx-tier-rich-tech-6p 등) | 어두운 띠 위 흰 글자 가독, 큰따옴표 장식 위치, 본문이 띠 아래에 붙는지 |
+| `spec.cards` | 스펙 행 2~6개, 값 ≤48자·안내 문구 아닌 값(fx-food-snack, fx-skincare-serum, fx-tech-vacuum 등) | 2열 카드의 값 크기(8자 넘으면 작은 글), 라벨 가독, 카드 두 색 번갈이 |
+| `steps.vtimeline` | 사용 순서 2~6개(대부분의 뷰티·식품 픽스처) | 번호 원·세로 선 정렬, "라벨: 설명"이 굵은 라벨+설명으로 나뉘는지, 앵커(사용법) 이동 |
+| `steps.bignum` / `steps.chipflow` | 사용 순서가 2~6개 / 2~5개이고 한 문장 ≤60자 / ≤32자(fx-compare-tech 등 일부) | 큰 숫자 카드 2열, 칩 사이 화살표 줄바꿈 |
+| `statement.band` | 거의 모든 페이지(높이 55% 근처) | 문장이 위 섹션과 겹쳐 중복처럼 보이지 않는지, 왼쪽 세로 띠, 28px 글자 줄바꿈 |
+| 면 교대 | 흰 면이 길게 이어지던 페이지 | 숨 고르기 면의 중립 면 색이 어색하지 않은지, 색 면이 3종을 넘지 않는지(446차 색 예산) |
+UP1을 끄고 재배포하면 모두 사라지고 이전 모양으로 돌아오는지도 확인한다.
