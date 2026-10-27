@@ -32,3 +32,13 @@ export const EXPIRED_IMAGE_DAYS = 3;
 export const CLEANUP_MAX_PER_RUN = 500;
 /** 저장소 삭제 요청 묶음 크기(R2 DeleteObjects 상한 1000 아래). 묶음이 실패하면 그 묶음의 행만 남겨 재시도 */
 export const CLEANUP_CHUNK_SIZE = 100;
+
+/**
+ * 460차 — 사용자별 서명 업로드 주소 발급 한도(인메모리 슬라이딩 윈도우, lib/rate-limit.ts). 서버리스 인스턴스별이라 1차 완충이며 크기 상한(10MB)·인증과 함께 쓴다.
+ * 근거: 상세페이지 한 번 만들 때 올리는 사진은 보통 5~10장(재시도·롤백 포함 30개 안팎) → 시간당 150이면 정상 사용 약 5회분, 일 600이면 하루 약 20회분.
+ * 남용(스크립트 반복 업로드로 R2 쓰기 요청·저장 용량 소진)은 이 한도에서 막힌다. 조정은 이 상수만 바꾼다.
+ */
+export const UPLOAD_URL_RULES = [
+  { name: "hour", windowMs: 3_600_000, max: 150 },
+  { name: "day", windowMs: 86_400_000, max: 600 },
+] as const;
