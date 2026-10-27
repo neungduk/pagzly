@@ -643,7 +643,19 @@ export type HeroPlanInput = {
   /** 439차 — 입력 가격(cta_price)·구매 혜택 배지(cta_price.badges). v3 가격 태그·스티커용 */
   price?: number;
   ctaBadges?: string[];
+  /** 466차 V5 — 아키타입 히어로 선호(앞이 우선). 입력이 요건을 못 채우면 기존 선택으로 폴백. 없으면(꺼짐·편집 모드) 기존 동작 */
+  v5Hero?: readonly HeroV2Variant[];
 };
+
+/**
+ * 466차 V5 — 아키타입 히어로 선호 적용. 기존 히어로 A~E 안에서만 고르고(새 히어로 없음), 사진 요건: A·D = 사진이 있으면 됨, B·C = 제품 단독 컷(신뢰도 ≥ 0.45),
+ * E = 사진이 있어도 쓸 수 있는 타이포 히어로(작은 원형 사진 포함). 요건을 못 채우면 기존 `selectHeroVariant` 결과. 결정적.
+ */
+export function pickHeroV5(pref: readonly HeroV2Variant[], i: { hasPhoto: boolean; kind: HeroPhotoKind; confidence: number }, fallback: HeroV2Variant): HeroV2Variant {
+  if (!i.hasPhoto) return fallback;
+  const fits = (v: HeroV2Variant): boolean => v === "A" || v === "D" || v === "E" ? true : v === "B" || v === "C" ? i.kind === "product" && i.confidence >= 0.45 : false;
+  return pref.find(fits) ?? fallback;
+}
 
 const okUrl = (u: string | undefined): string => (u && (/^(https?:)?\/\//i.test(u) || u.startsWith("/")) ? u : "");
 
@@ -654,7 +666,8 @@ export function planHeroV2(i: HeroPlanInput): HeroV2Plan | null {
   const url = okUrl(i.imageUrls[i.hero.imageIndex]);
   const t = i.tags?.[i.hero.imageIndex] ?? undefined;
   const est = estimatePhotoKind(t, i.roles?.[i.hero.imageIndex]);
-  const variant = selectHeroVariant({ hasPhoto: Boolean(url), kind: est.kind, confidence: est.confidence, archetype: i.archetype, mood: i.mood, category: i.category });
+  const variant0 = selectHeroVariant({ hasPhoto: Boolean(url), kind: est.kind, confidence: est.confidence, archetype: i.archetype, mood: i.mood, category: i.category });
+  const variant = i.v5Hero?.length ? pickHeroV5(i.v5Hero, { hasPhoto: Boolean(url), kind: est.kind, confidence: est.confidence }, variant0) : variant0;
   const { main, sub } = splitProductName(raw);
   const brand = (i.brandName ?? "").trim();
   const badges = heroBadgesFrom(i.hero, i.certifications, i.category, i.facts);

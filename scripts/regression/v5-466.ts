@@ -15,8 +15,9 @@ import { corpus, exportArgsOf, exportHtmlOf, readSession } from "../design-corpu
 import { signatureOf, topSections } from "../variety-metrics-463";
 import { contrastFindings } from "../contrast-audit-466";
 import { macroMetrics, type MacroMetrics } from "../variety-metrics-466";
+import { pickHeroV5 } from "../../lib/hero-spec";
 
-export const name = "V5 거시 차별화 466 — 면 전략(진한 면 비율·진한 면 대비 전수)·변형 확정 선호(계열별 ≥5·선택 조건)";
+export const name = "V5 거시 차별화 466 — 면 전략(진한 면 비율·진한 면 대비 전수)·변형 확정 선호(계열별 ≥5·선택 조건)·히어로 선호";
 
 const MOODS: Array<string | null> = [null, "minimal-luxe", "clinic", "natural", "playful", "street", "warm"];
 
@@ -122,6 +123,21 @@ export async function run(): Promise<string[]> {
     ok(plan("narrative", [...base, ...shortQp, gal(), storyS(30), specS, cta]).some((x) => x === "story.letter" || x === "story.chapter"), "narrative → story.letter/chapter가 선택되지 않음");
     ok(plan("softlife", [...base, ...shortQp, gal(), storyS(30), specS, cta]).includes("story.letter") || plan("softlife", [...base, ...shortQp, gal(), storyS(30), specS, cta]).includes("story.quote"), "softlife → story.letter/quote가 선택되지 않음");
     setV5ArchetypeForTests("impact");
+
+    // ── ⑥ 히어로(기존 A~E 안): 밝은 전략은 밝은 히어로, 변형 분포가 갈린다, 폴백·결정성 ─────────────────
+    const heroSet = new Set<string>();
+    for (const arch of ARCHETYPE_IDS) {
+      const vs = rows[arch]!.map((m) => m.heroVariant);
+      vs.forEach((v) => heroSet.add(v));
+      ok(vs.every((v) => "ABCDE".includes(v) && v.length === 1), `${arch}: 히어로 변형이 A~E 밖(${[...new Set(vs)].join(",")})`);
+      if (ARCHETYPES[arch].face === "lightOnly") ok(rows[arch]!.every((m) => !m.heroDark), `${arch}(lightOnly): 히어로가 진한 면인 페이지가 있음`);
+    }
+    ok(heroSet.size >= 4, `8종이 쓴 히어로 변형 ${heroSet.size}종 (<4: ${[...heroSet].join(",")})`);
+    ok(pickHeroV5(["C", "B", "A"], { hasPhoto: true, kind: "product", confidence: 0.8 }, "D") === "C", "제품 컷 + impact 선호 → C");
+    ok(pickHeroV5(["C", "B", "A"], { hasPhoto: true, kind: "person", confidence: 0.85 }, "A") === "A", "사람 사진은 제품 전용 히어로(B·C)로 가지 않고 A로 폴백");
+    ok(pickHeroV5(["B", "C"], { hasPhoto: true, kind: "unknown", confidence: 0 }, "A") === "A", "종류를 모르면 B·C 요건 불충족 → 기존 선택");
+    ok(pickHeroV5(["D", "A"], { hasPhoto: false, kind: "unknown", confidence: 0 }, "E") === "E", "사진이 없으면 기존 선택(E)");
+    ok(/v5Hero: v5tokens\.hero/.test(srcDs) && /i\.v5Hero\?\.length/.test(fs.readFileSync("lib/hero-spec.ts", "utf8")), "히어로 선호가 V5 토큰(편집 모드면 null) 뒤에서만 전달되지 않음");
 
     // 서로 다른 구간 3개 이상: 밝음(<0.12) / 중간·진한 두 구간
     const avgOf = (a: ArchetypeId) => rows[a]!.reduce((s, m) => s + m.darkRatio, 0) / rows[a]!.length;

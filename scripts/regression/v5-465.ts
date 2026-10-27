@@ -28,7 +28,7 @@ const STRICT_FORBIDDEN = [":has(", "container-type", "mix-blend-mode", "clip-pat
 const MOODS: Array<string | null> = [null, "minimal-luxe", "clinic", "natural", "playful", "street", "warm"];
 const V5_SIGS = new Set(Object.entries(V4_V5_VARIANTS).flatMap(([fam, vs]) => (vs ?? []).map((v) => `${fam}.${v}`)));
 const unesc = (t: string): string => t.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-const textNodes = (html: string): string[] => html.replace(/<(script|style)[\s\S]*?<\/\1>/g, "").replace(/<svg[\s\S]*?<\/svg>/g, "").split(/<[^>]+>/).map((t) => unesc(t).trim()).filter(Boolean);
+const textNodes = (html: string): string[] => html.replace(/<(script|style)[\s\S]*?<\/\1>/g, "").replace(/<svg[\s\S]*?<\/svg>/g, "").split(/<(?:[^>"']|"[^"]*"|'[^']*')*>/).map((t) => unesc(t).trim()).filter(Boolean); // 따옴표 안의 ">"(onload 식 등)에서 태그를 끊지 않는다
 const count = (h: string, tok: string): number => h.split(tok).length - 1;
 function strings(v: unknown, out: string[] = []): string[] {
   if (typeof v === "string") out.push(v);

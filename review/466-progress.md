@@ -4,7 +4,7 @@
 | 0 원인 지도 | 완료 (`docs/v5-macro-466.md`, 도구 `scripts/variety-metrics-466.ts`) — 변형 선택은 강도 정렬이 prefer를 덮음, 히어로는 아키타입 입력 없음, 진한 면 주입점 = boldBlock/faceCycle/히어로, 빈 사진 면 = 불확실(가짜 현상 가능성 높음) |
 | 1 면 전략 | 완료 (`lib/face-strategy-v5.ts`, `scripts/contrast-audit-466.ts`, 회귀 `v5-466`) — 밝은 6종 진한 면 2.2~2.7%, impact 28.5%, pop 33.3% (목표 달성). 진한 덩어리 최대 8(428 예산 초과 가능, 공개) |
 | 2 변형 확정 선호 | 완료 — 계열별 합집합 benefits7·concern6·story6·spec6·phototext7·faq5, story 100% pullband·faq 100% chat 해소, 접점·띠도 선호, 합성 입력 회귀(rows2·big3·iconlist·chapter·letter) |
-| 3 히어로 | 남음 |
+| 3 히어로 | 완료 — `pickHeroV5`, 아키타입별 히어로 선호(기존 A~E), lightOnly 3종 히어로 전부 밝음, 8종이 A~E 5종 사용 |
 | 4 타이포·정렬 | 남음 |
 | 5 빈 사진 면 | 남음 |
 | 6 안전망 | 남음 |

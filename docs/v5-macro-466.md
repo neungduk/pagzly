@@ -119,3 +119,18 @@
 **465차에 한 번도 안 뽑힌 5개**: `benefits.iconlist`·`story.chapter`·`story.letter`는 말뭉치에서 선택됨. `benefits.rows2`·`spec.big3`는 말뭉치 입력이 요건(퀵포인트 4~6개·짧은 값 3행 이하)을 못 채워 말뭉치에서는 여전히 안 뽑히고, **합성 입력으로 계획기를 직접 호출하는 회귀**에서 선호 아키타입(catalog→rows2, impact→big3)이 요건 충족 시 실제로 뽑힘을 확인한다. 요건은 완화하지 않았다. (참고: 표시 예산이 퀵포인트를 3개로 줄여 rows2는 사실상 하이라이트 박스 4장 또는 예산 밖 입력에서만 나온다.)
 
 스토리보드 영향(말뭉치 21 합계, UP1 → V5 8종): 낮음 3연속 86 → 27~64(465차 editorial 34), 처음 1/3 높음 부족 3 → 3(동률, `boostEarlyHighV5` 덕분 — 보정 없이는 +1), 마무리 직전 높음 없음 21 → 10. impact의 낮음 3연속이 64로 높은 것은 페이지 끝 정보 꼬리(note·breather·spec.line·faq)가 원인이며 UP1보다는 낮다.
+
+## 9. Phase 3 결과 — 히어로를 아키타입에 묶기
+입구: `planHeroV2`가 선택 직후 `pickHeroV5(아키타입 히어로 선호, {사진 유무, 종류, 신뢰도}, 기존 선택)`을 거친다(`display-sections`가 V5 토큰이 있을 때만 `v5Hero`를 넘김 — 꺼짐·편집 모드면 기존 그대로). **기존 히어로 A~E 안에서만** 고르고 새 히어로·새 문구는 없다. 요건: A·D·E는 사진만 있으면 됨, B·C는 제품 단독 컷(신뢰도 ≥ 0.45), 요건 불충족이면 기존 `selectHeroVariant` 결과(폴백), 사진 없음은 그대로 E. 첫 화면 필수 요소 규칙·사진 실패 폴백(`data-hero-fail`)·스크림은 변형 렌더 안에 있어 그대로 따라온다.
+| 아키타입 | 면 전략 | 히어로 선호 | 말뭉치 21 분포 | 진한 히어로 |
+|---|---|---|---|---|
+| editorial | lightOnly | D, A | D 21 | 0 |
+| catalog | tintAlt | D, B | D 21 | 0 |
+| softlife | tintAlt | B, D | B 16 · D 5 | 15 |
+| impact | blockAlt | C, B, A | C 16 · A 5 | 21 |
+| techsheet | lightOnly | D | D 21 | 0 |
+| narrative | tintAlt | A, D | A 21 | 21(전폭 사진, 사진 아래 어두운 바탕) |
+| luxe | lightOnly | E, D | E 21 | 0 |
+| pop | colorCollide | B, C | B 16 · A 5(사람 사진은 B·C 요건 밖 → A) | 20 |
+| (UP1 기준) | - | 기존 선택 | B 9 · A 5 · C 4 · D 3 | 18 |
+lightOnly 3종은 21페이지 모두 밝은 히어로(목표 "lightOnly면 히어로도 밝은 면" ○). 8종이 쓴 히어로 변형 5종(A~E). 한계: lightOnly·tintAlt 중 4종(editorial·catalog·techsheet 외 luxe는 E)이 D를 공유한다 — 새 히어로 신설이 금지라 D 하나로는 이 이상 갈리지 않는다(나머지 축은 면·변형·정렬로 갈림).
