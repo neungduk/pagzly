@@ -77,7 +77,7 @@ export const MOOD_TITLE_PRESET: Record<string, TitlePreset> = { "minimal-luxe": 
 export const titlePresetFor = (mood: string | null | undefined): TitlePreset => (mood && MOOD_TITLE_PRESET[mood]) || "number";
 
 /** 섹션 종류 고정 라벨(이미 화면에 쓰던 표기 계열: POINT·STEP·FAQ·INFO 등) */
-export const EYEBROW_LABEL: Record<string, string> = { benefits: "POINT", concern: "CHECK", story: "STORY", spec: "SPEC", phototext: "DETAIL", faq: "FAQ", note: "NOTICE", steps: "STEP" };
+export const EYEBROW_LABEL: Record<string, string> = { benefits: "POINT", concern: "CHECK", story: "STORY", spec: "SPEC", phototext: "DETAIL", faq: "FAQ", note: "NOTICE", steps: "STEP", stats: "SPEC", gallery: "DETAIL" };
 
 /** 아이브로우 + 제목. 제목이 없으면 아이브로우만(번호 프리셋은 번호만) */
 export function titleBlock(preset: TitlePreset, label: string, no: number, titleHtml: string, c: { ink: string; deep: string; pillBg: string; pillFg: string }): string {

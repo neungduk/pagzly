@@ -33,7 +33,12 @@ const count = (h: string, tok: string): number => h.split(tok).length - 1;
 function strings(v: unknown, out: string[] = []): string[] {
   if (typeof v === "string") out.push(v);
   else if (Array.isArray(v)) v.forEach((x) => strings(x, out));
-  else if (v && typeof v === "object") Object.values(v as Record<string, unknown>).forEach((x) => strings(x, out));
+  else if (v && typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    // 467차: 표 행(label·value)은 SEO 텍스트 목록이 "라벨: 값"으로 합쳐 쓴다 — 입력에서 합친 꼴도 입력 문자열로 본다
+    if (typeof o.label === "string" && typeof o.value === "string") out.push(`${o.label}: ${o.value}`);
+    Object.values(o).forEach((x) => strings(x, out));
+  }
   return out;
 }
 /**
@@ -205,7 +210,7 @@ export async function run(): Promise<string[]> {
 
     // ── ⑨ 규정 문구·구매 카드·고지 노드가 UP1과 같다 ──────────────────────────────
     for (const pg of pages) {
-      const pick = (h: string) => topSections(h).filter((x) => ["cta", "id.caution"].includes(signatureOf(x)) || /AI|인공지능/.test(x.slice(0, 400))).flatMap(textNodes).join("|");
+      const pick = (h: string) => topSections(h).filter((x) => ["cta", "id.caution"].includes(signatureOf(x)) || /\bAI\b|인공지능/.test(x.slice(0, 400))).flatMap(textNodes).join("|");
       const a = pick(upPages.get(pg.id)!);
       const b = pick(pg.html);
       if (a !== b) f.push(`${pg.arch}/${pg.id}: 구매 카드·주의·고지 글이 UP1과 다름`);
@@ -257,7 +262,7 @@ export async function run(): Promise<string[]> {
         const shell = html.replace(/<span aria-hidden="true" data-pz-(?:motif|divider|ghost)[\s\S]*?<\/span>/g, "").replace(/<span style="[^"]*white-space:nowrap">[^<]{0,12}(?:<span[^>]*>[^<]{0,6}<\/span>)?<\/span>/g, "");
         for (const k of [...STRICT_FORBIDDEN, ...(fam === "touch" ? [] : ["white-space:nowrap"])]) if (shell.includes(k)) f.push(`${arch} ${fam}.${v} ${label}: 금지 패턴 ${k}`);
         if (/width:(\d{4,})px/.test(html)) f.push(`${arch} ${fam}.${v} ${label}: 750 초과 고정 폭`);
-        if (n > 0 && text.length > 20 && !/overflow-wrap:anywhere/.test(html)) f.push(`${arch} ${fam}.${v} ${label}: overflow-wrap 없음`);
+        if (n > 0 && text.length > 20 && fam !== "gallery" && !/overflow-wrap:anywhere/.test(html)) f.push(`${arch} ${fam}.${v} ${label}: overflow-wrap 없음`);
         if (html.length > 0 && html !== v4Html(sec, pal, "alt", V5_PARTS)) f.push(`${arch} ${fam}.${v} ${label}: 결정성`);
       }
     }

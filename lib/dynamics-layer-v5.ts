@@ -116,7 +116,7 @@ export function applyDynamicsHtml(html: string, s: ImpactSection, t: ArchetypeTo
     const left = rnd(b ? b.no * 7 : label.length * 13, 3) > 0.5;
     // 단어(기존 임팩트)는 길이에 맞춰 크기를 줄여 가로로 한 줄 안에 들게 한다(최대 폭 ≈ 글자 수 × 0.62em)
     const fit = b ? size : Math.max(72, Math.min(size, Math.floor(300 / Math.max(2, [...label].length) / 0.62)));
-    if (label) layers.push(`<span aria-hidden="true" data-pz-dyn-deco style="position:absolute;${left ? "left:-8px" : "right:-10px"};top:${t.dyn.level === 5 ? -14 : -6}px;pointer-events:none;${TITLE_FF};font-size:${fit}px;font-weight:900;letter-spacing:-0.06em;line-height:0.9;color:${color}">${esc(label)}</span>`);
+    if (label) layers.push(`<span style="position:absolute;${left ? "left:-8px" : "right:-10px"};top:${t.dyn.level === 5 ? -14 : -6}px;${TITLE_FF};font-size:${fit}px;font-weight:900;letter-spacing:-0.06em;line-height:0.9;color:${color}">${esc(label)}</span>`);
   }
   // 기울인 판: 내용 뒤에 살짝 기울어진 면(강도 3=가는 외곽선 ±1°, 4=옅은 면 ±1.5°, 5=진한 면+하드 테두리 ±2.5°). 섹션 순번 홀짝으로 기울임 방향을 번갈아
   if (d.plate) {
@@ -125,7 +125,7 @@ export function applyDynamicsHtml(html: string, s: ImpactSection, t: ArchetypeTo
     const deg = (lv === 5 ? 2.5 : lv === 4 ? 1.5 : 1) * sign;
     const face = lv === 3 ? "transparent" : lv === 4 ? p.tints[0] : p.tints[1];
     const border = lv === 3 ? `1.5px solid ${hexToRgba(p.deep, 0.22)}` : lv === 5 ? `2px solid ${hexToRgba(p.ink, 0.5)}` : "none";
-    layers.push(`<span aria-hidden="true" data-pz-dyn-deco style="position:absolute;left:${sign > 0 ? 3 : 7}%;right:${sign > 0 ? 7 : 3}%;top:16px;bottom:12px;pointer-events:none;box-sizing:border-box;border-radius:${Math.round(18 * t.radius)}px;background:${face};border:${border};transform:rotate(${deg}deg)"></span>`);
+    layers.push(`<span style="position:absolute;left:${sign > 0 ? 3 : 7}%;right:${sign > 0 ? 7 : 3}%;top:16px;bottom:12px;border-radius:${Math.round(18 * t.radius)}px;background:${face};border:${border};transform:rotate(${deg}deg)"></span>`);
   }
   if (d.tape) layers.push(tape(p, { side: "right", top: 6, deg: 5 }));
   if (d.sticker) layers.push(sticker(d.sticker, p, { shape: "star", deg: -10, size: 70, pos: "right:5%;top:8px" }));

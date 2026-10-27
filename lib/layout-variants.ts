@@ -59,6 +59,9 @@ export const V4_VARIANTS: Record<V4Family, string[]> = {
   statement: [],
   faq: [],
   proof: [],
+  // 467차 — V5 전용 계열(일반 섹션 stat_infographic·gallery를 임팩트 v4 블록으로 다시 그림)
+  stats: [],
+  gallery: [],
 };
 
 /**
@@ -78,6 +81,8 @@ export const V4_V5_VARIANTS: Partial<Record<V4Family, string[]>> = {
   faq: ["numlist", "twocol", "qband", "chat", "tabs"],
   proof: ["lead", "wall", "badges", "seal"],
   touch: ["ticket", "ledger"],
+  stats: ["bignum", "trio", "rings"],
+  gallery: ["mosaic", "polaroid"],
 };
 
 export const V4_UP1_VARIANTS: Partial<Record<V4Family, string[]>> = {
@@ -167,6 +172,12 @@ export function variantFits(family: V4Family, variant: string, d: { items: Item[
     case "story.letter": return designV5On() && len(d.body) >= 60;
     case "spec.panel": return designV5On() && n >= 2 && n <= 8 && d.items.every((i) => len(i.title) <= 20 && len(i.body) <= 60 && !isPlaceholderValue(i.body ?? ""));
     case "spec.tags": return designV5On() && n >= 2 && n <= 8 && d.items.every((i) => len(i.title) <= 12 && len(i.body) >= 1 && len(i.body) <= 16 && !isPlaceholderValue(i.body ?? ""));
+    // 467차 V5 — 숫자 카드(stat_infographic style:number 전부)·갤러리 다시 그리기. 값은 입력 원문, 비율 링은 값이 "NN%"일 때만
+    case "stats.bignum": return designV5On() && n >= 2 && n <= 4 && d.items.every((i) => len(i.title) <= 24 && len(i.body) >= 1 && len(i.body) <= 20);
+    case "stats.trio": return designV5On() && n >= 2 && n <= 4 && d.items.every((i) => len(i.title) <= 24 && len(i.body) >= 1 && len(i.body) <= 14);
+    case "stats.rings": return designV5On() && n >= 2 && n <= 4 && d.items.every((i) => len(i.title) <= 24 && /^\d{1,3}(?:\.\d+)?\s*%$/.test((i.body ?? "").trim()) && parseFloat(i.body ?? "") <= 100);
+    case "gallery.mosaic": return designV5On() && photos >= 3 && photos <= 5 && n === photos;
+    case "gallery.polaroid": return designV5On() && photos >= 2 && photos <= 3 && n === photos;
     case "spec.big3": return designV5On() && n >= 2 && n <= 3 && d.items.every((i) => len(i.title) <= 14 && len(i.body) >= 1 && len(i.body) <= 10 && !isPlaceholderValue(i.body ?? ""));
     case "phototext.stack": case "phototext.polaroid": case "phototext.dframe": return designV5On() && n === 1 && photos === 1;
     case "faq.numlist": case "faq.qband": case "faq.tabs": return designV5On() && n >= 2 && n <= 8 && d.items.every((i) => len(i.title) <= 70 && len(i.body) <= 200);
@@ -705,6 +716,27 @@ function findCandidates(secs: DetailSection[], ctx: V4Ctx): Cand[] {
     if (designV5On() && s.type === "impact" && s.kind === "faqcards" && (s.stats ?? []).length >= 2) {
       out.push({ family: "faq", at: i, len: 1, text: s.text, items: (s.stats ?? []).map((x) => ({ title: x.label, body: x.value })), ...(s.origin ? { origin: s.origin } : {}), from: "faqcards" });
       continue;
+    }
+    // 467차 V5 — 숫자 카드: stat_infographic 중 모든 수치가 style "number"(실측/기본)이고 출처 각주·자체 평가가 없는 것만(디스클레이머·각주가 필요한 막대/링은 기존 렌더러 그대로). 값은 숫자 게이트 통과분만
+    if (designV5On() && s.type === "stat_infographic") {
+      const ms = s.metrics ?? [];
+      if (ms.length >= 2 && ms.length <= 4 && ms.every((m) => m.style === "number" && m.basis !== "self_assessed" && !m.sourceNote && m.label.trim() && m.value.trim() && !checkText(`${m.label} ${m.value}`, ctx.facts).bad)) {
+        out.push({ family: "stats", at: i, len: 1, text: (s.heading ?? "").trim(), items: ms.map((m) => ({ title: m.label.trim(), body: m.value.trim() })), origin: { type: "stat_infographic", slot: s.slot }, from: "stat_infographic" });
+        continue;
+      }
+    }
+    // 467차 V5 — 글만 있는 이미지-글(text_only, 강조 구절·말풍선 없음, 본문 40~420자)을 스토리 블록(chapter·letter)으로. 문구는 제목·본문 그대로
+    if (designV5On() && s.type === "image_text" && s.layout === "text_only" && s.slot !== "quick_points" && !s.callout && !s.emphasis && s.heading.trim() && len(s.heading.trim()) <= 40 && len(s.body?.trim()) >= 40 && len(s.body?.trim()) <= 420 && !checkText(`${s.heading} ${s.body}`, ctx.facts).bad) {
+      out.push({ family: "story", at: i, len: 1, text: s.heading.trim(), items: [], body: s.body.trim(), origin: { type: "image_text", slot: s.slot }, from: "text_only" });
+      continue;
+    }
+    // 467차 V5 — 갤러리(사진 번호만 가진 섹션)를 모자이크·폴라로이드 블록으로. 원 섹션 종류는 origin으로 남겨 앵커 내비 유지
+    if (designV5On() && s.type === "gallery") {
+      const urls = (s.imageIndexes ?? []).map((k) => urlOf(k)).filter(Boolean);
+      if (urls.length >= 2 && urls.length <= 5 && new Set(urls).size === urls.length) {
+        out.push({ family: "gallery", at: i, len: 1, text: (s.heading ?? "").trim(), items: urls.map((u) => ({ title: "", img: { url: u, pos: "50% 45%" } })), origin: { type: "gallery", slot: s.slot }, from: "gallery" });
+        continue;
+      }
     }
     // 465차 V5 — 판매자 신뢰 근거 강조 박스(slot seller_trust_evidence)는 benefits 대신 proof 계열 변형으로
     if (designV5On() && s.type === "highlight_box" && s.slot === "seller_trust_evidence" && !s.boldBlock && s.cards.length >= 2 && s.cards.length <= 4) {

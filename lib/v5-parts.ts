@@ -14,6 +14,7 @@ import { ARCHETYPES, type ArchetypeId, type ArchetypeTokens, type BadgeShape, ty
 import { romanOf, v5Label } from "@/lib/v5-labels";
 import { splitLead } from "@/lib/info-style";
 import { pickIconsV4, iconV4Svg } from "@/lib/icons";
+import { gaugeRing, mosaic, polaroidStack, shadowPlate, statBlock } from "@/lib/dynamics-v5";
 
 const tokensOf = (s: ImpactSection): ArchetypeTokens => ARCHETYPES[(s.ax && s.ax in ARCHETYPES ? s.ax : "editorial") as ArchetypeId];
 
@@ -256,6 +257,48 @@ function touchV5(s: ImpactSection, b: V4Block, p: V4Palette): string | null {
 }
 
 /** v4Html에 넘기는 렌더 훅: V5 전용 변형이면 마크업, 아니면 null(기존 렌더로) */
+// ── stats(숫자 카드)·gallery(사진 묶음) — 467차: 일반 섹션을 임팩트 블록으로 단일 소스 ───────────────────────────
+/** "30mL"·"4가지"·"98%" → 큰 숫자 + 단위. 숫자로 시작하지 않으면 값 전체를 한 덩어리로 */
+const splitStat = (v: string): { num: string; unit: string } => {
+  const m = /^([\d][\d.,]*)\s*(.*)$/.exec(v.trim());
+  return m ? { num: m[1]!, unit: m[2]! } : { num: v.trim(), unit: "" };
+};
+
+function statsV5(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeTokens): string | null {
+  const items = b.items ?? [];
+  if (items.length < 2) return null;
+  const head = s.text.trim() ? headingHtml(s.text, b, p) : "";
+  const on = p.onFace[faceRole(b)];
+  const label = (txt: string): string => `<p style="margin:8px 0 0;overflow-wrap:anywhere;${typeCss("small", on.sub)}">${esc(txt)}</p>`;
+  if (b.variant === "bignum") {
+    const [first, ...rest] = items;
+    const f0 = splitStat(first!.body ?? "");
+    const big = `<div style="padding-bottom:18px;border-bottom:2px solid ${p.ink}">${statBlock(f0.num, f0.unit, p, { size: f0.num.length > 5 ? 56 : 96, ink: on.text })}${label(first!.title)}</div>`;
+    const row = `<div style="display:flex;flex-wrap:wrap;gap:20px 24px;margin-top:20px">${rest.map((it) => { const x = splitStat(it.body ?? ""); return `<div style="flex:1 1 120px;min-width:0">${statBlock(x.num, x.unit, p, { size: x.num.length > 5 ? 30 : 46, ink: on.text })}${label(it.title)}</div>`; }).join("")}</div>`;
+    return wrap(b, p, big + row, { head });
+  }
+  if (b.variant === "trio") {
+    const kinds = ["hard", "soft", "float"] as const;
+    const cards = items.map((it, i) => { const x = splitStat(it.body ?? ""); const kind = t.shadow.kind === "hard" ? "hard" : kinds[(i + 1) % 3]!; return `<div style="flex:1 1 140px;min-width:0;transform:rotate(${i % 2 ? 1.2 : -1.2}deg)">${shadowPlate(`${statBlock(x.num, x.unit, p, { size: x.num.length > 5 ? 30 : 52, ink: p.ink })}${label(it.title).replace(on.sub, p.ink)}`, p, kind, { bg: i % 2 ? p.tints[0] : "#FFFFFF" })}</div>`; }).join("");
+    return wrap(b, p, `<div data-pz-dyn-clip style="overflow:hidden;padding:6px 4px 10px"><div style="display:flex;flex-wrap:wrap;gap:14px">${cards}</div></div>`, { head });
+  }
+  if (b.variant === "rings") {
+    const cols = items.map((it) => `<div style="flex:1 1 112px;min-width:0;text-align:center">${gaugeRing(parseFloat(it.body ?? "0"), p, { size: 104, label: (it.body ?? "").trim() })}${label(it.title)}</div>`).join("");
+    return wrap(b, p, `<div style="display:flex;flex-wrap:wrap;gap:20px 12px;justify-content:center">${cols}</div>`, { head });
+  }
+  return null;
+}
+
+function galleryV5(s: ImpactSection, b: V4Block, p: V4Palette, alt: string): string | null {
+  const imgs = (b.items ?? []).map((i) => i.img).filter((x): x is { url: string; pos?: string } => !!x?.url);
+  if (imgs.length < 2) return null;
+  const head = s.text.trim() ? headingHtml(s.text, b, p) : "";
+  const a = alt || s.text || "";
+  if (b.variant === "mosaic") return wrap(b, p, mosaic(imgs, p, a, { seed: b.no * 31 }), { head });
+  if (b.variant === "polaroid") return wrap(b, p, polaroidStack(imgs, p, a, { seed: b.no * 17 }), { head });
+  return null;
+}
+
 export const V5_PARTS: V5Parts = (s, b, p, alt) => {
   const t = tokensOf(s);
   switch (b.family) {
@@ -267,6 +310,8 @@ export const V5_PARTS: V5Parts = (s, b, p, alt) => {
     case "faq": return faqV5(s, b, p, t);
     case "proof": return proofV5(s, b, p, t);
     case "touch": return touchV5(s, b, p);
+    case "stats": return statsV5(s, b, p, t);
+    case "gallery": return galleryV5(s, b, p, alt);
     default: return null;
   }
 };

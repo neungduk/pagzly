@@ -5,7 +5,7 @@
 | 0 진단·조사·목표 | 완료 (`docs/dynamics-audit-467.md`, `scripts/dynamics-metrics-467.ts`) |
 | 1 부품 라이브러리 | 완료 — `lib/dynamics-v5.ts` 부품 30종(스케일 3·깊이 4·기울임 5·이음새 6·필기 4·구성 8), 회귀 `dynamics-467`(극단 입력·금지 CSS·장식 속성·넘침 래퍼·새 글자 없음) |
 | 2 초점 규칙·레이어 | 1차 완료 — `lib/dynamics-layer-v5.ts`(계획 `planDynamicsV5` + 적용 `applyDynamicsHtml`): 큰 배경 순번/제목 첫 단어, 기울인 판, 스티커·테이프, 카드 변주, 이음새 도형(자기 색으로 위 섹션 쪽으로 솟음)·걸침. 대상: v4 블록 + 글 위주 기존 임팩트. 일반 섹션·변형별 레시피는 Phase 3. 회귀 `dynamics-467`에 레이어 검사 추가. 지표 ⑤ 정정(docs §5) |
-| 3 일반 섹션 V5 단일 소스 | 남음 |
+| 3 일반 섹션 V5 단일 소스 | 완료(3종) — stat_infographic→stats(bignum·trio·rings), gallery→gallery(mosaic·polaroid), image_text text_only→story. 조건·원문 보존 회귀. 나머지는 사유와 함께 미변환(docs §6) |
 | 4 페이지 레벨(이음새·걸침·티커·비대칭) | 남음 |
 | 5 사진 틀·일러스트 | 남음 |
 | 6 모션(선택·별도 플래그) | 남음 |

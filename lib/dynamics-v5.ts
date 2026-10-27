@@ -169,14 +169,16 @@ export function seam(kind: SeamKind, top: string, bottom: string, o: { h?: numbe
   let d = "";
   if (kind === "slant") d = o.flip ? `M0 0 H${W} V${h} Z` : `M0 ${h} L${W} 0 V${h} Z`;
   else if (kind === "wave") d = `M0 ${h} V${h * 0.55} C${W * 0.15} ${h * 0.05} ${W * 0.3} ${h * 0.05} ${W * 0.5} ${h * 0.5} S${W * 0.85} ${h * 0.95} ${W} ${h * 0.4} V${h} Z`;
-  else if (kind === "scallop") { const n = 8; const w = W / n; d = `M0 ${h} V${h * 0.5}` + [...Array(n).keys()].map((i) => ` A${w / 2} ${h * 0.5} 0 0 1 ${(i + 1) * w} ${h * 0.5}`).join("") + ` V${h} Z`; }
-  else if (kind === "zigzag") { const n = 10; const w = W / n; d = `M0 ${h} V${h * 0.4}` + [...Array(n).keys()].map((i) => ` L${i * w + w / 2} ${h * 0.05} L${(i + 1) * w} ${h * 0.4}`).join("") + ` V${h} Z`; }
-  else { const n = 5; const w = W / n; d = `M0 ${h}` + [...Array(n).keys()].map((i) => ` V${h * (1 - (i + 1) / (n + 1))} H${(i + 1) * w}`).join("") + ` V${h} Z`; }
+  else if (kind === "scallop") { const n = 6; const w = W / n; d = `M0 ${h} V${h * 0.5}` + [...Array(n).keys()].map((i) => ` A${w / 2} ${h * 0.5} 0 0 1 ${(i + 1) * w} ${h * 0.5}`).join("") + ` V${h} Z`; }
+  else if (kind === "zigzag") { const n = 6; const w = W / n; d = `M0 ${h} V${h * 0.4}` + [...Array(n).keys()].map((i) => ` L${i * w + w / 2} ${h * 0.05} L${(i + 1) * w} ${h * 0.4}`).join("") + ` V${h} Z`; }
+  else { const n = 4; const w = W / n; d = `M0 ${h}` + [...Array(n).keys()].map((i) => ` V${h * (1 - (i + 1) / (n + 1))} H${(i + 1) * w}`).join("") + ` V${h} Z`; }
   return `<span aria-hidden="true" data-pz-dyn-deco data-pz-seam="${kind}" style="display:block;pointer-events:none;width:100%;height:${h}px;line-height:0;background:${top}"><svg viewBox="0 0 ${W} ${h}" width="100%" height="${h}" preserveAspectRatio="none" aria-hidden="true" focusable="false" style="display:block"><path d="${d}" fill="${bottom}"/></svg></span>`;
 }
 /** 이 섹션 자기 색(own)만 칠한 가장자리 도형: 위쪽 가장자리가 도형을 이루고 그 위는 투명(위 섹션이 비친다). 이음새 레이어 전용 */
 export function seamShape(kind: SeamKind, own: string, h: number): string {
-  return seam(kind, "transparent", own, { h });
+  // seam()과 같은 path를 쓰되 바깥 span 없이 svg만(크기 절약 — 이음새 레이어가 위치를 잡는다)
+  const full = seam(kind, "transparent", own, { h });
+  return full.replace(/^<span[^>]*>/, "").replace(/<\/span>$/, "");
 }
 export const slantSeam = (top: string, bottom: string, h?: number): string => seam("slant", top, bottom, { h });
 export const waveSeam = (top: string, bottom: string, h?: number): string => seam("wave", top, bottom, { h });

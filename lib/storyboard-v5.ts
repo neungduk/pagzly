@@ -31,6 +31,7 @@ const V4_STRENGTH: Record<string, number> = {
   "spec.panel": 2, "spec.tags": 2, "spec.big3": 4, "phototext.stack": 4, "phototext.polaroid": 4, "phototext.dframe": 4,
   "faq.numlist": 1, "faq.twocol": 2, "faq.qband": 2, "faq.chat": 3, "faq.tabs": 2, "proof.lead": 3, "proof.wall": 3, "proof.badges": 3, "proof.seal": 3,
   "touch.ticket": 3, "touch.ledger": 2,
+  "stats.bignum": 3, "stats.trio": 3, "stats.rings": 3, "gallery.mosaic": 3, "gallery.polaroid": 3,
 };
 export const variantStrength = (family: string, variant: string): number => V4_STRENGTH[`${family}.${variant}`] ?? 3;
 const TYPE_STRENGTH: Record<string, number> = {
@@ -68,7 +69,7 @@ export function beatOf(s: DetailSection): Beat {
         if (f === "spec") return "proof";
         if (f === "touch") return "action";
         if (f === "benefits") return s.v4.glance ? "hook" : "desire";
-        if (f === "steps") return "proof";
+        if (f === "steps" || f === "stats") return "proof";
         return "desire";
       }
       if (s.kind === "bubbles" || s.kind === "checkrows" || s.kind === "checkgrid" || s.kind === "chat") return "empathy";

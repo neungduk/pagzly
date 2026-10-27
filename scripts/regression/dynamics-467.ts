@@ -9,7 +9,8 @@ import { v4Palette } from "../../lib/palette-v4";
 import { designV5On, setDesignUp1ForTests, setDesignV5ForTests } from "../../lib/design-v4";
 import { ARCHETYPES, ARCHETYPE_IDS, setV5ArchetypeForTests } from "../../lib/page-archetype-v5";
 import { DYN_CAPS } from "../../lib/dynamics-layer-v5";
-import { corpus, exportHtmlOf, readSession } from "../design-corpus";
+import { corpus, exportArgsOf, exportHtmlOf, readSession } from "../design-corpus";
+import { planV4 } from "../../lib/layout-variants";
 import { signatureOf, topSections } from "../variety-metrics-463";
 import { expandDedupedStyles } from "../../lib/style-dedupe";
 
@@ -108,6 +109,38 @@ export async function run(): Promise<string[]> {
   const defaultV5 = designV5On();
   setDesignUp1ForTests(true);
   try {
+    // 일반 섹션 다시 그리기(stats·gallery·story) — 변환 조건과 원문 보존
+    setDesignV5ForTests(true);
+    {
+      const a0 = exportArgsOf(readSession("scripts/fixtures/archetype-compare-tech.json")); // 이 픽스처의 수치는 숫자 게이트(claimFacts)를 통과한다
+      const hero = { type: "hero", slot: "hero", headline: "H", subheadline: "S", imageIndex: 0 };
+      const fill = (i: number) => ({ type: "caution", slot: "caution", heading: `주의${i}`, body: "내용" });
+      const num = (extra: Record<string, unknown> = {}) => ({ label: "용량", value: "30mL", style: "number", basis: "measured", ...extra });
+      const stat = (ms: Array<Record<string, unknown>>) => ({ type: "stat_infographic", slot: "stat_infographic", heading: "숫자로 보는 미스트", metrics: ms });
+      const cta = { type: "cta_price", slot: "cta_price", price: 1000, targetCustomer: "x", badges: [] };
+      const ok2 = [num(), num({ label: "담은 성분", value: "4가지" })]; // (이 픽스처에서 숫자 게이트를 통과하는 두 수치)
+      const gal = (n: number) => ({ type: "gallery", slot: "gallery", heading: "갤러리", imageIndexes: Array.from({ length: n }, (_, i) => i + 1) });
+      const textOnly = (extra: Record<string, unknown> = {}) => ({ type: "image_text", slot: "feature_callout", heading: "끈적임 없는 결", body: "가벼운 사용감으로 메이크업 위에도 사용할 수 있습니다. 산뜻하게 마무리됩니다. 휴대하기 좋은 크기입니다.", imageIndex: 0, imagePosition: "left", layout: "text_only", ...extra });
+      const run = (secs: unknown[], arch: "editorial" | "catalog"): string[] => planV4(secs as never, (secs as unknown[]).map((_, i) => i), { mood: null, seedKey: "unit|x", imageUrls: a0.imageUrls, origins: a0.imageOrigins, facts: a0.claimFacts!, category: a0.category, height: () => 400, v5: ARCHETYPES[arch] }).placed.map((x) => `${x.family}.${x.variant}`);
+      const base = [hero, fill(1), fill(2), fill(3), fill(4), fill(5)];
+      const has = (secs: unknown[], fam: string): boolean => run([...base, ...secs, cta], "catalog").some((x) => x.startsWith(`${fam}.`));
+      if (!has([stat(ok2)], "stats")) f.push("숫자 카드(style number·측정)가 stats 블록으로 안 바뀜");
+      if (has([stat(ok2.map((m) => ({ ...m, style: "bar", percent: 40 })))], "stats")) f.push("막대(bar) 수치가 stats로 바뀜(디스클레이머·각주 보존 위반)");
+      if (has([stat(ok2.map((m) => ({ ...m, sourceNote: "OO시험연구원" })))], "stats")) f.push("출처 각주가 있는 수치가 stats로 바뀜");
+      if (has([stat(ok2.map((m) => ({ ...m, basis: "self_assessed" })))], "stats")) f.push("자체 평가 수치가 stats로 바뀜");
+      if (has([stat([num()])], "stats")) f.push("수치 1개짜리가 stats로 바뀜");
+      if (has([stat([num(), num({ label: "권장 분사 거리", value: "15cm" })])], "stats")) f.push("숫자 게이트를 통과하지 못한 수치(15cm)가 stats로 바뀜");
+      if (!has([gal(3)], "gallery")) f.push("사진 3장 갤러리가 gallery 블록으로 안 바뀜");
+      if (has([gal(1)], "gallery")) f.push("사진 1장 갤러리가 gallery로 바뀜");
+      if (!has([textOnly()], "story")) f.push("본문 있는 text_only가 story 블록으로 안 바뀜");
+      if (has([textOnly({ emphasis: "가벼운 사용감" })], "story") || has([textOnly({ callout: "말풍선" })], "story")) f.push("강조 구절/말풍선이 있는 text_only가 story로 바뀜");
+      if (has([textOnly({ body: "짧은 글" })], "story")) f.push("본문이 짧은 text_only가 story로 바뀜");
+      // 원문 보존: 값이 그대로 렌더에 나온다
+      const secs = [...base, stat(ok2), cta];
+      const plan = planV4(secs as never, secs.map((_, i) => i), { mood: null, seedKey: "unit|x", imageUrls: a0.imageUrls, origins: a0.imageOrigins, facts: a0.claimFacts!, category: a0.category, height: () => 400, v5: ARCHETYPES.catalog });
+      const st = plan.sections.find((x) => x.type === "impact" && x.kind === "v4" && x.v4?.family === "stats");
+      if (st && st.type === "impact") { const vals = (st.v4?.items ?? []).map((i) => i.body); if (JSON.stringify(vals) !== JSON.stringify(["30mL", "4가지"])) f.push(`stats 값이 입력과 다름: ${vals.join(",")}`); if (st.origin?.type !== "stat_infographic") f.push("stats가 원 섹션 종류(origin)를 남기지 않음"); }
+    }
     // 꺼짐: 다이나믹 표식이 없다
     setDesignV5ForTests(false);
     for (const [id, file] of files.slice(0, 6)) if (/data-pz-dyn/.test(exportHtmlOf(file))) f.push(`${id}: V5 꺼짐인데 다이나믹 표식`);

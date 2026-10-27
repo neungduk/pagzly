@@ -234,7 +234,7 @@ export const impactAlt = (productName: string | undefined | null, s: ImpactSecti
 const IMPACT_HEIGHT: Partial<Record<ImpactSection["kind"], number>> = { statement: 300, number: 330, bleed: 780, split: 380, callout: 420, proof: 420, reviewstat: 460, "illust-side": 300, "illust-center": 520, story: 640, fit: 420, note: 360, textboost: 420, swatch: 300, timeline: 520, chipwall: 320, specstrip: 300, sizebars: 520, checkgrid: 640, bubbles: 460, chat: 420, faqcards: 700, spectable: 560, checkrows: 400, asym2: 600, mosaic3: 640, inset: 700, frame: 560, stagger: 800, zoom: 600 };
 
 /** 439차 — v4 블록 높이(계열별 대략) */
-const V4_HEIGHT: Record<string, number> = { benefits: 620, concern: 420, story: 620, spec: 460, phototext: 720, touch: 200, breather: 90, steps: 420, statement: 240 };
+const V4_HEIGHT: Record<string, number> = { benefits: 620, concern: 420, story: 620, spec: 460, phototext: 720, touch: 200, breather: 90, steps: 420, statement: 240, stats: 380, gallery: 640 };
 
 /** 섹션 높이 추정(px, 390 폭 기준 대략) — 간격 규칙용. 정확할 필요는 없고 같은 입력이면 같은 결과가 나오면 된다 */
 export function estimateSectionHeight(s: DetailSection): number {
