@@ -146,7 +146,7 @@ export async function run(): Promise<string[]> {
     for (const [id, file] of files.slice(0, 6)) if (/data-pz-dyn/.test(exportHtmlOf(file))) f.push(`${id}: V5 꺼짐인데 다이나믹 표식`);
     setDesignV5ForTests(true);
     // 장식을 두면 안 되는 구간(가격·접점·띠·히어로·구매 카드·고지·주의)
-    const FORBIDDEN_SIG = /^(touch|statement|breather)\.|^cta$|^id\.caution$|^id\.ai|ai-disclosure|^illustration-banner$/;
+    const FORBIDDEN_SIG = /^(touch|breather)\.|^statement\.(?!ticker)|^cta$|^id\.caution$|^id\.ai|ai-disclosure|^illustration-banner$/;
     for (const arch of ARCHETYPE_IDS) {
       setV5ArchetypeForTests(arch);
       const cap = DYN_CAPS[ARCHETYPES[arch].dyn.level];

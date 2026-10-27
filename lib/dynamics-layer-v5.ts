@@ -47,7 +47,8 @@ export function planDynamicsV5(sections: DetailSection[], t: ArchetypeTokens, se
     { get(i).ghost = true; if (!b) get(i).word = firstWord(sec.text); }
   });
   // 기울인 판: 적격 섹션 중 번갈아(방향도 번갈아)
-  elig.forEach((i, k) => { if (k % 2 === 0) get(i).plate = (k / 2) % 2 ? 1 : -1; });
+  const every = lv === 5 ? 3 : 2; // 강도 5는 세 번째마다(기울임은 이미 스티커·테이프·티커로 충분하고 크기 상한 때문)
+  elig.forEach((i, k) => { if (k % every === 0) get(i).plate = (k / every) % 2 ? 1 : -1; });
   // 카드 변주(반경 한 모서리 변주 — 같은 카드 서명이 이어지지 않게): 강도 ≥ 4, 카드 계열
   if (lv >= 4) for (const i of elig) if (CARD_FAMILIES.has((sections[i] as ImpactSection).v4?.family ?? "")) get(i).cards = 1;
   // 스티커·테이프(기울임 성격만): 스티커 글자는 입력 키워드(≤6자), 테이프는 사진 글 블록

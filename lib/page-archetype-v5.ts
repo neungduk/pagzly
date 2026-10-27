@@ -81,7 +81,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
     id: "catalog", radius: 0.6, pill: 6, border: { w: 2, style: "solid", alphaMul: 2.2 }, shadow: { kind: "none", offset: 0 }, paper: "#F3F2EE", face: "tintAlt",
     pad: [28, 40, 56], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "step", rise: false, tilt: true }, type: { weight: 700, tracking: -0.02, scale: 0.96 }, eyebrow: "number", frames: ["rect"], dividers: ["stripe", "slant"], number: "box", marker: "square", decor: "bracket", decorAlt: ["plus-field","dots-grid"], badge: "hex", density: "tight",
     hero: ["B", "D"],
-    prefer: { benefits: ["rows2", "numcards"], concern: ["tiles2", "stack"], story: ["chapter", "linetime"], spec: ["grid", "strip"], phototext: ["stack", "caption"], steps: ["bignum", "vtimeline"], faq: ["twocol", "chat"], proof: ["wall", "badges"], touch: ["ticket", "band"], statement: ["band", "rule"], stats: ["trio", "bignum"], gallery: ["mosaic", "polaroid"] },
+    prefer: { benefits: ["rows2", "numcards"], concern: ["tiles2", "stack"], story: ["chapter", "linetime"], spec: ["grid", "strip"], phototext: ["stack", "caption"], steps: ["bignum", "vtimeline"], faq: ["twocol", "chat"], proof: ["wall", "badges"], touch: ["ticket", "band"], statement: ["band", "ticker", "rule"], stats: ["trio", "bignum"], gallery: ["mosaic", "polaroid"] },
   },
   softlife: {
     id: "softlife", radius: 1.6, pill: "keep", border: { w: 1, style: "solid", alphaMul: 0.8 }, shadow: { kind: "warm", offset: 0 }, paper: "#FFFBF6", face: "tintAlt",
@@ -93,7 +93,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
     id: "impact", radius: 0.5, pill: 6, border: { w: 3, style: "solid", alphaMul: 5 }, shadow: { kind: "hard", offset: 4 }, paper: "#FFFFFF", face: "blockAlt",
     pad: [32, 48, 64], titleAlign: "left", centerBudget: 0, dyn: { level: 5, seam: "slant", rise: false, tilt: true }, type: { weight: 900, tracking: -0.045, scale: 1.1 }, eyebrow: "number", frames: ["offset", "rect"], dividers: ["slant", "zigzag", "stripe"], number: "big", marker: "arrow", decor: "bar-left", decorAlt: ["dots-grid","plus-field"], badge: "hex", density: "tight",
     hero: ["C", "B", "A"],
-    prefer: { benefits: ["bento", "stackbig"], concern: ["deck", "stack"], story: ["pullband", "chapter"], spec: ["big3", "strip"], phototext: ["offset", "stack"], steps: ["bignum", "vtimeline"], faq: ["tabs", "qband"], proof: ["wall", "badges"], touch: ["band", "ticket"], statement: ["band", "rule"], stats: ["bignum", "trio"], gallery: ["mosaic", "polaroid"] },
+    prefer: { benefits: ["bento", "stackbig"], concern: ["deck", "stack"], story: ["pullband", "chapter"], spec: ["big3", "strip"], phototext: ["offset", "stack"], steps: ["bignum", "vtimeline"], faq: ["tabs", "qband"], proof: ["wall", "badges"], touch: ["band", "ticket"], statement: ["band", "ticker", "rule"], stats: ["bignum", "trio"], gallery: ["mosaic", "polaroid"] },
   },
   techsheet: {
     id: "techsheet", radius: 0, pill: 0, border: { w: 1, style: "dashed", alphaMul: 2.4 }, shadow: { kind: "none", offset: 0 }, paper: "#EEF3F8", face: "lightOnly",
@@ -117,7 +117,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
     id: "pop", radius: 1.8, pill: "keep", border: { w: 2, style: "solid", alphaMul: 4 }, shadow: { kind: "hard", offset: 3 }, paper: "#FFFDF4", face: "colorCollide",
     pad: [32, 44, 60], titleAlign: "center", centerBudget: 1, dyn: { level: 5, seam: "zigzag", rise: false, tilt: true }, type: { weight: 900, tracking: -0.03, scale: 1.08 }, eyebrow: "pill", frames: ["tape", "round", "offset"], dividers: ["zigzag", "tape", "wave2"], number: "circle", marker: "arrow", decor: "sticker", decorAlt: ["squiggle","ring","dots-grid"], badge: "ribbon", density: "normal",
     hero: ["B", "C"],
-    prefer: { benefits: ["numcards", "bento"], concern: ["bubbles", "deck"], story: ["pullband", "quote"], spec: ["grid", "cards"], phototext: ["polaroid", "offset"], steps: ["bignum", "chipflow"], faq: ["chat", "twocol"], proof: ["badges", "wall"], touch: ["ticket", "band"], statement: ["band", "rule"], stats: ["trio", "rings"], gallery: ["polaroid", "mosaic"] },
+    prefer: { benefits: ["numcards", "bento"], concern: ["bubbles", "deck"], story: ["pullband", "quote"], spec: ["grid", "cards"], phototext: ["polaroid", "offset"], steps: ["bignum", "chipflow"], faq: ["chat", "twocol"], proof: ["badges", "wall"], touch: ["ticket", "band"], statement: ["ticker", "band", "rule"], stats: ["trio", "rings"], gallery: ["polaroid", "mosaic"] },
   },
 };
 

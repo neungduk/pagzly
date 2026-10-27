@@ -881,7 +881,10 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
   const rhythm0b = band ? { ...rhythm1, sections: band.sections, sourceIndexes: band.sourceIndexes, inserted: [...rhythm1.inserted, band.note] } : rhythm1;
   // 465차 V5 — 마무리 띠: 구매 카드 바로 앞에 큰 문장 한 줄(곡선 규칙 "마무리 직전 높음 1회"). 가운데 띠와 다른 문장, 시드 약 60%
   const closing = ctx.v5 ? insertClosingStatement(rhythm0b.sections, rhythm0b.sourceIndexes, sections, keywords, ctx, seed) : null;
-  const rhythm = closing ? { ...rhythm0b, sections: closing.sections, sourceIndexes: closing.sourceIndexes, inserted: [...rhythm0b.inserted, closing.note] } : rhythm0b;
+  const rhythm1b = closing ? { ...rhythm0b, sections: closing.sections, sourceIndexes: closing.sourceIndexes, inserted: [...rhythm0b.inserted, closing.note] } : rhythm0b;
+  // 467차 V5 — 티커 띠(최대 1개)
+  const ticker = ctx.v5 ? insertTickerV5(rhythm1b.sections, rhythm1b.sourceIndexes, keywords, ctx, seed) : null;
+  const rhythm = ticker ? { ...rhythm1b, sections: ticker.sections, sourceIndexes: ticker.sourceIndexes, inserted: [...rhythm1b.inserted, ticker.note] } : rhythm1b;
   const withMotifs0 = assignMotifs(assignFaces(rhythm.sections, seed), ctx.mood, seed, ctx.v5 ?? null);
   const withMotifs = ctx.v5 ? boostEarlyHighV5(withMotifs0, ctx, seed) : withMotifs0;
   const finalPlaced: V4Placed[] = [];
@@ -1026,6 +1029,33 @@ function touchVariantV5(prefer: readonly string[] | undefined, seed: number): st
   if (list.length === 0) return (["band", "ticket", "ledger"] as const)[seed % 3]!;
   return list[(seed % 5) < 3 ? 0 : Math.min(1, list.length - 1)]!;
 }
+/**
+ * 467차 V5 — 티커 띠(기울어진 반복 띠). 입력에 이미 있는 상품명 앞부분과 키워드 2~3개를 그대로 반복할 뿐 문구를 만들지 않는다. 페이지당 최대 1개,
+ * 아키타입 `prefer.statement`에 ticker가 있을 때 시드로 약 70%. 위치는 높이의 55~65% 근처 경계 — 히어로·구매 카드·접점·숨 고르기·다른 띠 옆은 피한다.
+ */
+export function insertTickerV5(secs: DetailSection[], idx: number[], keywords: readonly string[], ctx: V4Ctx, seed = 0): { sections: DetailSection[]; sourceIndexes: number[]; note: string } | null {
+  if (!ctx.v5 || !(ctx.v5.prefer.statement ?? []).includes("ticker") || (seed >>> 7) % 10 >= 7 || secs.length < 12) return null;
+  const name = (ctx.facts.productName ?? "").trim().split(/\s+/).slice(0, 2).join(" ");
+  const words = [name, ...keywords].map((w) => w.trim()).filter((w) => w && len(w) >= 2 && len(w) <= 12 && !checkText(w, ctx.facts).bad);
+  const uniq = [...new Set(words)].slice(0, 3);
+  if (uniq.length < 2) return null;
+  const hs = secs.map((x) => ctx.height(x));
+  const total = hs.reduce((a, b) => a + b, 0);
+  const blocked = (x: DetailSection | undefined): boolean => !x || x.type === "hero" || x.type === "cta_price" || x.type === "ai_disclosure" || x.type === "caution" || (x.type === "impact" && x.kind === "v4" && (x.v4?.family === "touch" || x.v4?.family === "breather" || x.v4?.family === "statement"));
+  let y = 0; let best = -1; let bestD = Infinity;
+  for (let k = 0; k < secs.length; k += 1) {
+    const d = Math.abs(y - total * (0.55 + ((seed >>> 9) % 11) / 100));
+    if (k >= 5 && k <= secs.length - 4 && !blocked(secs[k - 1]) && !blocked(secs[k]) && d < bestD) { bestD = d; best = k; }
+    y += hs[k]!;
+  }
+  if (best < 0) return null;
+  const sec = { type: "impact", slot: "impact", kind: "v4", text: uniq.join(" · "), ...(ctx.mood ? { mood: ctx.mood } : {}), v4: { family: "statement", variant: "ticker", no: 0, face: bandFace(ctx, secs[best - 1], secs[best]), items: uniq.map((w) => ({ title: w })), keywords: [] } } as ImpactSection;
+  const S = [...secs]; const I = [...idx];
+  S.splice(best, 0, sec as DetailSection);
+  I.splice(best, 0, I[best - 1]!);
+  return { sections: S, sourceIndexes: I, note: `티커 띠 @${best}` };
+}
+
 /**
  * 465차 V5 — 마무리 띠. 구매 카드(cta_price) 바로 앞 경계에 입력 문장 한 줄을 원문 그대로 크게(형태는 시드로). 가운데 띠와 같은 규칙(8~48자·수치 검사·다른 임팩트에 같은 글 노드가 없음)이고
  * 가운데 띠에 쓴 문장은 제외한다. 앞 섹션이 접점·숨 고르기·띠·히어로면 만들지 않는다.

@@ -14,7 +14,7 @@ import { ARCHETYPES, type ArchetypeId, type ArchetypeTokens, type BadgeShape, ty
 import { romanOf, v5Label } from "@/lib/v5-labels";
 import { splitLead } from "@/lib/info-style";
 import { pickIconsV4, iconV4Svg } from "@/lib/icons";
-import { gaugeRing, mosaic, polaroidStack, shadowPlate, statBlock } from "@/lib/dynamics-v5";
+import { gaugeRing, mosaic, polaroidStack, shadowPlate, statBlock, tickerBand } from "@/lib/dynamics-v5";
 
 const tokensOf = (s: ImpactSection): ArchetypeTokens => ARCHETYPES[(s.ax && s.ax in ARCHETYPES ? s.ax : "editorial") as ArchetypeId];
 
@@ -312,6 +312,7 @@ export const V5_PARTS: V5Parts = (s, b, p, alt) => {
     case "touch": return touchV5(s, b, p);
     case "stats": return statsV5(s, b, p, t);
     case "gallery": return galleryV5(s, b, p, alt);
+    case "statement": return b.variant === "ticker" ? wrap(b, p, tickerBand((b.items ?? []).map((i) => i.title), p, { deg: -2, repeat: 3 }), { pad: "28px 24px" }) : null;
     default: return null;
   }
 };
