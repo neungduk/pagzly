@@ -21,13 +21,14 @@ const tokensOf = (s: ImpactSection): ArchetypeTokens => ARCHETYPES[(s.ax && s.ax
 const darkOf = (p: V4Palette): string => (contrastRatioToken("#FFFFFF", p.deep) >= 4.5 ? p.deep : p.ink);
 
 // ── 번호 양식 · 마커 ───────────────────────────────────────────────────────────
-export function numberMark(style: NumberStyle, i: number, b: V4Block, p: V4Palette): string {
+export function numberMark(style: NumberStyle, i: number, b: V4Block, p: V4Palette, big = false): string {
   const on = p.onFace[faceRole(b)];
+  // 466차 — big=true(장점 stackbig처럼 번호가 주인공인 자리): 번호를 한 단계 크게(눈이 번호로 먼저 가게). 크기만 키우고 새 글자는 없다
   switch (style) {
-    case "circle": return `<span aria-hidden="true" style="flex:none;display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:${darkOf(p)};color:#FFFFFF;${SANS_FF};font-size:14px;font-weight:800">${i + 1}</span>`;
-    case "roman": return `<span aria-hidden="true" style="flex:none;min-width:34px;${TITLE_FF};font-size:22px;font-weight:700;line-height:1.1;color:${zigzagLabelColor(b, p, on.strong)}">${romanOf(i + 1)}</span>`;
-    case "box": return `<span aria-hidden="true" style="flex:none;display:flex;align-items:center;justify-content:center;width:34px;height:34px;box-sizing:border-box;border:2px solid ${p.ink};${SANS_FF};font-size:13px;font-weight:800;color:${p.ink}">${NUM(i + 1)}</span>`;
-    default: return `<span aria-hidden="true" data-pz-deco style="flex:none;min-width:48px;${TITLE_FF};font-size:40px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${p.tints[3]}">${NUM(i + 1)}</span>`;
+    case "circle": { const d = big ? 46 : 34; return `<span aria-hidden="true" style="flex:none;display:flex;align-items:center;justify-content:center;width:${d}px;height:${d}px;border-radius:50%;background:${darkOf(p)};color:#FFFFFF;${SANS_FF};font-size:${big ? 18 : 14}px;font-weight:800">${i + 1}</span>`; }
+    case "roman": return `<span aria-hidden="true" style="flex:none;min-width:${big ? 64 : 34}px;${TITLE_FF};font-size:${big ? 52 : 22}px;font-weight:700;line-height:1.05;color:${zigzagLabelColor(b, p, on.strong)}">${romanOf(i + 1)}</span>`;
+    case "box": { const d = big ? 46 : 34; return `<span aria-hidden="true" style="flex:none;display:flex;align-items:center;justify-content:center;width:${d}px;height:${d}px;box-sizing:border-box;border:2px solid ${p.ink};${SANS_FF};font-size:${big ? 17 : 13}px;font-weight:800;color:${p.ink}">${NUM(i + 1)}</span>`; }
+    default: return `<span aria-hidden="true" data-pz-deco style="flex:none;min-width:${big ? 64 : 48}px;${TITLE_FF};font-size:${big ? 56 : 40}px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${p.tints[3]}">${NUM(i + 1)}</span>`;
   }
 }
 
@@ -76,7 +77,7 @@ function benefitsV5(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeToke
   const on = p.onFace[faceRole(b)];
   const head = headingHtml(s.text, b, p);
   if (b.variant === "stackbig") {
-    const rows = items.map((it, i) => `<div style="display:flex;gap:16px;align-items:flex-start;padding:18px 0;${i ? `border-top:1px solid ${hexToRgba(p.ink, 0.14)}` : `border-top:2px solid ${p.ink}`}">${numberMark(t.number, i, b, p)}<div style="flex:1 1 0%;min-width:0;padding-top:2px">${titleP(it.title, p, 17)}${bodyP(it.body, p, on.sub)}</div></div>`).join("");
+    const rows = items.map((it, i) => `<div style="display:flex;gap:16px;align-items:flex-start;padding:18px 0;${i ? `border-top:1px solid ${hexToRgba(p.ink, 0.14)}` : `border-top:2px solid ${p.ink}`}">${numberMark(t.number, i, b, p, true)}<div style="flex:1 1 0%;min-width:0;padding-top:2px">${titleP(it.title, p, 17)}${bodyP(it.body, p, on.sub)}</div></div>`).join("");
     return wrap(b, p, `<div style="border-bottom:1px solid ${hexToRgba(p.ink, 0.14)}">${rows}</div>`, { head });
   }
   if (b.variant === "rows2") {

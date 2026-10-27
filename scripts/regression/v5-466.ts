@@ -7,15 +7,16 @@ import fs from "node:fs";
 import { setDesignUp1ForTests, setDesignV5ForTests, designV5On } from "../../lib/design-v4";
 import { ARCHETYPES, ARCHETYPE_IDS, setV5ArchetypeForTests, type ArchetypeId } from "../../lib/page-archetype-v5";
 import { FACE_CYCLES, isDarkStrategy, lightensBoldBlock } from "../../lib/face-strategy-v5";
-import { V4_UP1_VARIANTS, V4_V5_VARIANTS, V4_VARIANTS, v4Html } from "../../lib/layout-variants";
+import { V4_UP1_VARIANTS, V4_V5_VARIANTS, V4_VARIANTS, planV4, v4Html } from "../../lib/layout-variants";
 import { V5_PARTS } from "../../lib/v5-parts";
 import { impactPalette } from "../../lib/impact-templates";
 import type { ImpactSection, V4Block } from "../../lib/types/generate";
 import { corpus, exportArgsOf, exportHtmlOf, readSession } from "../design-corpus";
+import { signatureOf, topSections } from "../variety-metrics-463";
 import { contrastFindings } from "../contrast-audit-466";
 import { macroMetrics, type MacroMetrics } from "../variety-metrics-466";
 
-export const name = "V5 거시 차별화 466 — 면 전략(진한 면 비율 목표·진한 면 대비 전수)";
+export const name = "V5 거시 차별화 466 — 면 전략(진한 면 비율·진한 면 대비 전수)·변형 확정 선호(계열별 ≥5·선택 조건)";
 
 const MOODS: Array<string | null> = [null, "minimal-luxe", "clinic", "natural", "playful", "street", "warm"];
 
@@ -80,6 +81,48 @@ export async function run(): Promise<string[]> {
       ok(avg >= t.avgMin && avg <= t.avgMax, `${arch}(${ARCHETYPES[arch].face}) 진한 면 평균 ${avg.toFixed(3)} (목표 ${t.avgMin}~${t.avgMax})`);
       ok(worst <= t.worstMax, `${arch} 진한 면 최악 ${worst.toFixed(3)} (상한 ${t.worstMax})`);
     }
+    // ── ④ 변형 확정 선호: 계열별 서로 다른 변형 수(8종 × 말뭉치 21 합산) ≥ 5 ────────────────────
+    const FAMS = ["benefits", "concern", "story", "spec", "phototext"] as const;
+    const union: Record<string, Set<string>> = Object.fromEntries(FAMS.map((fm) => [fm, new Set<string>()]));
+    const perArch: Record<string, Record<string, Set<string>>> = {};
+    for (const arch of ARCHETYPE_IDS) {
+      setV5ArchetypeForTests(arch);
+      perArch[arch] = Object.fromEntries(FAMS.map((fm) => [fm, new Set<string>()]));
+      for (const [, file] of files) for (const sec of topSections(exportHtmlOf(file))) {
+        const sg = signatureOf(sec);
+        // 말풍선·체크 행 임팩트는 고민(concern) 계열의 변형으로 센다
+        const key = sg === "impact.bubbles" ? "concern.bubbles" : sg === "impact.checkrows" ? "concern.checkrows" : sg;
+        const [fm, v] = key.split(".");
+        if (fm && v && (FAMS as readonly string[]).includes(fm)) { union[fm]!.add(v); perArch[arch]![fm]!.add(v); }
+      }
+    }
+    for (const fm of FAMS) ok(union[fm]!.size >= 5, `${fm}: 8종이 쓴 서로 다른 변형 ${union[fm]!.size}개 (${[...union[fm]!].join(",")}) < 5`);
+
+    // ── ⑤ 선택 조건(합성 입력으로 계획기 직접): 말뭉치에서 안 뽑히던 변형이 요건이 맞으면 아키타입 선호대로 뽑힌다 ──
+    const a0 = exportArgsOf(readSession("scripts/fixtures/archetype-compare-beauty.json"));
+    const hero = { type: "hero", slot: "hero", headline: "H", subheadline: "S", imageIndex: 0 };
+    const qp = (i: number, body: string) => ({ type: "image_text", slot: "quick_points", heading: `포인트${i}`, body, imageIndex: 1, imagePosition: "left", layout: "compact" });
+    const gal = () => ({ type: "gallery", slot: "gallery", heading: "갤러리", imageIndexes: [1, 2] });
+    const fill = (i: number) => ({ type: "caution", slot: "caution", heading: `주의${i}`, body: "내용" });
+    const storyS = (bodyLen: number) => ({ type: "impact", slot: "impact", kind: "story", text: "스토리", quote: "맑은 수분을 담는 하루의 시작", body: "본문 ".repeat(bodyLen) });
+    const specS = { type: "impact", slot: "impact", kind: "specstrip", text: "스펙", stats: [{ label: "용량", value: "30mL" }, { label: "타입", value: "미스트" }, { label: "향", value: "무향" }] };
+    const cta = { type: "cta_price", slot: "cta_price", price: 1000, targetCustomer: "x", badges: [] };
+    const plan = (arch: ArchetypeId, secs: unknown[]): string[] => {
+      const sections = secs as ImpactSection[];
+      return planV4(sections as never, sections.map((_, i) => i), { mood: null, seedKey: "unit|x", imageUrls: a0.imageUrls, origins: a0.imageOrigins, facts: a0.claimFacts!, category: a0.category, height: () => 400, v5: ARCHETYPES[arch] }).placed.map((x) => `${x.family}.${x.variant}`);
+    };
+    const shortQp = [qp(1, "짧은 설명 1"), qp(2, "짧은 설명 2"), qp(3, "짧은 설명 3"), qp(4, "짧은 설명 4")];
+    const longQp = [1, 2, 3, 4].map((i) => qp(i, "가".repeat(70)));
+    // 처음 1/3(히어로 제외)에 강한 갤러리 둘이 이미 있어 곡선 보정(boostEarlyHighV5)이 장점 변형을 바꾸지 않는 페이지
+    const base = [hero, gal(), gal(), fill(1), fill(2), fill(3), fill(4)];
+    ok(plan("catalog", [...base, ...shortQp, fill(5), storyS(30), specS, cta]).includes("benefits.rows2"), "catalog + 짧은 퀵포인트 4개 → benefits.rows2가 선택되지 않음");
+    ok(plan("techsheet", [...base, ...longQp, fill(5), storyS(30), specS, cta]).includes("benefits.iconlist"), "techsheet + 설명 70자 퀵포인트 4개 → benefits.iconlist가 선택되지 않음(rows2 요건 밖)");
+    ok(plan("impact", [...base, ...shortQp, fill(5), storyS(30), specS, cta]).includes("spec.big3"), "impact + 짧은 값 3행 → spec.big3가 선택되지 않음");
+    ok(plan("catalog", [...base, ...shortQp, gal(), storyS(30), specS, cta]).includes("story.chapter"), "catalog → story.chapter가 선택되지 않음");
+    ok(plan("narrative", [...base, ...shortQp, gal(), storyS(30), specS, cta]).some((x) => x === "story.letter" || x === "story.chapter"), "narrative → story.letter/chapter가 선택되지 않음");
+    ok(plan("softlife", [...base, ...shortQp, gal(), storyS(30), specS, cta]).includes("story.letter") || plan("softlife", [...base, ...shortQp, gal(), storyS(30), specS, cta]).includes("story.quote"), "softlife → story.letter/quote가 선택되지 않음");
+    setV5ArchetypeForTests("impact");
+
     // 서로 다른 구간 3개 이상: 밝음(<0.12) / 중간·진한 두 구간
     const avgOf = (a: ArchetypeId) => rows[a]!.reduce((s, m) => s + m.darkRatio, 0) / rows[a]!.length;
     ok(avgOf("impact") - avgOf("editorial") >= 0.15 && avgOf("pop") - avgOf("editorial") >= 0.2, "진한 면 구간이 밝은 쪽과 충분히 갈리지 않음");

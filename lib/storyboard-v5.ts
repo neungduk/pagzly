@@ -27,7 +27,7 @@ const V4_STRENGTH: Record<string, number> = {
   "touch.band": 3, "breather.motif": 1, "statement.band": 4, "statement.quote": 4, "statement.rule": 4,
   "steps.vtimeline": 2, "steps.bignum": 3, "steps.chipflow": 2,
   // V5 새 변형
-  "benefits.stackbig": 3, "benefits.rows2": 3, "benefits.iconlist": 2, "concern.memo": 2, "concern.deck": 3, "story.chapter": 3, "story.letter": 2,
+  "benefits.stackbig": 4, "benefits.rows2": 3, "benefits.iconlist": 2, "concern.memo": 2, "concern.deck": 3, "story.chapter": 3, "story.letter": 2,
   "spec.panel": 2, "spec.tags": 2, "spec.big3": 4, "phototext.stack": 4, "phototext.polaroid": 4, "phototext.dframe": 4,
   "faq.numlist": 1, "faq.twocol": 2, "faq.qband": 2, "faq.chat": 3, "faq.tabs": 2, "proof.lead": 3, "proof.wall": 3, "proof.badges": 3, "proof.seal": 3,
   "touch.ticket": 3, "touch.ledger": 2,
@@ -128,7 +128,9 @@ export function planStoryboard(sections: DetailSection[]): { marks: Marks; repor
   // 2) 처음 1/3(히어로 제외)에 높음 2개 이상
   const third = Math.max(3, Math.floor(n / 3));
   const hiIn = (a: number, b: number) => eff.slice(a, b).filter((v) => v >= 4).length;
-  for (let i = 1; i < third && hiIn(1, third) < 2; i += 1) if (canAdjust[i] && eff[i]! < 4 && cls(eff[i - 1]!) !== "hi" && cls(eff[i + 1] ?? 3) !== "hi") set(i, 4);
+  // 466차: 이웃이 높음이어도 높음 3연속만 아니면 올린다(한 칸 떨어진 곳이 없는 페이지에서 앞 1/3 높음 2개를 채우기 위해)
+  const hiAt = (k: number): boolean => k >= 0 && k < n && cls(eff[k]!) === "hi";
+  for (let i = 1; i < third && hiIn(1, third) < 2; i += 1) if (canAdjust[i] && eff[i]! < 4 && !(hiAt(i - 1) && hiAt(i + 1)) && !(hiAt(i - 1) && hiAt(i - 2)) && !(hiAt(i + 1) && hiAt(i + 2))) set(i, 4);
   // 3) 마무리 직전(구매 카드 앞 3개)에 높음 1개 이상
   const ctaAt = sections.findIndex((s) => s.type === "cta_price");
   const endAt = ctaAt >= 0 ? ctaAt : n;

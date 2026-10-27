@@ -92,3 +92,30 @@
 | pop | colorCollide | 0.333 | 0.468 | 0.30~0.55 | ○ |
 기준선(UP1) 평균 0.072. 사진 배너 바탕은 모든 조건 0.016~0.019로 별도. 히어로는 아직 18/21이 진한 면(Phase 3).
 **부작용 공개**: 진한 전략 페이지의 진한 덩어리(연속 섹션) 평균 5.2~5.6개, 최대 8 — 428차 "명암 반전 ≤6" 예산(DOM 지표)을 넘길 수 있다. 이 예산은 브라우저 지표라 여기서 검증하지 못했고, 지시서가 진한 면 비율 25~55%를 명시했으므로 그 목표를 우선했다. 눈 검수 항목에 적는다.
+
+## 8. Phase 2 결과 — 변형 확정 선호
+원인(§1): `planV4`의 정렬이 "강도 요구 → 덜 쓴 것 → 순서"라 아키타입 선호가 뒤로 밀렸다. 바꾼 것:
+1. **정렬 기준**: 선호 목록(1순위·2순위)에 있는 변형이 먼저, 그 안에서는 앞 섹션이 낮은 강도(≤2)일 때만 강도 ≥3 우선 → 순위. 요건(`variantFits`)·상한(`MAX_SAME_VARIANT`)·이웃 같은 서명 금지는 그대로 뒤에서 건다.
+2. **처음 1/3 높음 요건은 계획 마지막에서 최소 개입**(`boostEarlyHighV5`, 최종 순서·`planStoryboard`와 같은 기준): 부족할 때만 그 구간 블록 하나를 강한 변형으로 — 1차 선호 목록 안, 2차 목록 밖(장점·스토리 제외), 3차 장점·스토리 포함.
+3. 접점(touch)·강조 띠(statement) 변형도 아키타입 선호로(접점 1순위 약 60%/2순위 40%, 띠 형태 선호 목록).
+4. 장점 `stackbig`은 번호가 주인공이라 번호를 한 단계 키우고(`numberMark(...,big)`, 로마자 52px/굵은 숫자 56px) 강도 4로 올렸다(큰 번호가 실제로 눈을 끈다).
+5. 접점·띠 외 `ArchetypeTokens.prefer`를 8종 모두 새로 확정(계열별 1·2순위; 2순위는 낮은 강도 뒤에서 쓰도록 강도 ≥3).
+
+말뭉치 21 × 8종에서 계열별로 실제 쓰인 서로 다른 변형(합집합): benefits 7 · concern 6(말풍선·체크 행 포함) · story 6 · spec 6 · phototext 7 · faq 5 (목표 ≥5 ○). 465차에는 story가 8종 모두 `pullband` 100%, faq가 8종 모두 `chat`이었다.
+아키타입별 1·2위 선택(말뭉치 횟수):
+| 아키타입 | benefits | concern | story | spec | phototext | faq | touch | statement |
+|---|---|---|---|---|---|---|---|---|
+| UP1 | numcards10/zigzag6 | tiles2 6/stack5 | pullband7/linetime4 | line14/cards12 | overlap10/caption8 | - | band20 | rule5/quote3 |
+| editorial | stackbig20 | memo19 | editorial18 | line34 | dframe26/offset7 | chat15/numlist6 | ledger13/band7 | rule11/quote7 |
+| catalog | numcards17/stackbig3 | tiles2 19 | chapter17/pullband1 | grid24/line9 | stack26/caption7 | chat15/twocol6 | ticket13/band7 | band11/rule9 |
+| softlife | zigzag10/iconlist7 | bubbles19 | letter15/quote3 | cards21/line9 | arch26/polaroid7 | chat21 | ticket13/band7 | band12/quote8 |
+| impact | stackbig13/bento7 | deck19 | pullband18 | grid15/line14 | offset26/stack7 | tabs21 | band13/ticket7 | band11/rule9 |
+| techsheet | iconlist7/stackbig6 | checkrows17/deck2 | chapter13/linetime5 | panel26/line8 | caption26/dframe7 | chat15/twocol6 | ledger13/ticket7 | rule11/band9 |
+| narrative | zigzag16/stackbig3 | stack19 | letter15/chapter3 | grid15/line14 | overlap26/stack7 | chat15/numlist6 | ledger13/band7 | rule9/quote8 |
+| luxe | numcards10/iconstrip7 | tiles2 19 | quote17/pullband1 | line34 | arch26/dframe7 | chat15/qband6 | ledger13/band7 | rule11/quote6 |
+| pop | numcards17/stackbig3 | bubbles19 | quote17/pullband1 | grid15/line14 | polaroid26/offset7 | chat21 | ticket13/band7 | band13/quote7 |
+(숫자 = 말뭉치 21 합산 등장 횟수. faq `chat`이 남은 것은 FAQ가 페이지 끝의 낮은 강도 구간 뒤에 놓여 "낮은 강도 3연속 금지" 규칙이 강도 3 이상을 먼저 고르기 때문.)
+
+**465차에 한 번도 안 뽑힌 5개**: `benefits.iconlist`·`story.chapter`·`story.letter`는 말뭉치에서 선택됨. `benefits.rows2`·`spec.big3`는 말뭉치 입력이 요건(퀵포인트 4~6개·짧은 값 3행 이하)을 못 채워 말뭉치에서는 여전히 안 뽑히고, **합성 입력으로 계획기를 직접 호출하는 회귀**에서 선호 아키타입(catalog→rows2, impact→big3)이 요건 충족 시 실제로 뽑힘을 확인한다. 요건은 완화하지 않았다. (참고: 표시 예산이 퀵포인트를 3개로 줄여 rows2는 사실상 하이라이트 박스 4장 또는 예산 밖 입력에서만 나온다.)
+
+스토리보드 영향(말뭉치 21 합계, UP1 → V5 8종): 낮음 3연속 86 → 27~64(465차 editorial 34), 처음 1/3 높음 부족 3 → 3(동률, `boostEarlyHighV5` 덕분 — 보정 없이는 +1), 마무리 직전 높음 없음 21 → 10. impact의 낮음 3연속이 64로 높은 것은 페이지 끝 정보 꼬리(note·breather·spec.line·faq)가 원인이며 UP1보다는 낮다.

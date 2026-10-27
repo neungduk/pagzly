@@ -30,7 +30,7 @@ import type { ProductImageOrigin } from "@/lib/image-origins";
 import { darkPaletteOf, faceCycleOf, invertFixHtml, isDarkStrategy } from "@/lib/face-strategy-v5";
 import { designUp1On, designV4On, designV5On } from "@/lib/design-v4";
 import type { ArchetypeTokens } from "@/lib/page-archetype-v5";
-import { intrinsicStrength, variantStrength } from "@/lib/storyboard-v5";
+import { intrinsicStrength, planStoryboard, variantStrength } from "@/lib/storyboard-v5";
 import { contrastRatioToken, hexToRgba, mixHex } from "@/lib/design-tokens";
 import { depthShadow, hairline, v4Palette, type FaceRole, type V4Palette } from "@/lib/palette-v4";
 import { dividerFor, dividerHtml, type DividerKind } from "@/lib/dividers";
@@ -789,7 +789,12 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
     // 앞 섹션이 낮은 강도(≤2)면 낮은 것이 3연속 되지 않게 강도 3 이상을 먼저
     const prevLow = Boolean(ctx.v5) && outS.length > 0 && intrinsicStrength(outS[outS.length - 1]!) <= 2;
     const need = ctx.v5 ? (i / sections.length < 0.34 ? 4 : prevLow ? 3 : 0) : 0;
-    const order = [...order0].sort((a, b) => (need ? Number(variantStrength(cc.family, a) < need) - Number(variantStrength(cc.family, b) < need) : 0) || (counts.get(`${cc.family}.${a}`) ?? 0) - (counts.get(`${cc.family}.${b}`) ?? 0) || order0.indexOf(a) - order0.indexOf(b));
+    // 466차 V5 — 아키타입 확정 선호: 선호 목록에 있는 변형이 먼저(1순위·2순위), 그 안에서는 강도 요구 → 순위. 선호 밖은 기존 정렬. 요건·상한·이웃 규칙은 아래 find가 그대로 건다
+    const prefList = (ctx.v5?.prefer as Partial<Record<string, string[]>> | undefined)?.[cc.family];
+    const prefRank = (v: string): number => { const r = prefList ? prefList.indexOf(v) : -1; return r < 0 ? 99 : r; };
+    const order = ctx.v5 && prefList?.length
+      ? [...order0].sort((a, b) => Number(prefRank(a) === 99) - Number(prefRank(b) === 99) || (prevLow ? Number(variantStrength(cc.family, a) < 3) - Number(variantStrength(cc.family, b) < 3) : 0) || prefRank(a) - prefRank(b) || (counts.get(`${cc.family}.${a}`) ?? 0) - (counts.get(`${cc.family}.${b}`) ?? 0) || order0.indexOf(a) - order0.indexOf(b))
+      : [...order0].sort((a, b) => (need ? Number(variantStrength(cc.family, a) < need) - Number(variantStrength(cc.family, b) < need) : 0) || (counts.get(`${cc.family}.${a}`) ?? 0) - (counts.get(`${cc.family}.${b}`) ?? 0) || order0.indexOf(a) - order0.indexOf(b));
     const variant = order.find((v) => variantFits(cc.family, v, cc) && `${cc.family}.${v}` !== prevKey && (counts.get(`${cc.family}.${v}`) ?? 0) < MAX_SAME_VARIANT && (pairWith ? v === "collage" : v !== "collage"));
     if (!variant) {
       for (let k = 0; k < c.len; k += 1) { outS.push(sections[i + k]!); outI.push(sourceIndexes[i + k]!); }
@@ -844,7 +849,8 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
   // 465차 V5 — 마무리 띠: 구매 카드 바로 앞에 큰 문장 한 줄(곡선 규칙 "마무리 직전 높음 1회"). 가운데 띠와 다른 문장, 시드 약 60%
   const closing = ctx.v5 ? insertClosingStatement(rhythm0b.sections, rhythm0b.sourceIndexes, sections, keywords, ctx, seed) : null;
   const rhythm = closing ? { ...rhythm0b, sections: closing.sections, sourceIndexes: closing.sourceIndexes, inserted: [...rhythm0b.inserted, closing.note] } : rhythm0b;
-  const withMotifs = assignMotifs(assignFaces(rhythm.sections, seed), ctx.mood, seed, ctx.v5 ?? null);
+  const withMotifs0 = assignMotifs(assignFaces(rhythm.sections, seed), ctx.mood, seed, ctx.v5 ?? null);
+  const withMotifs = ctx.v5 ? boostEarlyHighV5(withMotifs0, ctx, seed) : withMotifs0;
   const finalPlaced: V4Placed[] = [];
   withMotifs.forEach((s, at) => { if (s.type === "impact" && s.kind === "v4" && s.v4) finalPlaced.push({ family: s.v4.family, variant: s.v4.variant, at, from: "" }); });
   return { sections: withMotifs, sourceIndexes: rhythm.sourceIndexes, placed: finalPlaced, moved: hooked.moved, inserted: rhythm.inserted };
@@ -900,7 +906,7 @@ export function insertStatementBand(secs: DetailSection[], idx: number[], orig: 
   if (!cands.length) return null;
   const text = cands[(seed >>> 11) % cands.length]!;
   const at = STATEMENT_MIN_AT + (((seed >>> 5) % 21) / 100); // 0.45 ~ 0.65
-  const form0 = STATEMENT_FORMS[(seed >>> 17) % STATEMENT_FORMS.length]!;
+  const form0 = statementFormV5(ctx, seed, 0) ?? STATEMENT_FORMS[(seed >>> 17) % STATEMENT_FORMS.length]!;
   const hs = secs.map((s) => ctx.height(s));
   const total = hs.reduce((a, b) => a + b, 0);
   const blocked = (s: DetailSection | undefined): boolean => !s || s.type === "hero" || s.type === "cta_price" || (s.type === "impact" && s.kind === "v4" && (s.v4?.family === "touch" || s.v4?.family === "breather" || s.v4?.family === "statement"));
@@ -924,11 +930,67 @@ export function insertStatementBand(secs: DetailSection[], idx: number[], orig: 
 }
 
 
+
+/** 466차 V5 — 강조 띠 형태: 아키타입 선호 목록(앞이 우선)에서 시드로(가운데 띠 shift 0 → 1순위 쪽, 마무리 띠 shift 1 → 2순위 쪽). V5가 아니면 null */
+function statementFormV5(ctx: V4Ctx, seed: number, shift: number): (typeof STATEMENT_FORMS)[number] | null {
+  const list = (ctx.v5?.prefer.statement ?? []).filter((v): v is (typeof STATEMENT_FORMS)[number] => (STATEMENT_FORMS as readonly string[]).includes(v));
+  if (!ctx.v5 || list.length === 0) return null;
+  return list[((seed >>> 17) + shift) % list.length]!;
+}
+/**
+ * 466차 V5 — 곡선 규칙 보정(최종 순서 기준). 아키타입 선호가 조용한 변형뿐이라 처음 1/3(히어로 제외)에 높음(강도 ≥4)이 2개 미만이면(planStoryboard 점검과 같은 기준),
+ * 그 구간 v4 블록 하나를 요건이 맞는 강한 변형으로 바꾼다. 1차: 아키타입 선호 목록 안 → 2차: 목록 밖(장점·스토리 제외, 구간 뒤쪽부터) → 3차: 장점·스토리 포함.
+ * 선호 1순위 변형을 지켜야 하는 만큼 바꾸는 블록 수를 최소로(필요할 때만, 한 번에 하나).
+ */
+function boostEarlyHighV5(sections: DetailSection[], ctx: V4Ctx, seed: number): DetailSection[] {
+  const prefAll = (ctx.v5!.prefer as Partial<Record<string, string[]>>);
+  let out = sections;
+  for (let guard = 0; guard < 3 && planStoryboard(out).report.earlyHighShort; guard += 1) {
+    const third = Math.max(3, Math.floor(out.length / 3));
+    let changed = false;
+    for (const round of [1, 2, 3] as const) {
+      const ks = [...Array(Math.max(0, third - 1)).keys()].map((x) => x + 1);
+      if (round >= 2) ks.reverse();
+      for (const k of ks) {
+        const cur = out[k]!;
+        if (cur.type !== "impact" || cur.kind !== "v4" || !cur.v4 || cur.v4.variant === "collage") continue;
+        const fam = cur.v4.family;
+        if (fam === "breather" || fam === "statement" || fam === "touch" || variantStrength(fam, cur.v4.variant) >= 4) continue;
+        if (round === 2 && (fam === "benefits" || fam === "story")) continue;
+        const prevK = structureKey(out[k - 1]!);
+        const nextK = k + 1 < out.length ? structureKey(out[k + 1]!) : "";
+        const used = (v: string): number => out.filter((x) => x.type === "impact" && x.kind === "v4" && x.v4 && `${x.v4.family}.${x.v4.variant}` === `${fam}.${v}`).length;
+        const pl = prefAll[fam] ?? [];
+        const d = { items: (cur.v4.items ?? []) as Item[], ...(cur.quote ? { quote: cur.quote } : {}), ...(cur.body ? { body: cur.body } : {}) };
+        const alts = variantOrder(fam, ctx.mood, seed + k * 7, pl)
+          .filter((v) => v !== "collage" && (round >= 2 || pl.includes(v)) && variantStrength(fam, v) >= 4 && variantFits(fam, v, d) && `${fam}.${v}` !== prevK && `${fam}.${v}` !== nextK && used(v) < MAX_SAME_VARIANT)
+          .sort((x, y) => (pl.indexOf(x) < 0 ? 99 : pl.indexOf(x)) - (pl.indexOf(y) < 0 ? 99 : pl.indexOf(y)));
+        const v = alts[0];
+        if (!v) continue;
+        const { ghost: _g, ...restB } = cur.v4;
+        out = out.map((x, i) => (i === k ? ({ ...cur, v4: { ...restB, variant: v, ...(ghostAllowed(fam, v) && cur.v4!.ghost ? { ghost: cur.v4!.ghost } : {}) } } as DetailSection) : x));
+        changed = true;
+        break;
+      }
+      if (changed) break;
+    }
+    if (!changed) break;
+  }
+  return out;
+}
+
 /** 466차 V5 — 진한 면 전략(blockAlt·colorCollide)이면 띠(statement)를 진한 면으로. 이웃이 이미 진한 면(invert·boldBlock·배너)이면 옅은 면 */
 function bandFace(ctx: V4Ctx, a: DetailSection | undefined, b: DetailSection | undefined): NonNullable<V4Block["face"]> {
   if (!ctx.v5 || !isDarkStrategy(ctx.v5.face)) return "emphasis";
   const dark = (x: DetailSection | undefined): boolean => !!x && ((x.type === "impact" && x.kind === "v4" && x.v4?.face === "invert") || ((x.type === "highlight_box" || x.type === "checklist") && !!x.boldBlock) || x.type === "illustration_banner");
   return dark(a) || dark(b) ? "emphasis" : "invert";
+}
+
+/** 466차 V5 — 접점 띠 변형: 아키타입 1순위 약 60%, 2순위 약 40%(시드, 결정적). 선호가 없으면 3종 시드 순환 */
+function touchVariantV5(prefer: readonly string[] | undefined, seed: number): string {
+  const list = (prefer ?? []).filter((v) => v === "band" || v === "ticket" || v === "ledger");
+  if (list.length === 0) return (["band", "ticket", "ledger"] as const)[seed % 3]!;
+  return list[(seed % 5) < 3 ? 0 : Math.min(1, list.length - 1)]!;
 }
 /**
  * 465차 V5 — 마무리 띠. 구매 카드(cta_price) 바로 앞 경계에 입력 문장 한 줄을 원문 그대로 크게(형태는 시드로). 가운데 띠와 같은 규칙(8~48자·수치 검사·다른 임팩트에 같은 글 노드가 없음)이고
@@ -944,7 +1006,7 @@ export function insertClosingStatement(secs: DetailSection[], idx: number[], ori
   const cands = statementCandidates(orig).filter((t) => len(t) >= 8 && len(t) <= 48 && !/[\r\n]/.test(t) && !checkText(t, ctx.facts).bad && !shown.has(t));
   if (!cands.length) return null;
   const text = cands[(seed >>> 23) % cands.length]!;
-  const variant = STATEMENT_FORMS[((seed >>> 17) + 1) % STATEMENT_FORMS.length]!;
+  const variant = statementFormV5(ctx, seed, 1) ?? STATEMENT_FORMS[((seed >>> 17) + 1) % STATEMENT_FORMS.length]!;
   const sec = { type: "impact", slot: "impact", kind: "v4", text, ...(ctx.mood ? { mood: ctx.mood } : {}), v4: { family: "statement", variant, no: 0, face: bandFace(ctx, prev, secs[at]), keywords: keywords.slice(0, 12) } } as ImpactSection;
   const S = [...secs];
   const I = [...idx];
@@ -996,7 +1058,7 @@ function applyRhythm(secs: DetailSection[], idx: number[], ctx: V4Ctx, seed: num
   let run = 0;
   let breathers = 0;
   const mk = (family: "breather" | "touch", extra: Partial<ImpactSection> = {}, b: Partial<V4Block> = {}): DetailSection =>
-    ({ type: "impact", slot: "impact", kind: "v4", text: "", ...(ctx.mood ? { mood: ctx.mood } : {}), ...extra, v4: { family, variant: family === "touch" ? (ctx.v5 ? (["band", "ticket", "ledger"] as const)[seed % 3]! : "band") : "motif", no: 0, face: family === "touch" ? "grad0" : "bgA", ...b } }) as DetailSection;
+    ({ type: "impact", slot: "impact", kind: "v4", text: "", ...(ctx.mood ? { mood: ctx.mood } : {}), ...extra, v4: { family, variant: family === "touch" ? (ctx.v5 ? touchVariantV5(ctx.v5.prefer.touch, seed) : "band") : "motif", no: 0, face: family === "touch" ? "grad0" : "bgA", ...b } }) as DetailSection;
   secs.forEach((s, i) => {
     const info = isInfoSection(s);
     // 같은 구조(임팩트 종류)가 바로 이어지면(예: 참고 카드 둘) 사이에 모티프 면 — 연속 동일 구조 0
