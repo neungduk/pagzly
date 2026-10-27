@@ -5,6 +5,8 @@
  *   목록 파일로:                 npx tsx scripts/migrate-storage-to-r2.ts --from-urls urls.txt
  *   실제 복사:                   npx tsx scripts/migrate-storage-to-r2.ts --apply --confirm "R2로 복사" --state state.jsonl --failures failed.txt
  *   검증(읽기 전용):             npx tsx scripts/migrate-storage-to-r2.ts --verify --sample 30
+ *   2차 복사 전 보고(HEAD만):    npx tsx scripts/migrate-storage-to-r2.ts --only-missing   (R2에 없는 개수·크기만 출력, 쓰기 없음)
+ * --apply 는 같은 --state 로 먼저 실행한 드라이런 기록(<state>.plan: 개수·용량만)이 있어야 한다(드라이런 건너뛰기 방지).
  *
  * 환경변수(값은 출력·저장하지 않는다): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY(목록 API용; --from-urls면 불필요), R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_BASE_URL
  * 옵션: --concurrency N(기본 4, 최대 16) --retries N(5) --timeout-ms N(30000) --limit N --prefix <경로접두> --sample N(검증 표본, 20)
@@ -17,7 +19,7 @@ import { createR2Provider, r2Endpoint } from "../lib/storage/r2-provider";
 import { STORAGE_BUCKET } from "../lib/storage/policy";
 import { legacyPathOf } from "../lib/storage/legacy-url";
 import {
-  CONFIRM_PHRASE, FatalError, HttpError, dryRunReport, parseArgs, parseStateLines, runCopy, stateLine, verifyAll, writeAllowed,
+  CONFIRM_PHRASE, FatalError, HttpError, countMissing, dryRunReport, parseArgs, parseStateLines, planFileOf, planGate, planRecOf, runCopy, stateLine, verifyAll, writeAllowed,
   type Args, type Deps, type Item, type StateRec,
 } from "../lib/storage/migrate-core";
 
@@ -37,11 +39,11 @@ async function listAll(supaUrl: string, a: Args): Promise<Item[]> {
       });
       if (res.status === 402 || res.status === 403) throw new FatalError(`목록 API가 ${res.status}로 거절했습니다. 서비스 키·결제·한도를 확인하세요.`, res.status);
       if (!res.ok) throw new HttpError(res.status, `목록 API HTTP ${res.status}`);
-      const rows = (await res.json()) as Array<{ name: string; id: string | null; metadata?: { size?: number } | null }>;
+      const rows = (await res.json()) as Array<{ name: string; id: string | null; metadata?: { size?: number; eTag?: string } | null }>;
       for (const r of rows) {
         const p = prefix ? `${prefix}/${r.name}` : r.name;
         if (r.id === null) await walk(p); // 폴더
-        else out.push({ path: p, size: r.metadata?.size });
+        else out.push({ path: p, size: r.metadata?.size, etag: r.metadata?.eTag });
       }
       if (rows.length < 1000) return;
     }
@@ -96,10 +98,21 @@ async function main() {
     process.exit(res.absent.length + res.sizeMismatch.length + res.hashMismatch.length + res.publicBad.length ? 1 : 0);
   }
 
+  if (a.onlyMissing) {
+    const m = await countMissing(items, { head, sleep }, { concurrency: a.concurrency, backoff: BACKOFF(a) });
+    console.log(`R2 점검 ${m.checked}개: 없음 ${m.missing}개(${mb(m.missingBytes)}) · 크기 다름 ${m.sizeDiffers}개 · 확인 실패 ${m.failed}개. 쓰기 없음.`);
+    process.exit(m.failed ? 1 : 0);
+  }
+
   const rep = dryRunReport(items, state);
   console.log(`대상 ${rep.total}개 · 총 ${mb(rep.totalBytes)}(목록 API가 크기를 준 것만 합산) · 상태 파일 기준 이미 완료 ${rep.alreadyDone} · 복사 예정 ${rep.toCopy}`);
   console.log(`예상 R2 쓰기(Class A) 요청 ${rep.estClassA}건 = 월 무료 100만 건의 ${rep.freeShare}`);
   console.log(`예상 Supabase 다운로드 egress: 약 ${mb(rep.totalBytes)} (한 번)`);
+  if (!a.apply && a.state) { fs.writeFileSync(planFileOf(a.state), JSON.stringify(planRecOf(rep))); console.log(`드라이런 기록 저장: ${planFileOf(a.state)} (개수·용량만)`); }
+  if (writeAllowed(a)) {
+    const blocked = planGate(a, a.state && fs.existsSync(planFileOf(a.state)) ? fs.readFileSync(planFileOf(a.state), "utf8") : null);
+    if (blocked) { console.error(blocked + " 쓰기 없이 종료합니다."); process.exit(2); }
+  }
   if (!writeAllowed(a)) { console.log(`드라이런입니다 — 아무것도 쓰지 않았습니다. 복사하려면 --apply --confirm "${CONFIRM_PHRASE}" 를 붙이세요.`); return; }
 
   const deps: Deps = { download, head, put: (p, b, ct, cc) => provider.putObject({ path: p, body: b, contentType: ct, cacheControl: cc, upsert: true }), sleep };
@@ -111,7 +124,8 @@ async function main() {
   });
   if (stateFd !== null) fs.closeSync(stateFd);
   if (a.failures) fs.writeFileSync(a.failures, failures.map((f) => f.path).join("\n") + (failures.length ? "\n" : ""));
-  console.log(`복사 ${summary.copied}(${mb(summary.bytesCopied)}) · 건너뜀 ${summary.skipped} · 원본 없음 ${summary.missing} · 실패 ${summary.failed}`);
+  console.log(`요약: 복사 ${summary.copied}개(${mb(summary.bytesCopied)}) · 건너뜀 ${summary.skipped}개(${mb(summary.skippedBytes)}) · 원본 없음(404) ${summary.missing}개 · 실패 ${summary.failed}개 · 대상 크기 합계 ${mb(summary.totalBytes)}`);
+  for (const [why, n] of Object.entries(summary.reasons)) console.log(`  실패 원인 — ${why}: ${n}개`);
   if (fatal) { console.error(`중단: ${fatal.message}`); process.exit(3); }
   if (summary.failed) { console.error(`실패 ${summary.failed}건${a.failures ? ` — 목록: ${a.failures}` : ""}. 같은 명령을 다시 실행하면 이어서 처리합니다.`); process.exit(1); }
 }

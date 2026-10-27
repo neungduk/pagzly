@@ -1,7 +1,7 @@
 /** 회귀 — 460차 이전 스크립트 판정 로직(가짜 deps, 네트워크 없음): 인자·드라이런·건너뜀·재시도·402/403 중단·이어하기·검증·정적 검사. */
 import fs from "node:fs";
 import {
-  CONFIRM_PHRASE, FatalError, HttpError, copyOne, dryRunReport, md5Hex, parseArgs, parseStateLines, runCopy, sameObject, stateLine, verifyAll, withBackoff, writeAllowed,
+  CONFIRM_PHRASE, FatalError, HttpError, classifyError, copyOne, countMissing, dryRunReport, md5Hex, parseArgs, parseStateLines, planGate, planRecOf, runCopy, sameObject, stateLine, verifyAll, withBackoff, writeAllowed,
   type Deps, type Head, type StateRec,
 } from "../../lib/storage/migrate-core";
 
@@ -90,6 +90,38 @@ export async function run(): Promise<string[]> {
     ok(good.absent.join() === "c" && good.sizeMismatch.length === 0 && good.hashMismatch.length === 0 && good.publicBad.length === 0, `검증 정상 ${JSON.stringify(good)}`);
     const bad = await verifyAll([{ path: "a", size: 99 }, { path: "b", size: 6 }], { ...base, fetchPublic: async (p) => ({ status: p === "a" ? 404 : 200, contentType: p === "b" ? "text/html" : "image/png" }) }, { sample: 5, concurrency: 1, backoff: B, srcDownload: async (p) => ({ bytes: bytes(p === "b" ? "other" : `data:${p}`), contentType: "image/png" }) });
     ok(bad.sizeMismatch.join() === "a" && bad.hashMismatch.join() === "b" && bad.publicBad.sort().join() === "a,b", `검증 이상 ${JSON.stringify(bad)}`); }
+
+  // 461차: --only-missing 은 쓰기 없음·HEAD만, --apply 는 드라이런 기록 없이는 거부, 원인 분류
+  ok(!writeAllowed(parseArgs(["--apply", "--confirm", CONFIRM_PHRASE, "--only-missing"])), "--only-missing 에서 쓰기 허용");
+  { const store = new Map<string, Uint8Array>([["a", bytes("aaa")], ["b", bytes("bb")]]);
+    const m = fake({}, store);
+    const r = await countMissing([{ path: "a", size: 3 }, { path: "b", size: 9 }, { path: "c", size: 5 }], { head: m.deps.head, sleep: m.deps.sleep }, { concurrency: 2, backoff: B });
+    ok(r.checked === 3 && r.missing === 1 && r.sizeDiffers === 1 && r.missingBytes === 14 && r.failed === 0, `only-missing 집계 ${JSON.stringify(r)}`);
+    ok(m.puts.length === 0, "only-missing 이 씀"); }
+  { const a = parseArgs(["--apply", "--confirm", CONFIRM_PHRASE]);
+    ok(planGate(a, null)?.includes("--state") === true, "--state 없이 --apply 통과");
+    const a2 = parseArgs(["--apply", "--confirm", CONFIRM_PHRASE, "--state", "s.jsonl"]);
+    ok(planGate(a2, null)?.includes("s.jsonl.plan") === true, "드라이런 기록 없이 --apply 통과");
+    ok(planGate(a2, "{깨짐") !== null, "깨진 기록으로 --apply 통과");
+    ok(planGate(a2, JSON.stringify(planRecOf({ total: 3, totalBytes: 10, toCopy: 3 }, new Date(0)))) === null, "정상 기록인데 거부");
+    ok(!JSON.stringify(planRecOf({ total: 1, totalBytes: 1, toCopy: 1 })).includes("path"), "plan 기록에 경로가 들어감"); }
+  ok(classifyError(new HttpError(402)).kind === "supabase-limit" && classifyError(new HttpError(403)).kind === "supabase-limit", "402/403 분류");
+  ok(classifyError(new HttpError(404)).kind === "source-missing", "404 분류");
+  ok(classifyError(new HttpError(503)).kind === "retry" && classifyError(new Error("fetch failed")).kind === "retry", "5xx/연결 분류");
+  ok(classifyError(new Error("x")).kind === "other", "기타 분류");
+  { const m = fake({ download: async () => { throw new HttpError(503); } });
+    const r = await runCopy([{ path: "a" }], m.deps, { concurrency: 1, backoff: { retries: 0, baseMs: 1, capMs: 1 }, done: new Map(), record() {} });
+    ok(Object.keys(r.summary.reasons).join().startsWith("503"), `원인 집계 ${JSON.stringify(r.summary.reasons)}`);
+    const m2 = fake(); const sk = await runCopy([{ path: "a" }], m2.deps, { concurrency: 1, backoff: B, done: new Map([["a", { path: "a", size: 7, status: "copied" }]]), record() {} });
+    ok(sk.summary.skipped === 1 && sk.summary.skippedBytes === 7, "건너뜀 크기 합계"); }
+
+  // 461차: 원본 크기·eTag가 R2와 같으면 다운로드(Supabase egress) 없이 건너뜀 / eTag가 다르면 내려받아 판정
+  { const store = new Map([["x", bytes("abc")]]); let dl = 0;
+    const m = fake({ download: async () => { dl++; return { bytes: bytes("abc"), contentType: "image/png" }; } }, store);
+    const r = await copyOne({ path: "x", size: 3, etag: `"${md5Hex(bytes("abc"))}"` }, m.deps, { concurrency: 1, backoff: B, done: new Map(), record() {} });
+    ok(r.status === "skipped" && dl === 0, `eTag 일치인데 다운로드함 dl=${dl}`);
+    const r2 = await copyOne({ path: "x", size: 3, etag: "\"deadbeef\"" }, m.deps, { concurrency: 1, backoff: B, done: new Map(), record() {} });
+    ok(dl === 1 && r2.status === "skipped", "eTag 불일치 시 내려받아 판정하지 않음"); }
 
   // 정적: 스크립트가 비밀 값을 출력하지 않고, 쓰기는 writeAllowed 뒤에만
   const src = fs.readFileSync("scripts/migrate-storage-to-r2.ts", "utf8");
