@@ -32,7 +32,7 @@ import { designUp1On, designV4On, designV5On } from "@/lib/design-v4";
 import type { ArchetypeTokens } from "@/lib/page-archetype-v5";
 import { intrinsicStrength, planStoryboard, variantStrength } from "@/lib/storyboard-v5";
 import { contrastRatioToken, hexToRgba, mixHex } from "@/lib/design-tokens";
-import { depthShadow, hairline, v4Palette, type FaceRole, type V4Palette } from "@/lib/palette-v4";
+import { depthShadow, ensureContrast, hairline, v4Palette, type FaceRole, type V4Palette } from "@/lib/palette-v4";
 import { dividerFor, dividerHtml, type DividerKind } from "@/lib/dividers";
 import { motifHtml, motifSvg, planMotifs, type MotifColors, type MotifPlacement } from "@/lib/motifs";
 import { EYEBROW_LABEL, SANS_FF, TITLE_FF, esc, ghostHtml, highlightKeyword, keywordCandidates, numberStatHtml, polishCardTitles, titleBlock, titlePresetFor, typeCss } from "@/lib/type-treatments";
@@ -277,7 +277,7 @@ function benefitsHtml(s: ImpactSection, b: V4Block, p: V4Palette, alt: string): 
       .map(
         (it, i) =>
           `<div style="display:flex;align-items:center;gap:14px;padding:16px 0;${i ? `border-top:1px solid ${hexToRgba(p.ink, 0.1)}` : ""}">` +
-          `<span style="flex:none;display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:14px;background:${i % 2 ? p.tints[1] : p.deep}">${icons ? iconV4Svg(icons[i]!, i % 2 ? { color: p.deep, px: 26, tint: p.tints[0] } : { color: "#FFFFFF", px: 26 }) : i % 2 ? `<span style="${SANS_FF};font-size:15px;font-weight:800;color:${p.deep}">${NUM(i + 1)}</span>` : CHECK("#FFFFFF", 20)}</span>` +
+          `<span style="flex:none;display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:14px;background:${i % 2 ? p.tints[1] : p.deep}">${icons ? iconV4Svg(icons[i]!, i % 2 ? { color: p.deep, px: 26, tint: p.tints[0] } : { color: "#FFFFFF", px: 26 }) : i % 2 ? `<span style="${SANS_FF};font-size:15px;font-weight:800;color:${designV5On() ? ensureContrast(p.deep, p.tints[1], 4.6) : p.deep}">${NUM(i + 1)}</span>` : CHECK("#FFFFFF", 20)}</span>` +
           `<div style="flex:1 1 0%;min-width:0"><p style="margin:0;${typeCss("card", p.ink, "font-size:16px")}">${esc(it.title)}</p>` +
           (it.body ? `<p style="margin:4px 0 0;${typeCss("small", on.sub)}">${esc(it.body)}</p>` : "") +
           `</div></div>`,

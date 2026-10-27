@@ -13,11 +13,12 @@ import { impactPalette } from "../../lib/impact-templates";
 import type { ImpactSection, V4Block } from "../../lib/types/generate";
 import { corpus, exportArgsOf, exportHtmlOf, readSession } from "../design-corpus";
 import { signatureOf, topSections } from "../variety-metrics-463";
+import { expandDedupedStyles } from "../../lib/style-dedupe";
 import { contrastFindings } from "../contrast-audit-466";
 import { macroMetrics, type MacroMetrics } from "../variety-metrics-466";
 import { pickHeroV5 } from "../../lib/hero-spec";
 
-export const name = "V5 거시 차별화 466 — 면 전략(진한 면 비율·진한 면 대비 전수)·변형 확정 선호(계열별 ≥5·선택 조건)·히어로 선호·정렬/타이포";
+export const name = "V5 거시 차별화 466 — 면 전략(진한 면 비율·진한 면 대비 전수)·변형 확정 선호(계열별 ≥5·선택 조건)·히어로 선호·정렬/타이포·쌍 차이·실제 페이지 대비";
 
 const MOODS: Array<string | null> = [null, "minimal-luxe", "clinic", "natural", "playful", "street", "warm"];
 
@@ -54,9 +55,9 @@ export async function run(): Promise<string[]> {
     const bad = new Map<string, string>();
     for (const fam of fams) {
       const vars = [...((V4_VARIANTS as Record<string, string[]>)[fam] ?? []), ...((V4_UP1_VARIANTS as Record<string, string[]>)[fam] ?? []), ...((V4_V5_VARIANTS as Record<string, string[]>)[fam] ?? [])];
-      for (const v of vars) for (const face of ["invert", "bgA"] as const) for (const [ti, pal] of themes.entries()) for (const mood of MOODS.slice(0, 3 + (ti % 4))) {
+      for (const v of vars) for (const face of ["invert", "bgA"] as const) for (const pal of themes) for (const mood of MOODS) {
         const items = Array.from({ length: 4 }, (_, i) => ({ title: `항목 제목 ${i + 1}`, body: "설명 문장입니다 설명 문장입니다", ...(fam === "phototext" ? { img: { url: "/x.png", pos: "50% 50%" } } : {}) }));
-        const sec = { type: "impact", slot: "impact", kind: "v4", text: "제목입니다", quote: "인용문 문장입니다 인용문", body: "본문 문장입니다 본문 문장입니다 본문 문장", chip: "칩", ax: "impact", mood, v4: { family: fam, variant: v, no: 1, face, keywords: [], price: "29,000원", items }, stats: items.map((x) => ({ label: x.title, value: "10" })) } as unknown as ImpactSection;
+        const sec = { type: "impact", slot: "impact", kind: "v4", text: "제목입니다", quote: "인용문 문장입니다 인용문", body: "본문 문장입니다 본문 문장입니다 본문 문장 본문 문장입니다 본문 문장입니다 본문 문장입니다 본문 문장", chip: "칩", ax: "impact", mood, v4: { family: fam, variant: v, no: 1, face, keywords: [], price: "29,000원", items }, stats: items.map((x) => ({ label: x.title, value: "10" })) } as unknown as ImpactSection;
         let html = "";
         try { html = v4Html(sec, pal, "alt", V5_PARTS); } catch { continue; }
         const fi = contrastFindings(html);
@@ -151,6 +152,43 @@ export async function run(): Promise<string[]> {
     }
     const tw = ARCHETYPE_IDS.map((arch) => rows[arch]!.reduce((x, m) => x + m.titleWeight, 0) / rows[arch]!.length);
     ok(Math.max(...tw) - Math.min(...tw) >= 250, `제목 굵기 평균 폭 ${(Math.max(...tw) - Math.min(...tw)).toFixed(0)} < 250`);
+
+    // ── ⑧ 쌍 차이: 28쌍이 7개 축 중 3개 이상에서 기준 이상 갈린다(docs/v5-macro-466.md §6) ─────────────────────
+    const jac = (a: Set<string>, b: Set<string>): number => { let i = 0; for (const x of a) if (b.has(x)) i += 1; const u = a.size + b.size - i; return u ? 1 - i / u : 0; };
+    const avg = (arch: ArchetypeId, f: (m: MacroMetrics) => number): number => rows[arch]!.reduce((x, m) => x + f(m), 0) / rows[arch]!.length;
+    const FAMS6 = ["benefits", "concern", "story", "spec", "phototext", "faq"];
+    const heroDist = (arch: ArchetypeId): Record<string, number> => { const d: Record<string, number> = {}; rows[arch]!.forEach((m) => { d[m.heroVariant] = (d[m.heroVariant] ?? 0) + 1 / rows[arch]!.length; }); return d; };
+    const sets = (arch: ArchetypeId, fm: string): Set<string> => new Set(rows[arch]!.flatMap((m) => m.variants[fm] ?? []));
+    for (let i = 0; i < ARCHETYPE_IDS.length; i += 1) for (let j = i + 1; j < ARCHETYPE_IDS.length; j += 1) {
+      const x = ARCHETYPE_IDS[i]!; const y = ARCHETYPE_IDS[j]!;
+      const hx = heroDist(x); const hy = heroDist(y);
+      const heroL1 = [...new Set([...Object.keys(hx), ...Object.keys(hy)])].reduce((s2, k) => s2 + Math.abs((hx[k] ?? 0) - (hy[k] ?? 0)), 0);
+      const famJ = FAMS6.reduce((s2, fm) => s2 + jac(sets(x, fm), sets(y, fm)), 0) / FAMS6.length;
+      const axes = [
+        Math.abs(avg(x, (m) => m.darkRatio) - avg(y, (m) => m.darkRatio)) >= 0.06,
+        Math.abs(avg(x, (m) => m.centerRatio) - avg(y, (m) => m.centerRatio)) >= 0.1,
+        heroL1 >= 0.3,
+        famJ >= 0.5,
+        Math.abs(avg(x, (m) => m.avgRadius) - avg(y, (m) => m.avgRadius)) >= 3,
+        Math.abs(avg(x, (m) => m.shadowShare) - avg(y, (m) => m.shadowShare)) >= 0.1,
+        Math.abs(avg(x, (m) => m.titleWeight) - avg(y, (m) => m.titleWeight)) >= 30,
+      ];
+      const n = axes.filter(Boolean).length;
+      ok(n >= 3, `${x}-${y}: 갈리는 축 ${n}개 < 3 [진한면,중앙,히어로,변형집합,반경,그림자,굵기]=[${axes.map((a) => (a ? 1 : 0)).join("")}]`);
+    }
+
+    // ── ⑨ 실제 페이지(제목 위계·반복 style 묶음 해제 후) 글자 대비: v4·V5 변형·임팩트 구간에 위반 없음 ──────────────
+    // 예외: impact.bleed(사진 위 흰 글자 — 배경 사진을 측정할 수 없어 기준(UP1)에도 같은 항목이 잡힘)
+    for (const arch of ARCHETYPE_IDS) {
+      setV5ArchetypeForTests(arch);
+      for (const [id, file] of files) for (const sec of topSections(expandDedupedStyles(exportHtmlOf(file)))) {
+        const sg = signatureOf(sec);
+        if (!/^(benefits|concern|story|spec|phototext|faq|proof|touch|steps|statement|breather)\./.test(sg) && !/^impact\./.test(sg)) continue;
+        if (sg === "impact.bleed") continue;
+        const fi = contrastFindings(sec);
+        if (fi.length) { f.push(`대비 ${arch}/${id} ${sg}: ${JSON.stringify(fi[0])}`); break; }
+      }
+    }
 
     // 서로 다른 구간 3개 이상: 밝음(<0.12) / 중간·진한 두 구간
     const avgOf = (a: ArchetypeId) => rows[a]!.reduce((s, m) => s + m.darkRatio, 0) / rows[a]!.length;

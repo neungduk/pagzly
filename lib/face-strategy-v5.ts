@@ -44,7 +44,8 @@ export function darkPaletteOf(p: V4Palette): V4Palette {
   const tints: V4Palette["tints"] = [mixHex(bg, WHITE, 0.06), mixHex(bg, WHITE, 0.1), mixHex(bg, WHITE, 0.15), mixHex(bg, WHITE, 0.3), mixHex(bg, WHITE, 0.46)];
   const ink = ensureContrast(WHITE, bg, 7);
   const deep = ensureContrast(mixHex(p.accent, WHITE, 0.55), tints[2], 5.1);
-  const sub = ensureContrast("#E9E6E1", bg, 5.1);
+  // 보조 글자는 면보다 밝은 패널(tints[3]) 위에서도 4.5:1이 되도록(466차: 올리브 계열 팔레트에서 답 패널 위 4.29)
+  const sub = ensureContrast(ensureContrast("#E9E6E1", bg, 5.1), tints[3], 4.7);
   const faces = { bgA: bg, bgB: mixHex(bg, "#000000", 0.18), emphasis: panel, invert: bg, card: panel };
   const on = { text: ink, sub, strong: deep };
   return {
@@ -57,6 +58,10 @@ export function darkPaletteOf(p: V4Palette): V4Palette {
   };
 }
 
+const rgbaOf = (hex: string, a: number): string => {
+  const n = parseInt(hex.slice(1, 7), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+};
 const lumOf = (hex: string): number => {
   const n = parseInt(hex.slice(1, 7), 16);
   const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => v / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
@@ -68,6 +73,7 @@ const lumOf = (hex: string): number => {
  *  ① 옅은 단색 배경(휘도 > 0.55)은 어두운 패널 면으로 — 흰 카드 위 글자색(팔레트 ink)이 밝은 색이 되었기 때문
  *  ② 강조색(deep) 바탕 위 흰 글자는 면 색 글자로(deep이 어두운 면 위에서 밝은 색이므로)
  *  ③ 흰 선·채움 아이콘은 면 색으로(②와 같은 이유)
+ *  ④ 상수 잉크색 글자(`#1B1B18`·`rgba(27,27,24,a)`)는 밝은 글자색으로
  * 그라데이션·알파가 있는 배경은 건드리지 않는다. 대비는 scripts/contrast-audit-466.ts가 팔레트 전수에서 확인한다.
  */
 export function invertFixHtml(html: string, dark: V4Palette): string {
@@ -81,6 +87,8 @@ export function invertFixHtml(html: string, dark: V4Palette): string {
     return lower.includes(`background:${deep}`) ? `style="${st.replace(/color:#FFFFFF/gi, `color:${bg}`)}"` : m;
   });
   out = out.replace(/(stroke|fill)="#FFFFFF"/gi, `$1="${bg}"`);
+  // ④ 렌더러가 상수로 쓴 잉크색 글자(`#1B1B18`·`rgba(27,27,24,a)`)는 어두운 면 위 글자색으로(466차: story.pullband 본문 등)
+  out = out.replace(/(^|[;"\s])color:#1B1B18(?![0-9a-fA-F])/gi, `$1color:${dark.ink}`).replace(/(^|[;"\s])color:rgba\(27,\s*27,\s*24,\s*([\d.]+)\)/gi, (_m, pre: string, a: string) => `${pre}color:${rgbaOf(dark.ink, Number(a))}`);
   return out;
 }
 

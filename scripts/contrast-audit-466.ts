@@ -105,7 +105,10 @@ export function contrastFindings(html: string, rootBg: string = "#FFFFFF", rootI
     const colv = decl(style, "color");
     const color = colv ? parseColor(colv) ?? top.color : top.color;
     const fs = decl(style, "font-size");
-    const size = fs && /px/.test(fs) ? parseFloat(fs) : top.size;
+    // clamp()·vw·em 같은 가변 크기는 선언 안의 가장 큰 px(없으면 em ×16)를 쓴다 — 큰 숫자 장식이 16px로 오판돼 4.5:1을 요구받지 않게
+    const pxs = fs ? [...fs.matchAll(/(\d+(?:\.\d+)?)px/g)].map((x) => parseFloat(x[1]!)) : [];
+    const emv = fs && !pxs.length ? /(\d+(?:\.\d+)?)r?em/.exec(fs) : null;
+    const size = pxs.length ? Math.max(...pxs) : emv ? parseFloat(emv[1]!) * 16 : top.size;
     const fw = decl(style, "font-weight");
     const weight = fw ? parseInt(fw, 10) || (/bold/.test(fw) ? 700 : 400) : top.weight;
     if (VOID.has(t) || self) continue;

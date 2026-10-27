@@ -78,12 +78,12 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   catalog: {
     id: "catalog", radius: 0.6, pill: 6, border: { w: 2, style: "solid", alphaMul: 2.2 }, shadow: { kind: "none", offset: 0 }, paper: "#F3F2EE", face: "tintAlt",
     pad: [28, 40, 56], titleAlign: "left", centerBudget: 0, type: { weight: 700, tracking: -0.02, scale: 0.96 }, eyebrow: "number", frames: ["rect"], dividers: ["stripe", "slant"], number: "box", marker: "square", decor: "bracket", decorAlt: ["plus-field","dots-grid"], badge: "hex", density: "tight",
-    hero: ["D", "B"],
+    hero: ["B", "D"],
     prefer: { benefits: ["rows2", "numcards"], concern: ["tiles2", "stack"], story: ["chapter", "linetime"], spec: ["grid", "strip"], phototext: ["stack", "caption"], steps: ["bignum", "vtimeline"], faq: ["twocol", "chat"], proof: ["wall", "badges"], touch: ["ticket", "band"], statement: ["band", "rule"] },
   },
   softlife: {
     id: "softlife", radius: 1.6, pill: "keep", border: { w: 1, style: "solid", alphaMul: 0.8 }, shadow: { kind: "warm", offset: 0 }, paper: "#FFFBF6", face: "tintAlt",
-    pad: [40, 56, 72], titleAlign: "center", centerBudget: 1, type: { weight: 700, tracking: -0.03, scale: 1 }, eyebrow: "pill", frames: ["arch", "round"], dividers: ["wave2", "fade", "dotwave"], number: "circle", marker: "dot", decor: "glow", decorAlt: ["arc","squiggle"], badge: "circle", density: "normal",
+    pad: [40, 56, 72], titleAlign: "center", centerBudget: 1, type: { weight: 500, tracking: -0.03, scale: 1 }, eyebrow: "pill", frames: ["arch", "round"], dividers: ["wave2", "fade", "dotwave"], number: "circle", marker: "dot", decor: "glow", decorAlt: ["arc","squiggle"], badge: "circle", density: "normal",
     hero: ["B", "D"],
     prefer: { benefits: ["iconlist", "zigzag"], concern: ["bubbles", "deck"], story: ["letter", "quote"], spec: ["cards", "tags"], phototext: ["polaroid", "offset"], steps: ["chipflow", "vtimeline"], faq: ["chat", "qband"], proof: ["lead", "seal"], touch: ["ticket", "band"], statement: ["band", "rule"] },
   },
@@ -95,7 +95,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   techsheet: {
     id: "techsheet", radius: 0, pill: 0, border: { w: 1, style: "dashed", alphaMul: 2.4 }, shadow: { kind: "none", offset: 0 }, paper: "#EEF3F8", face: "lightOnly",
-    pad: [28, 40, 52], titleAlign: "left", centerBudget: 0, type: { weight: 500, tracking: 0, scale: 0.94 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["stitch", "dotted"], number: "box", marker: "square", decor: "corner-ticks", decorAlt: ["bracket","dots-grid"], badge: "hex", density: "tight",
+    pad: [28, 40, 52], titleAlign: "left", centerBudget: 0, type: { weight: 900, tracking: -0.01, scale: 0.94 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["stitch", "dotted"], number: "box", marker: "square", decor: "corner-ticks", decorAlt: ["bracket","dots-grid"], badge: "hex", density: "tight",
     hero: ["D"],
     prefer: { benefits: ["iconlist", "rows2"], concern: ["checkrows", "deck"], story: ["linetime", "chapter"], spec: ["panel", "strip"], phototext: ["caption", "dframe"], steps: ["vtimeline", "bignum"], faq: ["twocol", "chat"], proof: ["lead", "badges"], touch: ["ledger", "ticket"], statement: ["rule", "band"] },
   },
@@ -323,7 +323,8 @@ export function typographyV5(html: string, t: ArchetypeTokens): string {
     const fs = /(?:^|;)font-size:(\d+(?:\.\d+)?)px/.exec(st);
     if (!fs || !/(?:^|;)font-weight:\d+/.test(st)) return m;
     const px = Number(fs[1]);
-    if (px < 22 || px > 40) return m;
+    // 가격·수치처럼 한 줄 고정(white-space:nowrap) 요소는 굵기를 낮추면 큰 글자 대비 기준(굵게 18.66px 이상)을 잃으므로 건드리지 않는다
+    if (px < 22 || px > 40 || /white-space:nowrap/.test(st)) return m;
     let out = st.replace(/(^|;)font-weight:\d+/, `$1font-weight:${weight}`);
     if (scale !== 1) out = out.replace(/(^|;)font-size:\d+(?:\.\d+)?px/, `$1font-size:${Math.round(px * scale)}px`);
     out = /letter-spacing:-?\d*\.?\d+em/.test(out) ? out.replace(/letter-spacing:-?\d*\.?\d+em/, `letter-spacing:${tracking}em`) : out;
