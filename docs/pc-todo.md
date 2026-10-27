@@ -46,3 +46,13 @@ UP1을 끄고 재배포하면 모두 사라지고 이전 모양으로 돌아오�
 기획 담당 캡처에서 구매 가격 스트립 아래 약 1000px의 빈 연한 패널이 기준(UP1)과 8종 모두에 있었다. 코드상 후보는 ① 합성 placeholder 사진(480×601, 거의 단색)이 전폭 4/5 틀(`phototext.caption`, 750폭에서 약 940px)·히어로 아치 사진(약 936px)으로 늘어난 것 ② 막힌 `*.invalid` 인포 배경(스크림만 남음). `photo-fallback`은 파일이 있고 로드되면 정상 사진으로 취급하므로 단색 placeholder는 폴백 대상이 아니다.
 - 집 PC에서 한 줄: `npx tsx scripts/v5-gallery-465.ts --compare=fx-skincare-serum --localize-blocked` 후 `review/465-gallery/index.html`을 750폭으로 열어, 빈 패널이 **실사진(또는 `docs`의 ph2 placeholder)에서도** 같은 자리에 같은 크기로 생기는지 본다. 생기면 어떤 섹션(`data-pz-v4`/클래스)인지 개발자 도구로 확인해 알려 주세요(실제 결함이면 V5 켜짐 한정으로 비율 예약 상한을 두는 수정 후보: 전폭 4/5 틀에 `max-height`).
 - `--localize-blocked`는 갤러리 파일만 바꾼다(말뭉치·앱 출력 불변).
+
+## V5 눈 검수 추가 항목 (466차 — 8종이 서로 구별되는가)
+기획 담당이 465차에 한 방식 그대로 `fx-skincare-serum`을 기준(UP1) + 8종으로 750폭 캡처해 나란히 놓고 본다(`npx tsx scripts/v5-gallery-465.ts --compare=fx-skincare-serum --localize-blocked`).
+1. **밝은/진한 면 비율**: editorial·luxe·techsheet(밝은 종이)·catalog·softlife·narrative(옅은 틴트)에는 큰 진한 면이 없어야 하고, impact(진한 면 교대, ~30%)·pop(포인트·진한 면 충돌, ~33%)은 진한 면이 눈에 띄게 많아야 한다. 진한 덩어리가 너무 많아 답답하지 않은가(428 "명암 반전 ≤6" 예산).
+2. **히어로**: editorial·techsheet=D 밝은 스플릿, luxe=E 타이포(작은 원형 사진이 약하지 않은가), catalog·softlife·pop=B, impact=C, narrative=A 전폭 사진. 사진 종류에 따라 B·C가 안 되는 페이지는 A/D로 폴백된다.
+3. **장점·스토리 모양**: 같은 장점 구간이 8종에서 서로 다른 모양인가(stackbig 큰 번호 / rows2 / zigzag / bento / iconstrip …), 스토리(editorial·chapter·letter·pullband·quote·linetime).
+4. **제목 굵기**: luxe 400(가벼움) ~ impact·pop·techsheet 900(굵음). 400·500 제목이 큰 글자에서 읽히는가.
+5. **정렬**: 가운데 성격(softlife·luxe·pop)은 첫 구간 한 블록만 가운데, 나머지 왼쪽. 어색하지 않은가.
+6. **진한 면 위 글자**: 흰 글자·카드·아이콘·번호가 진한 면에서 모두 읽히는가(대비 감사는 통과, 실제 눈으로).
+7. 위반 시 롤백: 아키타입 고정(`NEXT_PUBLIC_V5_ARCHETYPE`) 또는 플래그 끄기.
