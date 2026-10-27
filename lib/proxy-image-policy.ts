@@ -4,6 +4,8 @@
  *  - localhost는 개발 환경(NODE_ENV !== "production")에서만.
  *  - 응답은 이미지 콘텐츠 타입(png·jpeg·webp·gif·avif)만, 크기 상한 15MB, 타임아웃 10초. SVG·octet-stream은 거절.
  */
+import { storagePublicHostWithPort } from "@/lib/storage/public-url";
+
 export const PROXY_MAX_BYTES = 15 * 1024 * 1024;
 export const PROXY_TIMEOUT_MS = 10_000;
 const ALLOWED_TYPES = /^image\/(png|jpe?g|webp|gif|avif)(;|$)/i;
@@ -18,6 +20,9 @@ export function allowedProxyHosts(env: Env = process.env): { exact: string[]; su
   } catch {
     /* 주소가 이상하면 Supabase 호스트는 허용하지 않는다 */
   }
+  // 459차: R2 공개 호스트(NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL이 있을 때만). 기존 Supabase 호스트는 이전이 끝나기 전까지 그대로 허용
+  const r2 = storagePublicHostWithPort({ NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL: env.NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL });
+  if (r2) exact.push(r2);
   exact.push("replicate.delivery");
   return { exact, suffixes: [".replicate.delivery"] };
 }

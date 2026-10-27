@@ -1,4 +1,5 @@
 import { getStorage } from "@/lib/storage";
+import { isStoragePublicUrl } from "@/lib/storage/public-url";
 import { CACHE_IMMUTABLE } from "@/lib/storage/policy";
 import { NextResponse } from "next/server";
 import Replicate from "replicate";
@@ -28,6 +29,7 @@ const strArr = (v: unknown, max: number): string[] => (Array.isArray(v) ? v.slic
 
 /** 참조 사진은 우리 Storage 주소만 읽는다(클라이언트가 보낸 임의 주소를 서버가 가져오지 않게) */
 function isOwnStorageUrl(u: string): boolean {
+  if (isStoragePublicUrl(u)) return true; // 459차: R2 공개 주소(설정이 있을 때만)
   try {
     const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
     if (!base) return false;

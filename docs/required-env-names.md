@@ -63,6 +63,7 @@
 | `NEXT_PUBLIC_PHOTO_LAYOUT_V2` | 1 | 예 |
 | `NEXT_PUBLIC_SHOW_COST_STRIP` | 1 | 예 |
 | `NEXT_PUBLIC_SITE_URL` | 4 | 예 |
+| `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL` | 2 | 예 |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 4 | 예 |
 | `NEXT_PUBLIC_SUPABASE_URL` | 7 | 예 |
 | `NEXT_PUBLIC_TOSS_CLIENT_KEY` | 2 | 예 |
@@ -70,11 +71,17 @@
 | `PAGE_PIPELINE_BUDGET_USD` | 1 | 아니오 |
 | `PAGE_PIPELINE_MAX_IMAGES` | 1 | 아니오 |
 | `PREMIUM_QUALITY_MODE` | 1 | 아니오 |
+| `R2_ACCESS_KEY_ID` | 1 | 아니오 |
+| `R2_ACCOUNT_ID` | 1 | 아니오 |
+| `R2_BUCKET` | 1 | 아니오 |
+| `R2_PUBLIC_BASE_URL` | 1 | 아니오 |
+| `R2_SECRET_ACCESS_KEY` | 1 | 아니오 |
 | `RECRAFT_STYLE` | 1 | 아니오 |
 | `REPLICATE_API_TOKEN` | 17 | 아니오 |
 | `REPLICATE_FLUX_2_PRO_MODEL` | 1 | 아니오 |
 | `REPLICATE_KONTEXT_PRO_MODEL` | 1 | 아니오 |
 | `REQUIRE_CREDITS_FOR_DRAFT` | 1 | 아니오 |
+| `STORAGE_PROVIDER` | 1 | 아니오 |
 | `SUPABASE_SECRET_KEY` | 1 | 아니오 |
 | `SUPABASE_SERVICE_ROLE_KEY` | 2 | 아니오 |
 | `TEST_MODE` | 1 | 아니오 |
