@@ -8,6 +8,8 @@ export const name = "무거운 도구 가드 — 전수 적용·환경변수 판
 /** 가드 대상에서 제외하는 파일(이유 명시) */
 const EXCEPTIONS: Record<string, string> = {
   "scripts/lib/heavy-guard.ts": "가드 자체",
+  // 464차 — 말뭉치 export 문자열만 읽는 지표 도구. 색상군 계산에 순수 함수 budgetOf만 가져오며(color-budget이 브라우저 도구라 닫힌 집합에 걸림) 브라우저를 띄우지 않는다
+  "scripts/variety-metrics-463.ts": "문자열 전용 지표 도구(브라우저 없음)",
 };
 
 function listTs(dir: string): string[] {
