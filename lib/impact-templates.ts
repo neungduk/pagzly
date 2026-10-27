@@ -30,6 +30,7 @@ import { specialHtml } from "@/lib/special-sections";
 import { referenceHtml } from "@/lib/reference-sections";
 import { polishHtml } from "@/lib/polish-sections";
 import { v4Html } from "@/lib/layout-variants";
+import { V5_PARTS } from "@/lib/v5-parts";
 import { ARCHETYPES, applyArchetypeHtml, type ArchetypeId } from "@/lib/page-archetype-v5";
 import { PHOTO_LAYOUT_V2_ENABLED, photoLayoutHtml } from "@/lib/photo-layouts";
 import { ILLUSTRATION_V1_ENABLED, illustStyleFor, pickIllustration } from "@/lib/illustration-map";
@@ -104,7 +105,7 @@ function impactHtmlBase(s: ImpactSection, pal: ImpactPalette, alt: string): stri
     case "checkrows":
       return polishHtml(s, pal);
     case "v4":
-      return v4Html(s, pal, alt);
+      return v4Html(s, pal, alt, V5_PARTS);
     case "swatch":
     case "timeline":
     case "chipwall":

@@ -21,7 +21,10 @@ export const ARCHETYPE_IDS = ["editorial", "catalog", "softlife", "impact", "tec
 export type ArchetypeId = (typeof ARCHETYPE_IDS)[number];
 
 export type FrameKind = "rect" | "round" | "arch" | "offset" | "tape" | "double";
-export type DecorKind = "none" | "rule-top" | "corner-ticks" | "spine" | "bar-left" | "sticker" | "hair-center" | "glow";
+export type DecorKind = "none" | "rule-top" | "corner-ticks" | "spine" | "bar-left" | "sticker" | "hair-center" | "glow"
+  // 465차 V5 추가 장식 6종(코드 SVG·선만, 섹션 안쪽 여백 모서리에 놓여 글과 겹치지 않음)
+  | "dots-grid" | "arc" | "squiggle" | "plus-field" | "bracket" | "ring";
+export type BadgeShape = "circle" | "seal" | "ribbon" | "hex";
 export type NumberStyle = "big" | "circle" | "roman" | "box";
 export type MarkerKind = "check" | "dot" | "dash" | "arrow" | "square";
 export type ShadowKind = "none" | "soft" | "warm" | "hard";
@@ -49,51 +52,54 @@ export type ArchetypeTokens = {
   number: NumberStyle;
   marker: MarkerKind;
   decor: DecorKind;
+  /** 같은 아키타입 안에서 섹션마다 번갈아 쓰는 보조 장식(문자열 해시로 결정적) */
+  decorAlt: DecorKind[];
+  badge: BadgeShape;
   density: "tight" | "normal" | "airy";
   /** 계열별 선호 변형(앞이 우선) — 스토리보드가 변형 순서 맨 앞으로 끌어온다 */
-  prefer: Partial<Record<"benefits" | "concern" | "story" | "spec" | "phototext" | "steps" | "faq" | "proof" | "compare" | "closing", string[]>>;
+  prefer: Partial<Record<"benefits" | "concern" | "story" | "spec" | "phototext" | "steps" | "faq" | "proof" | "touch", string[]>>;
 };
 
 export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   editorial: {
     id: "editorial", radius: 0, pill: 2, border: { w: 1, style: "solid", alphaMul: 1.6 }, shadow: { kind: "none", offset: 0 }, paper: "#FAF7F1", surface: "paper",
-    pad: [40, 64, 88], titleAlign: "left", eyebrow: "number", frames: ["rect", "double"], dividers: ["double", "dotted", "fade"], number: "roman", marker: "dash", decor: "rule-top", density: "airy",
-    prefer: { benefits: ["linelist", "iconstrip", "numcards"], story: ["editorial", "pullband", "quote"], spec: ["line", "cards"], phototext: ["offset", "caption"], steps: ["vtimeline", "bignum"], concern: ["checkrows", "stack"] },
+    pad: [40, 64, 88], titleAlign: "left", eyebrow: "number", frames: ["rect", "double"], dividers: ["double", "dotted", "fade"], number: "roman", marker: "dash", decor: "rule-top", decorAlt: ["bracket","plus-field"], badge: "seal", density: "airy",
+    prefer: { benefits: ["stackbig", "linelist", "iconlist"], story: ["chapter", "editorial", "letter"], spec: ["panel", "line", "cards"], phototext: ["dframe", "offset", "stack"], steps: ["vtimeline", "bignum"], concern: ["memo", "checkrows"], faq: ["numlist", "qband"], proof: ["lead", "wall"], touch: ["ledger", "band"] },
   },
   catalog: {
     id: "catalog", radius: 0.25, pill: 4, border: { w: 2, style: "solid", alphaMul: 2.2 }, shadow: { kind: "none", offset: 0 }, paper: "#F6F8FA", surface: "alt",
-    pad: [28, 40, 56], titleAlign: "left", eyebrow: "enlabel", frames: ["rect"], dividers: ["double", "slant"], number: "box", marker: "square", decor: "none", density: "tight",
-    prefer: { benefits: ["numcards", "bento", "linelist"], spec: ["grid", "cards", "strip"], phototext: ["caption", "overlap"], steps: ["bignum", "vtimeline"], concern: ["tiles2", "checkrows"], story: ["editorial", "linetime"] },
+    pad: [28, 40, 56], titleAlign: "left", eyebrow: "enlabel", frames: ["rect"], dividers: ["double", "slant"], number: "box", marker: "square", decor: "none", decorAlt: ["plus-field","bracket"], badge: "hex", density: "tight",
+    prefer: { benefits: ["rows2", "numcards", "linelist"], concern: ["memo", "tiles2"], story: ["chapter", "editorial"], spec: ["panel", "tags", "grid"], phototext: ["stack", "caption"], steps: ["bignum", "vtimeline"], faq: ["twocol", "tabs"], proof: ["wall", "badges"], touch: ["ticket", "band"] },
   },
   softlife: {
     id: "softlife", radius: 1.6, pill: "keep", border: { w: 1, style: "solid", alphaMul: 0.8 }, shadow: { kind: "warm", offset: 0 }, paper: "#FFFBF6", surface: "tint",
-    pad: [40, 56, 72], titleAlign: "center", eyebrow: "pill", frames: ["arch", "round"], dividers: ["wave", "fade"], number: "circle", marker: "dot", decor: "glow", density: "normal",
-    prefer: { benefits: ["zigzag", "bento", "iconstrip"], story: ["quote", "editorial"], phototext: ["arch", "overlap"], steps: ["chipflow", "vtimeline"], concern: ["bubbles", "tiles2"], spec: ["grid", "cards"] },
+    pad: [40, 56, 72], titleAlign: "center", eyebrow: "pill", frames: ["arch", "round"], dividers: ["wave", "fade"], number: "circle", marker: "dot", decor: "glow", decorAlt: ["arc","squiggle"], badge: "circle", density: "normal",
+    prefer: { benefits: ["iconlist", "rows2", "zigzag"], concern: ["bubbles", "deck"], story: ["letter", "quote"], spec: ["tags", "cards"], phototext: ["arch", "polaroid", "overlap"], steps: ["chipflow", "vtimeline"], faq: ["chat", "qband"], proof: ["seal", "lead"], touch: ["band", "ticket"] },
   },
   impact: {
     id: "impact", radius: 0.5, pill: 6, border: { w: 3, style: "solid", alphaMul: 5 }, shadow: { kind: "hard", offset: 4 }, paper: "#FFFFFF", surface: "alt",
-    pad: [32, 48, 64], titleAlign: "left", eyebrow: "number", frames: ["offset", "rect"], dividers: ["slant", "zigzag"], number: "big", marker: "arrow", decor: "bar-left", density: "tight",
-    prefer: { benefits: ["bento", "numcards"], story: ["pullband", "quote"], phototext: ["offset", "collage"], steps: ["bignum", "vtimeline"], concern: ["stack", "tiles2"], spec: ["strip", "cards"] },
+    pad: [32, 48, 64], titleAlign: "left", eyebrow: "number", frames: ["offset", "rect"], dividers: ["slant", "zigzag"], number: "big", marker: "arrow", decor: "bar-left", decorAlt: ["dots-grid","plus-field"], badge: "hex", density: "tight",
+    prefer: { benefits: ["stackbig", "bento"], concern: ["deck", "stack"], story: ["pullband", "chapter"], spec: ["big3", "strip", "cards"], phototext: ["stack", "offset", "collage"], steps: ["bignum", "vtimeline"], faq: ["tabs", "qband"], proof: ["wall", "badges"], touch: ["ticket", "band"] },
   },
   techsheet: {
     id: "techsheet", radius: 0.15, pill: 2, border: { w: 1, style: "solid", alphaMul: 2.4 }, shadow: { kind: "none", offset: 0 }, paper: "#F4F7FA", surface: "paper",
-    pad: [28, 40, 52], titleAlign: "left", eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["dotted", "double"], number: "box", marker: "square", decor: "corner-ticks", density: "tight",
-    prefer: { spec: ["strip", "grid", "cards"], benefits: ["iconstrip", "numcards", "linelist"], steps: ["vtimeline", "bignum"], phototext: ["caption", "overlap"], concern: ["checkrows", "tiles2"], story: ["linetime", "editorial"] },
+    pad: [28, 40, 52], titleAlign: "left", eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["dotted", "double"], number: "box", marker: "square", decor: "corner-ticks", decorAlt: ["bracket","dots-grid"], badge: "hex", density: "tight",
+    prefer: { spec: ["panel", "big3", "strip"], benefits: ["rows2", "iconlist", "numcards"], concern: ["memo", "checkrows"], story: ["chapter", "linetime"], phototext: ["dframe", "caption"], steps: ["vtimeline", "bignum"], faq: ["twocol", "numlist"], proof: ["badges", "wall"], touch: ["ledger", "band"] },
   },
   narrative: {
     id: "narrative", radius: 1, pill: "keep", border: { w: 1, style: "solid", alphaMul: 1 }, shadow: { kind: "soft", offset: 0 }, paper: "#FDFBF8", surface: "paper",
-    pad: [48, 72, 96], titleAlign: "left", eyebrow: "number", frames: ["rect", "round"], dividers: ["fade", "wave"], number: "big", marker: "dot", decor: "spine", density: "airy",
-    prefer: { story: ["linetime", "editorial", "pullband"], steps: ["vtimeline", "chipflow"], benefits: ["zigzag", "linelist"], phototext: ["overlap", "offset"], concern: ["stack", "bubbles"], spec: ["line", "grid"] },
+    pad: [48, 72, 96], titleAlign: "left", eyebrow: "number", frames: ["rect", "round"], dividers: ["fade", "wave"], number: "big", marker: "dot", decor: "spine", decorAlt: ["squiggle","arc"], badge: "circle", density: "airy",
+    prefer: { story: ["letter", "chapter", "linetime"], benefits: ["stackbig", "iconlist", "zigzag"], concern: ["deck", "stack"], spec: ["line", "tags"], phototext: ["stack", "overlap"], steps: ["vtimeline", "chipflow"], faq: ["numlist", "chat"], proof: ["lead", "seal"], touch: ["band", "ledger"] },
   },
   luxe: {
     id: "luxe", radius: 0.1, pill: 2, border: { w: 1, style: "solid", alphaMul: 0.7 }, shadow: { kind: "none", offset: 0 }, paper: "#FBFAF6", surface: "paper",
-    pad: [56, 80, 104], titleAlign: "center", eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["dotted", "double"], number: "roman", marker: "dash", decor: "hair-center", density: "airy",
-    prefer: { story: ["quote", "pullband", "editorial"], benefits: ["linelist", "iconstrip"], phototext: ["arch", "caption"], spec: ["line", "cards"], steps: ["vtimeline", "chipflow"], concern: ["tiles2", "checkrows"] },
+    pad: [56, 80, 104], titleAlign: "center", eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["dotted", "double"], number: "roman", marker: "dash", decor: "hair-center", decorAlt: ["arc","ring"], badge: "seal", density: "airy",
+    prefer: { story: ["quote", "letter", "pullband"], benefits: ["linelist", "iconlist"], concern: ["tiles2", "memo"], spec: ["tags", "line", "cards"], phototext: ["dframe", "arch", "caption"], steps: ["vtimeline", "chipflow"], faq: ["numlist", "qband"], proof: ["lead", "seal"], touch: ["ledger", "band"] },
   },
   pop: {
     id: "pop", radius: 1.8, pill: "keep", border: { w: 2, style: "solid", alphaMul: 4 }, shadow: { kind: "hard", offset: 3 }, paper: "#FFFDF4", surface: "alt",
-    pad: [32, 44, 60], titleAlign: "center", eyebrow: "pill", frames: ["tape", "round", "offset"], dividers: ["zigzag", "wave"], number: "circle", marker: "arrow", decor: "sticker", density: "normal",
-    prefer: { benefits: ["bento", "zigzag", "numcards"], story: ["quote", "pullband"], phototext: ["collage", "arch", "offset"], steps: ["bignum", "chipflow"], concern: ["bubbles", "stack"], spec: ["cards", "grid"] },
+    pad: [32, 44, 60], titleAlign: "center", eyebrow: "pill", frames: ["tape", "round", "offset"], dividers: ["zigzag", "wave"], number: "circle", marker: "arrow", decor: "sticker", decorAlt: ["squiggle","ring","dots-grid"], badge: "ribbon", density: "normal",
+    prefer: { benefits: ["bento", "rows2", "zigzag"], concern: ["bubbles", "deck"], story: ["quote", "pullband"], spec: ["big3", "cards", "grid"], phototext: ["polaroid", "collage", "offset"], steps: ["bignum", "chipflow"], faq: ["chat", "twocol"], proof: ["badges", "wall"], touch: ["ticket", "band"] },
   },
 };
 
@@ -178,9 +184,33 @@ export function decorHtml(kind: DecorKind, c: ArchetypeColors): string {
     }
     case "sticker": return `<span ${base} style="position:absolute;right:10px;top:8px;width:34px;height:34px;border-radius:50%;background:${c.accent};transform:rotate(-12deg);border:2px solid ${c.ink};box-sizing:border-box;pointer-events:none"></span>`;
     case "glow": return `<span ${base} style="position:absolute;right:0;top:0;width:140px;height:140px;background:radial-gradient(circle at 70% 30%,${rgba(c.accent, 0.16)},transparent 70%);pointer-events:none"></span>`;
+    // ── 465차 V5 추가 6종: 섹션 위쪽 안쪽 모서리(여백 안, 높이 ≤ 28px)
+    case "dots-grid": {
+      let d = "";
+      for (let r = 0; r < 3; r += 1) for (let k = 0; k < 5; k += 1) d += `<circle cx="${6 + k * 12}" cy="${5 + r * 8}" r="1.6" fill="${rgba(c.ink, 0.4)}"/>`;
+      return `<span ${base} style="position:absolute;right:16px;top:4px;width:64px;height:26px;pointer-events:none"><svg viewBox="0 0 64 26" width="64" height="26" aria-hidden="true" style="display:block">${d}</svg></span>`;
+    }
+    case "arc": return `<span ${base} style="position:absolute;left:0;top:0;width:44px;height:22px;pointer-events:none"><svg viewBox="0 0 44 22" width="44" height="22" aria-hidden="true" style="display:block"><path d="M0 22 A22 22 0 0 1 44 22" fill="none" stroke="${rgba(c.accent, 0.55)}" stroke-width="2"/></svg></span>`;
+    case "squiggle": return `<span ${base} style="position:absolute;left:20px;top:8px;width:72px;height:14px;pointer-events:none"><svg viewBox="0 0 72 14" width="72" height="14" aria-hidden="true" style="display:block"><path d="M2 7 Q11 0 20 7 T38 7 T56 7 T70 7" fill="none" stroke="${rgba(c.accent, 0.6)}" stroke-width="2" stroke-linecap="round"/></svg></span>`;
+    case "plus-field": {
+      const plus = (x: number, y: number) => `<path d="M${x - 4} ${y} H${x + 4} M${x} ${y - 4} V${y + 4}" stroke="${rgba(c.ink, 0.45)}" stroke-width="1.5" stroke-linecap="round"/>`;
+      return `<span ${base} style="position:absolute;right:20px;top:6px;width:60px;height:22px;pointer-events:none"><svg viewBox="0 0 60 22" width="60" height="22" aria-hidden="true" style="display:block">${plus(8, 8)}${plus(30, 14)}${plus(52, 6)}</svg></span>`;
+    }
+    case "bracket": {
+      const line = `1px solid ${rgba(c.ink, 0.45)}`;
+      return `<span ${base} style="position:absolute;left:8px;bottom:8px;width:12px;height:12px;border-left:${line};border-bottom:${line};pointer-events:none"></span><span ${base} style="position:absolute;right:8px;bottom:8px;width:12px;height:12px;border-right:${line};border-bottom:${line};pointer-events:none"></span>`;
+    }
+    case "ring": return `<span ${base} style="position:absolute;right:14px;top:4px;width:30px;height:30px;pointer-events:none"><svg viewBox="0 0 30 30" width="30" height="30" aria-hidden="true" style="display:block"><circle cx="15" cy="15" r="13" fill="none" stroke="${rgba(c.accent, 0.5)}" stroke-width="1.5"/><circle cx="15" cy="15" r="7" fill="none" stroke="${rgba(c.accent, 0.5)}" stroke-width="1.5"/></svg></span>`;
     default: return "";
   }
 }
+
+/** 문자열 해시(결정적) — 보조 장식을 섹션마다 번갈아 고르는 데만 쓴다 */
+const hash32 = (s: string): number => {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i += 1) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h >>> 0;
+};
 
 const hexTier = (n: number, pad: [number, number, number]): number => (n <= 40 ? pad[0] : n <= 56 ? pad[1] : pad[2]);
 
@@ -232,7 +262,9 @@ export function applyArchetypeHtml(html: string, t: ArchetypeTokens, c: Archetyp
     out = out.replace(/<p data-pz-eyebrow style="/g, `<p data-pz-eyebrow style="text-align:center;justify-content:center;`).replace(/<p data-pz-title style="/g, `<p data-pz-title style="text-align:center;`);
   }
   // 7) 장식(루트 position:relative 보장 후 닫는 태그 앞에)
-  const deco = decorHtml(t.decor, c);
+  // 주 장식 + 보조 장식 목록에서 섹션 마크업 해시로 하나(같은 섹션 = 항상 같은 장식). 보조가 없으면 주 장식
+  const kinds: DecorKind[] = [t.decor, ...t.decorAlt];
+  const deco = decorHtml(kinds[hash32(html) % kinds.length]!, c);
   if (deco) {
     out = out.replace(/^(\s*<section[^>]*?style=")([^"]*)"/, (_m, pre: string, st: string) => `${pre}${/position:/.test(st) ? st : `position:relative;${st}`}"`);
     const end = out.lastIndexOf("</section>");

@@ -27,7 +27,7 @@
 import type { DetailSection, ImpactSection, V4Block } from "@/lib/types/generate";
 import type { ImpactPalette } from "@/lib/impact-templates";
 import type { ProductImageOrigin } from "@/lib/image-origins";
-import { designUp1On, designV4On } from "@/lib/design-v4";
+import { designUp1On, designV4On, designV5On } from "@/lib/design-v4";
 import type { ArchetypeTokens } from "@/lib/page-archetype-v5";
 import { contrastRatioToken, hexToRgba, mixHex } from "@/lib/design-tokens";
 import { depthShadow, hairline, v4Palette, type FaceRole, type V4Palette } from "@/lib/palette-v4";
@@ -55,12 +55,29 @@ export const V4_VARIANTS: Record<V4Family, string[]> = {
   // 463차 — UP1 전용 계열(꺼짐에서는 후보를 만들지 않으므로 기존 변형 목록·감사에는 나타나지 않는다)
   steps: [],
   statement: [],
+  faq: [],
+  proof: [],
 };
 
 /**
  * 463차 — UP1(NEXT_PUBLIC_DESIGN_V4_UP1=on)에서만 쓰는 추가 변형. 기존 계열은 선호 순서의 3번째 자리에 끼워 시드 회전에 들게 하고(기존 상위 2개는 그대로),
  * 새 계열(steps·statement)은 이 목록만 쓴다. UP1이 꺼져 있으면 variantOrder가 이 목록을 보지 않는다(출력 불변).
  */
+/**
+ * 465차 V5 — V5(NEXT_PUBLIC_DESIGN_V5=on)에서만 쓰는 새 변형. 렌더는 lib/v5-parts.ts. UP1 변형과 합쳐 variantOrder가 회전에 넣는다.
+ * 새 계열 faq(정적으로 펼친 FAQ 카드를 다시 그림 — 접힘 인터랙션이 아닌 faqcards 임팩트가 원본)·proof(신뢰 근거 강조 박스)는 V5에서만 후보가 생긴다.
+ */
+export const V4_V5_VARIANTS: Partial<Record<V4Family, string[]>> = {
+  benefits: ["stackbig", "rows2", "iconlist"],
+  concern: ["memo", "deck"],
+  story: ["chapter", "letter"],
+  spec: ["panel", "tags", "big3"],
+  phototext: ["stack", "polaroid", "dframe"],
+  faq: ["numlist", "twocol", "qband", "chat", "tabs"],
+  proof: ["lead", "wall", "badges", "seal"],
+  touch: ["ticket", "ledger"],
+};
+
 export const V4_UP1_VARIANTS: Partial<Record<V4Family, string[]>> = {
   benefits: ["linelist"],
   story: ["pullband"],
@@ -97,7 +114,7 @@ export function seedOf(s: string): number {
 /** mood 선호 순서를 시드로 회전(앞 3개 안에서) — 같은 mood라도 상품마다 첫 변형이 달라진다 */
 export function variantOrder(family: V4Family, mood: string | null | undefined, seed: number, prefer?: readonly string[]): string[] {
   let pref = (mood && MOOD_PREF[mood]?.[family]) || V4_VARIANTS[family];
-  const extra = designUp1On() ? V4_UP1_VARIANTS[family] ?? [] : [];
+  const extra = [...(designUp1On() ? V4_UP1_VARIANTS[family] ?? [] : []), ...(designV5On() ? V4_V5_VARIANTS[family] ?? [] : [])];
   if (extra.length) pref = pref.length ? [...pref.slice(0, 2), ...extra, ...pref.slice(2)] : [...extra]; // 463차 UP1: 기존 상위 2개 뒤에 끼운다
   // 465차 V5 — 아키타입 선호 변형을 순서 맨 앞으로(선호 목록에 있고 후보에도 있는 것만, 선호 순서 유지)
   if (prefer?.length) pref = [...prefer.filter((x) => pref.includes(x)), ...pref.filter((x) => !prefer.includes(x))];
@@ -138,28 +155,47 @@ export function variantFits(family: V4Family, variant: string, d: { items: Item[
     case "steps.vtimeline": return designUp1On() && n >= 2 && n <= 6 && d.items.every((i) => len(i.title) >= 2 && len(i.title) <= 90);
     case "steps.bignum": return designUp1On() && n >= 2 && n <= 6 && d.items.every((i) => len(i.title) >= 2 && len(i.title) <= 60);
     case "steps.chipflow": return designUp1On() && n >= 2 && n <= 5 && d.items.every((i) => len(i.title) >= 2 && len(i.title) <= 32);
+    // 465차 V5 — 새 변형 요건(글 길이는 한두 줄에 들어가는 범위). 미달이면 다른 변형·기존 레이아웃으로 폴백
+    case "benefits.stackbig": return designV5On() && n >= 2 && n <= 5 && d.items.every((i) => len(i.title) <= 40 && len(i.body) <= 90);
+    case "benefits.rows2": return designV5On() && n >= 4 && n <= 6 && d.items.every((i) => len(i.title) <= 24 && len(i.body) <= 60);
+    case "benefits.iconlist": return designV5On() && n >= 3 && n <= 6 && d.items.every((i) => len(i.title) <= 40 && len(i.body) <= 90);
+    case "concern.memo": return designV5On() && n >= 3 && n <= 6 && d.items.every((i) => len(i.title) <= 40);
+    case "concern.deck": return designV5On() && n >= 3 && n <= 5 && d.items.every((i) => len(i.title) <= 36);
+    case "story.chapter": return designV5On() && (len(d.quote) >= 8 || len(d.body) >= 40);
+    case "story.letter": return designV5On() && len(d.body) >= 60;
+    case "spec.panel": return designV5On() && n >= 2 && n <= 8 && d.items.every((i) => len(i.title) <= 20 && len(i.body) <= 60 && !isPlaceholderValue(i.body ?? ""));
+    case "spec.tags": return designV5On() && n >= 2 && n <= 8 && d.items.every((i) => len(i.title) <= 12 && len(i.body) >= 1 && len(i.body) <= 16 && !isPlaceholderValue(i.body ?? ""));
+    case "spec.big3": return designV5On() && n >= 2 && n <= 3 && d.items.every((i) => len(i.title) <= 14 && len(i.body) >= 1 && len(i.body) <= 10 && !isPlaceholderValue(i.body ?? ""));
+    case "phototext.stack": case "phototext.polaroid": case "phototext.dframe": return designV5On() && n === 1 && photos === 1;
+    case "faq.numlist": case "faq.qband": case "faq.tabs": return designV5On() && n >= 2 && n <= 8 && d.items.every((i) => len(i.title) <= 70 && len(i.body) <= 200);
+    case "faq.twocol": return designV5On() && n >= 2 && n <= 6 && d.items.every((i) => len(i.title) <= 50 && len(i.body) <= 120);
+    case "faq.chat": return designV5On() && n >= 2 && n <= 6 && d.items.every((i) => len(i.title) <= 60 && len(i.body) <= 160);
+    case "proof.lead": return designV5On() && n >= 2 && n <= 4 && d.items.every((i) => len(i.title) <= 30 && len(i.body) <= 100);
+    case "proof.wall": return designV5On() && n >= 3 && n <= 4 && d.items.every((i) => len(i.title) <= 30 && len(i.body) <= 100);
+    case "proof.badges": return designV5On() && n >= 2 && n <= 4 && d.items.every((i) => len(i.title) <= 14);
+    case "proof.seal": return designV5On() && n >= 2 && n <= 4 && d.items.every((i) => len(i.title) <= 20);
     default: return false;
   }
 }
 
 // ── 렌더 ──────────────────────────────────────────────────────────────────────
-const faceBg = (b: V4Block, p: V4Palette): string => (b.face === "grad0" ? p.gradients[0] : b.face === "grad1" ? p.gradients[1] : p.faces[(b.face ?? "bgA") as FaceRole]);
-const faceRole = (b: V4Block): FaceRole => (b.face === "grad0" || b.face === "grad1" ? "emphasis" : ((b.face ?? "bgA") as FaceRole));
+export const faceBg = (b: V4Block, p: V4Palette): string => (b.face === "grad0" ? p.gradients[0] : b.face === "grad1" ? p.gradients[1] : p.faces[(b.face ?? "bgA") as FaceRole]);
+export const faceRole = (b: V4Block): FaceRole => (b.face === "grad0" || b.face === "grad1" ? "emphasis" : ((b.face ?? "bgA") as FaceRole));
 const motifColors = (p: V4Palette): MotifColors => ({ a: p.tints[3], b: p.deep, c: p.secondary });
 
 /** 448차 — 지그재그 번호 라벨은 진한 대표색(p.deep)을 썼는데 연한 색 면(emphasis 등) 위에서 4.5:1에 못 미치는 팔레트가 있었다(퍼징 R7 4.30). 못 미칠 때만 면 위 강한 글자색으로 */
-const zigzagLabelColor = (b: V4Block, p: V4Palette, strong: string): string => (contrastRatioToken(p.deep, p.faces[faceRole(b)]) >= 4.5 ? p.deep : strong);
-const NUM = (n: number) => String(n).padStart(2, "0");
-const CHECK = (c: string, s = 16) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true" style="display:block"><path d="M5 12.5 L10 17 L19 7" fill="none" stroke="${c}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-const img = (url: string, alt: string, pos = "50% 45%", extra = "") => `<img src="${esc(url)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover;object-position:${pos};${extra}"/>`;
+export const zigzagLabelColor = (b: V4Block, p: V4Palette, strong: string): string => (contrastRatioToken(p.deep, p.faces[faceRole(b)]) >= 4.5 ? p.deep : strong);
+export const NUM = (n: number) => String(n).padStart(2, "0");
+export const CHECK = (c: string, s = 16) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true" style="display:block"><path d="M5 12.5 L10 17 L19 7" fill="none" stroke="${c}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+export const img = (url: string, alt: string, pos = "50% 45%", extra = "") => `<img src="${esc(url)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover;object-position:${pos};${extra}"/>`;
 
 /** 제목(키워드 강조) */
-function headingHtml(text: string, b: V4Block, p: V4Palette, style: "marker" | "color" = "marker"): string {
+export function headingHtml(text: string, b: V4Block, p: V4Palette, style: "marker" | "color" = "marker"): string {
   if (!text) return "";
   return highlightKeyword(text, b.keywords ?? [], style, style === "marker" ? p.accent : p.deep).html;
 }
 
-function wrap(b: V4Block, p: V4Palette, inner: string, opts: { pad?: string; head?: string; label?: string } = {}): string {
+export function wrap(b: V4Block, p: V4Palette, inner: string, opts: { pad?: string; head?: string; label?: string } = {}): string {
   const role = faceRole(b);
   const on = p.onFace[role];
   const motifs = (b.motifs ?? []).map((m) => motifHtml(m as MotifPlacement, motifColors(p))).join("");
@@ -508,12 +544,15 @@ function touchHtml(s: ImpactSection, b: V4Block, p: V4Palette): string {
 }
 
 /** v4 블록 마크업(impactHtml이 부른다 — mood·고아·사진 실패 폴백은 impactHtml이 이어서 적용) */
-export function v4Html(s: ImpactSection, pal: ImpactPalette, alt: string): string {
+/** 465차 V5 — V5 전용 변형 렌더 훅(lib/v5-parts.ts). 해당 변형이 아니면 null. v5-parts가 이 파일을 가져오므로 순환을 피하려고 인자로 받는다 */
+export type V5Parts = (s: ImpactSection, b: V4Block, p: V4Palette, alt: string) => string | null;
+
+export function v4Html(s: ImpactSection, pal: ImpactPalette, alt: string, parts?: V5Parts): string {
   const b = s.v4;
   if (!b) return "";
   const p = v4Palette({ ink: pal.ink, accent: pal.accent, deep: pal.deep }, s.mood);
-  let html: string;
-  switch (b.family) {
+  let html: string = designV5On() && parts ? parts(s, b, p, alt) ?? "" : "";
+  if (!html) switch (b.family) {
     case "benefits": html = benefitsHtml(s, b, p, alt); break;
     case "concern": html = concernHtml(s, b, p); break;
     case "story": html = storyHtml(s, b, p, alt); break;
@@ -656,6 +695,16 @@ function findCandidates(secs: DetailSection[], ctx: V4Ctx): Cand[] {
       const steps = (s.steps ?? []).map((t) => (t ?? "").trim()).filter(Boolean);
       if (steps.length >= 2 && steps.length <= 6) out.push({ family: "steps", at: i, len: 1, text: (s.heading ?? "").trim(), items: steps.map((t) => ({ title: t })), origin: { type: "usage_steps", slot: s.slot }, from: "usage_steps" });
       continue;
+    }
+    // 465차 V5 — 구조 이름이 faqcards인 임팩트(이미 정적으로 펼친 FAQ 카드): 질문/답 쌍을 faq 계열 변형으로. 원 섹션 종류는 origin으로 남겨 앵커 내비 유지
+    if (designV5On() && s.type === "impact" && s.kind === "faqcards" && (s.stats ?? []).length >= 2) {
+      out.push({ family: "faq", at: i, len: 1, text: s.text, items: (s.stats ?? []).map((x) => ({ title: x.label, body: x.value })), ...(s.origin ? { origin: s.origin } : {}), from: "faqcards" });
+      continue;
+    }
+    // 465차 V5 — 판매자 신뢰 근거 강조 박스(slot seller_trust_evidence)는 benefits 대신 proof 계열 변형으로
+    if (designV5On() && s.type === "highlight_box" && s.slot === "seller_trust_evidence" && !s.boldBlock && s.cards.length >= 2 && s.cards.length <= 4) {
+      const items = s.cards.map((c) => ({ title: c.title.trim(), ...(c.body?.trim() ? { body: c.body.trim() } : {}) })).filter((c) => c.title);
+      if (items.length >= 2) { out.push({ family: "proof", at: i, len: 1, text: (s.heading ?? "").trim(), items, from: "trust_evidence" }); continue; }
     }
     if (s.type === "highlight_box" && !s.boldBlock && s.cards.length >= 2 && s.cards.length <= 4) {
       const items = s.cards.map((c) => ({ title: c.title.trim(), ...(c.body?.trim() ? { body: c.body.trim() } : {}) })).filter((c) => c.title);
@@ -895,7 +944,7 @@ function applyRhythm(secs: DetailSection[], idx: number[], ctx: V4Ctx, seed: num
   let run = 0;
   let breathers = 0;
   const mk = (family: "breather" | "touch", extra: Partial<ImpactSection> = {}, b: Partial<V4Block> = {}): DetailSection =>
-    ({ type: "impact", slot: "impact", kind: "v4", text: "", ...(ctx.mood ? { mood: ctx.mood } : {}), ...extra, v4: { family, variant: family === "touch" ? "band" : "motif", no: 0, face: family === "touch" ? "grad0" : "bgA", ...b } }) as DetailSection;
+    ({ type: "impact", slot: "impact", kind: "v4", text: "", ...(ctx.mood ? { mood: ctx.mood } : {}), ...extra, v4: { family, variant: family === "touch" ? (ctx.v5 ? (["band", "ticket", "ledger"] as const)[seed % 3]! : "band") : "motif", no: 0, face: family === "touch" ? "grad0" : "bgA", ...b } }) as DetailSection;
   secs.forEach((s, i) => {
     const info = isInfoSection(s);
     // 같은 구조(임팩트 종류)가 바로 이어지면(예: 참고 카드 둘) 사이에 모티프 면 — 연속 동일 구조 0

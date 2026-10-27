@@ -5,8 +5,8 @@
 | 0 지도 | 완료 (`docs/v5-architecture-465.md`) — 주입 지점: `impactHtml` 후처리 + `data-pz-ax` 래퍼 CSS(topPads 방식) |
 | 1 아키타입 토큰 | 완료(토큰 8종·선택·후처리·래퍼 CSS, 안전망 회귀는 Phase 5) — `lib/page-archetype-v5.ts`, `lib/v5-labels.ts`, 플래그 `DESIGN_V5` |
 | 2 스토리보드 | 1차 완료(`lib/storyboard-v5.ts`: 박자·강도·곡선 보정, 표식 `data-pz-ax`) — 일반 섹션 표식은 말뭉치에서 5개 안팎뿐(대부분 임팩트), 지표 확장은 Phase 5 |
-| 3 부품 확장 | 진행 중 |
-| 4 조립 | 남음 |
+| 3 부품 확장 | 완료(히어로 확장 제외) — 새 변형 24개(`lib/v5-parts.ts`), 구분선 +6(`dividers.ts`), 사진 프레임 6·배지 4·번호 양식 4·마커 5(`v5-parts.ts`), 장식 +6(`page-archetype-v5.ts`). 말뭉치×8종에서 21/24가 실제 선택됨(rows2·spec.big3 등은 입력 요건이 까다로워 단위 렌더로 확인 예정). 모티프(`lib/motifs`) +6은 모티프 안전 규칙 회귀와 얽혀 장식 6종으로 대체 |
+| 4 조립 | 1차 완료(임팩트 후처리·래퍼 CSS·표식 연결, 라이브/export 같은 함수) — 패리티 검증은 Phase 5 |
 | 5 정적 안전망 | 남음 |
 | 6 갤러리·문서 | 남음 |
 | 7 마무리·보고서 | 남음 |
