@@ -31,6 +31,7 @@ import { planPhotoLayouts } from "@/lib/photo-layouts";
 import { planV4 } from "@/lib/layout-variants";
 import { getArchetypeTokens, type ArchetypeId } from "@/lib/page-archetype-v5";
 import { planStoryboard, type Marks, type StoryboardReport } from "@/lib/storyboard-v5";
+import { lightenBoldBlocks, lightensBoldBlock } from "@/lib/face-strategy-v5";
 import { estimateSectionHeight } from "@/lib/impact-templates";
 
 export type DisplaySections = {
@@ -456,7 +457,9 @@ export function applyDisplayRules(
   const keepIdx = designV4On() ? finalOut2.sections.map((sec, i) => (i === 0 || !isBlankShell(sec, imageUrls.length) ? i : -1)).filter((i) => i >= 0) : null;
   const finalOut0b = keepIdx && keepIdx.length !== finalOut2.sections.length ? { sections: keepIdx.map((i) => finalOut2.sections[i]!), sourceIndexes: keepIdx.map((i) => finalOut2.sourceIndexes[i]!) } : finalOut2;
   // 449차 3 — 숫자 게이트 등이 본문을 지워 제목만 남은 v4 목록 항목(카드·행)은 생략(항목이 둘 이상 남을 때만). 게이트의 의미는 바꾸지 않고 표시만 정리
-  const finalOut = designV4On() ? { sections: finalOut0b.sections.map(dropTitleOnlyItems), sourceIndexes: finalOut0b.sourceIndexes } : finalOut0b;
+  const finalOut1b = designV4On() ? { sections: finalOut0b.sections.map(dropTitleOnlyItems), sourceIndexes: finalOut0b.sourceIndexes } : finalOut0b;
+  // 466차 V5 — 면 전략이 밝은 쪽(lightOnly·tintAlt)이면 일반 섹션의 진한 강조 블록(boldBlock)을 밝게(표시 복사본)
+  const finalOut = v5tokens && lightensBoldBlock(v5tokens.face) ? { sections: lightenBoldBlocks(finalOut1b.sections), sourceIndexes: finalOut1b.sourceIndexes } : finalOut1b;
   const policyChanges = policy ? [...policy.changes, ...(photo ? [{ type: "filled" as const, index: 0, kind: "photos" as const, reason: `사용하지 않은 사진 ${photo.indexes.join(",")}번`, slot: "backfill_photos" }] : [])] : undefined;
   // 444차 3 — 같은 면 이웃의 위 여백 해석(DESIGN_V4, lib/rhythm-v4.ts). v4 off면 그대로
   // 445차 3 — 이전(비임팩트) 섹션도 면 키를 읽어 같은 규칙: 임팩트 위 여백은 rhythm:"tight", 이전 섹션 위 여백은 topPads(섹션 번호 → px)로 내보낸다

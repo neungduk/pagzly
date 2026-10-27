@@ -27,6 +27,7 @@
 import type { DetailSection, ImpactSection, V4Block } from "@/lib/types/generate";
 import type { ImpactPalette } from "@/lib/impact-templates";
 import type { ProductImageOrigin } from "@/lib/image-origins";
+import { darkPaletteOf, faceCycleOf, invertFixHtml, isDarkStrategy } from "@/lib/face-strategy-v5";
 import { designUp1On, designV4On, designV5On } from "@/lib/design-v4";
 import type { ArchetypeTokens } from "@/lib/page-archetype-v5";
 import { intrinsicStrength, variantStrength } from "@/lib/storyboard-v5";
@@ -551,7 +552,9 @@ export type V5Parts = (s: ImpactSection, b: V4Block, p: V4Palette, alt: string) 
 export function v4Html(s: ImpactSection, pal: ImpactPalette, alt: string, parts?: V5Parts): string {
   const b = s.v4;
   if (!b) return "";
-  const p = v4Palette({ ink: pal.ink, accent: pal.accent, deep: pal.deep }, s.mood);
+  const p0 = v4Palette({ ink: pal.ink, accent: pal.accent, deep: pal.deep }, s.mood);
+  // 466차 V5 — 진한 면(invert): 렌더러는 팔레트 의미값만 읽으므로 어두운 면용으로 뒤집은 팔레트를 준다(꺼짐에서는 face가 invert일 수 없다)
+  const p = designV5On() && b.face === "invert" ? darkPaletteOf(p0) : p0;
   let html: string = designV5On() && parts ? parts(s, b, p, alt) ?? "" : "";
   if (!html) switch (b.family) {
     case "benefits": html = benefitsHtml(s, b, p, alt); break;
@@ -564,6 +567,7 @@ export function v4Html(s: ImpactSection, pal: ImpactPalette, alt: string, parts?
     case "statement": html = statementHtml(s, b, p); break;
     default: html = wrap({ ...b, motifs: [] }, p, `<div aria-hidden="true" style="display:flex;align-items:center;justify-content:center;gap:18px">${motifSvg("wave", 96, 20, motifColors(p), b.no)}${motifSvg("sparkle", 18, 18, motifColors(p))}${motifSvg("wave", 96, 20, motifColors(p), b.no + 1)}</div>`, { pad: "32px 24px" });
   }
+  if (designV5On() && b.face === "invert") html = invertFixHtml(html, p);
   return polishCardTitles(html);
 }
 
@@ -762,10 +766,9 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
   const placed: V4Placed[] = [];
   let no = 0;
   // 465차 V5 — 아키타입 면 교대 전략(paper: 종이 위주 / tint: 색 면 위주 / alt: 중립·색 교대). 없으면 기존 순환
-  const faceCycle: NonNullable<V4Block["face"]>[] = ctx.v5
-    ? ctx.v5.surface === "paper" ? ["bgA", "bgB", "bgA", "emphasis", "bgA", "grad0"] : ctx.v5.surface === "tint" ? ["emphasis", "bgB", "grad0", "emphasis", "bgA", "grad1"] : ["bgA", "emphasis", "bgB", "grad1", "emphasis", "bgA"]
-    : ["bgA", "emphasis", "bgB", "grad0", "bgA", "grad1"];
+  const faceCycle: NonNullable<V4Block["face"]>[] = ctx.v5 ? faceCycleOf(ctx.v5.face) : ["bgA", "emphasis", "bgB", "grad0", "bgA", "grad1"];
   let faceIdx = seed % faceCycle.length;
+  let invertCount = 0;
   for (let i = 0; i < sections.length; i += 1) {
     const c = byAt.get(i);
     const prevKey = outS.length ? structureKey(outS[outS.length - 1]!) : "";
@@ -805,7 +808,18 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
       continue;
     }
     no += 1;
-    const face = cc.family === "phototext" && variant === "caption" ? "bgA" : faceCycle[faceIdx++ % faceCycle.length]!;
+    let face = cc.family === "phototext" && variant === "caption" ? "bgA" : faceCycle[faceIdx++ % faceCycle.length]!;
+    // 466차 V5 — 진한 면(invert) 상한·이웃 규칙: 페이지당 blockAlt 5·colorCollide 6, 바로 앞이 진한 면(invert·boldBlock)이면 옅은 강조 면으로
+    if (face === "invert") {
+      const prevS = outS[outS.length - 1];
+      const prev2 = outS[outS.length - 2];
+      const isInv = (x: DetailSection | undefined): boolean => !!x && x.type === "impact" && x.kind === "v4" && x.v4?.face === "invert";
+      const otherDark = (x: DetailSection | undefined): boolean => !!x && (((x.type === "highlight_box" || x.type === "checklist") && !!x.boldBlock) || x.type === "illustration_banner");
+      // 진한 면은 최대 2개까지 이어 한 덩어리(띠)로 읽히게 하고(명암 전환 수를 아낀다), 일반 진한 블록·배너와는 붙이지 않는다
+      const prevDark = otherDark(prevS) || (isInv(prevS) && isInv(prev2));
+      if (!ctx.v5 || invertCount >= (ctx.v5.face === "colorCollide" ? 6 : 5) || prevDark || cc.family === "touch") face = "emphasis";
+      else invertCount += 1;
+    }
     const block: V4Block = {
       family: cc.family, variant, no, items: cc.items, face, keywords: keywords.slice(0, 12), preset: ctx.v5 ? ctx.v5.eyebrow : titlePresetFor(ctx.mood),
       ...(ghostAllowed(cc.family, variant) ? { ghost: String(no).padStart(2, "0") } : {}),
@@ -901,7 +915,7 @@ export function insertStatementBand(secs: DetailSection[], idx: number[], orig: 
   if (best < 0) return null;
   // 가운데 정렬 인용 형태는 이웃이 가운데 정렬 쪽 섹션이면 정렬 연속을 늘리므로 왼쪽 정렬 띠로 바꾼다(이웃의 실제 정렬은 모르는 일반 섹션이 있어 종류로 추정)
   const variant = form0 === "quote" && (leansCenter(secs[best - 1]) || leansCenter(secs[best])) ? "band" : form0;
-  const sec = { type: "impact", slot: "impact", kind: "v4", text, ...(ctx.mood ? { mood: ctx.mood } : {}), v4: { family: "statement", variant, no: 0, face: "emphasis", keywords: keywords.slice(0, 12) } } as ImpactSection;
+  const sec = { type: "impact", slot: "impact", kind: "v4", text, ...(ctx.mood ? { mood: ctx.mood } : {}), v4: { family: "statement", variant, no: 0, face: bandFace(ctx, secs[best - 1], secs[best]), keywords: keywords.slice(0, 12) } } as ImpactSection;
   const S = [...secs];
   const I = [...idx];
   S.splice(best, 0, sec as DetailSection);
@@ -909,6 +923,13 @@ export function insertStatementBand(secs: DetailSection[], idx: number[], orig: 
   return { sections: S, sourceIndexes: I, note: `강조 띠(${variant}) @${best}` };
 }
 
+
+/** 466차 V5 — 진한 면 전략(blockAlt·colorCollide)이면 띠(statement)를 진한 면으로. 이웃이 이미 진한 면(invert·boldBlock·배너)이면 옅은 면 */
+function bandFace(ctx: V4Ctx, a: DetailSection | undefined, b: DetailSection | undefined): NonNullable<V4Block["face"]> {
+  if (!ctx.v5 || !isDarkStrategy(ctx.v5.face)) return "emphasis";
+  const dark = (x: DetailSection | undefined): boolean => !!x && ((x.type === "impact" && x.kind === "v4" && x.v4?.face === "invert") || ((x.type === "highlight_box" || x.type === "checklist") && !!x.boldBlock) || x.type === "illustration_banner");
+  return dark(a) || dark(b) ? "emphasis" : "invert";
+}
 /**
  * 465차 V5 — 마무리 띠. 구매 카드(cta_price) 바로 앞 경계에 입력 문장 한 줄을 원문 그대로 크게(형태는 시드로). 가운데 띠와 같은 규칙(8~48자·수치 검사·다른 임팩트에 같은 글 노드가 없음)이고
  * 가운데 띠에 쓴 문장은 제외한다. 앞 섹션이 접점·숨 고르기·띠·히어로면 만들지 않는다.
@@ -924,7 +945,7 @@ export function insertClosingStatement(secs: DetailSection[], idx: number[], ori
   if (!cands.length) return null;
   const text = cands[(seed >>> 23) % cands.length]!;
   const variant = STATEMENT_FORMS[((seed >>> 17) + 1) % STATEMENT_FORMS.length]!;
-  const sec = { type: "impact", slot: "impact", kind: "v4", text, ...(ctx.mood ? { mood: ctx.mood } : {}), v4: { family: "statement", variant, no: 0, face: "emphasis", keywords: keywords.slice(0, 12) } } as ImpactSection;
+  const sec = { type: "impact", slot: "impact", kind: "v4", text, ...(ctx.mood ? { mood: ctx.mood } : {}), v4: { family: "statement", variant, no: 0, face: bandFace(ctx, prev, secs[at]), keywords: keywords.slice(0, 12) } } as ImpactSection;
   const S = [...secs];
   const I = [...idx];
   S.splice(at, 0, sec as DetailSection);
@@ -1095,6 +1116,7 @@ function assignFaces(secs: DetailSection[], seed: number): DetailSection[] {
   for (let i = 0; i < out.length; i += 1) {
     const s = out[i]!;
     if (s.type !== "impact" || s.kind !== "v4" || !s.v4) continue;
+    if (s.v4.face === "invert") continue; // 466차 V5 — 진한 면은 계획기가 정한 대로
     const fam = s.v4.family;
     if (fam === "touch" || (fam === "phototext" && s.v4.variant === "caption")) continue;
     const prev = faceClass(out[i - 1]);

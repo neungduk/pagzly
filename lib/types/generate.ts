@@ -592,7 +592,7 @@ export type V4Block = {
   no: number;
   items?: { title: string; body?: string; img?: { url: string; pos?: string } }[];
   /** 면 역할(lib/palette-v4 FaceRole) 또는 그라데이션 프리셋 0·1 */
-  face?: "bgA" | "bgB" | "emphasis" | "card" | "grad0" | "grad1";
+  face?: "bgA" | "bgB" | "emphasis" | "card" | "grad0" | "grad1" | "invert";
   /** 강조 후보 어절(입력 키워드·제품명 어절·입력 수치) */
   keywords?: string[];
   motifs?: { id: string; anchor: "top" | "bottom"; side: "left" | "right" | "center"; offset: number; inset: number; w: number; h: number; variant: number }[];

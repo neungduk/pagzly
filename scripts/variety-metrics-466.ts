@@ -1,7 +1,7 @@
 /**
  * 466차 — 아키타입 거시 차이 대리 지표(문자열 전용: export HTML을 읽을 뿐, 브라우저·네트워크 없음).
  * 465차의 서명 튜플 거리는 포화돼(0.97) 차이를 못 가렸다 → 눈에 보이는 큰 축을 직접 잰다:
- *  ① 진한 면 비율(본문 섹션 마크업 중 배경이 어두운 요소가 차지하는 문자 수 비율; 중첩된 어두운 요소는 한 번만 센다)
+ *  ① 진한 면 비율(본문 섹션 마크업 중 배경이 어두운 **면 요소(section·div, 한 변 ≤120px 고정 제외)** 가 차지하는 문자 수 비율; 중첩은 한 번만. 466차 Phase 1에서 칩·점·막대 같은 작은 span이 면으로 세어지는 잡음을 정정했다)
  *  ② 히어로 면이 어두운지 ③ 가운데 정렬 비율 ④ 계열별 변형 집합 ⑤ 평균 반경·그림자 유무 ⑥ 제목 크기/굵기 분포
  * 한계: 문자 수는 실제 높이가 아니다(사진·여백 단위 빠짐). 그라데이션은 첫 색 기준. 알파 < 0.6 배경은 어둡다고 보지 않는다.
  */
@@ -45,7 +45,10 @@ export function darkShare(sec: string): number {
     const t = tag.toLowerCase();
     if (VOID.has(t) || self) continue;
     if (!close) {
-      const l = t === "svg" ? null : styleBg(attrs);
+      // 면으로 읽히는 요소만(section·div): 칩·점·막대 같은 작은 span과, 한 변이 120px 이하로 고정된 요소는 면이 아니다
+      const st = /style="([^"]*)"/.exec(attrs)?.[1] ?? "";
+      const small = /(?:^|;)\s*(?:width|height):\s*(\d{1,3})px/.test(st) && Number(/(?:^|;)\s*(?:width|height):\s*(\d{1,3})px/.exec(st)![1]) <= 120;
+      const l = (t === "section" || t === "div") && !small ? styleBg(attrs) : null;
       const dark = l !== null && l < DARK_LUM;
       stack.push({ tag: t, start: m.index, dark });
       if (dark) darkDepth += 1;
@@ -61,6 +64,10 @@ export function darkShare(sec: string): number {
 export type MacroMetrics = {
   /** 본문 섹션(히어로 제외) 진한 면 비율 */
   darkRatio: number;
+  /** 사진 배너의 어두운 바탕 비율(별도 열) */
+  bannerRatio: number;
+  /** 본문에서 연속한 진한 섹션(진한 면이 70% 이상, 사진 배너 포함) 덩어리 수 — 명암 전환 수의 절반 */
+  darkBands: number;
   heroDark: boolean;
   heroVariant: string;
   centerRatio: number;
@@ -86,7 +93,13 @@ export function macroMetrics(html: string): MacroMetrics {
   const secs = topSections(html);
   const pm = pageMetrics(html);
   const total = secs.reduce((a, s) => a + s.length, 0);
-  const dark = secs.reduce((a, s) => a + darkShare(s) * s.length, 0);
+  // 사진 배너(illustration-banner)는 사진이 면을 덮으므로 어두운 바탕을 따로 센다(목표 비율에서 제외)
+  const isBanner = (s: string): boolean => signatureOf(s) === "illustration-banner";
+  const dark = secs.reduce((a, s) => a + (isBanner(s) ? 0 : darkShare(s) * s.length), 0);
+  const bannerDark = secs.reduce((a, s) => a + (isBanner(s) ? darkShare(s) * s.length : 0), 0);
+  let darkBands = 0;
+  let inBand = false;
+  for (const s of secs) { const d = darkShare(s) >= 0.7; if (d && !inBand) darkBands += 1; inBand = d; }
   const variants: Record<string, string[]> = {};
   for (const s of secs) {
     const sig = signatureOf(s);
@@ -100,7 +113,7 @@ export function macroMetrics(html: string): MacroMetrics {
   const weights = [...body.matchAll(/font-size:\s*(\d+)px[^"]*?font-weight:\s*(\d+)/g)].filter((m) => Number(m[1]) >= 22).map((m) => Number(m[2]));
   const hero = heroOf(html);
   return {
-    darkRatio: total ? dark / total : 0, heroDark: hero.dark, heroVariant: hero.variant,
+    darkRatio: total ? dark / total : 0, bannerRatio: total ? bannerDark / total : 0, darkBands, heroDark: hero.dark, heroVariant: hero.variant,
     centerRatio: pm.centerRatio, centerRun: pm.centerRun, flatZones: pm.flatZones, variants,
     avgRadius: radii.length ? radii.reduce((a, b) => a + b, 0) / radii.length : 0,
     shadowShare: radiusN ? shadows / radiusN : 0,

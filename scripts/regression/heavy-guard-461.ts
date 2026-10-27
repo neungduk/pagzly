@@ -10,6 +10,8 @@ const EXCEPTIONS: Record<string, string> = {
   "scripts/lib/heavy-guard.ts": "가드 자체",
   // 464차 — 말뭉치 export 문자열만 읽는 지표 도구. 색상군 계산에 순수 함수 budgetOf만 가져오며(color-budget이 브라우저 도구라 닫힌 집합에 걸림) 브라우저를 띄우지 않는다
   "scripts/variety-metrics-463.ts": "문자열 전용 지표 도구(브라우저 없음)",
+  // 466차 — 463 도구의 문자열 함수만 가져와 진한 면·히어로·정렬을 읽는 거시 지표 도구(브라우저 없음)
+  "scripts/variety-metrics-466.ts": "문자열 전용 지표 도구(브라우저 없음)",
 };
 
 function listTs(dir: string): string[] {
