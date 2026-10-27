@@ -99,6 +99,16 @@ export async function run(): Promise<string[]> {
   // 빈 입력은 장식만 남기지 않는다
   for (const [n, h] of [["bigWord", D.bigWord("", p)], ["sticker", D.sticker("", p)], ["ribbon", D.ribbon("", p)], ["tickerBand", D.tickerBand([], p)], ["highlighter", D.highlighter("", p)]] as const) if (h) f.push(`${n}: 빈 입력인데 출력이 있음`);
 
+  // ── 검수용 placeholder(ph2): 파일 수·금지 요소·잘 형성된 SVG ──────────────────────────────────
+  if (fs.existsSync("public/qa-fixtures/ph2")) {
+    const svgs = fs.readdirSync("public/qa-fixtures/ph2").filter((n) => n.endsWith(".svg"));
+    if (svgs.length !== 24) f.push(`ph2 SVG ${svgs.length}개 ≠ 24(제품 8 × 톤 3)`);
+    for (const n of svgs) {
+      const x = fs.readFileSync(`public/qa-fixtures/ph2/${n}`, "utf8");
+      if (/<filter|<image|<script|foreignObject|<use /.test(x) || /https?:\/\/(?!www\.w3\.org)/.test(x)) f.push(`ph2/${n}: 금지 요소/외부 주소`);
+      if (!/^<svg [^>]*viewBox=/.test(x) || !x.trim().endsWith("</svg>")) f.push(`ph2/${n}: SVG 형태가 아님`);
+    }
+  }
   // ── 레이어(말뭉치 21 × 아키타입 8) ───────────────────────────────────────────
   const files = corpus();
   if (files.length < 18) return f;

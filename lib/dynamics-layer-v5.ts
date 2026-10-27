@@ -62,7 +62,7 @@ function reframe(html: string, t: ArchetypeTokens, salt: number): string {
 }
 
 /** 페이지당 상한(과다 방지): [이음새·걸침, 스티커, 테이프] */
-const CAPS: Record<3 | 4 | 5, { seams: number; stickers: number; tapes: number }> = { 3: { seams: 5, stickers: 0, tapes: 0 }, 4: { seams: 7, stickers: 1, tapes: 1 }, 5: { seams: 9, stickers: 2, tapes: 2 } };
+const CAPS: Record<3 | 4 | 5, { seams: number; stickers: number; tapes: number }> = { 3: { seams: 7, stickers: 0, tapes: 0 }, 4: { seams: 9, stickers: 1, tapes: 1 }, 5: { seams: 9, stickers: 2, tapes: 2 } };
 export const DYN_CAPS = CAPS;
 
 /** 시험용: 467차 다이나믹 레이어를 끄고(466차 끝 상태) 기준선을 잰다 */
@@ -143,8 +143,8 @@ export function applyDynamicsHtml(html: string, s: ImpactSection, t: ArchetypeTo
     let k = 0;
     out = out.replace(/<div([^>]*?style="[^"]*?)border-radius:(1\d|2[0-8])px([^"]*")/g, (m, pre: string, r: string, post: string) => {
       if (!/background:/.test(pre + post) || !(/border:|box-shadow:/.test(pre + post)) || /overflow:hidden/.test(pre + post) && /aspect-ratio/.test(pre + post)) return m;
-      const n = k % 3; k += 1;
-      return n === 0 ? m : `<div${pre}border-radius:${n === 1 ? `${r}px ${r}px ${r}px 4px` : `4px ${r}px ${r}px ${r}px`}${post}`;
+      const n = k % 4; k += 1;
+      return n === 0 ? m : `<div${pre}border-radius:${n === 1 ? `${r}px ${r}px ${r}px 4px` : n === 2 ? `4px ${r}px ${r}px ${r}px` : `${r}px 4px ${r}px ${r}px`}${post}`;
     });
   }
   // 배경 질감(단색 루트 배경 위에 반복 gradient를 겹침). 이음새·걸침이 있으면 하지 않는다

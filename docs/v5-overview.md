@@ -53,6 +53,16 @@
 - **선호는 정렬이 아니라 우선순위**: 선호 목록의 변형이 먼저, 요건·상한·이웃 규칙은 그대로. 처음 1/3 높음 요건이 부족하면 계획 마지막에서 최소 개입.
 - **롤백**: 위 전부 `NEXT_PUBLIC_DESIGN_V5` 뒤. 특정 성격만 피하려면 `NEXT_PUBLIC_V5_ARCHETYPE`로 고정.
 
+## 다이나믹 레이어 (467차)
+"그림판 같다, 너무 밋밋하다"는 평가에 대응해 깊이·겹침·스케일 대비·기울임·도형 전환 장치를 얹었다. 전부 `NEXT_PUBLIC_DESIGN_V5=on` 뒤(꺼짐·편집 모드 불변). 진단·목표·결과: [`docs/dynamics-audit-467.md`](dynamics-audit-467.md).
+- **부품** `lib/dynamics-v5.ts` 30종: 스케일(bigWord·numeralStack·statBlock) · 깊이(overlapStack·layeredCard·shadowPlate·floatingObject) · 기울임(tiltCard·tape·sticker·ribbon·stampBadge) · 면 전환(slant·wave·scallop·zigzag·step 이음새, overlapSeam) · 필기(highlighter·scribbleCircle·squiggleUnderline·arrowCallout) · 구성(mosaic·polaroidStack·stepPath·gaugeRing·tickerBand·dotGrid·stripeField·gridPaper).
+- **레이어** `lib/dynamics-layer-v5.ts`: 계획(표시 단계) → `impactHtml` 끝에서 적용. 큰 배경 글자(v4=순번, 기존 임팩트=제목 첫 단어) · 기울인 판 · 스티커·테이프(기울임 성격만) · 카드 모서리 변주 · 사진 틀 모서리 6종 변주 · 배경 질감(점·줄무늬·모눈) · 이음새 도형(자기 색이 위 섹션 쪽으로 솟음) · 걸침(rise). 장식은 `aria-hidden`·`pointer-events:none`·`z-index:-1`(루트 `isolation`)이라 글을 가리지 않고, 페이지당 상한이 있다.
+- **일반 섹션 다시 그리기**: stat_infographic(number 전부) → stats(bignum·trio·rings), gallery → gallery(mosaic·polaroid), text_only → story. 조건 미달·디스클레이머 필요 수치는 기존 렌더러.
+- **티커 띠**(최대 1): 입력의 상품명·키워드 반복, catalog·impact·pop.
+- **아키타입별 강도**(`dyn.level`): impact·pop 5 / softlife·narrative·catalog 4 / editorial·techsheet·luxe 3. 이음새 종류: impact slant · pop zigzag · softlife wave · narrative scallop · catalog·techsheet step · editorial·luxe 걸침만.
+- **롤백**: 플래그 끄기. 특정 장치만 피하려면 `NEXT_PUBLIC_V5_ARCHETYPE`로 낮은 강도 성격 고정. 모션(`NEXT_PUBLIC_DESIGN_V5_MOTION`)은 만들지 않았다.
+- **검수용 사진**: `scripts/make-ph2-467.ts`(제품 8 × 톤 3 SVG, `public/qa-fixtures/ph2`) + 갤러리 `--ph2 --localize-blocked`.
+
 ## 새 변형 24개 (V5 켜짐에서만)
 | 계열.변형 | 입력 요건 | 선호하는 아키타입 | 말뭉치×8종에서 선택됨 |
 |---|---|---|---|

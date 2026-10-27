@@ -5,6 +5,7 @@
  *   npx tsx scripts/v5-gallery-465.ts                      # 전부 (21 × 8)
  *   npx tsx scripts/v5-gallery-465.ts --only=fx-skincare-serum --arch=editorial,pop
  *   npx tsx scripts/v5-gallery-465.ts --compare=fx-skincare-serum   # 한 픽스처를 8종 + 비교(UP1) 나란히 보는 index
+ *   --ph2                # 467차: 로컬 placeholder 사진(단색 합성)을 상업 사진처럼 그린 SVG 대용품(public/qa-fixtures/ph2, scripts/make-ph2-467.ts)으로 바꿔 쓴다(갤러리 파일만)
  *   --localize-blocked   # 466차: 막힌 합성 주소(`*.invalid` 인포 구간 배경 사진)를 같은 카테고리의 로컬 placeholder 사진으로 바꿔 배경이 비지 않게 한다(말뭉치·앱 출력은 그대로, 갤러리 파일만)
  * 외부 주소가 하나라도 있으면(xmlns·로컬 경로 제외) 경고하고 종료 코드 1.
  */
@@ -13,6 +14,7 @@ import path from "node:path";
 import { setDesignUp1ForTests, setDesignV5ForTests } from "../lib/design-v4";
 import { ARCHETYPE_IDS, setV5ArchetypeForTests, type ArchetypeId } from "../lib/page-archetype-v5";
 import { corpus, exportHtmlOf } from "./design-corpus";
+import { PRODUCTS_BY_CATEGORY, TONES } from "./make-ph2-467";
 
 export const OUT_DIR = "review/465-gallery";
 
@@ -39,6 +41,19 @@ export function localizeBlocked(html: string, depth: number): string {
   return html.replace(/https?:\/\/[^\s"')<>]*\.invalid\/[^\s"')<>]*/g, local);
 }
 
+/** 467차 — `…/qa-fixtures/ph/<카테고리>/<파일>.png` 사진 경로를 ph2 SVG(카테고리별 제품 × 톤, 파일 이름 해시로 결정적)로 바꾼다 */
+export function useProductPh2(html: string, depth: number): string {
+  const up = "../".repeat(depth);
+  return html.replace(/(?:\.\.\/)*(?:public)?\/?qa-fixtures\/ph\/([a-z]+)\/([^"')\s]+)/g, (_m, cat: string, file: string) => {
+    const list = PRODUCTS_BY_CATEGORY[cat] ?? PRODUCTS_BY_CATEGORY.living!;
+    let h = 0;
+    for (const ch of file) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const product = list[h % list.length]!;
+    const tone = TONES[(h >>> 3) % TONES.length]!;
+    return `${up}public/qa-fixtures/ph2/${product}-${tone.id}.svg`;
+  });
+}
+
 export function externalUrls(html: string): string[] {
   return [...html.matchAll(/https?:\/\/[^\s"')<>]+/g)].map((m) => m[0]).filter((u) => !/^https?:\/\/(www\.w3\.org|schema\.org)(\/|$)/.test(u) && !/^https?:\/\/[^/]+\.invalid(\/|$)/.test(u));
 }
@@ -51,7 +66,8 @@ async function main() {
   const only = arg("only")?.split(",").filter(Boolean);
   const compare = arg("compare");
   const blocked = process.argv.includes("--localize-blocked");
-  const prep = (h: string): string => (blocked ? localizeBlocked(localizeAssets(h, 3), 3) : localizeAssets(h, 3));
+  const ph2 = process.argv.includes("--ph2");
+  const prep = (h: string): string => { const x = blocked ? localizeBlocked(localizeAssets(h, 3), 3) : localizeAssets(h, 3); return ph2 ? useProductPh2(x, 3) : x; };
   const archs = (arg("arch")?.split(",").filter(Boolean) as ArchetypeId[] | undefined) ?? [...ARCHETYPE_IDS];
   const files = corpus({ only: compare ? [compare] : only });
   let bad = 0;

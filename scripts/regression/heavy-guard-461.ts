@@ -14,6 +14,7 @@ const EXCEPTIONS: Record<string, string> = {
   "scripts/variety-metrics-466.ts": "문자열 전용 지표 도구(브라우저 없음)",
   // 467차 — 다이나믹 지표(말뭉치 export 문자열만 읽음)
   "scripts/dynamics-metrics-467.ts": "문자열 전용 지표 도구(브라우저 없음)",
+  "scripts/dynamics-report-467.ts": "문자열 전용 지표 보고 도구(브라우저 없음)",
 };
 
 function listTs(dir: string): string[] {
