@@ -83,8 +83,15 @@ export function contrastFindings(html: string, rootBg: string = "#FFFFFF", rootI
     const style = /style="([^"]*)"/.exec(attrs)?.[1] ?? "";
     const hidden = top.hidden || /aria-hidden="true"/.test(attrs);
     let bgs: Frame["bgs"] = top.bgs;
-    const bgv = decl(style, "background(?:-color)?");
-    if (bgv) {
+    // 배경 선언 전체(여러 겹 포함, `;`까지)
+    const bgv = /(?:^|;)\s*background(?:-color)?\s*:\s*([^;]+)/i.exec(style)?.[1]?.trim() ?? null;
+    // 여러 겹 배경(`패턴 gradient, #단색`) — 467차 질감: 마지막 단색이 바탕이고 앞 겹은 옅은 무늬라 단색으로 본다
+    const layered = bgv ? /,\s*(#[0-9a-fA-F]{6})\s*$/.exec(bgv)?.[1] : undefined;
+    if (bgv && layered) {
+      const pc = parseColor(layered)!;
+      const base = top.bgs === "unknown" ? [rb] : top.bgs;
+      bgs = base.map((b) => over(pc, b));
+    } else if (bgv) {
       if (/url\(/i.test(bgv) && !/gradient/i.test(bgv.replace(/url\([^)]*\)/g, ""))) bgs = "unknown";
       else if (/gradient/i.test(bgv)) {
         if (/url\(/i.test(bgv)) bgs = "unknown";

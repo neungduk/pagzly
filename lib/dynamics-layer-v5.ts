@@ -11,7 +11,7 @@ import type { DetailSection, ImpactSection, V4Block } from "@/lib/types/generate
 import { v4Palette, type FaceRole, type V4Palette } from "@/lib/palette-v4";
 import { hexToRgba } from "@/lib/design-tokens";
 import { TITLE_FF, esc } from "@/lib/type-treatments";
-import { seamShape, sticker, tape, rnd } from "@/lib/dynamics-v5";
+import { dotGrid, gridPaper, seamShape, stripeField, sticker, tape, rnd } from "@/lib/dynamics-v5";
 import { darkPaletteOf } from "@/lib/face-strategy-v5";
 
 type Dyn = NonNullable<ImpactSection["dyn"]>;
@@ -19,10 +19,47 @@ const SKIP_FAMILY = new Set(["touch", "breather", "statement"]);
 /** 글 위주 기존 임팩트 종류(사진 위 글자·사진 오버레이 종류는 제외) — 장식 층은 이 섹션 뒤(z-index -1)에 깔려 글을 가리지 않는다 */
 const LEGACY_OK = new Set(["note", "textboost", "bubbles", "checkrows", "checkgrid", "chat", "chipwall", "sizebars", "illust-center", "illust-side", "swatch", "timeline", "spectable", "specstrip", "faqcards", "proof", "reviewstat", "story", "fit", "number"]);
 export const dynEligible = (s: DetailSection | undefined): s is ImpactSection => !!s && s.type === "impact" && (s.kind === "v4" ? !!s.v4 && !SKIP_FAMILY.has(s.v4.family) : LEGACY_OK.has(s.kind));
+const bandLike = (s: DetailSection | undefined): boolean => !!s && s.type === "impact" && s.kind === "v4" && !!s.v4 && (s.v4.family === "statement" || s.v4.family === "breather");
 /** 큰 배경 글자: v4 블록은 순번(눈썹 번호와 같은 값), 기존 임팩트는 제목의 첫 단어(입력 원문, ≤8자) */
 const firstWord = (text: string | undefined): string => ([...(text ?? "").trim().split(/\s+/)[0] ?? ""].slice(0, 8)).join("");
 const roleOf = (b: V4Block | undefined): FaceRole => !b ? "bgA" : (b.face === "grad0" || b.face === "grad1" ? "emphasis" : ((b.face ?? "bgA") as FaceRole));
 const CARD_FAMILIES = new Set(["benefits", "concern", "spec", "proof", "faq", "steps"]);
+
+/** 사진 틀 모서리 6종(반경만 바꾸므로 어떤 비율에서도 안전): rect=기본 · soft=크게 · leaf=대각 · notch=반대 대각 · tab=위만 · cut=아래만 */
+export type FrameCorner = "rect" | "soft" | "leaf" | "notch" | "tab" | "cut";
+const FRAME_SETS: Record<ArchetypeTokens["id"], FrameCorner[]> = {
+  editorial: ["rect", "notch", "cut", "tab"], catalog: ["rect", "tab", "cut", "notch"], softlife: ["soft", "leaf", "rect", "tab"], impact: ["cut", "tab", "leaf", "notch"],
+  techsheet: ["rect", "cut", "notch", "tab"], narrative: ["soft", "leaf", "tab", "rect"], luxe: ["rect", "soft", "notch", "cut"], pop: ["leaf", "notch", "tab", "soft", "cut"],
+};
+export function frameRadius(kind: FrameCorner, r: number): string {
+  const a = Math.max(6, r); const b = Math.round(a * 2);
+  switch (kind) {
+    case "soft": return `${Math.round(a * 1.7)}px`;
+    case "leaf": return `${b}px 2px ${b}px 2px`;
+    case "notch": return `2px ${b}px 2px ${b}px`;
+    case "tab": return `${b}px ${b}px 2px 2px`;
+    case "cut": return `2px 2px ${b}px ${b}px`;
+    default: return `${a}px`;
+  }
+}
+/** 사진 틀(overflow:hidden + img를 바로 품은 div)의 모서리를 아키타입 틀 목록으로 번갈아 바꾼다. 원·알약(50%·999px)·이미 비대칭인 틀은 그대로 */
+function reframe(html: string, t: ArchetypeTokens, salt: number): string {
+  const set = FRAME_SETS[t.id];
+  let k = salt;
+  const WR = /(<div[^>]*style=")([^"]*overflow:hidden[^"]*)("[^>]*>\s*(?:<(?:div|span)[^>]*>\s*)?<img)/g;
+  return html.replace(WR, (m, pre: string, st: string, post: string) => {
+    const rad = /(^|;)border-radius:(\d+)px(?=;|$)/.exec(st);
+    // 반경이 없는 사진 틀(각진 사진)은 기본 10px로 보고 변주한다. 원·알약·이미 비대칭인 틀(숫자 하나가 아닌 값)은 건드리지 않는다
+    if (!rad && /border-radius:/.test(st)) return m;
+    const kind = set[k % set.length]!;
+    const tilted = t.dyn.tilt && !/transform:/.test(st) && k % 3 === 1;
+    const deg = k % 2 ? 1.2 : -1.2;
+    k += 1;
+    let out = kind === "rect" ? st : rad ? st.replace(/(^|;)border-radius:\d+px/, `$1border-radius:${frameRadius(kind, Number(rad[2]))}`) : `${st};border-radius:${frameRadius(kind, 10)}`;
+    if (tilted) out = `${out};transform:rotate(${deg}deg)`;
+    return out === st ? m : `${pre}${out}${post}`;
+  });
+}
 
 /** 페이지당 상한(과다 방지): [이음새·걸침, 스티커, 테이프] */
 const CAPS: Record<3 | 4 | 5, { seams: number; stickers: number; tapes: number }> = { 3: { seams: 5, stickers: 0, tapes: 0 }, 4: { seams: 7, stickers: 1, tapes: 1 }, 5: { seams: 9, stickers: 2, tapes: 2 } };
@@ -49,6 +86,8 @@ export function planDynamicsV5(sections: DetailSection[], t: ArchetypeTokens, se
   // 기울인 판: 적격 섹션 중 번갈아(방향도 번갈아)
   const every = lv === 5 ? 3 : 2; // 강도 5는 세 번째마다(기울임은 이미 스티커·테이프·티커로 충분하고 크기 상한 때문)
   elig.forEach((i, k) => { if (k % every === 0) get(i).plate = (k / every) % 2 ? 1 : -1; });
+  // 배경 질감: 아키타입이 질감을 가지면 적격 섹션 중 세 번째마다(이음새·걸침이 없는 섹션만)
+  if (t.dyn.texture) elig.forEach((i, k) => { if (k % 3 === 1 && !dyn.get(i)?.seam && !dyn.get(i)?.rise) get(i).texture = t.dyn.texture!; });
   // 카드 변주(반경 한 모서리 변주 — 같은 카드 서명이 이어지지 않게): 강도 ≥ 4, 카드 계열
   if (lv >= 4) for (const i of elig) if (CARD_FAMILIES.has((sections[i] as ImpactSection).v4?.family ?? "")) get(i).cards = 1;
   // 스티커·테이프(기울임 성격만): 스티커 글자는 입력 키워드(≤6자), 테이프는 사진 글 블록
@@ -67,7 +106,8 @@ export function planDynamicsV5(sections: DetailSection[], t: ArchetypeTokens, se
   let flip = rnd(seed, 99) > 0.5;
   for (let i = 2; i < sections.length - 2 && used < cap.seams; i += 1) {
     const a = sections[i - 1]; const bb = sections[i];
-    if (!dynEligible(a) || !dynEligible(bb)) continue;
+    // 이음새·걸침은 띠(statement)·숨 고르기(breather)도 받을 수 있다(자기 색 도형일 뿐). 접점(touch=가격)·히어로·구매 카드는 아니다
+    if (!(dynEligible(a) || bandLike(a)) || !(dynEligible(bb) || bandLike(bb))) continue;
     if (dyn.get(i - 1)?.rise) continue; // 걸침 바로 다음 경계는 건너뜀(음수 마진이 겹치지 않게)
     const wantRise = t.dyn.rise && (!t.dyn.seam || flip);
     flip = !flip;
@@ -107,6 +147,13 @@ export function applyDynamicsHtml(html: string, s: ImpactSection, t: ArchetypeTo
       return n === 0 ? m : `<div${pre}border-radius:${n === 1 ? `${r}px ${r}px ${r}px 4px` : `4px ${r}px ${r}px ${r}px`}${post}`;
     });
   }
+  // 배경 질감(단색 루트 배경 위에 반복 gradient를 겹침). 이음새·걸침이 있으면 하지 않는다
+  if (d.texture && !d.seam && !d.rise) {
+    const pat = d.texture === "dots" ? dotGrid(p) : d.texture === "grid" ? gridPaper(p) : stripeField(p);
+    out = patchRoot(out, (st) => st.replace(/(^|;)background:(#[0-9a-fA-F]{6})(?![0-9a-fA-F])/, (_m, pre: string, c: string) => `${pre}background:${pat},${c}`));
+  }
+  // 사진 틀 모서리 변주(전 강도)
+  out = reframe(out, t, (b ? b.no : (d.word ?? "").length) * 3);
   // 장식 층: 섹션 안쪽 inset 0 상자(overflow:hidden) — z-index -1(루트가 isolation으로 쌓임 맥락을 가져 배경 위·글 아래에 깔림)
   const layers: string[] = [];
   if (d.ghost && !/data-pz-ghost/.test(out)) {

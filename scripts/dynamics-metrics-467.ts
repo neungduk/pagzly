@@ -43,7 +43,7 @@ export function dynMetrics(html: string): DynMetrics {
       const sig = `${rad.replace(/px/g, "").trim()}|${/box-shadow:\s*([^;"]+)/.exec(st)?.[1]?.replace(/\s+/g, "") ?? "none"}`;
       cards.set(sig, (cards.get(sig) ?? 0) + 1);
     }
-    for (const m of s.matchAll(/<div[^>]*style="([^"]*overflow:hidden[^"]*)"[^>]*>\s*<img/g)) {
+    for (const m of s.matchAll(/<div[^>]*style="([^"]*overflow:hidden[^"]*)"[^>]*>\s*(?:<(?:div|span)[^>]*>\s*)?<img/g)) {
       const st = m[1]!;
       frames.add(`${/border-radius:\s*([^;"]+)/.exec(st)?.[1] ?? "0"}|${/aspect-ratio:\s*([^;"]+)/.exec(st)?.[1]?.trim() ?? ""}|${/transform:\s*([^;"]+)/.exec(st)?.[1] ?? ""}`);
     }

@@ -586,6 +586,8 @@ export type ImpactSection = {
     cards?: 1;
     /** 기울인 판(+1/-1 = 기울임 방향) */
     plate?: 1 | -1;
+    /** 배경 질감(CSS gradient 반복 — 점·줄무늬·모눈) */
+    texture?: "dots" | "stripe" | "grid";
     seam?: { kind: "slant" | "wave" | "scallop" | "zigzag" | "step" };
     /** 기존 임팩트의 큰 배경 글자(제목 첫 단어, 입력 원문) */
     word?: string;

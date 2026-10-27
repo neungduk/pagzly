@@ -146,7 +146,7 @@ export async function run(): Promise<string[]> {
     for (const [id, file] of files.slice(0, 6)) if (/data-pz-dyn/.test(exportHtmlOf(file))) f.push(`${id}: V5 꺼짐인데 다이나믹 표식`);
     setDesignV5ForTests(true);
     // 장식을 두면 안 되는 구간(가격·접점·띠·히어로·구매 카드·고지·주의)
-    const FORBIDDEN_SIG = /^(touch|breather)\.|^statement\.(?!ticker)|^cta$|^id\.caution$|^id\.ai|ai-disclosure|^illustration-banner$/;
+    const FORBIDDEN_SIG = /^(touch|breather)\.|^statement\.|^cta$|^id\.caution$|^id\.ai|ai-disclosure|^illustration-banner$/;
     for (const arch of ARCHETYPE_IDS) {
       setV5ArchetypeForTests(arch);
       const cap = DYN_CAPS[ARCHETYPES[arch].dyn.level];
@@ -157,7 +157,9 @@ export async function run(): Promise<string[]> {
         secs.forEach((sec, i) => {
           const sg = signatureOf(sec);
           if (!sec.includes("data-pz-dyn")) return;
-          if (FORBIDDEN_SIG.test(sg)) f.push(`${arch}/${id}: 장식 금지 구간(${sg})에 다이나믹 표식`);
+          // 티커 띠는 자기 부품 표식뿐. 띠(statement)·숨 고르기(breather)는 이음새 도형만 받을 수 있다(글자 장식 층·스티커·테이프 없음). 접점·구매 카드·고지·주의는 어떤 장식도 안 됨
+          const bandOk = sg === "statement.ticker" || (/^(statement|breather)\./.test(sg) && !/data-pz-dyn-clip/.test(sec) && !/data-pz-dyn="(sticker|tape)/.test(sec));
+          if (FORBIDDEN_SIG.test(sg) && !bandOk) f.push(`${arch}/${id}: 장식 금지 구간(${sg})에 다이나믹 표식`);
           if (/data-pz-seam/.test(sec)) { seams += 1; const nx = secs[i + 1]; const pv = secs[i - 1]; if ((nx && /^cta$/.test(signatureOf(nx))) || (pv && /^cta$/.test(signatureOf(pv))) || i < 1) f.push(`${arch}/${id}: 이음새가 구매 카드/히어로 옆 (${i})`); }
           if (/margin-top:\s*-\d+px;z-index:2/.test(sec.slice(0, sec.indexOf(">") + 1) + sec.slice(0, 600)) ) seams += 0;
           stickers += (sec.match(/data-pz="sticker"|data-pz-dyn="sticker"/g) ?? []).length;
