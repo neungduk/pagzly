@@ -7,7 +7,8 @@ import { applyDisplayRules } from "../../lib/display-sections";
 import { buildDetailPageHtml } from "../../lib/export-detail-html";
 import { getCategoryTheme } from "../../lib/category-theme";
 import { buildClaimFacts } from "../../lib/numeric-claim-gate";
-import { MAX_SAME_VARIANT, V4_VARIANTS, isInfoSection, structureKey, variantFits, variantOrder } from "../../lib/layout-variants";
+import { designUp1On } from "../../lib/design-v4";
+import { MAX_SAME_VARIANT, V4_UP1_VARIANTS, V4_VARIANTS, isInfoSection, structureKey, variantFits, variantOrder } from "../../lib/layout-variants";
 import type { DetailSection } from "../../lib/types/generate";
 import { corpus, displayOf, exportHtmlOf } from "../design-corpus";
 
@@ -44,7 +45,7 @@ export function pageRuleFails(id: string, secs: DetailSection[]): string[] {
   let run = 0;
   secs.forEach((s, i) => { run = isInfoSection(s) ? run + 1 : 0; if (run >= 3) fails.push(`${id}: 정보 섹션 3연속 @${i}`); });
   if (v4s(secs).filter((s) => s.v4!.family === "touch").length > 1) fails.push(`${id}: 구매 유도 접점 2개 이상`);
-  for (const s of v4s(secs)) if (!V4_VARIANTS[s.v4!.family].includes(s.v4!.variant)) fails.push(`${id}: 모르는 변형 ${s.v4!.family}.${s.v4!.variant}`);
+  for (const s of v4s(secs)) if (!V4_VARIANTS[s.v4!.family].includes(s.v4!.variant) && !(designUp1On() && (V4_UP1_VARIANTS[s.v4!.family] ?? []).includes(s.v4!.variant))) fails.push(`${id}: 모르는 변형 ${s.v4!.family}.${s.v4!.variant}`);
   return fails;
 }
 
