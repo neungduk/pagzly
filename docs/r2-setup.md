@@ -52,8 +52,8 @@
 ## 5. 롤백
 `STORAGE_PROVIDER`와 `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL`을 제거하고 재배포 → 다시 Supabase Storage로 업로드한다. R2에 이미 올라간 이미지는 R2 주소로 저장돼 있으므로 **R2 버킷·공개 주소는 지우지 말 것**(지우면 그 이미지가 깨진다).
 
-## 6. 기존 이미지와 이전(460차)
-기존 이미지의 복사·DB 주소 교체·검증 절차는 `docs/migration-r2/README.md`에 있다(스크립트 `scripts/migrate-storage-to-r2.ts`, SQL `docs/migration-r2/01~04·99`). 이전 전까지 Supabase 주소가 계속 동작하고 새 업로드만 R2로 간다. 이전 후에도 옛 Supabase 객체는 최소 90일 유지한다.
+## 6. 기존 이미지와 이전(460차·461차 순서 수정)
+**이전 순서의 원본은 `docs/migration-r2/README.md`(14단계)이며 이 문서에는 순서표를 따로 두지 않는다.** 요지: 복사·검증 → 프로덕션 `STORAGE_PROVIDER=r2`(이 문서 §2) → 2차 복사 → DB 교체 → 만료 정리 전환(이 문서 §7) → 옛 객체 90일 보관. 이전 전까지 Supabase 주소가 계속 동작하고 새 업로드만 R2로 간다. 이전이 끝나기 전에는 실사진 검증을 하지 않는다(`docs/phone-session-rules.md`).
 
 ## 7. 만료 이미지 정리 (460차 갱신)
 `supabase/functions/cleanup-expired-images`(Supabase cron, 마이그레이션 `20260916120000`)는 **Supabase Storage만** 지운다 — R2 객체는 못 지운다. **버킷 전체에 나이 기반 수명 주기 삭제 규칙을 걸지 말 것**(완성된 상품 이미지는 영구 보존 대상이라 같이 지워진다).
@@ -61,7 +61,7 @@
 대체: `GET /api/cron/cleanup-expired-images` (헤더 `Authorization: Bearer $CRON_SECRET`, 없거나 틀리면 401). 판정은 엣지 함수와 같다 — `product_id` 없음 + 업로드 3일 경과 + `protected_until` 없음/과거. 차이점은 둘: ① 저장소 삭제가 실패한 묶음의 행은 **지우지 않고 남겨 다음 실행이 재시도** ② 1회 최대 500행(남은 건 다음 실행). 응답은 개수만(`selected/deleted/failedChunks`), 경로·키는 로그에 남기지 않는다.
 
 **기본은 등록하지 않았다.** 켜는 순서(이중 실행 방지):
-1. `STORAGE_PROVIDER=r2` 로 전환하고 새 업로드가 R2로 가는 것을 확인한 **뒤에** 진행.
+1. `STORAGE_PROVIDER=r2` 로 전환하고 새 업로드가 R2로 가는 것을 확인한 **뒤에**, 그리고 DB 주소 교체(`docs/migration-r2/README.md` 9단계)가 끝난 뒤(12단계) 진행.
 2. Vercel 환경변수 `CRON_SECRET` 이 있는지 확인(결제 갱신 cron 이 이미 사용).
 3. 먼저 `curl -H "Authorization: Bearer $CRON_SECRET" https://<도메인>/api/cron/cleanup-expired-images` 로 한 번 수동 호출해 응답(`ok:true`)을 확인.
 4. `vercel.json` 의 `crons` 에 `{ "path": "/api/cron/cleanup-expired-images", "schedule": "30 2 * * *" }` 를 **추가**(문서화만 — 이 저장소에는 넣지 않았다).
