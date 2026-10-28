@@ -1,5 +1,6 @@
 /**
  * 회귀 — 470차 "대격변". 브라우저·네트워크 없음(문자열 렌더만). 단계마다 검사를 더한다.
+ *  E: 일반 섹션 보정 CSS(후기 카드·색상 칩 44px, 대상 한정, 금지 CSS 없음, 정책 문구 선택자 미포함)
  *  D: 제품 콜아웃(주석 이미지-글 → phototext.callout, 라벨은 입력 주석 문자열만, 사진 실패 시 오버레이 숨김 CSS, 조건 미달 폴백)
  *  C: 거대 제목 토큰·경계 도형(overflow-x:clip, 알파 ≤ .22, 아래 섹션은 적격 블록뿐)
  *  B: 장면 확대(섹션 15+ 페이지 100% 달성, 이웃 장면 구도(sceneAt) 교대, 장면 글자 36px 이상·min-height 640)
@@ -17,6 +18,9 @@ import { corpus, displayOf, exportHtmlOf } from "../design-corpus";
 import { SCENE_COUNT } from "../../lib/layout-variants";
 import { ARCHETYPES } from "../../lib/page-archetype-v5";
 import { sceneCount } from "../dynamics-metrics-469";
+import { generalCssV5 } from "../../lib/info-v5";
+import { infoColorsOf } from "../../lib/info-style";
+import { getCategoryTheme } from "../../lib/category-theme";
 import { pairStats, titleAndShapes } from "../recipe-metrics-470";
 import { planV4 } from "../../lib/layout-variants";
 import { impactHtml } from "../../lib/impact-templates";
@@ -57,6 +61,13 @@ export async function run(): Promise<string[]> {
       const key = (arr: typeof on) => arr.filter(movable).map((s) => `${s.type === "impact" ? s.origin?.type ?? s.v4!.family : ""}`).sort().join(",");
       if (key(on) !== key(off)) f.push(`${id}/${a}: 이동 가능 블록의 집합이 달라짐(블록이 사라지거나 늘었다)`);
     }
+  }
+  // ── E: 일반 섹션 보정 CSS
+  for (const a of ARCHETYPE_IDS) {
+    const css = generalCssV5(".w", ARCHETYPES[a], infoColorsOf(getCategoryTheme("화장품/뷰티")));
+    if (!/\.pagzly-color-variation \[class\*="-swatches"\] label\{[^}]*min-height:44px/.test(css)) f.push(`${a}: 색상 칩 44px 규칙 없음`);
+    if (!/\.pagzly-review-card/.test(css) || /pagzly-rv-cap/.test(css)) f.push(`${a}: 후기 카드 규칙이 없거나 집계 문구 선택자가 섞임`);
+    for (const k of [":has(", "container-type", "mix-blend-mode", "clip-path", "filter:", "position:fixed", "animation", "pointer-events", "display:none"]) if (css.includes(k)) f.push(`${a}: 금지/위험 CSS ${k}`);
   }
   // ── D: 콜아웃
   {

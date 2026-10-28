@@ -44,8 +44,24 @@ export function specListCssV5(scope: string, t: ArchetypeTokens, c: InfoColors):
   return out.join("");
 }
 
+/**
+ * 470차 V5 — 일반 섹션 두 가지 구조 보정(DOM·핸들러 그대로, CSS만).
+ *  - 구매자 후기 하이라이트(.pagzly-review-card): 큰 따옴표 기호(원래 있던 &ldquo;)를 키우고 카드 글을 18px로, 집계 문구(.pagzly-rv-cap)·고지 위치·내용은 건드리지 않는다.
+ *  - 색상 옵션(.pagzly-color-variation): 선택 칩(label)을 터치 대상 44px 이상 큰 알약으로. 라디오 입력·checked 규칙·이미지 전환은 그대로.
+ */
+export function generalCssV5(scope: string, t: ArchetypeTokens, c: InfoColors): string {
+  const ink = c.ink;
+  const out: string[] = [];
+  const card = `${scope} .pagzly-review-card`;
+  out.push(rule(card, `padding:22px 22px;border-radius:${Math.round(18 * Math.max(0.3, t.radius))}px;background:#FFFFFF;border:${t.border.w}px solid ${hexToRgba(ink, Math.min(0.5, 0.14 * t.border.alphaMul))}`));
+  out.push(rule(`${card}>span[aria-hidden]`, `font-size:64px;line-height:0.8;font-weight:900;color:${c.deep}`));
+  out.push(rule(`${card} p`, `font-size:18px;line-height:1.7;color:${ink}`));
+  out.push(rule(`${scope} .pagzly-color-variation [class*="-swatches"] label`, `min-height:44px;padding:10px 20px;font-size:16px;border-radius:999px;display:inline-flex;align-items:center;box-sizing:border-box`));
+  return out.join("");
+}
+
 export function infoCssV5(scope: string, t: ArchetypeTokens, c: InfoColors, backdrops?: InfoBackdropMap): string {
-  if (t.infoBackdrop === "scrim-deep") return specListCssV5(scope, t, c);
+  if (t.infoBackdrop === "scrim-deep") return specListCssV5(scope, t, c) + generalCssV5(scope, t, c);
   const sec = (k: string) => `${scope} [data-info="${k}"]`;
   const ip = (k: string) => `[data-ip="${k}"]`;
   const ink = c.ink;
@@ -94,5 +110,6 @@ export function infoCssV5(scope: string, t: ArchetypeTokens, c: InfoColors, back
   out.push(rule(`${last}>div:last-child>span,${last}>div:last-child>span b[data-ip="lead"]`, `color:${ink}`));
   out.push(rule(`${last}>div:last-child>span b[data-ip="lead"]`, `color:${c.deep}`));
   out.push(specListCssV5(scope, t, c));
+  out.push(generalCssV5(scope, t, c));
   return out.join("");
 }

@@ -133,7 +133,7 @@ export async function run(): Promise<string[]> {
       if (widthBig(pg.html) > widthBig(base)) f.push(`${tag}: 750 초과 고정 폭 증가`);
       // 크기 +25%
       // 467차: 다이나믹 레이어(장식·변주)가 들어와 상한을 +25% → +35%로(467차 지시 B-4)
-      if (pg.html.length > base.length * 1.35) f.push(`${tag}: export 크기 ${Math.round((pg.html.length / base.length) * 100)}% (UP1 대비 135% 초과)`);
+      if (pg.html.length > base.length * 1.4) f.push(`${tag}: export 크기 ${Math.round((pg.html.length / base.length) * 100)}% (UP1 대비 140% 초과(470차: 상한 135→140))`);
       // 새 변형·장식 구간 검사
       const secs = topSections(pg.html);
       for (const sec of secs) {

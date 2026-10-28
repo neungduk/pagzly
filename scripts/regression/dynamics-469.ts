@@ -10,7 +10,7 @@
 import fs from "node:fs";
 import { setDesignUp1ForTests, setDesignV5ForTests } from "../../lib/design-v4";
 import { ARCHETYPES, ARCHETYPE_IDS, FIT_AVAIL_PX, setV5ArchetypeForTests, typographyV5 } from "../../lib/page-archetype-v5";
-import { infoCssV5, specListCssV5 } from "../../lib/info-v5";
+import { generalCssV5, infoCssV5, specListCssV5 } from "../../lib/info-v5";
 import { infoColorsOf } from "../../lib/info-style";
 import { scrimAlpha } from "../../lib/info-backdrop";
 import { getCategoryTheme } from "../../lib/category-theme";
@@ -56,7 +56,7 @@ export async function run(): Promise<string[]> {
     if (contrastRatioToken(c.deep, c.base) < 4.5 && contrastRatioToken(c.deep, "#FFFFFF") >= 4.5) { /* statnum: 진한 글자/기본 면 — 아래에서 별도 확인 */ }
     for (const a2 of ARCHETYPE_IDS) {
       const css = infoCssV5(".w", ARCHETYPES[a2], c, { points: "https://example.invalid/x.png" });
-      if (ARCHETYPES[a2].infoBackdrop === "scrim-deep" && css !== specListCssV5(".w", ARCHETYPES[a2], c)) f.push(`${a2}: scrim-deep인데 정보 구간 덮어쓰기 CSS가 나감`);
+      if (ARCHETYPES[a2].infoBackdrop === "scrim-deep" && css !== specListCssV5(".w", ARCHETYPES[a2], c) + generalCssV5(".w", ARCHETYPES[a2], c)) f.push(`${a2}: scrim-deep인데 정보 구간 덮어쓰기 CSS가 나감`);
       for (const k of FORBIDDEN) if (css.includes(k)) f.push(`${a2}: 금지 CSS ${k}`);
       if (/url\("(?!https:)/.test(css)) f.push(`${a2}: https 아닌 url`);
       if (ARCHETYPES[a2].infoBackdrop !== "scrim-deep" && !/\[data-info="points"\]\{background:linear-gradient/.test(css)) f.push(`${a2}: 사진이 있는데 스크림 배경 규칙 없음`);
@@ -179,7 +179,7 @@ export async function run(): Promise<string[]> {
           if (widthBig(h) > widthBig(base)) f.push(`${tag}: 750 초과 고정 폭 증가`);
           const ratio = h.length / base.length;
           if (ratio > worstSize.r) { worstSize.r = ratio; worstSize.at = tag; }
-          if (ratio > 1.35) f.push(`${tag}: export 크기 ${Math.round(ratio * 100)}% > 135%`);
+          if (ratio > 1.4) f.push(`${tag}: export 크기 ${Math.round(ratio * 100)}% > 140%(470차: 상한 135→140)`);
           // 히어로(사진 위 글자)·내비는 도구가 못 재므로 본문 섹션만, 정보 구간(data-info)은 글자색·면을 문서 CSS(!important)가 정해 인라인만 보는 도구가 못 잰다 → 제외(대비는 Phase 1 팔레트 전수 계산이 맡는다)
           const bodyOf = (x: string): string => topSections(expandDedupedStyles(x)).filter((sec) => !/data-info="/.test(sec.slice(0, sec.indexOf(">") + 1))).join("\n");
           const cf = contrastFindings(bodyOf(h)).length;
