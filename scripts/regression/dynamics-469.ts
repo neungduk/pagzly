@@ -1,6 +1,7 @@
 /**
  * 회귀 — 469차 "남은 평평한 덩어리". 브라우저·네트워크 없음(문자열 렌더만). Phase마다 같은 파일에 검사를 더한다.
  *  Phase 2: 일반 섹션 구조 재작성(target_persona→concern 변형·step_card→zigzag·상품 정보 목록 CSS): 원문 보존·조건·폴백·대상 한정
+ *  Phase 4: 화면 장악 장면(승격 계획: 개수·간격·위치 제한, 큰 글자 36px 이상·min-height 640, 새 글자 없음, 소스 가드)
  *  Phase 3: 본문 글자 토큰(≥15px, 행간 ≤ typo-v4 상한, 가격·한 줄 고정·대문자 라벨·짧은 글 제외, 고지/배송 블록 불변)
  *  Phase 1: 정보 구간(data-info) 아키타입화 — 토큰·덮어쓰기 CSS·팔레트 전수 대비·진한 정보 구간 0·V5 꺼짐 미호출
  */
@@ -14,6 +15,11 @@ import { getCategoryTheme } from "../../lib/category-theme";
 import { contrastRatioToken, mixHex } from "../../lib/design-tokens";
 import { corpus, exportArgsOf, exportHtmlOf, readSession } from "../design-corpus";
 import { bodyMedian, darkInfoZones } from "../dynamics-metrics-469";
+import { SCENE_COUNT, SCENE_MIN_PX, sceneTextFits } from "../../lib/layout-variants";
+import { EYEBROW_LABEL } from "../../lib/type-treatments";
+import { readableTexts } from "../dynamics-metrics-468";
+import { topSections } from "../variety-metrics-463";
+import { expandDedupedStyles } from "../../lib/style-dedupe";
 import { BODY_LINE_HEIGHT_MAX } from "../../lib/typo-v4";
 
 export const name = "다이나믹 469 — 정보 구간 아키타입화·(이후 Phase: 일반 섹션 구조·본문 글자·장면)";
@@ -93,6 +99,50 @@ export async function run(): Promise<string[]> {
     if (!/ps\.length >= 3 && ps\.length <= 6/.test(lv) || !/len\(t\) <= 40/.test(lv) || !/personaStripIndexes\(s, ctx\.imageUrls\.length\) === null/.test(lv)) f.push("추천 대상 변환 조건(3~6개·40자·사진 띠 없음)이 소스에 없음");
     if (!/only: \["zigzag"\], label: "STEP"/.test(lv)) f.push("step_card 변환이 사진 보존 변형(zigzag)·STEP 라벨로 한정되지 않음");
     if (!/designV5On\(\) && s\.type === "target_persona"/.test(lv) || !/designV5On\(\) && s\.type === "step_card"/.test(lv)) f.push("일반 섹션 변환이 designV5On() 가드 뒤가 아님");
+    setV5ArchetypeForTests(null);
+    setDesignV5ForTests(false);
+  }
+  // ── Phase 4: 화면 장악 장면
+  {
+    if (SCENE_MIN_PX < 36) f.push("장면 최소 글자 < 36");
+    if (!sceneTextFits("짧은 문장입니다 이것은 한 화면") ) f.push("짧은 문장이 장면 요건을 못 채움");
+    if (sceneTextFits("가".repeat(200)) || sceneTextFits("")) f.push("너무 긴 문장/빈 문장이 장면 요건을 채움");
+    const lv = fs.readFileSync("lib/layout-variants.ts", "utf8");
+    if (!/const withMotifs = ctx\.v5 \? planScenesV5\(withMotifs1, ctx\) : withMotifs1;/.test(lv)) f.push("planScenesV5가 V5 토큰(ctx.v5) 뒤에서만 호출되지 않음");
+    const labels = new Set(Object.values(EYEBROW_LABEL));
+    setDesignUp1ForTests(true);
+    for (const a of ARCHETYPE_IDS) {
+      setV5ArchetypeForTests(a);
+      const want = SCENE_COUNT[ARCHETYPES[a].dyn.level];
+      for (const [id, file] of corpus()) {
+        setDesignV5ForTests(false);
+        const base = exportHtmlOf(file);
+        setDesignV5ForTests(true);
+        const h = exportHtmlOf(file);
+        const secs = topSections(expandDedupedStyles(h));
+        const idx = secs.map((x, i) => (/data-pz-v4="\w+\.scene"/.test(x.slice(0, 400)) ? i : -1)).filter((i) => i >= 0);
+        if (idx.length > want) f.push(`${id}/${a}: 장면 ${idx.length}개 > ${want}`);
+        for (let k = 1; k < idx.length; k += 1) if (idx[k]! - idx[k - 1]! < 3) f.push(`${id}/${a}: 장면 사이 조용한 블록 2개 미만(${idx[k - 1]},${idx[k]})`);
+        for (const i of idx) {
+          const x = secs[i]!;
+          if (i < 1) f.push(`${id}/${a}: 장면이 맨 앞`);
+          if (i >= secs.length - 1) f.push(`${id}/${a}: 장면이 마지막 섹션`);
+          const mh = Math.max(0, ...[...x.matchAll(/min-height:\s*(\d+)px/g)].map((m) => Number(m[1])));
+          if (mh < 640) f.push(`${id}/${a}: 장면 min-height ${mh} < 640`);
+          const big = Math.max(0, ...readableTexts(x).map((t) => t.size).filter((s2) => s2 < 140));
+          if (big < SCENE_MIN_PX) f.push(`${id}/${a}: 장면 큰 글자 ${big}px < ${SCENE_MIN_PX}`);
+          if (/data-pz-dyn-deco(?![^>]*data-pz-seam)/.test(x)) f.push(`${id}/${a}: 장면에 다이나믹 장식이 얹힘`);
+          for (const nb of [secs[i - 1], secs[i + 1]]) if (nb && /data-pz-v4="(touch|breather)\./.test(nb.slice(0, 400))) f.push(`${id}/${a}: 장면이 접점/숨 고르기 옆`);
+          // 새 글자 없음: 화면에 보이는 글 노드는 기준(V5 꺼짐) 페이지 글에 있거나 순번·닫힌 라벨·따옴표
+          const bp = base.replace(/<(script|style)[\s\S]*?<\/\1>/g, "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, " ");
+          for (const t2 of readableTexts(x)) {
+            const tx = t2.text.replace(/\s+/g, " ").trim();
+            if (!tx || /^[\d\s.,:%+\-/]+$/.test(tx) || labels.has(tx) || /^[A-Z ]*\s?\d*$/.test(tx)) continue;
+            if (!bp.includes(tx) && !bp.includes(tx.slice(0, 12))) f.push(`${id}/${a}: 장면에 입력에 없는 글 «${tx.slice(0, 16)}»`);
+          }
+        }
+      }
+    }
     setV5ArchetypeForTests(null);
     setDesignV5ForTests(false);
   }

@@ -411,7 +411,7 @@ export function typographyV5(html: string, t: ArchetypeTokens, opts: { body?: bo
     if (!fs || !/(?:^|;)font-weight:\d+/.test(st)) return m;
     const px = fs.px;
     // 가격·수치처럼 한 줄 고정(white-space:nowrap) 요소는 굵기를 낮추면 큰 글자 대비 기준(굵게 18.66px 이상)을 잃으므로 건드리지 않는다
-    if (px < 22 || px > 40 || /white-space:nowrap/.test(st) || (tag === "p" && (px === 26 || px === 30))) return m;
+    if (px < 22 || px > 40 || /white-space:nowrap/.test(st) || /--pz-fixed:1/.test(st) || (tag === "p" && (px === 26 || px === 30))) return m;
     let out = st.replace(/(^|;)font-weight:\d+/, `$1font-weight:${weight}`);
     if (scale !== 1) out = setLastFs(out, Math.round(px * scale));
     out = /letter-spacing:-?\d*\.?\d+em/.test(out) ? out.replace(/letter-spacing:-?\d*\.?\d+em/, `letter-spacing:${tracking}em`) : out;

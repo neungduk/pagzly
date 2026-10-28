@@ -7,7 +7,7 @@ import fs from "node:fs";
 import { setDesignUp1ForTests, setDesignV5ForTests, designV5On } from "../../lib/design-v4";
 import { ARCHETYPES, ARCHETYPE_IDS, setV5ArchetypeForTests, type ArchetypeId } from "../../lib/page-archetype-v5";
 import { FACE_CYCLES, isDarkStrategy, lightensBoldBlock } from "../../lib/face-strategy-v5";
-import { V4_UP1_VARIANTS, V4_V5_VARIANTS, V4_VARIANTS, planV4, v4Html } from "../../lib/layout-variants";
+import { V4_UP1_VARIANTS, V4_V5_VARIANTS, V4_VARIANTS, planV4, v4Html, setScenesOffForTests } from "../../lib/layout-variants";
 import { V5_PARTS } from "../../lib/v5-parts";
 import { impactPalette } from "../../lib/impact-templates";
 import type { ImpactSection, V4Block } from "../../lib/types/generate";
@@ -112,7 +112,10 @@ export async function run(): Promise<string[]> {
     const cta = { type: "cta_price", slot: "cta_price", price: 1000, targetCustomer: "x", badges: [] };
     const plan = (arch: ArchetypeId, secs: unknown[]): string[] => {
       const sections = secs as ImpactSection[];
-      return planV4(sections as never, sections.map((_, i) => i), { mood: null, seedKey: "unit|x", imageUrls: a0.imageUrls, origins: a0.imageOrigins, facts: a0.claimFacts!, category: a0.category, height: () => 400, v5: ARCHETYPES[arch] }).placed.map((x) => `${x.family}.${x.variant}`);
+      setScenesOffForTests(true); // 469차: 장면 승격은 변형 선호와 별개 단계 — 여기서는 선호 규칙만 본다
+      try {
+        return planV4(sections as never, sections.map((_, i) => i), { mood: null, seedKey: "unit|x", imageUrls: a0.imageUrls, origins: a0.imageOrigins, facts: a0.claimFacts!, category: a0.category, height: () => 400, v5: ARCHETYPES[arch] }).placed.map((x) => `${x.family}.${x.variant}`);
+      } finally { setScenesOffForTests(false); }
     };
     const shortQp = [qp(1, "짧은 설명 1"), qp(2, "짧은 설명 2"), qp(3, "짧은 설명 3"), qp(4, "짧은 설명 4")];
     const longQp = [1, 2, 3, 4].map((i) => qp(i, "가".repeat(70)));

@@ -17,7 +17,10 @@ import { pickIconsV4, iconV4Svg } from "@/lib/icons";
 import { gaugeRing, mosaic, polaroidStack, shadowPlate, statBlock, tickerBand } from "@/lib/dynamics-v5";
 import { bleedPhoto, cardFace, heroNumber, layerDeck, offsetStack, pullOut, splitAsym, staggerGrid } from "@/lib/compose-v5";
 import { fitTitlePx } from "@/lib/page-archetype-v5";
+import { SCENE_MIN_PX } from "@/lib/layout-variants";
 
+/** 320폭 가용 폭(px) — page-archetype-v5.FIT_AVAIL_PX와 같은 값 */
+const FIT_AVAIL = 272;
 const tokensOf = (s: ImpactSection): ArchetypeTokens => ARCHETYPES[(s.ax && s.ax in ARCHETYPES ? s.ax : "editorial") as ArchetypeId];
 
 /** 흰 글자가 올라가는 진한 면(4.5:1 미달이면 잉크) */
@@ -138,6 +141,14 @@ function storyV5(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeTokens)
       (s.body ? `<p style="margin:16px 0 0;overflow-wrap:anywhere;${typeCss("body", on.sub, "white-space:pre-line")}">${esc(s.body)}</p>` : "");
     return wrap(b, p, `<div style="display:flex;gap:12px;align-items:flex-start"><div style="flex:0 0 28%;min-width:0">${num}</div><div style="flex:1 1 0%;min-width:0">${text}</div></div>`, { head: "" });
   }
+  if (b.variant === "scene" && s.quote) {
+    // 469차 장면: 인용 한 문장이 한 화면(min-height 640)을 차지한다. 글자는 36px 이상(fitTitlePx), 긴 어절은 overflow-wrap이 받는다
+    const size = fitTitlePx(s.quote, 56, SCENE_MIN_PX, 6);
+    const mark = `<span aria-hidden="true" style="display:block;margin:0 0 6px;font-size:110px;line-height:0.7;font-weight:900;color:${hexToRgba(p.deep, 0.22)}">\u201C</span>`;
+    const quote = `<p style="margin:0;font-size:${size}px;line-height:1.22;font-weight:${Math.max(t.type.weight, 800)};letter-spacing:-0.03em;color:${on.text};word-break:keep-all;overflow-wrap:anywhere;--pz-fixed:1">${esc(s.quote)}</p>`;
+    const body = s.body ? `<p style="margin:22px 0 0;overflow-wrap:anywhere;${typeCss("body", on.sub, "white-space:pre-line")}">${esc(s.body)}</p>` : "";
+    return wrap(b, p, mark + quote + body, { head, minH: 640, pad: "72px 24px" });
+  }
   if (b.variant === "pullout" && s.quote) {
     // 468차 구도: 인용문이 섹션 가장자리까지 번지는 띠 위에 크게(한쪽으로 몰림), 본문은 반대쪽으로 들여 쓴다
     const left = b.no % 2 === 1;
@@ -193,6 +204,13 @@ function phototextV5(s: ImpactSection, b: V4Block, p: V4Palette, alt: string, t:
     return wrap(b, p,
       `${photoFrame(frame === "arch" ? "rect" : frame, it.img.url, alt, it.img.pos, p, "16 / 10")}` +
       `<div style="position:relative;z-index:2;margin:-22px 12px 0 ${frame === "offset" ? 12 : 0}px;box-sizing:border-box;padding:20px 18px;border-radius:16px;background:#FFFFFF;border:${hairline(p.ink)};box-shadow:${depthShadow("float", p.ink)}"><div style="display:flex;gap:14px;align-items:flex-start">${numberMark(t.number, 0, b, p)}<div style="flex:1 1 0%;min-width:0">${title}${bodyP(it.body, p, on.sub, 8)}</div></div></div>`);
+  }
+  if (b.variant === "scene") {
+    // 469차 장면: 풀블리드 사진(높이 380) 아래로 큰 제목 카드가 걸친다. 제목 36px 이상, 섹션 min-height 640
+    const size = fitTitlePx(it.title, 48, SCENE_MIN_PX, 6);
+    const photo = `<div style="margin:0 -24px;position:relative;height:380px;overflow:hidden;background:${p.tints[1]}">${img(it.img.url, alt, it.img.pos)}</div>`;
+    const panel = `<div style="position:relative;z-index:2;max-width:576px;margin:-56px auto 0;box-sizing:border-box;padding:24px 22px;border-radius:16px;${cardFace(p)}"><p style="margin:0;font-size:${size}px;line-height:1.2;font-weight:${Math.max(t.type.weight, 800)};letter-spacing:-0.03em;color:${p.ink};word-break:keep-all;overflow-wrap:anywhere;--pz-fixed:1">${headingHtml(it.title, b, p)}</p>${bodyP(it.body, p, on.sub, 12)}</div>`;
+    return wrap(b, p, photo + panel, { bleed: true, minH: 640, pad: "0 24px 56px" });
   }
   if (b.variant === "bleed") {
     const card = `<div style="display:flex;gap:14px;align-items:flex-start">${numberMark(t.number, 0, b, p)}<div style="flex:1 1 0%;min-width:0">${title}${bodyP(it.body, p, on.sub, 8)}</div></div>`;
@@ -308,6 +326,15 @@ function statsV5(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeTokens)
     const row = `<div style="display:flex;flex-wrap:wrap;gap:20px 24px;margin-top:20px">${rest.map((it) => { const x = splitStat(it.body ?? ""); return `<div style="flex:1 1 120px;min-width:0">${statBlock(x.num, x.unit, p, { size: x.num.length > 5 ? 30 : 46, ink: on.text })}${label(it.title)}</div>`; }).join("")}</div>`;
     return wrap(b, p, big + row, { head });
   }
+  if (b.variant === "scene") {
+    // 469차 장면: 첫 숫자 하나가 화면을 채운다(입력 숫자 그대로, 글자 수로 크기 제한 — 320폭에서 한 줄), 나머지는 아래 작은 줄
+    const [first, ...rest] = items;
+    const f0 = splitStat(first!.body ?? "");
+    const px = Math.max(48, Math.min(112, Math.floor(FIT_AVAIL / (0.66 * Math.max(1, [...f0.num].length)))));
+    const big = `<div style="padding-bottom:22px;border-bottom:2px solid ${p.ink}">${statBlock(f0.num, f0.unit, p, { size: px, ink: on.text })}<p style="margin:12px 0 0;overflow-wrap:anywhere;${typeCss("title", on.text, "font-size:22px")}">${esc(first!.title)}</p></div>`;
+    const row = rest.length ? `<div style="display:flex;flex-wrap:wrap;gap:20px 24px;margin-top:22px">${rest.map((it) => { const x = splitStat(it.body ?? ""); return `<div style="flex:1 1 120px;min-width:0">${statBlock(x.num, x.unit, p, { size: x.num.length > 5 ? 48 : 56, ink: on.text })}${label(it.title)}</div>`; }).join("")}</div>` : "";
+    return wrap(b, p, big + row, { head, minH: 640, pad: "72px 24px" });
+  }
   if (b.variant === "trio") {
     const kinds = ["hard", "soft", "float"] as const;
     const cards = items.map((it, i) => { const x = splitStat(it.body ?? ""); const kind = t.shadow.kind === "hard" ? "hard" : kinds[(i + 1) % 3]!; return `<div style="flex:1 1 140px;min-width:0;transform:rotate(${i % 2 ? 1.2 : -1.2}deg)">${shadowPlate(`${statBlock(x.num, x.unit, p, { size: x.num.length > 5 ? 30 : 52, ink: p.ink })}${label(it.title).replace(on.sub, p.ink)}`, p, kind, { bg: i % 2 ? p.tints[0] : "#FFFFFF" })}</div>`; }).join("");
@@ -344,7 +371,16 @@ export const V5_PARTS: V5Parts = (s, b, p, alt) => {
     case "touch": return touchV5(s, b, p);
     case "stats": return statsV5(s, b, p, t);
     case "gallery": return galleryV5(s, b, p, alt);
-    case "statement": return b.variant === "ticker" ? wrap(b, p, tickerBand((b.items ?? []).map((i) => i.title), p, { deg: -2, repeat: 3 }), { pad: "28px 24px" }) : null;
+    case "statement":
+      if (b.variant === "scene" && s.text.trim()) {
+        // 469차 장면: 강조 문장 한 줄이 한 화면(min-height 600)을 차지한다. 글자 36px 이상
+        const t0 = tokensOf(s);
+        const on0 = p.onFace[faceRole(b)];
+        const size = fitTitlePx(s.text, 56, SCENE_MIN_PX, 6);
+        const bar = `<span aria-hidden="true" style="display:block;width:64px;height:6px;margin:0 0 22px;background:${p.deep}"></span>`;
+        return wrap(b, p, `${bar}<p style="margin:0;font-size:${size}px;line-height:1.2;font-weight:${Math.max(t0.type.weight, 800)};letter-spacing:-0.03em;color:${on0.text};word-break:keep-all;overflow-wrap:anywhere;--pz-fixed:1">${headingHtml(s.text, b, p, "color")}</p>`, { minH: 640, pad: "72px 24px" });
+      }
+      return b.variant === "ticker" ? wrap(b, p, tickerBand((b.items ?? []).map((i) => i.title), p, { deg: -2, repeat: 3 }), { pad: "28px 24px" }) : null;
     default: return null;
   }
 };

@@ -26,6 +26,7 @@
  */
 import type { DetailSection, ImpactSection, V4Block } from "@/lib/types/generate";
 import { personaStripIndexes } from "@/lib/persona-strip";
+import { FIT_AVAIL_PX, emWidth } from "@/lib/page-archetype-v5";
 import type { ImpactPalette } from "@/lib/impact-templates";
 import type { ProductImageOrigin } from "@/lib/image-origins";
 import { darkPaletteOf, faceCycleOf, invertFixHtml, isDarkStrategy } from "@/lib/face-strategy-v5";
@@ -186,6 +187,11 @@ export function variantFits(family: V4Family, variant: string, d: { items: Item[
     case "benefits.stagger": return designV5On() && n >= 3 && n <= 6 && d.items.every((i) => len(i.title) <= 24 && len(i.body) <= 56);
     case "concern.offset": return designV5On() && n >= 3 && n <= 6 && d.items.every((i) => len(i.title) <= 40);
     case "story.pullout": return designV5On() && len(d.quote) >= 8 && len(d.quote) <= 80;
+    // 469차 V5 — 화면 장악 장면(planScenesV5가 기존 블록을 승격할 때만 쓰는 변형; 일반 변형 회전에는 없다). 큰 글자(36px 이상)가 6줄 안에 들어야 한다
+    case "statement.scene": return designV5On() && len(d.quote) >= 8 && sceneTextFits(d.quote ?? "");
+    case "story.scene": return designV5On() && len(d.quote) >= 8 && sceneTextFits(d.quote ?? "");
+    case "phototext.scene": return designV5On() && n === 1 && photos === 1 && sceneTextFits(d.items[0]?.title ?? "");
+    case "stats.scene": return designV5On() && n >= 2 && n <= 4 && d.items.every((i) => len(i.title) <= 24 && len(i.body) >= 1 && len(i.body) <= 14) && /^\d[\d.,]{0,5}\s*\S{0,6}$/.test((d.items[0]?.body ?? "").trim());
     case "gallery.deck": return designV5On() && photos >= 2 && photos <= 3 && n === photos;
     case "faq.numlist": case "faq.qband": case "faq.tabs": return designV5On() && n >= 2 && n <= 8 && d.items.every((i) => len(i.title) <= 70 && len(i.body) <= 200);
     case "faq.twocol": return designV5On() && n >= 2 && n <= 6 && d.items.every((i) => len(i.title) <= 50 && len(i.body) <= 120);
@@ -215,18 +221,18 @@ export function headingHtml(text: string, b: V4Block, p: V4Palette, style: "mark
   return highlightKeyword(text, b.keywords ?? [], style, style === "marker" ? p.accent : p.deep).html;
 }
 
-export function wrap(b: V4Block, p: V4Palette, inner: string, opts: { pad?: string; head?: string; label?: string; bleed?: boolean } = {}): string {
+export function wrap(b: V4Block, p: V4Palette, inner: string, opts: { pad?: string; head?: string; label?: string; bleed?: boolean; minH?: number } = {}): string {
   const role = faceRole(b);
   const on = p.onFace[role];
   const motifs = (b.motifs ?? []).map((m) => motifHtml(m as MotifPlacement, motifColors(p))).join("");
   const ghost = b.ghost ? ghostHtml(b.ghost, mixHex(p.faces[role] === "#FFFFFF" ? p.tints[0] : p.tints[1], p.accent, 0.12), 88, "tr") : "";
   const title = opts.head !== undefined ? titleBlock(b.preset ?? "number", opts.label ?? b.label ?? EYEBROW_LABEL[b.family] ?? "", b.no, opts.head, { ink: on.text, deep: on.strong, pillBg: p.deep, pillFg: "#FFFFFF" }) : "";
   return (
-    `<section data-pz-impact="v4" data-pz-v4="${b.family}.${b.variant}" style="position:relative;padding:${opts.pad ?? "64px 24px"};background:${faceBg(b, p)}">` +
+    `<section data-pz-impact="v4" data-pz-v4="${b.family}.${b.variant}" style="position:relative;padding:${opts.pad ?? "64px 24px"};${opts.minH ? `min-height:${opts.minH}px;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box;` : ""}background:${faceBg(b, p)}">` +
     motifs + ghost + (b.divider ? dividerHtml(b.divider as DividerKind, p.ink) : "") +
     (opts.bleed
       ? `<div style="position:relative;z-index:1">${title ? `<div style="max-width:576px;margin:0 auto">${title}</div>` : ""}${inner}</div></section>` // 468차 V5 — 풀블리드 구도: 내용 상자가 섹션 폭을 쓰고 제목만 576 상자에 둔다
-      : `<div style="position:relative;z-index:1;max-width:576px;margin:0 auto">${title}${inner}</div></section>`)
+      : `<div style="position:relative;z-index:1;max-width:576px;margin:0 auto${opts.minH ? ";width:100%" : ""}">${title}${inner}</div></section>`)
   );
 }
 
@@ -912,7 +918,9 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
   const ticker = ctx.v5 ? insertTickerV5(rhythm1b.sections, rhythm1b.sourceIndexes, keywords, ctx, seed) : null;
   const rhythm = ticker ? { ...rhythm1b, sections: ticker.sections, sourceIndexes: ticker.sourceIndexes, inserted: [...rhythm1b.inserted, ticker.note] } : rhythm1b;
   const withMotifs0 = assignMotifs(assignFaces(rhythm.sections, seed), ctx.mood, seed, ctx.v5 ?? null);
-  const withMotifs = ctx.v5 ? boostEarlyHighV5(withMotifs0, ctx, seed) : withMotifs0;
+  const withMotifs1 = ctx.v5 ? boostEarlyHighV5(withMotifs0, ctx, seed) : withMotifs0;
+  // 469차 V5 — 화면 장악 장면(기존 블록 승격)
+  const withMotifs = ctx.v5 ? planScenesV5(withMotifs1, ctx) : withMotifs1;
   const finalPlaced: V4Placed[] = [];
   withMotifs.forEach((s, at) => { if (s.type === "impact" && s.kind === "v4" && s.v4) finalPlaced.push({ family: s.v4.family, variant: s.v4.variant, at, from: "" }); });
   return { sections: withMotifs, sourceIndexes: rhythm.sourceIndexes, placed: finalPlaced, moved: hooked.moved, inserted: rhythm.inserted };
@@ -1004,6 +1012,49 @@ function statementFormV5(ctx: V4Ctx, seed: number, shift: number): (typeof STATE
  * 그 구간 v4 블록 하나를 요건이 맞는 강한 변형으로 바꾼다. 1차: 아키타입 선호 목록 안 → 2차: 목록 밖(장점·스토리 제외, 구간 뒤쪽부터) → 3차: 장점·스토리 포함.
  * 선호 1순위 변형을 지켜야 하는 만큼 바꾸는 블록 수를 최소로(필요할 때만, 한 번에 하나).
  */
+/** 장면 글자(최소 36px)가 320폭 272px 가용 폭에서 6줄 안에 들어가는지 — 가장 긴 어절은 overflow-wrap이 받는다 */
+export const SCENE_MIN_PX = 36;
+export function sceneTextFits(text: string): boolean {
+  const t = (text ?? "").trim();
+  return t.length > 0 && emWidth(t) * SCENE_MIN_PX * 1.05 <= FIT_AVAIL_PX * 6;
+}
+
+/**
+ * 469차 V5 — 화면 장악 장면 계획. 이미 있는 v4 블록(스토리 인용·사진 1장 phototext·숫자 카드)을 한 화면 규모의 장면(min-height 600~680px + 큰 글자)으로 **승격**한다 — 새 내용 없음.
+ * 개수: 강도 5 → 3, 4 → 2, 3 → 1(후보가 모자라면 그만큼). 위치: 페이지 30%·62%·마무리 직전(88%)에 가장 가까운 후보. 히어로·처음 2개 섹션·구매 카드 앞 2개 이내 제외,
+ * 장면 사이에 조용한 블록 최소 2개(인덱스 차 ≥ 3), 접점·띠·숨 고르기 옆 제외. 결정적(시드 없이 위치 거리, 동률은 앞쪽).
+ */
+export const SCENE_COUNT = { 5: 3, 4: 2, 3: 1 } as const;
+const SCENE_AT = [0.3, 0.62, 0.88] as const;
+/** 시험용: 장면 승격을 끄고 변형 선호만 본다(466차 선호 회귀) */
+let scenesOff = false;
+export function setScenesOffForTests(off: boolean): void { scenesOff = off; }
+function planScenesV5(sections: DetailSection[], ctx: V4Ctx): DetailSection[] {
+  if (scenesOff) return sections;
+  const t = ctx.v5!;
+  const want = SCENE_COUNT[t.dyn.level];
+  const n = sections.length;
+  const cand: number[] = [];
+  sections.forEach((s, i) => {
+    if (i < 2 || i > n - 2 || s.type !== "impact" || s.kind !== "v4" || !s.v4) return;
+    const b = s.v4;
+    const near = [sections[i - 1], sections[i + 1]].some((x) => x?.type === "impact" && x.kind === "v4" && !!x.v4 && ["touch", "statement", "breather"].includes(x.v4.family));
+    const stText = b.family === "statement" ? (s.text ?? "").trim() : "";
+    if (near && b.family !== "statement") return;
+    const d = { items: (b.items ?? []) as Item[], ...(s.quote ? { quote: s.quote } : stText ? { quote: stText } : {}), ...(s.body ? { body: s.body } : {}) };
+    const fam = b.family;
+    if ((fam === "statement" && b.variant !== "ticker" && !["touch", "breather"].some((f) => [sections[i - 1], sections[i + 1]].some((x) => x?.type === "impact" && x.kind === "v4" && x.v4?.family === f)) && variantFits("statement", "scene", d)) || (fam === "story" && variantFits("story", "scene", d)) || (fam === "phototext" && variantFits("phototext", "scene", d)) || (fam === "stats" && variantFits("stats", "scene", d))) cand.push(i);
+  });
+  const chosen: number[] = [];
+  const targets = want === 1 ? [0.5] : want === 2 ? [0.35, 0.75] : [...SCENE_AT];
+  for (const tg of targets) {
+    const best = cand.filter((i) => chosen.every((c) => Math.abs(c - i) >= 3)).sort((a, b) => Math.abs(a / n - tg) - Math.abs(b / n - tg) || a - b)[0];
+    if (best !== undefined) chosen.push(best);
+  }
+  if (!chosen.length) return sections;
+  return sections.map((s, i) => (chosen.includes(i) ? ({ ...s, v4: { ...(s as ImpactSection).v4!, variant: "scene" } } as DetailSection) : s));
+}
+
 function boostEarlyHighV5(sections: DetailSection[], ctx: V4Ctx, seed: number): DetailSection[] {
   const prefAll = (ctx.v5!.prefer as Partial<Record<string, string[]>>);
   let out = sections;

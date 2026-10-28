@@ -18,7 +18,7 @@ type Dyn = NonNullable<ImpactSection["dyn"]>;
 const SKIP_FAMILY = new Set(["touch", "breather", "statement"]);
 /** 글 위주 기존 임팩트 종류(사진 위 글자·사진 오버레이 종류는 제외) — 장식 층은 이 섹션 뒤(z-index -1)에 깔려 글을 가리지 않는다 */
 const LEGACY_OK = new Set(["note", "textboost", "bubbles", "checkrows", "checkgrid", "chat", "chipwall", "sizebars", "illust-center", "illust-side", "swatch", "timeline", "spectable", "specstrip", "faqcards", "proof", "reviewstat", "story", "fit", "number"]);
-export const dynEligible = (s: DetailSection | undefined): s is ImpactSection => !!s && s.type === "impact" && (s.kind === "v4" ? !!s.v4 && !SKIP_FAMILY.has(s.v4.family) : LEGACY_OK.has(s.kind));
+export const dynEligible = (s: DetailSection | undefined): s is ImpactSection => !!s && s.type === "impact" && (s.kind === "v4" ? !!s.v4 && !SKIP_FAMILY.has(s.v4.family) && s.v4.variant !== "scene" : LEGACY_OK.has(s.kind));
 const bandLike = (s: DetailSection | undefined): boolean => !!s && s.type === "impact" && s.kind === "v4" && !!s.v4 && (s.v4.family === "statement" || s.v4.family === "breather");
 /** 큰 배경 글자: v4 블록은 순번(눈썹 번호와 같은 값), 기존 임팩트는 제목의 첫 단어(입력 원문, ≤8자) */
 const firstWord = (text: string | undefined): string => ([...(text ?? "").trim().split(/\s+/)[0] ?? ""].slice(0, 8)).join("");
