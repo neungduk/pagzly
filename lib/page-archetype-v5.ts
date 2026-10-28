@@ -104,7 +104,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   techsheet: {
     id: "techsheet", radius: 0, pill: 0, border: { w: 1, style: "dashed", alphaMul: 2.4 }, shadow: { kind: "none", offset: 0 }, paper: "#EEF3F8", face: "lightOnly",
-    pad: [28, 40, 52], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: "step", rise: false, tilt: false, texture: "grid" }, type: { weight: 900, tracking: -0.01, scale: 0.94, title: 34, display: 38 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["stitch", "dotted"], number: "box", marker: "square", decor: "corner-ticks", decorAlt: ["bracket","dots-grid"], badge: "hex", density: "tight",
+    pad: [28, 40, 52], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: "step", rise: true, tilt: false, texture: "grid" }, type: { weight: 900, tracking: -0.01, scale: 0.94, title: 34, display: 38 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["stitch", "dotted"], number: "box", marker: "square", decor: "corner-ticks", decorAlt: ["bracket","dots-grid"], badge: "hex", density: "tight",
     hero: ["D"],
     banner: ["split", "card-only"],
     prefer: { benefits: ["iconlist", "linelist", "rows2"], concern: ["checkrows", "deck", "stack"], story: ["linetime", "chapter"], spec: ["panel", "strip"], phototext: ["caption", "dframe", "overlap"], steps: ["vtimeline", "bignum"], faq: ["numlist", "tabs"], proof: ["lead", "badges"], touch: ["ledger", "ticket"], statement: ["rule", "band"], stats: ["trio", "rings"], gallery: ["mosaic", "polaroid"] },

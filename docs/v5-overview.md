@@ -106,3 +106,13 @@
 - 빈 사진 면(캡처에서 보인 약 1000px 빈 패널)은 원인 불확실(가짜 현상 가능성이 높음). 집 PC 확인: `docs/pc-todo.md`.
 - 진한 면 전략(impact·pop)은 진한 덩어리가 페이지당 평균 5개 안팎(최대 8)이라 428차 "명암 반전 ≤6" 예산(브라우저 지표)을 넘길 수 있다.
 - 눈 검수 순서와 항목: `docs/pc-todo.md` "V5 눈 검수".
+
+## 진짜 다이나믹 (468차)
+- **배너 매핑**(토큰 `banner:[첫,다음]`, `lib/banner-v5.ts`, 섹션 `v5Banner` → 두 렌더러가 `section.v5Banner ?? bannerStyleNow()`): editorial·catalog·techsheet·luxe = split → card-only / softlife·narrative = card-only → split / impact = full-scrim → card-only / pop = full-scrim → split. 배너가 여럿이면 번갈아(연속 같은 값 없음). `BANNER_STYLE` 기본값·V5 꺼짐 배너는 그대로.
+- **디스플레이 스케일**(토큰 `type.title/display`, `fitTitlePx`): 제목(26px 역할)·큰 문구(30px 역할)를 글자 수·가장 긴 어절로 단계 선택(320폭 가용 272px, 기존 크기 미만 없음). 값 title/display: editorial 40/44, catalog 36/40, softlife 36/40, impact 44/50, techsheet 34/38, narrative 38/42, luxe 32/36, pop 42/48. `clamp/cqi`는 export에 있으나 v4 블록 루트에 컨테이너가 없어 단계 함수로 처리(결정적).
+- **구도 부품**(`lib/compose-v5.ts`): bleedPhoto·splitAsym·staggerGrid·pullOut·offsetStack·heroNumber·layerDeck. 새 변형: phototext.bleed/split, benefits.stagger, concern.offset, story.pullout, gallery.deck(+ story.chapter 번호 칸). 입력 요건 미달이면 기존 변형으로 폴백. `wrap(bleed)`는 내용 상자가 섹션 폭을 쓴다.
+- **구도 계획**(`planDynamicsV5`): 구도 변형이 아닌 적격 섹션은 내용 열을 번갈아 한쪽으로 들인다(`indent`), 이음새의 2/3를 걸침으로 바꾼다.
+- **빈 사진 틀**: V5 켜짐에서 `[data-pz-np]` 틀 max-height 280px + 사선 대비 상향(`noPhotoCssV5`). 기준(꺼짐)의 같은 결함은 별도 결정.
+- **일반 섹션**: V5 단일 소스는 467차 3종(stats·gallery·text_only story). 468차는 표식이 있는 일반 섹션에 강도 4·5 시트 모서리/윗그림자(래퍼 CSS). 상품 정보 표·persona 등 구조 재작성은 하지 않음.
+- **롤백**: 플래그(`NEXT_PUBLIC_DESIGN_V5`) 끄기 또는 `NEXT_PUBLIC_V5_ARCHETYPE` 고정. 지표: `npx tsx scripts/dynamics-report-468.ts`.
+
