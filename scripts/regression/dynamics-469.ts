@@ -3,6 +3,7 @@
  *  Phase 2: 일반 섹션 구조 재작성(target_persona→concern 변형·step_card→zigzag·상품 정보 목록 CSS): 원문 보존·조건·폴백·대상 한정
  *  Phase 5: 갤러리 lazy→eager(기본, --keep-lazy로 끔; 갤러리 파일에서만)
  *  Phase 4: 화면 장악 장면(승격 계획: 개수·간격·위치 제한, 큰 글자 36px 이상·min-height 640, 새 글자 없음, 소스 가드)
+ *  Phase 6: 전수 안전망(말뭉치 21 × 8 × 사진 전부/일부/없음): 예외·금지 CSS·고정 폭·export 크기 ≤135%·대비 위반 증가 없음·결정성
  *  Phase 3: 본문 글자 토큰(≥15px, 행간 ≤ typo-v4 상한, 가격·한 줄 고정·대문자 라벨·짧은 글 제외, 고지/배송 블록 불변)
  *  Phase 1: 정보 구간(data-info) 아키타입화 — 토큰·덮어쓰기 CSS·팔레트 전수 대비·진한 정보 구간 0·V5 꺼짐 미호출
  */
@@ -14,7 +15,8 @@ import { infoColorsOf } from "../../lib/info-style";
 import { scrimAlpha } from "../../lib/info-backdrop";
 import { getCategoryTheme } from "../../lib/category-theme";
 import { contrastRatioToken, mixHex } from "../../lib/design-tokens";
-import { corpus, exportArgsOf, exportHtmlOf, readSession } from "../design-corpus";
+import { corpus, exportArgsOf, exportHtmlOf, exportHtmlPhotos, readSession, type PhotosMode } from "../design-corpus";
+import { contrastFindings } from "../contrast-audit-466";
 import { bodyMedian, darkInfoZones } from "../dynamics-metrics-469";
 import { SCENE_COUNT, SCENE_MIN_PX, sceneTextFits } from "../../lib/layout-variants";
 import { EYEBROW_LABEL } from "../../lib/type-treatments";
@@ -153,6 +155,63 @@ export async function run(): Promise<string[]> {
     setV5ArchetypeForTests(null);
     setDesignV5ForTests(false);
   }
+  // ── Phase 6: 전수 안전망
+  {
+    setDesignUp1ForTests(true);
+    const count = (h: string, k: string): number => h.split(k).length - 1;
+    const widthBig = (h: string): number => (h.match(/width:\d{4,}px/g) ?? []).length;
+    // clip-path는 441차 구분선 CSS(dividerCss ::before 사선)가 이미 쓴다 — 기준(UP1)과 같은 코드라 새 금지 검사에서는 뺀다(새 코드의 clip-path는 부품·변형 검사가 막는다)
+    const STRICT = [":has(", "mix-blend-mode", "-webkit-text-stroke", "text-wrap", "backdrop-filter", "textPath", "foreignObject", "position:fixed"];
+    const worstSize = { r: 0, at: "" };
+    for (const mode of ["all", "partial", "none"] as PhotosMode[]) {
+      const bases = new Map<string, string>();
+      setDesignV5ForTests(false);
+      for (const [id, file] of corpus()) bases.set(id, exportHtmlPhotos(file, mode));
+      setDesignV5ForTests(true);
+      for (const a of ARCHETYPE_IDS) {
+        setV5ArchetypeForTests(a);
+        for (const [id, file] of corpus()) {
+          const tag = `${id}/${a}/${mode}`;
+          let h = "";
+          try { h = exportHtmlPhotos(file, mode); } catch (e) { f.push(`${tag}: 렌더 예외 ${(e as Error).message.slice(0, 60)}`); continue; }
+          const base = bases.get(id)!;
+          for (const k of STRICT) if (count(h, k) > count(base, k)) f.push(`${tag}: 금지 CSS ${k} 증가`);
+          if (widthBig(h) > widthBig(base)) f.push(`${tag}: 750 초과 고정 폭 증가`);
+          const ratio = h.length / base.length;
+          if (ratio > worstSize.r) { worstSize.r = ratio; worstSize.at = tag; }
+          if (ratio > 1.35) f.push(`${tag}: export 크기 ${Math.round(ratio * 100)}% > 135%`);
+          // 히어로(사진 위 글자)·내비는 도구가 못 재므로 본문 섹션만, 정보 구간(data-info)은 글자색·면을 문서 CSS(!important)가 정해 인라인만 보는 도구가 못 잰다 → 제외(대비는 Phase 1 팔레트 전수 계산이 맡는다)
+          const bodyOf = (x: string): string => topSections(expandDedupedStyles(x)).filter((sec) => !/data-info="/.test(sec.slice(0, sec.indexOf(">") + 1))).join("\n");
+          const cf = contrastFindings(bodyOf(h)).length;
+          const cb = contrastFindings(bodyOf(base)).length;
+          if (cf > cb) f.push(`${tag}: 대비 위반 ${cb} → ${cf}`);
+          if (mode === "all" && a === "editorial" && h !== exportHtmlPhotos(file, mode)) f.push(`${tag}: 비결정`);
+        }
+      }
+    }
+    setV5ArchetypeForTests(null);
+    setDesignV5ForTests(false);
+  }
+  // ── Phase 6: 규정·고지·구매 노드 보존(기준 UP1의 글 노드가 V5에도 그대로 있다) + 가격 문구
+  {
+    setDesignUp1ForTests(true);
+    const REG = /id="pagzly-(?:caution|shipping)"|data-info="buy"|class="pagzly-cta"|AI 생성 콘텐츠 안내/;
+    const plainNodes = (sec: string): string[] => readableTexts(sec).map((t) => t.text.replace(/\s+/g, " ").trim()).filter((x) => x.length >= 2);
+    const norm = (x: string): string => x.replace(/\s+/g, " ").trim();
+    for (const a of ["editorial", "impact", "softlife"] as const) {
+      setV5ArchetypeForTests(a);
+      for (const [id, file] of corpus()) {
+        setDesignV5ForTests(false);
+        const base = topSections(expandDedupedStyles(exportHtmlOf(file))).filter((sec) => REG.test(sec.slice(0, 600)) || /data-pz-ax|id="pagzly-/.test(sec.slice(0, 200)) && /AI 생성 콘텐츠 안내/.test(sec));
+        setDesignV5ForTests(true);
+        const v5 = topSections(expandDedupedStyles(exportHtmlOf(file)));
+        const v5Text = norm(v5.map((sec) => plainNodes(sec).join(" ")).join(" "));
+        for (const sec of base) for (const t2 of plainNodes(sec)) if (!/^(?:[A-Z]+ )?\d+$/.test(t2) && !v5Text.includes(norm(t2)) && !v5Text.includes(norm(t2).slice(0, 10))) f.push(`${id}/${a}: 규정·구매 글 노드 사라짐 «${t2.slice(0, 18)}»`);
+      }
+    }
+    setV5ArchetypeForTests(null);
+    setDesignV5ForTests(false);
+  }
   // ── Phase 3: 본문 글자
   for (const a of ARCHETYPE_IDS) {
     const t = ARCHETYPES[a];
@@ -206,4 +265,4 @@ export async function run(): Promise<string[]> {
   return f;
 }
 
-if (require.main === module) void run().then((f) => { console.log(f.length ? f.slice(0, 80).join("\n") + (f.length > 80 ? `\n… 외 ${f.length - 80}건` : "") : "통과"); process.exit(f.length ? 1 : 0); });
+if (require.main === module) void run().then((f) => { console.log(f.length ? f.slice(0, 400).join("\n") + (f.length > 80 ? `\n… 외 ${f.length - 80}건` : "") : "통과"); process.exit(f.length ? 1 : 0); });

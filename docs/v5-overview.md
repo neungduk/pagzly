@@ -116,3 +116,10 @@
 - **일반 섹션**: V5 단일 소스는 467차 3종(stats·gallery·text_only story). 468차는 표식이 있는 일반 섹션에 강도 4·5 시트 모서리/윗그림자(래퍼 CSS). 상품 정보 표·persona 등 구조 재작성은 하지 않음.
 - **롤백**: 플래그(`NEXT_PUBLIC_DESIGN_V5`) 끄기 또는 `NEXT_PUBLIC_V5_ARCHETYPE` 고정. 지표: `npx tsx scripts/dynamics-report-468.ts`.
 
+## 남은 평평한 덩어리 (469차)
+- **정보 구간 매핑**(토큰 `infoBackdrop`, `lib/info-v5.ts`): scrim-deep(impact·pop: 기존 진한 면 유지) / scrim-light(editorial·catalog·techsheet·luxe: 밝은 틴트 스크림 + 흰 카드 + 잉크 글자, 알파는 기존 `scrimAlpha`로 검은 사진 최악 5.5:1) / photo-plain(softlife·narrative: 옅은 스크림) / 사진 URL이 없으면 모두 틴트 면. `archetypeCssV5` 뒤에서 같은 선택자 `!important`로 덮어쓴다(stat·statnum·steps 반전도 해제). 상품 정보 표(`#pagzly-info`)는 ledger(editorial·luxe·techsheet)/stack(그 외) 목록 구조, 크기표·배송 제외.
+- **일반 섹션 변환**: target_persona → concern 변형(3~6개·각 40자 이하·사진 띠 없음일 때만, 문장 원문), step_card → benefits.zigzag(사진 유지, 라벨 STEP; 2~4단계·사진 모두 유효·중복 없음일 때만). 조건 미달·편집 모드·V5 꺼짐은 기존 렌더러. review_highlight·checklist·tradeoff·comparison·color_variation은 정책·인터랙션 사유로 래퍼만.
+- **본문 글자 토큰**(`type.body/lh`): editorial·catalog·techsheet·luxe 15px, softlife·impact·narrative·pop 16px, 행간 1.7~1.75(`BODY_LINE_HEIGHT_MAX`). 대상은 문단급 14·15px `<p>`(16자 이상, 굵기 ≤500) — 가격·한 줄 고정·대문자 라벨·고지(note)·배송 블록 제외.
+- **화면 장악 장면**(`planScenesV5`): story 인용·phototext 1장·숫자 카드·강조 문장을 `*.scene`(min-height 640, 글자 36px 이상)으로 승격. 강도 5/4/3 → 3/2/1개, 위치 30·62·88%, 간격 ≥3, 접점·숨 고르기 옆 제외, 새 글자 없음. 일반 변형 회전에는 들어가지 않는다.
+- **롤백**: 플래그(`NEXT_PUBLIC_DESIGN_V5`) 끄기 또는 `NEXT_PUBLIC_V5_ARCHETYPE` 고정. 지표: `npx tsx scripts/dynamics-report-469.ts`.
+
