@@ -236,7 +236,7 @@ export function wrap(b: V4Block, p: V4Palette, inner: string, opts: { pad?: stri
     motifs + ghost + (b.divider ? dividerHtml(b.divider as DividerKind, p.ink) : "") +
     (opts.bleed
       ? `<div style="position:relative;z-index:1">${title ? `<div style="max-width:576px;margin:0 auto">${title}</div>` : ""}${inner}</div></section>` // 468차 V5 — 풀블리드 구도: 내용 상자가 섹션 폭을 쓰고 제목만 576 상자에 둔다
-      : `<div style="position:relative;z-index:1;max-width:576px;margin:0 auto${opts.minH ? `;width:100%;box-sizing:border-box${b.sceneAt === 0 ? ";padding-right:40px" : b.sceneAt === 2 ? ";padding-left:40px" : ""}` : ""}">${title}${inner}</div></section>`)
+      : `<div style="position:relative;z-index:1;max-width:576px;margin:0 auto${opts.minH ? ";width:100%;box-sizing:border-box" : b.sceneAt !== undefined ? ";box-sizing:border-box" : ""}${b.sceneAt === 0 ? ";padding-right:40px" : b.sceneAt === 2 ? ";padding-left:40px" : ""}">${title}${inner}</div></section>`)
   );
 }
 
@@ -934,10 +934,13 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
   const withScenes = ctx.v5 ? planScenesV5(withMotifs1, ctx) : withMotifs1;
   // 470차 V5 — 최종 순서의 "높음 3연속" 줄이기(레시피·장면이 만든 것)
   const derun = ctx.v5 ? derunV5(withScenes, recipe ? recipe.sourceIndexes : rhythm.sourceIndexes) : null;
-  const withMotifs = derun ? derun.sections : withScenes;
+  const withMotifs0b = derun ? derun.sections : withScenes;
+  // 471차 V5 — 높이 리듬(큰 블록 사이 짧은 구분 띠)
+  const inter = ctx.v5 ? insertInterludesV5(withMotifs0b, derun ? derun.sourceIndexes : recipe ? recipe.sourceIndexes : rhythm.sourceIndexes, ctx) : null;
+  const withMotifs = inter ? inter.sections : withMotifs0b;
   const finalPlaced: V4Placed[] = [];
   withMotifs.forEach((s, at) => { if (s.type === "impact" && s.kind === "v4" && s.v4) finalPlaced.push({ family: s.v4.family, variant: s.v4.variant, at, from: "" }); });
-  return { sections: withMotifs, sourceIndexes: derun ? derun.sourceIndexes : recipe ? recipe.sourceIndexes : rhythm.sourceIndexes, placed: finalPlaced, moved: hooked.moved, inserted: rhythm.inserted };
+  return { sections: withMotifs, sourceIndexes: inter ? inter.sourceIndexes : derun ? derun.sourceIndexes : recipe ? recipe.sourceIndexes : rhythm.sourceIndexes, placed: finalPlaced, moved: hooked.moved, inserted: rhythm.inserted };
 }
 
 /**
@@ -1040,6 +1043,37 @@ export function sceneTextFits(text: string): boolean {
  */
 export const SCENE_COUNT = { 5: 3, 4: 2, 3: 1 } as const;
 const SCENE_AT = [0.3, 0.62, 0.88] as const;
+/**
+ * 471차 V5 — 높이 리듬: 큰 블록(추정 높이 450px 이상)이 바로 이어지는 경계에 짧은 구분 띠(breather.rule, 글 없음, 높이 ≈ 150px)를 끼운다.
+ * 장면(scene)이 낀 경계를 먼저, 페이지당 최대 5개, 서로 2칸 이상 띄우고, 히어로 뒤 처음 두 칸·마지막 두 칸·접점/띠/숨 고르기/일반 섹션 옆은 제외. 새 글자 없음(모양만). 결정적.
+ */
+export const INTERLUDE_MAX = 5;
+/** 끼워 넣은 짧은 구분 띠인가(면·무늬 순환의 본문 번호에서 빠진다 — 끼워 넣어도 뒤 섹션의 면이 밀리지 않게) */
+export const isInterludeV5 = (s: DetailSection): boolean => s.type === "impact" && s.kind === "v4" && s.v4?.family === "breather" && s.v4.variant === "rule";
+function insertInterludesV5(secs: DetailSection[], idx: number[], ctx: V4Ctx): { sections: DetailSection[]; sourceIndexes: number[] } {
+  const blockedType = (x: DetailSection): boolean => x.type === "hero" || x.type === "cta_price" || x.type === "ai_disclosure" || x.type === "caution" || (x.type === "impact" && (x.kind === "note" || (x.kind === "v4" && ["touch", "statement", "breather"].includes(x.v4?.family ?? ""))));
+  const tall = (x: DetailSection | undefined): boolean => !!x && !blockedType(x) && ctx.height(x) >= 450;
+  const isScene = (x: DetailSection | undefined): boolean => !!x && x.type === "impact" && x.v4?.variant === "scene";
+  const cands: number[] = [];
+  for (let k = 3; k <= secs.length - 3; k += 1) if (tall(secs[k - 1]) && tall(secs[k])) cands.push(k);
+  const rank = (k: number): number => (isScene(secs[k - 1]) || isScene(secs[k]) ? 0 : 1);
+  const chosen: number[] = [];
+  for (const k of [...cands].sort((a, b) => rank(a) - rank(b) || a - b)) {
+    if (chosen.length >= INTERLUDE_MAX) break;
+    if (chosen.every((c) => Math.abs(c - k) >= 2)) chosen.push(k);
+  }
+  if (!chosen.length) return { sections: secs, sourceIndexes: idx };
+  const S: DetailSection[] = []; const I: number[] = [];
+  secs.forEach((x, k) => {
+    if (chosen.includes(k)) {
+      S.push({ type: "impact", slot: "impact", kind: "v4", text: "", ...(ctx.mood ? { mood: ctx.mood } : {}), v4: { family: "breather", variant: "rule", no: 0, face: "emphasis", items: [], sceneAt: (chosen.indexOf(k) % 2) * 2 === 0 ? 0 : 2 } } as DetailSection);
+      I.push(idx[k - 1]!);
+    }
+    S.push(x); I.push(idx[k]!);
+  });
+  return { sections: S, sourceIndexes: I };
+}
+
 /** 시험용: 장면 승격을 끄고 변형 선호만 본다(466차 선호 회귀) */
 let scenesOff = false;
 export function setScenesOffForTests(off: boolean): void { scenesOff = off; }

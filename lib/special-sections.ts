@@ -16,6 +16,7 @@ import type { Recipe } from "@/lib/archetype-recipes";
 import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import { hexToRgba } from "@/lib/design-tokens";
 import { v4TextOn } from "@/lib/palette-v4";
+import { ARCHETYPES, type ArchetypeId } from "@/lib/page-archetype-v5";
 import { DETAIL_FONT_STACK } from "@/lib/detail-typography";
 
 export type SpecialKind = "swatch" | "timeline" | "chipwall" | "specstrip" | "sizebars";
@@ -42,7 +43,10 @@ export function specialHtml(s: ImpactSection, pal: ImpactPalette): string {
   if (s.kind === "timeline") {
     const steps = s.labels ?? [];
     // 439차 — STEP 라벨 4.5:1(DESIGN_V4). 바탕은 흰 면 또는 v4 면 리듬의 따뜻한 중립 면(#F7F3EE) — 더 어두운 쪽 기준
-    const stepLabel = v4TextOn(pal.accent, "#F7F3EE");
+    // 471차 V5: 아키타입 종이색(예: 테크시트 #EEF3F8)이 더 어두우면 그 면 기준으로 보정 — 면 순서가 바뀌며 4.48:1이 된 경우가 있었다. 표식(s.ax)이 없으면(V5 꺼짐·편집 모드) 기존 그대로
+    const paperRef = s.ax && s.ax in ARCHETYPES ? ARCHETYPES[s.ax as ArchetypeId].paper : "#F7F3EE";
+    const lumOf = (h: string): number => { const n = parseInt(h.slice(1), 16); return 0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255); };
+    const stepLabel = v4TextOn(pal.accent, lumOf(paperRef) < lumOf("#F7F3EE") ? paperRef : "#F7F3EE");
     const rows = steps
       .map((t, i) => {
         const last = i === steps.length - 1;

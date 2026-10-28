@@ -408,6 +408,14 @@ export const V5_PARTS: V5Parts = (s, b, p, alt) => {
     case "touch": return touchV5(s, b, p);
     case "stats": return statsV5(s, b, p, t);
     case "gallery": return galleryV5(s, b, p, alt);
+    case "breather":
+      // 471차 높이 리듬: 글 없는 구분 띠(선 + 아키타입 마커 하나 + 선). 높이 ≈ 150px
+      if (b.variant === "rule") {
+        const t1 = tokensOf(s);
+        const line = `<span style="flex:1 1 0%;max-width:140px;height:1px;background:${hexToRgba(p.ink, 0.28)}"></span>`;
+        return wrap(b, p, `<div aria-hidden="true" style="display:flex;align-items:center;justify-content:center;gap:16px">${line}${markerSvg(t1.marker, p.deep, 22)}${line}</div>`, { pad: "64px 24px" });
+      }
+      return null;
     case "statement":
       if (b.variant === "scene" && s.text.trim()) {
         // 469차 장면: 강조 문장 한 줄이 한 화면(min-height 600)을 차지한다. 글자 36px 이상

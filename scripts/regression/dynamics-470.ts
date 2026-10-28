@@ -52,9 +52,10 @@ export async function run(): Promise<string[]> {
     setV5ArchetypeForTests(a);
     for (const [id, file] of corpus()) {
       setRecipeOffForTests(true);
-      const off = displayOf(file).sections;
+      const noInter = (arr: ReturnType<typeof displayOf>["sections"]) => arr.filter((s) => fam(s) !== "breather"); // 471차: 끼워 넣은 짧은 구간은 레시피와 무관한 삽입이라 제외
+      const off = noInter(displayOf(file).sections);
       setRecipeOffForTests(false);
-      const on = displayOf(file).sections;
+      const on = noInter(displayOf(file).sections);
       if (on.length !== off.length) { f.push(`${id}/${a}: 섹션 수가 달라짐 ${off.length}→${on.length}`); continue; }
       if (on[0]!.type !== "hero") f.push(`${id}/${a}: 히어로가 첫째가 아님`);
       const movable = (s: (typeof on)[number]): boolean => s.type === "impact" && s.kind === "v4" && !!s.v4 && MOVABLE_FAMILIES.has(s.v4.family);

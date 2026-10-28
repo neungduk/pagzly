@@ -10,7 +10,8 @@ import { ARCHETYPES, ARCHETYPE_IDS, setV5ArchetypeForTests } from "../../lib/pag
 import { GHOST_MIN_BAND, HERO_STACK, ghostBoxV5, heroStackCssV5, overlapRatioV5, resolveGhostV5 } from "../../lib/hero-stack-v5";
 import { pickHeroV5 } from "../../lib/hero-spec";
 import { corpus, exportHtmlOf } from "../design-corpus";
-import { ghostStats, heroFloorViolations, heroSig, sigDiff } from "../hero-metrics-471";
+import { INTERLUDE_MAX } from "../../lib/layout-variants";
+import { ghostStats, scenePairsWithoutInterlude, heroFloorViolations, heroSig, sigDiff } from "../hero-metrics-471";
 
 export const name = "첫 화면 471 — 구간 레시피·장식 숫자 겹침·히어로 사진 하한";
 
@@ -71,6 +72,11 @@ export async function run(): Promise<string[]> {
       if (heroFloorViolations(h) > 0) f.push(`${id}/${a}: 히어로 사진 하한 위반`);
       const g = ghostStats(h);
       if (g.risky > 0 || g.topRight > 0) f.push(`${id}/${a}: 장식 숫자 잘림 위험 ${g.risky}·우상단 ${g.topRight}`);
+      // ── C: 끼워 넣은 구분 띠 — 글 없음·페이지당 ≤ INTERLUDE_MAX·장면 쌍 사이 짧은 구간 있음
+      const bands = [...h.matchAll(/<section[^>]*data-pz-v4="breather\.rule"[^>]*>[\s\S]*?<\/section>/g)].map((m) => m[0]);
+      if (bands.length > INTERLUDE_MAX) f.push(`${id}/${a}: 구분 띠 ${bands.length} > ${INTERLUDE_MAX}`);
+      for (const b of bands) if (/>[^<>\s][^<>]*</.test(b.replace(/<style[\s\S]*?<\/style>/g, ""))) f.push(`${id}/${a}: 구분 띠에 글자가 있음`);
+      if (scenePairsWithoutInterlude(h).missing > 0) f.push(`${id}/${a}: 장면 쌍 사이에 짧은 구간 없음`);
       // 보존: 가격 줄 3요소·탭 칩 앵커 링크가 마크업에 그대로 있다
       if (/data-pz-strip>/.test(h)) {
         if (!/data-pz-strip-price>/.test(h)) f.push(`${id}/${a}: 가격 줄의 가격 요소 없음`);

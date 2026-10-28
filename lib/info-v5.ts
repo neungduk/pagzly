@@ -56,6 +56,8 @@ export function generalCssV5(scope: string, t: ArchetypeTokens, c: InfoColors): 
   out.push(rule(card, `padding:22px 22px;border-radius:${Math.round(18 * Math.max(0.3, t.radius))}px;background:#FFFFFF;border:${t.border.w}px solid ${hexToRgba(ink, Math.min(0.5, 0.14 * t.border.alphaMul))}`));
   out.push(rule(`${card}>span[aria-hidden]`, `font-size:64px;line-height:0.8;font-weight:900;color:${c.deep}`));
   out.push(rule(`${card} p`, `font-size:18px;line-height:1.7;color:${ink}`));
+  // 비교표 머리글: 면 순서가 바뀌어 옅은 색 면 위에 놓이면 포인트색 글자(우리 제품)가 4.5:1에 못 미친 경우가 있어 잉크로(굵기는 그대로)
+  out.push(rule(`${scope} table thead th`, `color:${ink}`));
   out.push(rule(`${scope} .pagzly-color-variation [class*="-swatches"] label`, `min-height:44px;padding:10px 20px;font-size:16px;border-radius:999px;display:inline-flex;align-items:center;box-sizing:border-box`));
   return out.join("");
 }

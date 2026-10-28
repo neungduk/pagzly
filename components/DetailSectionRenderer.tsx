@@ -257,7 +257,7 @@ import { mutedFloorCssLive, readableOnFace } from "@/lib/muted-v4";
 import { typoCssLive } from "@/lib/typo-v4";
 import { mixHex } from "@/lib/design-tokens";
 import { v4SafeTheme } from "@/lib/palette-v4";
-import { ctaTrustHtml } from "@/lib/layout-variants";
+import { ctaTrustHtml, isInterludeV5 } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
 import { glanceIconSvg } from "@/lib/icons";
 
@@ -6188,9 +6188,9 @@ export default function DetailSectionRenderer({
                 .slice(0, index)
                 .filter((s) => s.type === "image_text" && s.layout === "compact").length
             : undefined;
-        const bodyIndex = sections.slice(0, index).filter((s) => s.type !== "hero").length;
+        const bodyIndex = sections.slice(0, index).filter((s) => s.type !== "hero" && !isInterludeV5(s)).length;
         const pattern = section.type === "hero" ? "A" : getSectionPattern(bodyIndex, section.type);
-        const prevBodyIndex = sections.slice(0, index).filter((s) => s.type !== "hero").length - 1;
+        const prevBodyIndex = sections.slice(0, index).filter((s) => s.type !== "hero" && !isInterludeV5(s)).length - 1;
         const followPattern =
           section.type === "checklist" &&
           section.compactFollow === true &&
@@ -6207,7 +6207,7 @@ export default function DetailSectionRenderer({
           const chartSection = sections[comboPair.chartIdx] as ComparisonChartSection;
           const chartBodyIndex = sections
             .slice(0, comboPair.chartIdx)
-            .filter((s) => s.type !== "hero").length;
+            .filter((s) => s.type !== "hero" && !isInterludeV5(s)).length;
           const chartPattern = getSectionPattern(chartBodyIndex, "comparison_chart");
           const chartTheme = getSectionTheme(
             extendedTheme,

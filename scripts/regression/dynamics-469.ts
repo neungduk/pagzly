@@ -141,7 +141,7 @@ export async function run(): Promise<string[]> {
           const big = Math.max(0, ...readableTexts(x).map((t) => t.size).filter((s2) => s2 < 140));
           if (big < SCENE_MIN_PX) f.push(`${id}/${a}: 장면 큰 글자 ${big}px < ${SCENE_MIN_PX}`);
           if (/data-pz-dyn-deco(?![^>]*data-pz-seam)/.test(x)) f.push(`${id}/${a}: 장면에 다이나믹 장식이 얹힘`);
-          for (const nb of [secs[i - 1], secs[i + 1]]) if (nb && /data-pz-v4="(touch|breather)\./.test(nb.slice(0, 400))) f.push(`${id}/${a}: 장면이 접점/숨 고르기 옆`);
+          for (const nb of [secs[i - 1], secs[i + 1]]) if (nb && /data-pz-v4="(touch\.|breather\.(?!rule))/.test(nb.slice(0, 400))) f.push(`${id}/${a}: 장면이 접점/숨 고르기 옆`);
           // 새 글자 없음: 화면에 보이는 글 노드는 기준(V5 꺼짐) 페이지 글에 있거나 순번·닫힌 라벨·따옴표
           const bp = base.replace(/<(script|style)[\s\S]*?<\/\1>/g, "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, " ");
           for (const t2 of readableTexts(x)) {

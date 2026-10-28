@@ -24,7 +24,7 @@ const V4_STRENGTH: Record<string, number> = {
   "spec.strip": 3, "spec.grid": 2, "spec.line": 1, "spec.cards": 2,
   "concern.bubbles": 3, "concern.checkrows": 2, "concern.stack": 3, "concern.tiles2": 2,
   "phototext.overlap": 4, "phototext.offset": 4, "phototext.arch": 4, "phototext.caption": 5, "phototext.collage": 4,
-  "touch.band": 3, "breather.motif": 1, "statement.band": 4, "statement.quote": 4, "statement.rule": 4,
+  "touch.band": 3, "breather.motif": 1, "breather.rule": 1, "statement.band": 4, "statement.quote": 4, "statement.rule": 4,
   "steps.vtimeline": 2, "steps.bignum": 3, "steps.chipflow": 2,
   // V5 새 변형
   "benefits.stackbig": 4, "benefits.rows2": 3, "benefits.iconlist": 2, "concern.memo": 2, "concern.deck": 3, "story.chapter": 3, "story.letter": 2,

@@ -305,7 +305,7 @@ export function applyArchetypeHtml(html: string, t: ArchetypeTokens, c: Archetyp
   // 7) 장식(루트 position:relative 보장 후 닫는 태그 앞에)
   // 주 장식 + 보조 장식 목록에서 섹션 마크업 해시로 하나(같은 섹션 = 항상 같은 장식). 보조가 없으면 주 장식
   const kinds: DecorKind[] = [t.decor, ...t.decorAlt];
-  const deco = decorHtml(kinds[hash32(html) % kinds.length]!, c);
+  const deco = /data-pz-v4="breather\.rule"/.test(html.slice(0, 400)) ? "" : decorHtml(kinds[hash32(html) % kinds.length]!, c); // 471차: 끼워 넣은 구분 띠는 장식 없음(크기·소음)
   if (deco) {
     out = out.replace(/^(\s*<section[^>]*?style=")([^"]*)"/, (_m, pre: string, st: string) => `${pre}${/position:/.test(st) ? st : `position:relative;${st}`}"`);
     const end = out.lastIndexOf("</section>");

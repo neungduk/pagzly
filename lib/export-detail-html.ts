@@ -170,7 +170,7 @@ import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 import { DESIGN_V4_ENABLED, DESIGN_V4_UP1_ENABLED } from "@/lib/design-v4";
 import { BANNER_SCRIM_INSET_V4, BANNER_SPLIT_BAND_BG, bannerStyleNow, CHIP_V4, LINE_HEIGHT_V4, RADIUS_V4, SPACE_V4, declStyle, tokenStyle } from "@/lib/design-tokens-v4";
 import { stepChipV4, reviewCaptionV4, highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, stepTextV4, stepsListV4 } from "@/lib/twin-styles-v4";
-import { ctaTrustHtml } from "@/lib/layout-variants";
+import { ctaTrustHtml, isInterludeV5 } from "@/lib/layout-variants";
 import { bannerScrimV4, v4TextOn } from "@/lib/palette-v4";
 import { glanceIconSvg } from "@/lib/icons";
 import { headingSystemCss, typeFloorCss } from "@/lib/type-treatments";
@@ -2256,7 +2256,7 @@ export function buildDetailPageHtml(opts: {
     const section = visibleSections[i]!;
     const isFullPoint = shouldUseSplitLayout(section);
     const pointIndex = isFullPoint ? imageTextCount++ : undefined;
-    const bodyIndex = visibleSections.slice(0, i).filter((s) => s.type !== "hero").length;
+    const bodyIndex = visibleSections.slice(0, i).filter((s) => s.type !== "hero" && !isInterludeV5(s)).length;
     // 225차 — 라이브(DetailSectionRenderer.tsx:3763~3768)와 동일한 계산. compact
     // 섹션의 정사각형/원형 교대(resolveCompactImageShape)에 필요.
     const compactImageTextIndex =
