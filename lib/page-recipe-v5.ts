@@ -27,6 +27,12 @@ export const RECIPES: Record<ArchetypeId, string[]> = {
   pop: ["gallery","concern","story","phototext","stats","benefits","proof"],
 };
 
+/** 아키타입별 장면 위치(페이지 높이 비율) — 리듬 시퀀스: 큰 장면(L)이 오는 자리. 개수는 강도(5→3·4→2·3→1)가 정한다 */
+export const SCENE_AT_BY_ARCHETYPE: Record<ArchetypeId, number[]> = {
+  editorial: [0.45], catalog: [0.3, 0.7], softlife: [0.25, 0.65], impact: [0.22, 0.5, 0.85],
+  techsheet: [0.4], narrative: [0.3, 0.72], luxe: [0.5], pop: [0.28, 0.55, 0.88],
+};
+
 const famOf = (s: DetailSection): string | null => (s.type === "impact" && s.kind === "v4" && s.v4 && MOVABLE_FAMILIES.has(s.v4.family) ? s.v4.family : null);
 
 /** 이동 가능한 자리의 계열 시퀀스(시그니처 계산용) */

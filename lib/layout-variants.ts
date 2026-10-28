@@ -26,7 +26,7 @@
  */
 import type { DetailSection, ImpactSection, V4Block } from "@/lib/types/generate";
 import { personaStripIndexes } from "@/lib/persona-strip";
-import { applyRecipeV5, derunV5 } from "@/lib/page-recipe-v5";
+import { SCENE_AT_BY_ARCHETYPE, applyRecipeV5, derunV5 } from "@/lib/page-recipe-v5";
 import { FIT_AVAIL_PX, emWidth } from "@/lib/page-archetype-v5";
 import type { ImpactPalette } from "@/lib/impact-templates";
 import type { ProductImageOrigin } from "@/lib/image-origins";
@@ -192,6 +192,8 @@ export function variantFits(family: V4Family, variant: string, d: { items: Item[
     case "statement.scene": return designV5On() && len(d.quote) >= 8 && sceneTextFits(d.quote ?? "");
     case "story.scene": return designV5On() && len(d.quote) >= 8 && sceneTextFits(d.quote ?? "");
     case "phototext.scene": return designV5On() && n === 1 && photos === 1 && sceneTextFits(d.items[0]?.title ?? "");
+    case "benefits.scene": case "proof.scene": case "concern.scene": return designV5On() && n >= 2 && n <= 6 && len(d.items[0]?.title) <= 28 && sceneTextFits(d.items[0]?.title ?? "") && d.items.every((i) => len(i.title) <= 40 && len(i.body) <= 120);
+    case "gallery.scene": return designV5On() && photos >= 2 && photos <= 3 && n === photos && len(d.quote) >= 2 && sceneTextFits(d.quote ?? "");
     case "stats.scene": return designV5On() && n >= 2 && n <= 4 && d.items.every((i) => len(i.title) <= 24 && len(i.body) >= 1 && len(i.body) <= 14) && /^\d[\d.,]{0,5}\s*\S{0,6}$/.test((d.items[0]?.body ?? "").trim());
     case "gallery.deck": return designV5On() && photos >= 2 && photos <= 3 && n === photos;
     case "faq.numlist": case "faq.qband": case "faq.tabs": return designV5On() && n >= 2 && n <= 8 && d.items.every((i) => len(i.title) <= 70 && len(i.body) <= 200);
@@ -233,7 +235,7 @@ export function wrap(b: V4Block, p: V4Palette, inner: string, opts: { pad?: stri
     motifs + ghost + (b.divider ? dividerHtml(b.divider as DividerKind, p.ink) : "") +
     (opts.bleed
       ? `<div style="position:relative;z-index:1">${title ? `<div style="max-width:576px;margin:0 auto">${title}</div>` : ""}${inner}</div></section>` // 468차 V5 — 풀블리드 구도: 내용 상자가 섹션 폭을 쓰고 제목만 576 상자에 둔다
-      : `<div style="position:relative;z-index:1;max-width:576px;margin:0 auto${opts.minH ? ";width:100%" : ""}">${title}${inner}</div></section>`)
+      : `<div style="position:relative;z-index:1;max-width:576px;margin:0 auto${opts.minH ? `;width:100%;box-sizing:border-box${b.sceneAt === 0 ? ";padding-right:40px" : b.sceneAt === 2 ? ";padding-left:40px" : ""}` : ""}">${title}${inner}</div></section>`)
   );
 }
 
@@ -1041,24 +1043,44 @@ function planScenesV5(sections: DetailSection[], ctx: V4Ctx): DetailSection[] {
   const want = SCENE_COUNT[t.dyn.level];
   const n = sections.length;
   const cand: number[] = [];
+  const LIST = new Set(["benefits", "proof", "concern"]);
   sections.forEach((s, i) => {
-    if (i < 2 || i > n - 2 || s.type !== "impact" || s.kind !== "v4" || !s.v4) return;
+    // 470차: 입력이 적은 짧은 페이지(섹션 12개 이하)는 한눈에 보기 블록(자리 1)도 장면 후보 — 아니면 후보가 하나도 없다
+    if (i < (n <= 12 ? 1 : 2) || i > n - 2 || s.type !== "impact" || s.kind !== "v4" || !s.v4) return;
     const b = s.v4;
     const near = [sections[i - 1], sections[i + 1]].some((x) => x?.type === "impact" && x.kind === "v4" && !!x.v4 && ["touch", "statement", "breather"].includes(x.v4.family));
-    const stText = b.family === "statement" ? (s.text ?? "").trim() : "";
+    const stText = b.family === "statement" || b.family === "gallery" ? (s.text ?? "").trim() : "";
     if (near && b.family !== "statement") return;
     const d = { items: (b.items ?? []) as Item[], ...(s.quote ? { quote: s.quote } : stText ? { quote: stText } : {}), ...(s.body ? { body: s.body } : {}) };
     const fam = b.family;
-    if ((fam === "statement" && b.variant !== "ticker" && !["touch", "breather"].some((f) => [sections[i - 1], sections[i + 1]].some((x) => x?.type === "impact" && x.kind === "v4" && x.v4?.family === f)) && variantFits("statement", "scene", d)) || (fam === "story" && variantFits("story", "scene", d)) || (fam === "phototext" && variantFits("phototext", "scene", d)) || (fam === "stats" && variantFits("stats", "scene", d))) cand.push(i);
+    const nearTB = [sections[i - 1], sections[i + 1]].some((x) => x?.type === "impact" && x.kind === "v4" && (x.v4?.family === "touch" || x.v4?.family === "breather"));
+    if ((fam === "statement" && b.variant !== "ticker" && !nearTB && variantFits("statement", "scene", d)) || (fam === "story" && variantFits("story", "scene", d)) || (fam === "phototext" && variantFits("phototext", "scene", d)) || (fam === "stats" && variantFits("stats", "scene", d)) || (fam === "gallery" && variantFits("gallery", "scene", d)) || (LIST.has(fam) && b.variant !== "collage" && variantFits(fam as V4Family, "scene", d))) cand.push(i);
   });
   const chosen: number[] = [];
-  const targets = want === 1 ? [0.5] : want === 2 ? [0.35, 0.75] : [...SCENE_AT];
-  for (const tg of targets) {
-    const best = cand.filter((i) => chosen.every((c) => Math.abs(c - i) >= 3)).sort((a, b) => Math.abs(a / n - tg) - Math.abs(b / n - tg) || a - b)[0];
-    if (best !== undefined) chosen.push(best);
+  const strongHigh = (x: DetailSection | undefined): boolean => !!x && intrinsicStrength(x) >= 4;
+  const room = (i: number): boolean => chosen.every((c) => Math.abs(c - i) >= 3);
+  // 장면 후보가 앞뒤 두 칸과 합쳐 높음(강도 4+) 3연속을 만들면 건너뛴다(장면은 강도 5)
+  const makesRun = (i: number): boolean => (strongHigh(sections[i - 1]) && strongHigh(sections[i - 2])) || (strongHigh(sections[i - 1]) && strongHigh(sections[i + 1])) || (strongHigh(sections[i + 1]) && strongHigh(sections[i + 2]));
+  const targets = SCENE_AT_BY_ARCHETYPE[t.id].slice(0, want);
+  // 개수 우선: 간격 ≥3을 지키며 want개를 채우는 조합이 있으면 그중 목표 위치에 가장 가까운 것, 없으면 가능한 최대 개수 중에서(결정적: 후보는 앞에서부터)
+  const cost = (combo: number[]): number => combo.reduce((acc, i, k) => acc + Math.abs(i / n - (targets[k] ?? targets[targets.length - 1]!)), 0);
+  const combos = (k: number, from: number): number[][] => {
+    if (k === 0) return [[]];
+    const out: number[][] = [];
+    for (let x = from; x < cand.length; x += 1) for (const rest of combos(k - 1, x + 1)) { const c = [cand[x]!, ...rest]; if (c.every((v, y) => y === 0 || v - c[y - 1]! >= 3)) out.push(c); }
+    return out;
+  };
+  for (let k = Math.min(want, cand.length); k >= 1 && !chosen.length; k -= 1) {
+    const all = combos(k, 0);
+    // 높음(강도 4+) 3연속을 만들지 않는 조합을 먼저
+    const clean = all.filter((c) => c.every((i) => !makesRun(i)));
+    const pool2 = clean.length ? clean : all;
+    const best = pool2.sort((x, y) => cost(x) - cost(y) || x[0]! - y[0]!)[0];
+    if (best) chosen.push(...best);
   }
   if (!chosen.length) return sections;
-  return sections.map((s, i) => (chosen.includes(i) ? ({ ...s, v4: { ...(s as ImpactSection).v4!, variant: "scene" } } as DetailSection) : s));
+  const order = [...chosen].sort((a, b) => a - b);
+  return sections.map((s, i) => (chosen.includes(i) ? ({ ...s, v4: { ...(s as ImpactSection).v4!, variant: "scene", sceneAt: ((order.indexOf(i) % 2) * 2) as 0 | 2 } } as DetailSection) : s));
 }
 
 function boostEarlyHighV5(sections: DetailSection[], ctx: V4Ctx, seed: number): DetailSection[] {

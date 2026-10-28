@@ -134,7 +134,7 @@ export async function run(): Promise<string[]> {
         for (let k = 1; k < idx.length; k += 1) if (idx[k]! - idx[k - 1]! < 3) f.push(`${id}/${a}: 장면 사이 조용한 블록 2개 미만(${idx[k - 1]},${idx[k]})`);
         for (const i of idx) {
           const x = secs[i]!;
-          if (i < 1) f.push(`${id}/${a}: 장면이 맨 앞`);
+          if (i < 1 && secs.length > 11) f.push(`${id}/${a}: 장면이 맨 앞`); // 470차: 섹션 12개 이하 짧은 페이지는 한눈에 보기 블록도 장면 후보
           if (i >= secs.length - 1) f.push(`${id}/${a}: 장면이 마지막 섹션`);
           const mh = Math.max(0, ...[...x.matchAll(/min-height:\s*(\d+)px/g)].map((m) => Number(m[1])));
           if (mh < 640) f.push(`${id}/${a}: 장면 min-height ${mh} < 640`);

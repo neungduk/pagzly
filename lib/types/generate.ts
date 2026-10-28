@@ -610,6 +610,8 @@ export type ImpactSection = {
 export type V4Block = {
   family: "benefits" | "concern" | "story" | "spec" | "phototext" | "touch" | "breather" | "steps" | "statement" | "faq" | "proof" | "stats" | "gallery";
   variant: string;
+  /** 470차 V5 — 장면 구도 번호(0 왼쪽 치우침·2 오른쪽 치우침; 장면 순서대로 번갈아 이웃 장면의 구도가 같지 않게. 1 가운데는 예약) */
+  sceneAt?: 0 | 1 | 2;
   /** 469차 V5 — 아이브로우 라벨 덮어쓰기(닫힌 목록 `EYEBROW_LABEL`의 값만; 예: step_card를 benefits 변형으로 그릴 때 "STEP") */
   label?: string;
   /** 아이브로우 순번(1부터) */

@@ -21,6 +21,23 @@ import { SCENE_MIN_PX } from "@/lib/layout-variants";
 
 /** 320폭 가용 폭(px) — page-archetype-v5.FIT_AVAIL_PX와 같은 값 */
 const FIT_AVAIL = 272;
+const SCENE_ALIGN = ["left", "center", "right"] as const;
+const sceneAlign = (b: V4Block): (typeof SCENE_ALIGN)[number] => SCENE_ALIGN[b.sceneAt ?? 0]!;
+
+/** 470차 장면(계열 공통, benefits·proof·concern): 첫 항목 제목이 화면을 채우는 큰 글자, 나머지 항목은 번호 줄. 모든 글은 입력 항목 그대로 */
+function listScene(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeTokens): string | null {
+  const items = b.items ?? [];
+  if (items.length < 2) return null;
+  const on = p.onFace[faceRole(b)];
+  const head = headingHtml(s.text, b, p);
+  const [first, ...rest] = items;
+  const ta = sceneAlign(b);
+  const size = fitTitlePx(first!.title, 54, SCENE_MIN_PX, 6);
+  const big = `<p style="margin:0;text-align:${ta};font-size:${size}px;line-height:1.2;font-weight:${Math.max(t.type.weight, 800)};letter-spacing:-0.03em;color:${on.text};word-break:keep-all;overflow-wrap:anywhere;--pz-fixed:1">${esc(first!.title)}</p>${first!.body ? `<p style="margin:16px 0 0;text-align:${ta};overflow-wrap:anywhere;${typeCss("body", on.sub, "white-space:pre-line")}">${esc(first!.body)}</p>` : ""}`;
+  const rows = rest.map((it, i) => `<div style="display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-top:1px solid ${hexToRgba(p.ink, 0.16)}">${numberMark(t.number, i + 1, b, p)}<div style="flex:1 1 0%;min-width:0;padding-top:2px">${titleP(it.title, p, 17)}${bodyP(it.body, p, on.sub, 4)}</div></div>`).join("");
+  return wrap(b, p, `${big}<div style="margin-top:30px">${rows}</div>`, { head, minH: 640, pad: "72px 24px" });
+}
+
 const tokensOf = (s: ImpactSection): ArchetypeTokens => ARCHETYPES[(s.ax && s.ax in ARCHETYPES ? s.ax : "editorial") as ArchetypeId];
 
 /** 흰 글자가 올라가는 진한 면(4.5:1 미달이면 잉크) */
@@ -79,6 +96,7 @@ const titleP = (text: string, p: V4Palette, size = 16): string => `<p style="mar
 
 // ── benefits ──────────────────────────────────────────────────────────────────
 function benefitsV5(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeTokens): string | null {
+  if (b.variant === "scene") return listScene(s, b, p, t);
   const items = b.items ?? [];
   const on = p.onFace[faceRole(b)];
   const head = headingHtml(s.text, b, p);
@@ -107,6 +125,7 @@ function benefitsV5(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeToke
 
 // ── concern ───────────────────────────────────────────────────────────────────
 function concernV5(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeTokens): string | null {
+  if (b.variant === "scene") return listScene(s, b, p, t);
   const items = b.items ?? [];
   const head = headingHtml(s.text, b, p);
   if (b.variant === "memo") {
@@ -144,8 +163,9 @@ function storyV5(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeTokens)
   if (b.variant === "scene" && s.quote) {
     // 469차 장면: 인용 한 문장이 한 화면(min-height 640)을 차지한다. 글자는 36px 이상(fitTitlePx), 긴 어절은 overflow-wrap이 받는다
     const size = fitTitlePx(s.quote, 56, SCENE_MIN_PX, 6);
-    const mark = `<span aria-hidden="true" style="display:block;margin:0 0 6px;font-size:110px;line-height:0.7;font-weight:900;color:${hexToRgba(p.deep, 0.22)}">\u201C</span>`;
-    const quote = `<p style="margin:0;font-size:${size}px;line-height:1.22;font-weight:${Math.max(t.type.weight, 800)};letter-spacing:-0.03em;color:${on.text};word-break:keep-all;overflow-wrap:anywhere;--pz-fixed:1">${esc(s.quote)}</p>`;
+    const ta = sceneAlign(b);
+    const mark = `<span aria-hidden="true" style="display:block;margin:0 0 6px;text-align:${ta};font-size:110px;line-height:0.7;font-weight:900;color:${hexToRgba(p.deep, 0.22)}">\u201C</span>`;
+    const quote = `<p style="margin:0;text-align:${ta};font-size:${size}px;line-height:1.22;font-weight:${Math.max(t.type.weight, 800)};letter-spacing:-0.03em;color:${on.text};word-break:keep-all;overflow-wrap:anywhere;--pz-fixed:1">${esc(s.quote)}</p>`;
     const body = s.body ? `<p style="margin:22px 0 0;overflow-wrap:anywhere;${typeCss("body", on.sub, "white-space:pre-line")}">${esc(s.body)}</p>` : "";
     return wrap(b, p, mark + quote + body, { head, minH: 640, pad: "72px 24px" });
   }
@@ -209,7 +229,8 @@ function phototextV5(s: ImpactSection, b: V4Block, p: V4Palette, alt: string, t:
     // 469차 장면: 풀블리드 사진(높이 380) 아래로 큰 제목 카드가 걸친다. 제목 36px 이상, 섹션 min-height 640
     const size = fitTitlePx(it.title, 48, SCENE_MIN_PX, 6);
     const photo = `<div style="margin:0 -24px;position:relative;height:380px;overflow:hidden;background:${p.tints[1]}">${img(it.img.url, alt, it.img.pos)}</div>`;
-    const panel = `<div style="position:relative;z-index:2;max-width:576px;margin:-56px auto 0;box-sizing:border-box;padding:24px 22px;border-radius:16px;${cardFace(p)}"><p style="margin:0;font-size:${size}px;line-height:1.2;font-weight:${Math.max(t.type.weight, 800)};letter-spacing:-0.03em;color:${p.ink};word-break:keep-all;overflow-wrap:anywhere;--pz-fixed:1">${headingHtml(it.title, b, p)}</p>${bodyP(it.body, p, on.sub, 12)}</div>`;
+    const sa = b.sceneAt ?? 0;
+    const panel = `<div style="position:relative;z-index:2;max-width:576px;margin:${sa === 0 ? "-56px auto 0 0;width:88%" : sa === 2 ? "-56px 0 0 auto;width:88%" : "-56px auto 0"};box-sizing:border-box;padding:24px 22px;border-radius:16px;${cardFace(p)}"><p style="margin:0;font-size:${size}px;line-height:1.2;font-weight:${Math.max(t.type.weight, 800)};letter-spacing:-0.03em;color:${p.ink};word-break:keep-all;overflow-wrap:anywhere;--pz-fixed:1">${headingHtml(it.title, b, p)}</p>${bodyP(it.body, p, on.sub, 12)}</div>`;
     return wrap(b, p, photo + panel, { bleed: true, minH: 640, pad: "0 24px 56px" });
   }
   if (b.variant === "bleed") {
@@ -266,6 +287,7 @@ function faqV5(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeTokens): 
 
 // ── proof (신뢰 근거 강조 박스) ─────────────────────────────────────────────────
 function proofV5(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeTokens): string | null {
+  if (b.variant === "scene") return listScene(s, b, p, t);
   const items = b.items ?? [];
   const on = p.onFace[faceRole(b)];
   const head = headingHtml(s.text, b, p);
@@ -352,6 +374,14 @@ function galleryV5(s: ImpactSection, b: V4Block, p: V4Palette, alt: string): str
   if (imgs.length < 2) return null;
   const head = s.text.trim() ? headingHtml(s.text, b, p) : "";
   const a = alt || s.text || "";
+  if (b.variant === "scene" && s.text.trim() && imgs.length >= 2 && imgs.length <= 3) {
+    // 470차 장면: 갤러리 제목이 큰 글자(36px 이상)로 서고 아래에 크기·각도가 다른 사진 덱. 사진 수에 맞춰 작게(빈 틀 없음)
+    const t0 = tokensOf(s);
+    const ta = sceneAlign(b);
+    const size = fitTitlePx(s.text, 52, SCENE_MIN_PX, 6);
+    const title = `<p style="margin:0 0 26px;text-align:${ta};font-size:${size}px;line-height:1.2;font-weight:${Math.max(t0.type.weight, 800)};letter-spacing:-0.03em;color:${p.onFace[faceRole(b)].text};word-break:keep-all;overflow-wrap:anywhere;--pz-fixed:1">${esc(s.text)}</p>`;
+    return wrap(b, p, title + layerDeck(imgs, a, p, { flip: b.no % 2 === 0 }), { head: "", minH: 640, pad: "72px 24px" });
+  }
   if (b.variant === "mosaic") return wrap(b, p, mosaic(imgs, p, a, { seed: b.no * 31 }), { head });
   if (b.variant === "polaroid") return wrap(b, p, polaroidStack(imgs, p, a, { seed: b.no * 17 }), { head });
   if (b.variant === "deck") return wrap(b, p, layerDeck(imgs, a, p, { flip: b.no % 2 === 0 }), { head });
@@ -377,8 +407,9 @@ export const V5_PARTS: V5Parts = (s, b, p, alt) => {
         const t0 = tokensOf(s);
         const on0 = p.onFace[faceRole(b)];
         const size = fitTitlePx(s.text, 56, SCENE_MIN_PX, 6);
-        const bar = `<span aria-hidden="true" style="display:block;width:64px;height:6px;margin:0 0 22px;background:${p.deep}"></span>`;
-        return wrap(b, p, `${bar}<p style="margin:0;font-size:${size}px;line-height:1.2;font-weight:${Math.max(t0.type.weight, 800)};letter-spacing:-0.03em;color:${on0.text};word-break:keep-all;overflow-wrap:anywhere;--pz-fixed:1">${headingHtml(s.text, b, p, "color")}</p>`, { minH: 640, pad: "72px 24px" });
+        const ta0 = sceneAlign(b);
+        const bar = `<span aria-hidden="true" style="display:block;width:64px;height:6px;margin:${ta0 === "left" ? "0 0 22px" : ta0 === "center" ? "0 auto 22px" : "0 0 22px auto"};background:${p.deep}"></span>`;
+        return wrap(b, p, `${bar}<p style="margin:0;text-align:${ta0};font-size:${size}px;line-height:1.2;font-weight:${Math.max(t0.type.weight, 800)};letter-spacing:-0.03em;color:${on0.text};word-break:keep-all;overflow-wrap:anywhere;--pz-fixed:1">${headingHtml(s.text, b, p, "color")}</p>`, { minH: 640, pad: "72px 24px" });
       }
       return b.variant === "ticker" ? wrap(b, p, tickerBand((b.items ?? []).map((i) => i.title), p, { deg: -2, repeat: 3 }), { pad: "28px 24px" }) : null;
     default: return null;

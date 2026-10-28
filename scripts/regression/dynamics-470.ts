@@ -1,5 +1,6 @@
 /**
  * 회귀 — 470차 "대격변". 브라우저·네트워크 없음(문자열 렌더만). 단계마다 검사를 더한다.
+ *  B: 장면 확대(섹션 15+ 페이지 100% 달성, 이웃 장면 구도(sceneAt) 교대, 장면 글자 36px 이상·min-height 640)
  *  A: 페이지 레시피(쌍 차이 ≥ 3, 하드 제약: 히어로 첫째·비이동 섹션 자리/종류 불변·V5 토큰 뒤에서만)
  */
 import fs from "node:fs";
@@ -10,7 +11,10 @@ import { structureKey } from "../../lib/layout-variants";
 
 /** 변형은 빼고 종류·계열만(장면 승격이 변형만 바꾼다) */
 const fam = (s: Parameters<typeof structureKey>[0]): string => structureKey(s).replace(/\.(?:scene|band|rule|quote|ticker)$/, "").replace(/^(statement)\..*$/, "$1");
-import { corpus, displayOf } from "../design-corpus";
+import { corpus, displayOf, exportHtmlOf } from "../design-corpus";
+import { SCENE_COUNT } from "../../lib/layout-variants";
+import { ARCHETYPES } from "../../lib/page-archetype-v5";
+import { sceneCount } from "../dynamics-metrics-469";
 import { pairStats } from "../recipe-metrics-470";
 
 export const name = "대격변 470 — 페이지 레시피·(이후: 장면·거대 타이포·콜아웃·일반 섹션 변형)";
@@ -43,6 +47,20 @@ export async function run(): Promise<string[]> {
       on.forEach((s, i) => { if (!movable(off[i]!) && (movable(s) || fam(s) !== fam(off[i]!))) f.push(`${id}/${a}: 비이동 자리 ${i}가 바뀜 ${fam(off[i]!)}→${fam(s)}`); });
       const key = (arr: typeof on) => arr.filter(movable).map((s) => `${s.type === "impact" ? s.origin?.type ?? s.v4!.family : ""}`).sort().join(",");
       if (key(on) !== key(off)) f.push(`${id}/${a}: 이동 가능 블록의 집합이 달라짐(블록이 사라지거나 늘었다)`);
+    }
+  }
+  // ── B: 장면
+  for (const a of ARCHETYPE_IDS) {
+    setV5ArchetypeForTests(a);
+    const want = SCENE_COUNT[ARCHETYPES[a].dyn.level];
+    for (const [id, file] of corpus()) {
+      const d = displayOf(file).sections;
+      const scenes = d.filter((s) => s.type === "impact" && s.kind === "v4" && s.v4?.variant === "scene");
+      for (let k = 1; k < scenes.length; k += 1) if (scenes[k]!.type === "impact" && scenes[k - 1]!.type === "impact" && (scenes[k] as { v4: { sceneAt?: number } }).v4.sceneAt === (scenes[k - 1] as { v4: { sceneAt?: number } }).v4.sceneAt) f.push(`${id}/${a}: 이웃 장면의 구도(sceneAt)가 같음`);
+      if (d.length >= 15) {
+        const c = sceneCount(exportHtmlOf(file));
+        if (c < want) f.push(`${id}/${a}: 섹션 ${d.length}개 페이지인데 장면 ${c}개 < ${want}`);
+      }
     }
   }
   setRecipeOffForTests(false);
