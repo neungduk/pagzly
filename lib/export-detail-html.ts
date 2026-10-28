@@ -1931,7 +1931,7 @@ function sectionHtml(
         imageUrls[section.imageIndex ?? 0] ||
         imageUrls[0] ||
         "";
-      const bannerStyle = DESIGN_V4_ENABLED ? bannerStyleNow() : "full-scrim";
+      const bannerStyle = DESIGN_V4_ENABLED ? (section.v5Banner ?? bannerStyleNow()) : "full-scrim";
       const bannerTexts = `${section.heading ? (DESIGN_V4_ENABLED ? `<h2 style="font-family:${DETAIL_FONT_STACK.heading};${tokenStyle("heading-large")};margin:0;color:#fff">${esc(section.heading)}</h2>` : dh2(category, esc(section.heading), `font-size:${FONT_SIZE.sectionLg};margin:0`)) : ""}
               ${section.body ? `<p style="margin:12px 0 0;font-size:${FONT_SIZE.body};opacity:.95;max-width:480px">${esc(section.body)}</p>` : ""}`;
       if (bannerStyle === "split") {

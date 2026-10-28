@@ -34,6 +34,7 @@ import { planStoryboard, type Marks, type StoryboardReport } from "@/lib/storybo
 import { lightenBoldBlocks, lightensBoldBlock } from "@/lib/face-strategy-v5";
 import { planAlignV5 } from "@/lib/align-v5";
 import { planDynamicsV5 } from "@/lib/dynamics-layer-v5";
+import { planBannersV5 } from "@/lib/banner-v5";
 import { seedOf } from "@/lib/layout-variants";
 import { estimateSectionHeight } from "@/lib/impact-templates";
 
@@ -475,7 +476,7 @@ export function applyDisplayRules(
   // 465차 V5 — 아키타입 표식(임팩트 블록에 id, 일반 섹션에 박자.강도 표식) + 스토리보드 점검. 섹션 순서는 바꾸지 않는다
   const v5Sections0 = v5tokens ? rhythmSections.map((x) => (x.type === "impact" ? ({ ...x, ax: v5tokens.id } as DetailSection) : x)) : rhythmSections;
   // 466차 V5 — 제목 정렬 계획(가운데 성격은 예산만큼만 가운데, 나머지 왼쪽)
-  const v5Sections1 = v5tokens ? planAlignV5(v5Sections0, v5tokens) : v5Sections0;
+  const v5Sections1 = v5tokens ? planBannersV5(planAlignV5(v5Sections0, v5tokens), v5tokens) : v5Sections0;
   // 467차 V5 — 다이나믹 레이어 계획(큰 순번·스티커·테이프·카드 변주·이음새·걸침)
   const v5Sections = v5tokens ? planDynamicsV5(v5Sections1, v5tokens, seedOf(`${opts.claimFacts!.productName}|${opts.category ?? ""}`)) : v5Sections1;
   const sb = v5tokens ? planStoryboard(v5Sections) : null;

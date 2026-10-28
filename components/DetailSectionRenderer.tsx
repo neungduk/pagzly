@@ -4418,7 +4418,7 @@ function renderSection(
     case "illustration_banner": {
       const photoSrc = resolveImage(imageUrls, section.imageIndex ?? 0) || heroFallback;
       const bgSrc = section.illustrationUrl || photoSrc;
-      const bannerStyle = DESIGN_V4_ENABLED ? bannerStyleNow() : "full-scrim";
+      const bannerStyle = DESIGN_V4_ENABLED ? (section.v5Banner ?? bannerStyleNow()) : "full-scrim";
       const bannerTexts = (
         <>
           {(section.heading || edit?.enabled) && (

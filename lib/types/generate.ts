@@ -428,6 +428,8 @@ export type IllustrationBannerSection = {
    * 렌더러는 이 값이 있으면(구 데이터) 그대로 표시하고, 없으면 imageIndex로 렌더.
    */
   illustrationUrl?: string;
+  /** 468차 V5 — 아키타입이 정한 배너 값(표시 계획이 채운다. 없으면 BANNER_STYLE 기본). V5 꺼짐·편집 모드에서는 붙지 않는다 */
+  v5Banner?: "full-scrim" | "card-only" | "split";
 };
 
 export type FaqSection = {
