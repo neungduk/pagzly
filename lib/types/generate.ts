@@ -610,6 +610,8 @@ export type ImpactSection = {
 export type V4Block = {
   family: "benefits" | "concern" | "story" | "spec" | "phototext" | "touch" | "breather" | "steps" | "statement" | "faq" | "proof" | "stats" | "gallery";
   variant: string;
+  /** 469차 V5 — 아이브로우 라벨 덮어쓰기(닫힌 목록 `EYEBROW_LABEL`의 값만; 예: step_card를 benefits 변형으로 그릴 때 "STEP") */
+  label?: string;
   /** 아이브로우 순번(1부터) */
   no: number;
   items?: { title: string; body?: string; img?: { url: string; pos?: string } }[];

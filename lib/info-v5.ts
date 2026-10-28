@@ -19,8 +19,33 @@ import type { ArchetypeTokens } from "@/lib/page-archetype-v5";
 const IMP = "!important";
 const rule = (sel: string, decl: string): string => `${sel}{${decl.split(";").filter(Boolean).map((d) => `${d}${IMP}`).join(";")}}`;
 
+/** 상품 정보 표(#pagzly-info) 구조: ledger = 라벨 칸/값 칸 가는 선 목록(editorial·luxe·techsheet), stack = 라벨 위·값 큼직한 카드 쌓기(그 외) */
+const SPEC_LEDGER = new Set(["editorial", "luxe", "techsheet"]);
+
+/**
+ * 469차 V5 — 상품 정보(spec_table·nutrition_table, 앵커 #pagzly-info) 구조 재작성. DOM(표·썸네일·도식·칩)은 그대로 두고 표를 목록으로 다시 그린다 — 가는 표 8종 동일 → 아키타입별 두 구조.
+ * 크기표·배송(size_table·shipping_info)은 id가 달라 건드리지 않는다(도식·고지). 입력 값 원문 그대로(CSS만). 글자는 값 16~17px·라벨 12px.
+ */
+export function specListCssV5(scope: string, t: ArchetypeTokens, c: InfoColors): string {
+  const S = `${scope} #pagzly-info`;
+  const ink = c.ink;
+  const out: string[] = [rule(`${S} table,${S} tbody`, "display:block;width:100%")];
+  if (SPEC_LEDGER.has(t.id)) {
+    out.push(rule(`${S} tr`, `display:flex;align-items:baseline;gap:16px;padding:16px 6px;background:transparent;border-top:0;border-bottom:1px solid ${hexToRgba(ink, 0.16)}`));
+    out.push(rule(`${S} th`, `flex:0 0 32%;width:auto;min-width:0;padding:0;background:transparent;font-size:12px;font-weight:700;letter-spacing:0.08em;color:${hexToRgba(ink, 0.66)};opacity:1`));
+    out.push(rule(`${S} td`, `flex:1 1 0%;min-width:0;padding:0;font-size:16px;line-height:1.65;color:${ink};overflow-wrap:anywhere`));
+  } else {
+    const r = Math.round(14 * Math.max(0.4, t.radius));
+    const shadow = t.shadow.kind === "hard" ? `${t.shadow.offset}px ${t.shadow.offset}px 0 ${ink}` : "none";
+    out.push(rule(`${S} tr`, `display:block;margin:0 0 10px;padding:14px 18px;background:#FFFFFF;border:${t.border.w}px solid ${hexToRgba(ink, Math.min(0.5, 0.14 * t.border.alphaMul))};border-radius:${r}px;box-shadow:${shadow}`));
+    out.push(rule(`${S} th`, `display:block;width:auto;padding:0 0 4px;background:transparent;font-size:12px;font-weight:700;letter-spacing:0.1em;color:${c.deep};opacity:1`));
+    out.push(rule(`${S} td`, `display:block;padding:0;font-size:17px;font-weight:700;line-height:1.5;color:${ink};overflow-wrap:anywhere`));
+  }
+  return out.join("");
+}
+
 export function infoCssV5(scope: string, t: ArchetypeTokens, c: InfoColors, backdrops?: InfoBackdropMap): string {
-  if (t.infoBackdrop === "scrim-deep") return "";
+  if (t.infoBackdrop === "scrim-deep") return specListCssV5(scope, t, c);
   const sec = (k: string) => `${scope} [data-info="${k}"]`;
   const ip = (k: string) => `[data-ip="${k}"]`;
   const ink = c.ink;
@@ -68,5 +93,6 @@ export function infoCssV5(scope: string, t: ArchetypeTokens, c: InfoColors, back
   out.push(rule(`${last}>div:last-child>p`, `color:${c.accent}`));
   out.push(rule(`${last}>div:last-child>span,${last}>div:last-child>span b[data-ip="lead"]`, `color:${ink}`));
   out.push(rule(`${last}>div:last-child>span b[data-ip="lead"]`, `color:${c.deep}`));
+  out.push(specListCssV5(scope, t, c));
   return out.join("");
 }

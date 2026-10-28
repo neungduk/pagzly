@@ -1,12 +1,13 @@
 /**
  * 회귀 — 469차 "남은 평평한 덩어리". 브라우저·네트워크 없음(문자열 렌더만). Phase마다 같은 파일에 검사를 더한다.
+ *  Phase 2: 일반 섹션 구조 재작성(target_persona→concern 변형·step_card→zigzag·상품 정보 목록 CSS): 원문 보존·조건·폴백·대상 한정
  *  Phase 3: 본문 글자 토큰(≥15px, 행간 ≤ typo-v4 상한, 가격·한 줄 고정·대문자 라벨·짧은 글 제외, 고지/배송 블록 불변)
  *  Phase 1: 정보 구간(data-info) 아키타입화 — 토큰·덮어쓰기 CSS·팔레트 전수 대비·진한 정보 구간 0·V5 꺼짐 미호출
  */
 import fs from "node:fs";
 import { setDesignUp1ForTests, setDesignV5ForTests } from "../../lib/design-v4";
 import { ARCHETYPES, ARCHETYPE_IDS, FIT_AVAIL_PX, setV5ArchetypeForTests, typographyV5 } from "../../lib/page-archetype-v5";
-import { infoCssV5 } from "../../lib/info-v5";
+import { infoCssV5, specListCssV5 } from "../../lib/info-v5";
 import { infoColorsOf } from "../../lib/info-style";
 import { scrimAlpha } from "../../lib/info-backdrop";
 import { getCategoryTheme } from "../../lib/category-theme";
@@ -46,7 +47,7 @@ export async function run(): Promise<string[]> {
     if (contrastRatioToken(c.deep, c.base) < 4.5 && contrastRatioToken(c.deep, "#FFFFFF") >= 4.5) { /* statnum: 진한 글자/기본 면 — 아래에서 별도 확인 */ }
     for (const a2 of ARCHETYPE_IDS) {
       const css = infoCssV5(".w", ARCHETYPES[a2], c, { points: "https://example.invalid/x.png" });
-      if (ARCHETYPES[a2].infoBackdrop === "scrim-deep" && css !== "") f.push(`${a2}: scrim-deep인데 덮어쓰기 CSS가 나감`);
+      if (ARCHETYPES[a2].infoBackdrop === "scrim-deep" && css !== specListCssV5(".w", ARCHETYPES[a2], c)) f.push(`${a2}: scrim-deep인데 정보 구간 덮어쓰기 CSS가 나감`);
       for (const k of FORBIDDEN) if (css.includes(k)) f.push(`${a2}: 금지 CSS ${k}`);
       if (/url\("(?!https:)/.test(css)) f.push(`${a2}: https 아닌 url`);
       if (ARCHETYPES[a2].infoBackdrop !== "scrim-deep" && !/\[data-info="points"\]\{background:linear-gradient/.test(css)) f.push(`${a2}: 사진이 있는데 스크림 배경 규칙 없음`);
@@ -56,6 +57,45 @@ export async function run(): Promise<string[]> {
   }
   // statnum: 잉크 글자가 기본 면·소프트 면 위에서 읽히는지(stat 소프트 면 포함)
   for (const [i, th] of themes.entries()) { const c = infoColorsOf(th); for (const [n, bg] of [["기본", c.base], ["소프트", c.soft]] as const) if (contrastRatioToken(c.ink, bg) < 4.5) f.push(`테마#${i}: 잉크/${n} 면 대비 ${contrastRatioToken(c.ink, bg).toFixed(2)} < 4.5`); }
+  // ── Phase 2: 일반 섹션 구조 재작성
+  {
+    const th = infoColorsOf(getCategoryTheme("화장품/뷰티"));
+    for (const a of ARCHETYPE_IDS) {
+      const css = specListCssV5(".w", ARCHETYPES[a], th);
+      if (!css.includes(".w #pagzly-info")) f.push(`${a}: 상품 정보 선택자 없음`);
+      if (/pagzly-size|pagzly-shipping|data-info/.test(css)) f.push(`${a}: 크기표/배송/정보 구간 선택자가 섞임`);
+      for (const k of FORBIDDEN) if (css.includes(k)) f.push(`${a}: 금지 CSS ${k}`);
+      for (const m of css.matchAll(/font-size:(\d+)px/g)) if (Number(m[1]) < 12) f.push(`${a}: 상품 정보 글자 ${m[1]}px < 12`);
+      const ledger = ["editorial", "luxe", "techsheet"].includes(a);
+      if (ledger !== /display:flex/.test(css)) f.push(`${a}: ledger/stack 구조 매핑이 다름`);
+      if (!/#pagzly-info td\{[^}]*font-size:1[67]px/.test(css)) f.push(`${a}: 상품 정보 값 글자 16px 이상 아님`);
+    }
+    setDesignUp1ForTests(true);
+    setDesignV5ForTests(true);
+    setV5ArchetypeForTests("editorial");
+    for (const [id, file] of corpus()) {
+      const args = exportArgsOf(readSession(file));
+      setDesignV5ForTests(false);
+      const base = exportHtmlOf(file);
+      setDesignV5ForTests(true);
+      const h = exportHtmlOf(file);
+      const plain = (x: string): string => x.replace(/<(script|style)[\s\S]*?<\/\1>/g, "").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, " ");
+      const hp = plain(h); const bp = plain(base);
+      // 문장 보존: 기준(V5 꺼짐, 표시 예산이 섹션을 지웠을 수도 있다)에 화면에 있던 문장은 V5에서도 그대로 있어야 한다
+      for (const sec of args.sections) {
+        if (sec.type === "target_persona") for (const ptxt of sec.personas) if (bp.includes(ptxt.trim()) && !hp.includes(ptxt.trim())) f.push(`${id}: 추천 대상 문장 사라짐 «${ptxt.slice(0, 14)}»`);
+        if (sec.type === "step_card") for (const st of sec.steps) if (bp.includes(st.title.trim()) && !hp.includes(st.title.trim())) f.push(`${id}: 단계 제목 사라짐 «${st.title.slice(0, 12)}»`);
+        if (sec.type === "step_card") for (const st of sec.steps) if (st.body.trim() && bp.includes(st.body.trim()) && !hp.includes(st.body.trim())) f.push(`${id}: 단계 본문 사라짐 «${st.body.slice(0, 12)}»`);
+      }
+    }
+    // 조건 미달 폴백: 2개·7개 추천 대상, 41자 문장은 변환하지 않는다(원 렌더러 유지) — 소스 조건 잠금
+    const lv = fs.readFileSync("lib/layout-variants.ts", "utf8");
+    if (!/ps\.length >= 3 && ps\.length <= 6/.test(lv) || !/len\(t\) <= 40/.test(lv) || !/personaStripIndexes\(s, ctx\.imageUrls\.length\) === null/.test(lv)) f.push("추천 대상 변환 조건(3~6개·40자·사진 띠 없음)이 소스에 없음");
+    if (!/only: \["zigzag"\], label: "STEP"/.test(lv)) f.push("step_card 변환이 사진 보존 변형(zigzag)·STEP 라벨로 한정되지 않음");
+    if (!/designV5On\(\) && s\.type === "target_persona"/.test(lv) || !/designV5On\(\) && s\.type === "step_card"/.test(lv)) f.push("일반 섹션 변환이 designV5On() 가드 뒤가 아님");
+    setV5ArchetypeForTests(null);
+    setDesignV5ForTests(false);
+  }
   // ── Phase 3: 본문 글자
   for (const a of ARCHETYPE_IDS) {
     const t = ARCHETYPES[a];

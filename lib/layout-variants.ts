@@ -25,6 +25,7 @@
  * 마크업은 v4Html 한 벌(impactHtml 경유)을 라이브·export가 그대로 쓴다(패리티 0). 인라인 스타일 + flex·position·transform·border-radius·SVG·gradient만.
  */
 import type { DetailSection, ImpactSection, V4Block } from "@/lib/types/generate";
+import { personaStripIndexes } from "@/lib/persona-strip";
 import type { ImpactPalette } from "@/lib/impact-templates";
 import type { ProductImageOrigin } from "@/lib/image-origins";
 import { darkPaletteOf, faceCycleOf, invertFixHtml, isDarkStrategy } from "@/lib/face-strategy-v5";
@@ -219,7 +220,7 @@ export function wrap(b: V4Block, p: V4Palette, inner: string, opts: { pad?: stri
   const on = p.onFace[role];
   const motifs = (b.motifs ?? []).map((m) => motifHtml(m as MotifPlacement, motifColors(p))).join("");
   const ghost = b.ghost ? ghostHtml(b.ghost, mixHex(p.faces[role] === "#FFFFFF" ? p.tints[0] : p.tints[1], p.accent, 0.12), 88, "tr") : "";
-  const title = opts.head !== undefined ? titleBlock(b.preset ?? "number", opts.label ?? EYEBROW_LABEL[b.family] ?? "", b.no, opts.head, { ink: on.text, deep: on.strong, pillBg: p.deep, pillFg: "#FFFFFF" }) : "";
+  const title = opts.head !== undefined ? titleBlock(b.preset ?? "number", opts.label ?? b.label ?? EYEBROW_LABEL[b.family] ?? "", b.no, opts.head, { ink: on.text, deep: on.strong, pillBg: p.deep, pillFg: "#FFFFFF" }) : "";
   return (
     `<section data-pz-impact="v4" data-pz-v4="${b.family}.${b.variant}" style="position:relative;padding:${opts.pad ?? "64px 24px"};background:${faceBg(b, p)}">` +
     motifs + ghost + (b.divider ? dividerHtml(b.divider as DividerKind, p.ink) : "") +
@@ -697,7 +698,7 @@ export function structureKey(s: DetailSection): string {
 const INFO_KEYS = /^(spec\.|impact\.(spectable|specstrip|faqcards|note|sizebars|chipwall)$|spec_table$|faq$|caution$)/;
 export const isInfoSection = (s: DetailSection): boolean => INFO_KEYS.test(structureKey(s));
 
-type Cand = { family: V4Family; at: number; len: number; text: string; items: Item[]; quote?: string; body?: string; chip?: string; images?: ImpactSection["images"]; origin?: ImpactSection["origin"]; keepKind?: "bubbles" | "checkrows"; from: string };
+type Cand = { family: V4Family; at: number; len: number; text: string; items: Item[]; quote?: string; body?: string; chip?: string; images?: ImpactSection["images"]; origin?: ImpactSection["origin"]; keepKind?: "bubbles" | "checkrows"; from: string; only?: string[]; label?: string };
 
 function findCandidates(secs: DetailSection[], ctx: V4Ctx): Cand[] {
   const out: Cand[] = [];
@@ -743,6 +744,23 @@ function findCandidates(secs: DetailSection[], ctx: V4Ctx): Cand[] {
       const urls = (s.imageIndexes ?? []).map((k) => urlOf(k)).filter(Boolean);
       if (urls.length >= 2 && urls.length <= 5 && new Set(urls).size === urls.length) {
         out.push({ family: "gallery", at: i, len: 1, text: (s.heading ?? "").trim(), items: urls.map((u) => ({ title: "", img: { url: u, pos: "50% 45%" } })), origin: { type: "gallery", slot: s.slot }, from: "gallery" });
+        continue;
+      }
+    }
+    // 469차 V5 — 단계 카드(step_card): 단계마다 사진이 있어 사진을 그대로 보이는 변형(zigzag)으로만 바꾼다(다른 변형은 사진이 사라진다). 라벨은 닫힌 목록의 STEP. 사진이 모자라면 기존 렌더러
+    if (designV5On() && s.type === "step_card") {
+      const steps = (s.steps ?? []).map((t) => ({ title: (t.title ?? "").trim(), body: (t.body ?? "").trim(), url: urlOf(t.imageIndex) }));
+      if (steps.length >= 2 && steps.length <= 4 && steps.every((t) => t.title && t.url) && new Set(steps.map((t) => t.url)).size === steps.length && !checkText(`${s.heading} ${steps.map((t) => `${t.title} ${t.body}`).join(" ")}`, ctx.facts).bad) {
+        out.push({ family: "benefits", at: i, len: 1, text: (s.heading ?? "").trim(), items: steps.map((t) => ({ title: t.title, ...(t.body ? { body: t.body } : {}), img: { url: t.url, pos: "50% 45%" } })), origin: { type: "step_card", slot: s.slot }, from: "step_card", only: ["zigzag"], label: "STEP" });
+        continue;
+      }
+    }
+    // 469차 V5 — 추천 대상(target_persona)을 고민(concern) 계열 변형으로. 원래도 hook 구조가 고민으로 취급해 앞으로 끄는 섹션이다. 문장은 입력 그대로 3~6개·각 40자 이하,
+    //  사진 띠(행마다 사진)가 붙는 경우는 사진이 사라지므로 기존 렌더러 그대로. 원 섹션 종류는 origin으로 남겨 앵커 내비 유지
+    if (designV5On() && s.type === "target_persona") {
+      const ps = (s.personas ?? []).map((t) => (t ?? "").trim()).filter(Boolean);
+      if (ps.length >= 3 && ps.length <= 6 && ps.length === (s.personas ?? []).length && ps.every((t) => len(t) <= 40) && personaStripIndexes(s, ctx.imageUrls.length) === null && len(s.heading?.trim()) <= 40 && !checkText(`${s.heading} ${ps.join(" ")}`, ctx.facts).bad) {
+        out.push({ family: "concern", at: i, len: 1, text: (s.heading ?? "").trim(), items: ps.map((t) => ({ title: t })), origin: { type: "target_persona", slot: s.slot }, from: "target_persona" });
         continue;
       }
     }
@@ -835,7 +853,7 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
     const order = ctx.v5 && prefList?.length
       ? [...order0].sort((a, b) => Number(prefRank(a) === 99) - Number(prefRank(b) === 99) || (prevLow ? Number(variantStrength(cc.family, a) < 3) - Number(variantStrength(cc.family, b) < 3) : 0) || prefRank(a) - prefRank(b) || (counts.get(`${cc.family}.${a}`) ?? 0) - (counts.get(`${cc.family}.${b}`) ?? 0) || order0.indexOf(a) - order0.indexOf(b))
       : [...order0].sort((a, b) => (need ? Number(variantStrength(cc.family, a) < need) - Number(variantStrength(cc.family, b) < need) : 0) || (counts.get(`${cc.family}.${a}`) ?? 0) - (counts.get(`${cc.family}.${b}`) ?? 0) || order0.indexOf(a) - order0.indexOf(b));
-    const okVariant = (v: string): boolean => variantFits(cc.family, v, cc) && `${cc.family}.${v}` !== prevKey && (counts.get(`${cc.family}.${v}`) ?? 0) < MAX_SAME_VARIANT && (pairWith ? v === "collage" : v !== "collage");
+    const okVariant = (v: string): boolean => variantFits(cc.family, v, cc) && `${cc.family}.${v}` !== prevKey && (counts.get(`${cc.family}.${v}`) ?? 0) < MAX_SAME_VARIANT && (pairWith ? v === "collage" : v !== "collage") && (!cc.only || cc.only.includes(v));
     const variant = order.find((v) => okVariant(v));
     if (!variant) {
       for (let k = 0; k < c.len; k += 1) { outS.push(sections[i + k]!); outI.push(sourceIndexes[i + k]!); }
@@ -867,7 +885,7 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
       else invertCount += 1;
     }
     const block: V4Block = {
-      family: cc.family, variant, no, items: cc.items, face, keywords: keywords.slice(0, 12), preset: ctx.v5 ? ctx.v5.eyebrow : titlePresetFor(ctx.mood),
+      family: cc.family, variant, no, items: cc.items, face, ...(cc.label ? { label: cc.label } : {}), keywords: keywords.slice(0, 12), preset: ctx.v5 ? ctx.v5.eyebrow : titlePresetFor(ctx.mood),
       ...(ghostAllowed(cc.family, variant) ? { ghost: String(no).padStart(2, "0") } : {}),
     };
     const sec: ImpactSection = {
