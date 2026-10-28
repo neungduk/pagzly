@@ -18,6 +18,8 @@ const EXCEPTIONS: Record<string, string> = {
   // 468차 — 지표(문자열 전용)
   "scripts/dynamics-metrics-468.ts": "문자열 전용 지표 도구(브라우저 없음)",
   "scripts/dynamics-report-468.ts": "문자열 전용 지표 보고 도구(브라우저 없음)",
+  "scripts/dynamics-metrics-469.ts": "문자열 전용 지표 도구(브라우저 없음)",
+  "scripts/dynamics-report-469.ts": "문자열 전용 지표 보고 도구(브라우저 없음)",
 };
 
 function listTs(dir: string): string[] {

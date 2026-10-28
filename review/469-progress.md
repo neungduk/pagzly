@@ -2,7 +2,7 @@
 468차 완료(`review/468cha-report.md`, `65733b9`) 후 시작.
 | Phase | 상태 |
 |---|---|
-| 0 측정 정정·목표 | 진행 중 |
+| 0 측정 정정·목표 | 완료 (`docs/dynamics-audit-469.md`, `scripts/dynamics-metrics-469.ts`, `scripts/dynamics-report-469.ts`) |
 | 1 정보 백드롭 아키타입화 | 대기 |
 | 2 일반 섹션 구조 재작성 | 대기 |
 | 3 본문 글자 | 대기 |

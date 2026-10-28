@@ -1,0 +1,59 @@
+# 469차 — 남은 평평한 덩어리: 진단·지표 정정·목표 (코드 전에 확정)
+
+문자열 전용(말뭉치 21 × 아키타입 8, V5+UP1 켜짐). 도구: `scripts/dynamics-metrics-469.ts`, `scripts/dynamics-report-469.ts`.
+
+## 1. 정보 구간(`data-info`) — 사진 배경 정보 블록의 정체
+
+| 구간 | 원 섹션 | 기본 면 | 사진 백드롭 | 원천 | 아키타입이 개입할 수 있는 지점 |
+|---|---|---|---|---|---|
+| points | highlight_box(신뢰 근거 제외) | **진한 면(`c.deep`)**, 카드는 어두운 반투명(`mix(deep,#000,.3)` α.72), 글자 흰색 | 있으면 `linear-gradient(deep α≈.72)` + `url(...)` (`infoBackdropCss`) | `lib/info-style.ts` `infoCss`(+ `lib/design-v2.ts` `designV2Css`가 하드 면으로 확정), `lib/info-backdrop.ts` | **`archetypeCssV5`가 나가는 `<style>`은 infoCss·designV2Css 뒤에 놓인다**(export 2471→2475, 라이브 6151→6152) → 같은 선택자·`!important`로 V5 덮어쓰기가 이긴다 |
+| stat | stat_infographic(막대) | dramatic이면 진한 면 | 있으면 진한 스크림 | 같음 | 같음 |
+| steps | usage_steps | 밝은 면(마지막 카드만 반전) | 옅은 스크림 | 같음 | |
+| compare / care / statnum | checklist / caution / 숫자 칸 | 밝은 면·소프트·포인트색 | 옅은 스크림 | 같음 | |
+
+468차 `banner` 토큰은 일러스트 배너(`illustration_banner`)만 다뤘고 이 구간은 아키타입과 무관했다. 사진 URL은 `infoBackdrops` 맵(AI 생성 배경)에서 오고, 없으면 진한 면만 남는다 — 즉 **사진이 없어도 points는 진한 초록 덩어리**다.
+
+## 2. 지표 정정
+
+- 468차 지표(`visibleDark`)는 섹션 마크업의 인라인 배경만 읽어, 문서 CSS가 `!important`로 칠하는 정보 구간을 놓쳤다. 정정(`visibleDark2`)은 문서 `<style>`의 구간별 마지막 배경 선언을 읽는다. 추가로 `darkInfoZones`(진한 정보 구간 수/페이지)를 센다.
+- 정정 후에도 평균 면 비율은 3%대다(섹션 1개가 페이지 높이의 ~4%) — 468차 `전면 스크림 배너/페이지`처럼 **눈에 큰 덩어리로 보이는 개수**를 따로 목표로 둔다(아래).
+
+## 3. 기준선 (469차 시작 = 468차 끝, `65733b9`)
+| 아키타입(강도·면) | 진한 면(468 정의) | 진한 면(정정) 평균 | 최악 | 진한 정보 구간/페이지 | 진한 면 판정 | 본문 중앙값px | 줄 글자수 | 판정 | 장면/페이지 | 판정 | 평탄 구간 | 단일3연속 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| editorial(3·lightOnly) | 2.5% | 3.0% | 10.4% | 0.52 | ○ | 14.0 | 43.3 | × | 0.24 (≥1) | × | 3.0 | 0.90 |
+| catalog(4·tintAlt) | 3.2% | 3.0% | 10.4% | 0.52 | ○ | 15.0 | 40.4 | ○ | 0.24 (≥2) | × | 3.1 | 0.90 |
+| softlife(4·tintAlt) | 4.5% | 3.2% | 10.4% | 0.52 | ○ | 15.0 | 40.4 | ○ | 0.24 (≥2) | × | 2.4 | 0.90 |
+| impact(5·blockAlt) | 29.6% | 30.4% | 38.5% | 0.52 | ○ | 14.0 | 43.3 | × | 0.24 (≥3) | × | 3.0 | 1.00 |
+| techsheet(3·lightOnly) | 1.4% | 3.0% | 10.5% | 0.52 | ○ | 15.0 | 40.4 | ○ | 0.14 (≥1) | × | 2.1 | 0.90 |
+| narrative(4·tintAlt) | 2.7% | 3.2% | 10.4% | 0.52 | ○ | 15.0 | 40.4 | ○ | 0.24 (≥2) | × | 2.6 | 0.90 |
+| luxe(3·lightOnly) | 3.4% | 3.0% | 10.5% | 0.52 | ○ | 14.5 | 41.8 | × | 0.14 (≥1) | × | 2.9 | 0.90 |
+| pop(5·colorCollide) | 30.9% | 29.3% | 39.5% | 0.52 | × | 15.0 | 40.4 | ○ | 0.24 (≥3) | × | 3.0 | 1.00 |
+
+목표 달성 12/24
+
+
+(평탄 구간은 `pageMetrics.flatZones` 페이지 평균; 463차 목표 "UP1 37"은 말뭉치 합계 기준이라 평균 × 21과 비교.)
+
+## 4. 목표 (코드 전에 확정, 낮추지 않는다)
+- 진한 면(정정): lightOnly·tintAlt 6종 평균 ≤15%·최악 ≤25%, **진한 정보 구간 0/페이지**(추가) / impact 평균 25~45% / pop 30~55%.
+- 본문 글자 중앙값 ≥ 15px 전 아키타입(impact·pop·softlife·narrative는 16 권장). 줄 글자 수 어림(576÷(크기×0.95))은 크기가 커지면 줄어드는 값이라 "+15%"는 **본문 폭 확대**(내용 열 너비/패딩)로 달성하는 쪽을 보고하고, 지표는 크기·행간으로 판정한다.
+- 화면 장악 장면: 페이지당 강도 5 ≥ 3 / 강도 4 ≥ 2 / 강도 3 ≥ 1 (정의: 선언 min-height ≥ 640px + 읽히는 글자 ≥ 36px, 또는 추정 높이 ≥ 700 + 글자 ≥ 36 + 사진 ≤ 1).
+- 일반 섹션 구조 재작성: §5 표의 "가능" 항목 전부(정책 충돌 제외, 사유 기록), 최소 target_persona·spec_table(상품 정보)·step_card 3종.
+- 평탄 구간 합계(21페이지) ≤ 37(UP1 기준), 연속 3개 단일 구간 평균 ≤ 0.5.
+
+## 5. 일반 섹션 구조 재작성 후보 (말뭉치 빈도 = 21 픽스처 합)
+
+| 섹션 | 빈도 | 현재 렌더러 | 입력 | 정책·제약 | 인터랙션 | V5 판단 |
+|---|---|---|---|---|---|---|
+| target_persona | 18 | export 1670 / 라이브 5745(두 벌) | heading, personas[], imageIndexes?(사진 띠) | 사진 띠는 `persona-strip` 상한 안에서만; 문장은 입력 원문 | 없음 | **가능**(새 family persona, 사진 띠가 있으면 폴백) |
+| spec_table(상품 정보) | 42 | export 1388 / 라이브 3336 | rows[label,value], slot(spec_table·size_table·shipping_info) | 크기표(size_table)·배송(shipping_info)은 고지/도식 → 제외. spec_table slot은 부피 비교·식품 비율·크기 비교 도식이 붙는 경우 제외(같은 판정 함수 재사용) | 없음 | **가능(일부)**: 도식이 붙지 않는 spec_table slot만 spec family(`panel/cards/big3` 등 기존 V5 변형)로 |
+| step_card | 4 | export 978 / 라이브 4655 | steps | 단계 문장 원문 | 없음 | **가능**(steps family 재사용, usage_steps와 동일) |
+| usage_steps | 12 | 이미 UP1에서 steps family | — | — | — | 완료(463차) |
+| highlight_box | 18 | 이미 benefits/proof family(boldBlock 제외) | — | — | — | 완료 |
+| checklist | 18 | export 796 / 라이브 2517 (compare 구간) | 항목×(우리/일반) 표 | 비교 정책(`comparison-policy`) | 없음 | 스타일만(정보 구간 CSS) |
+| review_highlight | 1 | export 1959 / 라이브 4956 | praises/concerns + 리뷰 건수 | 집계·고지(`실제 리뷰 N건 분석`) | 없음 | **불가**(집계·고지 문구 위치 보존) → 래퍼만 |
+| tradeoff_card | 15 | 1123/3777 | 장단 비교 | 비교 정책 | 없음 | 래퍼만(사유: 정책 검토 필요) |
+| comparison_chart | 15 | 1119/3765 | 수치 비교 | 수치 게이트·비교 정책 | 없음 | 래퍼만 |
+| color_variation | 3 | — | 옵션 | 색상 선택 인터랙션 | **있음** | 스타일만 |
+| faq / caution | 21 / 18 | 이미 V5 블록 | — | — | 접힘 | 변경 없음 |
