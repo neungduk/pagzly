@@ -1,16 +1,18 @@
 /**
  * 회귀 — 468차 "진짜 다이나믹". 브라우저·네트워크 없음(문자열 렌더만). Phase마다 같은 파일에 검사를 더한다.
  *  Phase 3: 구도 부품 7종(극단 입력·금지 CSS·풀블리드 음수 마진 ≤24·고정 폭·결정성·새 글자 없음)과 새 변형(입력 요건 폴백)
+ *  Phase 6: 구도 계획(단일 컬럼 비율·연속 3개 단일 구간 가드, 들여 쓰기는 V5 토큰 뒤에서만)
+ *  Phase 5: 일반 섹션 래퍼 다이나믹(강도 4·5 시트 모서리·그림자, export/라이브 선택자, 표식 없는 구매 카드·고지는 제외)
  *  Phase 4: 빈 사진 틀(V5 폴백 상한·줄무늬 대비·사진 없음/일부/전부 × 8종)
  *  Phase 2: 읽히는 제목 스케일(fitTitlePx 단계 선택·320폭 안전·긴 입력 줄바꿈·결정성)
  *  Phase 1: 배너 아키타입화(V5 켜짐 한정, 연속 배너 값 다름, 밝은 면 성격은 전면 스크림 없음, 꺼짐·편집 모드 미적용, 배너 글자 대비 상수)
  */
 import fs from "node:fs";
 import { setDesignUp1ForTests, setDesignV5ForTests } from "../../lib/design-v4";
-import { ARCHETYPES, ARCHETYPE_IDS, FIT_AVAIL_PX, NO_PHOTO_MAX_PX, emWidth, fitTitlePx, noPhotoCssV5, setV5ArchetypeForTests, typographyV5 } from "../../lib/page-archetype-v5";
+import { ARCHETYPES, ARCHETYPE_IDS, FIT_AVAIL_PX, NO_PHOTO_MAX_PX, archetypeCssV5, emWidth, fitTitlePx, noPhotoCssV5, setV5ArchetypeForTests, typographyV5 } from "../../lib/page-archetype-v5";
 import { BANNER_SPLIT_BAND_BG, BANNER_STYLE } from "../../lib/design-tokens-v4";
 import { corpus, exportHtmlOf, exportHtmlPhotos, type PhotosMode } from "../design-corpus";
-import { frameStats } from "../dynamics-metrics-468";
+import { compShares, frameStats, singleRuns3 } from "../dynamics-metrics-468";
 import { topSections } from "../variety-metrics-463";
 import { expandDedupedStyles } from "../../lib/style-dedupe";
 import { ratio } from "../contrast-audit-466";
@@ -130,6 +132,42 @@ export async function run(): Promise<string[]> {
     }
     const pa = fs.readFileSync("lib/page-archetype-v5.ts", "utf8");
     if (!/export function fitTitlePx/.test(pa)) f.push("fitTitlePx 없음");
+  }
+  // ── Phase 6: 구도 계획기
+  {
+    const dl = fs.readFileSync("lib/dynamics-layer-v5.ts", "utf8");
+    if (!/get\(i\)\.indent = side/.test(dl)) f.push("들여 쓰기 계획이 planDynamicsV5 안에 없음");
+    setDesignUp1ForTests(true);
+    setDesignV5ForTests(true);
+    const cf = corpus();
+    for (const a of ARCHETYPE_IDS) {
+      setV5ArchetypeForTests(a);
+      const hs = cf.map(([, file]) => exportHtmlOf(file));
+      const cs = hs.map(compShares);
+      const single = cs.reduce((x, c) => x + c.single, 0) / cs.length;
+      const ba = cs.reduce((x, c) => x + c.bleedOrAsym, 0) / cs.length;
+      const ov = cs.reduce((x, c) => x + c.overlap, 0) / cs.length;
+      const runs = hs.reduce((x, h) => x + singleRuns3(h), 0) / hs.length;
+      if (single > 0.55) f.push(`${a}: 단일 컬럼 비율 ${single.toFixed(2)} > 0.55`);
+      if (ba < 0.3) f.push(`${a}: 풀블리드+비대칭 ${ba.toFixed(2)} < 0.30`);
+      if (ov < 0.15) f.push(`${a}: 겹침 ${ov.toFixed(2)} < 0.15(가드; 목표 0.25는 보고서에 수치)`);
+      if (runs > 1.5) f.push(`${a}: 연속 3개 단일 구간 평균 ${runs.toFixed(2)} > 1.5(기준선 3.05~12.9)`);
+      if (JSON.stringify(hs[0]) !== JSON.stringify(exportHtmlOf(cf[0]![1]))) f.push(`${a}: 구도 계획 비결정`);
+    }
+    setV5ArchetypeForTests(null);
+    setDesignV5ForTests(false);
+  }
+  // ── Phase 5: 일반 섹션 래퍼 다이나믹
+  for (const a of ARCHETYPE_IDS) {
+    for (const mode of ["export", "live"] as const) {
+      const css = archetypeCssV5(".w", mode, ARCHETYPES[a], "#1B1B18");
+      for (const st of [4, 5]) {
+        const sel = mode === "export" ? `.w section[data-pz-ax$=".${st}"]{position:relative;z-index:1;` : `.w [data-pz-ax$=".${st}"] > section{position:relative;z-index:1;`;
+        if (!css.includes(sel)) f.push(`${a}/${mode}: 강도 ${st} 시트 규칙 없음`);
+      }
+      if (/data-pz-info|pagzly-cta|data-info="buy"/.test(css)) f.push(`${a}/${mode}: 구매 카드/고지 선택자가 래퍼 규칙에 섞임`);
+      for (const t of [":has(", "container-type", "mix-blend-mode", "clip-path", "filter:", "position:fixed", "animation"]) if (css.includes(t)) f.push(`${a}/${mode}: 금지 CSS ${t}`);
+    }
   }
   // ── Phase 4: 빈 사진 틀
   if (NO_PHOTO_MAX_PX > 320) f.push(`빈 틀 상한 ${NO_PHOTO_MAX_PX} > 320`);

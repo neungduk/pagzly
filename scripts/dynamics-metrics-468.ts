@@ -142,10 +142,11 @@ export function compOf(sec: string): Set<Comp> {
   // 비대칭: 열 폭이 다른 flex/grid, 어긋난 translate, 좌우 마진 차 ≥ 20px
   const flexPct = [...x.matchAll(/flex:\s*0 0 (\d+)%/g)].map((m) => Number(m[1])).filter((n) => n !== 50 && n !== 100);
   const grid = [...x.matchAll(/grid-template-columns:\s*([^;"]+)/g)].map((m) => m[1]!).filter((v) => !/repeat\(\d+,\s*1fr\)|^1fr( 1fr)*$/.test(v.trim()) && /fr|%/.test(v));
+  const padAsym = [...body.matchAll(/max-width:576px;margin:0 auto[^"]*;padding-(?:left|right):(\d+)px/g)].some((m) => Number(m[1]) >= 24);
   const stagger = /transform:[^;"]*translate[XY]\(\d/.test(body);
   const offset = ms.some(([, r, , l]) => Number.isFinite(r) && Number.isFinite(l) && Math.abs(r! - l!) >= 20) || ms.some(([, r, , l]) => (Number.isFinite(l) && l! >= 20 && Number.isNaN(r!)) || (Number.isFinite(r) && r! >= 20 && Number.isNaN(l!)));
   const flexUneven = new Set([...x.matchAll(/flex:\s*(\d+(?:\.\d+)?) 1 (\d+)px/g)].map((m) => Number(m[2]))).size > 1;
-  if (flexPct.length || grid.length || stagger || offset || flexUneven) out.add("asym");
+  if (flexPct.length || grid.length || stagger || offset || flexUneven || padAsym) out.add("asym");
   if (out.size === 0) out.add("single");
   return out;
 }

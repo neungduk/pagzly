@@ -23,6 +23,8 @@ const bandLike = (s: DetailSection | undefined): boolean => !!s && s.type === "i
 /** 큰 배경 글자: v4 블록은 순번(눈썹 번호와 같은 값), 기존 임팩트는 제목의 첫 단어(입력 원문, ≤8자) */
 const firstWord = (text: string | undefined): string => ([...(text ?? "").trim().split(/\s+/)[0] ?? ""].slice(0, 8)).join("");
 const roleOf = (b: V4Block | undefined): FaceRole => !b ? "bgA" : (b.face === "grad0" || b.face === "grad1" ? "emphasis" : ((b.face ?? "bgA") as FaceRole));
+/** 468차: 변형 자체가 구도를 깨는 것(풀블리드·비대칭·엇갈림·덱) — 들여 쓰기를 더하지 않는다 */
+const COMPOSED = new Set(["phototext.bleed", "phototext.split", "benefits.stagger", "concern.offset", "story.pullout", "story.chapter", "gallery.deck", "gallery.mosaic", "phototext.offset", "benefits.zigzag"]);
 const CARD_FAMILIES = new Set(["benefits", "concern", "spec", "proof", "faq", "steps"]);
 
 /** 사진 틀 모서리 6종(반경만 바꾸므로 어떤 비율에서도 안전): rect=기본 · soft=크게 · leaf=대각 · notch=반대 대각 · tab=위만 · cut=아래만 */
@@ -114,6 +116,18 @@ export function planDynamicsV5(sections: DetailSection[], t: ArchetypeTokens, se
     if (wantRise) { const r = lv >= 4 ? 28 : 22; get(i).rise = r; get(i - 1).extraBottom = r; used += 1; }
     else if (t.dyn.seam) { const h = lv === 5 ? 34 : 28; get(i).seam = { kind: t.dyn.seam }; get(i - 1).extraBottom = h; used += 1; }
   }
+  // 468차 구도 계획: (1) 걸침 대체 — 이음새만 쓰는 아키타입도 이음새 세 번째마다 걸침으로 바꿔 겹침 구도를 만든다(상한 안)
+  //  (2) 들여 쓰기 — 구도 변형(풀블리드·비대칭 등)이 아닌 적격 섹션은 내용 열을 번갈아 한쪽으로 들인다 → 연속 3개가 모두 가운데 단일 컬럼이 되지 않는다
+  const seamIdx = [...dyn.entries()].filter(([, d]) => d.seam).map(([i]) => i);
+  seamIdx.forEach((i, k) => { if (k % 3 !== 0) { const d = get(i); const h = lv >= 4 ? 28 : 22; delete d.seam; d.rise = h; get(i - 1).extraBottom = h; } });
+  let side: 1 | -1 = rnd(seed, 7) > 0.5 ? 1 : -1;
+  for (const i of elig) {
+    const b = (sections[i] as ImpactSection).v4;
+    if (b && COMPOSED.has(`${b.family}.${b.variant}`)) continue;
+    if (dyn.get(i)?.rise) continue;
+    get(i).indent = side;
+    side = side === 1 ? -1 : 1;
+  }
   if (dyn.size === 0) return sections;
   return sections.map((s, i) => (dyn.has(i) ? ({ ...s, dyn: dyn.get(i) } as DetailSection) : s));
 }
@@ -151,6 +165,11 @@ export function applyDynamicsHtml(html: string, s: ImpactSection, t: ArchetypeTo
   if (d.texture && !d.seam && !d.rise) {
     const pat = d.texture === "dots" ? dotGrid(p) : d.texture === "grid" ? gridPaper(p) : stripeField(p);
     out = patchRoot(out, (st) => st.replace(/(^|;)background:(#[0-9a-fA-F]{6})(?![0-9a-fA-F])/, (_m, pre: string, c: string) => `${pre}background:${pat},${c}`));
+  }
+  // 들여 쓰기: 첫 내용 열(max-width:576px;margin:0 auto)에 한쪽 패딩. 열 폭은 줄지만 줄바꿈 안전(좌우 합 ≤ 40px)
+  if (d.indent) {
+    const n = t.dyn.level === 5 ? 36 : t.dyn.level === 4 ? 32 : 28;
+    out = out.replace(/(style="[^"]*max-width:576px;margin:0 auto[^"]*)"/, (_m, st: string) => `${st};padding-${d.indent === 1 ? "left" : "right"}:${n}px"`);
   }
   // 사진 틀 모서리 변주(전 강도)
   out = reframe(out, t, (b ? b.no : (d.word ?? "").length) * 3);

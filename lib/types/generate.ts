@@ -595,6 +595,8 @@ export type ImpactSection = {
     word?: string;
     rise?: number;
     extraBottom?: number;
+    /** 468차 구도: 내용 열을 한쪽으로 들여 쓴다(+1=왼쪽 들임, -1=오른쪽 들임) — 이웃과 좌우 위치를 엇갈리게 */
+    indent?: 1 | -1;
   };
   /** 439차 — 면 리듬: 흰 바탕 임팩트 블록이 흰 면 사이에 끼면 따뜻한 중립 면으로(린트 R2 2회차, v4 계획만 설정) */
   faceTone?: "warm";

@@ -86,7 +86,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
     pad: [28, 40, 56], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "step", rise: false, tilt: true, texture: "stripe" }, type: { weight: 700, tracking: -0.02, scale: 0.96, title: 36, display: 40 }, eyebrow: "number", frames: ["rect"], dividers: ["stripe", "slant"], number: "box", marker: "square", decor: "bracket", decorAlt: ["plus-field","dots-grid"], badge: "hex", density: "tight",
     hero: ["B", "D"],
     banner: ["split", "card-only"],
-    prefer: { benefits: ["rows2", "stagger", "numcards"], concern: ["tiles2", "offset", "stack"], story: ["chapter", "linetime"], spec: ["grid", "strip"], phototext: ["stack", "split", "caption"], steps: ["bignum", "vtimeline"], faq: ["twocol", "chat"], proof: ["wall", "badges"], touch: ["ticket", "band"], statement: ["band", "ticker", "rule"], stats: ["trio", "bignum"], gallery: ["mosaic", "polaroid"] },
+    prefer: { benefits: ["rows2", "numcards", "stagger"], concern: ["tiles2", "offset", "stack"], story: ["chapter", "linetime"], spec: ["grid", "strip"], phototext: ["stack", "caption", "split"], steps: ["bignum", "vtimeline"], faq: ["twocol", "chat"], proof: ["wall", "badges"], touch: ["ticket", "band"], statement: ["band", "ticker", "rule"], stats: ["trio", "bignum"], gallery: ["mosaic", "polaroid"] },
   },
   softlife: {
     id: "softlife", radius: 1.6, pill: "keep", border: { w: 1, style: "solid", alphaMul: 0.8 }, shadow: { kind: "warm", offset: 0 }, paper: "#FFFBF6", face: "tintAlt",
@@ -107,7 +107,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
     pad: [28, 40, 52], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: "step", rise: false, tilt: false, texture: "grid" }, type: { weight: 900, tracking: -0.01, scale: 0.94, title: 34, display: 38 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["stitch", "dotted"], number: "box", marker: "square", decor: "corner-ticks", decorAlt: ["bracket","dots-grid"], badge: "hex", density: "tight",
     hero: ["D"],
     banner: ["split", "card-only"],
-    prefer: { benefits: ["iconlist", "stagger", "rows2"], concern: ["checkrows", "offset", "deck"], story: ["linetime", "chapter"], spec: ["panel", "strip"], phototext: ["caption", "split", "dframe"], steps: ["vtimeline", "bignum"], faq: ["twocol", "chat"], proof: ["lead", "badges"], touch: ["ledger", "ticket"], statement: ["rule", "band"], stats: ["trio", "rings"], gallery: ["mosaic", "polaroid"] },
+    prefer: { benefits: ["iconlist", "linelist", "rows2"], concern: ["checkrows", "deck", "stack"], story: ["linetime", "chapter"], spec: ["panel", "strip"], phototext: ["caption", "dframe", "overlap"], steps: ["vtimeline", "bignum"], faq: ["numlist", "tabs"], proof: ["lead", "badges"], touch: ["ledger", "ticket"], statement: ["rule", "band"], stats: ["trio", "rings"], gallery: ["mosaic", "polaroid"] },
   },
   narrative: {
     id: "narrative", radius: 1, pill: "keep", border: { w: 1, style: "solid", alphaMul: 1 }, shadow: { kind: "soft", offset: 0 }, paper: "#FDFBF8", face: "tintAlt",
@@ -323,6 +323,11 @@ export function archetypeCssV5(scope: string, mode: "live" | "export", t: Archet
   if (t.decor === "rule-top" || t.decor === "hair-center" || t.decor === "corner-ticks") {
     const line = `border-top:1px solid ${rgba(ink, 0.3)}`;
     for (const s of AX_STRENGTHS) rules.push(`${sel(s)}{${line}}`);
+  }
+  // 468차: 일반 섹션 래퍼 다이나믹 — 강도 4·5 섹션은 윗모서리를 둥글리고 위쪽으로 옅은 그림자(시트가 얹힌 느낌). 반경 0 성격은 가는 윗선만. 내용·구매 카드·고지(표식 없음)는 건드리지 않는다
+  const sheetR = Math.round(24 * t.radius);
+  for (const s of [4, 5] as const) {
+    rules.push(`${sel(s)}{position:relative;z-index:1;${sheetR > 0 ? `border-radius:${sheetR}px ${sheetR}px 0 0;` : ""}box-shadow:0 -10px 20px -16px ${rgba(ink, 0.3)}}`);
   }
   rules.push(noPhotoCssV5(scope, ink));
   return rules.join("");
