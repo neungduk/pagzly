@@ -1,6 +1,7 @@
 /**
  * 회귀 — 469차 "남은 평평한 덩어리". 브라우저·네트워크 없음(문자열 렌더만). Phase마다 같은 파일에 검사를 더한다.
  *  Phase 2: 일반 섹션 구조 재작성(target_persona→concern 변형·step_card→zigzag·상품 정보 목록 CSS): 원문 보존·조건·폴백·대상 한정
+ *  Phase 5: 갤러리 lazy→eager(기본, --keep-lazy로 끔; 갤러리 파일에서만)
  *  Phase 4: 화면 장악 장면(승격 계획: 개수·간격·위치 제한, 큰 글자 36px 이상·min-height 640, 새 글자 없음, 소스 가드)
  *  Phase 3: 본문 글자 토큰(≥15px, 행간 ≤ typo-v4 상한, 가격·한 줄 고정·대문자 라벨·짧은 글 제외, 고지/배송 블록 불변)
  *  Phase 1: 정보 구간(data-info) 아키타입화 — 토큰·덮어쓰기 CSS·팔레트 전수 대비·진한 정보 구간 0·V5 꺼짐 미호출
@@ -101,6 +102,12 @@ export async function run(): Promise<string[]> {
     if (!/designV5On\(\) && s\.type === "target_persona"/.test(lv) || !/designV5On\(\) && s\.type === "step_card"/.test(lv)) f.push("일반 섹션 변환이 designV5On() 가드 뒤가 아님");
     setV5ArchetypeForTests(null);
     setDesignV5ForTests(false);
+  }
+  // ── Phase 5: 갤러리 eager
+  {
+    const g = fs.readFileSync("scripts/v5-gallery-465.ts", "utf8");
+    if (!/replace\(\/loading="lazy"\/g, 'loading="eager"'\)/.test(g) || !/--keep-lazy/.test(g)) f.push("갤러리 도구에 lazy→eager 옵션이 없음");
+    if (/loading="eager"/.test(fs.readFileSync("lib/export-detail-html.ts", "utf8").replace(/loading="eager"\s*fetchpriority/g, ""))) { /* export가 원래 쓰는 eager(히어로 등)는 허용 */ }
   }
   // ── Phase 4: 화면 장악 장면
   {

@@ -7,6 +7,7 @@
  *   npx tsx scripts/v5-gallery-465.ts --compare=fx-skincare-serum   # 한 픽스처를 8종 + 비교(UP1) 나란히 보는 index
  *   --ph2                # 467차: 로컬 placeholder 사진(단색 합성)을 상업 사진처럼 그린 SVG 대용품(public/qa-fixtures/ph2, scripts/make-ph2-467.ts)으로 바꿔 쓴다(갤러리 파일만)
  *   --localize-blocked   # 466차: 막힌 합성 주소(`*.invalid` 인포 구간 배경 사진)를 같은 카테고리의 로컬 placeholder 사진으로 바꿔 배경이 비지 않게 한다(말뭉치·앱 출력은 그대로, 갤러리 파일만)
+ *   (기본) lazy 이미지를 eager로 바꿔 쓴다(469차; --keep-lazy 로 끔)
  *   --photos=none|partial|all   # 468차: 문자열 단계에서 사진 URL을 비우거나(none) 앞쪽 절반만 남겨(partial) 빈 틀·폴백 모양을 확인한다(기본 all)
  * 외부 주소가 하나라도 있으면(xmlns·로컬 경로 제외) 경고하고 종료 코드 1.
  */
@@ -71,7 +72,9 @@ async function main() {
   const photos = (arg("photos") as PhotosMode | undefined) ?? "all";
   if (!["none", "partial", "all"].includes(photos)) throw new Error("--photos 는 none|partial|all");
   const exportHtmlOf = (file: string): string => exportHtmlPhotos(file, photos);
-  const prep = (h: string): string => { const x = blocked ? localizeBlocked(localizeAssets(h, 3), 3) : localizeAssets(h, 3); return ph2 ? useProductPh2(x, 3) : x; };
+  // 469차: 전체 페이지 캡처에서 lazy 이미지가 아직 안 불러와져 빈 틀처럼 보이는 가짜 현상을 막는다(갤러리 파일만 eager — 앱 출력·말뭉치·출력 잠금은 그대로). 끄려면 --keep-lazy
+  const eager = !process.argv.includes("--keep-lazy");
+  const prep = (h: string): string => { const x = blocked ? localizeBlocked(localizeAssets(h, 3), 3) : localizeAssets(h, 3); const y = ph2 ? useProductPh2(x, 3) : x; return eager ? y.replace(/loading="lazy"/g, 'loading="eager"') : y; };
   const archs = (arg("arch")?.split(",").filter(Boolean) as ArchetypeId[] | undefined) ?? [...ARCHETYPE_IDS];
   const files = corpus({ only: compare ? [compare] : only });
   let bad = 0;
