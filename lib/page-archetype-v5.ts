@@ -20,6 +20,7 @@ import type { BannerStyle } from "@/lib/design-tokens-v4";
 import type { DividerKindAny } from "@/lib/dividers";
 import type { FaceStrategy } from "@/lib/face-strategy-v5";
 import type { HeroV2Variant } from "@/lib/hero-spec";
+import { heroStackCssV5 } from "@/lib/hero-stack-v5";
 
 export const ARCHETYPE_IDS = ["editorial", "catalog", "softlife", "impact", "techsheet", "narrative", "luxe", "pop"] as const;
 export type ArchetypeId = (typeof ARCHETYPE_IDS)[number];
@@ -339,6 +340,7 @@ export function archetypeCssV5(scope: string, mode: "live" | "export", t: Archet
   for (const s of [4, 5] as const) {
     rules.push(`${sel(s)}{position:relative;z-index:1;${sheetR > 0 ? `border-radius:${sheetR}px ${sheetR}px 0 0;` : ""}box-shadow:0 -10px 20px -16px ${rgba(ink, 0.3)}}`);
   }
+  rules.push(heroStackCssV5(scope, t.id, ink)); // 471차 첫 화면 구간 배치 레시피
   rules.push(noPhotoCssV5(scope, ink));
   return rules.join("");
 }

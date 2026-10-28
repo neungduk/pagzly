@@ -67,9 +67,10 @@ export const heroFloorViolations = (html: string): number => {
 export function ghostStats(html: string): { total: number; risky: number; topRight: number } {
   let total = 0; let risky = 0; let topRight = 0;
   for (const sec of topSections(expandDedupedStyles(html))) {
-    for (const m of sec.matchAll(/<span aria-hidden="true"[^>]*(?:data-pz-ghost|data-pz-dyn-deco)[^>]*style="([^"]*)"[^>]*>([^<]{1,12})<\/span>/g)) {
-      const st = m[1]!;
-      if (!/font-size:(\d+)px/.test(st) || Number(/font-size:(\d+)px/.exec(st)![1]) < 60) continue;
+    for (const m of sec.matchAll(/<span([^>]*(?:data-pz-ghost|data-pz-ghostpos)[^>]*)>([^<]{1,12})<\/span>/g)) {
+      const st = /style="([^"]*)"/.exec(m[1]!)?.[1] ?? "";
+      const size = Number(/font-size:(\d+)px/.exec(st)?.[1] ?? 0);
+      if (size < 36) continue;
       total += 1;
       const right = /right:(-?\d+)px/.exec(st)?.[1]; const left = /left:(-?\d+)px/.exec(st)?.[1]; const top = /top:(-?\d+)px/.exec(st)?.[1];
       if ((right && Number(right) < 0) || (left && Number(left) < 0) || (top && Number(top) < 0)) risky += 1;

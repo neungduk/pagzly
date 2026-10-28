@@ -22,6 +22,9 @@ const EXCEPTIONS: Record<string, string> = {
   "scripts/dynamics-report-469.ts": "문자열 전용 지표 보고 도구(브라우저 없음)",
   "scripts/recipe-metrics-470.ts": "문자열 전용 레시피 지표 도구(브라우저 없음)",
   "scripts/regression-v5-470.ts": "문자열 전용 회귀 진입점(브라우저 없음)",
+  "scripts/hero-metrics-471.ts": "문자열 전용 첫 화면 지표 도구(브라우저 없음)",
+  "scripts/hero-report-471.ts": "문자열 전용 지표 보고 도구(브라우저 없음)",
+  "scripts/regression-v5-471.ts": "문자열 전용 회귀 진입점(브라우저 없음)",
 };
 
 function listTs(dir: string): string[] {

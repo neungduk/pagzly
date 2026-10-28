@@ -654,7 +654,9 @@ export type HeroPlanInput = {
 export function pickHeroV5(pref: readonly HeroV2Variant[], i: { hasPhoto: boolean; kind: HeroPhotoKind; confidence: number }, fallback: HeroV2Variant): HeroV2Variant {
   if (!i.hasPhoto) return fallback;
   const fits = (v: HeroV2Variant): boolean => v === "A" || v === "D" || v === "E" ? true : v === "B" || v === "C" ? i.kind === "product" && i.confidence >= 0.45 : false;
-  return pref.find(fits) ?? fallback;
+  const picked = pref.find(fits) ?? fallback;
+  // 471차: E(타이포) 히어로의 사진은 36%·최대 180px 원형 — 사진 하한(폭 70%↑ 또는 높이 360px↑)에 못 미치므로 V5에서 사진이 있으면 D(스플릿)로 대체
+  return picked === "E" && i.hasPhoto ? "D" : picked;
 }
 
 const okUrl = (u: string | undefined): string => (u && (/^(https?:)?\/\//i.test(u) || u.startsWith("/")) ? u : "");

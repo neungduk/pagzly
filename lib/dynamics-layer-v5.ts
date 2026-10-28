@@ -13,6 +13,7 @@ import { hexToRgba } from "@/lib/design-tokens";
 import { TITLE_FF, esc } from "@/lib/type-treatments";
 import { dotGrid, gridPaper, seamShape, stripeField, sticker, tape, rnd } from "@/lib/dynamics-v5";
 import { darkPaletteOf } from "@/lib/face-strategy-v5";
+import { HERO_STACK, ghostBoxV5, resolveGhostV5, type GhostPos } from "@/lib/hero-stack-v5";
 
 type Dyn = NonNullable<ImpactSection["dyn"]>;
 const SKIP_FAMILY = new Set(["touch", "breather", "statement"]);
@@ -215,15 +216,40 @@ export function applyDynamicsHtml(html: string, s: ImpactSection, t: ArchetypeTo
   out = reframe(out, t, (b ? b.no : (d.word ?? "").length) * 3);
   // 장식 층: 섹션 안쪽 inset 0 상자(overflow:hidden) — z-index -1(루트가 isolation으로 쌓임 맥락을 가져 배경 위·글 아래에 깔림)
   const layers: string[] = [];
-  if (d.ghost && !/data-pz-ghost/.test(out)) {
-    const size = t.dyn.level === 5 ? 190 : t.dyn.level === 4 ? 150 : 120;
+  // 장식 숫자(471차 재설계): 위/아래 여백 띠 안에 들어가는 크기로, 아키타입별 위치(우상단 고정·바깥으로 잘림 없음 — 왼/오른쪽 가장자리 위치만 의도된 반쯤 걸침)
+  const padOf = (): { top: number; bottom: number } => {
+    const pv = /(?:^|;)padding:([^;"]+)/.exec(ROOT_RE.exec(out)?.[2] ?? "")?.[1]?.trim().split(/\s+/).map((x) => parseFloat(x)) ?? [48];
+    const top = pv[0] ?? 48; const bottom = pv.length >= 3 ? pv[2]! : top;
+    return { top: Number.isFinite(top) ? top : 48, bottom: Number.isFinite(bottom) ? bottom : 48 };
+  };
+  const ghostCss = (pos: GhostPos): string => {
+    switch (pos) {
+      case "tl": return "left:16px;top:6px";
+      case "tc": return "left:50%;top:6px;transform:translateX(-50%)";
+      case "bl": return "left:16px;bottom:6px";
+      case "bc": return "left:50%;bottom:6px;transform:translateX(-50%)";
+      case "br": return "right:16px;bottom:6px";
+      case "le": return "left:-0.3em;top:6px";
+      default: return "right:-0.3em;bottom:6px";
+    }
+  };
+  const pd = padOf();
+  const gres = resolveGhostV5(HERO_STACK[t.id].ghost, pd.top, pd.bottom);
+  // 글 뒤에 이미 있는 번호(wrap의 고스트)도 같은 규칙으로: 위치·크기를 덮어쓴다(가로로 나가는 위치는 안쪽 위치로 바꾼다)
+  // 여백 띠가 모자라(둘 다 < 50px) 놓을 자리가 없으면 글 위를 가리는 고스트는 빼고 간다
+  if (!gres && /data-pz-ghost/.test(out)) out = out.replace(/<span aria-hidden="true" data-pz-ghost[^>]*>[^<]*<\/span>/g, "");
+  if (gres && /data-pz-ghost/.test(out)) {
+    const inner: GhostPos = gres.pos === "le" ? "tl" : gres.pos === "re" ? "bl" : gres.pos;
+    const sz = ghostBoxV5(inner, gres.band, "00", 390, 600, t.dyn.level).size;
+    out = out.replace(/(<span aria-hidden="true" data-pz-ghost)( style=")([^"]*)(">)/g, (_m, a1: string, a2: string, st: string, a4: string) =>
+      `${a1} data-pz-ghostpos="${inner}"${a2}${st.replace(/(top|bottom):-?\d+px;(left|right):\d+px;?/, `${ghostCss(inner)};`).replace(/font-weight:\d+;?/, "").replace(/font-size:\d+px/, `font-weight:900;font-size:${sz}px`)}${a4}`);
+  }
+  if (d.ghost && !/data-pz-ghost/.test(out) && gres) {
     const alpha = dark ? 0.1 : t.dyn.level === 5 ? 0.12 : t.dyn.level === 4 ? 0.09 : 0.07;
     const color = dark ? `rgba(255,255,255,${alpha})` : hexToRgba(p.deep, alpha);
     const label = b ? String(b.no).padStart(2, "0") : d.word ?? "";
-    const left = rnd(b ? b.no * 7 : label.length * 13, 3) > 0.5;
-    // 단어(기존 임팩트)는 길이에 맞춰 크기를 줄여 가로로 한 줄 안에 들게 한다(최대 폭 ≈ 글자 수 × 0.62em)
-    const fit = b ? size : Math.max(72, Math.min(size, Math.floor(300 / Math.max(2, [...label].length) / 0.62)));
-    if (label) layers.push(`<span style="position:absolute;${left ? "left:-8px" : "right:-10px"};top:${t.dyn.level === 5 ? -14 : -6}px;${TITLE_FF};font-size:${fit}px;font-weight:900;letter-spacing:-0.06em;line-height:0.9;color:${color}">${esc(label)}</span>`);
+    const gb = ghostBoxV5(gres.pos, gres.band, label || "00", 390, 600, t.dyn.level);
+    if (label) layers.push(`<span data-pz-ghostpos="${gres.pos}" style="position:absolute;${ghostCss(gres.pos)};${TITLE_FF};font-weight:900;font-size:${gb.size}px;letter-spacing:-0.06em;line-height:0.9;color:${color}">${esc(label)}</span>`);
   }
   // 기울인 판: 내용 뒤에 살짝 기울어진 면(강도 3=가는 외곽선 ±1°, 4=옅은 면 ±1.5°, 5=진한 면+하드 테두리 ±2.5°). 섹션 순번 홀짝으로 기울임 방향을 번갈아
   if (d.plate) {
