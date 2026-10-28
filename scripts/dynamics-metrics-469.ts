@@ -52,7 +52,7 @@ export function visibleDark2(html: string): number {
 
 export function darkInfoZones(html: string): number {
   const lum = infoZoneLum(html);
-  return topSections(expandDedupedStyles(html)).filter((s) => { const z = infoZoneOf(s); return !!z && lum[z] != null && lum[z]! < DARK_LUM; }).length;
+  return topSections(expandDedupedStyles(html)).filter((s) => { const z = infoZoneOf(s); return !!z && z !== "buy" && lum[z] != null && lum[z]! < DARK_LUM; }).length; // buy(구매 카드)는 불변 영역이라 정보 구간 집계에서 뺀다
 }
 
 /** 문단급 본문 글자 크기 목록 */

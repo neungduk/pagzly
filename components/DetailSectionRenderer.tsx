@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { isLongStatValue, isLongUnit, personaClampLines } from "@/lib/robust-462";
 import { ARCHETYPES, archetypeCssV5 } from "@/lib/page-archetype-v5";
+import { infoCssV5 } from "@/lib/info-v5";
 import StickyBuyBar from "@/components/StickyBuyBar";
 import { COMPOSITION_V2_ENABLED } from "@/lib/detail-story-order";
 import {
@@ -6149,7 +6150,7 @@ export default function DetailSectionRenderer({
         <style>{packStructureCss(packLayout, "[data-pz-pack]", "live") + infoCss(packLayout.info, "[data-pz-pack]", infoColorsOf(baseTheme), infoBackdrops, { demote: v2Plan?.demoted })}</style>
       )}
       {v2Css ? <style>{v2Css}</style> : null}
-      {DESIGN_V4_ENABLED ? <style>{typeFloorCss("[data-pz-typefloor]") + headingSystemCss("[data-pz-typefloor]", "live") + topPadCssV4((px) => `[data-pz-typefloor] [data-pz-top="${px}"] > section`) + bottomPadCssV4((px) => `[data-pz-typefloor] [data-pz-bot="${px}"] > section`) + mutedFloorCssLive("[data-pz-typefloor]") + typoCssLive("[data-pz-typefloor]") + noPhotoCss("[data-pz-typefloor]", baseTheme.deepAccent) + (display.v5 ? archetypeCssV5("[data-pz-typefloor]", "live", ARCHETYPES[display.v5.id], BRAND.ink) : "")}</style> : null}
+      {DESIGN_V4_ENABLED ? <style>{typeFloorCss("[data-pz-typefloor]") + headingSystemCss("[data-pz-typefloor]", "live") + topPadCssV4((px) => `[data-pz-typefloor] [data-pz-top="${px}"] > section`) + bottomPadCssV4((px) => `[data-pz-typefloor] [data-pz-bot="${px}"] > section`) + mutedFloorCssLive("[data-pz-typefloor]") + typoCssLive("[data-pz-typefloor]") + noPhotoCss("[data-pz-typefloor]", baseTheme.deepAccent) + (display.v5 ? archetypeCssV5("[data-pz-typefloor]", "live", ARCHETYPES[display.v5.id], BRAND.ink) + infoCssV5("[data-pz-typefloor]", ARCHETYPES[display.v5.id], infoColorsOf(baseTheme), infoBackdrops) : "")}</style> : null}
       {DESIGN_V3_COLOR_ENABLED && v2On ? <style>{paletteInfoCss("[data-pz-v2]", extendedTheme, packLayout.info)}</style> : null}
       {DESIGN_V3_COLOR_ENABLED && !edit?.enabled ? <style>{dividerCss({ scope: "[data-pz-v2]", mode: "live", sections, ext: extendedTheme, category, info: packLayout.info })}</style> : null}
       {fontPair ? (

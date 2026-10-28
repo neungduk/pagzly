@@ -69,6 +69,8 @@ export type ArchetypeTokens = {
   hero: HeroV2Variant[];
   /** 468차 일러스트 배너 값(앞이 첫 배너, 다음 배너는 뒤 — 번갈아 써서 연속 배너가 같은 값이 되지 않는다). 밝은 면 성격은 사진을 덮지 않는 split/card-only, 임팩트·팝만 전면 스크림 */
   banner: [BannerStyle, BannerStyle];
+  /** 469차 사진 배경 정보 구간(data-info) 표현: scrim-deep 진한 스크림(덮어쓰지 않음) / scrim-light 밝은 틴트 스크림+흰 카드 / photo-plain 옅은 스크림(사진이 더 비침) / solid 사진 없이 틴트 면 */
+  infoBackdrop: "scrim-deep" | "scrim-light" | "photo-plain" | "solid";
   /** 계열별 선호 변형(앞이 우선) — 스토리보드가 변형 순서 맨 앞으로 끌어온다 */
   prefer: Partial<Record<"benefits" | "concern" | "story" | "spec" | "phototext" | "steps" | "faq" | "proof" | "touch" | "statement" | "stats" | "gallery", string[]>>;
 };
@@ -79,6 +81,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
     pad: [40, 64, 88], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: null, rise: true, tilt: false, texture: null }, type: { weight: 500, tracking: -0.01, scale: 1.04, title: 40, display: 44 }, eyebrow: "number", frames: ["rect", "double"], dividers: ["thin2", "double", "fade"], number: "roman", marker: "dash", decor: "rule-top", decorAlt: ["bracket","plus-field"], badge: "seal", density: "airy",
     hero: ["D", "A"],
     banner: ["split", "card-only"],
+    infoBackdrop: "scrim-light",
     prefer: { benefits: ["stackbig", "linelist"], concern: ["memo", "offset", "stack"], story: ["editorial", "pullout", "chapter"], spec: ["line", "strip"], phototext: ["split", "dframe", "offset"], steps: ["vtimeline", "bignum"], faq: ["numlist", "chat"], proof: ["lead", "wall"], touch: ["ledger", "band"], statement: ["rule", "band"], stats: ["bignum", "trio"], gallery: ["mosaic", "polaroid"] },
   },
   catalog: {
@@ -86,6 +89,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
     pad: [28, 40, 56], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "step", rise: false, tilt: true, texture: "stripe" }, type: { weight: 700, tracking: -0.02, scale: 0.96, title: 36, display: 40 }, eyebrow: "number", frames: ["rect"], dividers: ["stripe", "slant"], number: "box", marker: "square", decor: "bracket", decorAlt: ["plus-field","dots-grid"], badge: "hex", density: "tight",
     hero: ["B", "D"],
     banner: ["split", "card-only"],
+    infoBackdrop: "scrim-light",
     prefer: { benefits: ["rows2", "numcards", "stagger"], concern: ["tiles2", "offset", "stack"], story: ["chapter", "linetime"], spec: ["grid", "strip"], phototext: ["stack", "caption", "split"], steps: ["bignum", "vtimeline"], faq: ["twocol", "chat"], proof: ["wall", "badges"], touch: ["ticket", "band"], statement: ["band", "ticker", "rule"], stats: ["trio", "bignum"], gallery: ["mosaic", "polaroid"] },
   },
   softlife: {
@@ -93,6 +97,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
     pad: [40, 56, 72], titleAlign: "center", centerBudget: 1, dyn: { level: 4, seam: "wave", rise: true, tilt: false, texture: null }, type: { weight: 500, tracking: -0.03, scale: 1, title: 36, display: 40 }, eyebrow: "pill", frames: ["arch", "round"], dividers: ["wave2", "fade", "dotwave"], number: "circle", marker: "dot", decor: "glow", decorAlt: ["arc","squiggle"], badge: "circle", density: "normal",
     hero: ["B", "D"],
     banner: ["card-only", "split"],
+    infoBackdrop: "photo-plain",
     prefer: { benefits: ["stagger", "iconlist", "zigzag"], concern: ["bubbles", "offset", "deck"], story: ["letter", "quote"], spec: ["cards", "tags"], phototext: ["bleed", "polaroid", "offset"], steps: ["chipflow", "vtimeline"], faq: ["chat", "qband"], proof: ["lead", "seal"], touch: ["ticket", "band"], statement: ["band", "rule"], stats: ["rings", "trio"], gallery: ["deck", "polaroid", "mosaic"] },
   },
   impact: {
@@ -100,6 +105,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
     pad: [32, 48, 64], titleAlign: "left", centerBudget: 0, dyn: { level: 5, seam: "slant", rise: false, tilt: true, texture: null }, type: { weight: 900, tracking: -0.045, scale: 1.1, title: 44, display: 50 }, eyebrow: "number", frames: ["offset", "rect"], dividers: ["slant", "zigzag", "stripe"], number: "big", marker: "arrow", decor: "bar-left", decorAlt: ["dots-grid","plus-field"], badge: "hex", density: "tight",
     hero: ["C", "B", "A"],
     banner: ["full-scrim", "card-only"],
+    infoBackdrop: "scrim-deep",
     prefer: { benefits: ["stagger", "bento", "stackbig"], concern: ["deck", "offset", "stack"], story: ["pullout", "pullband", "chapter"], spec: ["big3", "strip"], phototext: ["bleed", "offset", "stack"], steps: ["bignum", "vtimeline"], faq: ["tabs", "qband"], proof: ["wall", "badges"], touch: ["band", "ticket"], statement: ["band", "ticker", "rule"], stats: ["bignum", "trio"], gallery: ["mosaic", "polaroid"] },
   },
   techsheet: {
@@ -107,6 +113,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
     pad: [28, 40, 52], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: "step", rise: true, tilt: false, texture: "grid" }, type: { weight: 900, tracking: -0.01, scale: 0.94, title: 34, display: 38 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["stitch", "dotted"], number: "box", marker: "square", decor: "corner-ticks", decorAlt: ["bracket","dots-grid"], badge: "hex", density: "tight",
     hero: ["D"],
     banner: ["split", "card-only"],
+    infoBackdrop: "scrim-light",
     prefer: { benefits: ["iconlist", "linelist", "rows2"], concern: ["checkrows", "deck", "stack"], story: ["linetime", "chapter"], spec: ["panel", "strip"], phototext: ["caption", "dframe", "overlap"], steps: ["vtimeline", "bignum"], faq: ["numlist", "tabs"], proof: ["lead", "badges"], touch: ["ledger", "ticket"], statement: ["rule", "band"], stats: ["trio", "rings"], gallery: ["mosaic", "polaroid"] },
   },
   narrative: {
@@ -114,6 +121,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
     pad: [48, 72, 96], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "scallop", rise: true, tilt: false, texture: null }, type: { weight: 700, tracking: -0.02, scale: 1.04, title: 38, display: 42 }, eyebrow: "number", frames: ["rect", "round"], dividers: ["dotwave", "fade", "wave"], number: "big", marker: "dot", decor: "spine", decorAlt: ["squiggle","arc"], badge: "circle", density: "airy",
     hero: ["A", "D"],
     banner: ["card-only", "split"],
+    infoBackdrop: "photo-plain",
     prefer: { benefits: ["zigzag", "stagger", "linelist"], concern: ["offset", "stack", "deck"], story: ["letter", "pullout", "chapter"], spec: ["tags", "strip"], phototext: ["overlap", "bleed", "stack"], steps: ["vtimeline", "chipflow"], faq: ["numlist", "chat"], proof: ["seal", "lead"], touch: ["ledger", "band"], statement: ["rule", "band"], stats: ["bignum", "rings"], gallery: ["polaroid", "deck", "mosaic"] },
   },
   luxe: {
@@ -121,6 +129,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
     pad: [56, 80, 104], titleAlign: "center", centerBudget: 1, dyn: { level: 3, seam: null, rise: true, tilt: false, texture: null }, type: { weight: 400, tracking: 0.02, scale: 1, title: 32, display: 36 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["thin2", "dotted"], number: "roman", marker: "dash", decor: "hair-center", decorAlt: ["arc","ring"], badge: "seal", density: "airy",
     hero: ["E", "D"],
     banner: ["split", "card-only"],
+    infoBackdrop: "scrim-light",
     prefer: { benefits: ["iconstrip", "numcards", "stagger"], concern: ["tiles2", "offset", "stack"], story: ["letter", "editorial", "pullout"], spec: ["line", "strip"], phototext: ["dframe", "split", "caption"], steps: ["vtimeline", "chipflow"], faq: ["qband", "chat"], proof: ["seal", "lead"], touch: ["ledger", "band"], statement: ["rule", "band"], stats: ["bignum", "trio"], gallery: ["polaroid", "mosaic"] },
   },
   pop: {
@@ -128,6 +137,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
     pad: [32, 44, 60], titleAlign: "center", centerBudget: 1, dyn: { level: 5, seam: "zigzag", rise: false, tilt: true, texture: "dots" }, type: { weight: 900, tracking: -0.03, scale: 1.08, title: 42, display: 48 }, eyebrow: "pill", frames: ["tape", "round", "offset"], dividers: ["zigzag", "tape", "wave2"], number: "circle", marker: "arrow", decor: "sticker", decorAlt: ["squiggle","ring","dots-grid"], badge: "ribbon", density: "normal",
     hero: ["B", "C"],
     banner: ["full-scrim", "split"],
+    infoBackdrop: "scrim-deep",
     prefer: { benefits: ["numcards", "stagger", "bento"], concern: ["offset", "bubbles", "deck"], story: ["pullband", "pullout", "quote"], spec: ["grid", "cards"], phototext: ["polaroid", "bleed", "offset"], steps: ["bignum", "chipflow"], faq: ["chat", "twocol"], proof: ["badges", "wall"], touch: ["ticket", "band"], statement: ["ticker", "band", "rule"], stats: ["trio", "rings"], gallery: ["polaroid", "deck", "mosaic"] },
   },
 };
