@@ -54,7 +54,7 @@ export type ArchetypeTokens = {
   /** 467차 다이나믹 강도(1~5)와 장치: 이음새 도형·걸침·기울임/스티커 */
   dyn: { level: 3 | 4 | 5; seam: "slant" | "wave" | "scallop" | "zigzag" | "step" | null; rise: boolean; tilt: boolean; texture: "dots" | "stripe" | "grid" | null };
   /** 466차 제목 타이포(큰 글자 22~40px 제목에만): 굵기(400·500·700·900 — 로드된 굵기), 자간(em), 크기 배율. 폰트 추가 없음 */
-  type: { weight: 400 | 500 | 700 | 900; tracking: number; scale: number };
+  type: { weight: 400 | 500 | 700 | 900; tracking: number; scale: number; title: number; display: number };
   eyebrow: "enlabel" | "number" | "pill";
   frames: FrameKind[];
   dividers: DividerKindAny[];
@@ -76,56 +76,56 @@ export type ArchetypeTokens = {
 export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   editorial: {
     id: "editorial", radius: 0, pill: 2, border: { w: 1, style: "solid", alphaMul: 1.6 }, shadow: { kind: "none", offset: 0 }, paper: "#FAF7F1", face: "lightOnly",
-    pad: [40, 64, 88], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: null, rise: true, tilt: false, texture: null }, type: { weight: 500, tracking: -0.01, scale: 1.04 }, eyebrow: "number", frames: ["rect", "double"], dividers: ["thin2", "double", "fade"], number: "roman", marker: "dash", decor: "rule-top", decorAlt: ["bracket","plus-field"], badge: "seal", density: "airy",
+    pad: [40, 64, 88], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: null, rise: true, tilt: false, texture: null }, type: { weight: 500, tracking: -0.01, scale: 1.04, title: 40, display: 44 }, eyebrow: "number", frames: ["rect", "double"], dividers: ["thin2", "double", "fade"], number: "roman", marker: "dash", decor: "rule-top", decorAlt: ["bracket","plus-field"], badge: "seal", density: "airy",
     hero: ["D", "A"],
     banner: ["split", "card-only"],
     prefer: { benefits: ["stackbig", "linelist"], concern: ["memo", "stack"], story: ["editorial", "chapter"], spec: ["line", "strip"], phototext: ["dframe", "offset"], steps: ["vtimeline", "bignum"], faq: ["numlist", "chat"], proof: ["lead", "wall"], touch: ["ledger", "band"], statement: ["rule", "band"], stats: ["bignum", "trio"], gallery: ["mosaic", "polaroid"] },
   },
   catalog: {
     id: "catalog", radius: 0.6, pill: 6, border: { w: 2, style: "solid", alphaMul: 2.2 }, shadow: { kind: "none", offset: 0 }, paper: "#F3F2EE", face: "tintAlt",
-    pad: [28, 40, 56], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "step", rise: false, tilt: true, texture: "stripe" }, type: { weight: 700, tracking: -0.02, scale: 0.96 }, eyebrow: "number", frames: ["rect"], dividers: ["stripe", "slant"], number: "box", marker: "square", decor: "bracket", decorAlt: ["plus-field","dots-grid"], badge: "hex", density: "tight",
+    pad: [28, 40, 56], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "step", rise: false, tilt: true, texture: "stripe" }, type: { weight: 700, tracking: -0.02, scale: 0.96, title: 36, display: 40 }, eyebrow: "number", frames: ["rect"], dividers: ["stripe", "slant"], number: "box", marker: "square", decor: "bracket", decorAlt: ["plus-field","dots-grid"], badge: "hex", density: "tight",
     hero: ["B", "D"],
     banner: ["split", "card-only"],
     prefer: { benefits: ["rows2", "numcards"], concern: ["tiles2", "stack"], story: ["chapter", "linetime"], spec: ["grid", "strip"], phototext: ["stack", "caption"], steps: ["bignum", "vtimeline"], faq: ["twocol", "chat"], proof: ["wall", "badges"], touch: ["ticket", "band"], statement: ["band", "ticker", "rule"], stats: ["trio", "bignum"], gallery: ["mosaic", "polaroid"] },
   },
   softlife: {
     id: "softlife", radius: 1.6, pill: "keep", border: { w: 1, style: "solid", alphaMul: 0.8 }, shadow: { kind: "warm", offset: 0 }, paper: "#FFFBF6", face: "tintAlt",
-    pad: [40, 56, 72], titleAlign: "center", centerBudget: 1, dyn: { level: 4, seam: "wave", rise: true, tilt: false, texture: null }, type: { weight: 500, tracking: -0.03, scale: 1 }, eyebrow: "pill", frames: ["arch", "round"], dividers: ["wave2", "fade", "dotwave"], number: "circle", marker: "dot", decor: "glow", decorAlt: ["arc","squiggle"], badge: "circle", density: "normal",
+    pad: [40, 56, 72], titleAlign: "center", centerBudget: 1, dyn: { level: 4, seam: "wave", rise: true, tilt: false, texture: null }, type: { weight: 500, tracking: -0.03, scale: 1, title: 36, display: 40 }, eyebrow: "pill", frames: ["arch", "round"], dividers: ["wave2", "fade", "dotwave"], number: "circle", marker: "dot", decor: "glow", decorAlt: ["arc","squiggle"], badge: "circle", density: "normal",
     hero: ["B", "D"],
     banner: ["card-only", "split"],
     prefer: { benefits: ["iconlist", "zigzag"], concern: ["bubbles", "deck"], story: ["letter", "quote"], spec: ["cards", "tags"], phototext: ["polaroid", "offset"], steps: ["chipflow", "vtimeline"], faq: ["chat", "qband"], proof: ["lead", "seal"], touch: ["ticket", "band"], statement: ["band", "rule"], stats: ["rings", "trio"], gallery: ["polaroid", "mosaic"] },
   },
   impact: {
     id: "impact", radius: 0.5, pill: 6, border: { w: 3, style: "solid", alphaMul: 5 }, shadow: { kind: "hard", offset: 4 }, paper: "#FFFFFF", face: "blockAlt",
-    pad: [32, 48, 64], titleAlign: "left", centerBudget: 0, dyn: { level: 5, seam: "slant", rise: false, tilt: true, texture: null }, type: { weight: 900, tracking: -0.045, scale: 1.1 }, eyebrow: "number", frames: ["offset", "rect"], dividers: ["slant", "zigzag", "stripe"], number: "big", marker: "arrow", decor: "bar-left", decorAlt: ["dots-grid","plus-field"], badge: "hex", density: "tight",
+    pad: [32, 48, 64], titleAlign: "left", centerBudget: 0, dyn: { level: 5, seam: "slant", rise: false, tilt: true, texture: null }, type: { weight: 900, tracking: -0.045, scale: 1.1, title: 44, display: 50 }, eyebrow: "number", frames: ["offset", "rect"], dividers: ["slant", "zigzag", "stripe"], number: "big", marker: "arrow", decor: "bar-left", decorAlt: ["dots-grid","plus-field"], badge: "hex", density: "tight",
     hero: ["C", "B", "A"],
     banner: ["full-scrim", "card-only"],
     prefer: { benefits: ["bento", "stackbig"], concern: ["deck", "stack"], story: ["pullband", "chapter"], spec: ["big3", "strip"], phototext: ["offset", "stack"], steps: ["bignum", "vtimeline"], faq: ["tabs", "qband"], proof: ["wall", "badges"], touch: ["band", "ticket"], statement: ["band", "ticker", "rule"], stats: ["bignum", "trio"], gallery: ["mosaic", "polaroid"] },
   },
   techsheet: {
     id: "techsheet", radius: 0, pill: 0, border: { w: 1, style: "dashed", alphaMul: 2.4 }, shadow: { kind: "none", offset: 0 }, paper: "#EEF3F8", face: "lightOnly",
-    pad: [28, 40, 52], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: "step", rise: false, tilt: false, texture: "grid" }, type: { weight: 900, tracking: -0.01, scale: 0.94 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["stitch", "dotted"], number: "box", marker: "square", decor: "corner-ticks", decorAlt: ["bracket","dots-grid"], badge: "hex", density: "tight",
+    pad: [28, 40, 52], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: "step", rise: false, tilt: false, texture: "grid" }, type: { weight: 900, tracking: -0.01, scale: 0.94, title: 34, display: 38 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["stitch", "dotted"], number: "box", marker: "square", decor: "corner-ticks", decorAlt: ["bracket","dots-grid"], badge: "hex", density: "tight",
     hero: ["D"],
     banner: ["split", "card-only"],
     prefer: { benefits: ["iconlist", "rows2"], concern: ["checkrows", "deck"], story: ["linetime", "chapter"], spec: ["panel", "strip"], phototext: ["caption", "dframe"], steps: ["vtimeline", "bignum"], faq: ["twocol", "chat"], proof: ["lead", "badges"], touch: ["ledger", "ticket"], statement: ["rule", "band"], stats: ["trio", "rings"], gallery: ["mosaic", "polaroid"] },
   },
   narrative: {
     id: "narrative", radius: 1, pill: "keep", border: { w: 1, style: "solid", alphaMul: 1 }, shadow: { kind: "soft", offset: 0 }, paper: "#FDFBF8", face: "tintAlt",
-    pad: [48, 72, 96], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "scallop", rise: true, tilt: false, texture: null }, type: { weight: 700, tracking: -0.02, scale: 1.04 }, eyebrow: "number", frames: ["rect", "round"], dividers: ["dotwave", "fade", "wave"], number: "big", marker: "dot", decor: "spine", decorAlt: ["squiggle","arc"], badge: "circle", density: "airy",
+    pad: [48, 72, 96], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "scallop", rise: true, tilt: false, texture: null }, type: { weight: 700, tracking: -0.02, scale: 1.04, title: 38, display: 42 }, eyebrow: "number", frames: ["rect", "round"], dividers: ["dotwave", "fade", "wave"], number: "big", marker: "dot", decor: "spine", decorAlt: ["squiggle","arc"], badge: "circle", density: "airy",
     hero: ["A", "D"],
     banner: ["card-only", "split"],
     prefer: { benefits: ["zigzag", "linelist"], concern: ["stack", "deck"], story: ["letter", "chapter"], spec: ["tags", "strip"], phototext: ["overlap", "stack"], steps: ["vtimeline", "chipflow"], faq: ["numlist", "chat"], proof: ["seal", "lead"], touch: ["ledger", "band"], statement: ["rule", "band"], stats: ["bignum", "rings"], gallery: ["polaroid", "mosaic"] },
   },
   luxe: {
     id: "luxe", radius: 0.1, pill: 2, border: { w: 1, style: "solid", alphaMul: 0.7 }, shadow: { kind: "none", offset: 0 }, paper: "#FBFAF6", face: "lightOnly",
-    pad: [56, 80, 104], titleAlign: "center", centerBudget: 1, dyn: { level: 3, seam: null, rise: true, tilt: false, texture: null }, type: { weight: 400, tracking: 0.02, scale: 1 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["thin2", "dotted"], number: "roman", marker: "dash", decor: "hair-center", decorAlt: ["arc","ring"], badge: "seal", density: "airy",
+    pad: [56, 80, 104], titleAlign: "center", centerBudget: 1, dyn: { level: 3, seam: null, rise: true, tilt: false, texture: null }, type: { weight: 400, tracking: 0.02, scale: 1, title: 32, display: 36 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["thin2", "dotted"], number: "roman", marker: "dash", decor: "hair-center", decorAlt: ["arc","ring"], badge: "seal", density: "airy",
     hero: ["E", "D"],
     banner: ["split", "card-only"],
     prefer: { benefits: ["iconstrip", "numcards"], concern: ["tiles2", "stack"], story: ["letter", "editorial"], spec: ["line", "strip"], phototext: ["dframe", "caption"], steps: ["vtimeline", "chipflow"], faq: ["qband", "chat"], proof: ["seal", "lead"], touch: ["ledger", "band"], statement: ["rule", "band"], stats: ["bignum", "trio"], gallery: ["polaroid", "mosaic"] },
   },
   pop: {
     id: "pop", radius: 1.8, pill: "keep", border: { w: 2, style: "solid", alphaMul: 4 }, shadow: { kind: "hard", offset: 3 }, paper: "#FFFDF4", face: "colorCollide",
-    pad: [32, 44, 60], titleAlign: "center", centerBudget: 1, dyn: { level: 5, seam: "zigzag", rise: false, tilt: true, texture: "dots" }, type: { weight: 900, tracking: -0.03, scale: 1.08 }, eyebrow: "pill", frames: ["tape", "round", "offset"], dividers: ["zigzag", "tape", "wave2"], number: "circle", marker: "arrow", decor: "sticker", decorAlt: ["squiggle","ring","dots-grid"], badge: "ribbon", density: "normal",
+    pad: [32, 44, 60], titleAlign: "center", centerBudget: 1, dyn: { level: 5, seam: "zigzag", rise: false, tilt: true, texture: "dots" }, type: { weight: 900, tracking: -0.03, scale: 1.08, title: 42, display: 48 }, eyebrow: "pill", frames: ["tape", "round", "offset"], dividers: ["zigzag", "tape", "wave2"], number: "circle", marker: "arrow", decor: "sticker", decorAlt: ["squiggle","ring","dots-grid"], badge: "ribbon", density: "normal",
     hero: ["B", "C"],
     banner: ["full-scrim", "split"],
     prefer: { benefits: ["numcards", "bento"], concern: ["bubbles", "deck"], story: ["pullband", "quote"], spec: ["grid", "cards"], phototext: ["polaroid", "offset"], steps: ["bignum", "chipflow"], faq: ["chat", "twocol"], proof: ["badges", "wall"], touch: ["ticket", "band"], statement: ["ticker", "band", "rule"], stats: ["trio", "rings"], gallery: ["polaroid", "mosaic"] },
@@ -215,9 +215,10 @@ export function decorHtml(kind: DecorKind, c: ArchetypeColors): string {
     case "glow": return `<span ${base} style="position:absolute;right:0;top:0;width:140px;height:140px;background:radial-gradient(circle at 70% 30%,${rgba(c.accent, 0.16)},transparent 70%);pointer-events:none"></span>`;
     // ── 465차 V5 추가 6종: 섹션 위쪽 안쪽 모서리(여백 안, 높이 ≤ 28px)
     case "dots-grid": {
+      // 468차: 점마다 fill을 반복하지 않고 <g> 하나로(export 크기 상한 여유 확보 — 모양은 같다)
       let d = "";
-      for (let r = 0; r < 3; r += 1) for (let k = 0; k < 5; k += 1) d += `<circle cx="${6 + k * 12}" cy="${5 + r * 8}" r="1.6" fill="${rgba(c.ink, 0.4)}"/>`;
-      return `<span ${base} style="position:absolute;right:16px;top:4px;width:64px;height:26px;pointer-events:none"><svg viewBox="0 0 64 26" width="64" height="26" aria-hidden="true" style="display:block">${d}</svg></span>`;
+      for (let r = 0; r < 3; r += 1) for (let k = 0; k < 5; k += 1) d += `<circle cx="${6 + k * 12}" cy="${5 + r * 8}" r="1.6"/>`;
+      return `<span ${base} style="position:absolute;right:16px;top:4px;width:64px;height:26px;pointer-events:none"><svg viewBox="0 0 64 26" width="64" height="26" aria-hidden="true" style="display:block"><g fill="${rgba(c.ink, 0.4)}">${d}</g></svg></span>`;
     }
     case "arc": return `<span ${base} style="position:absolute;left:0;top:0;width:44px;height:22px;pointer-events:none"><svg viewBox="0 0 44 22" width="44" height="22" aria-hidden="true" style="display:block"><path d="M0 22 A22 22 0 0 1 44 22" fill="none" stroke="${rgba(c.accent, 0.55)}" stroke-width="2"/></svg></span>`;
     case "squiggle": return `<span ${base} style="position:absolute;left:20px;top:8px;width:72px;height:14px;pointer-events:none"><svg viewBox="0 0 72 14" width="72" height="14" aria-hidden="true" style="display:block"><path d="M2 7 Q11 0 20 7 T38 7 T56 7 T70 7" fill="none" stroke="${rgba(c.accent, 0.6)}" stroke-width="2" stroke-linecap="round"/></svg></span>`;
@@ -326,21 +327,70 @@ export function archetypeCssV5(scope: string, mode: "live" | "export", t: Archet
   return rules.join("");
 }
 
+/** 글자 폭 어림(em): 한글·한자 1.0, 라틴 대문자 .72, 소문자·숫자 .6, 공백 .3, 그 외 부호 .45 — 자간(음수)은 넣지 않아 안전한 쪽 */
+export function emWidth(text: string): number {
+  let w = 0;
+  for (const ch of text) {
+    if (/[\u1100-\u11ff\u3130-\u318f\uac00-\ud7af\u3400-\u9fff\uff00-\uffef]/.test(ch)) w += 1;
+    else if (/[A-Z]/.test(ch)) w += 0.72;
+    else if (/[a-z0-9]/.test(ch)) w += 0.6;
+    else if (ch === " ") w += 0.3;
+    else w += 0.45;
+  }
+  return w;
+}
+
+/** 320폭 안전 가용 폭(px) = 320 − 좌우 24px 패딩 */
+export const FIT_AVAIL_PX = 272;
+/** 한 어절(공백 없는 덩어리)의 최대 em 폭 */
+const longestWordEm = (text: string): number => Math.max(0, ...text.split(/\s+/).map(emWidth));
+
+/**
+ * 468차 — 제목 길이로 고르는 크기(결정적). 후보는 base에서 2px씩 내려가며 원래 크기(floor)까지:
+ *  ① 가장 긴 어절 × 크기 ≤ 가용 폭(320폭에서 한 어절이 줄을 넘지 않게)  ② 전체 폭 × 크기 ≤ 가용 폭 × 최대 줄 수.
+ * 못 맞추면 floor(= 기존 크기)를 쓴다 — 기존보다 작아지지 않는다. `overflow-wrap:anywhere`는 호출부가 덧붙인다.
+ */
+export function fitTitlePx(text: string, base: number, floor: number, maxLines: number): number {
+  const total = emWidth(text);
+  const word = longestWordEm(text);
+  for (let px = base; px > floor; px -= 2) if (word * px <= FIT_AVAIL_PX && total * px * 1.05 <= FIT_AVAIL_PX * maxLines) return px;
+  return floor;
+}
+
+const plainOf = (inner: string): string => inner.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+
 /**
  * 466차 V5 — 제목 타이포 후처리(굵기·자간·크기 배율). `tierHeadingWeights`(441차 제목 위계)가 끝난 뒤에 돈다. 대상은 인라인 스타일에
  * `font-size:22~40px`와 `font-weight`가 함께 있는 제목급 요소뿐(작은 글자·본문·번호 장식은 건드리지 않음). 새 글자 없음.
+ * 468차: 섹션 제목(26px `<p>`)과 큰 문구(30px `<p>`)는 배율 대신 아키타입 디스플레이 크기(`type.title`/`type.display`)를 글자 수로 맞춰 쓴다(fitTitlePx) — 읽히는 제목 자체를 키운다.
  */
 export function typographyV5(html: string, t: ArchetypeTokens): string {
   const { weight, tracking, scale } = t.type;
-  return html.replace(/style="([^"]*)"/g, (m, st: string) => {
+  // 1) 기존 배율 규칙 — 섹션 제목·큰 문구(26·30px <p>)는 건너뛰고 2)에서 따로 맞춘다
+  const scaled = html.replace(/<(\w+)\b([^>]*?)style="([^"]*)"/g, (m, tag: string, pre: string, st: string) => {
     const fs = /(?:^|;)font-size:(\d+(?:\.\d+)?)px/.exec(st);
     if (!fs || !/(?:^|;)font-weight:\d+/.test(st)) return m;
     const px = Number(fs[1]);
     // 가격·수치처럼 한 줄 고정(white-space:nowrap) 요소는 굵기를 낮추면 큰 글자 대비 기준(굵게 18.66px 이상)을 잃으므로 건드리지 않는다
-    if (px < 22 || px > 40 || /white-space:nowrap/.test(st)) return m;
+    if (px < 22 || px > 40 || /white-space:nowrap/.test(st) || (tag === "p" && (px === 26 || px === 30))) return m;
     let out = st.replace(/(^|;)font-weight:\d+/, `$1font-weight:${weight}`);
     if (scale !== 1) out = out.replace(/(^|;)font-size:\d+(?:\.\d+)?px/, `$1font-size:${Math.round(px * scale)}px`);
     out = /letter-spacing:-?\d*\.?\d+em/.test(out) ? out.replace(/letter-spacing:-?\d*\.?\d+em/, `letter-spacing:${tracking}em`) : out;
-    return `style="${out}"`;
+    return `<${tag}${pre}style="${out}"`;
+  });
+  // 2) 468차: 섹션 제목(26px)·큰 문구(30px)는 아키타입 디스플레이 크기를 글자 수로 맞춰 쓴다
+  return scaled.replace(/<p\b([^>]*?)style="([^"]*)"([^>]*)>([\s\S]*?)<\/p>/g, (m, pre: string, st: string, post: string, inner: string) => {
+    const fs = /(?:^|;)font-size:(\d+(?:\.\d+)?)px/.exec(st);
+    if (!fs || !/(?:^|;)font-weight:\d+/.test(st) || /white-space:nowrap/.test(st)) return m;
+    const px = Number(fs[1]);
+    if (px !== 26 && px !== 30) return m;
+    const text = plainOf(inner).trim();
+    if (!text) return m;
+    const size = px === 26 ? fitTitlePx(text, t.type.title, 26, 3) : fitTitlePx(text, t.type.display, 30, 5);
+    let out = st.replace(/(^|;)font-weight:\d+/, `$1font-weight:${weight}`).replace(/(^|;)font-size:\d+(?:\.\d+)?px/, `$1font-size:${size}px`);
+    out = /letter-spacing:-?\d*\.?\d+em/.test(out) ? out.replace(/letter-spacing:-?\d*\.?\d+em/, `letter-spacing:${tracking}em`) : out;
+    // 가장 긴 어절이 320폭 가용 폭을 넘으면(더 못 줄이는 긴 단어) 줄바꿈 허용
+    if (longestWordEm(text) * size > FIT_AVAIL_PX && !/overflow-wrap:/.test(out)) out = `${out.replace(/;?$/, ";")}overflow-wrap:anywhere`;
+    return `<p${pre}style="${out}"${post}>${inner}</p>`;
   });
 }

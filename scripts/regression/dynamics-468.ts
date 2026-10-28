@@ -1,10 +1,11 @@
 /**
  * 회귀 — 468차 "진짜 다이나믹". 브라우저·네트워크 없음(문자열 렌더만). Phase마다 같은 파일에 검사를 더한다.
+ *  Phase 2: 읽히는 제목 스케일(fitTitlePx 단계 선택·320폭 안전·긴 입력 줄바꿈·결정성)
  *  Phase 1: 배너 아키타입화(V5 켜짐 한정, 연속 배너 값 다름, 밝은 면 성격은 전면 스크림 없음, 꺼짐·편집 모드 미적용, 배너 글자 대비 상수)
  */
 import fs from "node:fs";
 import { setDesignUp1ForTests, setDesignV5ForTests } from "../../lib/design-v4";
-import { ARCHETYPES, ARCHETYPE_IDS, setV5ArchetypeForTests } from "../../lib/page-archetype-v5";
+import { ARCHETYPES, ARCHETYPE_IDS, FIT_AVAIL_PX, emWidth, fitTitlePx, setV5ArchetypeForTests, typographyV5 } from "../../lib/page-archetype-v5";
 import { BANNER_SPLIT_BAND_BG, BANNER_STYLE } from "../../lib/design-tokens-v4";
 import { corpus, exportHtmlOf } from "../design-corpus";
 import { topSections } from "../variety-metrics-463";
@@ -49,6 +50,33 @@ export async function run(): Promise<string[]> {
   const bandRatio = ratio([250, 248, 243], [bandBg, bandBg, bandBg]);
   if (cardRatio < 4.5) f.push(`배너 카드 글자 대비 ${cardRatio.toFixed(2)} < 4.5`);
   if (bandRatio < 4.5) f.push(`분리 띠 글자 대비 ${bandRatio.toFixed(2)} < 4.5`);
+  // ── Phase 2: 제목 스케일
+  const titles = ["", "가", "세안 후 당김", "세 가지 수분 케어", "맑게, 촉촉하게", "건조함과 당김이 느껴질 때", "아주긴문장".repeat(30), "SUPERCALIFRAGILISTICEXPIALIDOCIOUS12345678901234567890", "SPF50+ 1,234mg 99.9%"];
+  for (const a of ARCHETYPE_IDS) {
+    const t = ARCHETYPES[a];
+    if (t.type.title <= 26 || t.type.display <= 30) f.push(`${a}: 디스플레이 크기가 기존 크기(26/30) 이하`);
+    for (const x of titles) {
+      for (const [base, floor, lines] of [[t.type.title, 26, 3], [t.type.display, 30, 5]] as const) {
+        const px = fitTitlePx(x, base, floor, lines);
+        if (px < floor || px > base) f.push(`${a}: fitTitlePx 범위 밖 ${px} (${floor}~${base}) "${x.slice(0, 10)}"`);
+        if (px > floor) {
+          const word = Math.max(...x.split(/\s+/).map(emWidth));
+          if (word * px > FIT_AVAIL_PX) f.push(`${a}: 320폭에서 한 어절이 넘침 ${px}px "${x.slice(0, 10)}"`);
+          if (emWidth(x) * px * 1.05 > FIT_AVAIL_PX * lines) f.push(`${a}: 줄 수 초과 ${px}px "${x.slice(0, 10)}"`);
+        }
+        if (fitTitlePx(x, base, floor, lines) !== px) f.push(`${a}: fitTitlePx 비결정`);
+      }
+      const h = typographyV5(`<section><p data-pz-title style="margin:0;font-size:26px;font-weight:800;letter-spacing:-0.02em;color:#111;word-break:keep-all">${x}</p></section>`, t);
+      const size = Number(/font-size:(\d+)px/.exec(h)?.[1] ?? 0);
+      if (x && size < 26) f.push(`${a}: 제목이 기존보다 작아짐 ${size}`);
+      if (x && Math.max(...x.split(/\s+/).map(emWidth)) * size > FIT_AVAIL_PX && !/overflow-wrap:anywhere/.test(h)) f.push(`${a}: 넘칠 수 있는 긴 어절인데 overflow-wrap 없음 "${x.slice(0, 10)}"`);
+      if (!x && h.includes("font-size:26px") === false && !/<p[^>]*><\/p>/.test(h)) f.push(`${a}: 빈 제목 처리`);
+    }
+    // 제목이 아닌 22px 요소는 기존 배율 규칙 유지, 두 번 곱해지지 않음
+    const once = typographyV5(`<p style="font-size:22px;font-weight:900;letter-spacing:-0.02em">노트</p>`, t);
+    const want = Math.round(22 * t.type.scale);
+    if (!once.includes(`font-size:${want}px`)) f.push(`${a}: 22px 요소 배율 ${want} 아님`);
+  }
   // ── 말뭉치: 꺼짐 = 기본 전면 스크림, 켜짐 = 아키타입별
   setDesignUp1ForTests(true);
   const files = corpus();
