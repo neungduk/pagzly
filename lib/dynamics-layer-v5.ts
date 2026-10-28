@@ -148,6 +148,11 @@ export function planDynamicsV5(sections: DetailSection[], t: ArchetypeTokens, se
       used2 += 1;
     }
   }
+  // 470차: 강조 띠(statement rule/band/quote)도 들여 쓴다 — 페이지 끝 "고지 → 강조 띠 → 구매 카드"가 가운데 단일 컬럼 세 개로 이어지던 것을 끊는다(티커·장면 제외)
+  sections.forEach((sec, i) => {
+    if (sec.type !== "impact" || sec.kind !== "v4" || !sec.v4 || sec.v4.family !== "statement" || sec.v4.variant === "ticker" || sec.v4.variant === "scene" || dyn.get(i)?.indent) return;
+    get(i).indent = side; side = side === 1 ? -1 : 1;
+  });
   if (dyn.size === 0) return sections;
   return sections.map((s, i) => (dyn.has(i) ? ({ ...s, dyn: dyn.get(i) } as DetailSection) : s));
 }

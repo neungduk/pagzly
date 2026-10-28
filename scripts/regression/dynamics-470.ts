@@ -1,5 +1,6 @@
 /**
  * 회귀 — 470차 "대격변". 브라우저·네트워크 없음(문자열 렌더만). 단계마다 검사를 더한다.
+ *  F: 연속 3개 단일 구간 평균(가드 ≤ 0.65 — 목표 ≤ 0.5는 보고서에 실측), 평탄 구간은 기준선 대비 악화 없음(가드)
  *  E: 일반 섹션 보정 CSS(후기 카드·색상 칩 44px, 대상 한정, 금지 CSS 없음, 정책 문구 선택자 미포함)
  *  D: 제품 콜아웃(주석 이미지-글 → phototext.callout, 라벨은 입력 주석 문자열만, 사진 실패 시 오버레이 숨김 CSS, 조건 미달 폴백)
  *  C: 거대 제목 토큰·경계 도형(overflow-x:clip, 알파 ≤ .22, 아래 섹션은 적격 블록뿐)
@@ -61,6 +62,22 @@ export async function run(): Promise<string[]> {
       const key = (arr: typeof on) => arr.filter(movable).map((s) => `${s.type === "impact" ? s.origin?.type ?? s.v4!.family : ""}`).sort().join(",");
       if (key(on) !== key(off)) f.push(`${id}/${a}: 이동 가능 블록의 집합이 달라짐(블록이 사라지거나 늘었다)`);
     }
+  }
+  // ── F: 지표 가드(목표 미달분은 보고서에 실측 그대로)
+  {
+    const { singleRuns3 } = await import("../dynamics-metrics-468");
+    const { pageMetrics } = await import("../variety-metrics-463");
+    setDesignUp1ForTests(true);
+    setDesignV5ForTests(true);
+    for (const a of ARCHETYPE_IDS) {
+      setV5ArchetypeForTests(a);
+      let runs = 0; let flat = 0; let n = 0;
+      for (const [, file] of corpus()) { const h = exportHtmlOf(file); runs += singleRuns3(h); flat += pageMetrics(h).flatZones; n += 1; }
+      if (runs / n > 0.65) f.push(`${a}: 연속 3개 단일 구간 평균 ${(runs / n).toFixed(2)} > 0.65(가드; 목표 0.5)`);
+      if (flat > 66) f.push(`${a}: 평탄 구간 합계 ${flat} > 66(가드; 470차 시작 44~62, 목표 37)`);
+    }
+    setV5ArchetypeForTests(null);
+    setDesignV5ForTests(false);
   }
   // ── E: 일반 섹션 보정 CSS
   for (const a of ARCHETYPE_IDS) {
