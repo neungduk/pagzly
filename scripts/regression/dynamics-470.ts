@@ -1,5 +1,6 @@
 /**
  * 회귀 — 470차 "대격변". 브라우저·네트워크 없음(문자열 렌더만). 단계마다 검사를 더한다.
+ *  D: 제품 콜아웃(주석 이미지-글 → phototext.callout, 라벨은 입력 주석 문자열만, 사진 실패 시 오버레이 숨김 CSS, 조건 미달 폴백)
  *  C: 거대 제목 토큰·경계 도형(overflow-x:clip, 알파 ≤ .22, 아래 섹션은 적격 블록뿐)
  *  B: 장면 확대(섹션 15+ 페이지 100% 달성, 이웃 장면 구도(sceneAt) 교대, 장면 글자 36px 이상·min-height 640)
  *  A: 페이지 레시피(쌍 차이 ≥ 3, 하드 제약: 히어로 첫째·비이동 섹션 자리/종류 불변·V5 토큰 뒤에서만)
@@ -17,6 +18,11 @@ import { SCENE_COUNT } from "../../lib/layout-variants";
 import { ARCHETYPES } from "../../lib/page-archetype-v5";
 import { sceneCount } from "../dynamics-metrics-469";
 import { pairStats, titleAndShapes } from "../recipe-metrics-470";
+import { planV4 } from "../../lib/layout-variants";
+import { impactHtml } from "../../lib/impact-templates";
+import { noPhotoCssV5 } from "../../lib/page-archetype-v5";
+import { exportArgsOf, readSession } from "../design-corpus";
+import type { ImpactSection } from "../../lib/types/generate";
 import { topSections } from "../variety-metrics-463";
 import { expandDedupedStyles } from "../../lib/style-dedupe";
 
@@ -51,6 +57,40 @@ export async function run(): Promise<string[]> {
       const key = (arr: typeof on) => arr.filter(movable).map((s) => `${s.type === "impact" ? s.origin?.type ?? s.v4!.family : ""}`).sort().join(",");
       if (key(on) !== key(off)) f.push(`${id}/${a}: 이동 가능 블록의 집합이 달라짐(블록이 사라지거나 늘었다)`);
     }
+  }
+  // ── D: 콜아웃
+  {
+    setDesignUp1ForTests(true);
+    setDesignV5ForTests(true);
+    const a0 = exportArgsOf(readSession("scripts/fixtures/archetype-compare-tech.json"));
+    const hero = { type: "hero", slot: "hero", headline: "H", subheadline: "S", imageIndex: 0 };
+    const fill = (i: number) => ({ type: "caution", slot: "caution", heading: `주의${i}`, body: "내용" });
+    const ann = (n: number) => [{ label: "펌프 노즐", xPct: 68, yPct: 28 }, { label: "검은 캡", xPct: 68, yPct: 18 }, { label: "보틀", xPct: 68, yPct: 55 }, { label: "mL 표기", xPct: 42, yPct: 78 }, { label: "라벨", xPct: 20, yPct: 40 }].slice(0, n);
+    const sec = (n: number, extra: Record<string, unknown> = {}) => ({ type: "image_text", slot: "feature_callout", heading: "작은 용량", body: "가벼운 사용감", layout: "annotated", imageIndex: 0, annotations: ann(n), ...extra });
+    const cta = { type: "cta_price", slot: "cta_price", price: 1000, targetCustomer: "x", badges: [] };
+    const run = (secs: unknown[]): ImpactSection | undefined => {
+      const r = planV4(secs as never, (secs as unknown[]).map((_, i) => i), { mood: null, seedKey: "unit|x", imageUrls: a0.imageUrls, origins: a0.imageOrigins, facts: a0.claimFacts!, category: a0.category, height: () => 400, v5: ARCHETYPES.editorial });
+      return r.sections.find((x) => x.type === "impact" && x.v4?.variant === "callout") as ImpactSection | undefined;
+    };
+    const base = [hero, fill(1), fill(2), fill(3), fill(4), fill(5)];
+    const ok = run([...base, sec(4), cta]);
+    if (!ok) f.push("주석 4개 이미지-글이 phototext.callout으로 안 바뀜");
+    else {
+      const pal = { face: "#F4F1EA", accent: "#3D97C6", deep: "#1C4A66", ink: "#1B1B18", warm: "#F7F3EE", paper: "#FAF8F3" } as unknown as Parameters<typeof impactHtml>[1];
+      const html = impactHtml({ ...ok, ax: "editorial" } as ImpactSection, pal, "대체");
+      for (const a of ann(4)) if (!html.includes(a.label)) f.push(`콜아웃 라벨 사라짐 «${a.label}»`);
+      const labels = [...html.matchAll(/white-space:normal">([^<]+)<\/span>/g)].map((m) => m[1]!);
+      for (const l of labels) if (!ann(5).some((a) => a.label === l)) f.push(`콜아웃에 입력에 없는 라벨 «${l}»`);
+      if (!/data-pz-callout/.test(html) || !/<img /.test(html)) f.push("콜아웃 마크업에 오버레이/사진이 없음");
+    }
+    if (run([...base, sec(2), cta])) f.push("주석 2개(3개 미만)인데 콜아웃으로 바뀜");
+    if (run([...base, sec(5, { annotations: [...ann(5), { label: "여섯째", xPct: 10, yPct: 10 }] }), cta])) f.push("주석 5개 초과인데 콜아웃으로 바뀜");
+    if (run([...base, sec(4, { imageIndex: 999 }), cta])) f.push("사진이 유효하지 않은데 콜아웃으로 바뀜");
+    setDesignV5ForTests(false);
+    if (run([...base, sec(4), cta])) f.push("V5 꺼짐인데 콜아웃으로 바뀜");
+    if (!/\[data-pz-np\] \[data-pz-callout\]\{display:none!important\}/.test(noPhotoCssV5(".w", "#1B1B18"))) f.push("사진 실패 시 콜아웃 오버레이를 숨기는 CSS가 없음");
+    const lv = fs.readFileSync("lib/layout-variants.ts", "utf8");
+    if (!/designV5On\(\) && s\.type === "image_text" && s\.layout === "annotated"/.test(lv)) f.push("콜아웃 변환이 designV5On() 가드 뒤가 아님");
   }
   // ── C: 거대 제목·경계 도형
   const TITLE_MIN = { 5: 56, 4: 48, 3: 44 } as const;

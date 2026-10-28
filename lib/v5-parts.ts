@@ -15,6 +15,7 @@ import { romanOf, v5Label } from "@/lib/v5-labels";
 import { splitLead } from "@/lib/info-style";
 import { pickIconsV4, iconV4Svg } from "@/lib/icons";
 import { gaugeRing, mosaic, polaroidStack, shadowPlate, statBlock, tickerBand } from "@/lib/dynamics-v5";
+import { buildAnnotatedImageOverlaySvg } from "@/lib/annotated-image-overlay-svg";
 import { bleedPhoto, cardFace, heroNumber, layerDeck, offsetStack, pullOut, splitAsym, staggerGrid } from "@/lib/compose-v5";
 import { fitTitlePx } from "@/lib/page-archetype-v5";
 import { SCENE_MIN_PX } from "@/lib/layout-variants";
@@ -224,6 +225,12 @@ function phototextV5(s: ImpactSection, b: V4Block, p: V4Palette, alt: string, t:
     return wrap(b, p,
       `${photoFrame(frame === "arch" ? "rect" : frame, it.img.url, alt, it.img.pos, p, "16 / 10")}` +
       `<div style="position:relative;z-index:2;margin:-22px 12px 0 ${frame === "offset" ? 12 : 0}px;box-sizing:border-box;padding:20px 18px;border-radius:16px;background:#FFFFFF;border:${hairline(p.ink)};box-shadow:${depthShadow("float", p.ink)}"><div style="display:flex;gap:14px;align-items:flex-start">${numberMark(t.number, 0, b, p)}<div style="flex:1 1 0%;min-width:0">${title}${bodyP(it.body, p, on.sub, 8)}</div></div></div>`);
+  }
+  if (b.variant === "callout") {
+    // 470차 콜아웃: 사진 위에 기존 주석(선+라벨 3~5개)을 얹는다. 사진이 실패하면 노포토 폴백 CSS가 오버레이를 숨기고 제목·본문 카드만 남는다
+    const overlay = it.img.ann?.length ? buildAnnotatedImageOverlaySvg(it.img.ann.slice(0, 5), p.deep).replace("<div style=", "<div data-pz-callout style=") : ""; // 주석이 없으면 오버레이 없이 사진+카드(요건 함수가 이 경우 선택을 막는다)
+    const photo = `<div style="position:relative;aspect-ratio:1 / 1;overflow:hidden;border-radius:12px;background:${p.tints[1]}">${img(it.img.url, alt, it.img.pos)}${overlay}</div>`;
+    return wrap(b, p, `${photo}<div style="margin-top:20px;display:flex;gap:14px;align-items:flex-start">${numberMark(t.number, 0, b, p)}<div style="flex:1 1 0%;min-width:0">${title}${bodyP(it.body, p, on.sub, 8)}</div></div>`);
   }
   if (b.variant === "scene") {
     // 469차 장면: 풀블리드 사진(높이 380) 아래로 큰 제목 카드가 걸친다. 제목 36px 이상, 섹션 min-height 640

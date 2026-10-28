@@ -80,7 +80,7 @@ export const V4_V5_VARIANTS: Partial<Record<V4Family, string[]>> = {
   concern: ["memo", "deck", "offset"],
   story: ["chapter", "letter", "pullout"],
   spec: ["panel", "tags", "big3"],
-  phototext: ["stack", "polaroid", "dframe", "bleed", "split"],
+  phototext: ["stack", "polaroid", "dframe", "bleed", "split", "callout"],
   faq: ["numlist", "twocol", "qband", "chat", "tabs"],
   proof: ["lead", "wall", "badges", "seal"],
   touch: ["ticket", "ledger"],
@@ -184,6 +184,7 @@ export function variantFits(family: V4Family, variant: string, d: { items: Item[
     case "spec.big3": return designV5On() && n >= 2 && n <= 3 && d.items.every((i) => len(i.title) <= 14 && len(i.body) >= 1 && len(i.body) <= 10 && !isPlaceholderValue(i.body ?? ""));
     case "phototext.stack": case "phototext.polaroid": case "phototext.dframe": return designV5On() && n === 1 && photos === 1;
     // 468차 V5 — 구도 변형(풀블리드·비대칭·엇갈림·튀어나온 문장·덱). 입력 요건 미달이면 다른 변형으로 폴백
+    case "phototext.callout": { const an = d.items[0]?.img?.ann ?? []; return designV5On() && n === 1 && photos === 1 && an.length >= 3 && an.length <= 5 && an.every((a) => len(a.label) >= 1 && len(a.label) <= 20 && a.xPct >= 0 && a.xPct <= 100 && a.yPct >= 0 && a.yPct <= 100) && len(d.items[0]?.title) <= 30; }
     case "phototext.bleed": case "phototext.split": return designV5On() && n === 1 && photos === 1 && len(d.items[0]?.title) <= 40;
     case "benefits.stagger": return designV5On() && n >= 3 && n <= 6 && d.items.every((i) => len(i.title) <= 24 && len(i.body) <= 56);
     case "concern.offset": return designV5On() && n >= 3 && n <= 6 && d.items.every((i) => len(i.title) <= 40);
@@ -764,6 +765,11 @@ function findCandidates(secs: DetailSection[], ctx: V4Ctx): Cand[] {
         continue;
       }
     }
+    // 470차 V5 — 제품 콜아웃: 주석(annotated) 이미지-글을 사진 위 선+라벨 구도로(기존 주석 오버레이 재사용). 사진이 유효하고 주석 3~5개일 때만, 아니면 기존 렌더러
+    if (designV5On() && s.type === "image_text" && s.layout === "annotated" && (s.annotations ?? []).length >= 3 && (s.annotations ?? []).length <= 5 && s.heading.trim() && len(s.heading.trim()) <= 30 && urlOf(s.imageIndex)) {
+      out.push({ family: "phototext", at: i, len: 1, text: s.heading.trim(), items: [{ title: s.heading.trim(), ...(s.body?.trim() ? { body: s.body.trim() } : {}), img: { url: urlOf(s.imageIndex), pos: "50% 45%", ann: (s.annotations ?? []).map((a) => ({ label: a.label, xPct: a.xPct, yPct: a.yPct })) } }], origin: { type: "image_text", slot: s.slot }, from: "annotated", only: ["callout"] });
+      continue;
+    }
     // 469차 V5 — 추천 대상(target_persona)을 고민(concern) 계열 변형으로. 원래도 hook 구조가 고민으로 취급해 앞으로 끄는 섹션이다. 문장은 입력 그대로 3~6개·각 40자 이하,
     //  사진 띠(행마다 사진)가 붙는 경우는 사진이 사라지므로 기존 렌더러 그대로. 원 섹션 종류는 origin으로 남겨 앵커 내비 유지
     if (designV5On() && s.type === "target_persona") {
@@ -1054,7 +1060,7 @@ function planScenesV5(sections: DetailSection[], ctx: V4Ctx): DetailSection[] {
     const d = { items: (b.items ?? []) as Item[], ...(s.quote ? { quote: s.quote } : stText ? { quote: stText } : {}), ...(s.body ? { body: s.body } : {}) };
     const fam = b.family;
     const nearTB = [sections[i - 1], sections[i + 1]].some((x) => x?.type === "impact" && x.kind === "v4" && (x.v4?.family === "touch" || x.v4?.family === "breather"));
-    if ((fam === "statement" && b.variant !== "ticker" && !nearTB && variantFits("statement", "scene", d)) || (fam === "story" && variantFits("story", "scene", d)) || (fam === "phototext" && variantFits("phototext", "scene", d)) || (fam === "stats" && variantFits("stats", "scene", d)) || (fam === "gallery" && variantFits("gallery", "scene", d)) || (LIST.has(fam) && b.variant !== "collage" && variantFits(fam as V4Family, "scene", d))) cand.push(i);
+    if ((fam === "statement" && b.variant !== "ticker" && !nearTB && variantFits("statement", "scene", d)) || (fam === "story" && variantFits("story", "scene", d)) || (fam === "phototext" && !b.items?.[0]?.img?.ann?.length && variantFits("phototext", "scene", d)) || (fam === "stats" && variantFits("stats", "scene", d)) || (fam === "gallery" && variantFits("gallery", "scene", d)) || (LIST.has(fam) && b.variant !== "collage" && variantFits(fam as V4Family, "scene", d))) cand.push(i);
   });
   const chosen: number[] = [];
   const strongHigh = (x: DetailSection | undefined): boolean => !!x && intrinsicStrength(x) >= 4;

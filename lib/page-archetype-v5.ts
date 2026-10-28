@@ -352,7 +352,7 @@ export const NO_PHOTO_MAX_PX = 280;
 export function noPhotoCssV5(scope: string, ink: string): string {
   const d = rgba(ink, 0.16);
   const l = "rgba(255,255,255,0.22)";
-  return `${scope} [data-pz-np][data-pz-np]{max-height:${NO_PHOTO_MAX_PX}px!important;background-image:repeating-linear-gradient(135deg,${d} 0,${d} 2px,transparent 2px,transparent 7px,${l} 7px,${l} 9px,transparent 9px,transparent 14px)!important;box-shadow:inset 0 0 0 1px ${rgba(ink, 0.2)}!important}`;
+  return `${scope} [data-pz-np] [data-pz-callout]{display:none!important}${scope} [data-pz-np][data-pz-np]{max-height:${NO_PHOTO_MAX_PX}px!important;background-image:repeating-linear-gradient(135deg,${d} 0,${d} 2px,transparent 2px,transparent 7px,${l} 7px,${l} 9px,transparent 9px,transparent 14px)!important;box-shadow:inset 0 0 0 1px ${rgba(ink, 0.2)}!important}`;
 }
 
 /** 글자 폭 어림(em): 한글·한자 1.0, 라틴 대문자 .72, 소문자·숫자 .6, 공백 .3, 그 외 부호 .45 — 자간(음수)은 넣지 않아 안전한 쪽 */
