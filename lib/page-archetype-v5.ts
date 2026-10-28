@@ -78,7 +78,7 @@ export type ArchetypeTokens = {
 export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   editorial: {
     id: "editorial", radius: 0, pill: 2, border: { w: 1, style: "solid", alphaMul: 1.6 }, shadow: { kind: "none", offset: 0 }, paper: "#FAF7F1", face: "lightOnly",
-    pad: [40, 64, 88], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: null, rise: true, tilt: false, texture: null }, type: { weight: 500, tracking: -0.01, scale: 1.04, title: 40, display: 44, body: 15, lh: 1.75 }, eyebrow: "number", frames: ["rect", "double"], dividers: ["thin2", "double", "fade"], number: "roman", marker: "dash", decor: "rule-top", decorAlt: ["bracket","plus-field"], badge: "seal", density: "airy",
+    pad: [40, 64, 88], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: null, rise: true, tilt: false, texture: null }, type: { weight: 500, tracking: -0.01, scale: 1.04, title: 48, display: 54, body: 15, lh: 1.75 }, eyebrow: "number", frames: ["rect", "double"], dividers: ["thin2", "double", "fade"], number: "roman", marker: "dash", decor: "rule-top", decorAlt: ["bracket","plus-field"], badge: "seal", density: "airy",
     hero: ["D", "A"],
     banner: ["split", "card-only"],
     infoBackdrop: "scrim-light",
@@ -86,7 +86,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   catalog: {
     id: "catalog", radius: 0.6, pill: 6, border: { w: 2, style: "solid", alphaMul: 2.2 }, shadow: { kind: "none", offset: 0 }, paper: "#F3F2EE", face: "tintAlt",
-    pad: [28, 40, 56], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "step", rise: false, tilt: true, texture: "stripe" }, type: { weight: 700, tracking: -0.02, scale: 0.96, title: 36, display: 40, body: 15, lh: 1.7 }, eyebrow: "number", frames: ["rect"], dividers: ["stripe", "slant"], number: "box", marker: "square", decor: "bracket", decorAlt: ["plus-field","dots-grid"], badge: "hex", density: "tight",
+    pad: [28, 40, 56], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "step", rise: false, tilt: true, texture: "stripe" }, type: { weight: 700, tracking: -0.02, scale: 0.96, title: 48, display: 54, body: 15, lh: 1.7 }, eyebrow: "number", frames: ["rect"], dividers: ["stripe", "slant"], number: "box", marker: "square", decor: "bracket", decorAlt: ["plus-field","dots-grid"], badge: "hex", density: "tight",
     hero: ["B", "D"],
     banner: ["split", "card-only"],
     infoBackdrop: "scrim-light",
@@ -94,7 +94,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   softlife: {
     id: "softlife", radius: 1.6, pill: "keep", border: { w: 1, style: "solid", alphaMul: 0.8 }, shadow: { kind: "warm", offset: 0 }, paper: "#FFFBF6", face: "tintAlt",
-    pad: [40, 56, 72], titleAlign: "center", centerBudget: 1, dyn: { level: 4, seam: "wave", rise: true, tilt: false, texture: null }, type: { weight: 500, tracking: -0.03, scale: 1, title: 36, display: 40, body: 16, lh: 1.75 }, eyebrow: "pill", frames: ["arch", "round"], dividers: ["wave2", "fade", "dotwave"], number: "circle", marker: "dot", decor: "glow", decorAlt: ["arc","squiggle"], badge: "circle", density: "normal",
+    pad: [40, 56, 72], titleAlign: "center", centerBudget: 1, dyn: { level: 4, seam: "wave", rise: true, tilt: false, texture: null }, type: { weight: 500, tracking: -0.03, scale: 1, title: 48, display: 54, body: 16, lh: 1.75 }, eyebrow: "pill", frames: ["arch", "round"], dividers: ["wave2", "fade", "dotwave"], number: "circle", marker: "dot", decor: "glow", decorAlt: ["arc","squiggle"], badge: "circle", density: "normal",
     hero: ["B", "D"],
     banner: ["card-only", "split"],
     infoBackdrop: "photo-plain",
@@ -102,7 +102,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   impact: {
     id: "impact", radius: 0.5, pill: 6, border: { w: 3, style: "solid", alphaMul: 5 }, shadow: { kind: "hard", offset: 4 }, paper: "#FFFFFF", face: "blockAlt",
-    pad: [32, 48, 64], titleAlign: "left", centerBudget: 0, dyn: { level: 5, seam: "slant", rise: false, tilt: true, texture: null }, type: { weight: 900, tracking: -0.045, scale: 1.1, title: 44, display: 50, body: 16, lh: 1.7 }, eyebrow: "number", frames: ["offset", "rect"], dividers: ["slant", "zigzag", "stripe"], number: "big", marker: "arrow", decor: "bar-left", decorAlt: ["dots-grid","plus-field"], badge: "hex", density: "tight",
+    pad: [32, 48, 64], titleAlign: "left", centerBudget: 0, dyn: { level: 5, seam: "slant", rise: false, tilt: true, texture: null }, type: { weight: 900, tracking: -0.045, scale: 1.1, title: 56, display: 64, body: 16, lh: 1.7 }, eyebrow: "number", frames: ["offset", "rect"], dividers: ["slant", "zigzag", "stripe"], number: "big", marker: "arrow", decor: "bar-left", decorAlt: ["dots-grid","plus-field"], badge: "hex", density: "tight",
     hero: ["C", "B", "A"],
     banner: ["full-scrim", "card-only"],
     infoBackdrop: "scrim-deep",
@@ -110,7 +110,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   techsheet: {
     id: "techsheet", radius: 0, pill: 0, border: { w: 1, style: "dashed", alphaMul: 2.4 }, shadow: { kind: "none", offset: 0 }, paper: "#EEF3F8", face: "lightOnly",
-    pad: [28, 40, 52], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: "step", rise: true, tilt: false, texture: "grid" }, type: { weight: 900, tracking: -0.01, scale: 0.94, title: 34, display: 38, body: 15, lh: 1.7 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["stitch", "dotted"], number: "box", marker: "square", decor: "corner-ticks", decorAlt: ["bracket","dots-grid"], badge: "hex", density: "tight",
+    pad: [28, 40, 52], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: "step", rise: true, tilt: false, texture: "grid" }, type: { weight: 900, tracking: -0.01, scale: 0.94, title: 44, display: 50, body: 15, lh: 1.7 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["stitch", "dotted"], number: "box", marker: "square", decor: "corner-ticks", decorAlt: ["bracket","dots-grid"], badge: "hex", density: "tight",
     hero: ["D"],
     banner: ["split", "card-only"],
     infoBackdrop: "scrim-light",
@@ -118,7 +118,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   narrative: {
     id: "narrative", radius: 1, pill: "keep", border: { w: 1, style: "solid", alphaMul: 1 }, shadow: { kind: "soft", offset: 0 }, paper: "#FDFBF8", face: "tintAlt",
-    pad: [48, 72, 96], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "scallop", rise: true, tilt: false, texture: null }, type: { weight: 700, tracking: -0.02, scale: 1.04, title: 38, display: 42, body: 16, lh: 1.75 }, eyebrow: "number", frames: ["rect", "round"], dividers: ["dotwave", "fade", "wave"], number: "big", marker: "dot", decor: "spine", decorAlt: ["squiggle","arc"], badge: "circle", density: "airy",
+    pad: [48, 72, 96], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "scallop", rise: true, tilt: false, texture: null }, type: { weight: 700, tracking: -0.02, scale: 1.04, title: 48, display: 54, body: 16, lh: 1.75 }, eyebrow: "number", frames: ["rect", "round"], dividers: ["dotwave", "fade", "wave"], number: "big", marker: "dot", decor: "spine", decorAlt: ["squiggle","arc"], badge: "circle", density: "airy",
     hero: ["A", "D"],
     banner: ["card-only", "split"],
     infoBackdrop: "photo-plain",
@@ -126,7 +126,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   luxe: {
     id: "luxe", radius: 0.1, pill: 2, border: { w: 1, style: "solid", alphaMul: 0.7 }, shadow: { kind: "none", offset: 0 }, paper: "#FBFAF6", face: "lightOnly",
-    pad: [56, 80, 104], titleAlign: "center", centerBudget: 1, dyn: { level: 3, seam: null, rise: true, tilt: false, texture: null }, type: { weight: 400, tracking: 0.02, scale: 1, title: 32, display: 36, body: 15, lh: 1.75 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["thin2", "dotted"], number: "roman", marker: "dash", decor: "hair-center", decorAlt: ["arc","ring"], badge: "seal", density: "airy",
+    pad: [56, 80, 104], titleAlign: "center", centerBudget: 1, dyn: { level: 3, seam: null, rise: true, tilt: false, texture: null }, type: { weight: 400, tracking: 0.02, scale: 1, title: 44, display: 50, body: 15, lh: 1.75 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["thin2", "dotted"], number: "roman", marker: "dash", decor: "hair-center", decorAlt: ["arc","ring"], badge: "seal", density: "airy",
     hero: ["E", "D"],
     banner: ["split", "card-only"],
     infoBackdrop: "scrim-light",
@@ -134,7 +134,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   pop: {
     id: "pop", radius: 1.8, pill: "keep", border: { w: 2, style: "solid", alphaMul: 4 }, shadow: { kind: "hard", offset: 3 }, paper: "#FFFDF4", face: "colorCollide",
-    pad: [32, 44, 60], titleAlign: "center", centerBudget: 1, dyn: { level: 5, seam: "zigzag", rise: false, tilt: true, texture: "dots" }, type: { weight: 900, tracking: -0.03, scale: 1.08, title: 42, display: 48, body: 16, lh: 1.7 }, eyebrow: "pill", frames: ["tape", "round", "offset"], dividers: ["zigzag", "tape", "wave2"], number: "circle", marker: "arrow", decor: "sticker", decorAlt: ["squiggle","ring","dots-grid"], badge: "ribbon", density: "normal",
+    pad: [32, 44, 60], titleAlign: "center", centerBudget: 1, dyn: { level: 5, seam: "zigzag", rise: false, tilt: true, texture: "dots" }, type: { weight: 900, tracking: -0.03, scale: 1.08, title: 56, display: 64, body: 16, lh: 1.7 }, eyebrow: "pill", frames: ["tape", "round", "offset"], dividers: ["zigzag", "tape", "wave2"], number: "circle", marker: "arrow", decor: "sticker", decorAlt: ["squiggle","ring","dots-grid"], badge: "ribbon", density: "normal",
     hero: ["B", "C"],
     banner: ["full-scrim", "split"],
     infoBackdrop: "scrim-deep",

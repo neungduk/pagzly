@@ -52,3 +52,27 @@ export function pairTable(): string {
   return [...sums.entries()].map(([k, v]) => `${k} ${(v / pages).toFixed(2)}`).join("\n") + "\n" + sample.join("\n");
 }
 if (require.main === module && process.argv.includes("--table")) console.log(pairTable());
+
+/** C1: 섹션 제목(26px 역할 → 토큰) 최대 크기 — 말뭉치에서 data-pz-title 글자의 최대 px, C2: 경계 도형 수/페이지·overflow-x:clip 없는 도형 수 */
+import { exportHtmlOf } from "./design-corpus";
+import { expandDedupedStyles } from "../lib/style-dedupe";
+import { topSections } from "./variety-metrics-463";
+export function titleAndShapes(a: ArchetypeId): { maxTitle: number; shapesPerPage: number; unclipped: number; pagesWithShape: number; pages: number } {
+  setDesignUp1ForTests(true); setDesignV5ForTests(true); setV5ArchetypeForTests(a);
+  let maxTitle = 0; let shapes = 0; let unclipped = 0; let withShape = 0; let pages = 0;
+  for (const [, f] of corpus()) {
+    const h = exportHtmlOf(f); pages += 1;
+    const secs = topSections(expandDedupedStyles(h));
+    let c = 0;
+    for (const sec of secs) {
+      for (const m of sec.matchAll(/<p data-pz-title style="([^"]*)"/g)) { const all = [...m[1]!.matchAll(/font-size:(\d+)px/g)]; const px = all.length ? Number(all[all.length - 1]![1]) : 0; maxTitle = Math.max(maxTitle, px); }
+      const n = (sec.match(/data-pz-bigshape=/g) ?? []).length;
+      c += n;
+      if (n && !/overflow-x:clip/.test(sec.slice(0, sec.indexOf(">") + 1))) unclipped += n;
+    }
+    shapes += c; if (c) withShape += 1;
+  }
+  setV5ArchetypeForTests(null); setDesignV5ForTests(false);
+  return { maxTitle, shapesPerPage: shapes / pages, unclipped, pagesWithShape: withShape, pages };
+}
+if (require.main === module && process.argv.includes("--c")) for (const a of ARCHETYPE_IDS) console.log(a, JSON.stringify(titleAndShapes(a)));

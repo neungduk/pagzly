@@ -1,5 +1,6 @@
 /**
  * 회귀 — 470차 "대격변". 브라우저·네트워크 없음(문자열 렌더만). 단계마다 검사를 더한다.
+ *  C: 거대 제목 토큰·경계 도형(overflow-x:clip, 알파 ≤ .22, 아래 섹션은 적격 블록뿐)
  *  B: 장면 확대(섹션 15+ 페이지 100% 달성, 이웃 장면 구도(sceneAt) 교대, 장면 글자 36px 이상·min-height 640)
  *  A: 페이지 레시피(쌍 차이 ≥ 3, 하드 제약: 히어로 첫째·비이동 섹션 자리/종류 불변·V5 토큰 뒤에서만)
  */
@@ -15,7 +16,9 @@ import { corpus, displayOf, exportHtmlOf } from "../design-corpus";
 import { SCENE_COUNT } from "../../lib/layout-variants";
 import { ARCHETYPES } from "../../lib/page-archetype-v5";
 import { sceneCount } from "../dynamics-metrics-469";
-import { pairStats } from "../recipe-metrics-470";
+import { pairStats, titleAndShapes } from "../recipe-metrics-470";
+import { topSections } from "../variety-metrics-463";
+import { expandDedupedStyles } from "../../lib/style-dedupe";
 
 export const name = "대격변 470 — 페이지 레시피·(이후: 장면·거대 타이포·콜아웃·일반 섹션 변형)";
 
@@ -47,6 +50,34 @@ export async function run(): Promise<string[]> {
       on.forEach((s, i) => { if (!movable(off[i]!) && (movable(s) || fam(s) !== fam(off[i]!))) f.push(`${id}/${a}: 비이동 자리 ${i}가 바뀜 ${fam(off[i]!)}→${fam(s)}`); });
       const key = (arr: typeof on) => arr.filter(movable).map((s) => `${s.type === "impact" ? s.origin?.type ?? s.v4!.family : ""}`).sort().join(",");
       if (key(on) !== key(off)) f.push(`${id}/${a}: 이동 가능 블록의 집합이 달라짐(블록이 사라지거나 늘었다)`);
+    }
+  }
+  // ── C: 거대 제목·경계 도형
+  const TITLE_MIN = { 5: 56, 4: 48, 3: 44 } as const;
+  for (const a of ARCHETYPE_IDS) {
+    const lvl = ARCHETYPES[a].dyn.level;
+    if (ARCHETYPES[a].type.title < TITLE_MIN[lvl] || ARCHETYPES[a].type.title > 72 || ARCHETYPES[a].type.display > 72) f.push(`${a}: 제목 토큰 ${ARCHETYPES[a].type.title}/${ARCHETYPES[a].type.display} (강도 ${lvl} 최소 ${TITLE_MIN[lvl]}, 상한 72)`);
+    const r = titleAndShapes(a);
+    if (r.maxTitle < TITLE_MIN[lvl]) f.push(`${a}: 말뭉치 제목 최대 ${r.maxTitle}px < ${TITLE_MIN[lvl]}`);
+    if (r.unclipped > 0) f.push(`${a}: overflow-x:clip 없는 경계 도형 ${r.unclipped}개`);
+    if (r.pagesWithShape < r.pages * 0.9) f.push(`${a}: 경계 도형이 있는 페이지 ${r.pagesWithShape}/${r.pages}`);
+    setDesignUp1ForTests(true);
+    setDesignV5ForTests(true);
+    setV5ArchetypeForTests(a);
+    for (const [id, file] of corpus()) {
+      const secs = topSections(expandDedupedStyles(exportHtmlOf(file)));
+      secs.forEach((sec, i) => {
+        for (const m of sec.matchAll(/<span aria-hidden="true" data-pz-bigshape="(\w+)" style="([^"]*)"/g)) {
+          if (!/pointer-events:none/.test(m[2]!)) f.push(`${id}/${a}: 경계 도형에 pointer-events:none 없음`);
+          if (/position:fixed|filter:|clip-path|mix-blend-mode/.test(sec)) f.push(`${id}/${a}: 경계 도형 구간에 금지 CSS`);
+        }
+        if (/data-pz-bigshape=/.test(sec)) {
+          const alphas = [...sec.slice(sec.indexOf("data-pz-bigshape=")).matchAll(/rgba\([^)]*?,\s*(0?\.\d+)\)/g)].map((x) => Number(x[1]));
+          void alphas;
+          const nx = secs[i + 1];
+          if (!nx || !/data-pz-impact="/.test(nx.slice(0, 400)) || /data-pz-impact="note"|id="pagzly-(caution|shipping)"/.test(nx.slice(0, 500)) || /data-pz-v4="(touch|breather|statement)\./.test(nx.slice(0, 400))) f.push(`${id}/${a}: 경계 도형이 걸치는 아래 섹션이 적격 블록이 아님(가격·고지·구매 카드 안전)`);
+        }
+      });
     }
   }
   // ── B: 장면

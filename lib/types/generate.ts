@@ -597,6 +597,8 @@ export type ImpactSection = {
     extraBottom?: number;
     /** 468차 구도: 내용 열을 한쪽으로 들여 쓴다(+1=왼쪽 들임, -1=오른쪽 들임) — 이웃과 좌우 위치를 엇갈리게 */
     indent?: 1 | -1;
+    /** 470차: 섹션 경계를 넘는 큰 도형 종류(아래 섹션 위로 걸침, 가로는 overflow-x:clip) */
+    bigShape?: "ring" | "bar" | "dot" | "arc" | "slash";
   };
   /** 439차 — 면 리듬: 흰 바탕 임팩트 블록이 흰 면 사이에 끼면 따뜻한 중립 면으로(린트 R2 2회차, v4 계획만 설정) */
   faceTone?: "warm";

@@ -32,7 +32,7 @@ function listScene(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeToken
   const head = headingHtml(s.text, b, p);
   const [first, ...rest] = items;
   const ta = sceneAlign(b);
-  const size = fitTitlePx(first!.title, 54, SCENE_MIN_PX, 6);
+  const size = fitTitlePx(first!.title, 60, SCENE_MIN_PX, 6);
   const big = `<p style="margin:0;text-align:${ta};font-size:${size}px;line-height:1.2;font-weight:${Math.max(t.type.weight, 800)};letter-spacing:-0.03em;color:${on.text};word-break:keep-all;overflow-wrap:anywhere;--pz-fixed:1">${esc(first!.title)}</p>${first!.body ? `<p style="margin:16px 0 0;text-align:${ta};overflow-wrap:anywhere;${typeCss("body", on.sub, "white-space:pre-line")}">${esc(first!.body)}</p>` : ""}`;
   const rows = rest.map((it, i) => `<div style="display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-top:1px solid ${hexToRgba(p.ink, 0.16)}">${numberMark(t.number, i + 1, b, p)}<div style="flex:1 1 0%;min-width:0;padding-top:2px">${titleP(it.title, p, 17)}${bodyP(it.body, p, on.sub, 4)}</div></div>`).join("");
   return wrap(b, p, `${big}<div style="margin-top:30px">${rows}</div>`, { head, minH: 640, pad: "72px 24px" });
@@ -162,7 +162,7 @@ function storyV5(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeTokens)
   }
   if (b.variant === "scene" && s.quote) {
     // 469차 장면: 인용 한 문장이 한 화면(min-height 640)을 차지한다. 글자는 36px 이상(fitTitlePx), 긴 어절은 overflow-wrap이 받는다
-    const size = fitTitlePx(s.quote, 56, SCENE_MIN_PX, 6);
+    const size = fitTitlePx(s.quote, 64, SCENE_MIN_PX, 6);
     const ta = sceneAlign(b);
     const mark = `<span aria-hidden="true" style="display:block;margin:0 0 6px;text-align:${ta};font-size:110px;line-height:0.7;font-weight:900;color:${hexToRgba(p.deep, 0.22)}">\u201C</span>`;
     const quote = `<p style="margin:0;text-align:${ta};font-size:${size}px;line-height:1.22;font-weight:${Math.max(t.type.weight, 800)};letter-spacing:-0.03em;color:${on.text};word-break:keep-all;overflow-wrap:anywhere;--pz-fixed:1">${esc(s.quote)}</p>`;
@@ -406,7 +406,7 @@ export const V5_PARTS: V5Parts = (s, b, p, alt) => {
         // 469차 장면: 강조 문장 한 줄이 한 화면(min-height 600)을 차지한다. 글자 36px 이상
         const t0 = tokensOf(s);
         const on0 = p.onFace[faceRole(b)];
-        const size = fitTitlePx(s.text, 56, SCENE_MIN_PX, 6);
+        const size = fitTitlePx(s.text, 64, SCENE_MIN_PX, 6);
         const ta0 = sceneAlign(b);
         const bar = `<span aria-hidden="true" style="display:block;width:64px;height:6px;margin:${ta0 === "left" ? "0 0 22px" : ta0 === "center" ? "0 auto 22px" : "0 0 22px auto"};background:${p.deep}"></span>`;
         return wrap(b, p, `${bar}<p style="margin:0;text-align:${ta0};font-size:${size}px;line-height:1.2;font-weight:${Math.max(t0.type.weight, 800)};letter-spacing:-0.03em;color:${on0.text};word-break:keep-all;overflow-wrap:anywhere;--pz-fixed:1">${headingHtml(s.text, b, p, "color")}</p>`, { minH: 640, pad: "72px 24px" });

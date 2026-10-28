@@ -25,6 +25,13 @@ const firstWord = (text: string | undefined): string => ([...(text ?? "").trim()
 const roleOf = (b: V4Block | undefined): FaceRole => !b ? "bgA" : (b.face === "grad0" || b.face === "grad1" ? "emphasis" : ((b.face ?? "bgA") as FaceRole));
 /** 468차: 변형 자체가 구도를 깨는 것(풀블리드·비대칭·엇갈림·덱) — 들여 쓰기를 더하지 않는다 */
 const COMPOSED = new Set(["phototext.bleed", "phototext.split", "benefits.stagger", "concern.offset", "story.pullout", "story.chapter", "gallery.deck", "gallery.mosaic", "phototext.offset", "benefits.zigzag"]);
+/** 470차 아키타입별 경계 도형(1~2종) */
+const BIG_SHAPES: Record<ArchetypeTokens["id"], NonNullable<Dyn["bigShape"]>[]> = {
+  editorial: ["ring"], catalog: ["bar", "slash"], softlife: ["dot", "arc"], impact: ["bar", "slash"],
+  techsheet: ["slash", "ring"], narrative: ["arc", "dot"], luxe: ["ring"], pop: ["dot", "ring"],
+};
+/** 고지·주의·배송 안내 블록 — 경계 도형이 걸치지 않는다(규정 문구 가림 금지) */
+const isNotice = (s: DetailSection): boolean => s.type === "impact" && (s.kind === "note" || s.origin?.slot === "shipping_info" || s.origin?.slot === "caution");
 const CARD_FAMILIES = new Set(["benefits", "concern", "spec", "proof", "faq", "steps"]);
 
 /** 사진 틀 모서리 6종(반경만 바꾸므로 어떤 비율에서도 안전): rect=기본 · soft=크게 · leaf=대각 · notch=반대 대각 · tab=위만 · cut=아래만 */
@@ -128,8 +135,36 @@ export function planDynamicsV5(sections: DetailSection[], t: ArchetypeTokens, se
     get(i).indent = side;
     side = side === 1 ? -1 : 1;
   }
+  // 470차: 섹션 경계를 넘는 큰 도형(페이지당 최대 2개, 아키타입별 1~2종을 번갈아). 적격 섹션 중 1/3·2/3 근처, 걸침·이음새와 같은 섹션은 피한다
+  {
+    const kinds = BIG_SHAPES[t.id];
+    // 걸치는 아래 섹션은 적격 임팩트 블록일 때만(접점·가격·고지·구매 카드·일반 섹션 위로는 걸치지 않는다 — 안전 여백)
+    const free2 = elig.filter((i) => !dyn.get(i)?.seam && i + 1 < sections.length - 2 && dynEligible(sections[i + 1]) && !isNotice(sections[i + 1]!));
+    let used2 = 0;
+    for (const frac of [0.33, 0.66]) {
+      const pick = free2.filter((i) => ![...dyn.entries()].some(([j, d]) => d.bigShape && Math.abs(j - i) < 3)).sort((x, y) => Math.abs(x / sections.length - frac) - Math.abs(y / sections.length - frac) || x - y)[0];
+      if (pick === undefined) continue;
+      get(pick).bigShape = kinds[used2 % kinds.length]!;
+      used2 += 1;
+    }
+  }
   if (dyn.size === 0) return sections;
   return sections.map((s, i) => (dyn.has(i) ? ({ ...s, dyn: dyn.get(i) } as DetailSection) : s));
+}
+
+/** 큰 도형 마크업(SVG 윤곽선 또는 옅은 면). 위치는 섹션 오른쪽 아래 모서리에서 바깥으로 */
+function bigShapeHtml(kind: NonNullable<Dyn["bigShape"]>, p: V4Palette, t: ArchetypeTokens): string {
+  const base = `aria-hidden="true" data-pz-bigshape="${kind}"`;
+  const wrap = (pos: string, w: number, h: number, inner: string): string => `<span ${base} style="position:absolute;${pos};width:${w}px;height:${h}px;pointer-events:none;z-index:3;line-height:0">${inner}</span>`;
+  const stroke = hexToRgba(p.deep, 0.22);
+  const w = t.dyn.level === 5 ? 3.5 : 2.5;
+  switch (kind) {
+    case "ring": return wrap("right:-70px;bottom:-130px", 240, 240, `<svg viewBox="0 0 240 240" width="240" height="240" aria-hidden="true" style="display:block"><circle cx="120" cy="120" r="110" fill="none" stroke="${stroke}" stroke-width="${w}"/><circle cx="120" cy="120" r="78" fill="none" stroke="${stroke}" stroke-width="${w}"/></svg>`);
+    case "dot": return wrap("right:-60px;bottom:-110px", 200, 200, `<div style="width:200px;height:200px;border-radius:50%;background:${hexToRgba(p.accent, 0.12)}"></div>`);
+    case "bar": return wrap("left:-40px;bottom:-60px", 360, 56, `<div style="width:360px;height:56px;background:${hexToRgba(p.deep, 0.1)};transform:rotate(-8deg)"></div>`);
+    case "arc": return wrap("left:-90px;bottom:-130px", 280, 160, `<svg viewBox="0 0 280 160" width="280" height="160" aria-hidden="true" style="display:block"><path d="M0 160 A140 140 0 0 1 280 160" fill="none" stroke="${stroke}" stroke-width="${w + 1}"/></svg>`);
+    default: return wrap("right:-30px;bottom:-90px", 260, 130, `<svg viewBox="0 0 260 130" width="260" height="130" aria-hidden="true" style="display:block"><path d="M10 120 L130 10 M60 124 L180 14 M110 128 L230 18" fill="none" stroke="${stroke}" stroke-width="${w}" stroke-linecap="round"/></svg>`);
+  }
 }
 
 // ── 적용(impactHtml 끝) ───────────────────────────────────────────────────────
@@ -207,6 +242,12 @@ export function applyDynamicsHtml(html: string, s: ImpactSection, t: ArchetypeTo
     if (own && !/overflow:\s*hidden/.test(rootStyle)) {
       out = appendLayer(out, `<span aria-hidden="true" data-pz-dyn-deco data-pz-seam="${d.seam.kind}" style="position:absolute;left:0;right:0;top:1px;height:${h}px;transform:translateY(-100%);pointer-events:none;z-index:-1;line-height:0">${seamShape(d.seam.kind, own, h)}</span>`);
     }
+  }
+  // 470차 경계를 넘는 큰 도형: 장식 층(overflow:hidden 상자) 밖에 놓여 아래 섹션 위로 걸친다. 가로는 루트의 overflow-x:clip이 막고, 윤곽선·옅은 면뿐이라 아래 글을 가리지 않는다(알파 ≤ .22)
+  if (d.bigShape) {
+    const sh = bigShapeHtml(d.bigShape, p, t);
+    out = patchRoot(out, (st) => `${ensureRel(st)}${/overflow-x:/.test(st) || /overflow:/.test(st) ? "" : ";overflow-x:clip"}`);
+    out = appendLayer(out, sh);
   }
   // 걸침: 이 섹션을 앞 섹션 위로 rise px 끌어올림(윗모서리 둥글게 + 위쪽 그림자), 앞 섹션은 extraBottom 만큼 아래 여백을 늘려 내용이 가려지지 않게
   if (d.rise) out = patchRoot(out, (st) => `${ensureRel(st)};margin-top:-${d.rise}px;z-index:2;border-radius:${Math.round(26 * t.radius)}px ${Math.round(26 * t.radius)}px 0 0;box-shadow:0 -12px 24px -16px ${hexToRgba(pal.ink, 0.35)}`);
