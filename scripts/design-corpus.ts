@@ -58,6 +58,16 @@ export function exportArgsOf(s: Session): Parameters<typeof buildDetailPageHtml>
 export const readSession = (file: string): Session => JSON.parse(fs.readFileSync(file, "utf8"));
 export const exportHtmlOf = (file: string): string => buildDetailPageHtml(exportArgsOf(readSession(file)));
 
+/** 468차 — 사진 없음/일부/전부(none·partial·all): 문자열 단계에서 사진 URL을 비우거나 앞쪽 절반만 남긴다(폴백·빈 틀 확인용, 네트워크 없음) */
+export type PhotosMode = "none" | "partial" | "all";
+export function exportHtmlPhotos(file: string, mode: PhotosMode): string {
+  const args = exportArgsOf(readSession(file));
+  if (mode === "all") return buildDetailPageHtml(args);
+  const urls = args.imageUrls ?? [];
+  const keep = mode === "none" ? 0 : Math.max(1, Math.floor(urls.length / 2));
+  return buildDetailPageHtml({ ...args, imageUrls: urls.slice(0, keep) });
+}
+
 /** export와 같은 순서(표시 예산 → 표시 규칙)로 돌린 섹션 목록(린트·분포 보고용) */
 export function displayOf(file: string) {
   const a = exportArgsOf(readSession(file));

@@ -324,7 +324,20 @@ export function archetypeCssV5(scope: string, mode: "live" | "export", t: Archet
     const line = `border-top:1px solid ${rgba(ink, 0.3)}`;
     for (const s of AX_STRENGTHS) rules.push(`${sel(s)}{${line}}`);
   }
+  rules.push(noPhotoCssV5(scope, ink));
   return rules.join("");
+}
+
+/** 468차 V5 빈 사진 틀 상한(px, 750폭). 사진이 못 불러오면 틀이 576폭 3:4(768px)까지 빈 채로 남던 것을 줄인다 */
+export const NO_PHOTO_MAX_PX = 280;
+/**
+ * 468차 V5 — 사진이 못 불러온 틀(`data-pz-np`)의 폴백: 높이 상한 + 밝은 면·어두운 면 어디서나 보이는 사선(어두운 선 α.16 + 밝은 선 α.22)과 얇은 안쪽 테두리.
+ * 기준(V5 꺼짐)의 같은 문제는 기존 결함이며 이 규칙은 V5 켜짐에서만 나간다(꺼짐 수정은 별도 결정). 선택자를 겹쳐 쓴 것은 기존 폴백(!important)을 이기기 위한 특이도.
+ */
+export function noPhotoCssV5(scope: string, ink: string): string {
+  const d = rgba(ink, 0.16);
+  const l = "rgba(255,255,255,0.22)";
+  return `${scope} [data-pz-np][data-pz-np]{max-height:${NO_PHOTO_MAX_PX}px!important;background-image:repeating-linear-gradient(135deg,${d} 0,${d} 2px,transparent 2px,transparent 7px,${l} 7px,${l} 9px,transparent 9px,transparent 14px)!important;box-shadow:inset 0 0 0 1px ${rgba(ink, 0.2)}!important}`;
 }
 
 /** 글자 폭 어림(em): 한글·한자 1.0, 라틴 대문자 .72, 소문자·숫자 .6, 공백 .3, 그 외 부호 .45 — 자간(음수)은 넣지 않아 안전한 쪽 */

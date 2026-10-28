@@ -1,13 +1,15 @@
 /**
  * 회귀 — 468차 "진짜 다이나믹". 브라우저·네트워크 없음(문자열 렌더만). Phase마다 같은 파일에 검사를 더한다.
+ *  Phase 4: 빈 사진 틀(V5 폴백 상한·줄무늬 대비·사진 없음/일부/전부 × 8종)
  *  Phase 2: 읽히는 제목 스케일(fitTitlePx 단계 선택·320폭 안전·긴 입력 줄바꿈·결정성)
  *  Phase 1: 배너 아키타입화(V5 켜짐 한정, 연속 배너 값 다름, 밝은 면 성격은 전면 스크림 없음, 꺼짐·편집 모드 미적용, 배너 글자 대비 상수)
  */
 import fs from "node:fs";
 import { setDesignUp1ForTests, setDesignV5ForTests } from "../../lib/design-v4";
-import { ARCHETYPES, ARCHETYPE_IDS, FIT_AVAIL_PX, emWidth, fitTitlePx, setV5ArchetypeForTests, typographyV5 } from "../../lib/page-archetype-v5";
+import { ARCHETYPES, ARCHETYPE_IDS, FIT_AVAIL_PX, NO_PHOTO_MAX_PX, emWidth, fitTitlePx, noPhotoCssV5, setV5ArchetypeForTests, typographyV5 } from "../../lib/page-archetype-v5";
 import { BANNER_SPLIT_BAND_BG, BANNER_STYLE } from "../../lib/design-tokens-v4";
-import { corpus, exportHtmlOf } from "../design-corpus";
+import { corpus, exportHtmlOf, exportHtmlPhotos, type PhotosMode } from "../design-corpus";
+import { frameStats } from "../dynamics-metrics-468";
 import { topSections } from "../variety-metrics-463";
 import { expandDedupedStyles } from "../../lib/style-dedupe";
 import { ratio } from "../contrast-audit-466";
@@ -77,6 +79,40 @@ export async function run(): Promise<string[]> {
     const want = Math.round(22 * t.type.scale);
     if (!once.includes(`font-size:${want}px`)) f.push(`${a}: 22px 요소 배율 ${want} 아님`);
   }
+  // ── Phase 4: 빈 사진 틀
+  if (NO_PHOTO_MAX_PX > 320) f.push(`빈 틀 상한 ${NO_PHOTO_MAX_PX} > 320`);
+  const css = noPhotoCssV5(".pagzly-wrap", "#1B1B18");
+  if (!/\[data-pz-np\]\[data-pz-np\]\{max-height:\d+px!important/.test(css)) f.push("V5 폴백 CSS 형태가 다름");
+  // 줄무늬 대비: 어두운 선(α.16)과 밝은 선(α.22)이 밝은 면·어두운 면에서 면과 1.25:1 이상
+  const mix = (fg: number[], a: number, bg: number[]): number[] => bg.map((b, i) => Math.round(fg[i]! * a + b * (1 - a)));
+  for (const bg of [[250, 247, 241], [255, 255, 255], [27, 27, 24], [33, 111, 100]]) {
+    const dark = ratio(mix([27, 27, 24], 0.16, bg) as [number, number, number], bg as [number, number, number]);
+    const light = ratio(mix([255, 255, 255], 0.22, bg) as [number, number, number], bg as [number, number, number]);
+    if (Math.max(dark, light) < 1.25) f.push(`줄무늬 대비 부족 ${Math.max(dark, light).toFixed(2)} on ${bg.join(",")}`);
+  }
+  {
+    const psrc = fs.readFileSync("lib/page-archetype-v5.ts", "utf8");
+    if (!/rules\.push\(noPhotoCssV5\(scope, ink\)\)/.test(psrc)) f.push("noPhotoCssV5가 archetypeCssV5(V5 전용) 밖에서 호출됨");
+  }
+  setDesignUp1ForTests(true);
+  setDesignV5ForTests(true);
+  const pfiles = corpus();
+  for (const a of ARCHETYPE_IDS) {
+    setV5ArchetypeForTests(a);
+    for (const mode of ["all", "partial", "none"] as PhotosMode[]) {
+      for (const [id, file] of pfiles) {
+        let h: string;
+        try { h = exportHtmlPhotos(file, mode); } catch (e) { f.push(`${id}/${a}/${mode}: 렌더 예외 ${(e as Error).message.slice(0, 60)}`); continue; }
+        if (!h.includes(`[data-pz-np][data-pz-np]{max-height:${NO_PHOTO_MAX_PX}px!important`)) f.push(`${id}/${a}/${mode}: V5 폴백 CSS 없음`);
+        const st = frameStats(h);
+        if (st.max > 320) f.push(`${id}/${a}/${mode}: 빈 틀 최대 ${Math.round(st.max)}px > 320`);
+        if (mode === "none" && st.count > 0) f.push(`${id}/${a}/none: 사진이 없는데 사진 틀 ${st.count}개`);
+        if (st.count > 0 && st.kindRatio < 0.5) f.push(`${id}/${a}/${mode}: 틀 종류 비율 ${st.kindRatio.toFixed(2)}`);
+      }
+    }
+  }
+  setV5ArchetypeForTests(null);
+  setDesignV5ForTests(false);
   // ── 말뭉치: 꺼짐 = 기본 전면 스크림, 켜짐 = 아키타입별
   setDesignUp1ForTests(true);
   const files = corpus();
