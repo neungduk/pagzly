@@ -82,7 +82,7 @@ export function impactHtml(s: ImpactSection, pal: ImpactPalette, alt: string): s
   const archetyped = s.ax && designV5On() && s.ax in ARCHETYPES ? applyArchetypeHtml(spaced, ARCHETYPES[s.ax as ArchetypeId], { ink: pal.ink, accent: pal.accent, deep: pal.deep }, s.axAlign) : spaced;
   const tiered = polishTitles(designV4On() ? tierHeadingWeights(archetyped) : archetyped);
   // 466차 V5 — 제목 타이포(굵기·자간·크기 배율)는 제목 위계가 끝난 뒤
-  const typed = s.ax && designV5On() && s.ax in ARCHETYPES ? typographyV5(tiered, ARCHETYPES[s.ax as ArchetypeId]) : tiered;
+  const typed = s.ax && designV5On() && s.ax in ARCHETYPES ? typographyV5(tiered, ARCHETYPES[s.ax as ArchetypeId], { body: s.kind !== "note" && s.origin?.slot !== "shipping_info" }) : tiered;
   // 467차 V5 — 다이나믹 레이어(큰 순번·스티커·테이프·카드 변주·이음새·걸침). 계획(s.dyn)이 있을 때만
   return s.dyn && s.ax && designV5On() && s.ax in ARCHETYPES ? applyDynamicsHtml(typed, s, ARCHETYPES[s.ax as ArchetypeId], { ink: pal.ink, accent: pal.accent, deep: pal.deep }) : typed;
 }

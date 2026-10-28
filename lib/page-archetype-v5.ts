@@ -54,7 +54,7 @@ export type ArchetypeTokens = {
   /** 467차 다이나믹 강도(1~5)와 장치: 이음새 도형·걸침·기울임/스티커 */
   dyn: { level: 3 | 4 | 5; seam: "slant" | "wave" | "scallop" | "zigzag" | "step" | null; rise: boolean; tilt: boolean; texture: "dots" | "stripe" | "grid" | null };
   /** 466차 제목 타이포(큰 글자 22~40px 제목에만): 굵기(400·500·700·900 — 로드된 굵기), 자간(em), 크기 배율. 폰트 추가 없음 */
-  type: { weight: 400 | 500 | 700 | 900; tracking: number; scale: number; title: number; display: number };
+  type: { weight: 400 | 500 | 700 | 900; tracking: number; scale: number; title: number; display: number; body: number; lh: number };
   eyebrow: "enlabel" | "number" | "pill";
   frames: FrameKind[];
   dividers: DividerKindAny[];
@@ -78,7 +78,7 @@ export type ArchetypeTokens = {
 export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   editorial: {
     id: "editorial", radius: 0, pill: 2, border: { w: 1, style: "solid", alphaMul: 1.6 }, shadow: { kind: "none", offset: 0 }, paper: "#FAF7F1", face: "lightOnly",
-    pad: [40, 64, 88], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: null, rise: true, tilt: false, texture: null }, type: { weight: 500, tracking: -0.01, scale: 1.04, title: 40, display: 44 }, eyebrow: "number", frames: ["rect", "double"], dividers: ["thin2", "double", "fade"], number: "roman", marker: "dash", decor: "rule-top", decorAlt: ["bracket","plus-field"], badge: "seal", density: "airy",
+    pad: [40, 64, 88], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: null, rise: true, tilt: false, texture: null }, type: { weight: 500, tracking: -0.01, scale: 1.04, title: 40, display: 44, body: 15, lh: 1.75 }, eyebrow: "number", frames: ["rect", "double"], dividers: ["thin2", "double", "fade"], number: "roman", marker: "dash", decor: "rule-top", decorAlt: ["bracket","plus-field"], badge: "seal", density: "airy",
     hero: ["D", "A"],
     banner: ["split", "card-only"],
     infoBackdrop: "scrim-light",
@@ -86,7 +86,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   catalog: {
     id: "catalog", radius: 0.6, pill: 6, border: { w: 2, style: "solid", alphaMul: 2.2 }, shadow: { kind: "none", offset: 0 }, paper: "#F3F2EE", face: "tintAlt",
-    pad: [28, 40, 56], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "step", rise: false, tilt: true, texture: "stripe" }, type: { weight: 700, tracking: -0.02, scale: 0.96, title: 36, display: 40 }, eyebrow: "number", frames: ["rect"], dividers: ["stripe", "slant"], number: "box", marker: "square", decor: "bracket", decorAlt: ["plus-field","dots-grid"], badge: "hex", density: "tight",
+    pad: [28, 40, 56], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "step", rise: false, tilt: true, texture: "stripe" }, type: { weight: 700, tracking: -0.02, scale: 0.96, title: 36, display: 40, body: 15, lh: 1.7 }, eyebrow: "number", frames: ["rect"], dividers: ["stripe", "slant"], number: "box", marker: "square", decor: "bracket", decorAlt: ["plus-field","dots-grid"], badge: "hex", density: "tight",
     hero: ["B", "D"],
     banner: ["split", "card-only"],
     infoBackdrop: "scrim-light",
@@ -94,7 +94,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   softlife: {
     id: "softlife", radius: 1.6, pill: "keep", border: { w: 1, style: "solid", alphaMul: 0.8 }, shadow: { kind: "warm", offset: 0 }, paper: "#FFFBF6", face: "tintAlt",
-    pad: [40, 56, 72], titleAlign: "center", centerBudget: 1, dyn: { level: 4, seam: "wave", rise: true, tilt: false, texture: null }, type: { weight: 500, tracking: -0.03, scale: 1, title: 36, display: 40 }, eyebrow: "pill", frames: ["arch", "round"], dividers: ["wave2", "fade", "dotwave"], number: "circle", marker: "dot", decor: "glow", decorAlt: ["arc","squiggle"], badge: "circle", density: "normal",
+    pad: [40, 56, 72], titleAlign: "center", centerBudget: 1, dyn: { level: 4, seam: "wave", rise: true, tilt: false, texture: null }, type: { weight: 500, tracking: -0.03, scale: 1, title: 36, display: 40, body: 16, lh: 1.75 }, eyebrow: "pill", frames: ["arch", "round"], dividers: ["wave2", "fade", "dotwave"], number: "circle", marker: "dot", decor: "glow", decorAlt: ["arc","squiggle"], badge: "circle", density: "normal",
     hero: ["B", "D"],
     banner: ["card-only", "split"],
     infoBackdrop: "photo-plain",
@@ -102,7 +102,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   impact: {
     id: "impact", radius: 0.5, pill: 6, border: { w: 3, style: "solid", alphaMul: 5 }, shadow: { kind: "hard", offset: 4 }, paper: "#FFFFFF", face: "blockAlt",
-    pad: [32, 48, 64], titleAlign: "left", centerBudget: 0, dyn: { level: 5, seam: "slant", rise: false, tilt: true, texture: null }, type: { weight: 900, tracking: -0.045, scale: 1.1, title: 44, display: 50 }, eyebrow: "number", frames: ["offset", "rect"], dividers: ["slant", "zigzag", "stripe"], number: "big", marker: "arrow", decor: "bar-left", decorAlt: ["dots-grid","plus-field"], badge: "hex", density: "tight",
+    pad: [32, 48, 64], titleAlign: "left", centerBudget: 0, dyn: { level: 5, seam: "slant", rise: false, tilt: true, texture: null }, type: { weight: 900, tracking: -0.045, scale: 1.1, title: 44, display: 50, body: 16, lh: 1.7 }, eyebrow: "number", frames: ["offset", "rect"], dividers: ["slant", "zigzag", "stripe"], number: "big", marker: "arrow", decor: "bar-left", decorAlt: ["dots-grid","plus-field"], badge: "hex", density: "tight",
     hero: ["C", "B", "A"],
     banner: ["full-scrim", "card-only"],
     infoBackdrop: "scrim-deep",
@@ -110,7 +110,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   techsheet: {
     id: "techsheet", radius: 0, pill: 0, border: { w: 1, style: "dashed", alphaMul: 2.4 }, shadow: { kind: "none", offset: 0 }, paper: "#EEF3F8", face: "lightOnly",
-    pad: [28, 40, 52], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: "step", rise: true, tilt: false, texture: "grid" }, type: { weight: 900, tracking: -0.01, scale: 0.94, title: 34, display: 38 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["stitch", "dotted"], number: "box", marker: "square", decor: "corner-ticks", decorAlt: ["bracket","dots-grid"], badge: "hex", density: "tight",
+    pad: [28, 40, 52], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: "step", rise: true, tilt: false, texture: "grid" }, type: { weight: 900, tracking: -0.01, scale: 0.94, title: 34, display: 38, body: 15, lh: 1.7 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["stitch", "dotted"], number: "box", marker: "square", decor: "corner-ticks", decorAlt: ["bracket","dots-grid"], badge: "hex", density: "tight",
     hero: ["D"],
     banner: ["split", "card-only"],
     infoBackdrop: "scrim-light",
@@ -118,7 +118,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   narrative: {
     id: "narrative", radius: 1, pill: "keep", border: { w: 1, style: "solid", alphaMul: 1 }, shadow: { kind: "soft", offset: 0 }, paper: "#FDFBF8", face: "tintAlt",
-    pad: [48, 72, 96], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "scallop", rise: true, tilt: false, texture: null }, type: { weight: 700, tracking: -0.02, scale: 1.04, title: 38, display: 42 }, eyebrow: "number", frames: ["rect", "round"], dividers: ["dotwave", "fade", "wave"], number: "big", marker: "dot", decor: "spine", decorAlt: ["squiggle","arc"], badge: "circle", density: "airy",
+    pad: [48, 72, 96], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "scallop", rise: true, tilt: false, texture: null }, type: { weight: 700, tracking: -0.02, scale: 1.04, title: 38, display: 42, body: 16, lh: 1.75 }, eyebrow: "number", frames: ["rect", "round"], dividers: ["dotwave", "fade", "wave"], number: "big", marker: "dot", decor: "spine", decorAlt: ["squiggle","arc"], badge: "circle", density: "airy",
     hero: ["A", "D"],
     banner: ["card-only", "split"],
     infoBackdrop: "photo-plain",
@@ -126,7 +126,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   luxe: {
     id: "luxe", radius: 0.1, pill: 2, border: { w: 1, style: "solid", alphaMul: 0.7 }, shadow: { kind: "none", offset: 0 }, paper: "#FBFAF6", face: "lightOnly",
-    pad: [56, 80, 104], titleAlign: "center", centerBudget: 1, dyn: { level: 3, seam: null, rise: true, tilt: false, texture: null }, type: { weight: 400, tracking: 0.02, scale: 1, title: 32, display: 36 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["thin2", "dotted"], number: "roman", marker: "dash", decor: "hair-center", decorAlt: ["arc","ring"], badge: "seal", density: "airy",
+    pad: [56, 80, 104], titleAlign: "center", centerBudget: 1, dyn: { level: 3, seam: null, rise: true, tilt: false, texture: null }, type: { weight: 400, tracking: 0.02, scale: 1, title: 32, display: 36, body: 15, lh: 1.75 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["thin2", "dotted"], number: "roman", marker: "dash", decor: "hair-center", decorAlt: ["arc","ring"], badge: "seal", density: "airy",
     hero: ["E", "D"],
     banner: ["split", "card-only"],
     infoBackdrop: "scrim-light",
@@ -134,7 +134,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   pop: {
     id: "pop", radius: 1.8, pill: "keep", border: { w: 2, style: "solid", alphaMul: 4 }, shadow: { kind: "hard", offset: 3 }, paper: "#FFFDF4", face: "colorCollide",
-    pad: [32, 44, 60], titleAlign: "center", centerBudget: 1, dyn: { level: 5, seam: "zigzag", rise: false, tilt: true, texture: "dots" }, type: { weight: 900, tracking: -0.03, scale: 1.08, title: 42, display: 48 }, eyebrow: "pill", frames: ["tape", "round", "offset"], dividers: ["zigzag", "tape", "wave2"], number: "circle", marker: "arrow", decor: "sticker", decorAlt: ["squiggle","ring","dots-grid"], badge: "ribbon", density: "normal",
+    pad: [32, 44, 60], titleAlign: "center", centerBudget: 1, dyn: { level: 5, seam: "zigzag", rise: false, tilt: true, texture: "dots" }, type: { weight: 900, tracking: -0.03, scale: 1.08, title: 42, display: 48, body: 16, lh: 1.7 }, eyebrow: "pill", frames: ["tape", "round", "offset"], dividers: ["zigzag", "tape", "wave2"], number: "circle", marker: "arrow", decor: "sticker", decorAlt: ["squiggle","ring","dots-grid"], badge: "ribbon", density: "normal",
     hero: ["B", "C"],
     banner: ["full-scrim", "split"],
     infoBackdrop: "scrim-deep",
@@ -403,7 +403,7 @@ const setLastFs = (st: string, px: number): string => {
   return f ? `${st.slice(0, f.at)}font-size:${px}px${st.slice(f.at + f.len)}` : st;
 };
 
-export function typographyV5(html: string, t: ArchetypeTokens): string {
+export function typographyV5(html: string, t: ArchetypeTokens, opts: { body?: boolean } = {}): string {
   const { weight, tracking, scale } = t.type;
   // 1) 기존 배율 규칙 — 섹션 제목·큰 문구(26·30px <p>)는 건너뛰고 2)에서 따로 맞춘다
   const scaled = html.replace(/<(\w+)\b([^>]*?)style="([^"]*)"/g, (m, tag: string, pre: string, st: string) => {
@@ -418,7 +418,7 @@ export function typographyV5(html: string, t: ArchetypeTokens): string {
     return `<${tag}${pre}style="${out}"`;
   });
   // 2) 468차: 섹션 제목(26px)·큰 문구(30px)는 아키타입 디스플레이 크기를 글자 수로 맞춰 쓴다
-  return scaled.replace(/<p\b([^>]*?)style="([^"]*)"([^>]*)>([\s\S]*?)<\/p>/g, (m, pre: string, st: string, post: string, inner: string) => {
+  const titled = scaled.replace(/<p\b([^>]*?)style="([^"]*)"([^>]*)>([\s\S]*?)<\/p>/g, (m, pre: string, st: string, post: string, inner: string) => {
     const fs = lastFs(st);
     if (!fs || !/(?:^|;)font-weight:\d+/.test(st) || /white-space:nowrap/.test(st)) return m;
     const px = fs.px;
@@ -430,6 +430,19 @@ export function typographyV5(html: string, t: ArchetypeTokens): string {
     out = /letter-spacing:-?\d*\.?\d+em/.test(out) ? out.replace(/letter-spacing:-?\d*\.?\d+em/, `letter-spacing:${tracking}em`) : out;
     // 가장 긴 어절이 320폭 가용 폭을 넘으면(더 못 줄이는 긴 단어) 줄바꿈 허용
     if (longestWordEm(text) * size > FIT_AVAIL_PX && !/overflow-wrap:/.test(out)) out = `${out.replace(/;?$/, ";")}overflow-wrap:anywhere`;
+    return `<p${pre}style="${out}"${post}>${inner}</p>`;
+  });
+  if (opts.body === false) return titled; // 고지·주의·배송 안내 블록은 글자 크기 불변
+  // 3) 469차 본문 글자: 문단급 <p>(14·15px, 굵기 ≤500, 글자 수 ≥ 16, 한 줄 고정·가격 제외)를 아키타입 본문 크기·행간으로
+  return titled.replace(/<p\b([^>]*?)style="([^"]*)"([^>]*)>([\s\S]*?)<\/p>/g, (m, pre: string, st: string, post: string, inner: string) => {
+    const fs = lastFs(st);
+    const w = Number(/(?:^|;)font-weight:(\d+)/.exec(st)?.[1] ?? 400);
+    if (!fs || (fs.px !== 14 && fs.px !== 15) || w > 500 || /white-space:nowrap/.test(st) || /text-transform:uppercase/.test(st)) return m;
+    const text = plainOf(inner).trim();
+    if ([...text].length < 16) return m;
+    let out = setLastFs(st, t.type.body);
+    out = /(^|;)line-height:[\d.]+/.test(out) ? out.replace(/(^|;)line-height:[\d.]+/, `$1line-height:${t.type.lh}`) : `${out};line-height:${t.type.lh}`;
+    if (!/overflow-wrap:/.test(out)) out = `${out};overflow-wrap:anywhere`;
     return `<p${pre}style="${out}"${post}>${inner}</p>`;
   });
 }
