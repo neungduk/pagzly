@@ -73,16 +73,16 @@ export const V4_VARIANTS: Record<V4Family, string[]> = {
  * 새 계열 faq(정적으로 펼친 FAQ 카드를 다시 그림 — 접힘 인터랙션이 아닌 faqcards 임팩트가 원본)·proof(신뢰 근거 강조 박스)는 V5에서만 후보가 생긴다.
  */
 export const V4_V5_VARIANTS: Partial<Record<V4Family, string[]>> = {
-  benefits: ["stackbig", "rows2", "iconlist"],
-  concern: ["memo", "deck"],
-  story: ["chapter", "letter"],
+  benefits: ["stackbig", "rows2", "iconlist", "stagger"],
+  concern: ["memo", "deck", "offset"],
+  story: ["chapter", "letter", "pullout"],
   spec: ["panel", "tags", "big3"],
-  phototext: ["stack", "polaroid", "dframe"],
+  phototext: ["stack", "polaroid", "dframe", "bleed", "split"],
   faq: ["numlist", "twocol", "qband", "chat", "tabs"],
   proof: ["lead", "wall", "badges", "seal"],
   touch: ["ticket", "ledger"],
   stats: ["bignum", "trio", "rings"],
-  gallery: ["mosaic", "polaroid"],
+  gallery: ["mosaic", "polaroid", "deck"],
 };
 
 export const V4_UP1_VARIANTS: Partial<Record<V4Family, string[]>> = {
@@ -180,6 +180,12 @@ export function variantFits(family: V4Family, variant: string, d: { items: Item[
     case "gallery.polaroid": return designV5On() && photos >= 2 && photos <= 3 && n === photos;
     case "spec.big3": return designV5On() && n >= 2 && n <= 3 && d.items.every((i) => len(i.title) <= 14 && len(i.body) >= 1 && len(i.body) <= 10 && !isPlaceholderValue(i.body ?? ""));
     case "phototext.stack": case "phototext.polaroid": case "phototext.dframe": return designV5On() && n === 1 && photos === 1;
+    // 468차 V5 — 구도 변형(풀블리드·비대칭·엇갈림·튀어나온 문장·덱). 입력 요건 미달이면 다른 변형으로 폴백
+    case "phototext.bleed": case "phototext.split": return designV5On() && n === 1 && photos === 1 && len(d.items[0]?.title) <= 40;
+    case "benefits.stagger": return designV5On() && n >= 3 && n <= 6 && d.items.every((i) => len(i.title) <= 24 && len(i.body) <= 56);
+    case "concern.offset": return designV5On() && n >= 3 && n <= 6 && d.items.every((i) => len(i.title) <= 40);
+    case "story.pullout": return designV5On() && len(d.quote) >= 8 && len(d.quote) <= 80;
+    case "gallery.deck": return designV5On() && photos >= 2 && photos <= 3 && n === photos;
     case "faq.numlist": case "faq.qband": case "faq.tabs": return designV5On() && n >= 2 && n <= 8 && d.items.every((i) => len(i.title) <= 70 && len(i.body) <= 200);
     case "faq.twocol": return designV5On() && n >= 2 && n <= 6 && d.items.every((i) => len(i.title) <= 50 && len(i.body) <= 120);
     case "faq.chat": return designV5On() && n >= 2 && n <= 6 && d.items.every((i) => len(i.title) <= 60 && len(i.body) <= 160);
@@ -208,7 +214,7 @@ export function headingHtml(text: string, b: V4Block, p: V4Palette, style: "mark
   return highlightKeyword(text, b.keywords ?? [], style, style === "marker" ? p.accent : p.deep).html;
 }
 
-export function wrap(b: V4Block, p: V4Palette, inner: string, opts: { pad?: string; head?: string; label?: string } = {}): string {
+export function wrap(b: V4Block, p: V4Palette, inner: string, opts: { pad?: string; head?: string; label?: string; bleed?: boolean } = {}): string {
   const role = faceRole(b);
   const on = p.onFace[role];
   const motifs = (b.motifs ?? []).map((m) => motifHtml(m as MotifPlacement, motifColors(p))).join("");
@@ -217,7 +223,9 @@ export function wrap(b: V4Block, p: V4Palette, inner: string, opts: { pad?: stri
   return (
     `<section data-pz-impact="v4" data-pz-v4="${b.family}.${b.variant}" style="position:relative;padding:${opts.pad ?? "64px 24px"};background:${faceBg(b, p)}">` +
     motifs + ghost + (b.divider ? dividerHtml(b.divider as DividerKind, p.ink) : "") +
-    `<div style="position:relative;z-index:1;max-width:576px;margin:0 auto">${title}${inner}</div></section>`
+    (opts.bleed
+      ? `<div style="position:relative;z-index:1">${title ? `<div style="max-width:576px;margin:0 auto">${title}</div>` : ""}${inner}</div></section>` // 468차 V5 — 풀블리드 구도: 내용 상자가 섹션 폭을 쓰고 제목만 576 상자에 둔다
+      : `<div style="position:relative;z-index:1;max-width:576px;margin:0 auto">${title}${inner}</div></section>`)
   );
 }
 

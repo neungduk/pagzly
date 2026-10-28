@@ -19,7 +19,8 @@ type Txt = { text: string; size: number };
 
 /** 선언 값에서 글자 크기(px). clamp·min·max는 안의 가장 큰 px/rem 값, 상속(em·없음)은 null */
 export function sizeOf(st: string): number | null {
-  const m = /(?:^|;)\s*font-size:\s*([^;]+)/.exec(st);
+  const all = [...st.matchAll(/(?:^|;)\s*font-size:\s*([^;]+)/g)];
+  const m = all[all.length - 1]; // CSS는 뒤의 선언이 이긴다
   if (!m) return null;
   const v = m[1]!;
   const vals = [...v.matchAll(/(\d+(?:\.\d+)?)(px|rem)/g)].map((x) => parseFloat(x[1]!) * (x[2] === "rem" ? 16 : 1));
@@ -110,24 +111,40 @@ export function readableFocal(html: string): number {
 
 // ── ③ 구도 ───────────────────────────────────────────────────────────────────
 export type Comp = "single" | "bleed" | "asym" | "overlap";
+/** `margin` 단축형/개별 속성에서 [위, 오른, 아래, 왼] px(숫자가 아닌 값은 NaN) 목록 */
+function marginsOf(x: string): number[][] {
+  const out: number[][] = [];
+  const num = (v: string): number => (/^-?\d+(?:\.\d+)?px$/.test(v) ? parseFloat(v) : /^0$/.test(v) ? 0 : NaN);
+  for (const m of x.matchAll(/(?:^|[;"\s])margin:\s*([^;"]+)/g)) {
+    const v = m[1]!.trim().split(/\s+/).map(num);
+    const [t, r = t, b = t, l = r] = v as [number, number?, number?, number?];
+    out.push([t, r!, b!, l!]);
+  }
+  for (const m of x.matchAll(/margin-(top|right|bottom|left):\s*(-?\d+(?:\.\d+)?)px/g)) {
+    const o = [NaN, NaN, NaN, NaN]; o[{ top: 0, right: 1, bottom: 2, left: 3 }[m[1] as "top"]] = parseFloat(m[2]!); out.push(o);
+  }
+  return out;
+}
+
 export function compOf(sec: string): Set<Comp> {
   const x = expandDedupedStyles(sec);
   const out = new Set<Comp>();
   const root = rootOf(x);
-  // 겹침: 보이는 요소의 음수 margin/translate, 루트 위로 솟음, 사진 위에 걸친 카드
-  const bodyNoDeco = x.replace(/<span aria-hidden="true"[^>]*>[\s\S]*?<\/span>/g, "");
-  if (/margin(?:-top|-left|-right|-bottom)?:\s*-\d/.test(bodyNoDeco.replace(/^[^>]*>/, "")) || /margin-top:\s*-\d/.test(root) || /transform:[^;"]*translate[XY]?\((?:-\d|[^)]*,\s*-\d)/.test(bodyNoDeco)) out.add("overlap");
-  // 풀블리드: 배너, 컨테이너 밖으로 나가는 음수 가로 마진, 가로 패딩 0 루트
-  if (isBanner(x) || /margin(?:-left|-right)?:\s*[^;"]*-\d+px/.test(bodyNoDeco.replace(/^[^>]*>/, "")) && /margin(?:-left|-right):\s*-\d|margin:\s*[^;"]*\s-\d+px/.test(bodyNoDeco) || /(?:^|;)padding:\s*\d+px 0(?:px)?(?:;|")/.test(root) || /data-pz-bleed/.test(x)) out.add("bleed");
-  // 비대칭: 열 폭이 다른 flex/grid, 어긋난 translate, 한쪽 오프셋 margin
+  // 장식(aria-hidden 상자)은 빼고 본다
+  const body = x.replace(/<span aria-hidden="true"[^>]*>[\s\S]*?<\/span>/g, "").replace(/^[^>]*>/, "");
+  const ms = marginsOf(body);
+  // 겹침: 위·아래 음수 마진, 위로 올리는 translate, 루트가 위 섹션으로 솟음
+  const vNeg = ms.some(([t, , b]) => t! < 0 || b! < 0);
+  if (vNeg || /margin-top:\s*-\d/.test(root) || /transform:[^;"]*translate[XY]?\((?:-\d|[^)]*,\s*-\d)/.test(body)) out.add("overlap");
+  // 풀블리드: 배너, 가로 음수 마진(컨테이너 밖으로), 가로 패딩 0 루트
+  const hNeg = ms.some(([, r, , l]) => r! < 0 || l! < 0);
+  if (isBanner(x) || hNeg || /(?:^|;)padding:\s*\d+px 0(?:px)?(?:;|")/.test(root)) out.add("bleed");
+  // 비대칭: 열 폭이 다른 flex/grid, 어긋난 translate, 좌우 마진 차 ≥ 20px
   const flexPct = [...x.matchAll(/flex:\s*0 0 (\d+)%/g)].map((m) => Number(m[1])).filter((n) => n !== 50 && n !== 100);
   const grid = [...x.matchAll(/grid-template-columns:\s*([^;"]+)/g)].map((m) => m[1]!).filter((v) => !/repeat\(\d+,\s*1fr\)|^1fr( 1fr)*$/.test(v.trim()) && /fr|%/.test(v));
-  const stagger = /transform:[^;"]*translate[XY]\(\d/.test(bodyNoDeco) || /data-pz-asym/.test(x);
-  const offset = /margin-(?:left|right):\s*(?:[2-9]\d|\d{3})px/.test(bodyNoDeco);
-  const flexUneven = (() => {
-    const bases = [...x.matchAll(/flex:\s*(\d+(?:\.\d+)?) 1 (\d+)px/g)].map((m) => Number(m[2]));
-    return new Set(bases).size > 1;
-  })();
+  const stagger = /transform:[^;"]*translate[XY]\(\d/.test(body);
+  const offset = ms.some(([, r, , l]) => Number.isFinite(r) && Number.isFinite(l) && Math.abs(r! - l!) >= 20) || ms.some(([, r, , l]) => (Number.isFinite(l) && l! >= 20 && Number.isNaN(r!)) || (Number.isFinite(r) && r! >= 20 && Number.isNaN(l!)));
+  const flexUneven = new Set([...x.matchAll(/flex:\s*(\d+(?:\.\d+)?) 1 (\d+)px/g)].map((m) => Number(m[2]))).size > 1;
   if (flexPct.length || grid.length || stagger || offset || flexUneven) out.add("asym");
   if (out.size === 0) out.add("single");
   return out;

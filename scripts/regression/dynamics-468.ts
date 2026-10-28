@@ -1,5 +1,6 @@
 /**
  * 회귀 — 468차 "진짜 다이나믹". 브라우저·네트워크 없음(문자열 렌더만). Phase마다 같은 파일에 검사를 더한다.
+ *  Phase 3: 구도 부품 7종(극단 입력·금지 CSS·풀블리드 음수 마진 ≤24·고정 폭·결정성·새 글자 없음)과 새 변형(입력 요건 폴백)
  *  Phase 4: 빈 사진 틀(V5 폴백 상한·줄무늬 대비·사진 없음/일부/전부 × 8종)
  *  Phase 2: 읽히는 제목 스케일(fitTitlePx 단계 선택·320폭 안전·긴 입력 줄바꿈·결정성)
  *  Phase 1: 배너 아키타입화(V5 켜짐 한정, 연속 배너 값 다름, 밝은 면 성격은 전면 스크림 없음, 꺼짐·편집 모드 미적용, 배너 글자 대비 상수)
@@ -14,6 +15,8 @@ import { topSections } from "../variety-metrics-463";
 import { expandDedupedStyles } from "../../lib/style-dedupe";
 import { ratio } from "../contrast-audit-466";
 import { planBannersV5 } from "../../lib/banner-v5";
+import * as C from "../../lib/compose-v5";
+import { v4Palette } from "../../lib/palette-v4";
 import type { DetailSection } from "../../lib/types/generate";
 
 export const name = "다이나믹 468 — 배너 아키타입화·(이후 Phase: 제목 스케일·구도·빈 틀·일반 섹션)";
@@ -78,6 +81,55 @@ export async function run(): Promise<string[]> {
     const once = typographyV5(`<p style="font-size:22px;font-weight:900;letter-spacing:-0.02em">노트</p>`, t);
     const want = Math.round(22 * t.type.scale);
     if (!once.includes(`font-size:${want}px`)) f.push(`${a}: 22px 요소 배율 ${want} 아님`);
+  }
+  // ── Phase 3: 구도 부품
+  {
+    const p = v4Palette({ accent: "#2E8F81", deep: "#216F64" }, null);
+    const long = "아주긴문장".repeat(30);
+    const word = "SUPERCALIFRAGILISTICEXPIALIDOCIOUS12345678901234567890";
+    const FORB = [":has(", "container-type", "mix-blend-mode", "clip-path", "-webkit-text-stroke", "text-wrap", "mask:", "mask-image", "filter:", "backdrop-filter", "textPath", "foreignObject", "position:fixed", "animation", "<filter"];
+    const im = (n: number) => Array.from({ length: n }, (_, i) => ({ url: `/qa-fixtures/ph/beauty/x${i}.png`, pos: "50% 45%" }));
+    const cards = (n: number, t: string) => Array.from({ length: n }, (_, i) => `<div><p>${t}${i}</p></div>`);
+    const parts: Array<[string, () => string[]]> = [
+      ["bleedPhoto", () => (["left", "right"] as const).flatMap((side) => [long, word, "가"].map((t) => C.bleedPhoto(im(1)[0]!, t, `<p>${t}</p>`, p, { side })))],
+      ["splitAsym", () => [true, false].flatMap((flip) => [long, word, ""].map((t) => C.splitAsym(im(1)[0]!, t, `<p>${t}</p>`, p, { flip })))],
+      ["staggerGrid", () => [0, 1, 2, 3, 12].map((n) => C.staggerGrid(cards(n, long)))],
+      ["pullOut", () => (["left", "right"] as const).flatMap((side) => [long, word, "가", "SPF50+ 99.9%"].map((t) => C.pullOut(t, p, { size: 40, side, ink: "#111111", mark: "\u201C" })))],
+      ["offsetStack", () => [0, 1, 2, 12].map((n) => C.offsetStack(cards(n, word)))],
+      ["heroNumber", () => [true, false].map((flip) => C.heroNumber("<p>01</p>", `<p>${long}</p>`, { flip }))],
+      ["layerDeck", () => [0, 1, 2, 3, 12].map((n) => C.layerDeck(im(n), long, p))],
+    ];
+    for (const [part, fn] of parts) {
+      let outs: string[] = [];
+      try { outs = fn(); } catch (e) { f.push(`${part}: 예외 ${(e as Error).message.slice(0, 80)}`); continue; }
+      if (JSON.stringify(outs) !== JSON.stringify(fn())) f.push(`${part}: 결정성`);
+      outs.forEach((h, k) => {
+        if (!h) return;
+        for (const t of FORB) if (h.includes(t)) f.push(`${part}#${k}: 금지 패턴 ${t}`);
+        if (/width:\s*(\d{4,})px|width:\s*([89]\d{2})px/.test(h)) f.push(`${part}#${k}: 750 초과 고정 폭`);
+        if (/https?:\/\//.test(h)) f.push(`${part}#${k}: 외부 주소`);
+        for (const m of h.matchAll(/margin(?:-left|-right)?:\s*([^;"]+)/g)) for (const v of m[1]!.split(/\s+/)) { const n = /^-(\d+)px$/.exec(v); if (n && Number(n[1]) > C.BLEED && part !== "bleedPhoto" && part !== "splitAsym" && part !== "heroNumber") f.push(`${part}#${k}: 음수 마진 ${v} > ${C.BLEED}`); }
+        for (const m of h.matchAll(/margin:([^;"]*)/g)) { const v = m[1]!.trim().split(/\s+/); const [, r = "0", , l = r] = v; for (const side of [r, l]) { const n = /^-(\d+)px$/.exec(side); if (n && Number(n[1]) > C.BLEED) f.push(`${part}#${k}: 가로 음수 마진 ${side} > ${C.BLEED}`); } }
+        // 가로 음수 마진/기울임이 있는 부품은 섹션 패딩 안 또는 overflow:hidden 래퍼
+        if ((/rotate\(/.test(h)) && !/overflow:hidden/.test(h)) f.push(`${part}#${k}: 기울임인데 overflow:hidden 래퍼 없음`);
+        // 넘침 방지: flex 자식은 min-width:0
+        for (const m of h.matchAll(/<div style="[^"]*flex:\d[^"]*"/g)) if (!/min-width:0/.test(m[0])) f.push(`${part}#${k}: flex 칸에 min-width:0 없음`);
+        // 새 글자 없음: 글 노드는 입력(long/word/가/SPF50+ 99.9%/카드 글)과 장식 따옴표뿐
+        const txt = h.replace(/<(script|style)[\s\S]*?<\/\1>/g, "").replace(/<[^>]+>/g, "\n").split("\n").map((x) => x.trim()).filter(Boolean);
+        for (const x of txt) if (x !== "\u201C" && !(long + word + "가SPF50+ 99.9%").includes(x) && !/^(?:(?:아주긴문장)+|SUPERCALIFRAGILISTICEXPIALIDOCIOUS12345678901234567890|가|SPF50\+ 99\.9%|01)\d*$/.test(x)) f.push(`${part}#${k}: 입력에 없는 글 «${x.slice(0, 20)}»`);
+      });
+    }
+    if (C.layerDeck(im(1), "x", p) !== "" || C.layerDeck([], "x", p) !== "") f.push("layerDeck: 사진 2장 미만인데 출력");
+  }
+  // 새 변형 입력 요건·소스 잠금(V5 켜짐에서만 후보)
+  {
+    const lv = fs.readFileSync("lib/layout-variants.ts", "utf8");
+    for (const v of ["phototext.bleed", "phototext.split", "benefits.stagger", "concern.offset", "story.pullout", "gallery.deck"]) {
+      const m = new RegExp(`case "${v.replace(".", "\\.")}"[^\\n]*`).exec(lv);
+      if (!m || !/designV5On\(\)/.test(m[0])) f.push(`variantFits ${v}: designV5On() 가드 없음`);
+    }
+    const pa = fs.readFileSync("lib/page-archetype-v5.ts", "utf8");
+    if (!/export function fitTitlePx/.test(pa)) f.push("fitTitlePx 없음");
   }
   // ── Phase 4: 빈 사진 틀
   if (NO_PHOTO_MAX_PX > 320) f.push(`빈 틀 상한 ${NO_PHOTO_MAX_PX} > 320`);

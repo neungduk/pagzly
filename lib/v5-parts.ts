@@ -15,6 +15,8 @@ import { romanOf, v5Label } from "@/lib/v5-labels";
 import { splitLead } from "@/lib/info-style";
 import { pickIconsV4, iconV4Svg } from "@/lib/icons";
 import { gaugeRing, mosaic, polaroidStack, shadowPlate, statBlock, tickerBand } from "@/lib/dynamics-v5";
+import { bleedPhoto, cardFace, heroNumber, layerDeck, offsetStack, pullOut, splitAsym, staggerGrid } from "@/lib/compose-v5";
+import { fitTitlePx } from "@/lib/page-archetype-v5";
 
 const tokensOf = (s: ImpactSection): ArchetypeTokens => ARCHETYPES[(s.ax && s.ax in ARCHETYPES ? s.ax : "editorial") as ArchetypeId];
 
@@ -86,6 +88,12 @@ function benefitsV5(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeToke
     const cards = items.map((it, i) => `<div style="flex:1 1 calc(50% - 5px);min-width:140px;box-sizing:border-box;padding:16px;border-radius:16px;background:${i % 3 === 1 ? mixHex(p.secondary, "#FFFFFF", 0.86) : p.tints[0]}"><span style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:${darkOf(p)}">${icons ? iconV4Svg(icons[i]!, { color: "#FFFFFF", px: 18 }) : markerSvg(t.marker, "#FFFFFF", 16)}</span><div style="margin-top:10px">${titleP(it.title, p, 15)}</div>${bodyP(it.body, p, on.sub, 4)}</div>`).join("");
     return wrap(b, p, `<div style="display:flex;flex-wrap:wrap;gap:10px">${cards}</div>`, { head });
   }
+  if (b.variant === "stagger") {
+    // 468차 구도: 두 열 카드를 엇갈리게(오른쪽 열 28px 아래) · 카드 크기 2종(첫 카드와 3의 배수째가 큼)
+    const icons = pickIconsV4(items);
+    const cards = items.map((it, i) => `<div style="box-sizing:border-box;padding:${i % 3 === 0 ? "22px 14px" : "14px"};border-radius:16px;background:${i % 2 ? "#FFFFFF" : p.tints[0]};border:${hairline(p.ink)}"><span style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:${darkOf(p)}">${icons ? iconV4Svg(icons[i]!, { color: "#FFFFFF", px: 18 }) : markerSvg(t.marker, "#FFFFFF", 16)}</span><div style="margin-top:10px">${titleP(it.title, p, i % 3 === 0 ? 17 : 15)}</div>${bodyP(it.body, p, on.sub, 4)}</div>`);
+    return wrap(b, p, staggerGrid(cards), { head });
+  }
   if (b.variant === "iconlist") {
     const icons = pickIconsV4(items);
     const rows = items.map((it, i) => `<div style="display:flex;gap:14px;align-items:flex-start;margin-top:${i ? 18 : 0}px"><span style="flex:none;display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:12px;background:${p.tints[0]}">${icons ? iconV4Svg(icons[i]!, { color: p.deep, px: 22, tint: p.tints[0] }) : markerSvg(t.marker, p.deep, 18)}</span><div style="flex:1 1 0%;min-width:0">${titleP(it.title, p, 16)}${bodyP(it.body, p, on.sub, 4)}</div></div>`).join("");
@@ -102,6 +110,10 @@ function concernV5(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeToken
     const rows = items.map((it, i) => `<div style="display:flex;gap:12px;align-items:flex-start;padding:12px 0;${i ? "" : "padding-top:4px;"}border-bottom:1px dashed ${hexToRgba(p.ink, 0.25)}"><span aria-hidden="true" style="flex:none;display:flex;align-items:center;justify-content:center;width:20px;height:20px;box-sizing:border-box;margin-top:2px;border:2px solid ${p.ink}">${CHECK(p.deep, 14)}</span><p style="flex:1 1 0%;min-width:0;margin:0;overflow-wrap:anywhere;${typeCss("small", p.ink, "font-size:16px;font-weight:600")}">${esc(it.title)}</p></div>`).join("");
     return wrap(b, p, `<div style="position:relative;padding:20px 18px 8px;border-radius:6px;background:#FFFFFF;border:${hairline(p.ink)};box-shadow:${depthShadow("soft", p.ink)}"><span aria-hidden="true" style="position:absolute;left:50%;top:-9px;width:72px;height:18px;margin-left:-36px;background:${hexToRgba(p.accent, 0.3)}"></span>${rows}</div>`, { head });
   }
+  if (b.variant === "offset") {
+    const cards = items.map((it, i) => `<div style="display:flex;gap:12px;align-items:center;box-sizing:border-box;padding:14px 16px;border-radius:14px;${cardFace(p, "soft")}">${numberMark(t.number === "big" ? "circle" : t.number, i, b, p)}<p style="flex:1 1 0%;min-width:0;margin:0;overflow-wrap:anywhere;${typeCss("small", p.ink, "font-size:16px;font-weight:600")}">${esc(it.title)}</p></div>`);
+    return wrap(b, p, offsetStack(cards, { inset: 32 }), { head });
+  }
   if (b.variant === "deck") {
     const cards = items.map((it, i) => `<div style="position:relative;z-index:${items.length - i};display:flex;gap:12px;align-items:center;box-sizing:border-box;margin:${i ? -6 : 0}px ${(items.length - 1 - i) * 6}px 0 ${i * 6}px;padding:16px 16px;border-radius:14px;background:${i % 2 ? p.tints[0] : "#FFFFFF"};border:${hairline(p.ink)};box-shadow:${depthShadow("soft", p.ink)}">${numberMark(t.number === "big" ? "circle" : t.number, i, b, p)}<p style="flex:1 1 0%;min-width:0;margin:0;overflow-wrap:anywhere;${typeCss("small", p.ink, "font-size:16px;font-weight:600")}">${esc(it.title)}</p></div>`).join("");
     return wrap(b, p, `<div style="padding:4px 0 8px">${cards}</div>`, { head });
@@ -115,13 +127,24 @@ function storyV5(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeTokens)
   const head = headingHtml(s.text, b, p, "color");
   const chip = s.chip ? `<span style="display:inline-block;padding:6px 14px;border-radius:999px;background:${darkOf(p)};${typeCss("label", "#FFFFFF", "letter-spacing:0.06em")}">${esc(s.chip)}</span>` : "";
   if (b.variant === "chapter") {
+    // 468차 구도: 큰 장 번호가 왼쪽 28% 칸에 서고 글이 오른쪽 칸을 쓴다(번호 칸 폭이 글 칸과 다른 비대칭). 번호 글자 수에 맞춰 크기를 줄여 칸 안에 든다
     const lbl = v5Label("chapter");
-    const inner =
-      `<div style="display:flex;align-items:baseline;gap:12px;margin:0 0 14px">${lbl ? `<span style="${typeCss("label", on.strong)}">${lbl}</span>` : ""}<span aria-hidden="true" style="${TITLE_FF};font-size:44px;font-weight:900;line-height:1;color:${p.tints[3]}">${t.number === "roman" ? romanOf(b.no || 1) : NUM(b.no || 1)}</span></div>` +
+    const no = t.number === "roman" ? romanOf(b.no || 1) : NUM(b.no || 1);
+    const nsz = Math.max(30, Math.min(72, Math.floor(88 / (0.74 * [...no].length))));
+    const num = `<div style="${TITLE_FF};font-size:${nsz}px;font-weight:900;line-height:1;color:${p.tints[3]};overflow-wrap:anywhere" aria-hidden="true">${no}</div>${lbl ? `<p style="margin:8px 0 0;${typeCss("label", on.strong)}">${lbl}</p>` : ""}`;
+    const text =
       (chip ? `<div style="margin:0 0 12px">${chip}</div>` : "") + (head ? `<p style="margin:0 0 14px;${typeCss("card", on.strong)}">${head}</p>` : "") +
-      (s.quote ? `<p style="margin:0;padding-left:16px;border-left:4px solid ${p.deep};overflow-wrap:anywhere;${typeCss("title", on.text, "font-size:22px")}">${esc(s.quote)}</p>` : "") +
-      (s.body ? `<p style="margin:18px 0 0;overflow-wrap:anywhere;${typeCss("body", on.sub, "white-space:pre-line")}">${esc(s.body)}</p>` : "");
-    return wrap(b, p, inner, { head: "" });
+      (s.quote ? `<p style="margin:0;padding-left:14px;border-left:4px solid ${p.deep};overflow-wrap:anywhere;${typeCss("title", on.text, "font-size:20px")}">${esc(s.quote)}</p>` : "") +
+      (s.body ? `<p style="margin:16px 0 0;overflow-wrap:anywhere;${typeCss("body", on.sub, "white-space:pre-line")}">${esc(s.body)}</p>` : "");
+    return wrap(b, p, `<div style="display:flex;gap:12px;align-items:flex-start"><div style="flex:0 0 28%;min-width:0">${num}</div><div style="flex:1 1 0%;min-width:0">${text}</div></div>`, { head: "" });
+  }
+  if (b.variant === "pullout" && s.quote) {
+    // 468차 구도: 인용문이 섹션 가장자리까지 번지는 띠 위에 크게(한쪽으로 몰림), 본문은 반대쪽으로 들여 쓴다
+    const left = b.no % 2 === 1;
+    const size = fitTitlePx(s.quote, t.type.display, 24, 5);
+    const body = s.body ? `<div style="max-width:576px;margin:18px auto 0"><p style="margin:0 ${left ? "0 0 36px" : "36px 0 0"};overflow-wrap:anywhere;${typeCss("body", on.sub, "white-space:pre-line")}">${esc(s.body)}</p></div>` : "";
+    const lead = [chip ? `<div style="margin:0 0 12px">${chip}</div>` : "", head ? `<p style="margin:0 0 14px;${typeCss("card", on.strong)}">${head}</p>` : ""].join("");
+    return wrap(b, p, `${lead ? `<div style="max-width:576px;margin:0 auto">${lead}</div>` : ""}${pullOut(s.quote, p, { size, side: left ? "left" : "right", ink: on.text, mark: "\u201C" })}${body}`, { head: "", bleed: true });
   }
   if (b.variant === "letter") {
     const body = s.body ?? "";
@@ -170,6 +193,14 @@ function phototextV5(s: ImpactSection, b: V4Block, p: V4Palette, alt: string, t:
     return wrap(b, p,
       `${photoFrame(frame === "arch" ? "rect" : frame, it.img.url, alt, it.img.pos, p, "16 / 10")}` +
       `<div style="position:relative;z-index:2;margin:-22px 12px 0 ${frame === "offset" ? 12 : 0}px;box-sizing:border-box;padding:20px 18px;border-radius:16px;background:#FFFFFF;border:${hairline(p.ink)};box-shadow:${depthShadow("float", p.ink)}"><div style="display:flex;gap:14px;align-items:flex-start">${numberMark(t.number, 0, b, p)}<div style="flex:1 1 0%;min-width:0">${title}${bodyP(it.body, p, on.sub, 8)}</div></div></div>`);
+  }
+  if (b.variant === "bleed") {
+    const card = `<div style="display:flex;gap:14px;align-items:flex-start">${numberMark(t.number, 0, b, p)}<div style="flex:1 1 0%;min-width:0">${title}${bodyP(it.body, p, on.sub, 8)}</div></div>`;
+    return wrap(b, p, bleedPhoto(it.img, alt, card, p, { side: b.no % 2 ? "left" : "right" }), { bleed: true });
+  }
+  if (b.variant === "split") {
+    const small = `<p style="margin:0;overflow-wrap:anywhere;${typeCss("card", p.ink, "font-size:17px")}">${headingHtml(it.title, b, p)}</p>${bodyP(it.body, p, on.sub, 6)}`;
+    return wrap(b, p, splitAsym(it.img, alt, small, p, { flip: b.no % 2 === 0 }));
   }
   if (b.variant === "polaroid") {
     return wrap(b, p,
@@ -296,6 +327,7 @@ function galleryV5(s: ImpactSection, b: V4Block, p: V4Palette, alt: string): str
   const a = alt || s.text || "";
   if (b.variant === "mosaic") return wrap(b, p, mosaic(imgs, p, a, { seed: b.no * 31 }), { head });
   if (b.variant === "polaroid") return wrap(b, p, polaroidStack(imgs, p, a, { seed: b.no * 17 }), { head });
+  if (b.variant === "deck") return wrap(b, p, layerDeck(imgs, a, p, { flip: b.no % 2 === 0 }), { head });
   return null;
 }
 
