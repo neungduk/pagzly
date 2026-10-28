@@ -117,7 +117,7 @@ export async function run(): Promise<string[]> {
     if (!sceneTextFits("짧은 문장입니다 이것은 한 화면") ) f.push("짧은 문장이 장면 요건을 못 채움");
     if (sceneTextFits("가".repeat(200)) || sceneTextFits("")) f.push("너무 긴 문장/빈 문장이 장면 요건을 채움");
     const lv = fs.readFileSync("lib/layout-variants.ts", "utf8");
-    if (!/const withMotifs = ctx\.v5 \? planScenesV5\(withMotifs1, ctx\) : withMotifs1;/.test(lv)) f.push("planScenesV5가 V5 토큰(ctx.v5) 뒤에서만 호출되지 않음");
+    if (!/const withScenes = ctx\.v5 \? planScenesV5\(withMotifs1, ctx\) : withMotifs1;/.test(lv)) f.push("planScenesV5가 V5 토큰(ctx.v5) 뒤에서만 호출되지 않음");
     const labels = new Set(Object.values(EYEBROW_LABEL));
     setDesignUp1ForTests(true);
     for (const a of ARCHETYPE_IDS) {

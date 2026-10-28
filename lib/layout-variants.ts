@@ -26,6 +26,7 @@
  */
 import type { DetailSection, ImpactSection, V4Block } from "@/lib/types/generate";
 import { personaStripIndexes } from "@/lib/persona-strip";
+import { applyRecipeV5, derunV5 } from "@/lib/page-recipe-v5";
 import { FIT_AVAIL_PX, emWidth } from "@/lib/page-archetype-v5";
 import type { ImpactPalette } from "@/lib/impact-templates";
 import type { ProductImageOrigin } from "@/lib/image-origins";
@@ -917,13 +918,18 @@ export function planV4(sections: DetailSection[], sourceIndexes: number[], ctx: 
   // 467차 V5 — 티커 띠(최대 1개)
   const ticker = ctx.v5 ? insertTickerV5(rhythm1b.sections, rhythm1b.sourceIndexes, keywords, ctx, seed) : null;
   const rhythm = ticker ? { ...rhythm1b, sections: ticker.sections, sourceIndexes: ticker.sourceIndexes, inserted: [...rhythm1b.inserted, ticker.note] } : rhythm1b;
-  const withMotifs0 = assignMotifs(assignFaces(rhythm.sections, seed), ctx.mood, seed, ctx.v5 ?? null);
+  // 470차 V5 — 아키타입 페이지 레시피(이동 가능한 블록을 계열 순환표 순서로, 자리·접점·고지는 그대로)
+  const recipe = ctx.v5 ? applyRecipeV5(rhythm.sections, rhythm.sourceIndexes, ctx.v5.id) : null;
+  const withMotifs0 = assignMotifs(assignFaces(recipe ? recipe.sections : rhythm.sections, seed), ctx.mood, seed, ctx.v5 ?? null);
   const withMotifs1 = ctx.v5 ? boostEarlyHighV5(withMotifs0, ctx, seed) : withMotifs0;
   // 469차 V5 — 화면 장악 장면(기존 블록 승격)
-  const withMotifs = ctx.v5 ? planScenesV5(withMotifs1, ctx) : withMotifs1;
+  const withScenes = ctx.v5 ? planScenesV5(withMotifs1, ctx) : withMotifs1;
+  // 470차 V5 — 최종 순서의 "높음 3연속" 줄이기(레시피·장면이 만든 것)
+  const derun = ctx.v5 ? derunV5(withScenes, recipe ? recipe.sourceIndexes : rhythm.sourceIndexes) : null;
+  const withMotifs = derun ? derun.sections : withScenes;
   const finalPlaced: V4Placed[] = [];
   withMotifs.forEach((s, at) => { if (s.type === "impact" && s.kind === "v4" && s.v4) finalPlaced.push({ family: s.v4.family, variant: s.v4.variant, at, from: "" }); });
-  return { sections: withMotifs, sourceIndexes: rhythm.sourceIndexes, placed: finalPlaced, moved: hooked.moved, inserted: rhythm.inserted };
+  return { sections: withMotifs, sourceIndexes: derun ? derun.sourceIndexes : recipe ? recipe.sourceIndexes : rhythm.sourceIndexes, placed: finalPlaced, moved: hooked.moved, inserted: rhythm.inserted };
 }
 
 /**
