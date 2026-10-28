@@ -2,7 +2,7 @@
 467차 완료(`review/467cha-report.md`, `4d60110`) 후 시작.
 | Phase | 상태 |
 |---|---|
-| 0 지표 재정의·목표 | 진행 중 |
+| 0 지표 재정의·목표 | 완료 (`docs/dynamics-audit-468.md`, `scripts/dynamics-metrics-468.ts`, `scripts/dynamics-report-468.ts`) |
 | 1 배너 아키타입화 | 대기 |
 | 2 읽히는 제목 스케일 | 대기 |
 | 3 구도 깨기 | 대기 |
