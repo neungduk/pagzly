@@ -180,7 +180,7 @@ export function sectionFamilyCssV5(scope: string, id: ArchetypeId): string {
   const s = `${scope}[data-pz-bsig="${id}"]`;
   const it = familySigV5("image_text", id);
   if (it.card === "pill") return `${s} section[data-pz-it] .pagzly-compact-thumb{border-radius:999px!important}`;
-  if (it.card === "hard") return `${s} section[data-pz-it] .pagzly-compact-thumb{border-radius:0!important;box-shadow:3px 3px 0 var(--pz-v5-point,#c45)}`;
+  if (it.card === "hard") return `${s} section[data-pz-it] .pagzly-compact-thumb{border-radius:0!important;box-shadow:3px 3px 0 var(--pz-p,#c45)}`;
   if (it.card === "hair" || it.card === "none") return `${s} section[data-pz-it] .pagzly-compact-thumb{border-radius:2px!important}`;
   if (it.emphasis === "mono") return `${s} section[data-pz-sf^="spec_table"]{font-variant-numeric:tabular-nums}`;
   if (it.layout === "wide-margin" || it.emphasis === "serif") return `${s} section[data-pz-sf^="brand_story"]{padding-left:10%;padding-right:10%}`;

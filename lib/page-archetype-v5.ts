@@ -26,6 +26,7 @@ import { typeSystemCssV5 } from "@/lib/type-system-v5";
 import { photoComposeCssV5 } from "@/lib/photo-compose-v5";
 import { snapPadTripleV5, spacingCssV5 } from "@/lib/spacing-v5";
 import { hueShift } from "@/lib/color-extract";
+import { useDotsGrid, usePlusField } from "@/lib/svg-sprite-v5";
 
 export const ARCHETYPE_IDS = ["editorial", "catalog", "softlife", "impact", "techsheet", "narrative", "luxe", "pop"] as const;
 export type ArchetypeId = (typeof ARCHETYPE_IDS)[number];
@@ -239,18 +240,13 @@ export function decorHtml(kind: DecorKind, c: ArchetypeColors): string {
     case "sticker": return `<span ${base} style="position:absolute;right:10px;top:8px;width:34px;height:34px;border-radius:50%;background:${c.accent};transform:rotate(-12deg);border:2px solid ${c.ink};box-sizing:border-box;pointer-events:none"></span>`;
     case "glow": return `<span ${base} style="position:absolute;right:0;top:0;width:140px;height:140px;background:radial-gradient(circle at 70% 30%,${rgba(c.accent, 0.16)},transparent 70%);pointer-events:none"></span>`;
     // ── 465차 V5 추가 6종: 섹션 위쪽 안쪽 모서리(여백 안, 높이 ≤ 28px)
-    case "dots-grid": {
-      // 468차: 점마다 fill을 반복하지 않고 <g> 하나로(export 크기 상한 여유 확보 — 모양은 같다)
-      let d = "";
-      for (let r = 0; r < 3; r += 1) for (let k = 0; k < 5; k += 1) d += `<circle cx="${6 + k * 12}" cy="${5 + r * 8}" r="1.6"/>`;
-      return `<span ${base} style="position:absolute;right:16px;top:4px;width:64px;height:26px;pointer-events:none"><svg viewBox="0 0 64 26" width="64" height="26" aria-hidden="true" style="display:block"><g fill="${rgba(c.ink, 0.4)}">${d}</g></svg></span>`;
-    }
+    case "dots-grid":
+      // 475 F: 스프라이트 <use> 재사용
+      return `<span ${base} style="position:absolute;right:16px;top:4px;width:64px;height:26px;pointer-events:none">${useDotsGrid(rgba(c.ink, 0.4))}</span>`;
     case "arc": return `<span ${base} style="position:absolute;left:0;top:0;width:44px;height:22px;pointer-events:none"><svg viewBox="0 0 44 22" width="44" height="22" aria-hidden="true" style="display:block"><path d="M0 22 A22 22 0 0 1 44 22" fill="none" stroke="${rgba(c.accent, 0.55)}" stroke-width="2"/></svg></span>`;
     case "squiggle": return `<span ${base} style="position:absolute;left:20px;top:8px;width:72px;height:14px;pointer-events:none"><svg viewBox="0 0 72 14" width="72" height="14" aria-hidden="true" style="display:block"><path d="M2 7 Q11 0 20 7 T38 7 T56 7 T70 7" fill="none" stroke="${rgba(c.accent, 0.6)}" stroke-width="2" stroke-linecap="round"/></svg></span>`;
-    case "plus-field": {
-      const plus = (x: number, y: number) => `<path d="M${x - 4} ${y} H${x + 4} M${x} ${y - 4} V${y + 4}" stroke="${rgba(c.ink, 0.45)}" stroke-width="1.5" stroke-linecap="round"/>`;
-      return `<span ${base} style="position:absolute;right:20px;top:6px;width:60px;height:22px;pointer-events:none"><svg viewBox="0 0 60 22" width="60" height="22" aria-hidden="true" style="display:block">${plus(8, 8)}${plus(30, 14)}${plus(52, 6)}</svg></span>`;
-    }
+    case "plus-field":
+      return `<span ${base} style="position:absolute;right:20px;top:6px;width:60px;height:22px;pointer-events:none">${usePlusField(rgba(c.ink, 0.45))}</span>`;
     case "bracket": {
       const line = `1px solid ${rgba(c.ink, 0.45)}`;
       return `<span ${base} style="position:absolute;left:8px;bottom:8px;width:12px;height:12px;border-left:${line};border-bottom:${line};pointer-events:none"></span><span ${base} style="position:absolute;right:8px;bottom:8px;width:12px;height:12px;border-right:${line};border-bottom:${line};pointer-events:none"></span>`;

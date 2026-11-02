@@ -4,6 +4,8 @@ import { ARCHETYPES, archetypeCssV5, type ArchetypeId } from "@/lib/page-archety
 import { checklistV5Mode, checklistV5LiveHints } from "@/lib/checklist-layout-v5";
 import { highlightFamilyMode, highlightFamilyInnerHtml } from "@/lib/highlight-family-v5";
 import { esc } from "@/lib/type-treatments";
+import { svgSpriteV5 } from "@/lib/svg-sprite-v5";
+import { colorRolesV5, colorRolesStyleAttr, colorRolesCssV5 } from "@/lib/color-roles-v5";
 import { infoCssV5 } from "@/lib/info-v5";
 import StickyBuyBar from "@/components/StickyBuyBar";
 import { COMPOSITION_V2_ENABLED } from "@/lib/detail-story-order";
@@ -6239,15 +6241,31 @@ export default function DetailSectionRenderer({
       data-pz-v3={fontPair?.id}
       data-pz-typefloor={DESIGN_V4_ENABLED ? "1" : undefined}
       data-pz-bsig={display.v5?.id}
-      style={packRootStyle(category, pack, v2Typo, v2TitleOnly) as CSSProperties}
+      style={
+        {
+          ...packRootStyle(category, pack, v2Typo, v2TitleOnly),
+          ...(display.v5
+            ? Object.fromEntries(
+                colorRolesStyleAttr(colorRolesV5(display.v5.id, baseTheme.accent || BRAND.ink))
+                  .split(";")
+                  .filter(Boolean)
+                  .map((kv) => {
+                    const i = kv.indexOf(":");
+                    return [kv.slice(0, i), kv.slice(i + 1)];
+                  }),
+              )
+            : null),
+        } as CSSProperties
+      }
     >
+      {display.v5 ? <div dangerouslySetInnerHTML={{ __html: svgSpriteV5() }} /> : null}
       {isClassicPack(pack) ? (
         packLayout.beautyInfo ? <style>{infoCss(packLayout.info, "[data-pz-info]", infoColorsOf(baseTheme), infoBackdrops, { skipHeadline: true, demote: v2Plan?.demoted }) + beautyInfoCss(packLayout.info, "[data-pz-info]", infoColorsOf(baseTheme))}</style> : null
       ) : (
         <style>{packStructureCss(packLayout, "[data-pz-pack]", "live") + infoCss(packLayout.info, "[data-pz-pack]", infoColorsOf(baseTheme), infoBackdrops, { demote: v2Plan?.demoted })}</style>
       )}
       {v2Css ? <style>{v2Css}</style> : null}
-      {DESIGN_V4_ENABLED ? <style>{typeFloorCss("[data-pz-typefloor]") + headingSystemCss("[data-pz-typefloor]", "live") + topPadCssV4((px) => `[data-pz-typefloor] [data-pz-top="${px}"] > section`) + bottomPadCssV4((px) => `[data-pz-typefloor] [data-pz-bot="${px}"] > section`) + mutedFloorCssLive("[data-pz-typefloor]") + typoCssLive("[data-pz-typefloor]") + noPhotoCss("[data-pz-typefloor]", baseTheme.deepAccent) + (display.v5 ? archetypeCssV5("[data-pz-typefloor]", "live", ARCHETYPES[display.v5.id], baseTheme.accent || BRAND.ink) + infoCssV5("[data-pz-typefloor]", ARCHETYPES[display.v5.id], infoColorsOf(baseTheme), infoBackdrops) : "")}</style> : null}
+      {DESIGN_V4_ENABLED ? <style>{typeFloorCss("[data-pz-typefloor]") + headingSystemCss("[data-pz-typefloor]", "live") + topPadCssV4((px) => `[data-pz-typefloor] [data-pz-top="${px}"] > section`) + bottomPadCssV4((px) => `[data-pz-typefloor] [data-pz-bot="${px}"] > section`) + mutedFloorCssLive("[data-pz-typefloor]") + typoCssLive("[data-pz-typefloor]") + noPhotoCss("[data-pz-typefloor]", baseTheme.deepAccent) + (display.v5 ? archetypeCssV5("[data-pz-typefloor]", "live", ARCHETYPES[display.v5.id], baseTheme.accent || BRAND.ink) + colorRolesCssV5("[data-pz-typefloor]", display.v5.id) + infoCssV5("[data-pz-typefloor]", ARCHETYPES[display.v5.id], infoColorsOf(baseTheme), infoBackdrops) : "")}</style> : null}
       {DESIGN_V3_COLOR_ENABLED && v2On ? <style>{paletteInfoCss("[data-pz-v2]", extendedTheme, packLayout.info)}</style> : null}
       {DESIGN_V3_COLOR_ENABLED && !edit?.enabled ? <style>{dividerCss({ scope: "[data-pz-v2]", mode: "live", sections, ext: extendedTheme, category, info: packLayout.info })}</style> : null}
       {fontPair ? (
