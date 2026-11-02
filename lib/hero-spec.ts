@@ -26,7 +26,7 @@ import { CHIP_V4, HERO_FACE_CAP, ghostFadeBackground } from "@/lib/design-tokens
 import { designV2On } from "@/lib/design-v2";
 import { motifSvg } from "@/lib/motifs";
 import { v4Palette } from "@/lib/palette-v4";
-import { hueShift } from "@/lib/color-extract";
+import { hueShift } from "@/lib/hue-shift";
 import { HERO_STACK, recipeBgToken, type FaceMode } from "@/lib/hero-stack-v5";
 import type { ArchetypeId as PageArchetypeId } from "@/lib/page-archetype-v5";
 

@@ -459,17 +459,7 @@ function buildThemeFromHue(
 // 아이콘 세트처럼 "브랜드 톤과 어울리면서도 항목마다 다른 색"이 필요할 때
 // 쓴다 — 완전히 임의의 색이 아니라 같은 s/l를 공유하는 색상환 회전이라
 // 스타일이 흐트러지지 않으면서도 시각적으로 다채로워진다.
-export function hueShift(hex: string, degrees: number): string {
-  const normalized = hex.replace("#", "");
-  const bigint = parseInt(normalized, 16);
-  const r = (bigint >> 16) & 255;
-  const g = (bigint >> 8) & 255;
-  const b = bigint & 255;
-  const { h, s, l } = rgbToHsl(r, g, b);
-  const shifted = ((h + degrees) % 360 + 360) % 360;
-  const [nr, ng, nb] = hslToRgb(shifted, s, l);
-  return rgbToHex(nr, ng, nb);
-}
+export { hueShift } from "@/lib/hue-shift";
 
 // hex 색상을 이미지 생성 프롬프트에 넣기 좋은 영어 톤 표현으로 변환한다.
 // (예: "#B45309" → "rich amber", "#FAF7F2" → "soft neutral ivory")

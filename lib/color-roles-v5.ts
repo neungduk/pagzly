@@ -4,7 +4,7 @@
  * 종이군(editorial·catalog·luxe)은 bin 0을 최대 3칸 점유 → 나머지 면은 bin 0 금지·동일 bin ≤3.
  */
 import type { ArchetypeId } from "@/lib/page-archetype-v5";
-import { hueShift } from "@/lib/color-extract";
+import { hueShift } from "@/lib/hue-shift";
 import { contrastRatioToken, mixHex } from "@/lib/design-tokens";
 
 export type ColorRolesV5 = {

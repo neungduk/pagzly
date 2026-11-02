@@ -230,7 +230,7 @@ export function wrap(b: V4Block, p: V4Palette, inner: string, opts: { pad?: stri
   const on = p.onFace[role];
   const motifs = (b.motifs ?? []).map((m) => motifHtml(m as MotifPlacement, motifColors(p))).join("");
   // 472: V5에서는 우상단 고스트를 쓰지 않음(잘림·겹침 위험). dynamics가 아키타입 위치로 다시 놓음
-  const ghost = b.ghost && b.variant !== "scene" ? ghostHtml(b.ghost, mixHex(p.faces[role] === "#FFFFFF" ? p.tints[0] : p.tints[1], p.accent, 0.12), 88, designV5On() ? "bl" : "tr") : "";
+  const ghost = b.ghost && b.variant !== "scene" ? ghostHtml(b.ghost, mixHex(p.faces[role] === "#FFFFFF" ? p.tints[0] : p.tints[1], p.accent, 0.12), 88, designV5On() ? "br" : "tr") : "";
   const title = opts.head !== undefined ? titleBlock(b.preset ?? "number", opts.label ?? b.label ?? EYEBROW_LABEL[b.family] ?? "", b.no, opts.head, { ink: on.text, deep: on.strong, pillBg: p.deep, pillFg: "#FFFFFF" }) : "";
   // 472: 장면 높이도 위치마다 다르게(640/720/800). 평탄 구간 해소는 rhythmBreakV5(최소 주석 패딩)
   const minH = opts.minH != null && designV5On() && b.variant === "scene" ? [640, 720, 800][(b.sceneAt ?? 0) % 3]! : opts.minH;

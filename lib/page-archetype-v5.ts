@@ -25,7 +25,7 @@ import { BODY_SIG, bodySigCssV5 } from "@/lib/body-sig-v5";
 import { typeSystemCssV5 } from "@/lib/type-system-v5";
 import { photoComposeCssV5 } from "@/lib/photo-compose-v5";
 import { snapPadTripleV5, spacingCssV5 } from "@/lib/spacing-v5";
-import { hueShift } from "@/lib/color-extract";
+import { hueShift } from "@/lib/hue-shift";
 import { useDotsGrid, usePlusField } from "@/lib/svg-sprite-v5";
 
 export const ARCHETYPE_IDS = ["editorial", "catalog", "softlife", "impact", "techsheet", "narrative", "luxe", "pop"] as const;
