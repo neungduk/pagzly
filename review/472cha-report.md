@@ -65,13 +65,13 @@
 
 ```
 git log -1 --oneline
-40b810d 472차 보고서: 목표/실측·눈 검수·해시
+# tip은 아래 해시 정정 커밋(본 절 갱신분)
 
 git status -sb
 ## cloud-work...origin/cloud-work
 (작업 트리에 이번 차 추적 파일 없음; 캡처·임시 _472-* 는 미추적/gitignore)
 
-HEAD = 40b810df6fa32f2b986ee84ffdf4142df087f1de
+보고서 본문: 4622bd3d309dd715d88eba4fcb8be08e4bd1ae60
 ```
 
-항목 커밋: 지시서 `ed150fc` → 목표 `d7e7409` → A `6bb4d7d` → C `08eec53` → D `4676c90` → B `6935e32` → E `54d913a` → 보고서 `40b810d`.
+항목 커밋: 지시서 `ed150fc` → 목표 `d7e7409` → A `6bb4d7d` → C `08eec53` → D `4676c90` → B `6935e32` → E `54d913a` → 보고서 `4622bd3`.
