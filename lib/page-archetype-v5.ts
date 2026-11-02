@@ -31,7 +31,7 @@ export const ARCHETYPE_IDS = ["editorial", "catalog", "softlife", "impact", "tec
 export type ArchetypeId = (typeof ARCHETYPE_IDS)[number];
 
 export type FrameKind = "rect" | "round" | "arch" | "offset" | "tape" | "double";
-export type DecorKind = "none" | "rule-top" | "corner-ticks" | "spine" | "bar-left" | "sticker" | "hair-center" | "glow"
+export type DecorKind = "none" | "rule-top" | "corner-ticks" | "spine" | "bar-left" | "sticker" | "hair-center" | "glow" | "double-rule" | "tape-tab"
   // 465차 V5 추가 장식 6종(코드 SVG·선만, 섹션 안쪽 여백 모서리에 놓여 글과 겹치지 않음)
   | "dots-grid" | "arc" | "squiggle" | "plus-field" | "bracket" | "ring";
 export type BadgeShape = "circle" | "seal" | "ribbon" | "hex";
@@ -84,7 +84,7 @@ export type ArchetypeTokens = {
 export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   editorial: {
     id: "editorial", radius: 0, pill: 2, border: { w: 1, style: "solid", alphaMul: 1.6 }, shadow: { kind: "none", offset: 0 }, paper: "#FAF7F1", face: "lightOnly",
-    pad: [40, 64, 88], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: null, rise: true, tilt: false, texture: null }, type: { weight: 500, tracking: -0.01, scale: 1.04, title: 48, display: 54, body: 15, lh: 1.75 }, eyebrow: "number", frames: ["rect", "double"], dividers: ["thin2", "double", "fade"], number: "roman", marker: "dash", decor: "rule-top", decorAlt: ["bracket","plus-field"], badge: "seal", density: "airy",
+    pad: [40, 64, 88], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: null, rise: true, tilt: false, texture: null }, type: { weight: 500, tracking: -0.01, scale: 1.04, title: 48, display: 54, body: 15, lh: 1.75 }, eyebrow: "number", frames: ["rect", "double"], dividers: ["thin2", "double", "fade"], number: "roman", marker: "dash", decor: "double-rule", decorAlt: ["bracket","plus-field"], badge: "seal", density: "airy",
     hero: ["D", "A"],
     banner: ["split", "card-only"],
     infoBackdrop: "scrim-light",
@@ -137,7 +137,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   luxe: {
     id: "luxe", radius: 0.1, pill: 2, border: { w: 1, style: "solid", alphaMul: 0.7 }, shadow: { kind: "none", offset: 0 }, paper: "#FBFAF6", face: "lightOnly",
-    pad: [56, 80, 104], titleAlign: "center", centerBudget: 1, dyn: { level: 3, seam: null, rise: true, tilt: false, texture: null }, type: { weight: 400, tracking: 0.02, scale: 1, title: 44, display: 50, body: 15, lh: 1.75 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["thin2", "dotted"], number: "roman", marker: "dash", decor: "hair-center", decorAlt: ["arc","ring"], badge: "seal", density: "airy",
+    pad: [56, 80, 104], titleAlign: "center", centerBudget: 1, dyn: { level: 3, seam: null, rise: true, tilt: false, texture: null }, type: { weight: 400, tracking: 0.02, scale: 1, title: 44, display: 50, body: 15, lh: 1.75 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["thin2", "dotted"], number: "roman", marker: "dash", decor: "double-rule", decorAlt: ["arc","ring"], badge: "seal", density: "airy",
     hero: ["E", "D"],
     banner: ["split", "card-only"],
     infoBackdrop: "scrim-light",
@@ -145,7 +145,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   pop: {
     id: "pop", radius: 1.8, pill: "keep", border: { w: 2, style: "solid", alphaMul: 4 }, shadow: { kind: "hard", offset: 3 }, paper: "#FFFDF4", face: "colorCollide",
-    pad: [32, 44, 60], titleAlign: "center", centerBudget: 1, dyn: { level: 5, seam: "zigzag", rise: false, tilt: true, texture: "dots" }, type: { weight: 900, tracking: -0.03, scale: 1.08, title: 56, display: 64, body: 16, lh: 1.7 }, eyebrow: "pill", frames: ["tape", "round", "offset"], dividers: ["zigzag", "tape", "wave2"], number: "circle", marker: "arrow", decor: "sticker", decorAlt: ["squiggle","ring","dots-grid"], badge: "ribbon", density: "normal",
+    pad: [32, 44, 60], titleAlign: "center", centerBudget: 1, dyn: { level: 5, seam: "zigzag", rise: false, tilt: true, texture: "dots" }, type: { weight: 900, tracking: -0.03, scale: 1.08, title: 56, display: 64, body: 16, lh: 1.7 }, eyebrow: "pill", frames: ["tape", "round", "offset"], dividers: ["zigzag", "tape", "wave2"], number: "circle", marker: "arrow", decor: "tape-tab", decorAlt: ["sticker","squiggle","dots-grid"], badge: "ribbon", density: "normal",
     // 472: C 우선 — 8종 히어로 변형 ≥4(A·B·C·D). E는 사진 있으면 D로 접혀 제외
     hero: ["C", "B"],
     banner: ["full-scrim", "split"],
@@ -226,6 +226,9 @@ export function decorHtml(kind: DecorKind, c: ArchetypeColors): string {
   switch (kind) {
     case "rule-top": return `<span ${base} style="position:absolute;left:24px;right:24px;top:0;height:1px;background:${rgba(c.ink, 0.4)};pointer-events:none"></span>`;
     case "hair-center": return `<span ${base} style="position:absolute;left:50%;top:18px;width:40px;height:1px;margin-left:-20px;background:${rgba(c.ink, 0.4)};pointer-events:none"></span>`;
+    // 474 D: 이중선·마스킹 테이프(기존 장식과 비슷한 바이트)
+    case "double-rule": return `<span ${base} style="position:absolute;left:24px;right:24px;top:0;height:4px;border-top:1px solid ${rgba(c.ink,.4)};border-bottom:1px solid ${rgba(c.ink,.4)};box-sizing:border-box;pointer-events:none"></span>`;
+    case "tape-tab": return `<span ${base} style="position:absolute;left:16px;top:4px;width:56px;height:16px;background:${rgba(c.accent,.35)};transform:rotate(-8deg);pointer-events:none"></span>`;
     case "bar-left": return `<span ${base} style="position:absolute;left:0;top:28px;bottom:28px;width:6px;background:${c.accent};pointer-events:none"></span>`;
     case "spine": return `<span ${base} style="position:absolute;left:10px;top:24px;bottom:24px;width:2px;background:${rgba(c.accent, 0.35)};pointer-events:none"></span><span ${base} style="position:absolute;left:6px;top:20px;width:10px;height:10px;border-radius:50%;background:${c.accent};pointer-events:none"></span>`;
     case "corner-ticks": {
@@ -353,7 +356,7 @@ export function archetypeCssV5(scope: string, mode: "live" | "export", t: Archet
     rules.push(`${g.ss.map((s) => sel(s, ":not([data-pz-top])")).join(",")}{padding-top:${g.p}px!important}`);
     rules.push(`${g.ss.map((s) => sel(s, ":not([data-pz-bot])")).join(",")}{padding-bottom:${g.p}px!important}`);
   }
-  if (t.decor === "rule-top" || t.decor === "hair-center" || t.decor === "corner-ticks") {
+  if (t.decor === "rule-top" || t.decor === "hair-center" || t.decor === "corner-ticks" || t.decor === "double-rule") {
     const line = `border-top:1px solid ${rgba(ink, 0.3)}`;
     rules.push(`${AX_STRENGTHS.map((s) => sel(s)).join(",")}{${line}}`);
   }
