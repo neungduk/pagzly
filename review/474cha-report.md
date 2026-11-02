@@ -74,7 +74,7 @@ npx tsx scripts/regression-v5-474.ts
 
 ```
 branch: cloud-work (main 아님)
-tip: 아래 커밋 후 보고서 커밋 해시로 갱신
+tip: 7e26624
 ```
 
 | 항목 | 해시 |
