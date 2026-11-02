@@ -19,6 +19,7 @@ import { buildAnnotatedImageOverlaySvg } from "@/lib/annotated-image-overlay-svg
 import { bleedPhoto, cardFace, heroNumber, layerDeck, offsetStack, pullOut, splitAsym, staggerGrid } from "@/lib/compose-v5";
 import { fitTitlePx } from "@/lib/page-archetype-v5";
 import { SCENE_MIN_PX } from "@/lib/layout-variants";
+import { BODY_SIG } from "@/lib/body-sig-v5";
 
 /** 320폭 가용 폭(px) — page-archetype-v5.FIT_AVAIL_PX와 같은 값 */
 const FIT_AVAIL = 272;
@@ -105,6 +106,32 @@ function benefitsV5(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeToke
   if (b.glance && items.length >= 2) {
     const cells = items.map((it, i) => `<div data-pz-glance-cell="${i + 1}"><p style="margin:0;overflow-wrap:anywhere;${typeCss("card", p.ink, "font-size:15px")}">${esc(it.title)}</p>${bodyP(it.body, p, on.sub, 4)}</div>`).join("");
     return wrap(b, p, `<div data-pz-glance-grid>${cells}</div>`, { head });
+  }
+  // 473: POINT 목록 — 아키타입 list 시그니처로 모양 분기(문구 불변)
+  {
+    const list = BODY_SIG[t.id].list;
+    if (items.length >= 2 && (list === "stair" || list === "chip" || list === "check" || list === "timeline" || list === "rows")) {
+      const cells = items.map((it, i) => {
+        const mark =
+          list === "check"
+            ? `<span aria-hidden="true" style="flex:none">${CHECK(p.deep, 18)}</span>`
+            : list === "chip"
+              ? ""
+              : numberMark(t.number, i, b, p);
+        const row =
+          list === "chip"
+            ? `<div data-i="${i}" style="--i:${i};display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:#FFFFFF;border:${hairline(p.ink)}">${titleP(it.title, p, 14)}</div>`
+            : list === "stair"
+              ? `<div data-i="${i}" style="--i:${i};display:flex;gap:12px;align-items:flex-start;margin-top:${i ? 10 : 0}px;margin-left:${i * 14}px">${mark}<div style="flex:1 1 0%;min-width:0">${titleP(it.title, p, 16)}${bodyP(it.body, p, on.sub, 4)}</div></div>`
+              : list === "timeline"
+                ? `<div data-i="${i}" style="--i:${i};display:flex;gap:12px;align-items:flex-start;margin-top:${i ? 14 : 0}px">${mark}<div style="flex:1 1 0%;min-width:0">${titleP(it.title, p, 16)}${bodyP(it.body, p, on.sub, 4)}</div></div>`
+                : list === "rows"
+                  ? `<div data-i="${i}" style="--i:${i};padding:12px;border-radius:12px;background:${i % 2 ? "#FFFFFF" : p.tints[0]};border:${hairline(p.ink)}">${titleP(it.title, p, 15)}${bodyP(it.body, p, on.sub, 4)}</div>`
+                  : `<div data-i="${i}" style="--i:${i};display:flex;gap:12px;align-items:flex-start;margin-top:${i ? 12 : 0}px">${mark}<div style="flex:1 1 0%;min-width:0">${titleP(it.title, p, 16)}${bodyP(it.body, p, on.sub, 4)}</div></div>`;
+        return row;
+      }).join("");
+      return wrap(b, p, `<div data-pz-bs-list="${list}">${cells}</div>`, { head });
+    }
   }
   if (b.variant === "stackbig") {
     const rows = items.map((it, i) => `<div style="display:flex;gap:16px;align-items:flex-start;padding:18px 0;${i ? `border-top:1px solid ${hexToRgba(p.ink, 0.14)}` : `border-top:2px solid ${p.ink}`}">${numberMark(t.number, i, b, p, true)}<div style="flex:1 1 0%;min-width:0;padding-top:2px">${titleP(it.title, p, 17)}${bodyP(it.body, p, on.sub)}</div></div>`).join("");
@@ -212,8 +239,8 @@ function specV5(s: ImpactSection, b: V4Block, p: V4Palette): string | null {
     return wrap(b, p, `<div style="display:flex;flex-wrap:wrap;gap:8px">${tags}</div>`, { head });
   }
   if (b.variant === "big3") {
-    const cols = items.map((it, i) => `<div style="flex:1 1 0%;min-width:96px;box-sizing:border-box;padding:18px 8px;text-align:center;${i ? `border-left:1px solid ${hexToRgba(p.ink, 0.14)}` : ""}"><p style="margin:0;line-height:1.1;overflow-wrap:anywhere">${numberStatHtml(it.body ?? "", on.strong, 34)}</p><p style="margin:8px 0 0;overflow-wrap:anywhere;${typeCss("label", on.sub, "letter-spacing:0.04em")}">${esc(it.title)}</p></div>`).join("");
-    return wrap(b, p, `<div style="display:flex;flex-wrap:wrap;border-top:2px solid ${p.ink};border-bottom:1px solid ${hexToRgba(p.ink, 0.2)}">${cols}</div>`, { head });
+    const cols = items.map((it, i) => `<div style="flex:1 1 0%;min-width:96px;box-sizing:border-box;padding:18px 8px;text-align:center;${i ? `border-left:1px solid ${hexToRgba(p.ink, 0.14)}` : ""}"><p data-pz-bs-stat style="margin:0;line-height:1.1;overflow-wrap:anywhere">${numberStatHtml(it.body ?? "", on.strong, 34)}</p><p style="margin:8px 0 0;overflow-wrap:anywhere;${typeCss("label", on.sub, "letter-spacing:0.04em")}">${esc(it.title)}</p></div>`).join("");
+    return wrap(b, p, `<div data-pz-bs-list="stat" style="display:flex;flex-wrap:wrap;border-top:2px solid ${p.ink};border-bottom:1px solid ${hexToRgba(p.ink, 0.2)}">${cols}</div>`, { head });
   }
   return null;
 }

@@ -21,6 +21,7 @@ import type { DividerKindAny } from "@/lib/dividers";
 import type { FaceStrategy } from "@/lib/face-strategy-v5";
 import type { HeroV2Variant } from "@/lib/hero-spec";
 import { HERO_STACK, heroStackCssV5 } from "@/lib/hero-stack-v5";
+import { BODY_SIG, bodySigCssV5 } from "@/lib/body-sig-v5";
 import { hueShift } from "@/lib/color-extract";
 
 export const ARCHETYPE_IDS = ["editorial", "catalog", "softlife", "impact", "techsheet", "narrative", "luxe", "pop"] as const;
@@ -318,7 +319,9 @@ export function applyArchetypeHtml(html: string, t: ArchetypeTokens, c: Archetyp
     const end = out.lastIndexOf("</section>");
     if (end > 0) out = `${out.slice(0, end)}${deco}${out.slice(end)}`;
   }
-  return out.replace(/^(\s*<section)/, `$1 data-pz-ax-done="${t.id}"`);
+  // 473: 본문 시각 시그니처 표식(6칸)
+  const bs = BODY_SIG[t.id];
+  return out.replace(/^(\s*<section)/, `$1 data-pz-ax-done="${t.id}" data-pz-bsig="${t.id}" data-pz-bs-num="${bs.num}" data-pz-bs-list="${bs.list}" data-pz-bs-stat="${bs.stat}" data-pz-bs-rule="${bs.rule}" data-pz-bs-r="${bs.radius}" data-pz-bs-sh="${bs.shadow}"`);
 }
 
 // ── 일반 섹션 래퍼 CSS ──────────────────────────────────────────────────────────
@@ -350,6 +353,7 @@ export function archetypeCssV5(scope: string, mode: "live" | "export", t: Archet
   // 472: 스택 잉크 = 상품 accent를 아키타입 hueShift로 비튼 액센트(아키타입 색은 보조)
   const stackInk = hueShift(ink, HERO_STACK[t.id].hueShift);
   rules.push(heroStackCssV5(scope, t.id, stackInk));
+  rules.push(bodySigCssV5(scope, t.id));
   rules.push(noPhotoCssV5(scope, ink));
   return rules.join("");
 }
