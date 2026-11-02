@@ -30,6 +30,16 @@ import { hueShift } from "@/lib/color-extract";
 import { HERO_STACK, recipeBgToken, type FaceMode } from "@/lib/hero-stack-v5";
 import type { ArchetypeId as PageArchetypeId } from "@/lib/page-archetype-v5";
 
+/** 473: page-archetype fitTitlePx와 같은 규칙(순환 import 회피용 로컬) */
+const fitHeroTitlePx = (text: string, base: number, floor: number, maxLines: number): number => {
+  const em = (ch: string) => (/[0-9]/.test(ch) ? 0.58 : /\s/.test(ch) ? 0.3 : /[\u1100-\u11ff\u3130-\u318f\uac00-\ud7af\u3000-\u9fff]/.test(ch) ? 0.98 : 0.56);
+  const total = [...text].reduce((w, c) => w + em(c), 0);
+  const word = Math.max(1, ...text.split(/\s+/).map((w) => [...w].reduce((a, c) => a + em(c), 0)));
+  const avail = 320 - 48;
+  for (let px = base; px > floor; px -= 2) if (word * px <= avail && total * px * 1.05 <= avail * maxLines) return px;
+  return floor;
+};
+
 export const HERO_V2_ENABLED = process.env.NEXT_PUBLIC_HERO_V2 !== "off";
 /** 438차 조정(사진 면적 확보·텍스트 압축·스크림·실패 폴백). NEXT_PUBLIC_HERO_V2=prev 이면 437차 사양 그대로, off 이면 436차 히어로 */
 export const HERO_V2_TUNED = process.env.NEXT_PUBLIC_HERO_V2 !== "off" && process.env.NEXT_PUBLIC_HERO_V2 !== "prev";
@@ -395,13 +405,54 @@ export function heroABlockFold(p: HeroV2Plan, hero: HeroSection, size: number, p
   return { fold, estPx: total(fold), budgetPx };
 }
 
-const nameHtml = (p: HeroV2Plan, color: string, size: number, weight: number): string =>
-  `<h1 data-hero-name="${size}" style="margin:0;${title};font-size:${size}px;font-weight:${weight};letter-spacing:-0.03em;line-height:1.14;color:${color};word-break:keep-all;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:${HERO_SPEC.nameMaxLines};overflow:hidden">${esc(p.name)}</h1>`;
+/** 473: 공백·구두점 무시 비교(렌더 중복 판정용). 데이터는 지우지 않는다 */
+const normTxt = (s: string): string => s.replace(/\s+/g, "").toLowerCase();
+const almostSame = (a: string, b: string): boolean => {
+  const x = normTxt(a), y = normTxt(b);
+  if (!x || !y) return false;
+  if (x === y) return true;
+  const [lo, hi] = x.length <= y.length ? [x, y] : [y, x];
+  return hi.startsWith(lo) && lo.length >= Math.min(8, hi.length);
+};
+/** 시각만 숨김(접근성 트리에는 남김). display:none/visibility:hidden 금지 목록 회피 */
+const SR_ONLY = "position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;";
+
+const nameHtml = (p: HeroV2Plan, color: string, size: number, weight: number): string => {
+  // 473 V5: 말줄임 금지 — 줄 수 클램프 대신 글자 크기를 낮춰 전부 보이게
+  if (designV5On()) {
+    const px = fitHeroTitlePx(p.name, Math.max(size, 40), 22, 4);
+    return `<h1 data-hero-name="${px}" style="margin:0;${title};font-size:${px}px;font-weight:${weight};letter-spacing:-0.03em;line-height:1.18;color:${color};word-break:keep-all;overflow-wrap:anywhere">${esc(p.name)}</h1>`;
+  }
+  return `<h1 data-hero-name="${size}" style="margin:0;${title};font-size:${size}px;font-weight:${weight};letter-spacing:-0.03em;line-height:1.14;color:${color};word-break:keep-all;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:${HERO_SPEC.nameMaxLines};overflow:hidden">${esc(p.name)}</h1>`;
+};
 const ONE_LINE = "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
-const subNameHtml = (p: HeroV2Plan, color: string, fold?: HeroAFold): string => (p.nameSub ? `<p${fold?.nameSub ? " data-hero-fold" : ""} style="margin:8px 0 0;${fold?.nameSub ? FOLD_CSS : ""}${HERO_V2_TUNED ? ONE_LINE : ""}${sans};font-size:12px;font-weight:600;letter-spacing:0.08em;line-height:1.3;color:${color};text-transform:uppercase">${esc(p.nameSub)}</p>` : "");
-const hookHtml = (hero: HeroSection, color: string, sub: string, fold?: HeroAFold): string =>
-  `<p data-hero-hook style="margin:14px 0 0;${fold?.hookLines ? `display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:${fold.hookLines};overflow:hidden;` : ""}${title};font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.35;color:${color};word-break:keep-all">${esc(hero.headline)}</p>` +
-  (hero.subheadline ? `<p${fold?.sub ? " data-hero-fold" : ""} style="margin:8px 0 0;${fold?.sub ? FOLD_CSS : ""}${HERO_V2_TUNED ? ONE_LINE : ""}${sans};font-size:15px;font-weight:500;line-height:1.6;color:${sub};word-break:keep-all">${esc(hero.subheadline)}</p>` : "");
+const subNameHtml = (p: HeroV2Plan, color: string, fold?: HeroAFold): string => {
+  if (!p.nameSub) return "";
+  // 473: 제품명과 같은 보조줄은 시각 중복 제거(마크업·문구는 유지)
+  const dup = designV5On() && almostSame(p.nameSub, p.name);
+  const hide = fold?.nameSub || dup;
+  return `<p${hide ? " data-hero-fold" : ""}${dup ? ' data-hero-dup="namesub"' : ""} style="margin:8px 0 0;${hide ? (dup ? SR_ONLY : FOLD_CSS) : ""}${!designV5On() && HERO_V2_TUNED ? ONE_LINE : ""}${sans};font-size:12px;font-weight:600;letter-spacing:0.08em;line-height:1.3;color:${color};text-transform:uppercase">${esc(p.nameSub)}</p>`;
+};
+const hookHtml = (hero: HeroSection, color: string, sub: string, fold?: HeroAFold, productName?: string): string => {
+  const head = hero.headline?.trim() ?? "";
+  const subh = hero.subheadline?.trim() ?? "";
+  const name = (productName ?? "").trim();
+  // 473 V5: 훅도 말줄임 없이 크기만 맞춤
+  const hookClamp = !designV5On() && fold?.hookLines ? `display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:${fold.hookLines};overflow:hidden;` : "";
+  const hookSize = designV5On() && head ? fitHeroTitlePx(head, 22, 16, 4) : 20;
+  const hook = head
+    ? `<p data-hero-hook style="margin:14px 0 0;${hookClamp}${title};font-size:${hookSize}px;font-weight:700;letter-spacing:-0.02em;line-height:1.35;color:${color};word-break:keep-all;overflow-wrap:anywhere">${esc(head)}</p>`
+    : "";
+  if (!subh) return hook;
+  const dupName = designV5On() && name && almostSame(subh, name);
+  const dupHead = designV5On() && head && almostSame(subh, head);
+  const hide = fold?.sub || dupName || dupHead;
+  const ellipsis = !designV5On() && HERO_V2_TUNED ? ONE_LINE : "";
+  return (
+    hook +
+    `<p${hide ? " data-hero-fold" : ""}${dupName || dupHead ? ' data-hero-dup="sub"' : ""} style="margin:8px 0 0;${hide ? (dupName || dupHead ? SR_ONLY : FOLD_CSS) : ""}${ellipsis}${sans};font-size:15px;font-weight:500;line-height:1.6;color:${sub};word-break:keep-all;overflow-wrap:anywhere">${esc(subh)}</p>`
+  );
+};
 const brandPill = (p: HeroV2Plan, bg: string, color: string): string =>
   p.brand ? `<span style="display:inline-block;padding:6px 12px;border-radius:999px;background:${bg};color:${color};${sans};font-size:12px;font-weight:700;letter-spacing:0.08em;line-height:1.2;text-transform:uppercase">${esc(p.brand)}</span>` : "";
 const badgeRow = (p: HeroV2Plan, bg: string, color: string, border: string): string =>
@@ -514,7 +565,7 @@ function heroV2HtmlBase(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt:
       `<div aria-hidden="true" data-hero-scrim style="position:absolute;left:0;right:0;top:0;height:${HERO_V2_TUNED ? 14 : 22}%;background:linear-gradient(180deg,rgba(10,10,10,${HERO_V2_TUNED ? 0.3 : 0.5}),rgba(10,10,10,0))"></div>` +
       `<div aria-hidden="true" data-hero-scrim style="position:absolute;left:0;right:0;bottom:0;height:${HERO_V2_TUNED ? 62 : 68}%;background:${scrimGradient()}"></div>` +
       `<div data-hero-a-text style="position:absolute;left:0;right:0;top:0;padding:20px 20px 0">${brandPill(p, "rgba(10,10,10,0.5)", "#FFFFFF")}${p.badges.length ? `<div style="margin-top:10px">${badgeRow(p, "rgba(10,10,10,0.38)", "#FFFFFF", "rgba(255,255,255,0.55)")}</div>` : ""}</div>` +
-      `<div data-hero-a-text style="position:absolute;left:0;right:0;bottom:0;padding:0 24px 44px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.92)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.96)")}${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.55)")}</div></section>`
+      `<div data-hero-a-text style="position:absolute;left:0;right:0;bottom:0;padding:0 24px 44px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.92)")}${hookHtml(hero, "#FFFFFF", "rgba(255, 255,255,0.96, p.name)")}${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.55)")}</div></section>`
     );
   }
   if (p.variant === "B") {
@@ -524,7 +575,7 @@ function heroV2HtmlBase(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt:
       : `<div data-hero-photo style="position:relative;margin:${HERO_V2_TUNED ? 16 : 20}px auto 0;width:${HERO_V2_TUNED ? 96 : 90}%;aspect-ratio:${HERO_V2_TUNED ? "4 / 5.2" : "4 / 4.9"};border-radius:999px 999px 0 0;overflow:hidden;box-shadow:0 -10px 30px rgba(10,10,10,0.25);background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`;
     return (
       wrapOpen("B", `background:${face};isolation:isolate`) +
-      `<div style="padding:28px 24px 0">${brandPill(p, "rgba(255,255,255,0.2)", "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "#FFFFFF")}${hookHtml(hero, "#FFFFFF", "#FFFFFF")}${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.6)")}</div>${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "rgba(255,255,255,0.18)", "#FFFFFF", "rgba(255,255,255,0.55)")}</div>` : ""}</div>` +
+      `<div style="padding:28px 24px 0">${brandPill(p, "rgba(255,255,255,0.2)", "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "#FFFFFF")}${hookHtml(hero, "#FFFFFF", "#FFFFFF", undefined, p.name)}${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.6)")}</div>${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "rgba(255,255,255,0.18)", "#FFFFFF", "rgba(255,255,255,0.55)")}</div>` : ""}</div>` +
       `${photo}</section>`
     );
   }
@@ -532,7 +583,7 @@ function heroV2HtmlBase(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt:
     const glow = hexToRgba(pal.accent, 0.5);
     return (
       wrapOpen("C", `background:#0E0E10 radial-gradient(60% 45% at 50% 66%,${hexToRgba(pal.accent, 0.4)},rgba(14,14,16,0) 70%)`) +
-      `<div style="padding:28px 24px 0;text-align:center">${brandPill(p, "rgba(255,255,255,0.14)", "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.75)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.82)")}<div style="display:flex;justify-content:center">${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.5)")}</div></div>${p.badges.length ? `<div style="margin-top:14px;display:flex;justify-content:center">${badgeRow(p, "rgba(255,255,255,0.12)", "#FFFFFF", "rgba(255,255,255,0.45)")}</div>` : ""}</div>` +
+      `<div style="padding:28px 24px 0;text-align:center">${brandPill(p, "rgba(255,255,255,0.14)", "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.75)")}${hookHtml(hero, "#FFFFFF", "rgba(255, 255,255,0.82, p.name)")}<div style="display:flex;justify-content:center">${tagRow(p, "#FFFFFF", "rgba(255,255,255,0.5)")}</div></div>${p.badges.length ? `<div style="margin-top:14px;display:flex;justify-content:center">${badgeRow(p, "rgba(255,255,255,0.12)", "#FFFFFF", "rgba(255,255,255,0.45)")}</div>` : ""}</div>` +
       `<div data-hero-photo style="position:relative;margin:${HERO_V2_TUNED ? 16 : 24}px auto ${HERO_V2_TUNED ? 32 : 44}px;width:${HERO_V2_TUNED ? 96 : 92}%;aspect-ratio:${HERO_V2_TUNED ? "1 / 1.3" : "1 / 1"};border-radius:24px;overflow:hidden;box-shadow:0 0 70px ${glow};background:#1B1B18">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div></section>`
     );
   }
@@ -542,14 +593,14 @@ function heroV2HtmlBase(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt:
     return (
       wrapOpen("D", "background:#FFFFFF") +
       `<div data-hero-photo style="position:relative;width:100%;aspect-ratio:${HERO_V2_TUNED ? "4 / 4.8" : "4 / 4.2"};overflow:hidden;background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}<div style="position:absolute;left:0;top:0;padding:18px 20px">${brandPill(p, "rgba(255,255,255,0.9)", "#1B1B18")}</div></div>` +
-      `<div style="background:${face};padding:28px 24px 44px">${DESIGN_V4_ENABLED && p.brand ? `<div data-hero-brand-fallback style="margin:0 0 14px">${brandPill(p, "#FFFFFF", "#1B1B18")}</div>` : ""}${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, deep, hexToRgba("#1B1B18", 0.78))}${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "#FFFFFF", "#1B1B18", hexToRgba("#1B1B18", 0.2))}</div>` : ""}${tagRow(p, "#1B1B18", hexToRgba("#1B1B18", 0.3))}</div></section>`
+      `<div style="background:${face};padding:28px 24px 44px">${DESIGN_V4_ENABLED && p.brand ? `<div data-hero-brand-fallback style="margin:0 0 14px">${brandPill(p, "#FFFFFF", "#1B1B18")}</div>` : ""}${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, deep, hexToRgba("#1B1B18", 0.78, p.name))}${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "#FFFFFF", "#1B1B18", hexToRgba("#1B1B18", 0.2))}</div>` : ""}${tagRow(p, "#1B1B18", hexToRgba("#1B1B18", 0.3))}</div></section>`
     );
   }
   // E 타이포: 큰 제품명·훅 중심 + 사진 작게(원형)
   const face = pal.face;
   return (
     wrapOpen("E", `background:${face};padding:36px 24px 52px`) +
-    `<div>${brandPill(p, "#FFFFFF", "#1B1B18")}</div><div style="margin-top:20px">${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, mixHex(pal.deepAccent, "#000000", 0.35), hexToRgba("#1B1B18", 0.78))}</div>` +
+    `<div>${brandPill(p, "#FFFFFF", "#1B1B18")}</div><div style="margin-top:20px">${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, mixHex(pal.deepAccent, "#000000", 0.35, p.name), hexToRgba("#1B1B18", 0.78))}</div>` +
     `<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-top:24px"><div style="flex:1 1 0%;min-width:0">${badgeRow(p, "#FFFFFF", "#1B1B18", hexToRgba("#1B1B18", 0.2))}${tagRow(p, "#1B1B18", hexToRgba("#1B1B18", 0.3))}</div>` +
     (p.imageUrl ? `<div data-hero-photo style="flex:0 0 36%;max-width:180px;aspect-ratio:1 / 1;border-radius:50%;overflow:hidden;box-shadow:0 10px 24px rgba(10,10,10,0.18);background:${pal.baseNeutral}">${img(`display:block;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>` : "") +
     `</div></section>`
@@ -590,7 +641,7 @@ function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: str
       `<div aria-hidden="true" data-hero-scrim style="position:absolute;left:0;right:0;top:0;height:14%;background:linear-gradient(180deg,rgba(10,10,10,0.3),rgba(10,10,10,0))"></div>` +
       `<div data-hero-a-text style="position:absolute;left:0;right:0;top:0;padding:20px ${p.v3!.sticker ? 112 : 20}px 0 20px">${brandPill(p, HERO_A_CHIP_BG_V4, "#FFFFFF")}${p.badges.length ? `<div style="margin-top:10px">${badgeRow(p, HERO_A_CHIP_BG_V4, "#FFFFFF", HERO_CHIP_BORDER_V4)}</div>` : ""}</div>` +
       v3Sticker(p, pal, "top:18px;right:18px;z-index:6") +
-      `<div data-hero-a-text style="position:absolute;left:0;right:0;bottom:0;z-index:4;padding:${HERO_TEXT_SCRIM_FEATHER_PX}px 24px ${HERO_TEXT_PAD_BOTTOM_PX}px;background:${heroTextScrim()}">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.92)", aFold)}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.96)", aFold)}${tagRow(p, "#FFFFFF", HERO_CHIP_BORDER_V4, aFold)}${v3Price(p, priceBg, priceFg)}</div></section>`
+      `<div data-hero-a-text style="position:absolute;left:0;right:0;bottom:0;z-index:4;padding:${HERO_TEXT_SCRIM_FEATHER_PX}px 24px ${HERO_TEXT_PAD_BOTTOM_PX}px;background:${heroTextScrim()}">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.92)", aFold)}${hookHtml(hero, "#FFFFFF", "rgba(255, 255,255,0.96, p.name)", aFold)}${tagRow(p, "#FFFFFF", HERO_CHIP_BORDER_V4, aFold)}${v3Price(p, priceBg, priceFg)}</div></section>`
     );
   }
   if (p.variant === "B" || p.variant === "C") {
@@ -619,8 +670,8 @@ function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: str
     const chipBg = onLight ? "#FFFFFF" : HERO_BRAND_PILL_BG_V4;
     const chipBd = onLight ? hexToRgba("#1B1B18", 0.2) : HERO_CHIP_BORDER_V4;
     const text = isB
-      ? `<div style="position:relative;z-index:4;padding:28px 24px 0">${brandPill(p, chipBg, inkOn)}<div style="margin-top:16px">${nameHtml(p, inkOn, size, 900)}${subNameHtml(p, inkMute)}${hookHtml(hero, inkOn, inkMute)}${tagRow(p, inkOn, chipBd)}</div>${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, onLight ? "#FFFFFF" : "rgba(255,255,255,0.18)", inkOn, chipBd)}</div>` : ""}${v3Price(p, priceBg, priceFg)}</div>`
-      : `<div style="position:relative;z-index:4;padding:28px 24px 0;text-align:center">${brandPill(p, HERO_BRAND_PILL_BG_V4, "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.75)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.82)")}<div style="display:flex;justify-content:center">${tagRow(p, "#FFFFFF", HERO_CHIP_BORDER_V4)}</div></div>${p.badges.length ? `<div style="margin-top:14px;display:flex;justify-content:center">${badgeRow(p, "rgba(255,255,255,0.12)", "#FFFFFF", HERO_CHIP_BORDER_V4)}</div>` : ""}${v3Price(p, priceBg, priceFg)}</div>`;
+      ? `<div style="position:relative;z-index:4;padding:28px 24px 0">${brandPill(p, chipBg, inkOn)}<div style="margin-top:16px">${nameHtml(p, inkOn, size, 900)}${subNameHtml(p, inkMute)}${hookHtml(hero, inkOn, inkMute, undefined, p.name)}${tagRow(p, inkOn, chipBd)}</div>${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, onLight ? "#FFFFFF" : "rgba(255,255,255,0.18)", inkOn, chipBd)}</div>` : ""}${v3Price(p, priceBg, priceFg)}</div>`
+      : `<div style="position:relative;z-index:4;padding:28px 24px 0;text-align:center">${brandPill(p, HERO_BRAND_PILL_BG_V4, "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.75)")}${hookHtml(hero, "#FFFFFF", "rgba(255, 255,255,0.82, p.name)")}<div style="display:flex;justify-content:center">${tagRow(p, "#FFFFFF", HERO_CHIP_BORDER_V4)}</div></div>${p.badges.length ? `<div style="margin-top:14px;display:flex;justify-content:center">${badgeRow(p, "rgba(255,255,255,0.12)", "#FFFFFF", HERO_CHIP_BORDER_V4)}</div>` : ""}${v3Price(p, priceBg, priceFg)}</div>`;
     return (
       wrapOpen(p.variant, isB ? `background:${face};isolation:isolate` : `background:#0E0E10 radial-gradient(60% 45% at 50% 66%,${hexToRgba(accentForGlow, 0.4)},rgba(14,14,16,0) 70%);isolation:isolate`, isB ? face : "#0E0E10") +
       text +
@@ -638,7 +689,7 @@ function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: str
       wrapOpen("D", "background:#FFFFFF", face) +
       `<div data-hero-photo style="position:relative;width:100%;aspect-ratio:4 / 4.8;max-height:${HERO_D_PHOTO_MAX_PX}px;overflow:hidden;background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}<div style="position:absolute;left:0;top:0;padding:18px 20px">${brandPill(p, "rgba(255,255,255,0.9)", "#1B1B18")}</div>${v3Sticker(p, pal, "right:16px;bottom:16px;z-index:6")}</div>` +
       `<div style="position:relative;overflow:hidden;background:${face};padding:28px 24px ${44 + ghostBand(p)}px">${v3Ghost(p, ghostColor(face, "#1B1B18", vp.deep), designV4On() ? "right:8%;bottom:16px;z-index:0" : "right:-6px;bottom:16px;z-index:0")}${v3GhostFade(p, face, "bottom")}` +
-      `<div style="position:relative;z-index:4">${p.brand ? `<div data-hero-brand-fallback style="margin:0 0 14px">${brandPill(p, "#FFFFFF", "#1B1B18")}</div>` : ""}${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, deep, hexToRgba("#1B1B18", 0.78))}${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "#FFFFFF", "#1B1B18", hexToRgba("#1B1B18", 0.2))}</div>` : ""}${tagRow(p, "#1B1B18", hexToRgba("#1B1B18", 0.3))}${v3Price(p, darkenForWhite(vp.deep), "#FFFFFF")}</div></div></section>`
+      `<div style="position:relative;z-index:4">${p.brand ? `<div data-hero-brand-fallback style="margin:0 0 14px">${brandPill(p, "#FFFFFF", "#1B1B18")}</div>` : ""}${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, deep, hexToRgba("#1B1B18", 0.78, p.name))}${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "#FFFFFF", "#1B1B18", hexToRgba("#1B1B18", 0.2))}</div>` : ""}${tagRow(p, "#1B1B18", hexToRgba("#1B1B18", 0.3))}${v3Price(p, darkenForWhite(vp.deep), "#FFFFFF")}</div></div></section>`
     );
   }
   // E 타이포
@@ -647,7 +698,7 @@ function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: str
     wrapOpen("E", `background:${face};padding:36px 24px ${52 + ghostBand(p)}px`) +
     v3Motif(p, pal, vp.tints[3], "top:-18px;right:-18px;z-index:1", "rings", 96, 96) +
     v3Ghost(p, ghostColor(face, "#1B1B18", vp.deep), "left:16px;bottom:16px;z-index:2") +
-    `<div style="position:relative;z-index:4"><div>${brandPill(p, "#FFFFFF", "#1B1B18")}</div><div style="margin-top:20px">${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, mixHex(pal.deepAccent, "#000000", 0.35), hexToRgba("#1B1B18", 0.78))}</div>` +
+    `<div style="position:relative;z-index:4"><div>${brandPill(p, "#FFFFFF", "#1B1B18")}</div><div style="margin-top:20px">${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, mixHex(pal.deepAccent, "#000000", 0.35, p.name), hexToRgba("#1B1B18", 0.78))}</div>` +
     `<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-top:24px"><div style="flex:1 1 0%;min-width:0">${badgeRow(p, "#FFFFFF", "#1B1B18", hexToRgba("#1B1B18", 0.2))}${tagRow(p, "#1B1B18", hexToRgba("#1B1B18", 0.3))}${v3Price(p, darkenForWhite(vp.deep), "#FFFFFF")}</div>` +
     (p.imageUrl ? `<div style="position:relative;flex:0 0 36%;max-width:180px"><div data-hero-photo style="aspect-ratio:1 / 1;border-radius:50%;overflow:hidden;box-shadow:0 10px 24px rgba(10,10,10,0.18);background:${pal.baseNeutral}">${img(`display:block;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>${v3Sticker(p, pal, "top:-26px;left:-26px;z-index:6")}</div>` : "") +
     `</div></div></section>`

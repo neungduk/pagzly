@@ -157,9 +157,10 @@ export function heroStackCssV5(scope: string, id: ArchetypeId, ink: string): str
     default:
       break;
   }
-  // impact 오버레이 제목 크기 하한(금지 CSS 없이 font-size만)
+  // impact 오버레이: 473 — 고정 56px+말줄임 금지. 마크업 fit 크기를 존중(최소만 보강)
   if (r.titlePos === "overlay") {
-    out.push(rule(`${scope} [data-hero-v2="A"] [data-hero-a-text] p:not([data-pz-hs="title"])`, "font-size:56px;line-height:1.15;font-weight:900"));
+    out.push(rule(`${scope} [data-hero-v2="A"] [data-hero-a-text] h1:not([data-pz-hs="title"])`, "line-height:1.18;font-weight:900;overflow-wrap:anywhere;word-break:keep-all"));
+    out.push(rule(`${scope} [data-hero-v2="A"] [data-hero-a-text] [data-hero-hook]:not([data-pz-hs="title"])`, "font-weight:800;overflow-wrap:anywhere;word-break:keep-all"));
   }
   // ── 가격 줄
   const S = `${scope} [data-pz-strip]:not([data-pz-hs="strip"])`;
@@ -199,39 +200,42 @@ export function heroStackCssV5(scope: string, id: ArchetypeId, ink: string): str
       out.push(rule(S, `margin:0 20px;border-radius:0;background:transparent;box-shadow:none;border-left:4px solid ${ink};padding-left:16px`));
       out.push(rule(P, "font-size:22px;font-weight:800"));
   }
-  // ── 한눈에 보기
-  const B = `${scope} [data-pz-strip]+div:not([data-pz-hs="glance"])`;
+  // ── 한눈에 보기 (473: 항목 수별 칸 균형 — 2=1×2, 3=1×3, 4=2×2. 세로 낭비·빈 칸 금지)
+  const G = `${scope} [data-pz-glance]:not([data-pz-hs="glance"])`;
+  const GG = `${G} [data-pz-glance-grid]`;
+  out.push(rule(GG, "display:grid;gap:12px;max-width:none;margin:0;width:100%;box-sizing:border-box"));
+  out.push(rule(`${G}[data-pz-glance="2"] [data-pz-glance-grid]`, "grid-template-columns:1fr 1fr"));
+  out.push(rule(`${G}[data-pz-glance="3"] [data-pz-glance-grid]`, "grid-template-columns:1fr 1fr 1fr"));
+  out.push(rule(`${G}[data-pz-glance="4"] [data-pz-glance-grid]`, "grid-template-columns:1fr 1fr"));
+  out.push(rule(`${G}[data-pz-glance="5"] [data-pz-glance-grid],${G}[data-pz-glance="6"] [data-pz-glance-grid]`, "grid-template-columns:1fr 1fr 1fr"));
+  out.push(rule(`${GG}>*`, "min-width:0;box-sizing:border-box"));
   switch (r.glance) {
     case "list":
-      out.push(rule(B, "text-align:left"));
-      out.push(rule(`${B}>div`, "flex-direction:column;align-items:flex-start;row-gap:12px;max-width:none;margin:0"));
+      out.push(rule(`${GG}>*`, `padding:10px 12px;border-left:3px solid ${ink};background:transparent`));
       break;
     case "grid2":
-      out.push(rule(`${B}>div`, "display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:none;margin:0"));
-      out.push(rule(`${B}>div>div`, `padding:10px 12px;border:1px solid ${rgba(ink, 0.2)};border-radius:8px;background:#FFFFFF`));
+      out.push(rule(`${GG}>*`, `padding:10px 12px;border:1px solid ${rgba(ink, 0.2)};border-radius:8px;background:#FFFFFF`));
       break;
     case "pills":
-      out.push(rule(`${B}>div`, "justify-content:center;gap:8px;row-gap:8px"));
-      out.push(rule(`${B}>div>div`, `padding:8px 14px;border-radius:999px;background:#FFFFFF;border:1px solid ${rgba(ink, 0.14)}`));
+      out.push(rule(GG, "justify-items:center"));
+      out.push(rule(`${GG}>*`, `padding:8px 14px;border-radius:999px;background:#FFFFFF;border:1px solid ${rgba(ink, 0.14)};text-align:center`));
       break;
     case "scroll":
-      out.push(rule(`${B}>div`, "flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;scroll-snap-type:x mandatory;padding-bottom:6px;max-width:none;margin:0;-webkit-overflow-scrolling:touch"));
-      out.push(rule(`${B}>div>div`, "flex:0 0 auto;scroll-snap-align:start"));
+      out.push(rule(GG, "display:flex;flex-wrap:nowrap;overflow-x:auto;gap:10px;scroll-snap-type:x mandatory;padding-bottom:6px;-webkit-overflow-scrolling:touch"));
+      out.push(rule(`${GG}>*`, "flex:0 0 auto;scroll-snap-align:start;min-width:42%"));
       break;
     case "cards":
-      out.push(rule(`${B}>div`, "display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:none;margin:0"));
-      out.push(rule(`${B}>div>div`, `padding:14px;border-radius:16px;background:#FFFFFF;box-shadow:0 8px 20px ${rgba(ink, 0.12)}`));
+      out.push(rule(`${GG}>*`, `padding:14px;border-radius:16px;background:#FFFFFF;box-shadow:0 8px 20px ${rgba(ink, 0.12)}`));
       break;
     case "bignum":
-      out.push(rule(`${B}>div`, "flex-direction:column;align-items:flex-start;row-gap:8px"));
-      out.push(rule(`${B}>div>div`, "font-size:22px;font-weight:900;letter-spacing:-0.03em"));
+      out.push(rule(`${GG}>*`, `padding:12px 10px;font-size:20px;font-weight:900;letter-spacing:-0.03em;border-bottom:2px solid ${ink}`));
       break;
     case "airy":
-      out.push(rule(B, "padding-top:44px;padding-bottom:44px"));
-      out.push(rule(`${B}>div`, "row-gap:30px;column-gap:28px"));
+      out.push(rule(G, "padding-top:28px;padding-bottom:28px"));
+      out.push(rule(GG, "gap:20px 24px"));
       break;
     default:
-      out.push(rule(B, `text-align:left;background:transparent;border-left:4px solid ${ink}`));
+      out.push(rule(G, `border-left:4px solid ${ink}`));
   }
   // ── 탭 칩
   const A = `${scope} nav.pagzly-anchor-nav:not([data-pz-hs="nav"]) a`;

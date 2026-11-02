@@ -234,8 +234,11 @@ export function wrap(b: V4Block, p: V4Palette, inner: string, opts: { pad?: stri
   const title = opts.head !== undefined ? titleBlock(b.preset ?? "number", opts.label ?? b.label ?? EYEBROW_LABEL[b.family] ?? "", b.no, opts.head, { ink: on.text, deep: on.strong, pillBg: p.deep, pillFg: "#FFFFFF" }) : "";
   // 472: 장면 높이도 위치마다 다르게(640/720/800). 평탄 구간 해소는 rhythmBreakV5(최소 주석 패딩)
   const minH = opts.minH != null && designV5On() && b.variant === "scene" ? [640, 720, 800][(b.sceneAt ?? 0) % 3]! : opts.minH;
+  // 473: 한눈에 보기 항목 수(2/3/4) → CSS 칸 균형. 새 글자 없음
+  const nItems = (b.items ?? []).length;
+  const glanceAttr = designV5On() && b.glance && b.variant !== "scene" && nItems >= 2 ? ` data-pz-glance="${Math.min(6, nItems)}"` : "";
   return (
-    `<section data-pz-impact="v4" data-pz-v4="${b.family}.${b.variant}" style="position:relative;padding:${opts.pad ?? "64px 24px"};${minH ? `min-height:${minH}px;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box;` : ""}background:${faceBg(b, p)}">` +
+    `<section data-pz-impact="v4" data-pz-v4="${b.family}.${b.variant}"${glanceAttr} style="position:relative;padding:${opts.pad ?? "64px 24px"};${minH ? `min-height:${minH}px;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box;` : ""}background:${faceBg(b, p)}">` +
     motifs + ghost + (b.divider ? dividerHtml(b.divider as DividerKind, p.ink) : "") +
     (opts.bleed
       ? `<div style="position:relative;z-index:1">${title ? `<div style="max-width:576px;margin:0 auto">${title}</div>` : ""}${inner}</div></section>` // 468차 V5 — 풀블리드 구도: 내용 상자가 섹션 폭을 쓰고 제목만 576 상자에 둔다
@@ -247,6 +250,11 @@ function benefitsHtml(s: ImpactSection, b: V4Block, p: V4Palette, alt: string): 
   const items = b.items ?? [];
   const on = p.onFace[faceRole(b)];
   const head = headingHtml(s.text, b, p);
+  // 473: V5 한눈에 보기(폴백 경로). 항목 수별 칸 균형
+  if (designV5On() && b.glance && items.length >= 2) {
+    const cells = items.map((it, i) => `<div data-pz-glance-cell="${i + 1}"><p style="margin:0;overflow-wrap:anywhere;${typeCss("card", p.ink, "font-size:15px")}">${esc(it.title)}</p>${it.body ? `<p style="margin:4px 0 0;overflow-wrap:anywhere;${typeCss("small", on.sub)}">${esc(it.body)}</p>` : ""}</div>`).join("");
+    return wrap(b, p, `<div data-pz-glance-grid>${cells}</div>`, { head });
+  }
   if (b.variant === "linelist") {
     // 463차 UP1 — 번호 + 제목 + (있으면) 설명을 한 줄에 늘어놓는 목록. 아이콘·카드 없이 가는 선으로만 나눈다(글이 길면 설명이 아래 줄로 내려간다)
     const rows = items

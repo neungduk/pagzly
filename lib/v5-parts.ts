@@ -101,6 +101,11 @@ function benefitsV5(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeToke
   const items = b.items ?? [];
   const on = p.onFace[faceRole(b)];
   const head = headingHtml(s.text, b, p);
+  // 473: 한눈에 보기 — 항목 수별 칸 균형 그리드(스킨은 heroStackCss glance)
+  if (b.glance && items.length >= 2) {
+    const cells = items.map((it, i) => `<div data-pz-glance-cell="${i + 1}"><p style="margin:0;overflow-wrap:anywhere;${typeCss("card", p.ink, "font-size:15px")}">${esc(it.title)}</p>${bodyP(it.body, p, on.sub, 4)}</div>`).join("");
+    return wrap(b, p, `<div data-pz-glance-grid>${cells}</div>`, { head });
+  }
   if (b.variant === "stackbig") {
     const rows = items.map((it, i) => `<div style="display:flex;gap:16px;align-items:flex-start;padding:18px 0;${i ? `border-top:1px solid ${hexToRgba(p.ink, 0.14)}` : `border-top:2px solid ${p.ink}`}">${numberMark(t.number, i, b, p, true)}<div style="flex:1 1 0%;min-width:0;padding-top:2px">${titleP(it.title, p, 17)}${bodyP(it.body, p, on.sub)}</div></div>`).join("");
     return wrap(b, p, `<div style="border-bottom:1px solid ${hexToRgba(p.ink, 0.14)}">${rows}</div>`, { head });
@@ -409,21 +414,26 @@ export const V5_PARTS: V5Parts = (s, b, p, alt) => {
     case "stats": return statsV5(s, b, p, t);
     case "gallery": return galleryV5(s, b, p, alt);
     case "breather":
-      // 472차: 구분 띠를 높이·모양·마크업 길이로 변주(평탄 CV가 띠·이웃과 같아지지 않게). sceneAt 0~2 → thick / tilt / chip
+      // 472·473: 구분 띠 변주. 473 — 빈 단색 막대 금지(사선·점선·도형+기존 번호 라벨). 새 카피 없음
       if (b.variant === "rule") {
         const t1 = tokensOf(s);
         const kind = (b.sceneAt ?? 0) % 3;
-        // 띠 HTML은 짧게 유지(이웃 긴 섹션과 길이 평탄이 나지 않게). 추가 평탄 해소는 rhythmBreakV5가 담당
+        const lab = String(b.no ?? 0).padStart(2, "0"); // 기존 섹션 번호만
+        const labHtml = `<span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:28px;padding:0 8px;border-radius:6px;background:#FFFFFF;border:1px solid ${hexToRgba(p.ink, 0.2)};${SANS_FF};font-size:12px;font-weight:800;letter-spacing:0.08em;color:${p.ink}">${lab}</span>`;
         if (kind === 1) {
-          const bar = `<div aria-hidden="true" style="height:28px;margin:0 -8px;transform:rotate(-1.8deg);background:linear-gradient(90deg,${hexToRgba(p.deep, 0.08)},${hexToRgba(p.deep, 0.28)},${hexToRgba(p.deep, 0.08)});border-radius:6px"></div>`;
-          return wrap(b, p, `${bar}<div style="height:12px"></div>${bar}`, { pad: "48px 20px" });
+          // 기울인 사선 패턴 띠 + 번호
+          const hatch = `repeating-linear-gradient(-28deg,${hexToRgba(p.deep, 0.2)} 0 8px,${hexToRgba(p.deep, 0.04)} 8px 16px)`;
+          const bar = `<div aria-hidden="true" style="height:36px;margin:0 -8px;transform:rotate(-1.8deg);background:${hatch};border:1px dashed ${hexToRgba(p.ink, 0.28)};border-radius:8px;display:flex;align-items:center;justify-content:center">${labHtml}</div>`;
+          return wrap(b, p, bar, { pad: "48px 20px" });
         }
         if (kind === 2) {
-          const chip = (w: number, h: number, a: number) => `<span aria-hidden="true" style="display:inline-block;width:${w}px;height:${h}px;border-radius:10px;background:${hexToRgba(p.deep, a)};box-shadow:0 6px 14px ${hexToRgba(p.ink, 0.1)}"></span>`;
-          return wrap(b, p, `<div aria-hidden="true" style="display:flex;align-items:flex-end;justify-content:center;gap:14px;min-height:96px">${chip(72, 56, 0.14)}${chip(96, 88, 0.22)}${chip(64, 48, 0.12)}</div>`, { pad: "40px 24px" });
+          // 도형 반복 + 번호(빈 칩처럼 보이지 않게 테두리·라벨)
+          const chip = (w: number, h: number, a: number, mark: string) => `<span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:${w}px;height:${h}px;border-radius:10px;background:${hexToRgba(p.deep, a)};border:1px solid ${hexToRgba(p.ink, 0.18)};box-shadow:0 6px 14px ${hexToRgba(p.ink, 0.1)};${SANS_FF};font-size:11px;font-weight:800;color:${p.ink}">${mark}</span>`;
+          return wrap(b, p, `<div aria-hidden="true" style="display:flex;align-items:flex-end;justify-content:center;gap:14px;min-height:96px">${chip(72, 56, 0.14, lab)}${chip(96, 88, 0.22, markerSvg(t1.marker, p.deep, 22))}${chip(64, 48, 0.12, lab)}</div>`, { pad: "40px 24px" });
         }
-        const line = `<span style="flex:1 1 0%;max-width:160px;height:4px;border-radius:2px;background:${hexToRgba(p.ink, 0.22)}"></span>`;
-        return wrap(b, p, `<div aria-hidden="true" style="display:flex;align-items:center;justify-content:center;gap:18px;min-height:40px">${line}${markerSvg(t1.marker, p.deep, 28)}${line}</div>`, { pad: "72px 24px" });
+        // 점선 + 마커 + 번호
+        const line = `<span style="flex:1 1 0%;max-width:160px;height:0;border-top:2px dotted ${hexToRgba(p.ink, 0.35)}"></span>`;
+        return wrap(b, p, `<div aria-hidden="true" style="display:flex;align-items:center;justify-content:center;gap:14px;min-height:48px">${line}${markerSvg(t1.marker, p.deep, 28)}${labHtml}${line}</div>`, { pad: "64px 24px" });
       }
       return null;
     case "statement":
