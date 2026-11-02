@@ -64,14 +64,15 @@
 
 ```
 git log -1 --oneline
-a80e80f 473차 보고서: 목표/실측·눈 판정·미달·push 해시
+b14dc82 473차 보고서: push tip 해시 정정
 
 git status -sb
 ## cloud-work...origin/cloud-work
 (캡처·임시 _473-* 는 미추적/gitignore)
 
-push tip: a80e80f7d0e3331a9126cf5bac8e81f0f973d342
+push tip: b14dc82d800fc197b27f5bc21a20eb5784d0caa5
+보고서 본문: a80e80f7d0e3331a9126cf5bac8e81f0f973d342
 main 미push · 브랜치 cloud-work만
 ```
 
-항목 커밋: 지시서 `ddd6d9e` → 목표 `dbbec75` → A `90c9992` → B `edf7269` → C `0d47019` → D `bfa5a01` → E `b88a45f` → 보고서 `a80e80f`.
+항목 커밋: 지시서 `ddd6d9e` → 목표 `dbbec75` → A `90c9992` → B `edf7269` → C `0d47019` → D `bfa5a01` → E `b88a45f` → 보고서 `a80e80f` → 해시정정 `b14dc82`.
