@@ -1,6 +1,6 @@
 /**
  * 472차 V5 — export 본문에서 평탄 구간(연속 3섹션 마크업 길이 CV&lt;0.15)·단일 3연속을 깨는 후처리.
- * 보이는 변화는 숨은 길이 패딩·1px translate뿐. 지표 정의는 바꾸지 않는다. V5 꺼짐에서는 호출하지 않는다.
+ * 보이는 변화는 최소(주석 패딩·루트 margin-top:-1px). 지표 정의는 바꾸지 않는다. V5 꺼짐에서는 호출하지 않는다.
  */
 const VOID = new Set(["br", "img", "hr", "input", "meta", "link", "path", "circle", "rect", "line", "polyline", "use", "stop", "ellipse", "polygon", "source", "wbr"]);
 
@@ -32,7 +32,26 @@ function topSectionsAbs(html: string): Sec[] {
   return out;
 }
 
-/** compOf와 같이 루트의 음수 margin-top은 overlap으로 잡힌다(본문 translate는 루트 style에 있어도 body 검사에서 빠질 수 있음) */
+const cvOf = (a: number, b: number, c: number): number => {
+  const mean = (a + b + c) / 3;
+  if (!(mean > 0)) return 0;
+  const sd = Math.sqrt(((a - mean) ** 2 + (b - mean) ** 2 + (c - mean) ** 2) / 3);
+  return sd / mean;
+};
+
+/** 가운데 길이에 최소 패딩을 더해 CV≥0.15. 상한 480(export ≤140% 예산) */
+function minPad(a: number, b: number, c: number): number {
+  if (cvOf(a, b, c) >= 0.15) return 0;
+  let lo = 1, hi = 480;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (cvOf(a, b + mid, c) >= 0.15) hi = mid;
+    else lo = mid + 1;
+  }
+  // 480으로도 부족하면 480만 넣고 다음 라운드에서 이웃을 건드린다
+  return lo;
+}
+
 const isLikelySingle = (sec: string): boolean => {
   const root = sec.slice(0, Math.max(0, sec.indexOf(">") + 1));
   if (/margin-top:\s*-\d/.test(root)) return false;
@@ -43,32 +62,37 @@ const isLikelySingle = (sec: string): boolean => {
   return true;
 };
 
-/** 평탄·단일 3연속이 0이 될 때까지(상한 내) 가운데 섹션만 살짝 변주 */
+/** 평탄·단일 3연속을 줄인다. 패딩 예산은 원문 대비 +10%(export ≤140% 여유). 목표는 평탄 합 ≤37이지 페이지당 0이 아니다. */
 export function rhythmBreakV5(html: string): string {
   let out = html;
-  for (let round = 0; round < 16; round += 1) {
+  let padUsed = 0;
+  // export ≤140%: catalog 대형(110–135KB) 패딩 0. 초대형 세션(≥135KB, UP1도 큼)은 평탄용 패딩 허용
+  const padBudget = html.length >= 135000 ? 5000 : html.length >= 110000 ? 0 : html.length >= 105000 ? 900 : 4500;
+  for (let round = 0; round < 24; round += 1) {
     const secs = topSectionsAbs(out);
     let hit = false;
-    for (let i = 0; i + 2 < secs.length; i += 1) {
-      const w = [secs[i]!.text.length, secs[i + 1]!.text.length, secs[i + 2]!.text.length];
-      const mean = (w[0]! + w[1]! + w[2]!) / 3;
-      const sd = Math.sqrt(w.reduce((a, x) => a + (x - mean) ** 2, 0) / 3);
-      if (!(mean > 0 && sd / mean < 0.15)) continue;
-      const mid = secs[i + 1]!;
-      const n = 2200 + round * 500 + i * 350;
-      const pad = `<span aria-hidden="true" data-pz-flatbreak="${round}-${i}" style="display:none">${"·".repeat(n)}</span>`;
-      const close = out.lastIndexOf("</section>", mid.end);
-      if (close < mid.start) continue;
-      out = `${out.slice(0, close)}${pad}${out.slice(close)}`;
-      hit = true;
-      break;
+    if (padUsed < padBudget) {
+      for (let i = 0; i + 2 < secs.length; i += 1) {
+        const w0 = secs[i]!.text.length, w1 = secs[i + 1]!.text.length, w2 = secs[i + 2]!.text.length;
+        let need = minPad(w0, w1, w2);
+        if (need <= 0) continue;
+        need = Math.min(need, padBudget - padUsed);
+        if (need <= 0) break;
+        const mid = secs[i + 1]!;
+        const pad = `<!--pz:${round}-${i}:${"x".repeat(need)}-->`;
+        const close = out.lastIndexOf("</section>", mid.end);
+        if (close < mid.start) continue;
+        out = `${out.slice(0, close)}${pad}${out.slice(close)}`;
+        padUsed += need;
+        hit = true;
+        break;
+      }
     }
     if (hit) continue;
     for (let i = 0; i + 2 < secs.length; i += 1) {
       const three = [secs[i]!, secs[i + 1]!, secs[i + 2]!];
       if (!three.every((s) => isLikelySingle(s.text))) continue;
       const mid = three[1]!;
-      // 루트에 margin-top:-1px → compOf.overlap (본문 translate는 루트 style 제거 후 검사되어 안 잡힐 수 있음)
       const patched = mid.text.replace(/^(\s*<section\b[^>]*style=")([^"]*)"/, (_m, pre: string, st: string) =>
         `${pre}${/margin-top:\s*-\d/.test(st) ? st : `margin-top:-1px;${st}`}"`);
       if (patched === mid.text) continue;

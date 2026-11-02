@@ -145,11 +145,10 @@ export function heroStackCssV5(scope: string, id: ArchetypeId, ink: string): str
       out.push(rule(`${photo}:not([data-pz-hs="frame"])`, "border-radius:20px;overflow:hidden;box-shadow:0 12px 28px rgba(10,10,10,0.16)"));
       break;
     case "split":
-      // 흰 바탕 + 사진 좌 / 정보 우(750+). 좁은 폭은 위·아래로 접히되 면은 흰색 유지
+      // 흰 바탕 + 사진 좌 / 정보 우. flex-wrap + min 280px로 좁은 폭은 자연 접힘(@media 없이 export 크기·live/export 선언 비교 안전)
       out.push(rule(`${scope} [data-hero-v2="D"]:not([data-pz-hs="frame"])`, "background:#FFFFFF;display:flex;flex-wrap:wrap;align-items:stretch"));
-      out.push(rule(`${scope} [data-hero-v2="D"]>[data-hero-photo]:not([data-pz-hs="frame"])`, "border-radius:0;width:48%;max-width:48%;flex:0 0 48%;aspect-ratio:1/1;max-height:none;background:#F3F1EC"));
-      out.push(rule(`${scope} [data-hero-v2="D"]>div:not([data-hero-photo]):not([data-pz-hs="frame"])`, "flex:1 1 48%;width:52%;max-width:52%;box-sizing:border-box;background:#FFFFFF;padding:28px 22px"));
-      out.push(`@media (max-width:520px){${rule(`${scope} [data-hero-v2="D"]>[data-hero-photo]:not([data-pz-hs="frame"])`, "width:100%;max-width:100%;flex:1 1 100%")}${rule(`${scope} [data-hero-v2="D"]>div:not([data-hero-photo]):not([data-pz-hs="frame"])`, "width:100%;max-width:100%;flex:1 1 100%")}}`);
+      out.push(rule(`${scope} [data-hero-v2="D"]>[data-hero-photo]:not([data-pz-hs="frame"])`, "border-radius:0;flex:1 1 280px;width:48%;max-width:100%;aspect-ratio:1/1;max-height:none;background:#F3F1EC"));
+      out.push(rule(`${scope} [data-hero-v2="D"]>div:not([data-hero-photo]):not([data-pz-hs="frame"])`, "flex:1 1 280px;width:52%;max-width:100%;box-sizing:border-box;background:#FFFFFF;padding:28px 22px"));
       break;
     case "fullbleed":
       out.push(rule(`${scope} [data-hero-v2="A"]:not([data-pz-hs="frame"])`, "border-radius:0"));

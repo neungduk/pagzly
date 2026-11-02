@@ -2343,16 +2343,7 @@ export function buildDetailPageHtml(opts: {
       const marked1 = botPx ? marked0.replace(/^(\s*)<section/, `$1<section data-pz-bot="${botPx}"`) : marked0;
       // 465차 V5 — 일반 섹션 래퍼 표식(박자.강도): 아키타입 여백 척도 CSS가 읽는다. 꺼짐이면 표식 없음
       const axMark = displayRes.v5 && visibleSections.length === displayRes.sections.length ? displayRes.v5.marks[i] : undefined;
-      let marked = axMark ? marked1.replace(/^(\s*)<section/, `$1<section data-pz-ax="${axMark}"`) : marked1;
-      // 472: 일반 섹션도 마크업 길이·구도 시그니처를 인덱스로 변주(평탄·단일 3연속 완화). 1px translate는 눈에 안 띄고, 홀수 칸만 적용해 3연속 단일만 끊는다
-      if (axMark) {
-        const slot = i % 7;
-        const genPad = `<span aria-hidden="true" data-pz-lenpad="g${slot}" style="display:none">${"·".repeat(120 + slot * 1400)}</span>`;
-        marked = marked.replace(/<\/section>\s*$/, `${genPad}</section>`);
-        if (i % 2 === 1) {
-          marked = marked.replace(/^(\s*<section\b[^>]*style=")([^"]*)"/, (_m, pre: string, st: string) => `${pre}${/transform:/.test(st) ? st : `transform:translateX(1px);${st}`}"`);
-        }
-      }
+      const marked = axMark ? marked1.replace(/^(\s*)<section/, `$1<section data-pz-ax="${axMark}"`) : marked1;
       bodyParts.push(DESIGN_V3_COLOR_ENABLED && dividerStyleFor(opts.category) ? marked.replace(/^(\s*)<section/, `$1<section data-pz-i="${i}"`) : marked);
       lastRenderedSection = section;
     }

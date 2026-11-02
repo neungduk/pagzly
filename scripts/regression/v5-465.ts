@@ -276,7 +276,8 @@ export async function run(): Promise<string[]> {
 
     // ── ⑪ 같은 토큰 함수: 라이브·export CSS 선언이 같다 ──────────────────────────────
     for (const arch of ARCHETYPE_IDS) {
-      const decl = (css: string) => [...css.matchAll(/\{([^}]*)\}/g)].map((m) => m[1]).join("|");
+      // 472: @media 안의 중첩 {}는 선택자(scope)까지 잡혀 live/export가 다르게 보이므로 @media 블록은 빼고 비교
+      const decl = (css: string) => [...css.replace(/@media[^{]*\{[\s\S]*?\}\s*\}/g, "").matchAll(/\{([^}]*)\}/g)].map((m) => m[1]).join("|");
       if (decl(archetypeCssV5("[x]", "live", ARCHETYPES[arch], "#1B1B18")) !== decl(archetypeCssV5(".y", "export", ARCHETYPES[arch], "#1B1B18"))) f.push(`${arch}: 라이브/export 래퍼 CSS 선언이 다름`);
       const css = archetypeCssV5(".y", "export", ARCHETYPES[arch], "#1B1B18");
       for (const k of STRICT_FORBIDDEN) if (css.includes(k)) f.push(`${arch}: 래퍼 CSS 금지 패턴 ${k}`);

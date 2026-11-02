@@ -36,7 +36,7 @@ export async function run(): Promise<string[]> {
   }
   {
     const pa = fs.readFileSync("lib/page-archetype-v5.ts", "utf8");
-    if (!/rules\.push\(heroStackCssV5\(scope, t\.id, ink\)\)/.test(pa)) f.push("heroStackCssV5가 archetypeCssV5(V5 전용) 밖에서 호출됨");
+    if (!/rules\.push\(heroStackCssV5\(scope, t\.id, (?:ink|stackInk)\)\)/.test(pa)) f.push("heroStackCssV5가 archetypeCssV5(V5 전용) 밖에서 호출됨");
   }
   // ── D: 히어로 변형 하한(E → D)
   if (pickHeroV5(["E", "D"], { hasPhoto: true, kind: "product", confidence: 0.9 }, "E") !== "D") f.push("E 히어로가 사진이 있는데 대체되지 않음");
