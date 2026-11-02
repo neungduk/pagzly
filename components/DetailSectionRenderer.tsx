@@ -2,6 +2,8 @@ import { Fragment, useEffect, useRef, type CSSProperties, type ReactNode } from 
 import { isLongStatValue, isLongUnit, personaClampLines } from "@/lib/robust-462";
 import { ARCHETYPES, archetypeCssV5, type ArchetypeId } from "@/lib/page-archetype-v5";
 import { checklistV5Mode, checklistV5LiveHints } from "@/lib/checklist-layout-v5";
+import { highlightFamilyMode, highlightFamilyInnerHtml } from "@/lib/highlight-family-v5";
+import { esc } from "@/lib/type-treatments";
 import { infoCssV5 } from "@/lib/info-v5";
 import StickyBuyBar from "@/components/StickyBuyBar";
 import { COMPOSITION_V2_ENABLED } from "@/lib/detail-story-order";
@@ -3952,11 +3954,13 @@ function renderSection(
             : DESIGN_V4_UP1_ENABLED
             ? "max-w-5xl grid-cols-2" // 462차 UP1 — 카드 4장은 넓은 폭에서도 2×2(4열이면 칸당 글 폭이 120px 안팎으로 좁아진다)
             : "max-w-5xl grid-cols-2 @min-[640px]/pz:grid-cols-4";
+      const hlMode = designV5On() && v5Id && !isTrustEvidence ? highlightFamilyMode(v5Id) : null;
       return (
         <section
           key={`highlight_box-${index}`}
           className={`relative overflow-hidden ${getCategoryRhythm(category).generousPadClass}`}
           style={textSectionStyle(theme, boxPattern, category)}
+          data-pz-hl={hlMode ?? undefined}
           {...(isTrustEvidence ? {} : infoData(layout, "points"))}
         >
           {!boldBlock ? <SectionBackdropAccent theme={theme} /> : null}
@@ -3992,6 +3996,28 @@ function renderSection(
               <img onError={hideImgOnError} src={productThumbs.highlight} alt="" aria-hidden className="block h-full w-full object-cover" />
             </div>
           ) : null}
+          {hlMode ? (
+            <div
+              className="relative mx-auto"
+              dangerouslySetInnerHTML={{
+                __html: highlightFamilyInnerHtml(
+                  hlMode,
+                  cards.map((card, cardIndex) => {
+                    const titleColor = boldBlock ? BRAND.paper : undefined;
+                    const bodyColor = boldBlock ? hexToRgba(BRAND.paper, 0.82) : hexToRgba(BRAND.ink, 0.68);
+                    return {
+                      em: cardIndex === centerIdx,
+                      titleHtml: `<p style="margin:0 0 8px;font-weight:700;line-height:1.35;letter-spacing:-0.02em;overflow-wrap:anywhere${titleColor ? `;color:${titleColor}` : ""}">${esc(card.title)}</p>`,
+                      bodyHtml:
+                        card.body && !isRedundantCardBody(card.title, card.body)
+                          ? `<p style="margin:0;font-size:14px;line-height:1.625;color:${bodyColor};overflow-wrap:anywhere">${esc(card.body)}</p>`
+                          : "",
+                    };
+                  }),
+                ),
+              }}
+            />
+          ) : (
           <div className={`relative mx-auto ${isTrustEvidence ? "mt-0" : DESIGN_V4_ENABLED ? "mt-12" : "mt-10"} grid gap-4 ${gridCols}`} {...(isTrustEvidence ? {} : ipData(layout, "pgrid"))}>
             {cards.map((card, cardIndex) => {
               const emphasized = cardIndex === centerIdx;
@@ -4151,6 +4177,7 @@ function renderSection(
               );
             })}
           </div>
+          )}
         </section>
       );
     }

@@ -370,6 +370,7 @@ export function archetypeCssV5(scope: string, mode: "live" | "export", t: Archet
   rules.push(typeSystemCssV5(scope, t.id));
   rules.push(photoComposeCssV5(scope, t.id));
   rules.push(spacingCssV5(scope, t.id));
+  // 475 A: highlight/image_text 변형은 DOM·인라인(표식 data-pz-hl/it). CSS 추가는 export 140% 여유 없어 보류(F에서 다이어트 후)
   rules.push(noPhotoCssV5(scope, ink));
   return rules.join("");
 }

@@ -2,6 +2,8 @@ import type { CategoryTheme } from "@/lib/category-theme";
 import { isLongStatValue, isLongUnit, personaClampLines } from "@/lib/robust-462";
 import { ARCHETYPES, archetypeCssV5, type ArchetypeId } from "@/lib/page-archetype-v5";
 import { checklistV5Mode, checklistV5ItemsInnerHtml } from "@/lib/checklist-layout-v5";
+import { highlightFamilyMode, highlightFamilyInnerHtml } from "@/lib/highlight-family-v5";
+import { familyKindOf, familyModeAttr } from "@/lib/section-family-v5";
 import { infoCssV5 } from "@/lib/info-v5";
 import { rhythmBreakV5 } from "@/lib/rhythm-break-v5";
 import { renderCanvasSectionHtml } from "@/lib/canvas-section-export-html";
@@ -952,6 +954,23 @@ function sectionHtml(
         FLAT_SECTION_SURFACES && productThumbs?.highlight
           ? `<div data-highlight-product style="position:relative;margin:${hp.marginTopPx}px auto 0;width:${hp.px}px;height:${hp.px}px;border-radius:9999px;overflow:hidden;box-shadow:0 0 0 ${hp.ringPx}px ${section.boldBlock ? hexToRgba(BRAND.paper, 0.28) : hexToRgba(solidAccentOnPaper(theme), 0.3)}"><img src="${esc(productThumbs.highlight)}" alt="" aria-hidden="true" loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover"/></div>`
           : "";
+      // 475 A — V5: 아키타입별 highlight 레이아웃(스크롤/스택/bignum/timeline/table/rows/bento/grid)
+      if (designV5On() && v5Id) {
+        const mode = highlightFamilyMode(v5Id);
+        const bodyColor = section.boldBlock ? hexToRgba(BRAND.paper, 0.82) : hexToRgba(BRAND.ink, 0.68);
+        const titleColor = section.boldBlock ? BRAND.paper : fg;
+        const cells = cards.map((card, i) => ({
+          em: i === center,
+          titleHtml: `<p style="margin:0 0 8px;font-family:${DETAIL_FONT_STACK.heading};font-size:16px;font-weight:700;line-height:1.35;letter-spacing:-0.02em;color:${titleColor};overflow-wrap:anywhere">${esc(card.title)}</p>`,
+          bodyHtml: isRedundantCardBody(card.title, card.body)
+            ? ""
+            : `<p style="margin:0;font-size:${FONT_SIZE.bodySm};line-height:${DESIGN_V4_ENABLED ? LINE_HEIGHT_V4.relaxed : "1.625"};color:${bodyColor};overflow-wrap:anywhere">${esc(card.body)}</p>`,
+        }));
+        return `<section${sectionIdAttr}${infoAttr(layout, "points")} data-pz-hl="${mode}" style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
+        ${headerHtml}
+        ${productPhotoHtml}
+        ${highlightFamilyInnerHtml(mode, cells)}</section>`;
+      }
       return `<section${sectionIdAttr}${infoAttr(layout, "points")} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${headerHtml}
         ${productPhotoHtml}
@@ -2371,7 +2390,16 @@ export function buildDetailPageHtml(opts: {
       const marked1 = botPx ? marked0.replace(/^(\s*)<section/, `$1<section data-pz-bot="${botPx}"`) : marked0;
       // 465차 V5 — 일반 섹션 래퍼 표식(박자.강도): 아키타입 여백 척도 CSS가 읽는다. 꺼짐이면 표식 없음
       const axMark = displayRes.v5 && visibleSections.length === displayRes.sections.length ? displayRes.v5.marks[i] : undefined;
-      const marked = axMark ? marked1.replace(/^(\s*)<section/, `$1<section data-pz-ax="${axMark}"`) : marked1;
+      let marked = axMark ? marked1.replace(/^(\s*)<section/, `$1<section data-pz-ax="${axMark}"`) : marked1;
+      // 475 A — 일반 섹션 패밀리 표식(짧은 layout). highlight는 data-pz-hl로 충분
+      if (displayRes.v5) {
+        const fk = familyKindOf(section.type);
+        if (fk === "image_text") {
+          marked = marked.replace(/^(\s*)<section/, `$1<section data-pz-it="${familyModeAttr("image_text", displayRes.v5.id)}"`);
+        } else if (fk && fk !== "highlight_box") {
+          marked = marked.replace(/^(\s*)<section/, `$1<section data-pz-sf="${fk[0]}${familyModeAttr(fk, displayRes.v5.id)}"`);
+        }
+      }
       bodyParts.push(DESIGN_V3_COLOR_ENABLED && dividerStyleFor(opts.category) ? marked.replace(/^(\s*)<section/, `$1<section data-pz-i="${i}"`) : marked);
       lastRenderedSection = section;
     }
