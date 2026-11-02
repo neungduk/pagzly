@@ -21,6 +21,10 @@ import { fitTitlePx } from "@/lib/page-archetype-v5";
 import { SCENE_MIN_PX } from "@/lib/layout-variants";
 import { BODY_SIG } from "@/lib/body-sig-v5";
 import { PHOTO_COMPOSE_V5, composeBleedScrim, composeCollage, composeCrop, composeHang, composeMask, type MaskShape } from "@/lib/photo-compose-v5";
+import { PHOTO_BLOCK_V5, renderPhotoBlock } from "@/lib/photo-block-v5";
+import { buildSpecDiagramV5 } from "@/lib/spec-diagram-v5";
+import { zoomBubbleHtml } from "@/lib/zoom-bubble-v5";
+import { countVisualExtras } from "@/lib/block-chrome-v5";
 
 /** 320폭 가용 폭(px) — page-archetype-v5.FIT_AVAIL_PX와 같은 값 */
 const FIT_AVAIL = 272;
@@ -231,6 +235,13 @@ function specV5(s: ImpactSection, b: V4Block, p: V4Palette): string | null {
   const items = b.items ?? [];
   const on = p.onFace[faceRole(b)];
   const head = headingHtml(s.text, b, p, "color");
+  // 477 D — 구조화 치수 있으면 도식(윤곽+치수선), 없으면 아래 표/카드 폴백
+  if (items.length >= 2 && (b.variant === "panel" || b.variant === "line" || b.variant === "grid" || b.variant === "tags" || b.variant === "big3")) {
+    const rows = items.map((it) => ({ label: it.title, value: it.body ?? "" }));
+    const hint = [s.text, ...items.map((it) => it.title)].join(" ");
+    const diag = buildSpecDiagramV5(hint, rows, p.ink);
+    if (diag) return wrap(b, p, diag, { head });
+  }
   if (b.variant === "panel") {
     const rows = items.map((it, i) => `<div style="display:flex;align-items:stretch;${i ? `border-top:1px solid ${hexToRgba(p.ink, 0.14)}` : ""}"><span style="flex:0 0 34%;min-width:0;box-sizing:border-box;padding:12px 12px;background:${p.tints[0]};overflow-wrap:anywhere;${typeCss("small", p.ink, "font-weight:700")}">${esc(it.title)}</span><span style="flex:1 1 0%;min-width:0;box-sizing:border-box;padding:12px 12px;background:#FFFFFF;overflow-wrap:anywhere;${typeCss("body", p.ink, "white-space:pre-line")}">${esc(it.body ?? "")}</span></div>`).join("");
     return wrap(b, p, `<div style="overflow:hidden;border-radius:12px;border:${hairline(p.ink)};border-top:4px solid ${p.deep}">${rows}</div>`, { head });
@@ -252,8 +263,35 @@ function phototextV5(s: ImpactSection, b: V4Block, p: V4Palette, alt: string, t:
   if (!it?.img) return null;
   const on = p.onFace[faceRole(b)];
   const title = `<p style="margin:0;overflow-wrap:anywhere;${typeCss("title", p.ink, "font-size:22px")}">${headingHtml(it.title, b, p)}</p>`;
+  const titleLight = `<p style="margin:0;overflow-wrap:anywhere;font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.3;color:#fff;word-break:keep-all">${headingHtml(it.title, b, p)}</p>`;
+  const bodyLight = it.body
+    ? `<p style="margin:10px 0 0;font-size:15px;line-height:1.65;color:rgba(255,255,255,.88);white-space:pre-line;word-break:keep-all;overflow-wrap:anywhere">${esc(it.body)}</p>`
+    : "";
   const text = (center = false) => `<div${center ? ' style="text-align:center"' : ""}>${title}${bodyP(it.body, p, on.sub, 10)}</div>`;
   const frame = t.frames[0] ?? "rect";
+  // 477 E — zoom bubble 다중(callout 아닌 짝수 no + dframe/polaroid 일부)
+  if (b.variant !== "callout" && b.variant !== "scene" && (b.variant === "dframe" || (b.no % 5 === 2 && b.variant !== "bleed"))) {
+    const zb = zoomBubbleHtml(it.img, alt, title, bodyP(it.body, p, on.sub, 10), p.ink, p.tints[1], 2 + (b.no % 3));
+    if (zb) return wrap(b, p, zb, { bleed: true, pad: "28px 24px 48px" });
+  }
+  // 477 C — 사진 지배형 공용 부품(라벨+제목+보조만, numberMark/카드 생략 → 요소 수↓)
+  if (b.variant !== "callout" && b.variant !== "scene" && (b.variant === "bleed" || b.variant === "split" || b.variant === "stack" || b.no % 3 === 0)) {
+    const pb = PHOTO_BLOCK_V5[t.id];
+    const imgs = (b.items ?? []).map((x) => x.img).filter((x): x is { url: string; pos?: string } => !!x?.url);
+    const pair = imgs.length >= 2 ? imgs : [it.img, { url: it.img.url, pos: "50% 70%" }];
+    const useLight = pb === "band" || pb === "scrim";
+    const inner = renderPhotoBlock(
+      pb,
+      pair,
+      alt,
+      useLight ? titleLight : title,
+      useLight ? bodyLight : bodyP(it.body, p, on.sub, 10),
+      p,
+      t.id,
+      b.no % 2 === 0,
+    );
+    if (inner && countVisualExtras(inner) <= 5) return wrap(b, p, inner, { bleed: true, pad: "28px 24px 48px" });
+  }
   // 474: 아키타입 주 사진 구도. scene·callout은 기존 장면/주석 레이어 유지(회귀 장면 수)
   const pc = PHOTO_COMPOSE_V5[t.id];
   if (b.variant !== "callout" && b.variant !== "scene" && (b.no % 3 === 1 || b.variant === "bleed" || b.variant === "stack")) {
