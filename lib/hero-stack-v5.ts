@@ -127,126 +127,128 @@ export function heroStackCssV5(scope: string, id: ArchetypeId, ink: string): str
   const out: string[] = [];
   // 시각 시그니처 표식 — CSS 변수에는 !important를 붙이지 않음(지표가 값을 그대로 읽음)
   out.push(`${scope} [data-pz-vsig="${id}"]{--pz-vsig-ta:${r.titleAlign};--pz-vsig-tp:${r.titlePos};--pz-vsig-fr:${r.frame};--pz-vsig-pa:${r.photoArea};--pz-vsig-pr:${r.priceShow};--pz-vsig-gl:${r.glance}}`);
+  // hs 게이트는 회귀(hero-471)가 data-pz-hs="…" 따옴표 형을 검사 — 유지. 그 외 선택자·#fff 압축.
+  const hs = (k: string) => `:not([data-pz-hs="${k}"])`;
   // ── 히어로 사진 비율(스플릿 D)
-  out.push(rule(`${scope} [data-hero-v2="D"]:not([data-pz-hs="ratio"])>[data-hero-photo]`, `aspect-ratio:${r.ratio}`));
+  out.push(rule(`${scope} [data-hero-v2="D"]${hs("ratio")}>[data-hero-photo]`, `aspect-ratio:${r.ratio}`));
   // ── 틀 모양(아키타입별 사진 감싸개)
   const photo = `${scope} [data-hero-v2] [data-hero-photo]`;
   switch (r.frame) {
     case "arch":
-      out.push(rule(`${photo}:not([data-pz-hs="frame"])`, "border-radius:50% 50% 18% 18% / 62% 62% 18% 18%;overflow:hidden;box-shadow:0 18px 40px rgba(10,10,10,0.18)"));
+      out.push(rule(`${photo}${hs("frame")}`, "border-radius:50% 50% 18% 18%/62% 62% 18% 18%;overflow:hidden;box-shadow:0 18px 40px rgba(10,10,10,.18)"));
       break;
     case "tilt":
-      out.push(rule(`${photo}:not([data-pz-hs="frame"])`, `transform:rotate(-2.8deg);border:4px solid ${ink};border-radius:18px;box-shadow:8px 8px 0 ${ink};overflow:hidden`));
+      out.push(rule(`${photo}${hs("frame")}`, `transform:rotate(-2.8deg);border:4px solid ${ink};border-radius:18px;box-shadow:8px 8px 0 ${ink};overflow:hidden`));
       break;
     case "circle":
-      out.push(rule(`${photo}:not([data-pz-hs="frame"])`, "border-radius:50%;overflow:hidden;aspect-ratio:1/1;max-width:70%;margin-left:auto;margin-right:auto"));
+      out.push(rule(`${photo}${hs("frame")}`, "border-radius:50%;overflow:hidden;aspect-ratio:1/1;max-width:70%;margin:0 auto"));
       break;
     case "card":
-      out.push(rule(`${photo}:not([data-pz-hs="frame"])`, "border-radius:20px;overflow:hidden;box-shadow:0 12px 28px rgba(10,10,10,0.16)"));
+      out.push(rule(`${photo}${hs("frame")}`, "border-radius:20px;overflow:hidden;box-shadow:0 12px 28px rgba(10,10,10,.16)"));
       break;
     case "split": {
       // 흰 바탕 + 사진 좌 / 정보 우(좁은 폭 flex-wrap)
       const D = `${scope} [data-hero-v2="D"]`;
-      out.push(rule(`${D}:not([data-pz-hs="frame"])`, "background:#fff;display:flex;flex-wrap:wrap;align-items:stretch"));
-      out.push(rule(`${D}>[data-hero-photo]:not([data-pz-hs="frame"])`, "border-radius:0;flex:1 1 280px;width:48%;max-width:100%;aspect-ratio:1/1;max-height:none;background:#F3F1EC"));
-      out.push(rule(`${D}>div:not([data-hero-photo]):not([data-pz-hs="frame"])`, "flex:1 1 280px;width:52%;max-width:100%;box-sizing:border-box;background:#fff;padding:28px 22px"));
+      out.push(rule(`${D}${hs("frame")}`, "background:#fff;display:flex;flex-wrap:wrap;align-items:stretch"));
+      out.push(rule(`${D}>[data-hero-photo]${hs("frame")}`, "border-radius:0;flex:1 1 280px;width:48%;max-width:100%;max-height:none;background:#F3F1EC"));
+      out.push(rule(`${D}>div:not([data-hero-photo])${hs("frame")}`, "flex:1 1 280px;width:52%;max-width:100%;box-sizing:border-box;background:#fff;padding:28px 22px"));
       break;
     }
     case "fullbleed":
-      out.push(rule(`${scope} [data-hero-v2="A"]:not([data-pz-hs="frame"])`, "border-radius:0"));
-      out.push(rule(`${scope} [data-hero-v2="A"] [data-hero-scrim]:not([data-pz-hs="frame"])`, "height:100%;background:linear-gradient(0deg,rgba(10,10,10,0.82) 0%,rgba(10,10,10,0.45) 42%,rgba(10,10,10,0.2) 100%)"));
+      out.push(rule(`${scope} [data-hero-v2="A"]${hs("frame")}`, "border-radius:0"));
+      out.push(rule(`${scope} [data-hero-v2="A"] [data-hero-scrim]${hs("frame")}`, "height:100%;background:linear-gradient(0deg,rgba(10,10,10,.82) 0%,rgba(10,10,10,.45) 42%,rgba(10,10,10,.2))"));
       break;
     default:
       break;
   }
   // impact 오버레이: 473 — 고정 56px+말줄임 금지. 마크업 fit 크기를 존중(최소만 보강)
   if (r.titlePos === "overlay") {
-    out.push(rule(`${scope} [data-hero-v2="A"] [data-hero-a-text] h1:not([data-pz-hs="title"])`, "line-height:1.18;font-weight:900;overflow-wrap:anywhere;word-break:keep-all"));
-    out.push(rule(`${scope} [data-hero-v2="A"] [data-hero-a-text] [data-hero-hook]:not([data-pz-hs="title"])`, "font-weight:800;overflow-wrap:anywhere;word-break:keep-all"));
+    out.push(rule(`${scope} [data-hero-v2="A"] [data-hero-a-text] h1${hs("title")}`, "line-height:1.18;font-weight:900;overflow-wrap:anywhere;word-break:keep-all"));
+    out.push(rule(`${scope} [data-hero-v2="A"] [data-hero-a-text] [data-hero-hook]${hs("title")}`, "font-weight:800;overflow-wrap:anywhere;word-break:keep-all"));
   }
   // ── 가격 줄
-  const S = `${scope} [data-pz-strip]:not([data-pz-hs="strip"])`;
+  const S = `${scope} [data-pz-strip]${hs("strip")}`;
   const P = `${S} [data-pz-strip-price]`; const N = `${S} [data-pz-strip-name]`; const C = `${S} [data-pz-strip-chip]`;
   switch (r.strip) {
     case "chip":
-      out.push(rule(S, `margin:-54px 0 0 20px;width:fit-content;max-width:calc(100% - 40px);border-radius:999px;padding:8px 16px;background:#FFFFFF;border:1px solid ${rgba(ink, 0.14)};box-shadow:0 8px 24px ${rgba(ink, 0.16)}`));
+      out.push(rule(S, `margin:-54px 0 0 20px;width:fit-content;max-width:calc(100% - 40px);border-radius:999px;padding:8px 16px;background:#fff;border:1px solid ${rgba(ink, 0.14)};box-shadow:0 8px 24px ${rgba(ink, 0.16)}`));
       out.push(rule(P, "font-size:20px;font-weight:900"));
       break;
     case "bar":
-      out.push(rule(S, `margin-top:0;border-radius:0;border-top:2px solid ${ink};border-bottom:2px solid ${ink};box-shadow:none;background:#FFFFFF`));
+      out.push(rule(S, `margin-top:0;border-radius:0;border-top:2px solid ${ink};border-bottom:2px solid ${ink};box-shadow:none;background:#fff`));
       out.push(rule(P, "font-size:26px;font-weight:900"));
       break;
     case "float":
-      out.push(rule(S, `margin:-36px 20px 0;border-radius:999px;padding:16px 22px;background:#FFFFFF;box-shadow:0 16px 36px ${rgba(ink, 0.18)}`));
+      out.push(rule(S, `margin:-36px 20px 0;border-radius:999px;padding:16px 22px;background:#fff;box-shadow:0 16px 36px ${rgba(ink, 0.18)}`));
       out.push(rule(P, "font-size:22px;font-weight:900"));
       break;
     case "dark":
       out.push(rule(S, `margin-top:0;border-radius:0;background:${ink};box-shadow:none`));
-      out.push(rule(P, "font-size:40px;font-weight:900;color:#FFFFFF"));
-      out.push(rule(N, "color:rgba(255,255,255,0.88)"));
-      out.push(rule(C, "background:rgba(255,255,255,0.18);color:#FFFFFF"));
+      out.push(rule(P, "font-size:40px;font-weight:900;color:#fff"));
+      out.push(rule(N, "color:rgba(255,255,255,.88)"));
+      out.push(rule(C, "background:rgba(255,255,255,.18);color:#fff"));
       break;
     case "badge":
-      out.push(rule(S, `margin:-28px 18px 0;transform:rotate(-2deg);border:3px solid ${ink};border-radius:14px;background:#FFFFFF;box-shadow:6px 6px 0 ${ink}`));
+      out.push(rule(S, `margin:-28px 18px 0;transform:rotate(-2deg);border:3px solid ${ink};border-radius:14px;background:#fff;box-shadow:6px 6px 0 ${ink}`));
       out.push(rule(P, "font-size:28px;font-weight:900"));
       break;
     case "hair":
-      out.push(rule(S, `justify-content:center;text-align:center;border-radius:0;background:transparent;box-shadow:none;border-top:1px solid ${rgba(ink, 0.25)};border-bottom:1px solid ${rgba(ink, 0.25)};letter-spacing:0.06em`));
+      out.push(rule(S, `justify-content:center;text-align:center;border-radius:0;background:transparent;box-shadow:none;border-top:1px solid ${rgba(ink, 0.25)};border-bottom:1px solid ${rgba(ink, 0.25)};letter-spacing:.06em`));
       out.push(rule(P, "font-size:17px;font-weight:600"));
       break;
     case "grid":
-      out.push(rule(S, `display:grid;grid-template-columns:auto 1fr;gap:0;border-radius:0;box-shadow:none;background:#FFFFFF;border:1px solid ${ink}`));
+      out.push(rule(S, `display:grid;grid-template-columns:auto 1fr;gap:0;border-radius:0;box-shadow:none;background:#fff;border:1px solid ${ink}`));
       out.push(rule(P, `font-size:30px;font-weight:900;padding-right:14px;margin-right:14px;border-right:1px solid ${ink}`));
       break;
     default:
       out.push(rule(S, `margin:0 20px;border-radius:0;background:transparent;box-shadow:none;border-left:4px solid ${ink};padding-left:16px`));
       out.push(rule(P, "font-size:22px;font-weight:800"));
   }
-  // ── 한눈에 보기 (473: 2=1×2, 3=1×3, 4=2×2)
-  const G = `${scope} [data-pz-glance]:not([data-pz-hs="glance"])`;
-  const GG = `${G} [data-pz-glance-grid]`;
-  out.push(rule(GG, "display:grid;gap:12px;width:100%"));
-  out.push(`${G}[data-pz-glance="2"] [data-pz-glance-grid],${G}[data-pz-glance="4"] [data-pz-glance-grid]{grid-template-columns:1fr 1fr${IMP}}`);
-  out.push(`${G}[data-pz-glance="3"] [data-pz-glance-grid],${G}[data-pz-glance="5"] [data-pz-glance-grid],${G}[data-pz-glance="6"] [data-pz-glance-grid]{grid-template-columns:1fr 1fr 1fr${IMP}}`);
-  out.push(rule(`${GG}>*`, "min-width:0"));
+  // ── 한눈에 보기 (473: 2=1×2, 3=1×3, 4=2×2). 열 규칙은 짧은 선택자(게이트는 장식 규칙에만) — 474 다이어트
+  const g = `${scope} [data-pz-glance-grid]`;
+  const G = `${scope} [data-pz-glance]${hs("glance")}`;
+  out.push(rule(g, "display:grid;gap:12px;width:100%"));
+  out.push(`${scope} [data-pz-glance="2"] [data-pz-glance-grid],${scope} [data-pz-glance="4"] [data-pz-glance-grid]{grid-template-columns:1fr 1fr${IMP}}`);
+  out.push(`${scope} [data-pz-glance="3"] [data-pz-glance-grid],${scope} [data-pz-glance="5"] [data-pz-glance-grid],${scope} [data-pz-glance="6"] [data-pz-glance-grid]{grid-template-columns:1fr 1fr 1fr${IMP}}`);
+  out.push(rule(`${g}>*`, "min-width:0"));
   switch (r.glance) {
     case "list":
-      out.push(rule(`${GG}>*`, `padding:10px 12px;border-left:3px solid ${ink};background:transparent`));
+      out.push(rule(`${G} [data-pz-glance-grid]>*`, `padding:10px 12px;border-left:3px solid ${ink};background:transparent`));
       break;
     case "grid2":
-      out.push(rule(`${GG}>*`, `padding:10px 12px;border:1px solid ${rgba(ink, 0.2)};border-radius:8px;background:#fff`));
+      out.push(rule(`${G} [data-pz-glance-grid]>*`, `padding:10px 12px;border:1px solid ${rgba(ink, 0.2)};border-radius:8px;background:#fff`));
       break;
     case "pills":
-      out.push(rule(GG, "justify-items:center"));
-      out.push(rule(`${GG}>*`, `padding:8px 14px;border-radius:999px;background:#FFFFFF;border:1px solid ${rgba(ink, 0.14)};text-align:center`));
+      out.push(rule(`${G} [data-pz-glance-grid]`, "justify-items:center"));
+      out.push(rule(`${G} [data-pz-glance-grid]>*`, `padding:8px 14px;border-radius:999px;background:#fff;border:1px solid ${rgba(ink, 0.14)};text-align:center`));
       break;
     case "scroll":
-      out.push(rule(GG, "display:flex;flex-wrap:nowrap;overflow-x:auto;gap:10px;scroll-snap-type:x mandatory;padding-bottom:6px;-webkit-overflow-scrolling:touch"));
-      out.push(rule(`${GG}>*`, "flex:0 0 auto;scroll-snap-align:start;min-width:42%"));
+      out.push(rule(`${G} [data-pz-glance-grid]`, "display:flex;flex-wrap:nowrap;overflow-x:auto;gap:10px;scroll-snap-type:x mandatory;padding-bottom:6px;-webkit-overflow-scrolling:touch"));
+      out.push(rule(`${G} [data-pz-glance-grid]>*`, "flex:0 0 auto;scroll-snap-align:start;min-width:42%"));
       break;
     case "cards":
-      out.push(rule(`${GG}>*`, `padding:14px;border-radius:16px;background:#FFFFFF;box-shadow:0 8px 20px ${rgba(ink, 0.12)}`));
+      out.push(rule(`${G} [data-pz-glance-grid]>*`, `padding:14px;border-radius:16px;background:#fff;box-shadow:0 8px 20px ${rgba(ink, 0.12)}`));
       break;
     case "bignum":
-      out.push(rule(`${GG}>*`, `padding:12px 10px;font-size:20px;font-weight:900;letter-spacing:-0.03em;border-bottom:2px solid ${ink}`));
+      out.push(rule(`${G} [data-pz-glance-grid]>*`, `padding:12px 10px;font-size:20px;font-weight:900;letter-spacing:-.03em;border-bottom:2px solid ${ink}`));
       break;
     case "airy":
-      out.push(rule(G, "padding-top:28px;padding-bottom:28px"));
-      out.push(rule(GG, "gap:20px 24px"));
+      out.push(rule(G, "padding:28px 0"));
+      out.push(rule(`${G} [data-pz-glance-grid]`, "gap:20px 24px"));
       break;
     default:
       out.push(rule(G, `border-left:4px solid ${ink}`));
   }
-  // ── 탭 칩
-  const A = `${scope} nav.pagzly-anchor-nav:not([data-pz-hs="nav"]) a`;
+  // ── 탭 칩 (hero-471: nav.pagzly-anchor-nav:not([data-pz-hs="nav"]) a{…min-height:44px)
+  const A = `${scope} nav.pagzly-anchor-nav${hs("nav")} a`;
   const base = "min-height:44px;display:inline-flex;align-items:center;padding:0 14px;white-space:nowrap";
   switch (r.nav) {
     case "underline": out.push(rule(A, `${base};border-radius:0;background:transparent;border:0;border-bottom:2px solid ${ink};font-weight:700`)); break;
-    case "box": out.push(rule(A, `${base};border-radius:0;background:#FFFFFF;border:2px solid ${ink}`)); break;
-    case "pill": out.push(rule(A, `${base};border-radius:999px;background:#FFFFFF;border:1px solid ${rgba(ink, 0.16)}`)); break;
-    case "dark": out.push(rule(A, `${base};border-radius:6px;background:${ink};border:0;color:#FFFFFF`)); break;
-    case "sticker": out.push(rule(A, `${base};border-radius:12px;background:#FFFFFF;border:2px solid ${ink};box-shadow:2px 2px 0 ${ink}`)); break;
-    case "spaced": out.push(rule(A, `${base};border-radius:0;background:transparent;border:0;letter-spacing:0.16em;font-size:12px`)); break;
+    case "box": out.push(rule(A, `${base};border-radius:0;background:#fff;border:2px solid ${ink}`)); break;
+    case "pill": out.push(rule(A, `${base};border-radius:999px;background:#fff;border:1px solid ${rgba(ink, 0.16)}`)); break;
+    case "dark": out.push(rule(A, `${base};border-radius:6px;background:${ink};border:0;color:#fff`)); break;
+    case "sticker": out.push(rule(A, `${base};border-radius:12px;background:#fff;border:2px solid ${ink};box-shadow:2px 2px 0 ${ink}`)); break;
+    case "spaced": out.push(rule(A, `${base};border-radius:0;background:transparent;border:0;letter-spacing:.16em;font-size:12px`)); break;
     case "tab": out.push(rule(A, `${base};border-radius:0;background:transparent;border:0;border-bottom:3px solid ${rgba(ink, 0.3)}`)); break;
     default: out.push(rule(A, `${base};border-radius:0;background:transparent;border:0;border-bottom:2px dotted ${ink}`));
   }

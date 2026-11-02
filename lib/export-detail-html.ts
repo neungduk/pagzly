@@ -197,6 +197,7 @@ import { designV2ClassicFashionCap, designV2Css, designV2On, designV2Typo, planB
 import { buildPriceStrip, priceStripHtml } from "@/lib/price-strip";
 import { impactAlt, impactHtml, impactPalette } from "@/lib/impact-templates";
 import { DESIGN_V3_FONTS_ENABLED, fontLinkHrefs, fontOrigin, fontPairCss, fontPreloadHrefs, pickFontPair } from "@/lib/font-pairs";
+import { typeSystemFontHrefs } from "@/lib/type-system-v5";
 import { DESIGN_V3_COLOR_ENABLED, extendThemeFor, paletteInfoCss } from "@/lib/palette-harmony";
 import { dividerCss, dividerStyleFor } from "@/lib/section-dividers";
 import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
@@ -2244,6 +2245,9 @@ export function buildDetailPageHtml(opts: {
   // 430차 — 디자인 V3 폰트(라이브와 같은 조합 선택·같은 CSS). 켜면 Google Fonts 링크 대신 같은 출처 /fonts/*.css
   const v3Pair = DESIGN_V3_FONTS_ENABLED ? pickFontPair({ category: opts.category, packHeadline: pack.headline ? { kind: pack.headline.kind, weight: pack.headline.weight } : null, productName: opts.productName, brandName: opts.brandName }) : null;
   const v3Links = v3Pair ? fontPreloadHrefs(fontOrigin()).map((h) => `<link rel="preload" as="font" type="font/woff2" href="${esc(h)}" crossorigin/>`).join("\n") + "\n" + fontLinkHrefs(v3Pair, fontOrigin()).map((h) => `<link rel="stylesheet" href="${esc(h)}"/>`).join("\n") : "";
+  const v5FontLinks = displayRes.v5
+    ? typeSystemFontHrefs(displayRes.v5.id, fontOrigin()).map((h) => `<link rel="stylesheet" href="${esc(h)}"/>`).join("\n")
+    : "";
   const v2TitleOnly = designV2ClassicFashionCap(opts.category, isClassicPack(pack), v2Layout.info);
   const v2Strip = designV2On(opts.category) ? buildPriceStrip(visibleSections, opts.productName, opts.claimFacts) : null;
   const v2CssText = designV2Css({ scope: ".pagzly-wrap", colors: infoColorsOf(opts.theme), level: v2Layout.info, category: opts.category, beautyInfo: Boolean(v2Layout.beautyInfo), sections: visibleSections, backdrops: opts.infoBackdrops });
@@ -2458,7 +2462,7 @@ export function buildDetailPageHtml(opts: {
 ${v3Pair ? v3Links : `<link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link rel="stylesheet" href="${DETAIL_GOOGLE_FONTS_URL}"/>`}
-${jsonLd}${DESIGN_V4_ENABLED ? `
+${v5FontLinks ? `${v5FontLinks}\n` : ""}${jsonLd}${DESIGN_V4_ENABLED ? `
 ${NO_PHOTO_EXPORT_SCRIPT}` : ""}
 <style>
   *{box-sizing:border-box}

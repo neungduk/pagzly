@@ -156,6 +156,7 @@ import { designV2ClassicFashionCap, designV2Css, designV2On, designV2Typo, planB
 import { buildPriceStrip } from "@/lib/price-strip";
 import { impactAlt, impactHtml, impactPalette } from "@/lib/impact-templates";
 import { DESIGN_V3_FONTS_ENABLED, fontLinkHrefs, fontPairCss, fontPreloadHrefs, pickFontPair } from "@/lib/font-pairs";
+import { typeSystemFontHrefs } from "@/lib/type-system-v5";
 import { DESIGN_V3_COLOR_ENABLED, extendThemeFor, paletteInfoCss } from "@/lib/palette-harmony";
 import { dividerCss } from "@/lib/section-dividers";
 import { SCENE_NOTICE, safeSceneUrl, type SceneImageMap } from "@/lib/scene-images";
@@ -6233,6 +6234,11 @@ export default function DetailSectionRenderer({
           <style>{fontPairCss("[data-pz-v3]", fontPair)}</style>
         </>
       ) : null}
+      {display.v5
+        ? typeSystemFontHrefs(display.v5.id).map((href) => (
+            <link key={`v5f-${href}`} rel="stylesheet" href={href} precedence="default" />
+          ))
+        : null}
       {sectionAnchors.length > 0 && !anchorNavAfterHero ? (
         <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} variant={packLayout.anchor} />
       ) : null}

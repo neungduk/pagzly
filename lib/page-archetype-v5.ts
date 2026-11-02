@@ -22,6 +22,7 @@ import type { FaceStrategy } from "@/lib/face-strategy-v5";
 import type { HeroV2Variant } from "@/lib/hero-spec";
 import { HERO_STACK, heroStackCssV5 } from "@/lib/hero-stack-v5";
 import { BODY_SIG, bodySigCssV5 } from "@/lib/body-sig-v5";
+import { typeSystemCssV5 } from "@/lib/type-system-v5";
 import { hueShift } from "@/lib/color-extract";
 
 export const ARCHETYPE_IDS = ["editorial", "catalog", "softlife", "impact", "techsheet", "narrative", "luxe", "pop"] as const;
@@ -333,26 +334,32 @@ const padForStrength = (t: ArchetypeTokens, s: number): number => (s >= 4 ? t.pa
  * `mode`: export는 `section[data-pz-ax]`, 라이브는 래퍼 `div[data-pz-ax] > section`. 이미 topPads/bottomPads가 정한 쪽(`data-pz-top/bot`)은 건드리지 않는다.
  */
 export function archetypeCssV5(scope: string, mode: "live" | "export", t: ArchetypeTokens, ink: string): string {
+  // 474: 같은 pad 강도는 콤마로 묶어 export 다이어트
   const sel = (s: number, extra = ""): string => (mode === "export" ? `${scope} section[data-pz-ax$=".${s}"]${extra}` : `${scope} [data-pz-ax$=".${s}"]${extra} > section`);
   const rules: string[] = [];
+  const padGroups: Array<{ ss: number[]; p: number }> = [];
   for (const s of AX_STRENGTHS) {
     const p = padForStrength(t, s);
-    rules.push(`${sel(s, ":not([data-pz-top])")}{padding-top:${p}px!important}`);
-    rules.push(`${sel(s, ":not([data-pz-bot])")}{padding-bottom:${p}px!important}`);
+    const g = padGroups.find((x) => x.p === p);
+    if (g) g.ss.push(s);
+    else padGroups.push({ ss: [s], p });
+  }
+  for (const g of padGroups) {
+    rules.push(`${g.ss.map((s) => sel(s, ":not([data-pz-top])")).join(",")}{padding-top:${g.p}px!important}`);
+    rules.push(`${g.ss.map((s) => sel(s, ":not([data-pz-bot])")).join(",")}{padding-bottom:${g.p}px!important}`);
   }
   if (t.decor === "rule-top" || t.decor === "hair-center" || t.decor === "corner-ticks") {
     const line = `border-top:1px solid ${rgba(ink, 0.3)}`;
-    for (const s of AX_STRENGTHS) rules.push(`${sel(s)}{${line}}`);
+    rules.push(`${AX_STRENGTHS.map((s) => sel(s)).join(",")}{${line}}`);
   }
   // 468차: 일반 섹션 래퍼 다이나믹 — 강도 4·5 섹션은 윗모서리를 둥글리고 위쪽으로 옅은 그림자(시트가 얹힌 느낌). 반경 0 성격은 가는 윗선만. 내용·구매 카드·고지(표식 없음)는 건드리지 않는다
   const sheetR = Math.round(24 * t.radius);
-  for (const s of [4, 5] as const) {
-    rules.push(`${sel(s)}{position:relative;z-index:1;${sheetR > 0 ? `border-radius:${sheetR}px ${sheetR}px 0 0;` : ""}box-shadow:0 -10px 20px -16px ${rgba(ink, 0.3)}}`);
-  }
+  rules.push(`${[4, 5].map((s) => sel(s)).join(",")}{position:relative;z-index:1;${sheetR > 0 ? `border-radius:${sheetR}px ${sheetR}px 0 0;` : ""}box-shadow:0 -10px 20px -16px ${rgba(ink, 0.3)}}`);
   // 472: 스택 잉크 = 상품 accent를 아키타입 hueShift로 비튼 액센트(아키타입 색은 보조)
   const stackInk = hueShift(ink, HERO_STACK[t.id].hueShift);
   rules.push(heroStackCssV5(scope, t.id, stackInk));
   rules.push(bodySigCssV5(scope, t.id));
+  rules.push(typeSystemCssV5(scope, t.id));
   rules.push(noPhotoCssV5(scope, ink));
   return rules.join("");
 }
@@ -365,8 +372,9 @@ export const NO_PHOTO_MAX_PX = 280;
  */
 export function noPhotoCssV5(scope: string, ink: string): string {
   const d = rgba(ink, 0.16);
-  const l = "rgba(255,255,255,0.22)";
-  return `${scope} [data-pz-np] [data-pz-callout]{display:none!important}${scope} [data-pz-np][data-pz-np]{max-height:${NO_PHOTO_MAX_PX}px!important;background-image:repeating-linear-gradient(135deg,${d} 0,${d} 2px,transparent 2px,transparent 7px,${l} 7px,${l} 9px,transparent 9px,transparent 14px)!important;box-shadow:inset 0 0 0 1px ${rgba(ink, 0.2)}!important}`;
+  const l = "rgba(255,255,255,.22)";
+  // 474: 선택자·알파 표기 압축(시각 동일). export 140% 여유용
+  return `${scope} [data-pz-np] [data-pz-callout]{display:none!important}${scope} [data-pz-np][data-pz-np]{max-height:${NO_PHOTO_MAX_PX}px!important;background-image:repeating-linear-gradient(135deg,${d} 0,${d} 2px,#0000 2px,#0000 7px,${l} 7px,${l} 9px,#0000 9px,#0000 14px)!important;box-shadow:inset 0 0 0 1px ${rgba(ink, 0.2)}!important}`;
 }
 
 /** 글자 폭 어림(em): 한글·한자 1.0, 라틴 대문자 .72, 소문자·숫자 .6, 공백 .3, 그 외 부호 .45 — 자간(음수)은 넣지 않아 안전한 쪽 */

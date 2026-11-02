@@ -45,5 +45,6 @@ export function recipeBodySigDiff(a: ArchetypeId, b: ArchetypeId): number {
  */
 export function bodySigCssV5(scope: string, id: ArchetypeId): string {
   const s = BODY_SIG[id];
-  return `${scope}[data-pz-bsig="${id}"]{--pz-bs-num:${s.num};--pz-bs-list:${s.list};--pz-bs-stat:${s.stat};--pz-bs-rule:${s.rule};--pz-bs-r:${s.radius};--pz-bs-sh:${s.shadow}}`;
+  // 따옴표 생략·짧은 키(지표는 --pz-bs-* 값만 읽음)
+  return `${scope}[data-pz-bsig=${id}]{--pz-bs-num:${s.num};--pz-bs-list:${s.list};--pz-bs-stat:${s.stat};--pz-bs-rule:${s.rule};--pz-bs-r:${s.radius};--pz-bs-sh:${s.shadow}}`;
 }
