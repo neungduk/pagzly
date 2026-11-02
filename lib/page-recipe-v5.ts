@@ -27,6 +27,67 @@ export const RECIPES: Record<ArchetypeId, string[]> = {
   pop: ["gallery","concern","story","phototext","stats","benefits","proof"],
 };
 
+/**
+ * 476 D — 아랫부분(후반 이동 슬롯) 레시피.
+ * photo: phototext 상대 위치, cards: benefits(3칸류) 상대 위치. 접점·고지·구매·히어로는 제자리.
+ */
+export type BottomPhotoPos = "front" | "mid" | "back";
+export type BottomCardsPos = "front" | "mid" | "back";
+export const BOTTOM_RECIPE: Record<
+  ArchetypeId,
+  { order: string[]; photo: BottomPhotoPos; cards: BottomCardsPos }
+> = {
+  editorial: { order: ["story", "phototext", "stats", "benefits", "proof"], photo: "mid", cards: "back" },
+  catalog: { order: ["gallery", "phototext", "benefits", "story", "proof"], photo: "front", cards: "mid" },
+  softlife: { order: ["benefits", "phototext", "gallery", "story", "stats"], photo: "mid", cards: "back" },
+  impact: { order: ["stats", "benefits", "phototext", "proof", "gallery"], photo: "back", cards: "front" },
+  techsheet: { order: ["proof", "stats", "benefits", "story", "phototext"], photo: "back", cards: "mid" },
+  narrative: { order: ["phototext", "gallery", "story", "stats", "concern"], photo: "front", cards: "front" },
+  luxe: { order: ["story", "stats", "phototext", "proof", "benefits"], photo: "back", cards: "mid" },
+  pop: { order: ["gallery", "concern", "stats", "phototext", "proof"], photo: "back", cards: "front" },
+};
+
+/** 아랫부분 시각 시그니처 5칸 — 쌍마다 ≥3 상이(자동 시험) */
+export type BottomVisualSig = {
+  photo: BottomPhotoPos;
+  cards: BottomCardsPos;
+  lead: string;
+  mid: string;
+  tail: string;
+};
+
+export function bottomVisualSig(id: ArchetypeId): BottomVisualSig {
+  const m = BOTTOM_RECIPE[id];
+  const o = m.order;
+  return {
+    photo: m.photo,
+    cards: m.cards,
+    lead: o[0]!,
+    mid: o[Math.floor(o.length / 2)]!,
+    tail: o[o.length - 1]!,
+  };
+}
+
+export const BOTTOM_SIG_KEYS: Array<keyof BottomVisualSig> = ["photo", "cards", "lead", "mid", "tail"];
+
+export function bottomSigDiff(a: BottomVisualSig, b: BottomVisualSig): number {
+  return BOTTOM_SIG_KEYS.filter((k) => a[k] !== b[k]).length;
+}
+
+export function assertBottomPairDiffs(minDiff = 3): string[] {
+  const ids = Object.keys(BOTTOM_RECIPE) as ArchetypeId[];
+  const fails: string[] = [];
+  for (let i = 0; i < ids.length; i++) {
+    for (let j = i + 1; j < ids.length; j++) {
+      const a = ids[i]!;
+      const b = ids[j]!;
+      const d = bottomSigDiff(bottomVisualSig(a), bottomVisualSig(b));
+      if (d < minDiff) fails.push(`${a}↔${b}=${d}`);
+    }
+  }
+  return fails;
+}
+
 /** 아키타입별 장면 위치(페이지 높이 비율) — 리듬 시퀀스: 큰 장면(L)이 오는 자리. 개수는 강도(5→3·4→2·3→1)가 정한다 */
 export const SCENE_AT_BY_ARCHETYPE: Record<ArchetypeId, number[]> = {
   editorial: [0.45], catalog: [0.3, 0.7], softlife: [0.25, 0.65], impact: [0.22, 0.5, 0.85],
@@ -51,13 +112,19 @@ export function applyRecipeV5(sections: DetailSection[], idx: number[], id: Arch
   if (free.length < 3) return { sections, sourceIndexes: idx };
   const pool = free.map((i) => i);
   const recipe = RECIPES[id];
+  const bottomOrder = BOTTOM_RECIPE[id].order;
   const out = [...sections];
   const outIdx = [...idx];
   let prev = famOf(sections[slots[PINNED_LEAD - 1] ?? slots[0]!]!) ?? "";
   const high = (x: DetailSection | undefined): boolean => !!x && intrinsicStrength(x) >= 4;
   const movableAt = new Set(slots);
+  const halfFree = Math.floor(free.length / 2);
   free.forEach((slot, k) => {
-    const want = recipe[k % recipe.length]!;
+    // 476 D — 후반 슬롯은 BOTTOM_RECIPE 순서 우선
+    const want =
+      k >= halfFree
+        ? bottomOrder[(k - halfFree) % bottomOrder.length]!
+        : recipe[k % recipe.length]!;
     // 강도 4 이상 블록이 세 개 이어지지 않게(곡선 규칙): 앞 두 자리(이미 확정) 또는 앞 한 자리 + 뒤 고정 섹션과 합쳐 3연속이 되는 후보는 건너뛴다
     const ok = (p: number): boolean => {
       const c = sections[p]!;
