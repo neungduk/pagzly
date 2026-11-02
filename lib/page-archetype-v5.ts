@@ -87,9 +87,10 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
     prefer: { benefits: ["stackbig", "linelist"], concern: ["memo", "offset", "stack"], story: ["editorial", "pullout", "chapter"], spec: ["line", "strip"], phototext: ["split", "dframe", "offset"], steps: ["vtimeline", "bignum"], faq: ["numlist", "chat"], proof: ["lead", "wall"], touch: ["ledger", "band"], statement: ["rule", "band"], stats: ["bignum", "trio"], gallery: ["mosaic", "polaroid"] },
   },
   catalog: {
-    id: "catalog", radius: 0.6, pill: 6, border: { w: 2, style: "solid", alphaMul: 2.2 }, shadow: { kind: "none", offset: 0 }, paper: "#F3F2EE", face: "tintAlt",
+    // 472: 반경·그림자를 editorial(0/none)·narrative(1/soft)과 ≥축 기준 이상으로 가른다
+    id: "catalog", radius: 2.2, pill: 6, border: { w: 2, style: "solid", alphaMul: 2.2 }, shadow: { kind: "hard", offset: 4 }, paper: "#F3F2EE", face: "tintAlt",
     pad: [28, 40, 56], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "step", rise: false, tilt: true, texture: "stripe" }, type: { weight: 700, tracking: -0.02, scale: 0.96, title: 48, display: 54, body: 15, lh: 1.7 }, eyebrow: "number", frames: ["rect"], dividers: ["stripe", "slant"], number: "box", marker: "square", decor: "bracket", decorAlt: ["plus-field","dots-grid"], badge: "hex", density: "tight",
-    // 472: 흰 스플릿(D) — catalog/softlife/pop이 같은 B 파란 면을 쓰지 않게
+    // 472: 흰 스플릿(D) 우선 — softlife B·pop C와 히어로 분포 축을 가른다
     hero: ["D", "B"],
     banner: ["split", "card-only"],
     infoBackdrop: "scrim-light",
@@ -116,7 +117,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   techsheet: {
     id: "techsheet", radius: 0, pill: 0, border: { w: 1, style: "dashed", alphaMul: 2.4 }, shadow: { kind: "none", offset: 0 }, paper: "#EEF3F8", face: "lightOnly",
     pad: [28, 40, 52], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: "step", rise: true, tilt: false, texture: "grid" }, type: { weight: 900, tracking: -0.01, scale: 0.94, title: 44, display: 50, body: 15, lh: 1.7 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["stitch", "dotted"], number: "box", marker: "square", decor: "corner-ticks", decorAlt: ["bracket","dots-grid"], badge: "hex", density: "tight",
-    // 472: B 쿨 포화 면 — editorial/catalog D와 차별
+    // 472: B 파스텔 면(스택) — lightOnly 유지, editorial A·catalog D와 차별
     hero: ["B", "D"],
     banner: ["split", "card-only"],
     infoBackdrop: "scrim-light",
@@ -141,7 +142,8 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   pop: {
     id: "pop", radius: 1.8, pill: "keep", border: { w: 2, style: "solid", alphaMul: 4 }, shadow: { kind: "hard", offset: 3 }, paper: "#FFFDF4", face: "colorCollide",
     pad: [32, 44, 60], titleAlign: "center", centerBudget: 1, dyn: { level: 5, seam: "zigzag", rise: false, tilt: true, texture: "dots" }, type: { weight: 900, tracking: -0.03, scale: 1.08, title: 56, display: 64, body: 16, lh: 1.7 }, eyebrow: "pill", frames: ["tape", "round", "offset"], dividers: ["zigzag", "tape", "wave2"], number: "circle", marker: "arrow", decor: "sticker", decorAlt: ["squiggle","ring","dots-grid"], badge: "ribbon", density: "normal",
-    hero: ["B", "C"],
+    // 472: C 우선 — 8종 히어로 변형 ≥4(A·B·C·D). E는 사진 있으면 D로 접혀 제외
+    hero: ["C", "B"],
     banner: ["full-scrim", "split"],
     infoBackdrop: "scrim-deep",
     prefer: { benefits: ["numcards", "stagger", "bento"], concern: ["offset", "bubbles", "deck"], story: ["pullband", "pullout", "quote"], spec: ["grid", "cards"], phototext: ["polaroid", "bleed", "offset"], steps: ["bignum", "chipflow"], faq: ["chat", "twocol"], proof: ["badges", "wall"], touch: ["ticket", "band"], statement: ["ticker", "band", "rule"], stats: ["trio", "rings"], gallery: ["polaroid", "deck", "mosaic"] },

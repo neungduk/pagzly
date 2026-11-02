@@ -1073,16 +1073,16 @@ function insertInterludesV5(secs: DetailSection[], idx: number[], ctx: V4Ctx): {
     cands.push({ k, rank: scene });
   }
   const chosen: number[] = [];
-  // 장면 쌍: 사이에 짧은 구간이 없으면 바로 다음 칸에 띠(지표 scenePairsWithoutInterlude)
+  // 장면 쌍: 사이 섹션이 2개 미만이면 띠를 넣어 469(조용한 블록 ≥2)를 맞춤. 짧은 구간 1개만 있어도 부족하면 추가
   const sceneIdx = secs.map((s, i) => (isScene(s) ? i : -1)).filter((i) => i >= 0);
   for (let si = 1; si < sceneIdx.length; si += 1) {
     const a = sceneIdx[si - 1]!, b = sceneIdx[si]!;
-    let hasShort = false;
+    let shortOrPlanned = 0;
     for (let j = a + 1; j < b; j += 1) {
-      if (ctx.height(secs[j]!) <= 260) hasShort = true;
-      if (chosen.includes(j)) hasShort = true;
+      if (ctx.height(secs[j]!) <= 260 || chosen.includes(j)) shortOrPlanned += 1;
     }
-    if (hasShort) continue;
+    if (b - a - 1 >= 2 && shortOrPlanned >= 1) continue;
+    if (shortOrPlanned >= 2) continue;
     const slot = a + 1;
     if (slot < secs.length && slot <= b && !blockedType(secs[slot]!) && chosen.every((c) => c !== slot)) chosen.push(slot);
   }
@@ -1138,7 +1138,8 @@ function planScenesV5(sections: DetailSection[], ctx: V4Ctx): DetailSection[] {
   const combos = (k: number, from: number): number[][] => {
     if (k === 0) return [[]];
     const out: number[][] = [];
-    for (let x = from; x < cand.length; x += 1) for (const rest of combos(k - 1, x + 1)) { const c = [cand[x]!, ...rest]; if (c.every((v, y) => y === 0 || v - c[y - 1]! >= 3)) out.push(c); }
+    // 472: 계획 간격 ≥2(최종 HTML은 insertInterludes가 장면 사이에 짧은 띠를 넣어 469 간격≥3을 맞춤). fashion-3p처럼 후보가 2·3·4에 뭉치면 ≥3으로는 3장면을 못 채움
+    for (let x = from; x < cand.length; x += 1) for (const rest of combos(k - 1, x + 1)) { const c = [cand[x]!, ...rest]; if (c.every((v, y) => y === 0 || v - c[y - 1]! >= 2)) out.push(c); }
     return out;
   };
   for (let k = Math.min(want, cand.length); k >= 1 && !chosen.length; k -= 1) {

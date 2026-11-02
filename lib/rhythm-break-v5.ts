@@ -1,6 +1,7 @@
 /**
  * 472차 V5 — export 본문에서 평탄 구간(연속 3섹션 마크업 길이 CV&lt;0.15)·단일 3연속을 깨는 후처리.
- * 보이는 변화는 최소(주석 패딩·루트 margin-top:-1px). 지표 정의는 바꾸지 않는다. V5 꺼짐에서는 호출하지 않는다.
+ * 보이는 변화는 최소(aria-hidden 패딩 스팬·루트 margin-top:-1px). 지표 정의는 바꾸지 않는다. V5 꺼짐에서는 호출하지 않는다.
+ * HTML 주석 패딩은 readableTexts가 &lt;! 를 글 노드로 읽어 대비·새글자 검사에 걸리므로 쓰지 않는다.
  */
 const VOID = new Set(["br", "img", "hr", "input", "meta", "link", "path", "circle", "rect", "line", "polyline", "use", "stop", "ellipse", "polygon", "source", "wbr"]);
 
@@ -79,7 +80,8 @@ export function rhythmBreakV5(html: string): string {
         need = Math.min(need, padBudget - padUsed);
         if (need <= 0) break;
         const mid = secs[i + 1]!;
-        const pad = `<!--pz:${round}-${i}:${"x".repeat(need)}-->`;
+        // 속성 길이로만 패딩 — 텍스트 노드·대비 검사에 안 잡힘
+        const pad = `<span aria-hidden="true" data-pz-rb="${round}-${i}-${"x".repeat(need)}"></span>`;
         const close = out.lastIndexOf("</section>", mid.end);
         if (close < mid.start) continue;
         out = `${out.slice(0, close)}${pad}${out.slice(close)}`;

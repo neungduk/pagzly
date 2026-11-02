@@ -48,8 +48,8 @@ export const HERO_STACK: Record<ArchetypeId, HeroStackRecipe> = {
   impact: { strip: "dark", glance: "bignum", nav: "dark", ratio: "4 / 5.4", ghost: "le", titleAlign: "left", titlePos: "overlay", frame: "fullbleed", photoArea: "xl", priceShow: "big", faceMode: "dark", hueShift: 180 },
   // 에디토리얼: 카드 옆 제목 + 칩 가격 + 목록
   editorial: { strip: "chip", glance: "list", nav: "underline", ratio: "4 / 4.8", ghost: "tl", titleAlign: "left", titlePos: "beside", frame: "card", photoArea: "md", priceShow: "chip", faceMode: "sat", hueShift: 15 },
-  // 테크시트: 쿨 청록 포화 — pop 적황과 분리
-  techsheet: { strip: "grid", glance: "rule", nav: "tab", ratio: "3 / 2.4", ghost: "bl", titleAlign: "left", titlePos: "above", frame: "card", photoArea: "sm", priceShow: "big", faceMode: "sat", hueShift: 175 },
+  // 테크시트: lightOnly라 진한 sat 면 금지 → 쿨 청록 파스텔(pop 적황 sat·narrative paper와 bin 분리)
+  techsheet: { strip: "grid", glance: "rule", nav: "tab", ratio: "3 / 2.4", ghost: "bl", titleAlign: "left", titlePos: "above", frame: "card", photoArea: "sm", priceShow: "big", faceMode: "pastel", hueShift: 175 },
   // 서사: 아래 제목·큰 분할 사진·인라인 가격
   narrative: { strip: "rule", glance: "cards", nav: "dotted", ratio: "4 / 5.6", ghost: "bc", titleAlign: "center", titlePos: "beside", frame: "card", photoArea: "lg", priceShow: "inline", faceMode: "paper", hueShift: 150 },
   // 럭스: 가운데·원형 소형·여유 한눈에
