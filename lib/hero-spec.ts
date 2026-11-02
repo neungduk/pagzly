@@ -311,7 +311,7 @@ export function heroFaceColor(accent: string, hint: HeroHueHint | undefined): { 
   return { face: capFaceChroma(saturatedFace(hslToHex(hint.hue, 0.7, 0.45))), source: hint.source };
 }
 
-/** 472 — 상품 accent를 아키타입별로 비튼 히어로 면. white/dark는 고정, pastel/paper는 밝은 면, sat는 포화 면 */
+/** 472 — 상품 accent를 아키타입별로 비튼 히어로 면. white/dark는 고정, pastel/paper는 밝은 면, sat는 포화 면(shift 필수 반영 — hint로 상품색에 붙잡지 않음) */
 export function heroFaceForV5(accent: string, hint: HeroHueHint | undefined, mode: FaceMode, shift: number): string {
   const shifted = shift ? hueShift(accent, shift) : accent;
   if (mode === "white") return "#FFFFFF";
@@ -320,7 +320,9 @@ export function heroFaceForV5(accent: string, hint: HeroHueHint | undefined, mod
     const [h] = hexToHsl(shifted);
     return hslToHex(h, mode === "paper" ? 0.22 : 0.42, mode === "paper" ? 0.94 : 0.88);
   }
-  return heroFaceColor(shifted, hint).face;
+  // sat: shifted accent만 쓴다(hint/원본 유채색이 shift를 덮어쓰지 않게)
+  void hint;
+  return capFaceChroma(saturatedFace(shifted));
 }
 
 /** 사진 위 스크림 불투명도 곡선(0=아래 끝). 텍스트 영역(아래 약 45%)에서 최소 scrimTextAlpha 이상 */

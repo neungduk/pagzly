@@ -42,13 +42,14 @@ export const HERO_STACK: Record<ArchetypeId, HeroStackRecipe> = {
   // 파스텔 + 아치 사진 + 둥근 떠 있는 가격
   softlife: { strip: "float", glance: "pills", nav: "pill", ratio: "4 / 5", ghost: "br", titleAlign: "center", titlePos: "above", frame: "arch", photoArea: "lg", priceShow: "chip", faceMode: "pastel", hueShift: 90 },
   // 원색 + 기울인 스티커 틀 + 별 배지 가격 + 가로 스크롤 칩
-  pop: { strip: "badge", glance: "scroll", nav: "sticker", ratio: "5 / 4.4", ghost: "tl", titleAlign: "left", titlePos: "above", frame: "tilt", photoArea: "lg", priceShow: "sticker", faceMode: "sat", hueShift: 320 },
+  // 원색 대비: 상품 파랑과 겹치지 않게 따뜻한 적황 계열(320→35)
+  pop: { strip: "badge", glance: "scroll", nav: "sticker", ratio: "5 / 4.4", ghost: "tl", titleAlign: "left", titlePos: "above", frame: "tilt", photoArea: "lg", priceShow: "sticker", faceMode: "sat", hueShift: 35 },
   // 풀블리드 사진 위 거대 제목 + 어두운 그라데이션 + 큰 가격
   impact: { strip: "dark", glance: "bignum", nav: "dark", ratio: "4 / 5.4", ghost: "le", titleAlign: "left", titlePos: "overlay", frame: "fullbleed", photoArea: "xl", priceShow: "big", faceMode: "dark", hueShift: 180 },
   // 에디토리얼: 카드 옆 제목 + 칩 가격 + 목록
   editorial: { strip: "chip", glance: "list", nav: "underline", ratio: "4 / 4.8", ghost: "tl", titleAlign: "left", titlePos: "beside", frame: "card", photoArea: "md", priceShow: "chip", faceMode: "sat", hueShift: 15 },
-  // 테크시트: 작은 카드·위 제목·규칙형 한눈에 — editorial과 4칸 이상 다르게
-  techsheet: { strip: "grid", glance: "rule", nav: "tab", ratio: "3 / 2.4", ghost: "bl", titleAlign: "left", titlePos: "above", frame: "card", photoArea: "sm", priceShow: "big", faceMode: "sat", hueShift: 210 },
+  // 테크시트: 쿨 청록 포화 — pop 적황과 분리
+  techsheet: { strip: "grid", glance: "rule", nav: "tab", ratio: "3 / 2.4", ghost: "bl", titleAlign: "left", titlePos: "above", frame: "card", photoArea: "sm", priceShow: "big", faceMode: "sat", hueShift: 175 },
   // 서사: 아래 제목·큰 분할 사진·인라인 가격
   narrative: { strip: "rule", glance: "cards", nav: "dotted", ratio: "4 / 5.6", ghost: "bc", titleAlign: "center", titlePos: "beside", frame: "card", photoArea: "lg", priceShow: "inline", faceMode: "paper", hueShift: 150 },
   // 럭스: 가운데·원형 소형·여유 한눈에
@@ -144,11 +145,15 @@ export function heroStackCssV5(scope: string, id: ArchetypeId, ink: string): str
       out.push(rule(`${photo}:not([data-pz-hs="frame"])`, "border-radius:20px;overflow:hidden;box-shadow:0 12px 28px rgba(10,10,10,0.16)"));
       break;
     case "split":
-      out.push(rule(`${scope} [data-hero-v2="D"]:not([data-pz-hs="frame"])`, "background:#FFFFFF"));
-      out.push(rule(`${scope} [data-hero-v2="D"]>[data-hero-photo]:not([data-pz-hs="frame"])`, "border-radius:0;width:100%"));
+      // 흰 바탕 + 사진 좌 / 정보 우(750+). 좁은 폭은 위·아래로 접히되 면은 흰색 유지
+      out.push(rule(`${scope} [data-hero-v2="D"]:not([data-pz-hs="frame"])`, "background:#FFFFFF;display:flex;flex-wrap:wrap;align-items:stretch"));
+      out.push(rule(`${scope} [data-hero-v2="D"]>[data-hero-photo]:not([data-pz-hs="frame"])`, "border-radius:0;width:48%;max-width:48%;flex:0 0 48%;aspect-ratio:1/1;max-height:none;background:#F3F1EC"));
+      out.push(rule(`${scope} [data-hero-v2="D"]>div:not([data-hero-photo]):not([data-pz-hs="frame"])`, "flex:1 1 48%;width:52%;max-width:52%;box-sizing:border-box;background:#FFFFFF;padding:28px 22px"));
+      out.push(`@media (max-width:520px){${rule(`${scope} [data-hero-v2="D"]>[data-hero-photo]:not([data-pz-hs="frame"])`, "width:100%;max-width:100%;flex:1 1 100%")}${rule(`${scope} [data-hero-v2="D"]>div:not([data-hero-photo]):not([data-pz-hs="frame"])`, "width:100%;max-width:100%;flex:1 1 100%")}}`);
       break;
     case "fullbleed":
       out.push(rule(`${scope} [data-hero-v2="A"]:not([data-pz-hs="frame"])`, "border-radius:0"));
+      out.push(rule(`${scope} [data-hero-v2="A"] [data-hero-scrim]:not([data-pz-hs="frame"])`, "height:100%;background:linear-gradient(0deg,rgba(10,10,10,0.82) 0%,rgba(10,10,10,0.45) 42%,rgba(10,10,10,0.2) 100%)"));
       break;
     default:
       break;
