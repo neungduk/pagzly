@@ -51,9 +51,14 @@
 4. run-all 실패 4건 별도 차수.
 
 ## Push 확인
-```
-git log -1 --oneline  → (보고서 커밋 직전 tip: bd1a13f 475차 E…)
-git status            → cloud-work...origin/cloud-work (ahead after report commit)
-```
-**커밋 해시(보고서 커밋):** 1116852
-branch: `cloud-work` only — **main 미push**.
+`git status` → `cloud-work...origin/cloud-work` (동기). **main 미push**.
+
+| 항목 | 커밋 |
+|---|---|
+| 지시서 | `a41f765` |
+| 목표 | `3795a04` |
+| A 패밀리 | `13eabf7` |
+| B~D+F | `e844547` |
+| E 리뷰 | `bd1a13f` |
+| 보고서 본문 | `1116852` |
+| tip(해시 표) | 이 커밋 — 추격 중단 |
