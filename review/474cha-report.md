@@ -74,7 +74,7 @@ npx tsx scripts/regression-v5-474.ts
 
 ```
 branch: cloud-work (main 아님)
-tip: 3eacbef
+tip: (push 직후 `git log -1` — A~F·보고서 체인 끝)
 ```
 
 | 항목 | 해시 |
@@ -85,3 +85,4 @@ tip: 3eacbef
 | D | `1cb98e5` |
 | E | `07336a5` |
 | F | `30182a6` |
+| 보고서 | `2015ddb` 계열(cloud-work tip) |
