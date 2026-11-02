@@ -235,8 +235,8 @@ function specV5(s: ImpactSection, b: V4Block, p: V4Palette): string | null {
   const items = b.items ?? [];
   const on = p.onFace[faceRole(b)];
   const head = headingHtml(s.text, b, p, "color");
-  // 477 D — 구조화 치수 있으면 도식(윤곽+치수선), 없으면 아래 표/카드 폴백
-  if (items.length >= 2 && (b.variant === "panel" || b.variant === "line" || b.variant === "grid" || b.variant === "tags" || b.variant === "big3")) {
+  // 477 D — 구조화 치수 있으면 도식(panel/big3만 — export 다이어트). 없으면 표/카드 폴백
+  if (items.length >= 2 && (b.variant === "panel" || b.variant === "big3")) {
     const rows = items.map((it) => ({ label: it.title, value: it.body ?? "" }));
     const hint = [s.text, ...items.map((it) => it.title)].join(" ");
     const diag = buildSpecDiagramV5(hint, rows, p.ink);
@@ -269,20 +269,18 @@ function phototextV5(s: ImpactSection, b: V4Block, p: V4Palette, alt: string, t:
     : "";
   const text = (center = false) => `<div${center ? ' style="text-align:center"' : ""}>${title}${bodyP(it.body, p, on.sub, 10)}</div>`;
   const frame = t.frames[0] ?? "rect";
-  // 477 E — zoom bubble 다중(callout 아닌 짝수 no + dframe/polaroid 일부)
-  if (b.variant !== "callout" && b.variant !== "scene" && (b.variant === "dframe" || (b.no % 5 === 2 && b.variant !== "bleed"))) {
-    const zb = zoomBubbleHtml(it.img, alt, title, bodyP(it.body, p, on.sub, 10), p.ink, p.tints[1], 2 + (b.no % 3));
+  // 477 E — zoom bubble: dframe만(2개 버블) — export 상한 유지
+  if (b.variant === "dframe") {
+    const zb = zoomBubbleHtml(it.img, alt, title, bodyP(it.body, p, on.sub, 10), p.ink, p.tints[1], 2);
     if (zb) return wrap(b, p, zb, { bleed: true, pad: "28px 24px 48px" });
   }
-  // 477 C — 사진 지배형 공용 부품(라벨+제목+보조만, numberMark/카드 생략 → 요소 수↓)
-  if (b.variant !== "callout" && b.variant !== "scene" && (b.variant === "bleed" || b.variant === "split" || b.variant === "stack" || b.no % 3 === 0)) {
+  // 477 C — 사진 지배형: bleed만, 아키타입 주 부품 1회 경로(기존 compose보다 짧을 때만)
+  if (b.variant === "bleed") {
     const pb = PHOTO_BLOCK_V5[t.id];
-    const imgs = (b.items ?? []).map((x) => x.img).filter((x): x is { url: string; pos?: string } => !!x?.url);
-    const pair = imgs.length >= 2 ? imgs : [it.img, { url: it.img.url, pos: "50% 70%" }];
     const useLight = pb === "band" || pb === "scrim";
     const inner = renderPhotoBlock(
-      pb,
-      pair,
+      pb === "split" ? "band" : pb,
+      [it.img, { url: it.img.url, pos: "50% 70%" }],
       alt,
       useLight ? titleLight : title,
       useLight ? bodyLight : bodyP(it.body, p, on.sub, 10),

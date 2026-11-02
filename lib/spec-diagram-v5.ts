@@ -2,7 +2,7 @@
  * 477차 D — 도식형 스펙: 카테고리 윤곽 5종(옷/가방/병/박스/가전) + 치수선.
  * 숫자는 입력값만. 구조화 수치 없으면 null → 기존 표/카드 폴백. SVG는 스프라이트 `<use>`.
  */
-import { useOutline } from "@/lib/svg-sprite-v5";
+import { OUTLINE_PATHS, useOutline, type OutlineId } from "@/lib/svg-sprite-v5";
 
 export type OutlineKind = "garment" | "bag" | "bottle" | "box" | "appliance";
 
@@ -71,11 +71,13 @@ export function buildSpecDiagramV5(
 ): string | null {
   const dims = matchDimRows(rows);
   if (dims.length < 2) return null;
-  const kind = outlineOfCategory(category);
+  const kind = outlineOfCategory(category) as OutlineId;
   const lines = dims.map((d) => dimLine(SLOT_GEOM[d.slot], d.value, ink)).join("");
+  // 로컬 defs+use — 같은 페이지에 도식이 여러 개여도 path는 id당 1회(첫 도식에만 defs)
   return (
     `<div data-pz-specdiag="${kind}" style="display:flex;justify-content:center;padding:8px 0 4px">` +
     `<svg viewBox="0 0 160 190" width="200" height="238" role="img" aria-label="dimensions">` +
+    `<defs><g id="pzO-${kind}" fill="none">${OUTLINE_PATHS[kind]}</g></defs>` +
     `<g fill="none" stroke="${ink}" stroke-width="1.6">${useOutline(kind)}</g>` +
     lines +
     `</svg></div>`

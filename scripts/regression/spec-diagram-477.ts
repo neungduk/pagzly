@@ -12,9 +12,18 @@ export async function run(): Promise<string[]> {
   for (const k of kinds) {
     if (!useOutline(k).includes(`pzO-${k}`)) f.push(`useOutline(${k}) id 누락`);
   }
-  const sprite = svgSpriteV5();
+  // 윤곽은 전역 스프라이트가 아니라 도식 로컬 defs(미사용 페이지 export 방지)
+  void svgSpriteV5;
   for (const k of kinds) {
-    if (!sprite.includes(`id="pzO-${k}"`)) f.push(`스프라이트에 pzO-${k} 없음`);
+    const html = buildSpecDiagramV5(
+      k === "garment" ? "의류/패션" : k === "bag" ? "가방" : k === "bottle" ? "화장품/뷰티" : k === "appliance" ? "가전" : "리빙",
+      [
+        { label: "총장", value: "90cm" },
+        { label: "폭", value: "40cm" },
+      ],
+      "#111",
+    );
+    if (!html?.includes(`id="pzO-${k}"`) || !html.includes(`href="#pzO-${k}"`)) f.push(`도식 로컬 defs/use(${k}) 누락`);
   }
 
   if (outlineOfCategory("의류/패션") !== "garment") f.push("패션→garment");
