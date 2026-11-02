@@ -74,7 +74,7 @@ npx tsx scripts/regression-v5-474.ts
 
 ```
 branch: cloud-work (main 아님)
-tip: 7e26624
+tip: 38493e5
 ```
 
 | 항목 | 해시 |
