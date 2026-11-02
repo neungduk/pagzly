@@ -65,13 +65,15 @@
 
 ```
 git log -1 --oneline
-# tip은 아래 해시 정정 커밋(본 절 갱신분)
+b496904 472차 보고서: push 해시 정정(본문 4622bd3)
 
 git status -sb
 ## cloud-work...origin/cloud-work
-(작업 트리에 이번 차 추적 파일 없음; 캡처·임시 _472-* 는 미추적/gitignore)
+(캡처·임시 _472-* 는 미추적/gitignore)
 
+push 확인 tip: b49690482e57936f1ead7525424a64388255259f
 보고서 본문: 4622bd3d309dd715d88eba4fcb8be08e4bd1ae60
+main 미push · 브랜치 cloud-work만
 ```
 
-항목 커밋: 지시서 `ed150fc` → 목표 `d7e7409` → A `6bb4d7d` → C `08eec53` → D `4676c90` → B `6935e32` → E `54d913a` → 보고서 `4622bd3`.
+항목 커밋: 지시서 `ed150fc` → 목표 `d7e7409` → A `6bb4d7d` → C `08eec53` → D `4676c90` → B `6935e32` → E `54d913a` → 보고서 `4622bd3` → 해시정정 `b496904`.
