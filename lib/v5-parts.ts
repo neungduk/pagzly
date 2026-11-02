@@ -472,22 +472,21 @@ export const V5_PARTS: V5Parts = (s, b, p, alt) => {
     case "stats": return statsV5(s, b, p, t);
     case "gallery": return galleryV5(s, b, p, alt);
     case "breather":
-      // 472·473: 구분 띠 변주. 473 — 빈 단색 막대 금지(사선·점선·SVG 도형). 글자 없음(471 락). 새 카피 없음
+      // 476 B — 의미 없는 사선/빈 띠/점3 제거 → 라벨·번호·마커가 있는 구분 헤더만
       if (b.variant === "rule") {
         const t1 = tokensOf(s);
         const kind = (b.sceneAt ?? 0) % 3;
-        if (kind === 1) {
-          const hatch = `repeating-linear-gradient(-28deg,${hexToRgba(p.deep, 0.2)} 0 8px,${hexToRgba(p.deep, 0.04)} 8px 16px)`;
-          const bar = `<div aria-hidden="true" style="height:36px;margin:0 -8px;transform:rotate(-1.8deg);background:${hatch};border:1px dashed ${hexToRgba(p.ink, 0.28)};border-radius:8px"></div>`;
-          return wrap(b, p, bar, { pad: "40px 20px" });
-        }
-        if (kind === 2) {
-          const chip = (w: number, h: number, a: number, mark: string) => `<span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:${w}px;height:${h}px;border-radius:10px;background:${hexToRgba(p.deep, a)};border:1px solid ${hexToRgba(p.ink, 0.18)}">${mark}</span>`;
-          const dot = `<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4" fill="${p.deep}"/></svg>`;
-          return wrap(b, p, `<div aria-hidden="true" style="display:flex;align-items:flex-end;justify-content:center;gap:12px;min-height:88px">${chip(64, 48, 0.14, dot)}${chip(88, 80, 0.22, markerSvg(t1.marker, p.deep, 20))}${chip(56, 44, 0.12, dot)}</div>`, { pad: "36px 20px" });
-        }
-        const line = `<span style="flex:1;max-width:140px;height:0;border-top:2px dotted ${hexToRgba(p.ink, 0.35)}"></span>`;
-        return wrap(b, p, `<div aria-hidden="true" style="display:flex;align-items:center;justify-content:center;gap:12px;min-height:44px">${line}${markerSvg(t1.marker, p.deep, 24)}${line}</div>`, { pad: "56px 20px" });
+        const lab = kind === 0 ? v5Label("note") : kind === 1 ? v5Label("detail") : v5Label("point");
+        const no = String(((b.sceneAt ?? 0) % 9) + 1).padStart(2, "0");
+        const header =
+          `<div data-pz-deco-meaningful="1" style="display:flex;align-items:center;justify-content:center;gap:14px;min-height:44px;padding:0 12px">` +
+          `<span style="flex:1;max-width:120px;height:0;border-top:2px solid ${hexToRgba(p.ink, 0.28)}"></span>` +
+          `<span style="font-size:11px;font-weight:700;letter-spacing:.18em;color:${p.ink};opacity:.75">${esc(lab)}</span>` +
+          `<span style="font-size:14px;font-weight:800;color:${p.deep}">${no}</span>` +
+          `${markerSvg(t1.marker, p.deep, 18)}` +
+          `<span style="flex:1;max-width:120px;height:0;border-top:2px solid ${hexToRgba(p.ink, 0.28)}"></span>` +
+          `</div>`;
+        return wrap(b, p, header, { pad: "40px 20px" });
       }
       return null;
     case "statement":

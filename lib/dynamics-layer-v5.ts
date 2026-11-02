@@ -11,7 +11,7 @@ import type { DetailSection, ImpactSection, V4Block } from "@/lib/types/generate
 import { v4Palette, type FaceRole, type V4Palette } from "@/lib/palette-v4";
 import { hexToRgba } from "@/lib/design-tokens";
 import { TITLE_FF, esc } from "@/lib/type-treatments";
-import { dotGrid, gridPaper, seamShape, stripeField, sticker, tape, rnd } from "@/lib/dynamics-v5";
+import { dotGrid, gridPaper, seamShape, sticker, tape, rnd } from "@/lib/dynamics-v5";
 import { darkPaletteOf } from "@/lib/face-strategy-v5";
 import { HERO_STACK, ghostBoxV5, resolveGhostV5, type GhostPos } from "@/lib/hero-stack-v5";
 
@@ -202,9 +202,9 @@ export function applyDynamicsHtml(html: string, s: ImpactSection, t: ArchetypeTo
       return n === 0 ? m : `<div${pre}border-radius:${n === 1 ? `${r}px ${r}px ${r}px 4px` : n === 2 ? `4px ${r}px ${r}px ${r}px` : `${r}px 4px ${r}px ${r}px`}${post}`;
     });
   }
-  // 배경 질감(단색 루트 배경 위에 반복 gradient를 겹침). 이음새·걸침이 있으면 하지 않는다
-  if (d.texture && !d.seam && !d.rise) {
-    const pat = d.texture === "dots" ? dotGrid(p) : d.texture === "grid" ? gridPaper(p) : stripeField(p);
+  // 476 B — 사선 stripe 질감 제거. dots/grid만(의미: 면 구분 텍스처, 글자 없는 띠 아님)
+  if (d.texture && d.texture !== "stripe" && !d.seam && !d.rise) {
+    const pat = d.texture === "dots" ? dotGrid(p) : gridPaper(p);
     out = patchRoot(out, (st) => st.replace(/(^|;)background:(#[0-9a-fA-F]{6})(?![0-9a-fA-F])/, (_m, pre: string, c: string) => `${pre}background:${pat},${c}`));
   }
   // 들여 쓰기: 첫 내용 열(max-width:576px;margin:0 auto)에 한쪽 패딩. 열 폭은 줄지만 줄바꿈 안전(좌우 합 ≤ 40px)

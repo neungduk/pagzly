@@ -41,7 +41,8 @@ export function dividerHtml(kind: DividerKindAny, ink: string): string {
       return strip(12, svg(d), "top:10px");
     }
     case "slant":
-      return strip(6, "", `top:12px;left:24px;right:24px;background:repeating-linear-gradient(135deg,${c} 0 1.5px,transparent 1.5px 8px)`);
+      // 476 B — 사선 repeating-linear-gradient 제거 → 기울인 실선
+      return strip(6, "", `top:14px;left:24px;right:24px;height:0;border-top:2px solid ${c};transform:rotate(-2deg)`);
     case "dotted":
       return strip(2, "", `top:16px;left:24px;right:24px;border-top:2px dotted ${c}`);
     case "double":
@@ -53,7 +54,8 @@ export function dividerHtml(kind: DividerKindAny, ink: string): string {
       return strip(12, svg(d), "top:10px");
     }
     case "stripe":
-      return strip(8, "", `top:12px;left:0;right:0;background:repeating-linear-gradient(90deg,${c} 0 12px,transparent 12px 24px)`);
+      // 476 B — 줄무늬 gradient 제거 → 이중 실선
+      return strip(8, "", `top:12px;left:24px;right:24px;height:4px;border-top:2px solid ${c};border-bottom:2px solid ${c};box-sizing:border-box`);
     case "stitch":
       return strip(2, "", `top:16px;left:16px;right:16px;border-top:2px dashed ${c}`);
     case "thin2":

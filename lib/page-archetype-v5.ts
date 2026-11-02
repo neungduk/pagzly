@@ -94,7 +94,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   catalog: {
     // 472: 반경·그림자를 editorial(0/none)·narrative(1/soft)과 ≥축 기준 이상으로 가른다
     id: "catalog", radius: 2.2, pill: 6, border: { w: 2, style: "solid", alphaMul: 2.2 }, shadow: { kind: "hard", offset: 4 }, paper: "#F3F2EE", face: "tintAlt",
-    pad: [28, 40, 56], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "step", rise: false, tilt: true, texture: "stripe" }, type: { weight: 700, tracking: -0.02, scale: 0.96, title: 48, display: 54, body: 15, lh: 1.7 }, eyebrow: "number", frames: ["rect"], dividers: ["stripe", "slant"], number: "box", marker: "square", decor: "bracket", decorAlt: ["plus-field","dots-grid"], badge: "hex", density: "tight",
+    pad: [28, 40, 56], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "step", rise: false, tilt: true, texture: null }, type: { weight: 700, tracking: -0.02, scale: 0.96, title: 48, display: 54, body: 15, lh: 1.7 }, eyebrow: "number", frames: ["rect"], dividers: ["stripe", "slant"], number: "box", marker: "square", decor: "bracket", decorAlt: ["plus-field","corner-ticks"], badge: "hex", density: "tight",
     // 472: 흰 스플릿(D) 우선 — softlife B·pop C와 히어로 분포 축을 가른다
     hero: ["D", "B"],
     banner: ["split", "card-only"],
@@ -112,7 +112,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   impact: {
     id: "impact", radius: 0.5, pill: 6, border: { w: 3, style: "solid", alphaMul: 5 }, shadow: { kind: "hard", offset: 4 }, paper: "#FFFFFF", face: "blockAlt",
-    pad: [32, 48, 64], titleAlign: "left", centerBudget: 0, dyn: { level: 5, seam: "slant", rise: false, tilt: true, texture: null }, type: { weight: 900, tracking: -0.045, scale: 1.1, title: 56, display: 64, body: 16, lh: 1.7 }, eyebrow: "number", frames: ["offset", "rect"], dividers: ["slant", "zigzag", "stripe"], number: "big", marker: "arrow", decor: "bar-left", decorAlt: ["dots-grid","plus-field"], badge: "hex", density: "tight",
+    pad: [32, 48, 64], titleAlign: "left", centerBudget: 0, dyn: { level: 5, seam: "slant", rise: false, tilt: true, texture: null }, type: { weight: 900, tracking: -0.045, scale: 1.1, title: 56, display: 64, body: 16, lh: 1.7 }, eyebrow: "number", frames: ["offset", "rect"], dividers: ["slant", "zigzag", "stripe"], number: "big", marker: "arrow", decor: "bar-left", decorAlt: ["plus-field","bracket"], badge: "hex", density: "tight",
     // 472: 풀블리드 A(사진 위 거대 제목) — 검은 C/B와 차별
     hero: ["A", "C", "B"],
     banner: ["full-scrim", "card-only"],
@@ -121,7 +121,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   techsheet: {
     id: "techsheet", radius: 0, pill: 0, border: { w: 1, style: "dashed", alphaMul: 2.4 }, shadow: { kind: "none", offset: 0 }, paper: "#EEF3F8", face: "lightOnly",
-    pad: [28, 40, 52], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: "step", rise: true, tilt: false, texture: "grid" }, type: { weight: 900, tracking: -0.01, scale: 0.94, title: 44, display: 50, body: 15, lh: 1.7 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["stitch", "dotted"], number: "box", marker: "square", decor: "corner-ticks", decorAlt: ["bracket","dots-grid"], badge: "hex", density: "tight",
+    pad: [28, 40, 52], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: "step", rise: true, tilt: false, texture: "grid" }, type: { weight: 900, tracking: -0.01, scale: 0.94, title: 44, display: 50, body: 15, lh: 1.7 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["stitch", "dotted"], number: "box", marker: "square", decor: "corner-ticks", decorAlt: ["bracket","plus-field"], badge: "hex", density: "tight",
     // 472: B 파스텔 면(스택) — lightOnly 유지, editorial A·catalog D와 차별
     hero: ["B", "D"],
     banner: ["split", "card-only"],
@@ -146,7 +146,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   },
   pop: {
     id: "pop", radius: 1.8, pill: "keep", border: { w: 2, style: "solid", alphaMul: 4 }, shadow: { kind: "hard", offset: 3 }, paper: "#FFFDF4", face: "colorCollide",
-    pad: [32, 44, 60], titleAlign: "center", centerBudget: 1, dyn: { level: 5, seam: "zigzag", rise: false, tilt: true, texture: "dots" }, type: { weight: 900, tracking: -0.03, scale: 1.08, title: 56, display: 64, body: 16, lh: 1.7 }, eyebrow: "pill", frames: ["tape", "round", "offset"], dividers: ["zigzag", "tape", "wave2"], number: "circle", marker: "arrow", decor: "tape-tab", decorAlt: ["sticker","squiggle","dots-grid"], badge: "ribbon", density: "normal",
+    pad: [32, 44, 60], titleAlign: "center", centerBudget: 1, dyn: { level: 5, seam: "zigzag", rise: false, tilt: true, texture: null }, type: { weight: 900, tracking: -0.03, scale: 1.08, title: 56, display: 64, body: 16, lh: 1.7 }, eyebrow: "pill", frames: ["tape", "round", "offset"], dividers: ["zigzag", "tape", "wave2"], number: "circle", marker: "arrow", decor: "tape-tab", decorAlt: ["sticker","squiggle"], badge: "ribbon", density: "normal",
     // 472: C 우선 — 8종 히어로 변형 ≥4(A·B·C·D). E는 사진 있으면 D로 접혀 제외
     hero: ["C", "B"],
     banner: ["full-scrim", "split"],
@@ -241,8 +241,8 @@ export function decorHtml(kind: DecorKind, c: ArchetypeColors): string {
     case "glow": return `<span ${base} style="position:absolute;right:0;top:0;width:140px;height:140px;background:radial-gradient(circle at 70% 30%,${rgba(c.accent, 0.16)},transparent 70%);pointer-events:none"></span>`;
     // ── 465차 V5 추가 6종: 섹션 위쪽 안쪽 모서리(여백 안, 높이 ≤ 28px)
     case "dots-grid":
-      // 475 F: 스프라이트 <use> 재사용
-      return `<span ${base} style="position:absolute;right:16px;top:4px;width:64px;height:26px;pointer-events:none">${useDotsGrid(rgba(c.ink, 0.4))}</span>`;
+      // 476 B — 점격자 장식 삭제(의미 없음). 빈 문자열 → 호출측이 다른 decorAlt로 폴백하지 않으므로 가는 라벨 띠로 치환
+      return `<span ${base} data-pz-deco-meaningful="1" style="position:absolute;right:12px;top:8px;font-size:10px;font-weight:700;letter-spacing:.2em;color:${rgba(c.ink, 0.45)};pointer-events:none">NO.</span>`;
     case "arc": return `<span ${base} style="position:absolute;left:0;top:0;width:44px;height:22px;pointer-events:none"><svg viewBox="0 0 44 22" width="44" height="22" aria-hidden="true" style="display:block"><path d="M0 22 A22 22 0 0 1 44 22" fill="none" stroke="${rgba(c.accent, 0.55)}" stroke-width="2"/></svg></span>`;
     case "squiggle": return `<span ${base} style="position:absolute;left:20px;top:8px;width:72px;height:14px;pointer-events:none"><svg viewBox="0 0 72 14" width="72" height="14" aria-hidden="true" style="display:block"><path d="M2 7 Q11 0 20 7 T38 7 T56 7 T70 7" fill="none" stroke="${rgba(c.accent, 0.6)}" stroke-width="2" stroke-linecap="round"/></svg></span>`;
     case "plus-field":
@@ -379,9 +379,8 @@ export const NO_PHOTO_MAX_PX = 280;
  */
 export function noPhotoCssV5(scope: string, ink: string): string {
   const d = rgba(ink, 0.16);
-  const l = "rgba(255,255,255,.22)";
-  // 474: 선택자·알파 표기 압축(시각 동일). export 140% 여유용
-  return `${scope} [data-pz-np] [data-pz-callout]{display:none!important}${scope} [data-pz-np][data-pz-np]{max-height:${NO_PHOTO_MAX_PX}px!important;background-image:repeating-linear-gradient(135deg,${d} 0,${d} 2px,#0000 2px,#0000 7px,${l} 7px,${l} 9px,#0000 9px,#0000 14px)!important;box-shadow:inset 0 0 0 1px ${rgba(ink, 0.2)}!important}`;
+  // 476 B — 사선 repeating-linear-gradient 금지. 점 격자로 빈 사진 폴백
+  return `${scope} [data-pz-np] [data-pz-callout]{display:none!important}${scope} [data-pz-np][data-pz-np]{max-height:${NO_PHOTO_MAX_PX}px!important;background-color:${rgba(ink, 0.04)}!important;background-image:radial-gradient(${d} 1.2px,#0000 1.3px)!important;background-size:10px 10px!important;box-shadow:inset 0 0 0 1px ${rgba(ink, 0.2)}!important}`;
 }
 
 /** 글자 폭 어림(em): 한글·한자 1.0, 라틴 대문자 .72, 소문자·숫자 .6, 공백 .3, 그 외 부호 .45 — 자간(음수)은 넣지 않아 안전한 쪽 */
