@@ -4,7 +4,7 @@
  */
 import type { ArchetypeId } from "@/lib/page-archetype-v5";
 
-export type NumMark = "side" | "big" | "roman" | "badge" | "inline" | "top" | "ghost" | "step";
+export type NumMark = "side" | "big" | "roman" | "badge" | "inline" | "top" | "ghost" | "step" | "box" | "circle";
 export type ListShape = "number" | "check" | "stair" | "card" | "chip" | "timeline" | "bento" | "rows";
 export type StatShape = "huge" | "inline" | "ring" | "bar" | "trio" | "flush" | "boxed" | "stack";
 export type RuleVocab = "thin" | "thick" | "dash" | "dot" | "slant" | "wave" | "none" | "double";

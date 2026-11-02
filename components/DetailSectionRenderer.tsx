@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { isLongStatValue, isLongUnit, personaClampLines } from "@/lib/robust-462";
-import { ARCHETYPES, archetypeCssV5 } from "@/lib/page-archetype-v5";
+import { ARCHETYPES, archetypeCssV5, type ArchetypeId } from "@/lib/page-archetype-v5";
+import { checklistV5Mode, checklistV5LiveHints } from "@/lib/checklist-layout-v5";
 import { infoCssV5 } from "@/lib/info-v5";
 import StickyBuyBar from "@/components/StickyBuyBar";
 import { COMPOSITION_V2_ENABLED } from "@/lib/detail-story-order";
@@ -247,7 +248,7 @@ import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/li
 import { uniqueGalleryIndexes, type ImageHashByUrl } from "@/lib/gallery-dedupe";
 import { applyDisplayRules } from "@/lib/display-sections";
 import { isQuestionHeading, personaStripIndexes } from "@/lib/persona-strip";
-import { DESIGN_V4_ENABLED, DESIGN_V4_UP1_ENABLED, hideImgOnError } from "@/lib/design-v4";
+import { DESIGN_V4_ENABLED, DESIGN_V4_UP1_ENABLED, designV5On, hideImgOnError } from "@/lib/design-v4";
 import { noPhotoCss, watchNoPhotoFrames } from "@/lib/photo-fallback";
 import { BANNER_SCRIM_INSET_V4, BANNER_SPLIT_BAND_BG, bannerStyleNow, declObject, tokenStyleObject } from "@/lib/design-tokens-v4";
 import { stepChipV4, reviewCaptionV4, highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, stepTextV4, stepsListV4 } from "@/lib/twin-styles-v4";
@@ -2264,6 +2265,7 @@ function renderSection(
   productThumbs?: ProductThumbs,
   layout: PackLayout = CLASSIC_LAYOUT,
   heroGradientStrength?: number,
+  v5Id?: ArchetypeId | null,
 ) {
   const heroFallback = imageUrls[0] ?? "";
   switch (section.type) {
@@ -2693,6 +2695,72 @@ function renderSection(
                 );
               })}
             </ul>
+          ) : designV5On() && v5Id ? (
+          (() => {
+            const mode = checklistV5Mode(v5Id);
+            const hints = checklistV5LiveHints(mode);
+            return (
+          <ul
+            className={hints.ulClass}
+            data-pz-cl-v5={mode}
+          >
+            {items.map((item, itemIndex) => (
+              <li
+                key={`${itemIndex}-${item.slice(0, 12)}`}
+                className={hints.liClass}
+                style={{
+                  marginLeft: hints.stairOffsetPx(itemIndex) || undefined,
+                  borderColor: boldBlock
+                    ? hexToRgba(BRAND.paper, 0.22)
+                    : hexToRgba(theme.accent, FLAT_SECTION_SURFACES ? 0.16 : 0.24),
+                  backgroundColor: boldBlock
+                    ? hexToRgba(BRAND.paper, 0.08)
+                    : FLAT_SECTION_SURFACES
+                      ? FLAT_PAPER
+                      : hexToRgba(theme.accent, 0.06),
+                  boxShadow: boldBlock || mode === "chips"
+                    ? undefined
+                    : ELEVATION.checklistCard(theme.deepAccent),
+                  flexDirection: hints.iconPlacement === "top" ? "column" : undefined,
+                }}
+              >
+                {FLAT_SECTION_SURFACES ? (
+                  <span
+                    aria-hidden="true"
+                    className={hints.iconPlacement === "top" ? "mb-2.5" : "shrink-0"}
+                    dangerouslySetInnerHTML={{
+                      __html: summaryIconSvg(checklistIcons[itemIndex] ?? "check", boldBlock ? BRAND.paper : readableTextDeep(theme), mode === "cards2" ? 26 : 20),
+                    }}
+                  />
+                ) : (
+                  <ConceptBadgeIcon
+                    src={conceptIcons?.checklist?.[itemIndex]}
+                    theme={theme}
+                    fallbackIndex={itemIndex}
+                    size={INFO_BADGE.defaultSize}
+                    inverted={boldBlock}
+                  />
+                )}
+                <EditableText
+                  as="span"
+                  enabled={edit?.enabled}
+                  value={item}
+                  onChange={(next) => {
+                    const items = [...section.items];
+                    items[itemIndex] = next;
+                    edit?.onChange(index, { ...section, items });
+                  }}
+                  className={TYPO.checklistItem}
+                  style={{
+                    ...(boldBlock ? { color: BRAND.paper } : {}),
+                    ...fitTokenStyle(item),
+                  }}
+                />
+              </li>
+            ))}
+          </ul>
+            );
+          })()
           ) : (
           <ul
             className={`relative ${compactFollow ? "mt-8" : "mt-10"} grid ${
@@ -6260,6 +6328,7 @@ export default function DetailSectionRenderer({
             productThumbs,
             archetypeHeroLayout(packLayout, display.archetype?.hero),
             classicFashionHeroStrength(category, pack, imageRoles),
+            display.v5?.id ?? null,
           );
         }
         if (!content) {

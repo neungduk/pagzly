@@ -1,6 +1,7 @@
 import type { CategoryTheme } from "@/lib/category-theme";
 import { isLongStatValue, isLongUnit, personaClampLines } from "@/lib/robust-462";
-import { ARCHETYPES, archetypeCssV5 } from "@/lib/page-archetype-v5";
+import { ARCHETYPES, archetypeCssV5, type ArchetypeId } from "@/lib/page-archetype-v5";
+import { checklistV5Mode, checklistV5ItemsInnerHtml } from "@/lib/checklist-layout-v5";
 import { infoCssV5 } from "@/lib/info-v5";
 import { rhythmBreakV5 } from "@/lib/rhythm-break-v5";
 import { renderCanvasSectionHtml } from "@/lib/canvas-section-export-html";
@@ -168,7 +169,7 @@ import { applyPackTone, classicFashionHeroStrength, isClassicPack, CLASSIC_LAYOU
 import { archetypeHeroLayout } from "@/lib/archetype-recipes";
 import { HERO_V2_TUNED, heroPalette, heroV2Html } from "@/lib/hero-spec";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
-import { DESIGN_V4_ENABLED, DESIGN_V4_UP1_ENABLED } from "@/lib/design-v4";
+import { DESIGN_V4_ENABLED, DESIGN_V4_UP1_ENABLED, designV5On } from "@/lib/design-v4";
 import { BANNER_SCRIM_INSET_V4, BANNER_SPLIT_BAND_BG, bannerStyleNow, CHIP_V4, LINE_HEIGHT_V4, RADIUS_V4, SPACE_V4, declStyle, tokenStyle } from "@/lib/design-tokens-v4";
 import { stepChipV4, reviewCaptionV4, highlightCardV4, highlightTitleKey, faqCardV4, faqListV4, faqQuestionV4, personaCardV4, personaTextV4, specLabelCellV4, specValueCellV4, specWrapV4, specZebraV4, compareCellV4, compareUnitV4, compareWrapV4, numericColumnV4, splitNumberUnit, aiBodyV4, aiHeadV4, cautionBoxV4, noticeBoxV4, stepTextV4, stepsListV4 } from "@/lib/twin-styles-v4";
 import { ctaTrustHtml, isInterludeV5 } from "@/lib/layout-variants";
@@ -717,6 +718,7 @@ function sectionHtml(
   productThumbs?: ProductThumbs,
   layout: PackLayout = CLASSIC_LAYOUT,
   heroGradientStrength?: number,
+  v5Id?: ArchetypeId | null,
 ): string {
   const sectionIdAttr = anchorId ? ` id="${anchorId}"` : "";
   const pad = "padding:var(--pz-pad-y,48px) var(--pz-pad-x,20px);";
@@ -856,6 +858,24 @@ function sectionHtml(
         return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${checklistHead}
         <ul style="list-style:none;padding:0;margin:40px auto 0;max-width:420px;display:flex;flex-direction:column;gap:14px">${bubblesHtml}</ul></section>`;
+      }
+      if (designV5On() && v5Id) {
+        const mode = checklistV5Mode(v5Id);
+        const border = `1px solid ${section.boldBlock ? "rgba(250,248,243,.22)" : FLAT_SECTION_SURFACES ? hexToRgba(accent, 0.16) : accent + "3d"}`;
+        const background = section.boldBlock ? "rgba(250,248,243,.08)" : FLAT_SECTION_SURFACES ? FLAT_PAPER : accent + "0f";
+        const cells = clItems.map((item, i) => ({
+          iconHtml: FLAT_SECTION_SURFACES
+            ? `<span aria-hidden="true" style="display:flex;justify-content:center;flex:none">${summaryIconSvg(clIcons[i] ?? "check", section.boldBlock ? BRAND.paper : deepText, mode === "cards2" ? 26 : 20)}</span>`
+            : "",
+          textHtml: esc(item),
+          border,
+          background,
+          fg,
+        }));
+        const built = checklistV5ItemsInnerHtml(mode, cells);
+        return `<section${sectionIdAttr} data-pz-cl-v5="${mode}" style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
+        ${checklistHead}
+        <ul class="pagzly-cl-grid" style="${built.ulStyle}">${built.itemsHtml}</ul></section>`;
       }
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${checklistHead}
@@ -2320,6 +2340,7 @@ export function buildDetailPageHtml(opts: {
         productThumbs,
         archetypeHeroLayout(beautyInfoLayout(getPackLayout(pack), opts.category), displayRes.archetype?.hero),
         classicFashionHeroStrength(opts.category, pack, opts.imageRoles),
+        displayRes.v5?.id ?? null,
       );
     }
     if (html) {
