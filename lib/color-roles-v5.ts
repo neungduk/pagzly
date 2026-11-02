@@ -164,11 +164,28 @@ export function colorRolesStyleAttr(roles: ColorRolesV5): string {
 export function colorRolesCssV5(scope: string, id: ArchetypeId): string {
   const s = `${scope}[data-pz-bsig=${id}]`;
   let extra = "";
-  if (id === "luxe") extra = `${s} section[data-pz-face]{padding:0 10%!important}${s} .pagzly-compact-thumb{border-radius:2px!important}`;
-  else if (id === "softlife") extra = `${s} .pagzly-compact-thumb,${s} [data-pz-cl-v5] li{border-radius:999px!important}`;
-  else if (id === "catalog") extra = `${s} [data-pz-it] .pagzly-compact-row{display:grid!important;grid-template-columns:96px 1fr}`;
-  else if (id === "techsheet") extra = `${s} [data-pz-face]{font-variant-numeric:tabular-nums}`;
-  else if (id === "impact" || id === "pop" || id === "narrative") extra = `${s} [data-pz-hl-c="0"]{background:#FAF8F3!important;color:#1B1B18!important}`;
+  // 476 E — 쌍 골격 CSS(짧은 선언만, export 여유)
+  if (id === "luxe")
+    extra =
+      `${s} section[data-pz-face]{padding:0 11%!important}` +
+      `${s} .pagzly-compact-thumb{border-radius:2px!important}` +
+      `${s} [data-pz-sf^="brand_story"],${s} [data-pz-sf^="checklist"]{border-left:1px solid color-mix(in srgb,var(--pz-i) 22%,transparent);padding-left:8%!important;text-align:left!important}`;
+  else if (id === "softlife")
+    extra =
+      `${s} .pagzly-compact-thumb,${s} [data-pz-cl-v5] li{border-radius:999px!important}` +
+      `${s} [data-pz-cl-v5]{gap:18px!important}` +
+      `${s} [data-pz-cl-v5] li{background:color-mix(in srgb,var(--pz-s) 70%,var(--pz-a));padding:14px 18px!important;box-shadow:0 10px 0 -6px color-mix(in srgb,var(--pz-p) 28%,transparent)}`;
+  else if (id === "catalog")
+    extra =
+      `${s} [data-pz-it] .pagzly-compact-row{display:grid!important;grid-template-columns:96px 1fr}` +
+      `${s} .pagzly-gallery-grid3{grid-template-columns:repeat(3,1fr)!important;gap:10px!important}`;
+  else if (id === "techsheet")
+    extra =
+      `${s} [data-pz-face]{font-variant-numeric:tabular-nums}` +
+      `${s} [data-pz-sf^="checklist"] li,${s} .pagzly-spec-row{border-bottom:1px dashed color-mix(in srgb,var(--pz-i) 28%,transparent);padding:8px 0!important}` +
+      `${s} [data-pz-hl-g]{display:grid!important;grid-template-columns:1fr 1fr;gap:8px!important}`;
+  else if (id === "impact" || id === "pop" || id === "narrative")
+    extra = `${s} [data-pz-hl-c="0"]{background:#FAF8F3!important;color:#1B1B18!important}`;
   return (
     `${s}{background:var(--pz-s);color:var(--pz-i)}` +
     `${s} section[data-pz-face]{background:var(--pz-s)!important;color:var(--pz-i)!important}` +

@@ -99,7 +99,8 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
     hero: ["D", "B"],
     banner: ["split", "card-only"],
     infoBackdrop: "scrim-light",
-    prefer: { benefits: ["rows2", "numcards", "stagger"], concern: ["tiles2", "offset", "stack"], story: ["chapter", "linetime"], spec: ["grid", "strip"], phototext: ["stack", "caption", "split"], steps: ["bignum", "vtimeline"], faq: ["twocol", "chat"], proof: ["wall", "badges"], touch: ["ticket", "band"], statement: ["band", "ticker", "rule"], stats: ["trio", "bignum"], gallery: ["mosaic", "polaroid"] },
+    // 476 E — catalog: 이미지 격자 골격(gallery·phototext 우선). techsheet(표·숫자)와 가름
+    prefer: { benefits: ["rows2", "numcards", "stagger"], concern: ["tiles2", "offset", "stack"], story: ["chapter", "linetime"], spec: ["grid", "strip"], phototext: ["stack", "caption", "split"], steps: ["bignum", "vtimeline"], faq: ["twocol", "chat"], proof: ["wall", "badges"], touch: ["ticket", "band"], statement: ["band", "ticker", "rule"], stats: ["trio", "bignum"], gallery: ["mosaic", "polaroid", "deck"] },
   },
   softlife: {
     id: "softlife", radius: 1.6, pill: "keep", border: { w: 1, style: "solid", alphaMul: 0.8 }, shadow: { kind: "warm", offset: 0 }, paper: "#FFFBF6", face: "tintAlt",
@@ -108,7 +109,8 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
     hero: ["B", "D"],
     banner: ["card-only", "split"],
     infoBackdrop: "photo-plain",
-    prefer: { benefits: ["stagger", "iconlist", "zigzag"], concern: ["bubbles", "offset", "deck"], story: ["letter", "quote"], spec: ["cards", "tags"], phototext: ["bleed", "polaroid", "offset"], steps: ["chipflow", "vtimeline"], faq: ["chat", "qband"], proof: ["lead", "seal"], touch: ["ticket", "band"], statement: ["band", "rule"], stats: ["rings", "trio"], gallery: ["deck", "polaroid", "mosaic"] },
+    // 476 E — softlife: 둥근 겹침·아이콘 큰 목록(체크·스토리). luxe와 장면 단위로 가름
+    prefer: { benefits: ["iconlist", "stagger", "zigzag"], concern: ["bubbles", "deck", "offset"], story: ["quote", "letter"], spec: ["cards", "tags"], phototext: ["polaroid", "bleed", "offset"], steps: ["chipflow", "vtimeline"], faq: ["chat", "qband"], proof: ["seal", "lead"], touch: ["ticket", "band"], statement: ["band", "rule"], stats: ["rings", "trio"], gallery: ["deck", "polaroid", "mosaic"] },
   },
   impact: {
     id: "impact", radius: 0.5, pill: 6, border: { w: 3, style: "solid", alphaMul: 5 }, shadow: { kind: "hard", offset: 4 }, paper: "#FFFFFF", face: "blockAlt",
@@ -126,7 +128,8 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
     hero: ["B", "D"],
     banner: ["split", "card-only"],
     infoBackdrop: "scrim-light",
-    prefer: { benefits: ["iconlist", "linelist", "rows2"], concern: ["checkrows", "deck", "stack"], story: ["linetime", "chapter"], spec: ["panel", "strip"], phototext: ["caption", "dframe", "overlap"], steps: ["vtimeline", "bignum"], faq: ["numlist", "tabs"], proof: ["lead", "badges"], touch: ["ledger", "ticket"], statement: ["rule", "band"], stats: ["trio", "rings"], gallery: ["mosaic", "polaroid"] },
+    // 476 E — techsheet: 표·숫자(spec panel·checkrows·stats) 중심. catalog 이미지 격자와 가름
+    prefer: { benefits: ["linelist", "iconlist", "rows2"], concern: ["checkrows", "stack", "deck"], story: ["linetime", "chapter"], spec: ["panel", "strip", "grid"], phototext: ["caption", "dframe", "overlap"], steps: ["vtimeline", "bignum"], faq: ["numlist", "tabs"], proof: ["lead", "badges"], touch: ["ledger", "ticket"], statement: ["rule", "band"], stats: ["trio", "rings", "bignum"], gallery: ["mosaic", "polaroid"] },
   },
   narrative: {
     id: "narrative", radius: 1, pill: "keep", border: { w: 1, style: "solid", alphaMul: 1 }, shadow: { kind: "soft", offset: 0 }, paper: "#FDFBF8", face: "tintAlt",
@@ -142,7 +145,8 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
     hero: ["E", "D"],
     banner: ["split", "card-only"],
     infoBackdrop: "scrim-light",
-    prefer: { benefits: ["iconstrip", "numcards", "stagger"], concern: ["tiles2", "offset", "stack"], story: ["letter", "editorial", "pullout"], spec: ["line", "strip"], phototext: ["dframe", "split", "caption"], steps: ["vtimeline", "chipflow"], faq: ["qband", "chat"], proof: ["seal", "lead"], touch: ["ledger", "band"], statement: ["rule", "band"], stats: ["bignum", "trio"], gallery: ["polaroid", "mosaic"] },
+    // 476 E — luxe: 좌우 비대칭·가는 선·여백 큰 한 문장(story editorial). softlife와 가름
+    prefer: { benefits: ["iconstrip", "numcards", "stagger"], concern: ["tiles2", "stack", "offset"], story: ["editorial", "pullout", "letter"], spec: ["line", "strip"], phototext: ["dframe", "split", "caption"], steps: ["vtimeline", "chipflow"], faq: ["qband", "chat"], proof: ["seal", "lead"], touch: ["ledger", "band"], statement: ["rule", "band"], stats: ["bignum", "trio"], gallery: ["polaroid", "mosaic"] },
   },
   pop: {
     id: "pop", radius: 1.8, pill: "keep", border: { w: 2, style: "solid", alphaMul: 4 }, shadow: { kind: "hard", offset: 3 }, paper: "#FFFDF4", face: "colorCollide",
