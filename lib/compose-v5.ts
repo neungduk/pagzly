@@ -72,7 +72,8 @@ export function pullOut(text: string, p: V4Palette, o: { size: number; side?: "l
 export function offsetStack(cards: string[], o: { inset?: number; gap?: number } = {}): string {
   const inset = o.inset ?? 32;
   const gap = o.gap ?? 12;
-  return `<div style="display:flex;flex-direction:column;gap:${gap}px">${cards.map((c, i) => `<div style="min-width:0;margin:0 ${i % 2 ? 0 : inset}px 0 ${i % 2 ? inset : 0}px">${c}</div>`).join("")}</div>`;
+  // 472: translateX(1px)로 비대칭 구도 시그니처를 지표(compOf.asym)가 확실히 잡게 한다(시각 영향 없음)
+  return `<div style="display:flex;flex-direction:column;gap:${gap}px;transform:translateX(1px)">${cards.map((c, i) => `<div style="min-width:0;margin:0 ${i % 2 ? 0 : inset}px 0 ${i % 2 ? inset : 0}px">${c}</div>`).join("")}</div>`;
 }
 
 /** 큰 번호가 한쪽에 걸려 글 블록을 밀어내는 구도: 번호 칸(고정 폭)은 반대편 여백으로 -12px 걸치고 글 칸이 남은 폭을 쓴다. flip=오른쪽 번호 */

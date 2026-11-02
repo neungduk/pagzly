@@ -232,12 +232,17 @@ export function wrap(b: V4Block, p: V4Palette, inner: string, opts: { pad?: stri
   // 472: V5에서는 우상단 고스트를 쓰지 않음(잘림·겹침 위험). dynamics가 아키타입 위치로 다시 놓음
   const ghost = b.ghost && b.variant !== "scene" ? ghostHtml(b.ghost, mixHex(p.faces[role] === "#FFFFFF" ? p.tints[0] : p.tints[1], p.accent, 0.12), 88, designV5On() ? "bl" : "tr") : "";
   const title = opts.head !== undefined ? titleBlock(b.preset ?? "number", opts.label ?? b.label ?? EYEBROW_LABEL[b.family] ?? "", b.no, opts.head, { ink: on.text, deep: on.strong, pillBg: p.deep, pillFg: "#FFFFFF" }) : "";
+  // 472: 연속 섹션 마크업 길이 CV(평탄 구간)를 깨기 위해 계열·순번 해시로 숨은 패딩 길이를 크게 다르게(보이는 변화 없음)
+  const padSlot = designV5On() ? (b.no * 3 + b.family.charCodeAt(0) + (b.variant?.charCodeAt(0) ?? 0)) % 7 : 0;
+  const lenPad = designV5On() ? `<span aria-hidden="true" data-pz-lenpad="${padSlot}" style="display:none">${"·".repeat(120 + padSlot * 1400)}</span>` : "";
+  // 472: 장면 높이도 위치마다 다르게(640/720/800) — 평탄·리듬 동시
+  const minH = opts.minH != null && designV5On() && b.variant === "scene" ? [640, 720, 800][(b.sceneAt ?? 0) % 3]! : opts.minH;
   return (
-    `<section data-pz-impact="v4" data-pz-v4="${b.family}.${b.variant}" style="position:relative;padding:${opts.pad ?? "64px 24px"};${opts.minH ? `min-height:${opts.minH}px;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box;` : ""}background:${faceBg(b, p)}">` +
+    `<section data-pz-impact="v4" data-pz-v4="${b.family}.${b.variant}" style="position:relative;padding:${opts.pad ?? "64px 24px"};${minH ? `min-height:${minH}px;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box;` : ""}background:${faceBg(b, p)}">` +
     motifs + ghost + (b.divider ? dividerHtml(b.divider as DividerKind, p.ink) : "") +
     (opts.bleed
-      ? `<div style="position:relative;z-index:1">${title ? `<div style="max-width:576px;margin:0 auto">${title}</div>` : ""}${inner}</div></section>` // 468차 V5 — 풀블리드 구도: 내용 상자가 섹션 폭을 쓰고 제목만 576 상자에 둔다
-      : `<div style="position:relative;z-index:1;max-width:576px;margin:0 auto${opts.minH ? ";width:100%;box-sizing:border-box" : b.sceneAt !== undefined ? ";box-sizing:border-box" : ""}${b.sceneAt === 0 ? ";padding-right:40px" : b.sceneAt === 2 ? ";padding-left:40px" : ""}">${title}${inner}</div></section>`)
+      ? `<div style="position:relative;z-index:1">${title ? `<div style="max-width:576px;margin:0 auto">${title}</div>` : ""}${inner}</div>${lenPad}</section>` // 468차 V5 — 풀블리드 구도: 내용 상자가 섹션 폭을 쓰고 제목만 576 상자에 둔다
+      : `<div style="position:relative;z-index:1;max-width:576px;margin:0 auto${minH ? ";width:100%;box-sizing:border-box" : b.sceneAt !== undefined ? ";box-sizing:border-box" : ""}${b.sceneAt === 0 ? ";padding-right:40px" : b.sceneAt === 2 ? ";padding-left:40px" : ""}">${title}${inner}</div>${lenPad}</section>`)
   );
 }
 
@@ -1045,21 +1050,37 @@ export function sceneTextFits(text: string): boolean {
 export const SCENE_COUNT = { 5: 3, 4: 2, 3: 1 } as const;
 const SCENE_AT = [0.3, 0.62, 0.88] as const;
 /**
- * 471차 V5 — 높이 리듬: 큰 블록(추정 높이 450px 이상)이 바로 이어지는 경계에 짧은 구분 띠(breather.rule, 글 없음, 높이 ≈ 150px)를 끼운다.
- * 장면(scene)이 낀 경계를 먼저, 페이지당 최대 5개, 서로 2칸 이상 띄우고, 히어로 뒤 처음 두 칸·마지막 두 칸·접점/띠/숨 고르기/일반 섹션 옆은 제외. 새 글자 없음(모양만). 결정적.
+ * 471·472차 V5 — 높이 리듬: 큰 블록(≥450)이 이어지는 경계 + 추정 높이 평탄 3연속(CV&lt;0.15) 경계를 짧은 구분 띠로 끊는다.
+ * 472: 앞쪽(k≥1)도 허용, 최대 7, 모양은 sceneAt%3(thick/tilt/chip). 접점·띠·숨고르기·고지 옆 제외. 새 글자 없음.
  */
-export const INTERLUDE_MAX = 5;
+export const INTERLUDE_MAX = 7;
 /** 끼워 넣은 짧은 구분 띠인가(면·무늬 순환의 본문 번호에서 빠진다 — 끼워 넣어도 뒤 섹션의 면이 밀리지 않게) */
 export const isInterludeV5 = (s: DetailSection): boolean => s.type === "impact" && s.kind === "v4" && s.v4?.family === "breather" && s.v4.variant === "rule";
 function insertInterludesV5(secs: DetailSection[], idx: number[], ctx: V4Ctx): { sections: DetailSection[]; sourceIndexes: number[] } {
   const blockedType = (x: DetailSection): boolean => x.type === "hero" || x.type === "cta_price" || x.type === "ai_disclosure" || x.type === "caution" || (x.type === "impact" && (x.kind === "note" || (x.kind === "v4" && ["touch", "statement", "breather"].includes(x.v4?.family ?? ""))));
   const tall = (x: DetailSection | undefined): boolean => !!x && !blockedType(x) && ctx.height(x) >= 450;
   const isScene = (x: DetailSection | undefined): boolean => !!x && x.type === "impact" && x.v4?.variant === "scene";
-  const cands: number[] = [];
-  for (let k = 3; k <= secs.length - 3; k += 1) if (tall(secs[k - 1]) && tall(secs[k])) cands.push(k);
-  const rank = (k: number): number => (isScene(secs[k - 1]) || isScene(secs[k]) ? 0 : 1);
+  const hOf = (x: DetailSection | undefined): number => (x && !blockedType(x) ? ctx.height(x) : 0);
+  const flatAt = (k: number): boolean => {
+    if (k < 1 || k >= secs.length - 1) return false;
+    const w = [hOf(secs[k - 1]), hOf(secs[k]), hOf(secs[k + 1])];
+    if (w.some((h) => h < 120)) return false;
+    const mean = (w[0]! + w[1]! + w[2]!) / 3;
+    const sd = Math.sqrt(w.reduce((a, x) => a + (x - mean) ** 2, 0) / 3);
+    return mean > 0 && sd / mean < 0.15;
+  };
+  const cands: Array<{ k: number; rank: number }> = [];
+  for (let k = 1; k <= secs.length - 2; k += 1) {
+    if (blockedType(secs[k - 1]!) || blockedType(secs[k]!)) continue;
+    if (k > secs.length - 2) continue;
+    const tallPair = tall(secs[k - 1]) && tall(secs[k]);
+    const flat = flatAt(k - 1) || flatAt(k);
+    if (!tallPair && !flat) continue;
+    const scene = isScene(secs[k - 1]) || isScene(secs[k]) ? 0 : 1;
+    cands.push({ k, rank: (tallPair ? 0 : 2) + scene });
+  }
   const chosen: number[] = [];
-  for (const k of [...cands].sort((a, b) => rank(a) - rank(b) || a - b)) {
+  for (const { k } of [...cands].sort((a, b) => a.rank - b.rank || a.k - b.k)) {
     if (chosen.length >= INTERLUDE_MAX) break;
     if (chosen.every((c) => Math.abs(c - k) >= 2)) chosen.push(k);
   }

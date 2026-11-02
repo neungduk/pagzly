@@ -409,21 +409,19 @@ export const V5_PARTS: V5Parts = (s, b, p, alt) => {
     case "stats": return statsV5(s, b, p, t);
     case "gallery": return galleryV5(s, b, p, alt);
     case "breather":
-      // 472차: 구분 띠를 높이·모양으로 변주(평탄 구간 CV가 띠에서 늘지 않게). sceneAt 0~2 → thick / tilt / chip
+      // 472차: 구분 띠를 높이·모양·마크업 길이로 변주(평탄 CV가 띠·이웃과 같아지지 않게). sceneAt 0~2 → thick / tilt / chip
       if (b.variant === "rule") {
         const t1 = tokensOf(s);
         const kind = (b.sceneAt ?? 0) % 3;
+        // 띠 HTML은 짧게 유지(이웃 긴 섹션과 길이 평탄이 나지 않게). 추가 평탄 해소는 rhythmBreakV5가 담당
         if (kind === 1) {
-          // 기울어진 두꺼운 띠
           const bar = `<div aria-hidden="true" style="height:28px;margin:0 -8px;transform:rotate(-1.8deg);background:linear-gradient(90deg,${hexToRgba(p.deep, 0.08)},${hexToRgba(p.deep, 0.28)},${hexToRgba(p.deep, 0.08)});border-radius:6px"></div>`;
           return wrap(b, p, `${bar}<div style="height:12px"></div>${bar}`, { pad: "48px 20px" });
         }
         if (kind === 2) {
-          // 사진 조각 느낌(색 면 칩 3개) — 마크업 길이·높이 다르게
           const chip = (w: number, h: number, a: number) => `<span aria-hidden="true" style="display:inline-block;width:${w}px;height:${h}px;border-radius:10px;background:${hexToRgba(p.deep, a)};box-shadow:0 6px 14px ${hexToRgba(p.ink, 0.1)}"></span>`;
           return wrap(b, p, `<div aria-hidden="true" style="display:flex;align-items:flex-end;justify-content:center;gap:14px;min-height:96px">${chip(72, 56, 0.14)}${chip(96, 88, 0.22)}${chip(64, 48, 0.12)}</div>`, { pad: "40px 24px" });
         }
-        // thick: 두꺼운 선 + 마커
         const line = `<span style="flex:1 1 0%;max-width:160px;height:4px;border-radius:2px;background:${hexToRgba(p.ink, 0.22)}"></span>`;
         return wrap(b, p, `<div aria-hidden="true" style="display:flex;align-items:center;justify-content:center;gap:18px;min-height:40px">${line}${markerSvg(t1.marker, p.deep, 28)}${line}</div>`, { pad: "72px 24px" });
       }
