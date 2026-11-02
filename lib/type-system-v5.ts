@@ -70,11 +70,12 @@ export function typeSystemCssV5(scope: string, id: ArchetypeId): string {
   const b = p.body === p.title ? "var(--pz-v5-title)" : V5_FONT_CSS[p.body].stack;
   const n = p.num === p.title ? "var(--pz-v5-title)" : p.num === p.body ? "var(--pz-v5-body)" : V5_FONT_CSS[p.num].stack;
   const r = `${scope}[data-pz-bsig=${id}]`;
-  // tw/tt/tlh는 값 인라인(변수 반복 절약). measure는 max-width에 직접.
+  // tw/tt/tlh·measure 인라인. num=title이면 숫자 규칙 생략(상속).
+  const numRule = p.num === p.title || p.num === p.body ? "" : `${r} :is(.pagzly-run-num,[data-pz-bs-stat]){font-family:var(--pz-v5-num)!important}`;
   return (
     `${r}{--pz-v5-title:${t};--pz-v5-body:${b};--pz-v5-num:${n};font:${p.bodySize}px/${p.bodyLh} var(--pz-v5-body)}` +
     `${r} :is(h1,h2,[data-pz-title],[data-hero-name],.pagzly-display-headline){font-family:var(--pz-v5-title)!important;font-weight:${p.titleWeight}!important;letter-spacing:${p.titleTracking};line-height:${p.titleLh}}` +
-    `${r} :is(.pagzly-run-num,[data-pz-bs-stat]){font-family:var(--pz-v5-num)!important}` +
+    numRule +
     `${r} [data-pz-body]{max-width:${p.measureCh}ch}`
   );
 }

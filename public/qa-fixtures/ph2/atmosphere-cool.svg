@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 750" width="600" height="750">
+  <defs>
+    <linearGradient id="bg" x1="0.1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E4EEF5"/><stop offset="0.5" stop-color="#C5D8E8"/><stop offset="1" stop-color="#8FA9C4"/></linearGradient>
+    <radialGradient id="glow" cx="0.7" cy="0.18" r="0.65"><stop offset="0" stop-color="#fff" stop-opacity="0.65"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <radialGradient id="sh" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#000" stop-opacity="0.4"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+    <filter id="n" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="matrix" values="0 0 0 0 0.05  0 0 0 0 0.1  0 0 0 0 0.18  0 0 0 0.07 0"/></filter>
+  </defs>
+  <rect width="600" height="750" fill="url(#bg)"/>
+  <rect width="600" height="750" fill="url(#glow)"/>
+  <ellipse cx="300" cy="580" rx="200" ry="26" fill="url(#sh)"/>
+  <rect x="180" y="220" width="240" height="300" rx="16" fill="#F2F6FA" opacity="0.5"/>
+  <rect x="210" y="260" width="180" height="220" rx="8" fill="#6B8CAE" opacity="0.28"/>
+  <rect width="600" height="750" filter="url(#n)" opacity="0.5"/>
+</svg>

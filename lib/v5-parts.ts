@@ -20,6 +20,7 @@ import { bleedPhoto, cardFace, heroNumber, layerDeck, offsetStack, pullOut, spli
 import { fitTitlePx } from "@/lib/page-archetype-v5";
 import { SCENE_MIN_PX } from "@/lib/layout-variants";
 import { BODY_SIG } from "@/lib/body-sig-v5";
+import { PHOTO_COMPOSE_V5, composeBleedScrim, composeCollage, composeCrop, composeHang, composeMask, type MaskShape } from "@/lib/photo-compose-v5";
 
 /** 320폭 가용 폭(px) — page-archetype-v5.FIT_AVAIL_PX와 같은 값 */
 const FIT_AVAIL = 272;
@@ -253,6 +254,36 @@ function phototextV5(s: ImpactSection, b: V4Block, p: V4Palette, alt: string, t:
   const title = `<p style="margin:0;overflow-wrap:anywhere;${typeCss("title", p.ink, "font-size:22px")}">${headingHtml(it.title, b, p)}</p>`;
   const text = (center = false) => `<div${center ? ' style="text-align:center"' : ""}>${title}${bodyP(it.body, p, on.sub, 10)}</div>`;
   const frame = t.frames[0] ?? "rect";
+  // 474: 아키타입 주 사진 구도. scene·callout은 기존 장면/주석 레이어 유지(회귀 장면 수)
+  const pc = PHOTO_COMPOSE_V5[t.id];
+  if (b.variant !== "callout" && b.variant !== "scene" && (b.no % 3 === 1 || b.variant === "bleed" || b.variant === "stack")) {
+    if (pc === "bleed") {
+      const light =
+        `<p style="margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.3;color:#fff;word-break:keep-all;overflow-wrap:anywhere">${headingHtml(it.title, b, p)}</p>` +
+        (it.body ? `<p style="margin:10px 0 0;font-size:15px;line-height:1.65;color:rgba(255,255,255,.88);white-space:pre-line;word-break:keep-all;overflow-wrap:anywhere">${esc(it.body)}</p>` : "");
+      return wrap(b, p, composeBleedScrim(it.img, alt, light, p), { bleed: true });
+    }
+    if (pc === "hang") {
+      return wrap(
+        b,
+        p,
+        `${composeHang(it.img, alt, p)}<div style="margin-top:64px;display:flex;gap:14px;align-items:flex-start">${numberMark(t.number, 0, b, p)}<div style="flex:1 1 0%;min-width:0">${title}${bodyP(it.body, p, on.sub, 8)}</div></div>`,
+        { bleed: true },
+      );
+    }
+    if (pc === "crop") {
+      return wrap(b, p, `${composeCrop(it.img, alt, p)}<div style="margin-top:22px;display:flex;gap:14px;align-items:flex-start">${numberMark(t.number, 0, b, p)}<div style="flex:1 1 0%;min-width:0">${title}${bodyP(it.body, p, on.sub, 8)}</div></div>`);
+    }
+    if (pc === "mask") {
+      const shapes: MaskShape[] = ["arch", "circle", "wave", "slash"];
+      return wrap(b, p, `${composeMask(it.img, alt, p, shapes[b.no % 4]!)}<div style="margin-top:22px">${text(true)}</div>`);
+    }
+    if (pc === "collage") {
+      const imgs = (b.items ?? []).map((x) => x.img).filter((x): x is { url: string; pos?: string } => !!x?.url);
+      const pair = imgs.length >= 2 ? imgs : [it.img, it.img];
+      return wrap(b, p, `${composeCollage(pair, alt, p, { flip: b.no % 2 === 0 })}<div style="margin-top:22px">${text(false)}</div>`, { bleed: true });
+    }
+  }
   if (b.variant === "stack") {
     return wrap(b, p,
       `${photoFrame(frame === "arch" ? "rect" : frame, it.img.url, alt, it.img.pos, p, "16 / 10")}` +
@@ -423,7 +454,7 @@ function galleryV5(s: ImpactSection, b: V4Block, p: V4Palette, alt: string): str
   }
   if (b.variant === "mosaic") return wrap(b, p, mosaic(imgs, p, a, { seed: b.no * 31 }), { head });
   if (b.variant === "polaroid") return wrap(b, p, polaroidStack(imgs, p, a, { seed: b.no * 17 }), { head });
-  if (b.variant === "deck") return wrap(b, p, layerDeck(imgs, a, p, { flip: b.no % 2 === 0 }), { head });
+  if (b.variant === "deck") return wrap(b, p, composeCollage(imgs, a, p, { flip: b.no % 2 === 0 }) || layerDeck(imgs, a, p, { flip: b.no % 2 === 0 }), { head });
   return null;
 }
 

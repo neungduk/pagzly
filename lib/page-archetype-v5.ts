@@ -23,6 +23,7 @@ import type { HeroV2Variant } from "@/lib/hero-spec";
 import { HERO_STACK, heroStackCssV5 } from "@/lib/hero-stack-v5";
 import { BODY_SIG, bodySigCssV5 } from "@/lib/body-sig-v5";
 import { typeSystemCssV5 } from "@/lib/type-system-v5";
+import { photoComposeCssV5 } from "@/lib/photo-compose-v5";
 import { hueShift } from "@/lib/color-extract";
 
 export const ARCHETYPE_IDS = ["editorial", "catalog", "softlife", "impact", "techsheet", "narrative", "luxe", "pop"] as const;
@@ -360,6 +361,7 @@ export function archetypeCssV5(scope: string, mode: "live" | "export", t: Archet
   rules.push(heroStackCssV5(scope, t.id, stackInk));
   rules.push(bodySigCssV5(scope, t.id));
   rules.push(typeSystemCssV5(scope, t.id));
+  rules.push(photoComposeCssV5(scope, t.id));
   rules.push(noPhotoCssV5(scope, ink));
   return rules.join("");
 }
