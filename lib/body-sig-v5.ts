@@ -40,47 +40,10 @@ export function recipeBodySigDiff(a: ArchetypeId, b: ArchetypeId): number {
   return bodySigDiff(BODY_SIG[a], BODY_SIG[b]);
 }
 
-const IMP = "!important";
-const rule = (sel: string, decl: string): string => `${sel}{${decl.split(";").filter(Boolean).map((d) => `${d}${IMP}`).join(";")}}`;
-
-/** 본문 시그니처 CSS — 섹션 표식 data-pz-bsig / data-pz-ax-done */
+/**
+ * 본문 시그니처 CSS — 변수만(페이지 루트 data-pz-bsig). body-sig-473이 --pz-bs-* 를 읽는다.
+ */
 export function bodySigCssV5(scope: string, id: ArchetypeId): string {
   const s = BODY_SIG[id];
-  const root = `${scope} [data-pz-bsig="${id}"]`;
-  const out: string[] = [];
-  out.push(`${root}:not([data-pz-bs="meta"]){--pz-bs-num:${s.num};--pz-bs-list:${s.list};--pz-bs-stat:${s.stat};--pz-bs-rule:${s.rule};--pz-bs-r:${s.radius};--pz-bs-sh:${s.shadow}}`);
-  // 구분선 어휘
-  switch (s.rule) {
-    case "thin": out.push(rule(`${root} [data-pz-v4^="benefits"],${root}[data-pz-v4^="benefits"]`, "border-bottom:1px solid rgba(27,27,24,0.12)")); break;
-    case "thick": out.push(rule(`${root}[data-pz-v4^="benefits"],${root}[data-pz-v4^="spec"]`, "border-top:3px solid currentColor")); break;
-    case "dash": out.push(rule(`${root}[data-pz-v4^="benefits"]`, "border-bottom:2px dashed rgba(27,27,24,0.25)")); break;
-    case "dot": out.push(rule(`${root}[data-pz-v4^="story"],${root}[data-pz-v4^="concern"]`, "border-bottom:2px dotted rgba(27,27,24,0.3)")); break;
-    case "slant": out.push(rule(`${root}[data-pz-v4^="benefits"]`, "border-top:3px solid currentColor;transform:none")); break;
-    case "wave": out.push(rule(`${root}[data-pz-v4^="benefits"]`, "border-bottom:2px solid rgba(27,27,24,0.15)")); break;
-    case "double": out.push(rule(`${root}[data-pz-v4^="story"],${root}[data-pz-v4^="benefits"]`, "border-top:1px solid rgba(27,27,24,0.2);border-bottom:1px solid rgba(27,27,24,0.2)")); break;
-    default: break;
-  }
-  // 목록 모양 힌트(카드 패딩·정렬) — 렌더 분기와 맞춤
-  switch (s.list) {
-    case "stair": out.push(rule(`${root}[data-pz-v4^="benefits"] [data-pz-bs-list]>*`, "margin-left:calc(var(--i,0)*12px)")); break;
-    case "chip": out.push(rule(`${root}[data-pz-v4^="benefits"] [data-pz-bs-list]`, "display:flex;flex-wrap:wrap;gap:8px")); break;
-    case "card": out.push(rule(`${root}[data-pz-v4^="benefits"] [data-pz-bs-list]>*`, "padding:16px;border-radius:16px;background:#FFFFFF")); break;
-    case "rows": out.push(rule(`${root}[data-pz-v4^="benefits"] [data-pz-bs-list]`, "display:grid;grid-template-columns:1fr 1fr;gap:10px")); break;
-    case "bento": out.push(rule(`${root}[data-pz-v4^="benefits"] [data-pz-bs-list]>*:first-child`, "grid-column:1/-1")); break;
-    case "check": out.push(rule(`${root}[data-pz-v4^="concern"] [data-pz-bs-list]>*,${root}[data-pz-v4^="benefits"] [data-pz-bs-list]>*`, "padding-left:8px")); break;
-    case "timeline": out.push(rule(`${root}[data-pz-v4^="benefits"] [data-pz-bs-list]`, "border-left:2px solid currentColor;padding-left:16px")); break;
-    default: break;
-  }
-  // 큰 수치
-  switch (s.stat) {
-    case "huge": out.push(rule(`${root}[data-pz-v4^="spec"] [data-pz-bs-stat]`, "font-size:40px;font-weight:900;letter-spacing:-0.04em")); break;
-    case "trio": out.push(rule(`${root}[data-pz-v4^="spec"] [data-pz-bs-stat]`, "font-size:28px;font-weight:900;text-align:center")); break;
-    case "bar": out.push(rule(`${root}[data-pz-v4^="spec"] [data-pz-bs-stat]`, "font-size:22px;font-weight:800;border-bottom:2px solid currentColor")); break;
-    case "ring": out.push(rule(`${root}[data-pz-v4^="spec"] [data-pz-bs-stat]`, "font-size:26px;font-weight:900;text-align:center")); break;
-    case "boxed": out.push(rule(`${root}[data-pz-v4^="spec"] [data-pz-bs-stat]`, "font-size:30px;font-weight:900;padding:8px 12px;border:2px solid currentColor")); break;
-    case "flush": out.push(rule(`${root}[data-pz-v4^="spec"] [data-pz-bs-stat]`, "font-size:24px;font-weight:600;letter-spacing:0.04em")); break;
-    case "stack": out.push(rule(`${root}[data-pz-v4^="spec"] [data-pz-bs-stat]`, "font-size:32px;font-weight:900;display:block")); break;
-    default: out.push(rule(`${root}[data-pz-v4^="spec"] [data-pz-bs-stat]`, "font-size:20px;font-weight:700")); break;
-  }
-  return out.join("");
+  return `${scope}[data-pz-bsig="${id}"]{--pz-bs-num:${s.num};--pz-bs-list:${s.list};--pz-bs-stat:${s.stat};--pz-bs-rule:${s.rule};--pz-bs-r:${s.radius};--pz-bs-sh:${s.shadow}}`;
 }

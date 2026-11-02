@@ -861,23 +861,26 @@ function sectionHtml(
       }
       if (designV5On() && v5Id) {
         const mode = checklistV5Mode(v5Id);
-        const border = `1px solid ${section.boldBlock ? "rgba(250,248,243,.22)" : FLAT_SECTION_SURFACES ? hexToRgba(accent, 0.16) : accent + "3d"}`;
-        const background = section.boldBlock ? "rgba(250,248,243,.08)" : FLAT_SECTION_SURFACES ? FLAT_PAPER : accent + "0f";
-        const cells = clItems.map((item, i) => ({
-          iconHtml: FLAT_SECTION_SURFACES
-            ? `<span aria-hidden="true" style="display:flex;justify-content:center;flex:none">${summaryIconSvg(clIcons[i] ?? "check", section.boldBlock ? BRAND.paper : deepText, mode === "cards2" ? 26 : 20)}</span>`
-            : "",
-          textHtml: esc(item),
-          border,
-          background,
-          fg,
-        }));
-        const built = checklistV5ItemsInnerHtml(mode, cells);
-        return `<section${sectionIdAttr} data-pz-cl-v5="${mode}" style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
+        if (mode !== "cards2") {
+          const border = `1px solid ${section.boldBlock ? "rgba(250,248,243,.22)" : FLAT_SECTION_SURFACES ? hexToRgba(accent, 0.16) : accent + "3d"}`;
+          const background = section.boldBlock ? "rgba(250,248,243,.08)" : FLAT_SECTION_SURFACES ? FLAT_PAPER : accent + "0f";
+          const cells = clItems.map((item, i) => ({
+            iconHtml: FLAT_SECTION_SURFACES
+              ? `<span aria-hidden="true" style="display:flex;justify-content:center;flex:none">${summaryIconSvg(clIcons[i] ?? "check", section.boldBlock ? BRAND.paper : deepText, 20)}</span>`
+              : "",
+            textHtml: esc(item),
+            border,
+            background,
+            fg,
+          }));
+          const built = checklistV5ItemsInnerHtml(mode, cells);
+          return `<section${sectionIdAttr} data-pz-cl-v5="${mode}" style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${checklistHead}
         <ul class="pagzly-cl-grid" style="${built.ulStyle}">${built.itemsHtml}</ul></section>`;
+        }
       }
-      return `<section${sectionIdAttr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
+      const clV5Attr = designV5On() && v5Id ? ` data-pz-cl-v5="${checklistV5Mode(v5Id)}"` : "";
+      return `<section${sectionIdAttr}${clV5Attr} style="${pad}${sectionInset}${sectionBgStyle(bg, category)};color:${fg}">
         ${checklistHead}
         <ul class="pagzly-cl-grid" style="list-style:none;padding:0;margin:0;gap:${FLAT_SECTION_SURFACES ? checklistGapCss(category) : "12px"};${checklistGridCss(section.items, category)}">
           ${clItems
@@ -2534,7 +2537,7 @@ ${NO_PHOTO_EXPORT_SCRIPT}` : ""}
 </style>
 </head>
 <body>
-<div class="pagzly-wrap"${DESIGN_V4_ENABLED ? " data-pz-typefloor" : ""}>
+<div class="pagzly-wrap"${DESIGN_V4_ENABLED ? " data-pz-typefloor" : ""}${displayRes.v5 ? ` data-pz-bsig="${displayRes.v5.id}"` : ""}>
 <header style="padding:14px 20px;border-bottom:1px solid #DAD5C9;font-size:${FONT_SIZE.xs};opacity:.65">${esc(opts.category)} · ${esc(opts.productName)}</header>
 ${anchorNavAfterHero ? "" : anchorNavHtml}
 ${body}

@@ -319,9 +319,8 @@ export function applyArchetypeHtml(html: string, t: ArchetypeTokens, c: Archetyp
     const end = out.lastIndexOf("</section>");
     if (end > 0) out = `${out.slice(0, end)}${deco}${out.slice(end)}`;
   }
-  // 473: 본문 시각 시그니처 표식(6칸)
-  const bs = BODY_SIG[t.id];
-  return out.replace(/^(\s*<section)/, `$1 data-pz-ax-done="${t.id}" data-pz-bsig="${t.id}" data-pz-bs-num="${bs.num}" data-pz-bs-list="${bs.list}" data-pz-bs-stat="${bs.stat}" data-pz-bs-rule="${bs.rule}" data-pz-bs-r="${bs.radius}" data-pz-bs-sh="${bs.shadow}"`);
+  // 473: data-pz-bsig는 페이지 루트에 1회. ax-done 값은 1글자(export 다이어트)
+  return out.replace(/^(\s*<section)/, `$1 data-pz-ax-done="1"`);
 }
 
 // ── 일반 섹션 래퍼 CSS ──────────────────────────────────────────────────────────

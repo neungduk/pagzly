@@ -2,21 +2,20 @@
 import { BODY_SIG, bodySigDiff, type BodySig } from "../lib/body-sig-v5";
 import type { ArchetypeId } from "../lib/page-archetype-v5";
 
-const attr = (html: string, name: string): string | null => {
-  const m = new RegExp(`${name}="([^"]+)"`).exec(html);
-  return m?.[1] ?? null;
+const cssVar = (html: string, name: string): string | null => {
+  const m = new RegExp(`--pz-bs-${name}:([^;!}]+)`).exec(html);
+  return m?.[1]?.trim() ?? null;
 };
 
 export function bodySigFromHtml(html: string, arch: ArchetypeId): BodySig {
-  // 페이지에서 첫 data-pz-bsig 표식(본문 시그니처는 아키타입 상수 — HTML 표식과 일치해야 함)
-  const i = html.indexOf('data-pz-bsig="');
-  const slice = i >= 0 ? html.slice(i, i + 500) : "";
-  const num = attr(slice, "data-pz-bs-num");
-  const list = attr(slice, "data-pz-bs-list");
-  const stat = attr(slice, "data-pz-bs-stat");
-  const rule = attr(slice, "data-pz-bs-rule");
-  const radius = attr(slice, "data-pz-bs-r");
-  const shadow = attr(slice, "data-pz-bs-sh");
+  // bodySigCssV5가 넣는 CSS 변수(페이지당 1회). 섹션 data-attrs 반복은 export 다이어트.
+  if (!/data-pz-bsig=/.test(html)) return BODY_SIG[arch];
+  const num = cssVar(html, "num");
+  const list = cssVar(html, "list");
+  const stat = cssVar(html, "stat");
+  const rule = cssVar(html, "rule");
+  const radius = cssVar(html, "r");
+  const shadow = cssVar(html, "sh");
   if (num && list && stat && rule && radius && shadow) {
     return { num: num as BodySig["num"], list: list as BodySig["list"], stat: stat as BodySig["stat"], rule: rule as BodySig["rule"], radius: radius as BodySig["radius"], shadow: shadow as BodySig["shadow"] };
   }

@@ -68,7 +68,8 @@ export function rhythmBreakV5(html: string): string {
   let out = html;
   let padUsed = 0;
   // export ≤140%: catalog 대형(110–135KB) 패딩 0. 초대형 세션(≥135KB, UP1도 큼)은 평탄용 패딩 허용
-  const padBudget = html.length >= 135000 ? 5000 : html.length >= 110000 ? 0 : html.length >= 105000 ? 900 : 4500;
+  // 473: catalog 대형(~128KB)도 패딩 0. 초대형만 소량 허용
+  const padBudget = html.length >= 135000 ? 4000 : html.length >= 100000 ? 0 : html.length >= 95000 ? 600 : 4000;
   for (let round = 0; round < 24; round += 1) {
     const secs = topSectionsAbs(out);
     let hit = false;

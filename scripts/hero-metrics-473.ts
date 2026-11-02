@@ -47,8 +47,7 @@ export function bareBreatherHits(html: string): string[] {
       /repeating-linear-gradient/i.test(sec) ||
       /border(?:-top)?\s*:\s*[^;]*dotted/i.test(sec) ||
       /border(?:-top)?\s*:\s*[^;]*dashed/i.test(sec) ||
-      /<svg[\s\S]*?<\/svg>/.test(sec) ||
-      /font-weight:800/.test(sec); // 번호 라벨
+      /<svg[\s\S]*?<\/svg>/.test(sec);
     if (!hasIntent) f.push("bare-breather");
   }
   return f;

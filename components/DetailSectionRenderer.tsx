@@ -6210,6 +6210,7 @@ export default function DetailSectionRenderer({
       data-pz-v2={v2On ? "1" : undefined}
       data-pz-v3={fontPair?.id}
       data-pz-typefloor={DESIGN_V4_ENABLED ? "1" : undefined}
+      data-pz-bsig={display.v5?.id}
       style={packRootStyle(category, pack, v2Typo, v2TitleOnly) as CSSProperties}
     >
       {isClassicPack(pack) ? (

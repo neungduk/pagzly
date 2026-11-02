@@ -126,7 +126,7 @@ export function heroStackCssV5(scope: string, id: ArchetypeId, ink: string): str
   const r = HERO_STACK[id];
   const out: string[] = [];
   // 시각 시그니처 표식 — CSS 변수에는 !important를 붙이지 않음(지표가 값을 그대로 읽음)
-  out.push(`${scope} [data-pz-vsig="${id}"]:not([data-pz-hs="vsig"]){--pz-vsig-ta:${r.titleAlign};--pz-vsig-tp:${r.titlePos};--pz-vsig-fr:${r.frame};--pz-vsig-pa:${r.photoArea};--pz-vsig-pr:${r.priceShow};--pz-vsig-gl:${r.glance}}`);
+  out.push(`${scope} [data-pz-vsig="${id}"]{--pz-vsig-ta:${r.titleAlign};--pz-vsig-tp:${r.titlePos};--pz-vsig-fr:${r.frame};--pz-vsig-pa:${r.photoArea};--pz-vsig-pr:${r.priceShow};--pz-vsig-gl:${r.glance}}`);
   // ── 히어로 사진 비율(스플릿 D)
   out.push(rule(`${scope} [data-hero-v2="D"]:not([data-pz-hs="ratio"])>[data-hero-photo]`, `aspect-ratio:${r.ratio}`));
   // ── 틀 모양(아키타입별 사진 감싸개)
@@ -144,12 +144,14 @@ export function heroStackCssV5(scope: string, id: ArchetypeId, ink: string): str
     case "card":
       out.push(rule(`${photo}:not([data-pz-hs="frame"])`, "border-radius:20px;overflow:hidden;box-shadow:0 12px 28px rgba(10,10,10,0.16)"));
       break;
-    case "split":
-      // 흰 바탕 + 사진 좌 / 정보 우. flex-wrap + min 280px로 좁은 폭은 자연 접힘(@media 없이 export 크기·live/export 선언 비교 안전)
-      out.push(rule(`${scope} [data-hero-v2="D"]:not([data-pz-hs="frame"])`, "background:#FFFFFF;display:flex;flex-wrap:wrap;align-items:stretch"));
-      out.push(rule(`${scope} [data-hero-v2="D"]>[data-hero-photo]:not([data-pz-hs="frame"])`, "border-radius:0;flex:1 1 280px;width:48%;max-width:100%;aspect-ratio:1/1;max-height:none;background:#F3F1EC"));
-      out.push(rule(`${scope} [data-hero-v2="D"]>div:not([data-hero-photo]):not([data-pz-hs="frame"])`, "flex:1 1 280px;width:52%;max-width:100%;box-sizing:border-box;background:#FFFFFF;padding:28px 22px"));
+    case "split": {
+      // 흰 바탕 + 사진 좌 / 정보 우(좁은 폭 flex-wrap)
+      const D = `${scope} [data-hero-v2="D"]`;
+      out.push(rule(`${D}:not([data-pz-hs="frame"])`, "background:#fff;display:flex;flex-wrap:wrap;align-items:stretch"));
+      out.push(rule(`${D}>[data-hero-photo]:not([data-pz-hs="frame"])`, "border-radius:0;flex:1 1 280px;width:48%;max-width:100%;aspect-ratio:1/1;max-height:none;background:#F3F1EC"));
+      out.push(rule(`${D}>div:not([data-hero-photo]):not([data-pz-hs="frame"])`, "flex:1 1 280px;width:52%;max-width:100%;box-sizing:border-box;background:#fff;padding:28px 22px"));
       break;
+    }
     case "fullbleed":
       out.push(rule(`${scope} [data-hero-v2="A"]:not([data-pz-hs="frame"])`, "border-radius:0"));
       out.push(rule(`${scope} [data-hero-v2="A"] [data-hero-scrim]:not([data-pz-hs="frame"])`, "height:100%;background:linear-gradient(0deg,rgba(10,10,10,0.82) 0%,rgba(10,10,10,0.45) 42%,rgba(10,10,10,0.2) 100%)"));
@@ -200,21 +202,19 @@ export function heroStackCssV5(scope: string, id: ArchetypeId, ink: string): str
       out.push(rule(S, `margin:0 20px;border-radius:0;background:transparent;box-shadow:none;border-left:4px solid ${ink};padding-left:16px`));
       out.push(rule(P, "font-size:22px;font-weight:800"));
   }
-  // ── 한눈에 보기 (473: 항목 수별 칸 균형 — 2=1×2, 3=1×3, 4=2×2. 세로 낭비·빈 칸 금지)
+  // ── 한눈에 보기 (473: 2=1×2, 3=1×3, 4=2×2)
   const G = `${scope} [data-pz-glance]:not([data-pz-hs="glance"])`;
   const GG = `${G} [data-pz-glance-grid]`;
-  out.push(rule(GG, "display:grid;gap:12px;max-width:none;margin:0;width:100%;box-sizing:border-box"));
-  out.push(rule(`${G}[data-pz-glance="2"] [data-pz-glance-grid]`, "grid-template-columns:1fr 1fr"));
-  out.push(rule(`${G}[data-pz-glance="3"] [data-pz-glance-grid]`, "grid-template-columns:1fr 1fr 1fr"));
-  out.push(rule(`${G}[data-pz-glance="4"] [data-pz-glance-grid]`, "grid-template-columns:1fr 1fr"));
-  out.push(rule(`${G}[data-pz-glance="5"] [data-pz-glance-grid],${G}[data-pz-glance="6"] [data-pz-glance-grid]`, "grid-template-columns:1fr 1fr 1fr"));
-  out.push(rule(`${GG}>*`, "min-width:0;box-sizing:border-box"));
+  out.push(rule(GG, "display:grid;gap:12px;width:100%"));
+  out.push(`${G}[data-pz-glance="2"] [data-pz-glance-grid],${G}[data-pz-glance="4"] [data-pz-glance-grid]{grid-template-columns:1fr 1fr${IMP}}`);
+  out.push(`${G}[data-pz-glance="3"] [data-pz-glance-grid],${G}[data-pz-glance="5"] [data-pz-glance-grid],${G}[data-pz-glance="6"] [data-pz-glance-grid]{grid-template-columns:1fr 1fr 1fr${IMP}}`);
+  out.push(rule(`${GG}>*`, "min-width:0"));
   switch (r.glance) {
     case "list":
       out.push(rule(`${GG}>*`, `padding:10px 12px;border-left:3px solid ${ink};background:transparent`));
       break;
     case "grid2":
-      out.push(rule(`${GG}>*`, `padding:10px 12px;border:1px solid ${rgba(ink, 0.2)};border-radius:8px;background:#FFFFFF`));
+      out.push(rule(`${GG}>*`, `padding:10px 12px;border:1px solid ${rgba(ink, 0.2)};border-radius:8px;background:#fff`));
       break;
     case "pills":
       out.push(rule(GG, "justify-items:center"));

@@ -120,14 +120,14 @@ function benefitsV5(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeToke
               : numberMark(t.number, i, b, p);
         const row =
           list === "chip"
-            ? `<div data-i="${i}" style="--i:${i};display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:#FFFFFF;border:${hairline(p.ink)}">${titleP(it.title, p, 14)}</div>`
+            ? `<div style="--i:${i};display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:#fff;border:${hairline(p.ink)}">${titleP(it.title, p, 14)}</div>`
             : list === "stair"
-              ? `<div data-i="${i}" style="--i:${i};display:flex;gap:12px;align-items:flex-start;margin-top:${i ? 10 : 0}px;margin-left:${i * 14}px">${mark}<div style="flex:1 1 0%;min-width:0">${titleP(it.title, p, 16)}${bodyP(it.body, p, on.sub, 4)}</div></div>`
+              ? `<div style="--i:${i};display:flex;gap:12px;align-items:flex-start;margin-top:${i ? 10 : 0}px;margin-left:${i * 14}px">${mark}<div style="flex:1;min-width:0">${titleP(it.title, p, 16)}${bodyP(it.body, p, on.sub, 4)}</div></div>`
               : list === "timeline"
-                ? `<div data-i="${i}" style="--i:${i};display:flex;gap:12px;align-items:flex-start;margin-top:${i ? 14 : 0}px">${mark}<div style="flex:1 1 0%;min-width:0">${titleP(it.title, p, 16)}${bodyP(it.body, p, on.sub, 4)}</div></div>`
+                ? `<div style="--i:${i};display:flex;gap:12px;align-items:flex-start;margin-top:${i ? 14 : 0}px">${mark}<div style="flex:1;min-width:0">${titleP(it.title, p, 16)}${bodyP(it.body, p, on.sub, 4)}</div></div>`
                 : list === "rows"
-                  ? `<div data-i="${i}" style="--i:${i};padding:12px;border-radius:12px;background:${i % 2 ? "#FFFFFF" : p.tints[0]};border:${hairline(p.ink)}">${titleP(it.title, p, 15)}${bodyP(it.body, p, on.sub, 4)}</div>`
-                  : `<div data-i="${i}" style="--i:${i};display:flex;gap:12px;align-items:flex-start;margin-top:${i ? 12 : 0}px">${mark}<div style="flex:1 1 0%;min-width:0">${titleP(it.title, p, 16)}${bodyP(it.body, p, on.sub, 4)}</div></div>`;
+                  ? `<div style="--i:${i};padding:10px;border-radius:10px;background:${i % 2 ? "#fff" : p.tints[0]};border:${hairline(p.ink)}">${titleP(it.title, p, 15)}${bodyP(it.body, p, on.sub, 4)}</div>`
+                  : `<div style="--i:${i};display:flex;gap:10px;align-items:flex-start;margin-top:${i ? 10 : 0}px">${mark}<div style="flex:1;min-width:0">${titleP(it.title, p, 16)}${bodyP(it.body, p, on.sub, 4)}</div></div>`;
         return row;
       }).join("");
       return wrap(b, p, `<div data-pz-bs-list="${list}">${cells}</div>`, { head });
@@ -441,26 +441,22 @@ export const V5_PARTS: V5Parts = (s, b, p, alt) => {
     case "stats": return statsV5(s, b, p, t);
     case "gallery": return galleryV5(s, b, p, alt);
     case "breather":
-      // 472·473: 구분 띠 변주. 473 — 빈 단색 막대 금지(사선·점선·도형+기존 번호 라벨). 새 카피 없음
+      // 472·473: 구분 띠 변주. 473 — 빈 단색 막대 금지(사선·점선·SVG 도형). 글자 없음(471 락). 새 카피 없음
       if (b.variant === "rule") {
         const t1 = tokensOf(s);
         const kind = (b.sceneAt ?? 0) % 3;
-        const lab = String(b.no ?? 0).padStart(2, "0"); // 기존 섹션 번호만
-        const labHtml = `<span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:28px;padding:0 8px;border-radius:6px;background:#FFFFFF;border:1px solid ${hexToRgba(p.ink, 0.2)};${SANS_FF};font-size:12px;font-weight:800;letter-spacing:0.08em;color:${p.ink}">${lab}</span>`;
         if (kind === 1) {
-          // 기울인 사선 패턴 띠 + 번호
           const hatch = `repeating-linear-gradient(-28deg,${hexToRgba(p.deep, 0.2)} 0 8px,${hexToRgba(p.deep, 0.04)} 8px 16px)`;
-          const bar = `<div aria-hidden="true" style="height:36px;margin:0 -8px;transform:rotate(-1.8deg);background:${hatch};border:1px dashed ${hexToRgba(p.ink, 0.28)};border-radius:8px;display:flex;align-items:center;justify-content:center">${labHtml}</div>`;
-          return wrap(b, p, bar, { pad: "48px 20px" });
+          const bar = `<div aria-hidden="true" style="height:36px;margin:0 -8px;transform:rotate(-1.8deg);background:${hatch};border:1px dashed ${hexToRgba(p.ink, 0.28)};border-radius:8px"></div>`;
+          return wrap(b, p, bar, { pad: "40px 20px" });
         }
         if (kind === 2) {
-          // 도형 반복 + 번호(빈 칩처럼 보이지 않게 테두리·라벨)
-          const chip = (w: number, h: number, a: number, mark: string) => `<span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:${w}px;height:${h}px;border-radius:10px;background:${hexToRgba(p.deep, a)};border:1px solid ${hexToRgba(p.ink, 0.18)};box-shadow:0 6px 14px ${hexToRgba(p.ink, 0.1)};${SANS_FF};font-size:11px;font-weight:800;color:${p.ink}">${mark}</span>`;
-          return wrap(b, p, `<div aria-hidden="true" style="display:flex;align-items:flex-end;justify-content:center;gap:14px;min-height:96px">${chip(72, 56, 0.14, lab)}${chip(96, 88, 0.22, markerSvg(t1.marker, p.deep, 22))}${chip(64, 48, 0.12, lab)}</div>`, { pad: "40px 24px" });
+          const chip = (w: number, h: number, a: number, mark: string) => `<span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:${w}px;height:${h}px;border-radius:10px;background:${hexToRgba(p.deep, a)};border:1px solid ${hexToRgba(p.ink, 0.18)}">${mark}</span>`;
+          const dot = `<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4" fill="${p.deep}"/></svg>`;
+          return wrap(b, p, `<div aria-hidden="true" style="display:flex;align-items:flex-end;justify-content:center;gap:12px;min-height:88px">${chip(64, 48, 0.14, dot)}${chip(88, 80, 0.22, markerSvg(t1.marker, p.deep, 20))}${chip(56, 44, 0.12, dot)}</div>`, { pad: "36px 20px" });
         }
-        // 점선 + 마커 + 번호
-        const line = `<span style="flex:1 1 0%;max-width:160px;height:0;border-top:2px dotted ${hexToRgba(p.ink, 0.35)}"></span>`;
-        return wrap(b, p, `<div aria-hidden="true" style="display:flex;align-items:center;justify-content:center;gap:14px;min-height:48px">${line}${markerSvg(t1.marker, p.deep, 28)}${labHtml}${line}</div>`, { pad: "64px 24px" });
+        const line = `<span style="flex:1;max-width:140px;height:0;border-top:2px dotted ${hexToRgba(p.ink, 0.35)}"></span>`;
+        return wrap(b, p, `<div aria-hidden="true" style="display:flex;align-items:center;justify-content:center;gap:12px;min-height:44px">${line}${markerSvg(t1.marker, p.deep, 24)}${line}</div>`, { pad: "56px 20px" });
       }
       return null;
     case "statement":
