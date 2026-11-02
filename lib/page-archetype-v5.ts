@@ -24,6 +24,7 @@ import { HERO_STACK, heroStackCssV5 } from "@/lib/hero-stack-v5";
 import { BODY_SIG, bodySigCssV5 } from "@/lib/body-sig-v5";
 import { typeSystemCssV5 } from "@/lib/type-system-v5";
 import { photoComposeCssV5 } from "@/lib/photo-compose-v5";
+import { snapPadTripleV5, spacingCssV5 } from "@/lib/spacing-v5";
 import { hueShift } from "@/lib/color-extract";
 
 export const ARCHETYPE_IDS = ["editorial", "catalog", "softlife", "impact", "techsheet", "narrative", "luxe", "pop"] as const;
@@ -328,7 +329,10 @@ export function applyArchetypeHtml(html: string, t: ArchetypeTokens, c: Archetyp
 // ── 일반 섹션 래퍼 CSS ──────────────────────────────────────────────────────────
 /** 박자.강도 표식(`data-pz-ax`)이 붙은 일반 섹션의 위아래 여백 단계 — 강도 4·5는 여유, 3은 보통, 1·2는 조밀 */
 export const AX_STRENGTHS = [1, 2, 3, 4, 5] as const;
-const padForStrength = (t: ArchetypeTokens, s: number): number => (s >= 4 ? t.pad[2] : s === 3 ? t.pad[1] : t.pad[0]);
+const padForStrength = (t: ArchetypeTokens, s: number): number => {
+  const p = snapPadTripleV5(t.pad);
+  return s >= 4 ? p[2] : s === 3 ? p[1] : p[0];
+};
 
 /**
  * 일반 섹션(두 벌 마크업)을 건드리지 않고 래퍼 표식만으로: 위아래 여백 척도 + 위쪽 가는 선(선 있는 성격만).
@@ -362,6 +366,7 @@ export function archetypeCssV5(scope: string, mode: "live" | "export", t: Archet
   rules.push(bodySigCssV5(scope, t.id));
   rules.push(typeSystemCssV5(scope, t.id));
   rules.push(photoComposeCssV5(scope, t.id));
+  rules.push(spacingCssV5(scope, t.id));
   rules.push(noPhotoCssV5(scope, ink));
   return rules.join("");
 }

@@ -30,7 +30,8 @@ export const BODY_SIG: Record<ArchetypeId, BodySig> = {
   impact: { num: "big", list: "stair", stat: "huge", rule: "slant", radius: "sm", shadow: "hard" },
   techsheet: { num: "step", list: "check", stat: "bar", rule: "dash", radius: "0", shadow: "none" },
   narrative: { num: "side", list: "timeline", stat: "stack", rule: "dot", radius: "md", shadow: "soft" },
-  luxe: { num: "top", list: "card", stat: "flush", rule: "double", radius: "sm", shadow: "none" },
+  // 474 C: list card→rows — 채워진 사각 카드 밀도 완화(시그니처 칸은 유지·쌍 차이 ≥3)
+  luxe: { num: "top", list: "rows", stat: "flush", rule: "double", radius: "sm", shadow: "none" },
   pop: { num: "badge", list: "bento", stat: "boxed", rule: "thick", radius: "lg", shadow: "hard" },
 };
 

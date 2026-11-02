@@ -56,7 +56,7 @@ export function composeBleedScrim(im: Img, alt: string, cardInner: string, p: V4
 
 /** (2) 사진이 아래 섹션 위로 걸침 */
 export function composeHang(im: Img, alt: string, p: V4Palette, o: { ar?: string; drop?: number } = {}): string {
-  const drop = o.drop ?? 48;
+  const drop = o.drop ?? 40; // 474 스케일(4…96)
   return `<div data-pz-pc="hang" style="margin:0 -${BLEED}px -${drop}px;position:relative;z-index:3">${frame(im, alt, o.ar ?? "16/10", `box-shadow:${depthShadow("float", p.ink)}`, p)}</div>`;
 }
 
@@ -85,7 +85,7 @@ export function composeCollage(imgs: Img[], alt: string, p: V4Palette, o: { flip
   const small = list[2]
     ? `<div style="position:absolute;${other}:6%;bottom:2%;width:36%;transform:rotate(${-rot}deg);border:4px solid #fff;border-radius:10px;overflow:hidden;box-shadow:${depthShadow("soft", p.ink)}">${frame(list[2], alt, "3/4", "", p)}</div>`
     : "";
-  return `<div data-pz-pc="collage" data-pz-dyn-clip style="position:relative;overflow:hidden;padding:6px 4px 14px">${big}${mid}${small}</div>`;
+  return `<div data-pz-pc="collage" data-pz-dyn-clip style="position:relative;overflow:hidden;padding:8px 4px 16px">${big}${mid}${small}</div>`;
 }
 
 /** 짧은 표식 CSS. 틴트는 스크림/면 색으로 처리(filter·mix-blend 없음) */

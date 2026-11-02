@@ -267,21 +267,21 @@ function phototextV5(s: ImpactSection, b: V4Block, p: V4Palette, alt: string, t:
       return wrap(
         b,
         p,
-        `${composeHang(it.img, alt, p)}<div style="margin-top:64px;display:flex;gap:14px;align-items:flex-start">${numberMark(t.number, 0, b, p)}<div style="flex:1 1 0%;min-width:0">${title}${bodyP(it.body, p, on.sub, 8)}</div></div>`,
+        `${composeHang(it.img, alt, p)}<div style="margin-top:64px;display:flex;gap:16px;align-items:flex-start">${numberMark(t.number, 0, b, p)}<div style="flex:1 1 0%;min-width:0">${title}${bodyP(it.body, p, on.sub, 8)}</div></div>`,
         { bleed: true },
       );
     }
     if (pc === "crop") {
-      return wrap(b, p, `${composeCrop(it.img, alt, p)}<div style="margin-top:22px;display:flex;gap:14px;align-items:flex-start">${numberMark(t.number, 0, b, p)}<div style="flex:1 1 0%;min-width:0">${title}${bodyP(it.body, p, on.sub, 8)}</div></div>`);
+      return wrap(b, p, `${composeCrop(it.img, alt, p)}<div style="margin-top:24px;display:flex;gap:16px;align-items:flex-start">${numberMark(t.number, 0, b, p)}<div style="flex:1 1 0%;min-width:0">${title}${bodyP(it.body, p, on.sub, 8)}</div></div>`);
     }
     if (pc === "mask") {
       const shapes: MaskShape[] = ["arch", "circle", "wave", "slash"];
-      return wrap(b, p, `${composeMask(it.img, alt, p, shapes[b.no % 4]!)}<div style="margin-top:22px">${text(true)}</div>`);
+      return wrap(b, p, `${composeMask(it.img, alt, p, shapes[b.no % 4]!)}<div style="margin-top:24px">${text(true)}</div>`);
     }
     if (pc === "collage") {
       const imgs = (b.items ?? []).map((x) => x.img).filter((x): x is { url: string; pos?: string } => !!x?.url);
       const pair = imgs.length >= 2 ? imgs : [it.img, it.img];
-      return wrap(b, p, `${composeCollage(pair, alt, p, { flip: b.no % 2 === 0 })}<div style="margin-top:22px">${text(false)}</div>`, { bleed: true });
+      return wrap(b, p, `${composeCollage(pair, alt, p, { flip: b.no % 2 === 0 })}<div style="margin-top:24px">${text(false)}</div>`, { bleed: true });
     }
   }
   if (b.variant === "stack") {
