@@ -216,7 +216,8 @@ export function heroStackCssV5(scope: string, id: ArchetypeId, ink: string): str
       out.push(rule(`${G} [data-pz-glance-grid]>*`, `padding:10px 12px;border-left:3px solid ${ink};background:transparent`));
       break;
     case "grid2":
-      out.push(rule(`${G} [data-pz-glance-grid]>*`, `padding:10px 12px;border:1px solid ${rgba(ink, 0.2)};border-radius:8px;background:#fff`));
+      // 474 E 루프2: 채워진 사각 카드 → 하단 선만(카드 밀도)
+      out.push(rule(`${G} [data-pz-glance-grid]>*`, `padding:8px 0;border:0;border-bottom:1px solid ${rgba(ink, 0.2)};border-radius:0;background:transparent`));
       break;
     case "pills":
       out.push(rule(`${G} [data-pz-glance-grid]`, "justify-items:center"));
