@@ -20,7 +20,8 @@ import type { BannerStyle } from "@/lib/design-tokens-v4";
 import type { DividerKindAny } from "@/lib/dividers";
 import type { FaceStrategy } from "@/lib/face-strategy-v5";
 import type { HeroV2Variant } from "@/lib/hero-spec";
-import { heroStackCssV5 } from "@/lib/hero-stack-v5";
+import { HERO_STACK, heroStackCssV5 } from "@/lib/hero-stack-v5";
+import { hueShift } from "@/lib/color-extract";
 
 export const ARCHETYPE_IDS = ["editorial", "catalog", "softlife", "impact", "techsheet", "narrative", "luxe", "pop"] as const;
 export type ArchetypeId = (typeof ARCHETYPE_IDS)[number];
@@ -88,7 +89,8 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   catalog: {
     id: "catalog", radius: 0.6, pill: 6, border: { w: 2, style: "solid", alphaMul: 2.2 }, shadow: { kind: "none", offset: 0 }, paper: "#F3F2EE", face: "tintAlt",
     pad: [28, 40, 56], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "step", rise: false, tilt: true, texture: "stripe" }, type: { weight: 700, tracking: -0.02, scale: 0.96, title: 48, display: 54, body: 15, lh: 1.7 }, eyebrow: "number", frames: ["rect"], dividers: ["stripe", "slant"], number: "box", marker: "square", decor: "bracket", decorAlt: ["plus-field","dots-grid"], badge: "hex", density: "tight",
-    hero: ["B", "D"],
+    // 472: 흰 스플릿(D) — catalog/softlife/pop이 같은 B 파란 면을 쓰지 않게
+    hero: ["D", "B"],
     banner: ["split", "card-only"],
     infoBackdrop: "scrim-light",
     prefer: { benefits: ["rows2", "numcards", "stagger"], concern: ["tiles2", "offset", "stack"], story: ["chapter", "linetime"], spec: ["grid", "strip"], phototext: ["stack", "caption", "split"], steps: ["bignum", "vtimeline"], faq: ["twocol", "chat"], proof: ["wall", "badges"], touch: ["ticket", "band"], statement: ["band", "ticker", "rule"], stats: ["trio", "bignum"], gallery: ["mosaic", "polaroid"] },
@@ -96,6 +98,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   softlife: {
     id: "softlife", radius: 1.6, pill: "keep", border: { w: 1, style: "solid", alphaMul: 0.8 }, shadow: { kind: "warm", offset: 0 }, paper: "#FFFBF6", face: "tintAlt",
     pad: [40, 56, 72], titleAlign: "center", centerBudget: 1, dyn: { level: 4, seam: "wave", rise: true, tilt: false, texture: null }, type: { weight: 500, tracking: -0.03, scale: 1, title: 48, display: 54, body: 16, lh: 1.75 }, eyebrow: "pill", frames: ["arch", "round"], dividers: ["wave2", "fade", "dotwave"], number: "circle", marker: "dot", decor: "glow", decorAlt: ["arc","squiggle"], badge: "circle", density: "normal",
+    // 472: 파스텔 B + 아치 틀(스택 CSS)
     hero: ["B", "D"],
     banner: ["card-only", "split"],
     infoBackdrop: "photo-plain",
@@ -104,7 +107,8 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   impact: {
     id: "impact", radius: 0.5, pill: 6, border: { w: 3, style: "solid", alphaMul: 5 }, shadow: { kind: "hard", offset: 4 }, paper: "#FFFFFF", face: "blockAlt",
     pad: [32, 48, 64], titleAlign: "left", centerBudget: 0, dyn: { level: 5, seam: "slant", rise: false, tilt: true, texture: null }, type: { weight: 900, tracking: -0.045, scale: 1.1, title: 56, display: 64, body: 16, lh: 1.7 }, eyebrow: "number", frames: ["offset", "rect"], dividers: ["slant", "zigzag", "stripe"], number: "big", marker: "arrow", decor: "bar-left", decorAlt: ["dots-grid","plus-field"], badge: "hex", density: "tight",
-    hero: ["C", "B", "A"],
+    // 472: 풀블리드 A(사진 위 거대 제목) — 검은 C/B와 차별
+    hero: ["A", "C", "B"],
     banner: ["full-scrim", "card-only"],
     infoBackdrop: "scrim-deep",
     prefer: { benefits: ["stagger", "bento", "stackbig"], concern: ["deck", "offset", "stack"], story: ["pullout", "pullband", "chapter"], spec: ["big3", "strip"], phototext: ["bleed", "offset", "stack"], steps: ["bignum", "vtimeline"], faq: ["tabs", "qband"], proof: ["wall", "badges"], touch: ["band", "ticket"], statement: ["band", "ticker", "rule"], stats: ["bignum", "trio"], gallery: ["mosaic", "polaroid"] },
@@ -112,7 +116,8 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   techsheet: {
     id: "techsheet", radius: 0, pill: 0, border: { w: 1, style: "dashed", alphaMul: 2.4 }, shadow: { kind: "none", offset: 0 }, paper: "#EEF3F8", face: "lightOnly",
     pad: [28, 40, 52], titleAlign: "left", centerBudget: 0, dyn: { level: 3, seam: "step", rise: true, tilt: false, texture: "grid" }, type: { weight: 900, tracking: -0.01, scale: 0.94, title: 44, display: 50, body: 15, lh: 1.7 }, eyebrow: "enlabel", frames: ["rect", "double"], dividers: ["stitch", "dotted"], number: "box", marker: "square", decor: "corner-ticks", decorAlt: ["bracket","dots-grid"], badge: "hex", density: "tight",
-    hero: ["D"],
+    // 472: B 쿨 포화 면 — editorial/catalog D와 차별
+    hero: ["B", "D"],
     banner: ["split", "card-only"],
     infoBackdrop: "scrim-light",
     prefer: { benefits: ["iconlist", "linelist", "rows2"], concern: ["checkrows", "deck", "stack"], story: ["linetime", "chapter"], spec: ["panel", "strip"], phototext: ["caption", "dframe", "overlap"], steps: ["vtimeline", "bignum"], faq: ["numlist", "tabs"], proof: ["lead", "badges"], touch: ["ledger", "ticket"], statement: ["rule", "band"], stats: ["trio", "rings"], gallery: ["mosaic", "polaroid"] },
@@ -120,7 +125,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
   narrative: {
     id: "narrative", radius: 1, pill: "keep", border: { w: 1, style: "solid", alphaMul: 1 }, shadow: { kind: "soft", offset: 0 }, paper: "#FDFBF8", face: "tintAlt",
     pad: [48, 72, 96], titleAlign: "left", centerBudget: 0, dyn: { level: 4, seam: "scallop", rise: true, tilt: false, texture: null }, type: { weight: 700, tracking: -0.02, scale: 1.04, title: 48, display: 54, body: 16, lh: 1.75 }, eyebrow: "number", frames: ["rect", "round"], dividers: ["dotwave", "fade", "wave"], number: "big", marker: "dot", decor: "spine", decorAlt: ["squiggle","arc"], badge: "circle", density: "airy",
-    hero: ["A", "D"],
+    hero: ["D", "A"],
     banner: ["card-only", "split"],
     infoBackdrop: "photo-plain",
     prefer: { benefits: ["zigzag", "stagger", "linelist"], concern: ["offset", "stack", "deck"], story: ["letter", "pullout", "chapter"], spec: ["tags", "strip"], phototext: ["overlap", "bleed", "stack"], steps: ["vtimeline", "chipflow"], faq: ["numlist", "chat"], proof: ["seal", "lead"], touch: ["ledger", "band"], statement: ["rule", "band"], stats: ["bignum", "rings"], gallery: ["polaroid", "deck", "mosaic"] },
@@ -340,7 +345,9 @@ export function archetypeCssV5(scope: string, mode: "live" | "export", t: Archet
   for (const s of [4, 5] as const) {
     rules.push(`${sel(s)}{position:relative;z-index:1;${sheetR > 0 ? `border-radius:${sheetR}px ${sheetR}px 0 0;` : ""}box-shadow:0 -10px 20px -16px ${rgba(ink, 0.3)}}`);
   }
-  rules.push(heroStackCssV5(scope, t.id, ink)); // 471차 첫 화면 구간 배치 레시피
+  // 472: 스택 잉크 = 상품 accent를 아키타입 hueShift로 비튼 액센트(아키타입 색은 보조)
+  const stackInk = hueShift(ink, HERO_STACK[t.id].hueShift);
+  rules.push(heroStackCssV5(scope, t.id, stackInk));
   rules.push(noPhotoCssV5(scope, ink));
   return rules.join("");
 }

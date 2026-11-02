@@ -8,6 +8,7 @@
  * 한계: 높이는 문자 수·사진 수 어림이고 실제 렌더 높이가 아니다. 배너 어두움 비율은 구조 상수(docs/dynamics-audit-468.md §1).
  */
 import { expandDedupedStyles } from "../lib/style-dedupe";
+import { V4_HEIGHT, breatherRuleHeight } from "../lib/impact-templates";
 import { topSections } from "./variety-metrics-463";
 import { darkShare } from "./variety-metrics-466";
 
@@ -63,9 +64,21 @@ const rootOf = (sec: string): string => sec.slice(0, sec.indexOf(">") + 1);
 const isBanner = (sec: string): boolean => /pagzly-illustration-banner/.test(rootOf(sec));
 
 // ── ① 보이는 진한 면 ──────────────────────────────────────────────────────────
-/** 추정 높이(px): 글자 수·사진 수 어림. 배너는 16:9(750폭 ≈ 422)로 고정 */
+/** 추정 높이(px). 472: v4 블록은 계획과 같은 V4_HEIGHT/breatherRuleHeight를 써서 H4b 불일치를 없앤다. 그 외는 글자·사진 어림. */
 export function estHeight(sec: string): number {
   if (isBanner(sec)) return 422;
+  const v4 = /data-pz-v4="([^".]+)\.([^"]+)"/.exec(rootOf(sec)) ?? /data-pz-v4="([^".]+)\.([^"]+)"/.exec(sec);
+  if (v4) {
+    const fam = v4[1]!;
+    const variant = v4[2]!;
+    if (fam === "breather" && variant === "rule") {
+      // sceneAt은 마크업에 없을 수 있어 모양으로 근사(기울기·칩·두꺼운 선)
+      if (/transform:rotate\(/.test(sec)) return breatherRuleHeight(1);
+      if (/inline-block;width:\d+px;height:\d+px;border-radius:10px/.test(sec)) return breatherRuleHeight(2);
+      return breatherRuleHeight(0);
+    }
+    if (V4_HEIGHT[fam] != null) return V4_HEIGHT[fam]!;
+  }
   const chars = readableTexts(sec).reduce((a, t) => a + t.text.length, 0);
   const photos = Math.min(3, (sec.match(/<img\b(?![^>]*aria-hidden="true")/g) ?? []).length);
   return 120 + 1.6 * chars + 300 * photos;

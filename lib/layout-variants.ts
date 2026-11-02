@@ -229,7 +229,8 @@ export function wrap(b: V4Block, p: V4Palette, inner: string, opts: { pad?: stri
   const role = faceRole(b);
   const on = p.onFace[role];
   const motifs = (b.motifs ?? []).map((m) => motifHtml(m as MotifPlacement, motifColors(p))).join("");
-  const ghost = b.ghost && b.variant !== "scene" ? ghostHtml(b.ghost, mixHex(p.faces[role] === "#FFFFFF" ? p.tints[0] : p.tints[1], p.accent, 0.12), 88, "tr") : "";
+  // 472: V5에서는 우상단 고스트를 쓰지 않음(잘림·겹침 위험). dynamics가 아키타입 위치로 다시 놓음
+  const ghost = b.ghost && b.variant !== "scene" ? ghostHtml(b.ghost, mixHex(p.faces[role] === "#FFFFFF" ? p.tints[0] : p.tints[1], p.accent, 0.12), 88, designV5On() ? "bl" : "tr") : "";
   const title = opts.head !== undefined ? titleBlock(b.preset ?? "number", opts.label ?? b.label ?? EYEBROW_LABEL[b.family] ?? "", b.no, opts.head, { ink: on.text, deep: on.strong, pillBg: p.deep, pillFg: "#FFFFFF" }) : "";
   return (
     `<section data-pz-impact="v4" data-pz-v4="${b.family}.${b.variant}" style="position:relative;padding:${opts.pad ?? "64px 24px"};${opts.minH ? `min-height:${opts.minH}px;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box;` : ""}background:${faceBg(b, p)}">` +
@@ -1066,7 +1067,7 @@ function insertInterludesV5(secs: DetailSection[], idx: number[], ctx: V4Ctx): {
   const S: DetailSection[] = []; const I: number[] = [];
   secs.forEach((x, k) => {
     if (chosen.includes(k)) {
-      S.push({ type: "impact", slot: "impact", kind: "v4", text: "", ...(ctx.mood ? { mood: ctx.mood } : {}), v4: { family: "breather", variant: "rule", no: 0, face: "emphasis", items: [], sceneAt: (chosen.indexOf(k) % 2) * 2 === 0 ? 0 : 2 } } as DetailSection);
+      S.push({ type: "impact", slot: "impact", kind: "v4", text: "", ...(ctx.mood ? { mood: ctx.mood } : {}), v4: { family: "breather", variant: "rule", no: 0, face: "emphasis", items: [], sceneAt: chosen.indexOf(k) % 3 } } as DetailSection);
       I.push(idx[k - 1]!);
     }
     S.push(x); I.push(idx[k]!);

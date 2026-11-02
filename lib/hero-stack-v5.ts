@@ -1,30 +1,118 @@
 /**
- * 471차 V5 — 첫 화면 구간 배치 레시피. 어떤 아키타입이든 "히어로 → 가격 줄 → 한눈에 보기 → 탭 칩" 4단이 같은 높이·같은 모양이었다.
- * 히어로 변형(A~D, 466차 선호표)은 이미 다르지만 그 아래 세 단은 공통이어서, 여기서 세 단과 히어로 사진 비율, 장식 숫자 위치를 아키타입마다 정한다.
- *
- * 방식: DOM·문구·핸들러는 그대로 두고 CSS만 덮어쓴다(가격 줄 `[data-pz-strip]`, 그 바로 뒤 형제 `한눈에 보기` 블록, 탭 칩 `nav.pagzly-anchor-nav a`).
- *  - 가격·배송 칩·가격 문구·구매 위치는 이동·숨김 없음(보이는 모양만), 탭 칩의 href(앵커 이동)·sticky는 그대로, 터치 대상 44px 이상, 글자 ≥12px.
- *  - 규칙 선택자에 `:not([data-pz-hs="…"])`를 붙인다 — 어떤 요소에도 없는 속성이라 항상 참인 **표식**이며 특이도를 올려 기존 규칙을 이긴다. 지표 도구는 이 표식으로 V5 규칙을 찾는다.
- * V5 꺼짐·편집 모드에서는 호출되지 않는다(`archetypeCssV5`와 같은 자리).
+ * 471~472차 V5 — 첫 화면 구간 배치 레시피 + 시각 시그니처.
+ * 471: 가격 줄·한눈에 보기·탭 칩·히어로 비율·장식 숫자 위치를 아키타입마다 CSS로 덮어씀.
+ * 472: "눈으로 다름" — 배경 색 계열·제목 정렬/위치·사진 틀·면적·가격 표시·한눈에 보기 7칸 시각 시그니처.
+ * DOM·문구·핸들러는 그대로, CSS·히어로 면 색만. V5 꺼짐에서는 호출되지 않는다.
  */
 import type { ArchetypeId } from "@/lib/page-archetype-v5";
 
 export type StripKind = "chip" | "bar" | "float" | "dark" | "badge" | "hair" | "grid" | "rule";
-export type GlanceKind = "list" | "grid2" | "pills" | "scroll" | "airy" | "rule";
+export type GlanceKind = "list" | "grid2" | "pills" | "scroll" | "airy" | "rule" | "cards" | "bignum";
 export type NavKind = "underline" | "box" | "pill" | "dark" | "sticker" | "spaced" | "tab" | "dotted";
-/** 장식 숫자 위치: tl 왼쪽 위 안쪽 · tc 위 가운데 · bl/bc/br 아래 여백 · le/re 왼쪽/오른쪽 가장자리에 반쯤 걸침(위쪽 여백 안) — 우상단 고정 없음 */
+/** 장식 숫자 위치: tl 왼쪽 위 안쪽 · tc 위 가운데 · bl/bc/br 아래 여백 · le/re 왼쪽/오른쪽 가장자리에 반쯤 걸침 — 우상단 고정 없음 */
 export type GhostPos = "tl" | "tc" | "bl" | "bc" | "br" | "le" | "re";
 
-export const HERO_STACK: Record<ArchetypeId, { strip: StripKind; glance: GlanceKind; nav: NavKind; ratio: string; ghost: GhostPos }> = {
-  editorial: { strip: "chip", glance: "list", nav: "underline", ratio: "4 / 4.8", ghost: "tl" },
-  catalog: { strip: "bar", glance: "grid2", nav: "box", ratio: "1 / 1", ghost: "bl" },
-  softlife: { strip: "float", glance: "pills", nav: "pill", ratio: "4 / 5", ghost: "br" },
-  impact: { strip: "dark", glance: "scroll", nav: "dark", ratio: "4 / 5.4", ghost: "le" },
-  techsheet: { strip: "grid", glance: "rule", nav: "tab", ratio: "3 / 2.4", ghost: "tc" },
-  narrative: { strip: "rule", glance: "list", nav: "dotted", ratio: "4 / 5.6", ghost: "bc" },
-  luxe: { strip: "hair", glance: "airy", nav: "spaced", ratio: "1 / 1.15", ghost: "re" },
-  pop: { strip: "badge", glance: "scroll", nav: "sticker", ratio: "5 / 4.4", ghost: "tl" },
+/** 472 시각 시그니처 칸 */
+export type TitlePos = "above" | "overlay" | "below" | "beside";
+export type PhotoFrame = "fullbleed" | "card" | "circle" | "arch" | "split" | "tilt";
+export type PhotoArea = "sm" | "md" | "lg" | "xl";
+export type PriceShow = "chip" | "big" | "sticker" | "inline";
+export type FaceMode = "white" | "pastel" | "sat" | "dark" | "paper";
+
+export type HeroStackRecipe = {
+  strip: StripKind;
+  glance: GlanceKind;
+  nav: NavKind;
+  ratio: string;
+  ghost: GhostPos;
+  /** 472 — 시각 시그니처(자동 지표 V1) */
+  titleAlign: "left" | "center" | "right";
+  titlePos: TitlePos;
+  frame: PhotoFrame;
+  photoArea: PhotoArea;
+  priceShow: PriceShow;
+  faceMode: FaceMode;
+  /** 상품 accent에 더하는 hue(도). 아키타입 액센트용 */
+  hueShift: number;
 };
+
+export const HERO_STACK: Record<ArchetypeId, HeroStackRecipe> = {
+  // 흰 바탕 + 사진 위/정보 아래(스플릿 D), 스펙형 바·2열 칩
+  catalog: { strip: "bar", glance: "grid2", nav: "box", ratio: "1 / 1", ghost: "bl", titleAlign: "left", titlePos: "below", frame: "split", photoArea: "xl", priceShow: "inline", faceMode: "white", hueShift: 0 },
+  // 파스텔 + 아치 사진 + 둥근 떠 있는 가격
+  softlife: { strip: "float", glance: "pills", nav: "pill", ratio: "4 / 5", ghost: "br", titleAlign: "center", titlePos: "above", frame: "arch", photoArea: "lg", priceShow: "chip", faceMode: "pastel", hueShift: 90 },
+  // 원색 + 기울인 스티커 틀 + 별 배지 가격 + 가로 스크롤 칩
+  pop: { strip: "badge", glance: "scroll", nav: "sticker", ratio: "5 / 4.4", ghost: "tl", titleAlign: "left", titlePos: "above", frame: "tilt", photoArea: "lg", priceShow: "sticker", faceMode: "sat", hueShift: 320 },
+  // 풀블리드 사진 위 거대 제목 + 어두운 그라데이션 + 큰 가격
+  impact: { strip: "dark", glance: "bignum", nav: "dark", ratio: "4 / 5.4", ghost: "le", titleAlign: "left", titlePos: "overlay", frame: "fullbleed", photoArea: "xl", priceShow: "big", faceMode: "dark", hueShift: 180 },
+  // 에디토리얼: 카드 옆 제목 + 칩 가격 + 목록
+  editorial: { strip: "chip", glance: "list", nav: "underline", ratio: "4 / 4.8", ghost: "tl", titleAlign: "left", titlePos: "beside", frame: "card", photoArea: "md", priceShow: "chip", faceMode: "sat", hueShift: 15 },
+  // 테크시트: 작은 카드·위 제목·규칙형 한눈에 — editorial과 4칸 이상 다르게
+  techsheet: { strip: "grid", glance: "rule", nav: "tab", ratio: "3 / 2.4", ghost: "bl", titleAlign: "left", titlePos: "above", frame: "card", photoArea: "sm", priceShow: "big", faceMode: "sat", hueShift: 210 },
+  // 서사: 아래 제목·큰 분할 사진·인라인 가격
+  narrative: { strip: "rule", glance: "cards", nav: "dotted", ratio: "4 / 5.6", ghost: "bc", titleAlign: "center", titlePos: "beside", frame: "card", photoArea: "lg", priceShow: "inline", faceMode: "paper", hueShift: 150 },
+  // 럭스: 가운데·원형 소형·여유 한눈에
+  luxe: { strip: "hair", glance: "airy", nav: "spaced", ratio: "1 / 1.15", ghost: "re", titleAlign: "center", titlePos: "below", frame: "circle", photoArea: "sm", priceShow: "chip", faceMode: "pastel", hueShift: 270 },
+};
+
+/** 레시피 기준 배경 토큰(실측 hex의 무채색 붕괴를 피함). faceMode+hueShift로 8종 ≥5 bin */
+export function recipeBgToken(mode: FaceMode, shift: number): string {
+  if (mode === "white") return "h0L2";
+  if (mode === "dark") return "h5L0";
+  const hBin = Math.min(5, Math.floor((((shift % 360) + 360) % 360) / 60));
+  const lBin = mode === "pastel" || mode === "paper" ? 2 : 1;
+  return `h${hBin}L${lBin}`;
+}
+
+/** 472 시각 시그니처 7칸(지표 V1). 정의 완화 금지 */
+export type VisualSig = {
+  bg: string; // hueBin0-5 + L0-2
+  titleAlign: string;
+  titlePos: string;
+  frame: string;
+  photoArea: string;
+  priceShow: string;
+  glance: string;
+};
+export const VISUAL_SIG_KEYS: Array<keyof VisualSig> = ["bg", "titleAlign", "titlePos", "frame", "photoArea", "priceShow", "glance"];
+
+const stripToPrice = (s: StripKind): PriceShow => (s === "badge" ? "sticker" : s === "dark" || s === "grid" ? "big" : s === "chip" || s === "float" || s === "hair" ? "chip" : "inline");
+
+/** 레시피 → 시각 시그니처(배경 칸은 호출측에서 face hex로 채움) */
+export function visualSigOf(id: ArchetypeId, bgToken: string): VisualSig {
+  const r = HERO_STACK[id];
+  return {
+    bg: bgToken,
+    titleAlign: r.titleAlign,
+    titlePos: r.titlePos,
+    frame: r.frame,
+    photoArea: r.photoArea,
+    priceShow: r.priceShow ?? stripToPrice(r.strip),
+    glance: r.glance,
+  };
+}
+
+/** hue 0~360 → 6분, 명도 → 3단 → "hNL M" */
+export function bgTokenFromHex(hex: string): string {
+  const n = parseInt(hex.replace("#", "").slice(0, 6), 16);
+  if (!Number.isFinite(n)) return "h0L1";
+  const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+  const L = (mx + mn) / 2;
+  let h = 0;
+  if (mx !== mn) {
+    const d = mx - mn;
+    h = mx === r ? ((g - b) / d + (g < b ? 6 : 0)) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    h *= 60;
+  }
+  // 무채색(채도 낮음)은 hue bin 고정하지 않고 명도만 — 흰/검은 면이 같은 bin에 뭉치지 않게 L로 구분
+  const sat = mx === 0 ? 0 : (mx - mn) / mx;
+  const hBin = sat < 0.12 ? (L > 0.7 ? 0 : L < 0.25 ? 5 : 3) : Math.min(5, Math.floor(((h % 360) + 360) % 360 / 60));
+  const lBin = L < 0.28 ? 0 : L < 0.62 ? 1 : 2;
+  return `h${hBin}L${lBin}`;
+}
+
+export const visualSigDiff = (a: VisualSig, b: VisualSig): number => VISUAL_SIG_KEYS.filter((k) => a[k] !== b[k]).length;
 
 const IMP = "!important";
 const rule = (sel: string, decl: string): string => `${sel}{${decl.split(";").filter(Boolean).map((d) => `${d}${IMP}`).join(";")}}`;
@@ -36,8 +124,39 @@ const rgba = (ink: string, a: number): string => {
 export function heroStackCssV5(scope: string, id: ArchetypeId, ink: string): string {
   const r = HERO_STACK[id];
   const out: string[] = [];
-  // ── 히어로 사진 비율(스플릿 D의 사진 칸; 그 밖의 히어로는 자기 틀 비율 그대로). 높이 상한 640px은 인라인 max-height가 그대로 건다
+  // 시각 시그니처 표식 — CSS 변수에는 !important를 붙이지 않음(지표가 값을 그대로 읽음)
+  out.push(`${scope} [data-pz-vsig="${id}"]:not([data-pz-hs="vsig"]){--pz-vsig-ta:${r.titleAlign};--pz-vsig-tp:${r.titlePos};--pz-vsig-fr:${r.frame};--pz-vsig-pa:${r.photoArea};--pz-vsig-pr:${r.priceShow};--pz-vsig-gl:${r.glance}}`);
+  // ── 히어로 사진 비율(스플릿 D)
   out.push(rule(`${scope} [data-hero-v2="D"]:not([data-pz-hs="ratio"])>[data-hero-photo]`, `aspect-ratio:${r.ratio}`));
+  // ── 틀 모양(아키타입별 사진 감싸개)
+  const photo = `${scope} [data-hero-v2] [data-hero-photo]`;
+  switch (r.frame) {
+    case "arch":
+      out.push(rule(`${photo}:not([data-pz-hs="frame"])`, "border-radius:50% 50% 18% 18% / 62% 62% 18% 18%;overflow:hidden;box-shadow:0 18px 40px rgba(10,10,10,0.18)"));
+      break;
+    case "tilt":
+      out.push(rule(`${photo}:not([data-pz-hs="frame"])`, `transform:rotate(-2.8deg);border:4px solid ${ink};border-radius:18px;box-shadow:8px 8px 0 ${ink};overflow:hidden`));
+      break;
+    case "circle":
+      out.push(rule(`${photo}:not([data-pz-hs="frame"])`, "border-radius:50%;overflow:hidden;aspect-ratio:1/1;max-width:70%;margin-left:auto;margin-right:auto"));
+      break;
+    case "card":
+      out.push(rule(`${photo}:not([data-pz-hs="frame"])`, "border-radius:20px;overflow:hidden;box-shadow:0 12px 28px rgba(10,10,10,0.16)"));
+      break;
+    case "split":
+      out.push(rule(`${scope} [data-hero-v2="D"]:not([data-pz-hs="frame"])`, "background:#FFFFFF"));
+      out.push(rule(`${scope} [data-hero-v2="D"]>[data-hero-photo]:not([data-pz-hs="frame"])`, "border-radius:0;width:100%"));
+      break;
+    case "fullbleed":
+      out.push(rule(`${scope} [data-hero-v2="A"]:not([data-pz-hs="frame"])`, "border-radius:0"));
+      break;
+    default:
+      break;
+  }
+  // impact 오버레이 제목 크기 하한(금지 CSS 없이 font-size만)
+  if (r.titlePos === "overlay") {
+    out.push(rule(`${scope} [data-hero-v2="A"] [data-hero-a-text] p:not([data-pz-hs="title"])`, "font-size:56px;line-height:1.15;font-weight:900"));
+  }
   // ── 가격 줄
   const S = `${scope} [data-pz-strip]:not([data-pz-hs="strip"])`;
   const P = `${S} [data-pz-strip-price]`; const N = `${S} [data-pz-strip-name]`; const C = `${S} [data-pz-strip-chip]`;
@@ -51,18 +170,18 @@ export function heroStackCssV5(scope: string, id: ArchetypeId, ink: string): str
       out.push(rule(P, "font-size:26px;font-weight:900"));
       break;
     case "float":
-      out.push(rule(S, `margin:-30px 16px 0;border-radius:22px;padding:14px 18px;background:#FFFFFF;box-shadow:0 14px 34px ${rgba(ink, 0.16)}`));
+      out.push(rule(S, `margin:-36px 20px 0;border-radius:999px;padding:16px 22px;background:#FFFFFF;box-shadow:0 16px 36px ${rgba(ink, 0.18)}`));
       out.push(rule(P, "font-size:22px;font-weight:900"));
       break;
     case "dark":
       out.push(rule(S, `margin-top:0;border-radius:0;background:${ink};box-shadow:none`));
-      out.push(rule(P, "font-size:34px;font-weight:900;color:#FFFFFF"));
+      out.push(rule(P, "font-size:40px;font-weight:900;color:#FFFFFF"));
       out.push(rule(N, "color:rgba(255,255,255,0.88)"));
       out.push(rule(C, "background:rgba(255,255,255,0.18);color:#FFFFFF"));
       break;
     case "badge":
-      out.push(rule(S, `margin:-24px 18px 0;transform:rotate(-1.5deg);border:3px solid ${ink};border-radius:14px;background:#FFFFFF;box-shadow:5px 5px 0 ${ink}`));
-      out.push(rule(P, "font-size:26px;font-weight:900"));
+      out.push(rule(S, `margin:-28px 18px 0;transform:rotate(-2deg);border:3px solid ${ink};border-radius:14px;background:#FFFFFF;box-shadow:6px 6px 0 ${ink}`));
+      out.push(rule(P, "font-size:28px;font-weight:900"));
       break;
     case "hair":
       out.push(rule(S, `justify-content:center;text-align:center;border-radius:0;background:transparent;box-shadow:none;border-top:1px solid ${rgba(ink, 0.25)};border-bottom:1px solid ${rgba(ink, 0.25)};letter-spacing:0.06em`));
@@ -76,7 +195,7 @@ export function heroStackCssV5(scope: string, id: ArchetypeId, ink: string): str
       out.push(rule(S, `margin:0 20px;border-radius:0;background:transparent;box-shadow:none;border-left:4px solid ${ink};padding-left:16px`));
       out.push(rule(P, "font-size:22px;font-weight:800"));
   }
-  // ── 한눈에 보기(가격 줄 바로 뒤 형제 블록): 바깥 블록 B, 항목을 담는 flex 상자 B>div, 항목 B>div>div
+  // ── 한눈에 보기
   const B = `${scope} [data-pz-strip]+div:not([data-pz-hs="glance"])`;
   switch (r.glance) {
     case "list":
@@ -85,6 +204,7 @@ export function heroStackCssV5(scope: string, id: ArchetypeId, ink: string): str
       break;
     case "grid2":
       out.push(rule(`${B}>div`, "display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:none;margin:0"));
+      out.push(rule(`${B}>div>div`, `padding:10px 12px;border:1px solid ${rgba(ink, 0.2)};border-radius:8px;background:#FFFFFF`));
       break;
     case "pills":
       out.push(rule(`${B}>div`, "justify-content:center;gap:8px;row-gap:8px"));
@@ -94,6 +214,14 @@ export function heroStackCssV5(scope: string, id: ArchetypeId, ink: string): str
       out.push(rule(`${B}>div`, "flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;scroll-snap-type:x mandatory;padding-bottom:6px;max-width:none;margin:0;-webkit-overflow-scrolling:touch"));
       out.push(rule(`${B}>div>div`, "flex:0 0 auto;scroll-snap-align:start"));
       break;
+    case "cards":
+      out.push(rule(`${B}>div`, "display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:none;margin:0"));
+      out.push(rule(`${B}>div>div`, `padding:14px;border-radius:16px;background:#FFFFFF;box-shadow:0 8px 20px ${rgba(ink, 0.12)}`));
+      break;
+    case "bignum":
+      out.push(rule(`${B}>div`, "flex-direction:column;align-items:flex-start;row-gap:8px"));
+      out.push(rule(`${B}>div>div`, "font-size:22px;font-weight:900;letter-spacing:-0.03em"));
+      break;
     case "airy":
       out.push(rule(B, "padding-top:44px;padding-bottom:44px"));
       out.push(rule(`${B}>div`, "row-gap:30px;column-gap:28px"));
@@ -101,7 +229,7 @@ export function heroStackCssV5(scope: string, id: ArchetypeId, ink: string): str
     default:
       out.push(rule(B, `text-align:left;background:transparent;border-left:4px solid ${ink}`));
   }
-  // ── 탭 칩(앵커 이동·sticky 불변; 모양만)
+  // ── 탭 칩
   const A = `${scope} nav.pagzly-anchor-nav:not([data-pz-hs="nav"]) a`;
   const base = "min-height:44px;display:inline-flex;align-items:center;padding:0 14px;white-space:nowrap";
   switch (r.nav) {
@@ -118,11 +246,9 @@ export function heroStackCssV5(scope: string, id: ArchetypeId, ink: string): str
 }
 
 // ── 장식 숫자(고스트 글자) 배치 ────────────────────────────────────────────────
-/** 위쪽/아래쪽 여백 띠 안에 들어가는 최대 글자 크기(강도별) */
 const GHOST_MAX = { 5: 110, 4: 96, 3: 84 } as const;
 export const GHOST_MIN_BAND = 50;
 
-/** 여백 띠 안에 놓을 수 있는 위치로 정한다: 요청한 위치의 띠가 작으면 더 큰 띠로 옮기고, 둘 다 작으면 null(장식 숫자 없음) */
 export function resolveGhostV5(pos: GhostPos, padTop: number, padBottom: number): { pos: GhostPos; band: number } | null {
   const wantTop = pos === "tl" || pos === "tc" || pos === "le";
   const want = wantTop ? padTop : padBottom;
@@ -134,7 +260,6 @@ export function resolveGhostV5(pos: GhostPos, padTop: number, padBottom: number)
 }
 
 export type GhostBox = { x: number; y: number; w: number; h: number; size: number };
-/** 섹션 로컬 좌표(폭 W, 높이 H)에서 장식 숫자 상자. 글자 폭 ≈ 글자 수 × 0.62em, 높이 ≈ 0.9em */
 export function ghostBoxV5(pos: GhostPos, band: number, text: string, W: number, H: number, level: 3 | 4 | 5): GhostBox {
   const size = Math.max(36, Math.min(GHOST_MAX[level], band - 14));
   const w = [...text].length * 0.62 * size; const h = size * 0.9;
@@ -144,10 +269,6 @@ export function ghostBoxV5(pos: GhostPos, band: number, text: string, W: number,
   return { x, y, w, h, size };
 }
 
-/**
- * 장식 숫자와 제목 상자의 겹침: 제목 상자 = 가운데 열(최대 576, 좌우 24) × (여백 위 padTop부터 눈썹 30px + 제목 줄 수 × 제목 크기 × 1.25).
- * 반환: titleOverlap(겹친 면적 ÷ 제목 면적), contentOverlap(아래 여백 쪽: 마지막 내용 60px 띠와 겹침 ÷ 그 면적), cutRatio(섹션 밖으로 나간 비율)
- */
 export function overlapRatioV5(g: GhostBox, o: { W: number; H: number; padTop: number; padBottom: number; titleSize: number; titleLines: number }): { titleOverlap: number; contentOverlap: number; cutRatio: number } {
   const colW = Math.min(576, o.W - 48);
   const colX = (o.W - colW) / 2;

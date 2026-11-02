@@ -237,12 +237,21 @@ export function applyDynamicsHtml(html: string, s: ImpactSection, t: ArchetypeTo
   const gres = resolveGhostV5(HERO_STACK[t.id].ghost, pd.top, pd.bottom);
   // 글 뒤에 이미 있는 번호(wrap의 고스트)도 같은 규칙으로: 위치·크기를 덮어쓴다(가로로 나가는 위치는 안쪽 위치로 바꾼다)
   // 여백 띠가 모자라(둘 다 < 50px) 놓을 자리가 없으면 글 위를 가리는 고스트는 빼고 간다
-  if (!gres && /data-pz-ghost/.test(out)) out = out.replace(/<span aria-hidden="true" data-pz-ghost[^>]*>[^<]*<\/span>/g, "");
+  if (!gres && /data-pz-ghost/.test(out)) out = out.replace(/<span[^>]*data-pz-ghost[^>]*>[^<]*<\/span>/g, "");
   if (gres && /data-pz-ghost/.test(out)) {
     const inner: GhostPos = gres.pos === "le" ? "tl" : gres.pos === "re" ? "bl" : gres.pos;
     const sz = ghostBoxV5(inner, gres.band, "00", 390, 600, t.dyn.level).size;
-    out = out.replace(/(<span aria-hidden="true" data-pz-ghost)( style=")([^"]*)(">)/g, (_m, a1: string, a2: string, st: string, a4: string) =>
-      `${a1} data-pz-ghostpos="${inner}"${a2}${st.replace(/(top|bottom):-?\d+px;(left|right):\d+px;?/, `${ghostCss(inner)};`).replace(/font-weight:\d+;?/, "").replace(/font-size:\d+px/, `font-weight:900;font-size:${sz}px`)}${a4}`);
+    // 472: 속성 순서와 무관하게 고스트 위치·크기를 덮어씀(이전엔 `data-pz-ghost` 직후 style만 잡아 top/right 잔존이 있었음)
+    out = out.replace(/<span([^>]*data-pz-ghost[^>]*)>/g, (_m, attrs: string) => {
+      const st = /style="([^"]*)"/.exec(attrs)?.[1] ?? "";
+      const cleaned = st
+        .replace(/(?:top|bottom|left|right):-?[\d.]+(?:px|em);?/g, "")
+        .replace(/transform:[^;]+;?/g, "")
+        .replace(/font-weight:\d+;?/, "")
+        .replace(/font-size:\d+px/, `font-weight:900;font-size:${sz}px`);
+      const rest = attrs.replace(/\s*style="[^"]*"/, "").replace(/\s*data-pz-ghostpos="[^"]*"/, "");
+      return `<span${rest} data-pz-ghostpos="${inner}" style="position:absolute;${ghostCss(inner)};${cleaned}">`;
+    });
   }
   if (d.ghost && !/data-pz-ghost/.test(out) && gres) {
     const alpha = dark ? 0.1 : t.dyn.level === 5 ? 0.12 : t.dyn.level === 4 ? 0.09 : 0.07;

@@ -21,11 +21,14 @@ import { buildProofRows } from "@/lib/evidence-modules";
 import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import { DESIGN_POLISH_ENABLED } from "@/lib/design-polish";
 import { polishTitles } from "@/lib/typo-rhythm";
-import { DESIGN_V4_ENABLED, designV4On } from "@/lib/design-v4";
+import { DESIGN_V4_ENABLED, designV4On, designV5On } from "@/lib/design-v4";
 import { CHIP_V4, HERO_FACE_CAP, ghostFadeBackground } from "@/lib/design-tokens-v4";
 import { designV2On } from "@/lib/design-v2";
 import { motifSvg } from "@/lib/motifs";
 import { v4Palette } from "@/lib/palette-v4";
+import { hueShift } from "@/lib/color-extract";
+import { HERO_STACK, recipeBgToken, type FaceMode } from "@/lib/hero-stack-v5";
+import type { ArchetypeId as PageArchetypeId } from "@/lib/page-archetype-v5";
 
 export const HERO_V2_ENABLED = process.env.NEXT_PUBLIC_HERO_V2 !== "off";
 /** 438차 조정(사진 면적 확보·텍스트 압축·스크림·실패 폴백). NEXT_PUBLIC_HERO_V2=prev 이면 437차 사양 그대로, off 이면 436차 히어로 */
@@ -70,6 +73,8 @@ export type HeroV2Plan = {
   pos: string;
   /** 439차 2-4 — 히어로 v3 레이어(DESIGN_V4). 없으면 438차 히어로 */
   v3?: HeroV3;
+  /** 472차 V5 — 페이지 아키타입 면 색(상품 accent + hueShift, faceMode). 없으면 기존 면 */
+  v5Face?: { arch: PageArchetypeId; shift: number; mode: FaceMode; bgToken: string };
 };
 
 /**
@@ -304,6 +309,18 @@ export function heroFaceColor(accent: string, hint: HeroHueHint | undefined): { 
   if (!hint || !isNearNeutral(accent)) return { face: capFaceChroma(saturatedFace(accent)), source: hint ? "photo" : "accent" };
   if (hint.hue === "dark") return { face: "#1F2026", source: hint.source };
   return { face: capFaceChroma(saturatedFace(hslToHex(hint.hue, 0.7, 0.45))), source: hint.source };
+}
+
+/** 472 — 상품 accent를 아키타입별로 비튼 히어로 면. white/dark는 고정, pastel/paper는 밝은 면, sat는 포화 면 */
+export function heroFaceForV5(accent: string, hint: HeroHueHint | undefined, mode: FaceMode, shift: number): string {
+  const shifted = shift ? hueShift(accent, shift) : accent;
+  if (mode === "white") return "#FFFFFF";
+  if (mode === "dark") return "#0E0E10";
+  if (mode === "pastel" || mode === "paper") {
+    const [h] = hexToHsl(shifted);
+    return hslToHex(h, mode === "paper" ? 0.22 : 0.42, mode === "paper" ? 0.94 : 0.88);
+  }
+  return heroFaceColor(shifted, hint).face;
 }
 
 /** 사진 위 스크림 불투명도 곡선(0=아래 끝). 텍스트 영역(아래 약 45%)에서 최소 scrimTextAlpha 이상 */
@@ -554,14 +571,19 @@ function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: str
   const size = heroNameSizePx(p.name);
   const failAttrs = ` onerror="${HERO_FAIL_ONERROR}" onload="${HERO_FAIL_ONLOAD}"`;
   const img = (extra: string) => `<img src="${esc(p.imageUrl)}" alt="${esc(alt)}" fetchpriority="high" decoding="async"${failAttrs} style="${extra}"/>`;
-  const wrapOpen = (v: HeroV2Variant, style: string) => `${STRIP_OVERLAP_CSS_TUNED + HERO_FAIL_CSS + HERO_FAIL_CSS_V3 + (v === "D" && p.brand ? HERO_FAIL_CSS_V4 : "")}<section data-hero-v2="${v}" data-hero-v3 class="hero pagzly-hero" style="position:relative;width:100%;box-sizing:border-box;overflow:hidden;border-radius:0 0 24px 24px;${style}">`;
+  const wrapOpen = (v: HeroV2Variant, style: string, _faceHex?: string) => {
+    const bg = p.v5Face?.bgToken ?? "";
+    const vsig = p.v5Face ? ` data-pz-vsig="${p.v5Face.arch}" data-pz-vsig-bg="${bg}"` : "";
+    return `${STRIP_OVERLAP_CSS_TUNED + HERO_FAIL_CSS + HERO_FAIL_CSS_V3 + (v === "D" && p.brand ? HERO_FAIL_CSS_V4 : "")}<section data-hero-v2="${v}" data-hero-v3 class="hero pagzly-hero"${vsig} style="position:relative;width:100%;box-sizing:border-box;overflow:hidden;border-radius:0 0 24px 24px;${style}">`;
+  };
   const vp = v4Palette({ accent: pal.accent, deep: pal.deepAccent }, p.v3!.mood);
   const priceBg = "#FFFFFF";
   const priceFg = "#1B1B18";
   if (p.variant === "A") {
     const aFold = heroABlockFold(p, hero, size).fold;
+    // 472 impact: 풀블리드 + 어두운 그라데이션(면 자체는 사진). bgToken은 dark
     return (
-      wrapOpen("A", "aspect-ratio:4 / 5.4;max-height:760px;background:#1B1B18") +
+      wrapOpen("A", "aspect-ratio:4 / 5.4;max-height:760px;background:#1B1B18", "#0E0E10") +
       img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`) +
       `<div aria-hidden="true" data-hero-scrim style="position:absolute;left:0;right:0;top:0;height:14%;background:linear-gradient(180deg,rgba(10,10,10,0.3),rgba(10,10,10,0))"></div>` +
       `<div data-hero-a-text style="position:absolute;left:0;right:0;top:0;padding:20px ${p.v3!.sticker ? 112 : 20}px 0 20px">${brandPill(p, HERO_A_CHIP_BG_V4, "#FFFFFF")}${p.badges.length ? `<div style="margin-top:10px">${badgeRow(p, HERO_A_CHIP_BG_V4, "#FFFFFF", HERO_CHIP_BORDER_V4)}</div>` : ""}</div>` +
@@ -572,9 +594,12 @@ function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: str
   if (p.variant === "B" || p.variant === "C") {
     const isB = p.variant === "B";
     const band = ghostBand(p);
-    const face = isB ? heroFaceColor(pal.accent, p.hueHint).face : "#0E0E10";
-    const ghost = v3Ghost(p, ghostColor(isB ? face : mixHex(face, pal.accent, 0.22), "#FFFFFF", "#FFFFFF", designV4On() ? GHOST_ON_PHOTO_MIX : undefined), "left:-2%;right:-2%;top:-0.55em;text-align:center;overflow:hidden;z-index:-1") + v3GhostFade(p, isB ? face : "#0E0E10");
-    const motif = v3Motif(p, pal, isB ? mixHex(face, "#FFFFFF", 0.1) : mixHex("#0E0E10", pal.accent, 0.35), "left:50%;top:14%;margin-left:-230px;z-index:-2", "blob", 460, 380);
+    const face = isB
+      ? (p.v5Face ? heroFaceForV5(pal.accent, p.hueHint, p.v5Face.mode, p.v5Face.shift) : heroFaceColor(pal.accent, p.hueHint).face)
+      : (p.v5Face?.mode === "dark" ? "#0E0E10" : "#0E0E10");
+    const accentForGlow = p.v5Face ? hueShift(pal.accent, p.v5Face.shift) : pal.accent;
+    const ghost = v3Ghost(p, ghostColor(isB ? face : mixHex(face, accentForGlow, 0.22), "#FFFFFF", "#FFFFFF", designV4On() ? GHOST_ON_PHOTO_MIX : undefined), "left:-2%;right:-2%;top:-0.55em;text-align:center;overflow:hidden;z-index:-1") + v3GhostFade(p, isB ? face : "#0E0E10");
+    const motif = v3Motif(p, pal, isB ? mixHex(face, "#FFFFFF", 0.1) : mixHex("#0E0E10", accentForGlow, 0.35), "left:50%;top:14%;margin-left:-230px;z-index:-2", "blob", 460, 380);
     const photo = isB
       ? p.whiteBg
         ? // 449차 1-3 — 흰 배경 컷아웃: multiply는 z-index 묶음(고립 그룹) 안에서 면과 섞이지 않아 네모 흰 상자로 떴고(합성 whitebg 변형으로 확인) export 금지 기법이기도 하다 → 둥근 흰 카드 + 그림자 프레임(의도된 모양)
@@ -584,21 +609,31 @@ function heroV3Html(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: str
           : heroFrameOf(p) === "offset"
             ? `<div data-hero-photo data-hero-frame="offset" style="position:relative;margin:${20 + band}px auto 44px;width:80%;aspect-ratio:4 / 4.8"><span aria-hidden="true" style="position:absolute;left:14px;top:14px;right:-14px;bottom:-14px;border:2px solid rgba(255,255,255,0.6);border-radius:6px;pointer-events:none"></span><div style="position:absolute;left:0;top:0;width:100%;height:100%;border-radius:6px;overflow:hidden;box-shadow:0 12px 32px rgba(10,10,10,0.3);background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div></div>`
             : `<div data-hero-photo style="position:relative;margin:${16 + band}px auto 0;width:96%;aspect-ratio:4 / 5.2;border-radius:999px 999px 0 0;overflow:hidden;box-shadow:0 -10px 30px rgba(10,10,10,0.25);background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`
-      : `<div data-hero-photo style="position:relative;margin:${16 + band}px auto 32px;width:96%;aspect-ratio:1 / 1.3;border-radius:24px;overflow:hidden;box-shadow:0 0 70px ${hexToRgba(pal.accent, 0.5)};background:#1B1B18">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`;
+      : `<div data-hero-photo style="position:relative;margin:${16 + band}px auto 32px;width:96%;aspect-ratio:1 / 1.3;border-radius:24px;overflow:hidden;box-shadow:0 0 70px ${hexToRgba(accentForGlow, 0.5)};background:#1B1B18">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}</div>`;
+    // pastel 면은 어두운 글자, sat/dark는 흰 글자
+    const onLight = isB && (p.v5Face?.mode === "pastel" || p.v5Face?.mode === "paper" || p.v5Face?.mode === "white");
+    const inkOn = onLight ? "#1B1B18" : "#FFFFFF";
+    const inkMute = onLight ? hexToRgba("#1B1B18", 0.7) : "rgba(255,255,255,0.75)";
+    const chipBg = onLight ? "#FFFFFF" : HERO_BRAND_PILL_BG_V4;
+    const chipBd = onLight ? hexToRgba("#1B1B18", 0.2) : HERO_CHIP_BORDER_V4;
     const text = isB
-      ? `<div style="position:relative;z-index:4;padding:28px 24px 0">${brandPill(p, HERO_BRAND_PILL_BG_V4, "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "#FFFFFF")}${hookHtml(hero, "#FFFFFF", "#FFFFFF")}${tagRow(p, "#FFFFFF", HERO_CHIP_BORDER_V4)}</div>${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "rgba(255,255,255,0.18)", "#FFFFFF", HERO_CHIP_BORDER_V4)}</div>` : ""}${v3Price(p, priceBg, priceFg)}</div>`
+      ? `<div style="position:relative;z-index:4;padding:28px 24px 0">${brandPill(p, chipBg, inkOn)}<div style="margin-top:16px">${nameHtml(p, inkOn, size, 900)}${subNameHtml(p, inkMute)}${hookHtml(hero, inkOn, inkMute)}${tagRow(p, inkOn, chipBd)}</div>${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, onLight ? "#FFFFFF" : "rgba(255,255,255,0.18)", inkOn, chipBd)}</div>` : ""}${v3Price(p, priceBg, priceFg)}</div>`
       : `<div style="position:relative;z-index:4;padding:28px 24px 0;text-align:center">${brandPill(p, HERO_BRAND_PILL_BG_V4, "#FFFFFF")}<div style="margin-top:16px">${nameHtml(p, "#FFFFFF", size, 900)}${subNameHtml(p, "rgba(255,255,255,0.75)")}${hookHtml(hero, "#FFFFFF", "rgba(255,255,255,0.82)")}<div style="display:flex;justify-content:center">${tagRow(p, "#FFFFFF", HERO_CHIP_BORDER_V4)}</div></div>${p.badges.length ? `<div style="margin-top:14px;display:flex;justify-content:center">${badgeRow(p, "rgba(255,255,255,0.12)", "#FFFFFF", HERO_CHIP_BORDER_V4)}</div>` : ""}${v3Price(p, priceBg, priceFg)}</div>`;
     return (
-      wrapOpen(p.variant, isB ? `background:${face};isolation:isolate` : `background:#0E0E10 radial-gradient(60% 45% at 50% 66%,${hexToRgba(pal.accent, 0.4)},rgba(14,14,16,0) 70%);isolation:isolate`) +
+      wrapOpen(p.variant, isB ? `background:${face};isolation:isolate` : `background:#0E0E10 radial-gradient(60% 45% at 50% 66%,${hexToRgba(accentForGlow, 0.4)},rgba(14,14,16,0) 70%);isolation:isolate`, isB ? face : "#0E0E10") +
       text +
-      `<div style="position:relative;z-index:3">${motif}${ghost}${photo}${v3Sticker(p, pal, `top:${isB ? -10 : 2}px;right:5%;z-index:6`)}</div></section>`
+      `<div style="position:relative;z-index:3">${motif}${ghost}${photo}${v3Sticker(p, { ...pal, accent: accentForGlow }, `top:${isB ? -10 : 2}px;right:5%;z-index:6`)}</div></section>`
     );
   }
   if (p.variant === "D") {
-    const face = pal.face;
-    const deep = mixHex(pal.deepAccent, "#000000", 0.35);
+    const face = p.v5Face?.mode === "white"
+      ? "#FFFFFF"
+      : p.v5Face
+        ? heroFaceForV5(pal.accent, p.hueHint, p.v5Face.mode === "sat" ? "pastel" : p.v5Face.mode, p.v5Face.shift)
+        : pal.face;
+    const deep = mixHex(p.v5Face ? hueShift(pal.deepAccent, p.v5Face.shift) : pal.deepAccent, "#000000", 0.35);
     return (
-      wrapOpen("D", "background:#FFFFFF") +
+      wrapOpen("D", "background:#FFFFFF", face) +
       `<div data-hero-photo style="position:relative;width:100%;aspect-ratio:4 / 4.8;max-height:${HERO_D_PHOTO_MAX_PX}px;overflow:hidden;background:${pal.baseNeutral}">${img(`position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:${p.pos}`)}<div style="position:absolute;left:0;top:0;padding:18px 20px">${brandPill(p, "rgba(255,255,255,0.9)", "#1B1B18")}</div>${v3Sticker(p, pal, "right:16px;bottom:16px;z-index:6")}</div>` +
       `<div style="position:relative;overflow:hidden;background:${face};padding:28px 24px ${44 + ghostBand(p)}px">${v3Ghost(p, ghostColor(face, "#1B1B18", vp.deep), designV4On() ? "right:8%;bottom:16px;z-index:0" : "right:-6px;bottom:16px;z-index:0")}${v3GhostFade(p, face, "bottom")}` +
       `<div style="position:relative;z-index:4">${p.brand ? `<div data-hero-brand-fallback style="margin:0 0 14px">${brandPill(p, "#FFFFFF", "#1B1B18")}</div>` : ""}${nameHtml(p, "#1B1B18", size, 900)}${subNameHtml(p, hexToRgba("#1B1B18", 0.65))}${hookHtml(hero, deep, hexToRgba("#1B1B18", 0.78))}${p.badges.length ? `<div style="margin-top:14px">${badgeRow(p, "#FFFFFF", "#1B1B18", hexToRgba("#1B1B18", 0.2))}</div>` : ""}${tagRow(p, "#1B1B18", hexToRgba("#1B1B18", 0.3))}${v3Price(p, darkenForWhite(vp.deep), "#FFFFFF")}</div></div></section>`
@@ -645,6 +680,8 @@ export type HeroPlanInput = {
   ctaBadges?: string[];
   /** 466차 V5 — 아키타입 히어로 선호(앞이 우선). 입력이 요건을 못 채우면 기존 선택으로 폴백. 없으면(꺼짐·편집 모드) 기존 동작 */
   v5Hero?: readonly HeroV2Variant[];
+  /** 472차 V5 — 페이지 아키타입 id(히어로 면 색·시각 시그니처) */
+  v5Arch?: PageArchetypeId;
 };
 
 /**
@@ -674,14 +711,22 @@ export function planHeroV2(i: HeroPlanInput): HeroV2Plan | null {
   const brand = (i.brandName ?? "").trim();
   const badges = heroBadgesFrom(i.hero, i.certifications, i.category, i.facts);
   const v3 = designV4On() && HERO_V2_TUNED ? heroV3Of(i, main, sub, badges) : null;
+  const hint = DESIGN_POLISH_ENABLED ? hueHintOf(`${raw} ${brand} ${i.keyFeatures}`, i.mood) : {};
+  // 472: V5 켜짐 + 페이지 아키타입이 있으면 상품 accent를 아키타입별로 비튼 면·시그니처 토큰
+  let v5Face: HeroV2Plan["v5Face"];
+  if (designV5On() && i.v5Arch && i.v5Hero?.length) {
+    const rec = HERO_STACK[i.v5Arch];
+    v5Face = { arch: i.v5Arch, shift: rec.hueShift, mode: rec.faceMode, bgToken: recipeBgToken(rec.faceMode, rec.hueShift) };
+  }
   return {
-    ...(DESIGN_POLISH_ENABLED ? hueHintOf(`${raw} ${brand} ${i.keyFeatures}`, i.mood) : {}),
+    ...hint,
     variant, photoKind: est.kind, confidence: est.confidence, name: main, ...(sub ? { nameSub: sub } : {}), ...(brand && brand.length <= 24 ? { brand } : {}),
     imageUrl: url, whiteBg: est.whiteBg && variant === "B",
     badges: v3?.sticker && badges[0] === v3.sticker ? badges.slice(1) : badges,
     tags: tunedTags(hashtagsFrom(i.keyFeatures, i.facts), badges.length, variant, est.kind),
     pos: i.wornTop ? "50% 18%" : HERO_V2_TUNED && est.kind === "product" ? "50% 28%" : "50% 40%",
     ...(v3 ? { v3 } : {}),
+    ...(v5Face ? { v5Face } : {}),
   };
 }
 
