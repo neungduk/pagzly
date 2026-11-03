@@ -13,6 +13,12 @@ import {
   keyvisualHtml482,
   planKeyvisual482,
 } from "@/lib/keyvisual-482";
+import {
+  collectBodyTexts482,
+  darkBandHtml482,
+  darkBandIndex482,
+  longestSentence482,
+} from "@/lib/dark-band-482";
 import { infoCssV5 } from "@/lib/info-v5";
 import StickyBuyBar from "@/components/StickyBuyBar";
 import { COMPOSITION_V2_ENABLED } from "@/lib/detail-story-order";
@@ -6545,9 +6551,22 @@ export default function DetailSectionRenderer({
                 ? "section"
                 : "section-alt";
         const anchorId = anchorIdMap.get(index);
+        const darkAt =
+          designV5On() && display.v5 ? darkBandIndex482(sections.length, display.v5.id) : -1;
+        const darkText =
+          darkAt === index
+            ? longestSentence482(collectBodyTexts482(sections))
+            : null;
+        const darkHtml =
+          darkText && display.v5
+            ? darkBandHtml482(darkText, paletteFromTheme482(baseTheme))
+            : null;
         return (
           <Fragment key={`section-wrap-${index}`}>
             {breather}
+            {darkHtml ? (
+              <div key={`darkband-${index}`} dangerouslySetInnerHTML={{ __html: darkHtml }} />
+            ) : null}
             <DetailScrollReveal
               index={index}
               variant={variant}

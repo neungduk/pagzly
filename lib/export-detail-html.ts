@@ -209,6 +209,7 @@ import {
   keyvisualHtml482,
   planKeyvisual482,
 } from "@/lib/keyvisual-482";
+import { insertDarkBand482 } from "@/lib/dark-band-482";
 import { DESIGN_V3_COLOR_ENABLED, extendThemeFor, paletteInfoCss } from "@/lib/palette-harmony";
 import { dividerCss, dividerStyleFor } from "@/lib/section-dividers";
 import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
@@ -2515,7 +2516,15 @@ export function buildDetailPageHtml(opts: {
       }
     }
   }
-  const body = bodyParts.join("\n");
+  const bodyPartsFinal =
+    designV5On() && displayRes.v5
+      ? insertDarkBand482(bodyParts, {
+          archetype: displayRes.v5.id,
+          palette: productPalette482,
+          sections: visibleSections,
+        })
+      : bodyParts;
+  const body = bodyPartsFinal.join("\n");
 
   const copy: Pick<GeneratedCopy, "description" | "features" | "howToUse" | "caution" | "headlines"> = {
     description: opts.description ?? "",
