@@ -15,7 +15,7 @@ export type HlCell = {
 };
 
 function num(i: number): string {
-  return `<div style="font-size:11px;letter-spacing:.18em;opacity:.65;margin-bottom:8px">${String(i + 1).padStart(2, "0")}</div>`;
+  return `<div data-pz-chip style="display:inline-block;padding:2px 8px;border-radius:999px;background:#0A0A0A;font-size:11px;letter-spacing:.18em;margin-bottom:8px;color:#FAF8F3">${String(i + 1).padStart(2, "0")}</div>`;
 }
 
 /** 모드별 래퍼+셀. 시각 차이는 DOM 구조(+짧은 CSS). */

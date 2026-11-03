@@ -1049,8 +1049,8 @@ function sectionHtml(
               const offImage = section.stepBadgeOffImage === true || noPhoto;
               return `<div${rowMode && !noPhoto ? ` class="pagzly-step-row" style="display:grid;grid-template-columns:40% 1fr;gap:16px;align-items:center"` : ""}>${noPhoto ? "" : `<div style="position:relative;aspect-ratio:1;border-radius:${RADIUS.md}px;overflow:hidden;background:#eee">
                 ${src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover"/>` : ""}
-                ${offImage ? "" : `<span style="position:absolute;left:${rowMode ? 8 : 10}px;top:${rowMode ? 8 : 10}px;background:${DESIGN_V4_ENABLED ? deepText : deepFill};color:#FAF8F3;font-size:${rowMode ? "10px" : FONT_SIZE.label};padding:${rowMode ? "4px 10px" : "4px 10px"};border-radius:${RADIUS.pill}px;font-weight:700;letter-spacing:${rowMode ? ".18em" : ".24em"}${DESIGN_V4_ENABLED ? `;${declStyle(stepChipV4())}` : ""}">${badge}</span>`}
-              </div>`}<div style="min-width:0">${offImage ? `<span class="pagzly-step-tag" style="display:block;margin:${rowMode ? "0" : "12px"} 0 6px;font-family:${DETAIL_FONT_STACK.label};font-size:11px;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:${v4TextOn(accentText, sectionBg)}">${badge}</span>` : ""}<h3 style="margin:${rowMode || offImage ? "0" : "12px"} 0 4px;font-size:16px;font-weight:700;letter-spacing:-0.02em">${esc(step.title)}</h3><p style="margin:0;font-size:${rowMode ? "13px" : FONT_SIZE.sm};line-height:1.625;opacity:.8;word-break:keep-all">${esc(step.body)}</p></div></div>`;
+                ${offImage ? "" : `<span data-pz-chip style="position:absolute;left:${rowMode ? 8 : 10}px;top:${rowMode ? 8 : 10}px;background:#0A0A0A;color:#FAF8F3;font-size:${rowMode ? "10px" : FONT_SIZE.label};padding:${rowMode ? "4px 10px" : "4px 10px"};border-radius:${RADIUS.pill}px;font-weight:700;letter-spacing:${rowMode ? ".18em" : ".24em"}${DESIGN_V4_ENABLED ? `;${declStyle(stepChipV4())}` : ""}">${badge}</span>`}
+              </div>`}<div style="min-width:0">${offImage ? `<span data-pz-chip class="pagzly-step-tag" style="display:inline-block;margin:${rowMode ? "0" : "12px"} 0 6px;padding:3px 8px;border-radius:999px;background:#0A0A0A;font-family:${DETAIL_FONT_STACK.label};font-size:11px;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:#FAF8F3">${badge}</span>` : ""}<h3 style="margin:${rowMode || offImage ? "0" : "12px"} 0 4px;font-size:16px;font-weight:700;letter-spacing:-0.02em">${esc(step.title)}</h3><p style="margin:0;font-size:${rowMode ? "13px" : FONT_SIZE.sm};line-height:1.625;opacity:.8;word-break:keep-all">${esc(step.body)}</p></div></div>`;
             })
             .join("");
           return rowMode
@@ -1315,9 +1315,9 @@ function sectionHtml(
           ? `<div style="position:relative">
             <img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:${imageRatioCss(resolveSlotImageRatio(section))};object-fit:cover;display:block"/>
             <div style="position:absolute;inset:0;background:linear-gradient(0deg,${hexToRgba(BRAND.ink, 0.82)} 0%,${hexToRgba(BRAND.ink, 0.4)} 24%,${hexToRgba(BRAND.ink, 0.08)} 42%,transparent 55%)"></div>
-            <div class="pagzly-bleed-ov" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;text-align:center">
-              ${kicker ? `<p style="font-size:${FONT_SIZE.caption};letter-spacing:.36em;color:rgba(250,248,243,.85);margin:0 0 10px">${kicker}</p>` : ""}
-              ${dh2(category, esc(section.heading), `font-size:${titleSizeCss("banner")};margin:0;line-height:1.15;color:#FAF8F3;text-shadow:0 2px 20px rgba(0,0,0,.4);max-width:100%`)}
+            <div class="pagzly-bleed-ov" data-pz-on-dark="1" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;text-align:center;--pz-on-surface:#FAF8F3">
+              ${kicker ? `<p data-pz-on-dark="1" style="font-size:${FONT_SIZE.caption};letter-spacing:.36em;color:#FAF8F3;margin:0 0 10px;background:#0A0A0A;padding:4px 10px;border-radius:4px">${kicker}</p>` : ""}
+              ${dh2(category, esc(section.heading), `font-size:${titleSizeCss("banner")};margin:0;line-height:1.15;color:#FAF8F3;background:#0A0A0A;padding:8px 14px;border-radius:6px;max-width:100%`).replace("<h2 ", '<h2 data-pz-on-dark="1" ')}
             </div>
           </div>`
           : `<div style="max-width:576px;margin:0 auto;padding:56px 24px 0;text-align:center;box-sizing:border-box">
@@ -1775,7 +1775,7 @@ function sectionHtml(
           ${section.steps
             .map(
               (s, i) =>
-                `<li class="pagzly-usage-step" style="position:relative;display:flex;align-items:flex-start;gap:16px"><span aria-hidden="true" style="position:relative;z-index:1;flex-shrink:0;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:9999px;background:linear-gradient(${tint},${tint}),${FLAT_PAPER};color:${deepText};font-size:16px;font-weight:600;font-variant-numeric:tabular-nums">${i + 1}</span><div style="min-width:0;flex:1;padding-top:4px"><p style="margin:0 0 6px;font-family:${DETAIL_FONT_STACK.label};font-size:11px;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:${v4TextOn(accentText, sectionBg)}">STEP ${String(i + 1).padStart(2, "0")}</p><span class="pagzly-usage-text" style="display:block;font-size:14px;line-height:1.625;color:${hexToRgba(BRAND.ink, 0.78)}${DESIGN_V4_ENABLED ? `;${declStyle(stepTextV4())}` : ""}">${infoOn(layout) && splitLead(s) ? `<b data-ip="lead">${esc(splitLead(s)!.lead)}</b>${esc(splitLead(s)!.rest)}` : esc(s)}</span></div></li>`,
+                `<li class="pagzly-usage-step" style="position:relative;display:flex;align-items:flex-start;gap:16px"><span data-pz-chip aria-hidden="true" style="position:relative;z-index:1;flex-shrink:0;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:9999px;background:#0A0A0A;color:#FAF8F3;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums">${i + 1}</span><div style="min-width:0;flex:1;padding-top:4px"><p data-pz-chip style="margin:0 0 6px;display:inline-block;padding:3px 8px;border-radius:999px;background:#0A0A0A;font-family:${DETAIL_FONT_STACK.label};font-size:11px;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:#FAF8F3">STEP ${String(i + 1).padStart(2, "0")}</p><span class="pagzly-usage-text" style="display:block;font-size:14px;line-height:1.625;color:${hexToRgba(BRAND.ink, 0.78)}${DESIGN_V4_ENABLED ? `;${declStyle(stepTextV4())}` : ""}">${infoOn(layout) && splitLead(s) ? `<b data-ip="lead">${esc(splitLead(s)!.lead)}</b>${esc(splitLead(s)!.rest)}` : esc(s)}</span></div></li>`,
             )
             .join("")}
         </ol>${flowBlock}</section>`;
@@ -1783,7 +1783,7 @@ function sectionHtml(
       return `<section${sectionIdAttr} style="${pad}${sectionInset}${bgCss}">
         ${dh2(category, headlineKeywordHtml(section.heading, theme), `text-align:center;${titleFitCss("section", section.heading, -0.03)}${flatTitleColorCss(theme)}`)}
         <ol style="max-width:640px;margin:32px auto 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:16px">
-          ${section.steps.map((s, i) => `<li><span style="color:${accentText};font-size:${FONT_SIZE.caption};font-weight:700">STEP ${String(i + 1).padStart(2, "0")}</span><div style="font-size:${FONT_SIZE.body};margin-top:4px">${esc(s)}</div></li>`).join("")}
+          ${section.steps.map((s, i) => `<li><span data-pz-chip style="display:inline-block;padding:3px 8px;border-radius:999px;background:#0A0A0A;color:#FAF8F3;font-size:${FONT_SIZE.caption};font-weight:700">STEP ${String(i + 1).padStart(2, "0")}</span><div style="font-size:${FONT_SIZE.body};margin-top:4px">${esc(s)}</div></li>`).join("")}
         </ol>${flowBlock}</section>`;
     }
     case "custom_gif":

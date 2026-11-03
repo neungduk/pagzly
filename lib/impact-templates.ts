@@ -148,7 +148,7 @@ function impactHtmlBase(s: ImpactSection, pal: ImpactPalette, alt: string): stri
         `<div style="position:relative;width:100%;aspect-ratio:4 / 5;overflow:hidden;background:${pal.tint}">` +
         `<img src="${e(s.imageUrl ?? "")}" alt="${e(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover;object-position:${pos}"/>` +
         `<div aria-hidden="true" style="position:absolute;left:0;right:0;bottom:0;height:58%;background:linear-gradient(0deg,rgba(27,27,24,0.86) 0%,rgba(27,27,24,0.72) 22%,rgba(27,27,24,0) 100%)"></div>` +
-        `<p style="position:absolute;left:0;right:0;bottom:0;margin:0;padding:0 24px 24px;${title};font-size:clamp(20px,5.2vw,24px);font-weight:700;letter-spacing:-0.02em;line-height:1.3;color:#FFFFFF;word-break:keep-all">${e(s.text)}</p>` +
+        `<p data-pz-on-dark="1" style="position:absolute;left:16px;right:16px;bottom:16px;margin:0;padding:10px 14px;border-radius:8px;background:#0A0A0A;${title};font-size:clamp(20px,5.2vw,24px);font-weight:700;letter-spacing:-0.02em;line-height:1.3;color:#FAF8F3;word-break:keep-all">${e(s.text)}</p>` +
         `</div>` +
         (s.body ? `<div style="padding:28px 24px 8px"><p style="max-width:576px;margin:0 auto;${sans};font-size:15px;line-height:1.85;color:${hexToRgba(pal.ink, 0.78)};white-space:pre-line;word-break:keep-all">${e(s.body)}</p></div>` : "") +
         `</section>`

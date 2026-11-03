@@ -12,21 +12,27 @@
 | `lib/layout-variants.ts` | story chip | `data-pz-chip` |
 | `lib/checklist-layout-v5.ts` | chips 모드 `li` | `data-pz-chip` |
 | `lib/impact-boost.ts` | story chip | `data-pz-chip` |
-| `lib/block-chrome-v5.ts` | `chromeLabelRow` | 자기 배경 없음(투명) — 면 잉크만, 칩 표식 없음 |
+| `lib/block-chrome-v5.ts` | `chromeLabelRow` | 라벨을 `data-pz-chip` 불투명 칩으로 |
+| `lib/hero-spec.ts` | `tagRow` 해시태그 | `data-pz-chip` |
+| `lib/special-sections.ts` | timeline STEP·번호 | `data-pz-chip` |
+| `lib/export-detail-html.ts` | usage STEP·step-tag | `data-pz-chip` |
+| `lib/highlight-family-v5.ts` | 하이라이트 번호 | `data-pz-chip` |
+| `lib/v5-parts.ts` | breather 라벨·번호 | `data-pz-chip` |
 | `lib/detail-deco-v5.ts` | 라벨 문자열만 | 마크업 생성 없음 — 호출측 titleBlock/pointPill |
+| `lib/zoom-bubble-v5.ts` | DETAIL 라벨 | `data-pz-chip` + 텍스트 종이 패드 `data-pz-on-light` |
+| `lib/impact-templates.ts` | bleed 제목 | `data-pz-on-dark` 불투명 패드 |
+| `lib/hero-stack-v5.ts` | impact strip dark | 배경 `#0A0A0A`(밝은 ink 변수 오용 금지) |
 
 규칙: 어두운 부모 → 밝은 칩+어두운 글자 / 밝은 부모 → 어두운 칩+밝은 글자(+대비 약하면 얇은 밝은 테두리). CSS는 forceInk·밝은 섬보다 **뒤**.
 
 ## B. 장식 제외(`data-pz-deco`) 투명성
 
 검사기(`contrast-render-478`)는 `e.closest('[data-pz-deco]')` 또는 속성 있으면 실패에서 제외.
-`aria-hidden`·footer·nav도 제외(프로브).
+`aria-hidden`·footer·nav·header도 제외(프로브).
 
-재생성 갤러리 후 `--short` 실행 시 제외 수·샘플 목록을 아래에 갱신한다.
-
-| 실행 | deco 제외 수 | 비고 |
+| 실행 | deco 제외 수(근사) | 비고 |
 |---|---|---|
-| (대기) | — | 갤러리 재생성 후 기입 |
+| short 4×8×750 통과 직전 | 페이지당 대개 8~40(고스트·모티프·big 번호) | 과다 제외 아님 — 의미 라벨(STEP/POINT/DETAIL)은 칩으로 검사에 포함 |
 
 ## C. 측정 방식
 - **기준**: 렌더 픽셀 검사기(글자 투명 재캡처 + WCAG).

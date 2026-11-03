@@ -276,15 +276,19 @@ function phototextV5(s: ImpactSection, b: V4Block, p: V4Palette, alt: string, t:
   const frame = t.frames[0] ?? "rect";
   // 477 E — zoom bubble: dframe만(2개 버블) — export 상한 유지
   if (b.variant === "dframe") {
-    const zb = zoomBubbleHtml(it.img, alt, title, bodyP(it.body, p, subOk, 10), inkOk, p.tints[1], 2);
+    // 479 — 줌 아래 텍스트는 종이 패드 위 → 항상 어두운 글(흰 inkOk 잔존 방지)
+    const titleDark = `<p style="margin:0;overflow-wrap:anywhere;${typeCss("title", "#0A0A0A", "font-size:22px")}">${headingHtml(it.title, b, p)}</p>`;
+    const zb = zoomBubbleHtml(it.img, alt, titleDark, bodyP(it.body, p, "#0A0A0A", 10), "#0A0A0A", p.tints[1], 2);
     if (zb) return wrap(b, p, zb, { bleed: true, pad: "28px 24px 48px" });
   }
   // 477 C — 사진 지배형: bleed + stack(여유 있을 때) — 장식·번호 생략
   if (b.variant === "bleed" || b.variant === "stack") {
     const pb = PHOTO_BLOCK_V5[t.id];
-    const useLight = pb === "band" || pb === "scrim";
+    // 479 — split도 사진 위 밝은 글+스크림(band)로 올려 대비 실패 방지
+    const kind = pb === "split" ? "band" : pb;
+    const useLight = kind === "band" || kind === "scrim";
     const inner = renderPhotoBlock(
-      pb === "split" ? "band" : pb,
+      kind,
       [it.img, { url: it.img.url, pos: "50% 70%" }],
       alt,
       useLight ? titleLight : title,
@@ -522,9 +526,9 @@ export const V5_PARTS: V5Parts = (s, b, p, alt) => {
         const header =
           `<div data-pz-deco-meaningful="1" style="display:flex;align-items:center;justify-content:center;gap:14px;min-height:44px;padding:0 12px">` +
           `<span style="flex:1;max-width:120px;height:0;border-top:2px solid ${hexToRgba(p.ink, 0.28)}"></span>` +
-          `<span style="font-size:11px;font-weight:700;letter-spacing:.18em;color:${p.ink};opacity:.75">${esc(lab)}</span>` +
-          `<span style="font-size:14px;font-weight:800;color:${p.deep}">${no}</span>` +
-          `${markerSvg(t1.marker, p.deep, 18)}` +
+          `<span data-pz-chip style="display:inline-block;padding:3px 8px;border-radius:999px;background:#0A0A0A;font-size:11px;font-weight:700;letter-spacing:.18em;color:#FAF8F3">${esc(lab)}</span>` +
+          `<span data-pz-chip style="display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;border-radius:50%;background:#0A0A0A;font-size:14px;font-weight:800;color:#FAF8F3">${no}</span>` +
+          `${markerSvg(t1.marker, "#0A0A0A", 18)}` +
           `<span style="flex:1;max-width:120px;height:0;border-top:2px solid ${hexToRgba(p.ink, 0.28)}"></span>` +
           `</div>`;
         return wrap(b, p, header, { pad: "40px 20px" });

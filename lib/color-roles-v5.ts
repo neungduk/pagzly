@@ -31,7 +31,8 @@ type FaceRecipe = {
 const FACE: Record<ArchetypeId, FaceRecipe> = {
   editorial: { faceShift: 0, faceMix: 0.02, dark: false, pointShift: 150, pointPct: 8, base: "#FAF7F1", paper: true },
   catalog: { faceShift: 0, faceMix: 0, dark: false, pointShift: 180, pointPct: 10, base: "#FFFFFF", paper: true },
-  softlife: { faceShift: 0, faceMix: 0.38, dark: false, pointShift: 160, pointPct: 12, base: "#FFFBF6" },
+  // 479 — faceMix를 낮춰 중간 톤 붕괴(스펙·용량 3.2~3.8 실패)를 막음
+  softlife: { faceShift: 0, faceMix: 0.22, dark: false, pointShift: 160, pointPct: 12, base: "#FFFBF6" },
   impact: { faceShift: 180, faceMix: 0.55, dark: true, pointShift: 90, pointPct: 14, base: "#0C1014" },
   techsheet: { faceShift: 200, faceMix: 0, dark: false, pointShift: 90, pointPct: 9, neutral: true, base: "#E8EEF4" },
   narrative: { faceShift: 90, faceMix: 0.52, dark: true, pointShift: 40, pointPct: 9, base: "#0E1218" },
@@ -290,20 +291,35 @@ function onSurfaceCss(s: string, forceInk: boolean): string {
       `${s} section.pagzly-illustration-banner[data-pz-face],${s} section.pagzly-illustration-banner[data-pz-face] ${text},${s} .pagzly-illustration-banner ${text},${s} .pagzly-illustration-banner [data-pz-s]{color:#FAF8F3!important;--pz-on-surface:#FAF8F3}` +
       `${s} section[data-pz-face] [data-pz-ticker],${s} section[data-pz-face] [data-pz-ticker] ${text},${s} section[data-pz-face] [data-pz-ticker] [data-pz-s],${s} [data-pz-ticker],${s} [data-pz-ticker] ${text},${s} [data-pz-ticker] [data-pz-s]{color:#FAF8F3!important;--pz-on-surface:#FAF8F3}`;
   }
-  // 479 — 어두운 자기 배경 판은 모든 아키타입에서 밝은 글자(forceInk 밖)
+  // 479 — 어두운/밝은 자기 배경 판은 모든 아키타입에서 짝 글자(forceInk 밖)
   css +=
     `${s} [data-pz-on-dark]{--pz-on-surface:#FAF8F3;color:#FAF8F3!important}` +
     `${s} [data-pz-on-dark] ${text},${s} [data-pz-on-dark] [data-pz-s]{color:#FAF8F3!important}` +
+    // 밝은 섬(줌 텍스트 패드 등) — 인라인 #fff 잔존을 덮어 어두운 글자
+    `${s} [data-pz-on-light]{--pz-on-surface:#0A0A0A;color:#0A0A0A!important}` +
+    `${s} [data-pz-on-light] ${text},${s} [data-pz-on-light] [data-pz-s]{color:#0A0A0A!important}` +
+    // 밝은 섬 안의 어두운 패드(bleed 제목 등)는 다시 밝은 글자 — on-light 후손 규칙보다 뒤
+    `${s} [data-pz-on-light] [data-pz-on-dark],${s} [data-pz-on-light] [data-pz-on-dark] ${text},${s} [data-pz-on-light] [data-pz-on-dark] [data-pz-s]{background:#0A0A0A!important;color:#FAF8F3!important;--pz-on-surface:#FAF8F3}` +
     // 어두운 판 안의 흰 숫자 원 등은 다시 어두운 글자
     `${s} [data-pz-on-dark] [data-pz-on-light],${s} [data-pz-on-dark] [data-pz-on-light] ${text}{background:#FAF8F3!important;color:#1B1B18!important;--pz-on-surface:#1B1B18}` +
+    // 밝은 섬 안 칩은 자기 쌍
+    `${s} [data-pz-on-light] [data-pz-chip],${s} [data-pz-on-light][data-pz-chip]{background:var(--pz-chip,#0A0A0A)!important;color:var(--pz-on-chip,#FAF8F3)!important}` +
+    `${s} [data-pz-on-light] [data-pz-chip] ${text}{color:var(--pz-on-chip,#FAF8F3)!important}` +
     `${s} [data-hl="price"],${s} [data-hl="sticker"]{--pz-on-surface:#FAF8F3;color:#FAF8F3!important;background:#0A0A0A!important;border-radius:50%}` +
     `${s} [data-hl="sticker"] ${text}{color:#FAF8F3!important}` +
     // 아이브로우·섹션 라벨은 면 잉크로(악센트 틴트가 면과 비슷한 경우 대비 부족)
     `${s} [data-pz-eyebrow],${s} [data-pz-eyebrow] ${text}{color:var(--pz-on-surface,#1B1B18)!important}` +
-    // 비교표·뮤트 글자 하한(근사 실패 3.7~4.4 구간)
-    `${s} th[style*="opacity"],${s} td[style*="opacity"],${s} [style*="opacity:.55"],${s} [style*="opacity:0.55"],${s} [style*="opacity:.65"],${s} [style*="opacity:0.65"],${s} [style*="opacity:.7"],${s} [style*="opacity:0.7"],${s} [style*="opacity:.85"],${s} [style*="opacity:0.85"]{opacity:1!important;color:#0A0A0A!important}` +
-    `${s} [style*="color:rgba(27,27,24"],${s} [style*="color:rgba(27, 27, 24"]{color:#0A0A0A!important}` +
+    // 비교표·뮤트 글자 하한 — 면 잉크 변수 사용(중간 톤 softlife에 #0A0A0A 고정 금지)
+    `${s} th[style*="opacity"],${s} td[style*="opacity"],${s} [style*="opacity:.55"],${s} [style*="opacity:0.55"],${s} [style*="opacity:.65"],${s} [style*="opacity:0.65"],${s} [style*="opacity:.7"],${s} [style*="opacity:0.7"],${s} [style*="opacity:.85"],${s} [style*="opacity:0.85"]{opacity:1!important;color:var(--pz-on-surface,#0A0A0A)!important}` +
+    `${s} [style*="color:rgba(27,27,24"],${s} [style*="color:rgba(27, 27, 24"]{color:var(--pz-on-surface,#0A0A0A)!important}` +
     `${s} svg text{fill:var(--pz-on-surface,#0A0A0A)!important;opacity:1!important}` +
+    // 용량 비교 등 다이어그램은 항상 종이 섬(softlife 틴트 위에서 묻히지 않게)
+    `${s} [data-diagram]{background:#FAF8F3!important;color:#0A0A0A!important;--pz-on-surface:#0A0A0A;--pz-surface:#FAF8F3}` +
+    `${s} [data-diagram] ${text},${s} [data-diagram] svg text{color:#0A0A0A!important;fill:#0A0A0A!important}` +
+    // bleed 오버레이 텍스트 패드 — 불투명 자기 배경
+    `${s} .pagzly-bleed-ov [data-pz-on-dark],${s} .pagzly-bleed-ov p,${s} .pagzly-bleed-ov h2{background:#0A0A0A!important;color:#FAF8F3!important;--pz-on-surface:#FAF8F3}` +
+    // 히어로 태그·배지 — 자기 배경 칩으로(사진 위 샘플 오염 방지)
+    `${s} [data-hero-v2] [data-pz-chip],${s} [data-hero-v3] [data-pz-chip]{background:var(--pz-chip,#0A0A0A)!important;color:var(--pz-on-chip,#FAF8F3)!important}` +
     // illust-center 모서리 알약 — 사진 위 샘플 섞임 방지용 불투명 검정 면
     `${s} [data-pz-impact="illust-center"] [data-pz-on-dark]{background:#0A0A0A!important;color:#FAF8F3!important}`;
   // 479 A — 칩 규칙은 면 강제·밝은 섬보다 뒤(자기 배경 기준)
@@ -319,13 +335,19 @@ export function colorRolesCssV5(scope: string, id: ArchetypeId): string {
   const s = `${scope}[data-pz-bsig=${id}]`;
   let extra = "";
   // 476 E — 쌍 골격(초단). living≤135 여유
-  if (id === "luxe") extra = `${s} section[data-pz-face]{padding:0 11%!important}${s} [data-pz-sf^=brand_story]{border-left:1px solid #0002;padding-left:8%!important}`;
+  if (id === "luxe")
+    extra =
+      `${s} section[data-pz-face]{padding:0 11%!important}${s} [data-pz-sf^=brand_story]{border-left:1px solid #0002;padding-left:8%!important}` +
+      `${s} [data-pz-v4^="spec"] span,${s} [data-pz-v4^="spec"] p,${s} [data-pz-v4^="spec"] :is(td,th){color:#0A0A0A!important}`;
   else if (id === "softlife")
     extra =
       `${s} .pagzly-compact-thumb{border-radius:999px!important;padding:12px 16px!important;background:var(--pz-a)}` +
       // chips 모드만 칩 쌍 — rows/stair 등은 면 잉크 유지
       `${s} [data-pz-cl-v5="chips"] li{border-radius:999px!important;padding:12px 16px!important;background:var(--pz-chip)!important;color:var(--pz-on-chip)!important;--pz-on-surface:var(--pz-on-chip)}` +
-      `${s} [data-pz-cl-v5="chips"] li :is(p,span,strong){color:var(--pz-on-chip)!important}`;
+      `${s} [data-pz-cl-v5="chips"] li :is(p,span,strong){color:var(--pz-on-chip)!important}` +
+      // 스펙·번호 근사 실패(3.8~4.2) — 뮤트 onFace 대신 고정 잉크
+      `${s} [data-pz-v4^="spec"] span,${s} [data-pz-v4^="spec"] p,${s} [data-pz-v4^="spec"] :is(td,th){color:#0A0A0A!important}` +
+      `${s} [data-pz-v4] [aria-hidden="true"]:not([data-pz-deco]):not([data-pz-chip]){color:#0A0A0A!important}`;
   else if (id === "catalog") extra = `${s} [data-pz-it] .pagzly-compact-row{display:grid!important;grid-template-columns:96px 1fr}`;
   else if (id === "techsheet") extra = `${s} [data-pz-face]{font-variant-numeric:tabular-nums}${s} [data-pz-hl-g]{display:grid!important;grid-template-columns:1fr 1fr}`;
   else if (id === "impact" || id === "pop" || id === "narrative")
@@ -335,7 +357,9 @@ export function colorRolesCssV5(scope: string, id: ArchetypeId): string {
     const text = ":is(p,h1,h2,h3,h4,li,td,th,label,a,span,strong,em,b,small)";
     extra +=
       `${s} [data-pz-glance-grid]>*{background:#FAF8F3!important;color:#0A0A0A!important;--pz-on-surface:#0A0A0A}` +
-      `${s} [data-pz-glance-grid]>* ${text},${s} [data-pz-glance-grid]>* [data-pz-s]{color:#0A0A0A!important}`;
+      `${s} [data-pz-glance-grid]>* ${text},${s} [data-pz-glance-grid]>* [data-pz-s]{color:#0A0A0A!important}` +
+      // glance 카드 안 칩은 자기 쌍 유지(본문 #0A0A0A 강제에 덮이지 않게)
+      `${s} [data-pz-glance-grid]>* [data-pz-chip],${s} [data-pz-glance-grid]>* [data-pz-chip] ${text}{background:var(--pz-chip,#0A0A0A)!important;color:var(--pz-on-chip,#FAF8F3)!important;--pz-on-surface:var(--pz-on-chip,#FAF8F3)}`;
   }
   // 어두운 면(impact/narrative) + pop(면이 어두워질 수 있음)만 인라인 잉크 강제
   const forceInk = FACE[id].dark || id === "pop";

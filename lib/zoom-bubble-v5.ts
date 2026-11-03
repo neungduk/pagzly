@@ -47,7 +47,7 @@ export function zoomBubbleHtml(
     .join("");
   const lab = v5Label("detail");
   const label = lab
-    ? `<span style="letter-spacing:0.08em;font-size:11px;font-weight:700;color:${ink}">${lab}</span>`
+    ? `<span data-pz-chip style="display:inline-block;padding:3px 8px;border-radius:999px;background:#0A0A0A;letter-spacing:0.08em;font-size:11px;font-weight:700;color:#FAF8F3">${lab}</span>`
     : "";
   return (
     `<div data-pz-zoom="multi" style="margin:0 -24px">` +
@@ -55,7 +55,7 @@ export function zoomBubbleHtml(
     `<img src="${esc(im.url)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover;object-position:${im.pos ?? "50% 40%"}"/>` +
     bubbles +
     `</div>` +
-    `<div style="padding:20px 24px 0;max-width:576px;margin:0 auto">${label}<div style="margin-top:6px">${titleHtml}</div>${bodyHtml}</div>` +
+    `<div data-pz-on-light="1" style="padding:20px 24px;max-width:576px;margin:0 auto;background:#FAF8F3;color:#0A0A0A;--pz-on-surface:#0A0A0A">${label}<div style="margin-top:6px;color:#0A0A0A">${titleHtml}</div>${bodyHtml}</div>` +
     `</div>`
   );
 }

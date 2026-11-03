@@ -183,10 +183,11 @@ export function heroStackCssV5(scope: string, id: ArchetypeId, ink: string): str
       out.push(rule(P, "font-size:22px;font-weight:900"));
       break;
     case "dark":
-      out.push(rule(S, `margin-top:0;border-radius:0;background:${ink};box-shadow:none`));
-      out.push(rule(P, "font-size:40px;font-weight:900;color:#fff"));
-      out.push(rule(N, "color:rgba(255,255,255,.88)"));
-      out.push(rule(C, "background:rgba(255,255,255,.18);color:#fff"));
+      // 479 — impact 면 ink는 밝은 글자색이라 스트립 배경에 쓰면 흰+흰. 불투명 검정 면 고정
+      out.push(rule(S, `margin-top:0;border-radius:0;background:#0A0A0A;box-shadow:none;color:#FAF8F3`));
+      out.push(rule(P, "font-size:40px;font-weight:900;color:#FAF8F3"));
+      out.push(rule(N, "color:#FAF8F3"));
+      out.push(rule(C, "background:rgba(250,248,243,.18);color:#FAF8F3"));
       break;
     case "badge":
       out.push(rule(S, `margin:-28px 18px 0;transform:rotate(-2deg);border:3px solid ${ink};border-radius:14px;background:#fff;box-shadow:6px 6px 0 ${ink}`));
