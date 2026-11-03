@@ -36,7 +36,7 @@
 
 ## Push
 - branch: `cloud-work` → `origin/cloud-work` (main 미푸시)
-- HEAD: `f452c7d7a10b159f15fefbc58c1e8699062c8350` — 이후 본 보고 커밋 해시로 갱신
+- HEAD: `15402f4f47372b04474e6c17edf1c7c383bb5a1a` (`docs(482): eye-review notes and cha report`)
 
 ## 남은 문제
 - DB theme 재기록 없이는 라이브 같은 결과의 accent가 청회색으로 남을 수 있음(읽기 전용 제약).
