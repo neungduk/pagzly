@@ -22,10 +22,9 @@ const SECTION_KICKERS: Partial<Record<DetailSection["type"], string>> = {
 
 export function getSectionKicker(section: DetailSection): string | null {
   if (section.type === "hero" || FLAT_SECTION_SURFACES) return null;
-  const slotLabel = section.slot
-    ? section.slot.replace(/_/g, " ").toUpperCase()
-    : null;
-  return SECTION_KICKERS[section.type] ?? slotLabel ?? "DETAIL";
+  // 481: slot slug(seller_trust_evidence 등)를 화면에 올리지 않는다 — 타입 킥커만, 없으면 DETAIL
+  if (section.slot === "seller_trust_evidence") return "PROOF";
+  return SECTION_KICKERS[section.type] ?? "DETAIL";
 }
 
 export function formatSectionIndex(bodyIndex: number): string {
