@@ -38,10 +38,13 @@ const SLOT_LABELS: Record<string, string> = {
   size_table: "사이즈표",
   care_info: "세탁/보관",
   packaging: "패키징",
+  packaging_design: "패키지 디자인",
   nutrition_table: "영양 정보",
   feature_detail: "기능 상세",
   comparison_table: "비교표",
+  comparison_chart: "비교 차트",
   usage_scenario: "사용 장면",
+  customer_scenario: "사용 장면",
   material_feature: "소재 특징",
   package_contents: "구성품",
   warranty_caution: "보증/주의",
@@ -52,13 +55,21 @@ const SLOT_LABELS: Record<string, string> = {
   shipping_info: "배송/교환",
   ai_disclosure: "AI 고지",
   cta_price: "가격/구매",
+  // 481 — 실사에 나오는 슬롯(이전엔 slug가 그대로 노출됨)
+  seller_trust_evidence: "판매 근거",
+  ingredient_circle_pair: "성분 포인트",
+  ingredient_circle_solo: "성분 포인트",
+  how_it_works: "작용 방식",
+  size_options: "용량/사이즈",
+  tradeoff_card: "구매 판단",
 };
 
-/** note에서 괄호·마침표 앞 짧은 라벨 추출 */
+/** note에서 괄호·마침표 앞 짧은 라벨 추출. 영문 slug는 화면에 내보내지 않는다 */
 export function slotDisplayLabel(slot: string, note: string): string {
   if (SLOT_LABELS[slot]) return SLOT_LABELS[slot];
   const cut = note.split(/[(.]/)[0]?.trim();
-  return cut && cut.length > 0 ? cut.slice(0, 16) : slot;
+  if (cut && cut.length > 0 && !/^[a-z0-9_]+$/i.test(cut)) return cut.slice(0, 16);
+  return "구성";
 }
 
 const SNAP_HOLD_MS = 350;

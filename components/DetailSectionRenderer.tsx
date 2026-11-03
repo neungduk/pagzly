@@ -1740,33 +1740,8 @@ function PersonaStrip({
     <ul data-persona-strip className="mx-auto mt-8 flex flex-col" style={{ gap: s.gapPx, maxWidth: s.maxWidthPx }}>
       {section.personas.map((persona, i) => {
         const flip = i % 2 === 1;
-        return (
-          <li
-            key={`${i}-${persona.slice(0, 12)}`}
-            className="flex items-center overflow-hidden rounded-full border"
-            style={{
-              aspectRatio: s.rowAspect,
-              flexDirection: flip ? "row-reverse" : "row",
-              backgroundColor: FLAT_PAPER,
-              borderColor: hexToRgba(theme.accent, 0.16),
-            }}
-          >
-            <div className="relative h-full shrink-0" style={{ width: `${s.photoWidthPct}%` }}>
-              <SectionImage
-                src={imageUrls[indexes[i]!] ?? ""}
-                alt={buildSectionImageAlt(productName ?? "", persona, section.slot)}
-                className="block h-full w-full object-cover"
-                imageIndex={indexes[i]}
-                showAiLifestyleBadge={false}
-              />
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0"
-                style={{
-                  background: `linear-gradient(${flip ? "270deg" : "90deg"}, transparent ${100 - s.fadePct}%, ${FLAT_PAPER} 100%)`,
-                }}
-              />
-            </div>
+        const src = imageUrls[indexes[i]!] ?? "";
+        const text = (
             <EditableText
               as="span"
               enabled={edit?.enabled}
@@ -1787,6 +1762,53 @@ function PersonaStrip({
                 ...(DESIGN_V4_ENABLED ? declObject(personaTextV4()) : {}),
               }}
             />
+        );
+        // 481: 사진 없으면 빈 칸 숨기고 텍스트 알약
+        if (!src) {
+          return (
+            <li
+              key={`${i}-${persona.slice(0, 12)}`}
+              data-persona-text
+              className="flex items-center justify-center overflow-hidden rounded-full border"
+              style={{
+                minHeight: 56,
+                padding: "12px 8px",
+                backgroundColor: FLAT_PAPER,
+                borderColor: hexToRgba(theme.accent, 0.16),
+              }}
+            >
+              {text}
+            </li>
+          );
+        }
+        return (
+          <li
+            key={`${i}-${persona.slice(0, 12)}`}
+            className="flex items-center overflow-hidden rounded-full border"
+            style={{
+              aspectRatio: s.rowAspect,
+              flexDirection: flip ? "row-reverse" : "row",
+              backgroundColor: FLAT_PAPER,
+              borderColor: hexToRgba(theme.accent, 0.16),
+            }}
+          >
+            <div className="relative h-full shrink-0" style={{ width: `${s.photoWidthPct}%` }}>
+              <SectionImage
+                src={src}
+                alt={buildSectionImageAlt(productName ?? "", persona, section.slot)}
+                className="block h-full w-full object-cover"
+                imageIndex={indexes[i]}
+                showAiLifestyleBadge={false}
+              />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background: `linear-gradient(${flip ? "270deg" : "90deg"}, transparent ${100 - s.fadePct}%, ${FLAT_PAPER} 100%)`,
+                }}
+              />
+            </div>
+            {text}
           </li>
         );
       })}
@@ -6154,6 +6176,8 @@ export default function DetailSectionRenderer({
   const fontPair = DESIGN_V3_FONTS_ENABLED ? pickFontPair({ category, packHeadline: pack.headline ? { kind: pack.headline.kind, weight: pack.headline.weight } : null, productName, brandName }) : null;
   const v2Typo = designV2Typo(category, packLayout.info);
   const v2TitleOnly = designV2ClassicFashionCap(category, isClassicPack(pack), packLayout.info);
+  // 481: 아키타입 선택에 쓸 accent — baseTheme과 같은 출처(팩 톤 적용 전 원본도 동일 accent 키)
+  const accentForArch = (themeOverride ?? getCategoryTheme(category)).accent;
   const display = applyDisplayRules(inputSections, imageUrls, {
     editing: inputEdit?.enabled,
     imageHashByUrl,
@@ -6166,6 +6190,7 @@ export default function DetailSectionRenderer({
     hasSizeInfo,
     claimFacts,
     brandName,
+    accent: accentForArch,
   });
   const rawSections = display.sections;
   const toSource = (i: number) => display.sourceIndexes[i] ?? i;
@@ -6259,15 +6284,7 @@ export default function DetailSectionRenderer({
       }
     >
       {display.v5 ? <div dangerouslySetInnerHTML={{ __html: svgSpriteV5() }} /> : null}
-      {isClassicPack(pack) ? (
-        packLayout.beautyInfo ? <style>{infoCss(packLayout.info, "[data-pz-info]", infoColorsOf(baseTheme), infoBackdrops, { skipHeadline: true, demote: v2Plan?.demoted }) + beautyInfoCss(packLayout.info, "[data-pz-info]", infoColorsOf(baseTheme))}</style> : null
-      ) : (
-        <style>{packStructureCss(packLayout, "[data-pz-pack]", "live") + infoCss(packLayout.info, "[data-pz-pack]", infoColorsOf(baseTheme), infoBackdrops, { demote: v2Plan?.demoted })}</style>
-      )}
-      {v2Css ? <style>{v2Css}</style> : null}
-      {DESIGN_V4_ENABLED ? <style>{typeFloorCss("[data-pz-typefloor]") + headingSystemCss("[data-pz-typefloor]", "live") + topPadCssV4((px) => `[data-pz-typefloor] [data-pz-top="${px}"] > section`) + bottomPadCssV4((px) => `[data-pz-typefloor] [data-pz-bot="${px}"] > section`) + mutedFloorCssLive("[data-pz-typefloor]") + typoCssLive("[data-pz-typefloor]") + (display.v5 ? "" : noPhotoCss("[data-pz-typefloor]", baseTheme.deepAccent)) + (display.v5 ? archetypeCssV5("[data-pz-typefloor]", "live", ARCHETYPES[display.v5.id], baseTheme.accent || BRAND.ink) + infoCssV5("[data-pz-typefloor]", ARCHETYPES[display.v5.id], infoColorsOf(baseTheme), infoBackdrops) + colorRolesCssV5("[data-pz-typefloor]", display.v5.id) : "")}</style> : null}
-      {DESIGN_V3_COLOR_ENABLED && v2On ? <style>{paletteInfoCss("[data-pz-v2]", extendedTheme, packLayout.info)}</style> : null}
-      {DESIGN_V3_COLOR_ENABLED && !edit?.enabled ? <style>{dividerCss({ scope: "[data-pz-v2]", mode: "live", sections, ext: extendedTheme, category, info: packLayout.info })}</style> : null}
+      {/* 481: V3 폰트 쌍을 V5 type-system보다 먼저 넣어 .pagzly-display-headline Noto !important가 제목 서체를 덮지 않게 */}
       {fontPair ? (
         <>
           {fontPreloadHrefs().map((href) => (
@@ -6284,6 +6301,15 @@ export default function DetailSectionRenderer({
             <link key={`v5f-${href}`} rel="stylesheet" href={href} precedence="default" />
           ))
         : null}
+      {isClassicPack(pack) ? (
+        packLayout.beautyInfo ? <style>{infoCss(packLayout.info, "[data-pz-info]", infoColorsOf(baseTheme), infoBackdrops, { skipHeadline: true, demote: v2Plan?.demoted }) + beautyInfoCss(packLayout.info, "[data-pz-info]", infoColorsOf(baseTheme))}</style> : null
+      ) : (
+        <style>{packStructureCss(packLayout, "[data-pz-pack]", "live") + infoCss(packLayout.info, "[data-pz-pack]", infoColorsOf(baseTheme), infoBackdrops, { demote: v2Plan?.demoted })}</style>
+      )}
+      {v2Css ? <style>{v2Css}</style> : null}
+      {DESIGN_V4_ENABLED ? <style>{typeFloorCss("[data-pz-typefloor]") + headingSystemCss("[data-pz-typefloor]", "live") + topPadCssV4((px) => `[data-pz-typefloor] [data-pz-top="${px}"] > section`) + bottomPadCssV4((px) => `[data-pz-typefloor] [data-pz-bot="${px}"] > section`) + mutedFloorCssLive("[data-pz-typefloor]") + typoCssLive("[data-pz-typefloor]") + (display.v5 ? "" : noPhotoCss("[data-pz-typefloor]", baseTheme.deepAccent)) + (display.v5 ? archetypeCssV5("[data-pz-typefloor]", "live", ARCHETYPES[display.v5.id], baseTheme.accent || BRAND.ink) + infoCssV5("[data-pz-typefloor]", ARCHETYPES[display.v5.id], infoColorsOf(baseTheme), infoBackdrops) + colorRolesCssV5("[data-pz-typefloor]", display.v5.id) : "")}</style> : null}
+      {DESIGN_V3_COLOR_ENABLED && v2On ? <style>{paletteInfoCss("[data-pz-v2]", extendedTheme, packLayout.info)}</style> : null}
+      {DESIGN_V3_COLOR_ENABLED && !edit?.enabled ? <style>{dividerCss({ scope: "[data-pz-v2]", mode: "live", sections, ext: extendedTheme, category, info: packLayout.info })}</style> : null}
       {sectionAnchors.length > 0 && !anchorNavAfterHero ? (
         <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} variant={packLayout.anchor} />
       ) : null}

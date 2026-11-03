@@ -1732,7 +1732,13 @@ function sectionHtml(
               .map((p, i) => {
                 const flip = i % 2 === 1;
                 const alt = buildSectionImageAlt(productName, p, section.slot);
-                return `<li style="display:flex;align-items:center;flex-direction:${flip ? "row-reverse" : "row"};overflow:hidden;border-radius:9999px;border:1px solid ${hexToRgba(theme.accent, 0.16)};background:${FLAT_PAPER};aspect-ratio:${ps.rowAspect}"><div style="position:relative;height:100%;flex-shrink:0;width:${ps.photoWidthPct}%"><img src="${esc(imageUrls[stripIndexes[i]!] ?? "")}" alt="${esc(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover"/><div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(${flip ? "270deg" : "90deg"},transparent ${100 - ps.fadePct}%,${FLAT_PAPER} 100%)"></div></div><span style="min-width:0;flex:1;text-align:center;${DESIGN_V4_ENABLED ? "" : "font-weight:500;"}padding:0 ${ps.padXPx}px;font-size:${ps.textPx}px;line-height:${ps.lineHeight};color:${BRAND.ink};word-break:keep-all;text-wrap:balance;display:-webkit-box;-webkit-line-clamp:${personaClampLines(p)};-webkit-box-orient:vertical;overflow:hidden${DESIGN_V4_ENABLED ? `;${declStyle(personaTextV4())}` : ""}">${esc(p)}</span></li>`;
+                const src = imageUrls[stripIndexes[i]!] ?? "";
+                const textSpan = `<span style="min-width:0;flex:1;text-align:center;${DESIGN_V4_ENABLED ? "" : "font-weight:500;"}padding:0 ${ps.padXPx}px;font-size:${ps.textPx}px;line-height:${ps.lineHeight};color:${BRAND.ink};word-break:keep-all;text-wrap:balance;display:-webkit-box;-webkit-line-clamp:${personaClampLines(p)};-webkit-box-orient:vertical;overflow:hidden${DESIGN_V4_ENABLED ? `;${declStyle(personaTextV4())}` : ""}">${esc(p)}</span>`;
+                // 481: 사진 URL이 비면 빈 칸 대신 텍스트 알약만
+                if (!src) {
+                  return `<li data-persona-text style="display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:9999px;border:1px solid ${hexToRgba(theme.accent, 0.16)};background:${FLAT_PAPER};min-height:56px;padding:12px 8px">${textSpan}</li>`;
+                }
+                return `<li style="display:flex;align-items:center;flex-direction:${flip ? "row-reverse" : "row"};overflow:hidden;border-radius:9999px;border:1px solid ${hexToRgba(theme.accent, 0.16)};background:${FLAT_PAPER};aspect-ratio:${ps.rowAspect}"><div style="position:relative;height:100%;flex-shrink:0;width:${ps.photoWidthPct}%"><img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover"/><div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(${flip ? "270deg" : "90deg"},transparent ${100 - ps.fadePct}%,${FLAT_PAPER} 100%)"></div></div>${textSpan}</li>`;
               })
               .join("")}</ul>`
           : "";
@@ -2249,7 +2255,7 @@ export function buildDetailPageHtml(opts: {
       { chartRemoved: comparisonPolicyRemovesChart(opts.claimFacts) },
     ),
     opts.imageUrls,
-    { imageHashByUrl: opts.imageHashByUrl, roles: opts.imageRoles, origins: opts.imageOrigins, category: opts.category, flow: getPackLayout(pack).flow, tags: opts.imageTags, sceneImages: opts.sceneImages, hasSizeInfo: opts.hasSizeInfo, claimFacts: opts.claimFacts, brandName: opts.brandName },
+    { imageHashByUrl: opts.imageHashByUrl, roles: opts.imageRoles, origins: opts.imageOrigins, category: opts.category, flow: getPackLayout(pack).flow, tags: opts.imageTags, sceneImages: opts.sceneImages, hasSizeInfo: opts.hasSizeInfo, claimFacts: opts.claimFacts, brandName: opts.brandName, accent: opts.theme?.accent },
   );
   const afterUserHidden = displayRes.sections;
   const visibleSections = dropSpecEchoFaqItems(

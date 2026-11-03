@@ -131,6 +131,8 @@ export function heroStackCssV5(scope: string, id: ArchetypeId, ink: string): str
   const hs = (k: string) => `:not([data-pz-hs="${k}"])`;
   // ── 히어로 사진 비율(스플릿 D)
   out.push(rule(`${scope} [data-hero-v2="D"]${hs("ratio")}>[data-hero-photo]`, `aspect-ratio:${r.ratio}`));
+  // 481: 사진 주변 면색을 V5 색 역할(--pz-surface)로 통일(AI backdrop 파스텔·baseNeutral과 톤 충돌 완화)
+  out.push(rule(`${scope} [data-hero-v2] [data-hero-photo]`, "background:var(--pz-surface,var(--pz-s,#FAF7F1))"));
   // ── 틀 모양(아키타입별 사진 감싸개)
   const photo = `${scope} [data-hero-v2] [data-hero-photo]`;
   switch (r.frame) {

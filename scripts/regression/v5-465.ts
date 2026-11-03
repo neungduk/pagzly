@@ -286,7 +286,11 @@ export async function run(): Promise<string[]> {
     for (const [cat, fit] of Object.entries(CATEGORY_FIT)) {
       const a = pickArchetype({ category: cat, mood: null, seedKey: "x|y" });
       ok(a === pickArchetype({ category: cat, mood: null, seedKey: "x|y" }), `${cat}: 선택이 결정적이지 않음`);
+      // 481: mood·accent 없으면 카테고리 적합표 상위 3 안. accent가 있으면 보너스로 풀 밖으로 나갈 수 있음
       ok(fit.slice(0, 3).includes(a), `${cat}: 적합표 상위 3개 밖(${a})`);
+      const withAccent = pickArchetype({ category: cat, mood: null, seedKey: "x|y", accent: "#20547E" });
+      ok(withAccent === pickArchetype({ category: cat, mood: null, seedKey: "x|y", accent: "#20547E" }), `${cat}: accent 선택이 결정적이지 않음`);
+      ok((ARCHETYPE_IDS as readonly string[]).includes(withAccent), `${cat}: accent 선택이 8종 밖`);
     }
     const usedArch = new Set(files.map(([, file]) => { setV5ArchetypeForTests(null); const a = exportArgsOf(readSession(file)); return pickArchetype({ category: a.category, mood: null, seedKey: `${a.productName}|${a.category}` }); }));
     ok(usedArch.size >= 4, `자동 선택이 말뭉치에서 ${usedArch.size}종뿐`);

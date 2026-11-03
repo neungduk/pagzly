@@ -162,7 +162,8 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypeTokens> = {
 // ── 선택 ─────────────────────────────────────────────────────────────────────
 /** 카테고리 적합도(앞이 우선). 말뭉치에 없는 카테고리는 리빙 취급 */
 export const CATEGORY_FIT: Record<string, ArchetypeId[]> = {
-  "화장품/뷰티": ["softlife", "luxe", "editorial", "narrative"],
+  // 481: 뷰티가 editorial 한 칸에 몰리지 않게 후보를 넓힌다(상위 점수·팔레트·mood로 갈라짐)
+  "화장품/뷰티": ["softlife", "luxe", "editorial", "narrative", "pop", "catalog"],
   "패션/의류": ["editorial", "luxe", "impact", "narrative"],
   "식품": ["softlife", "pop", "narrative", "catalog"],
   "전자/가전": ["techsheet", "catalog", "impact", "luxe"],
@@ -185,6 +186,28 @@ function seedOf(s: string): number {
   return h >>> 0;
 }
 
+/** 팔레트 accent → 명도·채도 보너스(결정적). 파스텔=softlife·luxe, 진한 쿨=techsheet·catalog, 고채도=pop·impact */
+function accentBias(accent?: string | null): ArchetypeId[] {
+  if (!accent || !/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(accent.trim())) return [];
+  const h = accent.trim().replace("#", "");
+  const full = h.length === 3 ? [...h].map((c) => c + c).join("") : h.slice(0, 6);
+  const n = parseInt(full, 16);
+  const r = ((n >> 16) & 255) / 255;
+  const g = ((n >> 8) & 255) / 255;
+  const b = (n & 255) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  const s = max === min ? 0 : (max - min) / (1 - Math.abs(2 * l - 1));
+  if (l < 0.28) return ["impact", "narrative", "techsheet"];
+  if (s < 0.18) return ["techsheet", "catalog", "luxe"];
+  if (l > 0.72 && s < 0.5) return ["softlife", "luxe", "editorial"];
+  // 쿨 톤(파랑·청록)은 채도가 높아도 클리닉·카탈로그 — 따뜻한 고채도만 pop
+  if (b >= r && b >= g) return ["techsheet", "catalog", "softlife"];
+  if (s > 0.55) return ["pop", "impact", "softlife"];
+  return ["narrative", "catalog", "softlife"];
+}
+
 /** 강제 선택(환경변수/테스트). 값이 없으면 자동. NEXT_PUBLIC_*는 빌드 때 들어가므로 리터럴로 읽는다 */
 let forced: ArchetypeId | null = null;
 export function setV5ArchetypeForTests(id: ArchetypeId | null): void {
@@ -195,15 +218,17 @@ const envForced = (): ArchetypeId | null => {
   return v && (ARCHETYPE_IDS as readonly string[]).includes(v) ? (v as ArchetypeId) : null;
 };
 
-export type ArchetypeCtx = { category?: string; mood?: string | null; seedKey: string };
+export type ArchetypeCtx = { category?: string; mood?: string | null; seedKey: string; accent?: string | null };
 
-/** 카테고리 순위 + mood 보너스로 점수를 매겨 상위 3개 중 시드로 하나. 같은 상품 = 항상 같은 결과 */
+/** 카테고리 순위 + mood·팔레트 보너스로 점수를 매겨 상위 3개 중 시드로 하나. 같은 상품 = 항상 같은 결과 */
 export function pickArchetype(ctx: ArchetypeCtx): ArchetypeId {
   const fit = CATEGORY_FIT[ctx.category ?? ""] ?? CATEGORY_FIT["생활/리빙"]!;
-  const bonus = new Set(MOOD_FIT[ctx.mood ?? ""] ?? []);
   const score = new Map<ArchetypeId, number>();
+  for (const id of ARCHETYPE_IDS) score.set(id, 0);
   fit.forEach((id, i) => score.set(id, 10 - i * 2));
-  for (const id of bonus) score.set(id, (score.get(id) ?? 0) + 5);
+  // 481: mood·팔레트 보너스를 키워 카테고리 1위(softlife 등)만 고착되지 않게
+  for (const id of MOOD_FIT[ctx.mood ?? ""] ?? []) score.set(id, (score.get(id) ?? 0) + 7);
+  accentBias(ctx.accent).forEach((id, i) => score.set(id, (score.get(id) ?? 0) + (6 - i * 2)));
   const ranked = [...score.entries()].sort((a, b) => b[1] - a[1] || ARCHETYPE_IDS.indexOf(a[0]) - ARCHETYPE_IDS.indexOf(b[0])).map(([id]) => id);
   const top = ranked.slice(0, 3);
   return top[seedOf(`${ctx.seedKey}|v5`) % top.length]!;

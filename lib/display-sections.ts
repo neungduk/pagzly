@@ -358,6 +358,8 @@ export function applyDisplayRules(
     sceneImages?: SceneImageMap;
     /** 435차 — 브랜드 스토리 라벨 칩용 브랜드명(입력) */
     brandName?: string | null;
+    /** 481차 — V5 아키타입 선택용 테마 accent(명도·채도 보너스) */
+    accent?: string | null;
   } & StripImageHints = {},
 ): DisplaySections {
   // 427차 — 비교 정책: 판매자가 비교 데이터를 넣지 않았으면 비교 차트·표를 빼고 입력 근거가 있는 섹션으로 채운다(편집 모드·claimFacts 없음은 그대로)
@@ -391,7 +393,7 @@ export function applyDisplayRules(
   const recipe = arche && !arche.fallback ? recipeFor(arche.id) : null;
   const mood: MoodId | null = recipe ? pickMood(recipe, `${opts.claimFacts?.productName ?? ""} ${opts.brandName ?? ""} ${opts.claimFacts?.source.keyFeatures ?? ""}`) : null;
   // 465차 V5 — 페이지 아키타입(꺼짐·편집 모드면 null). 편집 모드는 바로 아래에서 조기 반환하므로 여기까지 오지 않는다
-  const v5tokens = opts.claimFacts ? getArchetypeTokens({ category: opts.category, mood, seedKey: `${opts.claimFacts.productName}|${opts.category ?? ""}`, editing: opts.editing }) : null;
+  const v5tokens = opts.claimFacts ? getArchetypeTokens({ category: opts.category, mood, seedKey: `${opts.claimFacts.productName}|${opts.category ?? ""}`, accent: opts.accent, editing: opts.editing }) : null;
   const recipeOrdered = recipe ? applyRecipeOrder(ordered, recipe) : ordered;
   const orderIndexes = recipeOrdered.map((s) => sections.indexOf(s));
   if (opts.editing) return { sections: recipeOrdered, sourceIndexes: orderIndexes };

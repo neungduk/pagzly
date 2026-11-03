@@ -43,12 +43,12 @@ export function highlightFamilyInnerHtml(mode: HighlightFamilyMode, cells: HlCel
   }
   if (mode === "table") {
     return `<div class="pagzly-hl-grid" data-pz-hl-g="table" style="display:flex;flex-direction:column;gap:0;margin-top:28px;max-width:640px;margin-left:auto;margin-right:auto">${cells
-      .map((c, i) => `<div data-pz-hl-c="${i}" style="display:grid;grid-template-columns:1fr;gap:6px;padding:18px 4px;text-align:left;border-bottom:1px solid color-mix(in srgb,var(--pz-i,#1B1B18) 18%,transparent)">${c.titleHtml}${c.bodyHtml}</div>`)
+      .map((c, i) => `<div data-pz-hl-c="${i}" style="display:grid;grid-template-columns:1fr;gap:8px;padding:18px 4px 22px;text-align:left;border-bottom:1px solid color-mix(in srgb,var(--pz-i,#1B1B18) 18%,transparent)">${c.titleHtml}${c.bodyHtml}</div>`)
       .join("")}</div>`;
   }
   if (mode === "rows") {
     return `<div class="pagzly-hl-grid" data-pz-hl-g="rows" style="display:flex;flex-direction:column;gap:0;margin-top:28px;max-width:640px;margin-left:auto;margin-right:auto;font-variant-numeric:tabular-nums">${cells
-      .map((c, i) => `<div data-pz-hl-c="${i}" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:16px;align-items:baseline;padding:14px 0;text-align:left;border-bottom:1px dashed color-mix(in srgb,var(--pz-i,#1B1B18) 22%,transparent)">${c.titleHtml}${c.bodyHtml}</div>`)
+      .map((c, i) => `<div data-pz-hl-c="${i}" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:16px;align-items:baseline;padding:14px 0 18px;text-align:left;border-bottom:1px dashed color-mix(in srgb,var(--pz-i,#1B1B18) 22%,transparent)">${c.titleHtml}${c.bodyHtml}</div>`)
       .join("")}</div>`;
   }
   if (mode === "bento") {
