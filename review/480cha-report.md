@@ -1,41 +1,48 @@
-# 480차 보고 — 원본 실사 유료검증 (준비만)
+# 480차 보고 — 원본 실사 유료검증
 
 ## 승인 / 유료 실행
-- **승인 문구(`유료 승인 2026-11-03`) 없음** → **유료 단계(C) 실행하지 않음**.
-- Cursor 생성 0회. 사용자 생성 0회. 유료 외부 호출(Anthropic / DeepSeek / Replicate) **실측 0**.
-- 승인 문구가 없어 유료 단계는 실행하지 않음.
+- **승인 문구 있음:** `유료 승인 2026-11-03`
+- Cursor가 프리뷰에서 **생성 1회 시도**함. 재시도·재생성 없음.
+- Production / main 미작업.
 
 ## 실행한 항목
 | 항목 | 상태 |
 |------|------|
-| TASK 저장·커밋·push | 완료 (`review/TASK_480.md`) |
 | A 사전 점검 | 완료 (`review/480-notes.md`) |
-| B verify 스크립트 | 완료 (`scripts/verify-480.ts`, 읽기 전용) |
-| C 유료 1회 생성 | **미실행** (승인 문구 없음) |
-| D 본 보고 | 완료 |
+| B verify 스크립트 | 준비됨 (`scripts/verify-480.ts`) — **미실행**(생성 미완료) |
+| C 유료 1회 생성 | **시도 → 업로드 단계 실패 후 중단** |
+| 캡처 750/390 | **미실행**(결과 페이지 없음) |
+| D 본 보고 | 갱신 |
 
-## A 요약
-- Preview: DESIGN_V4 / V4_UP1 / V5 = `on`. Supabase 호스트 pagepick-3 (`hlxctaipxxevuakgooek.supabase.co`). `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL` 호스트 `img.pagzly.com`. R2 관련 키·`STORAGE_PROVIDER` Preview 존재(Sensitive라 pull 값은 플레이스홀더).
-- 생성 1회 호출 표·재시도 상한·N×1 초과 경로: `review/480-notes.md`.
+## C 실행 요약
+- 대상: `https://pagzly-h4zrcmwnv-pagzly.vercel.app/create/detail`
+- 카테고리: 화장품/뷰티 (미스트). 구성: 짧은 구성.
+- 사진: `Desktop/연연` 미스트 실사 **10장** 업로드 표시(폼 최소 7장·최대 10장. 지시 2~4장보다 폼 한도로 맞춤).
+- 입력: 상품명/브랜드/가격/타겟/특징/용량/성분/인증/높이/판매근거/비교 2행/경쟁사·도매 텍스트 모두 **테스트** 가짜 값.
+- 생성 버튼 1회 클릭 → UI 「사진 업로드 중…」 → 빨간 오류 **`Failed to fetch`** → **여기서 중단(재시도 안 함)**.
 
-## B 요약
-- `PRODUCT_ID=<uuid> npx tsx scripts/verify-480.ts` (또는 최신 1건).
-- 점검: `https://img.pagzly.com/` 접두사, `product_images` 업로드 수, hero/points/phototext/bleed/spec/timeline/purchase 배정, 상태성 필드 존재 여부. DB 읽기만.
+## 실제 나간 유료 호출 (가능한 범위)
+| 종류 | 횟수 | 비고 |
+|------|------|------|
+| Anthropic / DeepSeek / Replicate (생성·비전·합성) | **0** | `/api/generate` 진입 전 실패로 추정 |
+| `POST /api/storage/upload-url` | **≥1** (성공 응답으로 보임) | 프리사인 URL 발급 |
+| R2 직접 PUT (presigned) | **시도 후 실패** | `*.r2.cloudflarestorage.com` PutObject. Performance상 전송량 0·짧은 duration → 브라우저 `Failed to fetch`(CORS/네트워크/차단 가능) |
+| 기타 페이지 API (`/api/billing/me` 등) | 다수 | 생성 유료 경로 아님 |
 
-## 이미지 URL 접두사 점검 결과
-- C 미실행 → **실생성 결과 없음**. verify 미실행.
-
-## 섹션별 눈 검수 (실사)
-- C 미실행 → **해당 없음**.
+이미지 URL 접두사(`https://img.pagzly.com/`)·섹션 배정·verify-480: **생성 미완으로 확인 불가**.
 
 ## 오류
-- 없음 (유료 경로 미진입).
+- **메시지:** `Failed to fetch` (키/서명 URL 값은 기록하지 않음)
+- **단계:** 생성 직전 **상품 사진 업로드**(클라 → `upload-url` → R2 PUT). 버튼 문구 「사진 업로드 중…」 직후.
+- **호출:** R2 프리사인 PUT(및 직전 `api/storage/upload-url`). `/api/generate` draft 유료 호출까지는 가지 못한 것으로 보임.
+
+## 섹션별 눈 검수
+- 결과 페이지 없음 → 해당 없음.
 
 ## 다음 후보
-1. 메시지에 **`유료 승인 2026-11-03`** 포함 후, 프리뷰에서 뷰티(미스트) 사진 2~4장으로 **사용자 1회 생성** → "생성 끝" 알림 → `verify-480.ts` 실행·본 보고 갱신.
-2. Sensitive `STORAGE_PROVIDER`가 런타임에 실제로 `r2`인지, 생성 직후 URL 접두사로 최종 확인.
-3. A3에 적은 N×1 초과 경로(enhance 루프·뷰티 엑스트라·backdrop 후보 7 등) 비용 상한 정책은 별도 차수로.
+1. Preview R2 PUT `Failed to fetch` 원인(CORS, 버킷/퍼블릭 호스트, 브라우저 차단) 점검 — 값 노출 없이.
+2. 업로드 성공 후 **1회만** 재승인·재생성 → verify-480 + 750/390 캡처.
+3. 폼 최소 7장 vs 지시 2~4장 정책 정합.
 
 ## Git
-- 브랜치: `cloud-work` (main 미push).
-- tip: `22ea1da` (report 본문 `209073a` · hash notes `d5dc848`/`22ea1da`, `origin/cloud-work` 동기).
+- 브랜치: `cloud-work` (main 미push). tip은 본 보고 push 후 `git log -1`.
