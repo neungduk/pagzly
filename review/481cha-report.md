@@ -46,7 +46,6 @@
 
 ## Push 확인
 ```
-21dc77d test(481): add live-481 regression and eye-review notes
-(최종 보고 커밋 해시로 갱신)
-branch: cloud-work (main 미푸시)
+710dcb6 docs(481): final report with gap causes and preview check steps
+origin/cloud-work 동기화됨 · main 미푸시
 ```
