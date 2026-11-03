@@ -311,7 +311,11 @@ function onSurfaceCss(s: string, forceInk: boolean): string {
     `${s} [data-pz-eyebrow],${s} [data-pz-eyebrow] ${text}{color:var(--pz-on-surface,#1B1B18)!important}` +
     // 비교표·뮤트 글자 하한 — 면 잉크 변수 사용(중간 톤 softlife에 #0A0A0A 고정 금지)
     `${s} th[style*="opacity"],${s} td[style*="opacity"],${s} [style*="opacity:.55"],${s} [style*="opacity:0.55"],${s} [style*="opacity:.65"],${s} [style*="opacity:0.65"],${s} [style*="opacity:.7"],${s} [style*="opacity:0.7"],${s} [style*="opacity:.85"],${s} [style*="opacity:0.85"]{opacity:1!important;color:var(--pz-on-surface,#0A0A0A)!important}` +
-    `${s} [style*="color:rgba(27,27,24"],${s} [style*="color:rgba(27, 27, 24"]{color:var(--pz-on-surface,#0A0A0A)!important}` +
+    // 뮤트 rgba → 항상 어두운 잉크(밝은 히어로 E 등). 어두운 face 본문은 아래 forceInk가 이김
+    `${s} [style*="color:rgba(27,27,24"],${s} [style*="color:rgba(27, 27, 24"]{color:#0A0A0A!important}` +
+    // 히어로 밝은 면(E 등) — wrap 밝은 잉크 상속·rgba 재매핑이 묻히지 않게 어두운 글자 고정
+    `${s} section.pagzly-hero[style*="background:#F"],${s} section.pagzly-hero[style*="background:#f"],${s} section.pagzly-hero[style*="background:#E"],${s} section.pagzly-hero[style*="background:#e"],${s} section.pagzly-hero[style*="background:#FFF"],${s} section.pagzly-hero[style*="background:#fff"]{--pz-on-surface:#0A0A0A;color:#0A0A0A!important}` +
+    `${s} section.pagzly-hero[style*="background:#F"] :is(h1,p,[data-hero-hook],[data-hero-name]),${s} section.pagzly-hero[style*="background:#f"] :is(h1,p,[data-hero-hook],[data-hero-name]),${s} section.pagzly-hero[style*="background:#E"] :is(h1,p,[data-hero-hook],[data-hero-name]),${s} section.pagzly-hero[style*="background:#e"] :is(h1,p,[data-hero-hook],[data-hero-name]){color:#0A0A0A!important}` +
     `${s} svg text{fill:var(--pz-on-surface,#0A0A0A)!important;opacity:1!important}` +
     // 용량 비교 등 다이어그램은 항상 종이 섬(softlife 틴트 위에서 묻히지 않게)
     `${s} [data-diagram]{background:#FAF8F3!important;color:#0A0A0A!important;--pz-on-surface:#0A0A0A;--pz-surface:#FAF8F3}` +

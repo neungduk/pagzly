@@ -16,6 +16,7 @@ export const PALETTE_FIXTURES = [
 ] as const;
 
 const LIMIT_MS = 12 * 60 * 1000;
+/** 페이지 정착·청크 대기를 줄여 64페이지가 12분 안에 끝나게 */
 
 export async function runContrastRender479(): Promise<{ fails: Fail[]; pages: number; ms: number }> {
   const started = Date.now();

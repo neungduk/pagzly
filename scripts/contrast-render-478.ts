@@ -135,7 +135,7 @@ async function settleFonts(page: Page): Promise<void> {
       return i.decode ? i.decode().catch(() => 0) : Promise.resolve(0);
     }));
   })()`);
-  await page.waitForTimeout(120);
+  await page.waitForTimeout(60);
 }
 
 async function measurePage(
@@ -169,7 +169,7 @@ async function measurePage(
   const chunks: Chunk[] = [];
   for (let top = 0; top < full; top += chunkH) {
     await page.evaluate((t) => window.scrollTo(0, t), top);
-    await page.waitForTimeout(40);
+    await page.waitForTimeout(20);
     const buf = await page.screenshot({ type: "png", animations: "disabled" });
     const im = sharp(buf);
     const m = await im.metadata();
