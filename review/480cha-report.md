@@ -38,4 +38,4 @@
 
 ## Git
 - 브랜치: `cloud-work` (main 미push).
-- tip: `d5dc848` (`d5dc8481b447589bbabc20bc9d04f7b7daf77023`, `origin/cloud-work` 동기).
+- tip: `22ea1da` (report 본문 `209073a` · hash notes `d5dc848`/`22ea1da`, `origin/cloud-work` 동기).
