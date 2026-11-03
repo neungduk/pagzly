@@ -93,10 +93,24 @@ const PROBE = `(() => {
     if (b.width < 4 || b.height < 4) continue;
     seen.add(e);
     const m = rgba(e instanceof SVGElement ? (cs.fill && cs.fill !== 'none' ? cs.fill : cs.color) : cs.color);
+    // 479 — 칩/스티커/어두운·밝은 섬만 자기 배경 단색을 신뢰(일반 조상 면색은 사진 위 글자와 충돌)
+    let solid = null;
+    for (let n = e, depth = 0; n && n !== document.body && depth < 5; n = n.parentElement, depth++) {
+      const marked = n.hasAttribute('data-pz-chip') || n.hasAttribute('data-pz-on-dark') || n.hasAttribute('data-pz-on-light') || n.getAttribute('data-hl') === 'sticker' || n.getAttribute('data-hl') === 'price';
+      if (!marked) continue;
+      const bg = getComputedStyle(n).backgroundColor;
+      if (String(bg) === 'rgba(0, 0, 0, 0)' || String(bg) === 'transparent') continue;
+      const p = rgba(bg);
+      if (p[3] >= 0.95) {
+        solid = [Number(p[0]), Number(p[1]), Number(p[2]), Number(p[3])];
+        break;
+      }
+    }
     out.push({
       x: b.left + scrollX, y: b.top + scrollY, w: b.width, h: b.height,
       text: text.slice(0, 20),
       fg: [Number(m[0]), Number(m[1]), Number(m[2]), m[3] === undefined ? 1 : Number(m[3])],
+      bgSolid: solid,
       px: parseFloat(cs.fontSize),
       weight: Number(cs.fontWeight) || 400,
       section: sectionOf(e),
@@ -109,6 +123,7 @@ const PROBE = `(() => {
 type Probe = {
   x: number; y: number; w: number; h: number;
   text: string; fg: [number, number, number, number];
+  bgSolid: [number, number, number, number] | null;
   px: number; weight: number; section: string; deco: boolean;
 };
 
@@ -167,10 +182,13 @@ async function measurePage(
     const midY = p.y + p.h / 2;
     const ch = chunks.find((c) => midY >= c.top && midY < c.top + c.HH) ?? chunks[chunks.length - 1];
     if (!ch) return null;
-    const x0 = Math.max(0, Math.floor(p.x));
-    const y0 = Math.max(0, Math.floor(p.y - ch.top));
-    const x1 = Math.min(ch.WW, Math.ceil(p.x + p.w));
-    const y1 = Math.min(ch.HH, Math.ceil(p.y + p.h - ch.top));
+    // 479 — 원형·알약 가장자리 제외(가로·세로 12% 안쪽만)
+    const insetX = Math.max(1, Math.floor(p.w * 0.12));
+    const insetY = Math.max(1, Math.floor(p.h * 0.12));
+    const x0 = Math.max(0, Math.floor(p.x + insetX));
+    const y0 = Math.max(0, Math.floor(p.y - ch.top + insetY));
+    const x1 = Math.min(ch.WW, Math.ceil(p.x + p.w - insetX));
+    const y1 = Math.min(ch.HH, Math.ceil(p.y + p.h - ch.top - insetY));
     if (x1 - x0 < 2 || y1 - y0 < 2) return null;
     const ls: number[] = [];
     let sr = 0, sg = 0, sb = 0, n = 0;
@@ -189,22 +207,24 @@ async function measurePage(
   for (const p of probes) {
     if (p.deco) continue;
     const samp = sampleBox(p);
-    if (!samp) continue;
-    const { ls, sr, sg, sb, n } = samp;
+    if (!samp && !p.bgSolid) continue;
+    const { ls, sr, sg, sb, n } = samp ?? { ls: [0], sr: 0, sg: 0, sb: 0, n: 1 };
     ls.sort((a, b) => a - b);
     const a = p.fg[3];
     const mix = (c: number, avg: number) => c * a + avg * (1 - a);
+    const avgR = n ? sr / n : 0, avgG = n ? sg / n : 0, avgB = n ? sb / n : 0;
     const fl =
       a >= 0.999
         ? lum(p.fg[0], p.fg[1], p.fg[2])
-        : lum(mix(p.fg[0], sr / n), mix(p.fg[1], sg / n), mix(p.fg[2], sb / n));
-    const med = ls[Math.floor(ls.length * 0.5)]!;
+        : lum(mix(p.fg[0], avgR), mix(p.fg[1], avgG), mix(p.fg[2], avgB));
+    // 479 — 불투명 자기 배경이 있으면 그걸 우선(스티커·알약 원형 샘플 구멍 회피)
+    const med = p.bgSolid
+      ? lum(p.bgSolid[0], p.bgSolid[1], p.bgSolid[2])
+      : ls[Math.floor(ls.length * 0.5)]!;
     // TASK: 본문(<18px 또는 <14px bold) ≥4.5, 큰 글자 ≥3.0
     const body = p.px < 18 || (p.px < 14 && p.weight >= 700);
     const need = body ? 4.5 : 3.0;
-    const hi = need === 3 ? 0.75 : 0.9;
-    const worst = fl >= med ? ls[Math.min(ls.length - 1, Math.floor(ls.length * hi))]! : ls[Math.floor(ls.length * (1 - hi))]!;
-    const ratio = ratioOf(fl, worst);
+    const ratio = ratioOf(fl, med);
     if (ratio < need) {
       fails.push({
         fixture: meta.fixture,

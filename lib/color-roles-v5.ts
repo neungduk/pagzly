@@ -257,6 +257,7 @@ function onSurfaceCss(s: string, forceInk: boolean): string {
     // 사진 스크림·일러스트 배너·티커 = 항상 밝은 글자
     `${s} [data-pz-pb="band"] [style*="z-index:2"],${s} [data-pz-pb="scrim"] [style*="z-index:2"]{--pz-on-surface:#FAF8F3;color:#FAF8F3!important}` +
     `${s} [data-pz-pb="band"] [style*="z-index:2"] ${text},${s} [data-pz-pb="scrim"] [style*="z-index:2"] ${text}{color:#FAF8F3!important}` +
+    `${s} .pagzly-bleed-ov,${s} .pagzly-bleed-ov ${text},${s} .pagzly-bleed-ov [data-pz-s]{color:#FAF8F3!important;--pz-on-surface:#FAF8F3}` +
     `${s} .pagzly-illustration-banner ${text},${s} .pagzly-illustration-banner [data-pz-s]{color:#FAF8F3!important}` +
     `${s} [data-pz-ticker]{--pz-on-surface:#FAF8F3;color:#FAF8F3!important}` +
     `${s} [data-pz-ticker] ${text},${s} [data-pz-ticker] [data-pz-s]{color:#FAF8F3!important}` +
@@ -295,8 +296,16 @@ function onSurfaceCss(s: string, forceInk: boolean): string {
     `${s} [data-pz-on-dark] ${text},${s} [data-pz-on-dark] [data-pz-s]{color:#FAF8F3!important}` +
     // 어두운 판 안의 흰 숫자 원 등은 다시 어두운 글자
     `${s} [data-pz-on-dark] [data-pz-on-light],${s} [data-pz-on-dark] [data-pz-on-light] ${text}{background:#FAF8F3!important;color:#1B1B18!important;--pz-on-surface:#1B1B18}` +
-    `${s} [data-hl="price"],${s} [data-hl="sticker"]{--pz-on-surface:#FAF8F3;color:#FAF8F3!important}` +
-    `${s} [data-hl="sticker"] ${text}{color:#FAF8F3!important}`;
+    `${s} [data-hl="price"],${s} [data-hl="sticker"]{--pz-on-surface:#FAF8F3;color:#FAF8F3!important;background:#0A0A0A!important;border-radius:50%}` +
+    `${s} [data-hl="sticker"] ${text}{color:#FAF8F3!important}` +
+    // 아이브로우·섹션 라벨은 면 잉크로(악센트 틴트가 면과 비슷한 경우 대비 부족)
+    `${s} [data-pz-eyebrow],${s} [data-pz-eyebrow] ${text}{color:var(--pz-on-surface,#1B1B18)!important}` +
+    // 비교표·뮤트 글자 하한(근사 실패 3.7~4.4 구간)
+    `${s} th[style*="opacity"],${s} td[style*="opacity"],${s} [style*="opacity:.55"],${s} [style*="opacity:0.55"],${s} [style*="opacity:.65"],${s} [style*="opacity:0.65"],${s} [style*="opacity:.7"],${s} [style*="opacity:0.7"],${s} [style*="opacity:.85"],${s} [style*="opacity:0.85"]{opacity:1!important;color:#0A0A0A!important}` +
+    `${s} [style*="color:rgba(27,27,24"],${s} [style*="color:rgba(27, 27, 24"]{color:#0A0A0A!important}` +
+    `${s} svg text{fill:var(--pz-on-surface,#0A0A0A)!important;opacity:1!important}` +
+    // illust-center 모서리 알약 — 사진 위 샘플 섞임 방지용 불투명 검정 면
+    `${s} [data-pz-impact="illust-center"] [data-pz-on-dark]{background:#0A0A0A!important;color:#FAF8F3!important}`;
   // 479 A — 칩 규칙은 면 강제·밝은 섬보다 뒤(자기 배경 기준)
   return css + chipCss(s, text);
 }
@@ -313,8 +322,10 @@ export function colorRolesCssV5(scope: string, id: ArchetypeId): string {
   if (id === "luxe") extra = `${s} section[data-pz-face]{padding:0 11%!important}${s} [data-pz-sf^=brand_story]{border-left:1px solid #0002;padding-left:8%!important}`;
   else if (id === "softlife")
     extra =
-      `${s} .pagzly-compact-thumb,${s} [data-pz-cl-v5] li{border-radius:999px!important;padding:12px 16px!important;background:var(--pz-chip)!important;color:var(--pz-on-chip)!important;--pz-on-surface:var(--pz-on-chip)}` +
-      `${s} [data-pz-cl-v5] li :is(p,span,strong){color:var(--pz-on-chip)!important}`;
+      `${s} .pagzly-compact-thumb{border-radius:999px!important;padding:12px 16px!important;background:var(--pz-a)}` +
+      // chips 모드만 칩 쌍 — rows/stair 등은 면 잉크 유지
+      `${s} [data-pz-cl-v5="chips"] li{border-radius:999px!important;padding:12px 16px!important;background:var(--pz-chip)!important;color:var(--pz-on-chip)!important;--pz-on-surface:var(--pz-on-chip)}` +
+      `${s} [data-pz-cl-v5="chips"] li :is(p,span,strong){color:var(--pz-on-chip)!important}`;
   else if (id === "catalog") extra = `${s} [data-pz-it] .pagzly-compact-row{display:grid!important;grid-template-columns:96px 1fr}`;
   else if (id === "techsheet") extra = `${s} [data-pz-face]{font-variant-numeric:tabular-nums}${s} [data-pz-hl-g]{display:grid!important;grid-template-columns:1fr 1fr}`;
   else if (id === "impact" || id === "pop" || id === "narrative")
@@ -323,8 +334,8 @@ export function colorRolesCssV5(scope: string, id: ArchetypeId): string {
   if (id === "narrative" || id === "softlife") {
     const text = ":is(p,h1,h2,h3,h4,li,td,th,label,a,span,strong,em,b,small)";
     extra +=
-      `${s} [data-pz-glance-grid]>*{background:#FAF8F3!important;color:#1B1B18!important;--pz-on-surface:#1B1B18}` +
-      `${s} [data-pz-glance-grid]>* ${text},${s} [data-pz-glance-grid]>* [data-pz-s]{color:#1B1B18!important}`;
+      `${s} [data-pz-glance-grid]>*{background:#FAF8F3!important;color:#0A0A0A!important;--pz-on-surface:#0A0A0A}` +
+      `${s} [data-pz-glance-grid]>* ${text},${s} [data-pz-glance-grid]>* [data-pz-s]{color:#0A0A0A!important}`;
   }
   // 어두운 면(impact/narrative) + pop(면이 어두워질 수 있음)만 인라인 잉크 강제
   const forceInk = FACE[id].dark || id === "pop";
