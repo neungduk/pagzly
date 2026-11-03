@@ -87,7 +87,7 @@ export function titleBlock(preset: TitlePreset, label: string, no: number, title
       ? `<p data-pz-eyebrow style="margin:0 0 10px;${typeCss("label", c.deep)}">${esc(label)}</p>`
       : preset === "number"
         ? `<p data-pz-eyebrow style="margin:0 0 8px;display:flex;align-items:center;gap:10px;${typeCss("label", c.deep)}"><span style="${TITLE_FF};font-size:22px;font-weight:900;letter-spacing:-0.02em;line-height:1">${num}</span><span style="display:block;width:28px;height:2px;background:${c.deep}"></span><span>${esc(label)}</span></p>`
-        : `<p data-pz-eyebrow style="margin:0 0 12px"><span style="display:inline-block;padding:6px 12px;border-radius:999px;background:${c.pillBg};${typeCss("label", c.pillFg, "letter-spacing:0.1em")}">${esc(label)} ${num}</span></p>`;
+        : `<p data-pz-eyebrow style="margin:0 0 12px"><span data-pz-chip style="display:inline-block;padding:6px 12px;border-radius:999px;background:${c.pillBg};${typeCss("label", c.pillFg, "letter-spacing:0.1em")}">${esc(label)} ${num}</span></p>`;
   const title = titleHtml ? `<p data-pz-title style="margin:0 0 24px;${typeCss("title", c.ink)}">${titleHtml}</p>` : "";
   return eyebrow + title;
 }

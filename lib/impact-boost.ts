@@ -80,7 +80,7 @@ export function boostHtml(s: ImpactSection, pal: ImpactPalette, alt: string): st
     return (
       `<section data-pz-impact="story" style="position:relative;z-index:1;padding:56px 24px 48px;background:${pal.face}${dv === "line" ? `;border-top:1px solid ${hexToRgba(pal.ink, 0.14)};border-bottom:1px solid ${hexToRgba(pal.ink, 0.14)}` : ""}">${curve(pal.face, "top", dv)}${curve(pal.face, "bottom", dv)}` +
       `<div style="max-width:576px;margin:0 auto">` +
-      (s.chip ? `<span style="display:inline-block;padding:6px 14px;border-radius:999px;background:${pal.deep};color:#FFFFFF;${sans};font-size:12px;font-weight:700;letter-spacing:0.06em;line-height:1.2">${e(s.chip)}</span>` : "") +
+      (s.chip ? `<span data-pz-chip style="display:inline-block;padding:6px 14px;border-radius:999px;background:${pal.deep};color:#FFFFFF;${sans};font-size:12px;font-weight:700;letter-spacing:0.06em;line-height:1.2">${e(s.chip)}</span>` : "") +
       (s.text ? `<p style="margin:${s.chip ? "16px" : "0"} 0 0;${title};font-size:18px;font-weight:700;letter-spacing:-0.01em;line-height:1.4;color:${pal.deep};word-break:keep-all">${e(s.text)}</p>` : "") +
       (s.quote
         ? `<div style="margin:20px 0 0;padding:2px 0 2px 18px;border-left:5px solid ${pal.accent}"><p style="margin:0;${title};font-size:24px;font-weight:800;letter-spacing:-0.02em;line-height:1.4;color:${pal.ink};word-break:keep-all">${e(s.quote)}</p></div>`

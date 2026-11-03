@@ -26,7 +26,7 @@ export function checklistV5ItemsInnerHtml(
     const itemsHtml = cells
       .map(
         (c) =>
-          `<li style="display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;border:${c.border};background:${c.background};color:${c.fg};font-size:14px;font-weight:600;line-height:1.35;word-break:keep-all">${c.iconHtml}${c.textHtml}</li>`,
+          `<li data-pz-chip style="display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;border:${c.border};background:${c.background};color:${c.fg};font-size:14px;font-weight:600;line-height:1.35;word-break:keep-all">${c.iconHtml}${c.textHtml}</li>`,
       )
       .join("");
     return { ulStyle: "list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:10px;justify-content:center", itemsHtml };

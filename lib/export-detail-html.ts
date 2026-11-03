@@ -451,9 +451,12 @@ function twoToneDh2(
   return dh2(category, `${lead}<span style="display:block;color:${mainColor}">${!parts.lead && !opts.inverted ? headlineKeywordHtml(parts.main, theme) : esc(parts.main)}</span>`, extraStyle);
 }
 
-/** 라이브 PointPill과 같은 채운 알약 */
+/** 라이브 PointPill과 같은 채운 알약 — 479: data-pz-chip + --pz-chip/--pz-on-chip 쌍(자기 배경 기준) */
 function pointPillHtml(label: string, theme: CategoryTheme, inverted = false): string {
-  return `<span style="display:inline-block;border-radius:${RADIUS.pill}px;font-family:${DETAIL_FONT_STACK.sans};font-size:${POINT_PILL.fontPx}px;font-weight:700;line-height:1;letter-spacing:${POINT_PILL.letterSpacingEm}em;padding:${POINT_PILL.padY}px ${POINT_PILL.padX}px;background:${inverted ? BRAND.paper : solidAccentOnPaper(theme)};color:${inverted ? (DESIGN_V4_ENABLED ? readableTextDeep(theme) : solidDeepOnPaper(theme)) : BRAND.paper}">${esc(label)}</span>`;
+  // inverted·테마 고정색은 V5 칩 변수가 덮는다(V5 off는 인라인 유지)
+  const bg = inverted ? BRAND.paper : solidAccentOnPaper(theme);
+  const fg = inverted ? (DESIGN_V4_ENABLED ? readableTextDeep(theme) : solidDeepOnPaper(theme)) : BRAND.paper;
+  return `<span data-pz-chip style="display:inline-block;border-radius:${RADIUS.pill}px;font-family:${DETAIL_FONT_STACK.sans};font-size:${POINT_PILL.fontPx}px;font-weight:700;line-height:1;letter-spacing:${POINT_PILL.letterSpacingEm}em;padding:${POINT_PILL.padY}px ${POINT_PILL.padX}px;background:${bg};color:${fg}">${esc(label)}</span>`;
 }
 
 /** 라이브 ChapterConnector와 같은 선+점 (절대 배치, 높이 영향 없음) */

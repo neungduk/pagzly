@@ -55,7 +55,7 @@ export function numberMark(style: NumberStyle, i: number, b: V4Block, p: V4Palet
   const on = p.onFace[faceRole(b)];
   // 466차 — big=true(장점 stackbig처럼 번호가 주인공인 자리): 번호를 한 단계 크게(눈이 번호로 먼저 가게). 크기만 키우고 새 글자는 없다
   switch (style) {
-    case "circle": { const d = big ? 46 : 34; return `<span aria-hidden="true" style="flex:none;display:flex;align-items:center;justify-content:center;width:${d}px;height:${d}px;border-radius:50%;background:${darkOf(p)};color:#FFFFFF;${SANS_FF};font-size:${big ? 18 : 14}px;font-weight:800">${i + 1}</span>`; }
+    case "circle": { const d = big ? 46 : 34; return `<span data-pz-chip aria-hidden="true" style="flex:none;display:flex;align-items:center;justify-content:center;width:${d}px;height:${d}px;border-radius:50%;background:${darkOf(p)};color:#FFFFFF;${SANS_FF};font-size:${big ? 18 : 14}px;font-weight:800">${i + 1}</span>`; }
     case "roman": return `<span aria-hidden="true" style="flex:none;min-width:${big ? 64 : 34}px;${TITLE_FF};font-size:${big ? 52 : 22}px;font-weight:700;line-height:1.05;color:${zigzagLabelColor(b, p, on.strong)}">${romanOf(i + 1)}</span>`;
     case "box": { const d = big ? 46 : 34; return `<span aria-hidden="true" style="flex:none;display:flex;align-items:center;justify-content:center;width:${d}px;height:${d}px;box-sizing:border-box;border:2px solid ${p.ink};${SANS_FF};font-size:${big ? 17 : 13}px;font-weight:800;color:${p.ink}">${NUM(i + 1)}</span>`; }
     default: return `<span aria-hidden="true" data-pz-deco style="flex:none;min-width:${big ? 64 : 48}px;${TITLE_FF};font-size:${big ? 56 : 40}px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${p.tints[3]}">${NUM(i + 1)}</span>`;
@@ -91,7 +91,8 @@ export function badgeShape(shape: BadgeShape, p: V4Palette, size = 60): string {
   const dark = darkOf(p);
   const chk = (c: string) => CHECK(c, Math.round(size * 0.44));
   switch (shape) {
-    case "seal": return `<span style="display:flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;margin:0 auto;box-sizing:border-box;border-radius:50%;border:3px double ${p.deep};background:#FFFFFF">${chk(p.deep)}</span>`;
+    // 배지 내부는 SVG 체크(fill 고정)라 data-pz-chip 미적용 — 흰 인장만 밝은 섬
+    case "seal": return `<span data-pz-on-light="1" style="display:flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;margin:0 auto;box-sizing:border-box;border-radius:50%;border:3px double ${p.deep};background:#FFFFFF">${chk(p.deep)}</span>`;
     case "ribbon": return `<span style="display:block;width:${size - 8}px;margin:0 auto"><span style="display:flex;align-items:center;justify-content:center;height:${size - 8}px;border-radius:10px 10px 0 0;background:${dark}">${chk("#FFFFFF")}</span><span aria-hidden="true" style="display:block;width:0;height:0;border-left:${(size - 8) / 2}px solid ${dark};border-right:${(size - 8) / 2}px solid ${dark};border-bottom:12px solid transparent"></span></span>`;
     case "hex": return `<span style="display:block;position:relative;width:${size}px;height:${size}px;margin:0 auto"><svg viewBox="0 0 60 60" width="${size}" height="${size}" aria-hidden="true" style="display:block"><polygon points="30,3 55,17 55,43 30,57 5,43 5,17" fill="${dark}"/></svg><span style="position:absolute;left:0;top:0;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center">${chk("#FFFFFF")}</span></span>`;
     default: return `<span style="display:flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;margin:0 auto;border-radius:50%;background:${dark}">${chk("#FFFFFF")}</span>`;
@@ -125,7 +126,7 @@ function benefitsV5(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeToke
               : numberMark(t.number, i, b, p);
         const row =
           list === "chip"
-            ? `<div style="--i:${i};display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:#fff;border:${hairline(p.ink)}">${titleP(it.title, p, 14)}</div>`
+            ? `<div data-pz-chip data-pz-on-light="1" style="--i:${i};display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:#fff;border:${hairline(p.ink)}">${titleP(it.title, p, 14)}</div>`
             : list === "stair"
               ? `<div style="--i:${i};display:flex;gap:12px;align-items:flex-start;margin-top:${i ? 10 : 0}px;margin-left:${i * 14}px">${mark}<div style="flex:1;min-width:0">${titleP(it.title, p, 16)}${bodyP(it.body, p, on.sub, 4)}</div></div>`
               : list === "timeline"
@@ -185,7 +186,7 @@ function concernV5(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeToken
 function storyV5(s: ImpactSection, b: V4Block, p: V4Palette, t: ArchetypeTokens): string | null {
   const on = p.onFace[faceRole(b)];
   const head = headingHtml(s.text, b, p, "color");
-  const chip = s.chip ? `<span style="display:inline-block;padding:6px 14px;border-radius:999px;background:${darkOf(p)};${typeCss("label", "#FFFFFF", "letter-spacing:0.06em")}">${esc(s.chip)}</span>` : "";
+  const chip = s.chip ? `<span data-pz-chip style="display:inline-block;padding:6px 14px;border-radius:999px;background:${darkOf(p)};${typeCss("label", "#FFFFFF", "letter-spacing:0.06em")}">${esc(s.chip)}</span>` : "";
   if (b.variant === "chapter") {
     // 468차 구도: 큰 장 번호가 왼쪽 28% 칸에 서고 글이 오른쪽 칸을 쓴다(번호 칸 폭이 글 칸과 다른 비대칭). 번호 글자 수에 맞춰 크기를 줄여 칸 안에 든다
     const lbl = v5Label("chapter");
@@ -247,7 +248,7 @@ function specV5(s: ImpactSection, b: V4Block, p: V4Palette): string | null {
     return wrap(b, p, `<div style="overflow:hidden;border-radius:12px;border:${hairline(p.ink)};border-top:4px solid ${p.deep}">${rows}</div>`, { head });
   }
   if (b.variant === "tags") {
-    const tags = items.map((it) => `<span style="display:inline-flex;align-items:baseline;gap:8px;max-width:100%;box-sizing:border-box;padding:8px 12px;border-radius:999px;border:${hairline(p.ink)};background:#FFFFFF"><span style="${typeCss("label", on.strong, "letter-spacing:0.04em")}">${esc(it.title)}</span><span style="min-width:0;overflow-wrap:anywhere;${typeCss("small", p.ink, "font-size:15px;font-weight:700")}">${esc(it.body ?? "")}</span></span>`).join("");
+    const tags = items.map((it) => `<span data-pz-chip data-pz-on-light="1" style="display:inline-flex;align-items:baseline;gap:8px;max-width:100%;box-sizing:border-box;padding:8px 12px;border-radius:999px;border:${hairline(p.ink)};background:#FFFFFF"><span style="${typeCss("label", on.strong, "letter-spacing:0.04em")}">${esc(it.title)}</span><span style="min-width:0;overflow-wrap:anywhere;${typeCss("small", p.ink, "font-size:15px;font-weight:700")}">${esc(it.body ?? "")}</span></span>`).join("");
     return wrap(b, p, `<div style="display:flex;flex-wrap:wrap;gap:8px">${tags}</div>`, { head });
   }
   if (b.variant === "big3") {

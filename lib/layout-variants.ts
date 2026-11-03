@@ -374,7 +374,7 @@ function concernHtml(s: ImpactSection, b: V4Block, p: V4Palette): string {
 
 function storyHtml(s: ImpactSection, b: V4Block, p: V4Palette, alt: string): string {
   const on = p.onFace[faceRole(b)];
-  const chip = s.chip ? `<span style="display:inline-block;padding:6px 14px;border-radius:999px;background:${p.deep};${typeCss("label", "#FFFFFF", "letter-spacing:0.06em")}">${esc(s.chip)}</span>` : "";
+  const chip = s.chip ? `<span data-pz-chip style="display:inline-block;padding:6px 14px;border-radius:999px;background:${p.deep};${typeCss("label", "#FFFFFF", "letter-spacing:0.06em")}">${esc(s.chip)}</span>` : "";
   const photo = s.images?.[0];
   const photoHtml = photo ? `<div style="margin:28px 0 0;aspect-ratio:4 / 3;overflow:hidden;border-radius:20px;box-shadow:${depthShadow("float", p.ink)}">${img(photo.url, alt, photo.pos)}</div>` : "";
   const head = headingHtml(s.text, b, p, "color");

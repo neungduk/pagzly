@@ -185,9 +185,41 @@ export function colorRolesV5(id: ArchetypeId, productAccent: string, paper = "#F
   };
 }
 
+export type ChipPairV5 = { chip: string; onChip: string; border: string };
+
+/**
+ * 479 A — 자기 배경을 가진 알약/배지/칩 쌍.
+ * 부모 면과 명도 대비가 큰 쪽을 칩 배경으로, 글자는 칩 배경 기준으로 같은 함수에서 확정.
+ */
+export function chipPair(parentSurface: string): ChipPairV5 {
+  const light = "#FAF8F3";
+  const dark = "#0A0A0A";
+  const lightVs = contrastRatioToken(light, parentSurface);
+  const darkVs = contrastRatioToken(dark, parentSurface);
+  if (lightVs >= darkVs) {
+    // 어두운 부모 → 밝은 칩 + 어두운 글자
+    return { chip: light, onChip: ensureInk("#1B1B18", light), border: "none" };
+  }
+  // 밝은 부모 → 어두운 칩 + 밝은 글자(대비가 약하면 얇은 밝은 테두리)
+  const onChip = ensureInk(light, dark);
+  const border = darkVs < 3 ? "1px solid rgba(250,248,243,0.55)" : "none";
+  return { chip: dark, onChip, border };
+}
+
 export function colorRolesStyleAttr(roles: ColorRolesV5): string {
   // 478 B — 면/글자 쌍 변수(--pz-s/--pz-i 별칭 유지)
-  return `--pz-s:${roles.surface};--pz-a:${roles.surfaceAlt};--pz-i:${roles.ink};--pz-p:${roles.point};--pz-surface:${roles.surface};--pz-on-surface:${roles.ink}`;
+  // 479 A — 칩 쌍(--pz-chip/--pz-on-chip)
+  const chip = chipPair(roles.surface);
+  return `--pz-s:${roles.surface};--pz-a:${roles.surfaceAlt};--pz-i:${roles.ink};--pz-p:${roles.point};--pz-surface:${roles.surface};--pz-on-surface:${roles.ink};--pz-chip:${chip.chip};--pz-on-chip:${chip.onChip};--pz-chip-bd:${chip.border}`;
+}
+
+/** 칩·알약·배지 — forceInk보다 뒤에 두어 자기 배경 기준 글자를 확정 */
+function chipCss(s: string, text: string): string {
+  return (
+    `${s} [data-pz-chip]{background:var(--pz-chip)!important;color:var(--pz-on-chip)!important;border:var(--pz-chip-bd,none)!important;--pz-on-surface:var(--pz-on-chip)}` +
+    `${s} [data-pz-chip] ${text}{color:var(--pz-on-chip)!important}` +
+    `${s} [data-pz-chip][data-pz-s],${s} [data-pz-chip] [data-pz-s]{color:var(--pz-on-chip)!important}`
+  );
 }
 
 /** 인라인 color를 덮어 실제 면 위 글자로 통일. 어두운 면 아키타입에만 강제(밝은 면은 변수만). */
@@ -204,19 +236,20 @@ function onSurfaceCss(s: string, forceInk: boolean): string {
     `${s} .pagzly-seo-text{background:#FAF8F3!important;color:#1B1B18!important;--pz-on-surface:#1B1B18;--pz-surface:#FAF8F3}` +
     `${s} .pagzly-seo-text ${text}{color:#1B1B18!important}` +
     `${s} footer{color:var(--pz-i)!important}`;
-  if (!forceInk) return css;
-  return (
-    css +
-    `${s} section[data-pz-face] ${text},${s} [data-info] ${text}{color:var(--pz-on-surface)!important}` +
-    `${s} section[data-pz-face] [data-pz-s],${s} [data-info] [data-pz-s]{color:var(--pz-on-surface)!important}` +
-    `${s} [data-pz-hl-c="0"],${s} [data-pz-on-light]{--pz-on-surface:#1B1B18;color:#1B1B18!important;background:#FAF8F3!important}` +
-    `${s} [data-pz-hl-c="0"] ${text},${s} [data-pz-on-light] ${text}{color:#1B1B18!important}` +
-    `${s} :not(section)[style*="background:#FFF"],${s} :not(section)[style*="background:#fff"],${s} :not(section)[style*="background:#FFFFFF"],${s} :not(section)[style*="background:#ffffff"],${s} :not(section)[style*="background:#FAF8F3"],${s} :not(section)[style*="background:#FAF7F1"]{--pz-on-surface:#1B1B18}` +
-    `${s} :not(section)[style*="background:#FFF"] ${text},${s} :not(section)[style*="background:#fff"] ${text},${s} :not(section)[style*="background:#FFFFFF"] ${text},${s} :not(section)[style*="background:#ffffff"] ${text},${s} :not(section)[style*="background:#FAF8F3"] ${text},${s} :not(section)[style*="background:#FAF7F1"] ${text}{color:#1B1B18!important}` +
-    `${s} [style*="color:#FFF"],${s} [style*="color:#fff"],${s} [style*="color:#FFFFFF"],${s} [style*="color:#ffffff"],${s} [style*="color:#FAF8F3"],${s} [style*="color:#faf8f3"]{color:#FAF8F3!important}` +
-    `${s} .pagzly-stacked,${s} .pagzly-stacked-body,${s} [data-diagram]{--pz-on-surface:#1B1B18;color:#1B1B18!important}` +
-    `${s} .pagzly-stacked ${text},${s} .pagzly-stacked-body ${text},${s} .pagzly-stacked [data-pz-s],${s} .pagzly-stacked-body [data-pz-s],${s} [data-diagram] ${text}{color:#1B1B18!important}`
-  );
+  if (forceInk) {
+    css +=
+      `${s} section[data-pz-face] ${text},${s} [data-info] ${text}{color:var(--pz-on-surface)!important}` +
+      `${s} section[data-pz-face] [data-pz-s],${s} [data-info] [data-pz-s]{color:var(--pz-on-surface)!important}` +
+      `${s} [data-pz-hl-c="0"],${s} [data-pz-on-light]{--pz-on-surface:#1B1B18;color:#1B1B18!important;background:#FAF8F3!important}` +
+      `${s} [data-pz-hl-c="0"] ${text},${s} [data-pz-on-light] ${text}{color:#1B1B18!important}` +
+      `${s} :not(section)[style*="background:#FFF"],${s} :not(section)[style*="background:#fff"],${s} :not(section)[style*="background:#FFFFFF"],${s} :not(section)[style*="background:#ffffff"],${s} :not(section)[style*="background:#FAF8F3"],${s} :not(section)[style*="background:#FAF7F1"]{--pz-on-surface:#1B1B18}` +
+      `${s} :not(section)[style*="background:#FFF"] ${text},${s} :not(section)[style*="background:#fff"] ${text},${s} :not(section)[style*="background:#FFFFFF"] ${text},${s} :not(section)[style*="background:#ffffff"] ${text},${s} :not(section)[style*="background:#FAF8F3"] ${text},${s} :not(section)[style*="background:#FAF7F1"] ${text}{color:#1B1B18!important}` +
+      `${s} [style*="color:#FFF"],${s} [style*="color:#fff"],${s} [style*="color:#FFFFFF"],${s} [style*="color:#ffffff"],${s} [style*="color:#FAF8F3"],${s} [style*="color:#faf8f3"]{color:#FAF8F3!important}` +
+      `${s} .pagzly-stacked,${s} .pagzly-stacked-body,${s} [data-diagram]{--pz-on-surface:#1B1B18;color:#1B1B18!important}` +
+      `${s} .pagzly-stacked ${text},${s} .pagzly-stacked-body ${text},${s} .pagzly-stacked [data-pz-s],${s} .pagzly-stacked-body [data-pz-s],${s} [data-diagram] ${text}{color:#1B1B18!important}`;
+  }
+  // 479 A — 칩 규칙은 면 강제·밝은 섬보다 뒤(자기 배경 기준)
+  return css + chipCss(s, text);
 }
 
 /**
@@ -229,10 +262,14 @@ export function colorRolesCssV5(scope: string, id: ArchetypeId): string {
   let extra = "";
   // 476 E — 쌍 골격(초단). living≤135 여유
   if (id === "luxe") extra = `${s} section[data-pz-face]{padding:0 11%!important}${s} [data-pz-sf^=brand_story]{border-left:1px solid #0002;padding-left:8%!important}`;
-  else if (id === "softlife") extra = `${s} .pagzly-compact-thumb,${s} [data-pz-cl-v5] li{border-radius:999px!important;padding:12px 16px!important;background:var(--pz-a)}`;
+  else if (id === "softlife")
+    extra =
+      `${s} .pagzly-compact-thumb,${s} [data-pz-cl-v5] li{border-radius:999px!important;padding:12px 16px!important;background:var(--pz-chip)!important;color:var(--pz-on-chip)!important;--pz-on-surface:var(--pz-on-chip)}` +
+      `${s} [data-pz-cl-v5] li :is(p,span,strong){color:var(--pz-on-chip)!important}`;
   else if (id === "catalog") extra = `${s} [data-pz-it] .pagzly-compact-row{display:grid!important;grid-template-columns:96px 1fr}`;
   else if (id === "techsheet") extra = `${s} [data-pz-face]{font-variant-numeric:tabular-nums}${s} [data-pz-hl-g]{display:grid!important;grid-template-columns:1fr 1fr}`;
-  else if (id === "impact" || id === "pop" || id === "narrative") extra = `${s} [data-pz-hl-c="0"]{background:#FAF8F3!important;color:#1B1B18!important}`;
+  else if (id === "impact" || id === "pop" || id === "narrative")
+    extra = `${s} [data-pz-hl-c="0"]{background:#FAF8F3!important;color:#1B1B18!important;--pz-on-surface:#1B1B18}`;
   // 어두운 면(impact/narrative) + pop(면이 어두워질 수 있음)만 인라인 잉크 강제
   const forceInk = FACE[id].dark || id === "pop";
   return onSurfaceCss(s, forceInk) + extra;
