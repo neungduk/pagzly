@@ -6,7 +6,7 @@
  * 사진 실패 폴백(`photo-fallback`)이 그대로 동작한다.
  */
 import type { ImpactSection, V4Block } from "@/lib/types/generate";
-import { CHECK, NUM, faceRole, headingHtml, img, wrap, zigzagLabelColor, type V5Parts } from "@/lib/layout-variants";
+import { CHECK, NUM, faceBg, faceRole, headingHtml, img, wrap, zigzagLabelColor, type V5Parts } from "@/lib/layout-variants";
 import { depthShadow, hairline, type V4Palette } from "@/lib/palette-v4";
 import { SANS_FF, TITLE_FF, esc, numberStatHtml, typeCss } from "@/lib/type-treatments";
 import { contrastRatioToken, hexToRgba, mixHex } from "@/lib/design-tokens";
@@ -262,20 +262,24 @@ function phototextV5(s: ImpactSection, b: V4Block, p: V4Palette, alt: string, t:
   const it = (b.items ?? [])[0];
   if (!it?.img) return null;
   const on = p.onFace[faceRole(b)];
-  const title = `<p style="margin:0;overflow-wrap:anywhere;${typeCss("title", p.ink, "font-size:22px")}">${headingHtml(it.title, b, p)}</p>`;
+  // 477 F2 — 면 대비: 보조문이 면과 4.5 미만이면 흰 글로 교체(새 카피 없음)
+  const bg = faceBg(b, p);
+  const subOk = contrastRatioToken(on.sub, bg) >= 4.5 ? on.sub : contrastRatioToken("#FFFFFF", bg) >= 4.5 ? "#FFFFFF" : on.sub;
+  const inkOk = contrastRatioToken(p.ink, bg) >= 4.5 ? p.ink : contrastRatioToken("#FFFFFF", bg) >= 4.5 ? "#FFFFFF" : p.ink;
+  const title = `<p style="margin:0;overflow-wrap:anywhere;${typeCss("title", inkOk, "font-size:22px")}">${headingHtml(it.title, b, p)}</p>`;
   const titleLight = `<p style="margin:0;overflow-wrap:anywhere;font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.3;color:#fff;word-break:keep-all">${headingHtml(it.title, b, p)}</p>`;
   const bodyLight = it.body
     ? `<p style="margin:10px 0 0;font-size:15px;line-height:1.65;color:rgba(255,255,255,.88);white-space:pre-line;word-break:keep-all;overflow-wrap:anywhere">${esc(it.body)}</p>`
     : "";
-  const text = (center = false) => `<div${center ? ' style="text-align:center"' : ""}>${title}${bodyP(it.body, p, on.sub, 10)}</div>`;
+  const text = (center = false) => `<div${center ? ' style="text-align:center"' : ""}>${title}${bodyP(it.body, p, subOk, 10)}</div>`;
   const frame = t.frames[0] ?? "rect";
   // 477 E — zoom bubble: dframe만(2개 버블) — export 상한 유지
   if (b.variant === "dframe") {
-    const zb = zoomBubbleHtml(it.img, alt, title, bodyP(it.body, p, on.sub, 10), p.ink, p.tints[1], 2);
+    const zb = zoomBubbleHtml(it.img, alt, title, bodyP(it.body, p, subOk, 10), inkOk, p.tints[1], 2);
     if (zb) return wrap(b, p, zb, { bleed: true, pad: "28px 24px 48px" });
   }
-  // 477 C — 사진 지배형: bleed만, 아키타입 주 부품 1회 경로(기존 compose보다 짧을 때만)
-  if (b.variant === "bleed") {
+  // 477 C — 사진 지배형: bleed + stack(여유 있을 때) — 장식·번호 생략
+  if (b.variant === "bleed" || b.variant === "stack") {
     const pb = PHOTO_BLOCK_V5[t.id];
     const useLight = pb === "band" || pb === "scrim";
     const inner = renderPhotoBlock(
@@ -283,7 +287,7 @@ function phototextV5(s: ImpactSection, b: V4Block, p: V4Palette, alt: string, t:
       [it.img, { url: it.img.url, pos: "50% 70%" }],
       alt,
       useLight ? titleLight : title,
-      useLight ? bodyLight : bodyP(it.body, p, on.sub, 10),
+      useLight ? bodyLight : bodyP(it.body, p, subOk, 10),
       p,
       t.id,
       b.no % 2 === 0,
