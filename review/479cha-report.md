@@ -39,7 +39,7 @@
 
 ## push 확인
 ```
-git log -1  → (본 보고서 커밋 해시로 갱신)
+git log -1  → 926ae18565ad51b874e246158bae8f503f6c3435
 branch      → cloud-work (main 미 push)
 ```
 
