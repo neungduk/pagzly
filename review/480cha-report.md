@@ -38,4 +38,4 @@
 
 ## Git
 - 브랜치: `cloud-work` (main 미push).
-- tip: `209073a` (`209073ad…`, `origin/cloud-work` 동기). 해시 기입 커밋이 이어지면 그 SHA로 갱신.
+- tip: `d5dc848` (`d5dc8481b447589bbabc20bc9d04f7b7daf77023`, `origin/cloud-work` 동기).
