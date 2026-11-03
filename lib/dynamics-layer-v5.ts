@@ -265,9 +265,10 @@ export function applyDynamicsHtml(html: string, s: ImpactSection, t: ArchetypeTo
     const sign = d.plate;
     const lv = t.dyn.level;
     const deg = (lv === 5 ? 2.5 : lv === 4 ? 1.5 : 1) * sign;
-    const face = lv === 3 ? "transparent" : lv === 4 ? p.tints[0] : p.tints[1];
+    // 478 B — 기울인 판을 면 토큰(--pz-a)에 묶어 어두운 아키타입에서 흰 판+밝은 글자 충돌을 막는다
+    const face = lv === 3 ? "transparent" : "var(--pz-a,var(--pz-surface,#FAF8F3))";
     const border = lv === 3 ? `1.5px solid ${hexToRgba(p.deep, 0.22)}` : lv === 5 ? `2px solid ${hexToRgba(p.ink, 0.5)}` : "none";
-    layers.push(`<span style="position:absolute;left:${sign > 0 ? 3 : 7}%;right:${sign > 0 ? 7 : 3}%;top:16px;bottom:12px;border-radius:${Math.round(18 * t.radius)}px;background:${face};border:${border};transform:rotate(${deg}deg)"></span>`);
+    layers.push(`<span data-pz-dyn-plate style="position:absolute;left:${sign > 0 ? 3 : 7}%;right:${sign > 0 ? 7 : 3}%;top:16px;bottom:12px;border-radius:${Math.round(18 * t.radius)}px;background:${face};border:${border};transform:rotate(${deg}deg)"></span>`);
   }
   if (d.tape) layers.push(tape(p, { side: "right", top: 6, deg: 5 }));
   if (d.sticker) layers.push(sticker(d.sticker, p, { shape: "star", deg: -10, size: 70, pos: "right:5%;top:8px" }));

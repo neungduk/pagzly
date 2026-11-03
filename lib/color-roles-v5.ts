@@ -72,6 +72,31 @@ export function inkOnSurface(surface: string, preferLight: boolean): string {
   return ensureInk(preferLight ? "#FAF8F3" : "#1B1B18", surface);
 }
 
+function expandHex(hex: string): string {
+  const h = hex.replace("#", "");
+  if (h.length === 3) return `#${h[0]}${h[0]}${h[1]}${h[1]}${h[2]}${h[2]}`;
+  return `#${h.slice(0, 6)}`;
+}
+
+/** 밝은 면(카드·틴트)이면 true — 어두운 면 위에 얹힌 섬 표식용 */
+export function isLightSurface(hex: string): boolean {
+  const full = expandHex(hex);
+  return contrastRatioToken("#000000", full) >= contrastRatioToken("#FFFFFF", full);
+}
+
+/**
+ * 478 B — 섹션이 아닌 요소의 밝은 background:#hex 에 `data-pz-on-light`를 붙여
+ * 면 강제 밝은 글자가 카드 위에서 뒤집히지 않게 한다(섹션 인라인 paper는 제외).
+ */
+export function markLightIslandsV5(html: string): string {
+  return html.replace(/<(?!\/|section\b|img\b|svg\b|path\b|br\b|hr\b|source\b|meta\b|link\b)([a-zA-Z][\w-]*)(\s[^>]*?)>/g, (full, tag: string, rest: string) => {
+    if (/\bdata-pz-on-light\b/.test(rest) || /\bdata-pz-face\b/.test(rest)) return full;
+    const m = /background:\s*(#[0-9A-Fa-f]{3,8})\b/i.exec(rest);
+    if (!m?.[1] || !isLightSurface(m[1])) return full;
+    return `<${tag} data-pz-on-light="1"${rest}>`;
+  });
+}
+
 function vividPoint(accent: string, shift: number): string {
   const shifted = hueShift(accent, shift);
   return mixHex(shifted, "#FFE566", 0.35);
@@ -165,26 +190,32 @@ export function colorRolesStyleAttr(roles: ColorRolesV5): string {
   return `--pz-s:${roles.surface};--pz-a:${roles.surfaceAlt};--pz-i:${roles.ink};--pz-p:${roles.point};--pz-surface:${roles.surface};--pz-on-surface:${roles.ink}`;
 }
 
-/** 인라인 color를 덮어 실제 면 위 글자로 통일. 밝은 섬·명시 밝은 글자·사진 스크림 예외 */
-function onSurfaceCss(s: string): string {
+/** 인라인 color를 덮어 실제 면 위 글자로 통일. 어두운 면 아키타입에만 강제(밝은 면은 변수만). */
+function onSurfaceCss(s: string, forceInk: boolean): string {
   const text = ":is(p,h1,h2,h3,h4,li,td,th,label,a,span,strong,em,b,small)";
-  return (
+  let css =
     `${s}{background:var(--pz-s);color:var(--pz-i);--pz-surface:var(--pz-s);--pz-on-surface:var(--pz-i)}` +
-    `${s} section[data-pz-face],${s} [data-info]{background:var(--pz-surface)!important;color:var(--pz-on-surface)!important}` +
+    `${s} section[data-pz-face]{position:relative;z-index:1!important;background:var(--pz-surface)!important;color:var(--pz-on-surface)!important}` +
+    `${s} [data-info]{background:var(--pz-surface)!important;color:var(--pz-on-surface)!important}` +
     `${s} section[data-pz-face][data-pz-ax$=".5"],${s} [data-info=stat],${s} [data-info=points]{background:var(--pz-a)!important}` +
-    `${s} section[data-pz-face] ${text},${s} [data-info] ${text}{color:var(--pz-on-surface)!important}` +
-    // 밝은 섬(흰/크림 카드·hl-0)
-    `${s} [data-pz-hl-c="0"],${s} [data-pz-on-light]{--pz-on-surface:#1B1B18;color:#1B1B18!important;background:#FAF8F3!important}` +
-    `${s} [data-pz-hl-c="0"] ${text},${s} [data-pz-on-light] ${text}{color:#1B1B18!important}` +
-    `${s} [style*="background:#FFF"]{--pz-on-surface:#1B1B18}${s} [style*="background:#fff"]{--pz-on-surface:#1B1B18}` +
-    `${s} [style*="background:#FFFFFF"]{--pz-on-surface:#1B1B18}${s} [style*="background:#ffffff"]{--pz-on-surface:#1B1B18}` +
-    `${s} [style*="background:#FAF8F3"]{--pz-on-surface:#1B1B18}${s} [style*="background:#FAF7F1"]{--pz-on-surface:#1B1B18}` +
-    `${s} [style*="background:#FFF"] ${text},${s} [style*="background:#fff"] ${text},${s} [style*="background:#FFFFFF"] ${text},${s} [style*="background:#ffffff"] ${text},${s} [style*="background:#FAF8F3"] ${text},${s} [style*="background:#FAF7F1"] ${text}{color:#1B1B18!important}` +
     // 사진 스크림 위 = 항상 밝은 글자
     `${s} [data-pz-pb="band"] [style*="z-index:2"],${s} [data-pz-pb="scrim"] [style*="z-index:2"]{--pz-on-surface:#FAF8F3;color:#FAF8F3!important}` +
     `${s} [data-pz-pb="band"] [style*="z-index:2"] ${text},${s} [data-pz-pb="scrim"] [style*="z-index:2"] ${text}{color:#FAF8F3!important}` +
-    // 명시 밝은 글자(뱃지 등) 유지
-    `${s} [style*="color:#FFF"],${s} [style*="color:#fff"],${s} [style*="color:#FFFFFF"],${s} [style*="color:#ffffff"],${s} [style*="color:#FAF8F3"],${s} [style*="color:#faf8f3"]{color:#FAF8F3!important}`
+    `${s} .pagzly-seo-text{background:#FAF8F3!important;color:#1B1B18!important;--pz-on-surface:#1B1B18;--pz-surface:#FAF8F3}` +
+    `${s} .pagzly-seo-text ${text}{color:#1B1B18!important}` +
+    `${s} footer{color:var(--pz-i)!important}`;
+  if (!forceInk) return css;
+  return (
+    css +
+    `${s} section[data-pz-face] ${text},${s} [data-info] ${text}{color:var(--pz-on-surface)!important}` +
+    `${s} section[data-pz-face] [data-pz-s],${s} [data-info] [data-pz-s]{color:var(--pz-on-surface)!important}` +
+    `${s} [data-pz-hl-c="0"],${s} [data-pz-on-light]{--pz-on-surface:#1B1B18;color:#1B1B18!important;background:#FAF8F3!important}` +
+    `${s} [data-pz-hl-c="0"] ${text},${s} [data-pz-on-light] ${text}{color:#1B1B18!important}` +
+    `${s} :not(section)[style*="background:#FFF"],${s} :not(section)[style*="background:#fff"],${s} :not(section)[style*="background:#FFFFFF"],${s} :not(section)[style*="background:#ffffff"],${s} :not(section)[style*="background:#FAF8F3"],${s} :not(section)[style*="background:#FAF7F1"]{--pz-on-surface:#1B1B18}` +
+    `${s} :not(section)[style*="background:#FFF"] ${text},${s} :not(section)[style*="background:#fff"] ${text},${s} :not(section)[style*="background:#FFFFFF"] ${text},${s} :not(section)[style*="background:#ffffff"] ${text},${s} :not(section)[style*="background:#FAF8F3"] ${text},${s} :not(section)[style*="background:#FAF7F1"] ${text}{color:#1B1B18!important}` +
+    `${s} [style*="color:#FFF"],${s} [style*="color:#fff"],${s} [style*="color:#FFFFFF"],${s} [style*="color:#ffffff"],${s} [style*="color:#FAF8F3"],${s} [style*="color:#faf8f3"]{color:#FAF8F3!important}` +
+    `${s} .pagzly-stacked,${s} .pagzly-stacked-body,${s} [data-diagram]{--pz-on-surface:#1B1B18;color:#1B1B18!important}` +
+    `${s} .pagzly-stacked ${text},${s} .pagzly-stacked-body ${text},${s} .pagzly-stacked [data-pz-s],${s} .pagzly-stacked-body [data-pz-s],${s} [data-diagram] ${text}{color:#1B1B18!important}`
   );
 }
 
@@ -202,7 +233,9 @@ export function colorRolesCssV5(scope: string, id: ArchetypeId): string {
   else if (id === "catalog") extra = `${s} [data-pz-it] .pagzly-compact-row{display:grid!important;grid-template-columns:96px 1fr}`;
   else if (id === "techsheet") extra = `${s} [data-pz-face]{font-variant-numeric:tabular-nums}${s} [data-pz-hl-g]{display:grid!important;grid-template-columns:1fr 1fr}`;
   else if (id === "impact" || id === "pop" || id === "narrative") extra = `${s} [data-pz-hl-c="0"]{background:#FAF8F3!important;color:#1B1B18!important}`;
-  return onSurfaceCss(s) + extra;
+  // 어두운 면(impact/narrative) + pop(면이 어두워질 수 있음)만 인라인 잉크 강제
+  const forceInk = FACE[id].dark || id === "pop";
+  return onSurfaceCss(s, forceInk) + extra;
 }
 
 export function hueBin(hex: string): number {

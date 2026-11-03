@@ -5,7 +5,7 @@ import { checklistV5Mode, checklistV5ItemsInnerHtml } from "@/lib/checklist-layo
 import { highlightFamilyMode, highlightFamilyInnerHtml } from "@/lib/highlight-family-v5";
 import { familyKindOf, familyModeAttr } from "@/lib/section-family-v5";
 import { svgSpriteV5 } from "@/lib/svg-sprite-v5";
-import { colorRolesV5, colorRolesStyleAttr, colorRolesCssV5 } from "@/lib/color-roles-v5";
+import { colorRolesV5, colorRolesStyleAttr, colorRolesCssV5, markLightIslandsV5 } from "@/lib/color-roles-v5";
 import { infoCssV5 } from "@/lib/info-v5";
 import { rhythmBreakV5 } from "@/lib/rhythm-break-v5";
 import { renderCanvasSectionHtml } from "@/lib/canvas-section-export-html";
@@ -2405,6 +2405,8 @@ export function buildDetailPageHtml(opts: {
         if (!faceLock.has(section.type)) {
           marked = marked.replace(/^(\s*)<section/, `$1<section data-pz-face="1"`);
         }
+        // 478 B — 밝은 카드/틴트에 data-pz-on-light(면 강제 글자색 예외)
+        marked = markLightIslandsV5(marked);
       }
       bodyParts.push(DESIGN_V3_COLOR_ENABLED && dividerStyleFor(opts.category) ? marked.replace(/^(\s*)<section/, `$1<section data-pz-i="${i}"`) : marked);
       lastRenderedSection = section;

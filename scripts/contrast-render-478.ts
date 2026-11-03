@@ -82,9 +82,10 @@ const PROBE = `(() => {
     if (!text) continue;
     const e = n.parentElement;
     if (!e || seen.has(e) || ['SCRIPT','STYLE','NOSCRIPT'].includes(e.tagName)) continue;
-    if (e.closest('[aria-hidden="true"],[data-pagzly-bar],nav,nextjs-portal')) continue;
+    if (e.closest('[aria-hidden="true"],[data-pagzly-bar],nav,nextjs-portal,footer')) continue;
     const cs = getComputedStyle(e);
     if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) === 0) continue;
+    if (cs.maxHeight === '0px' || cs.maxHeight === '0') continue;
     const deco = !!(e.closest('[data-pz-deco]') || e.getAttribute('data-pz-deco') != null);
     const r = document.createRange();
     r.selectNodeContents(n);
@@ -127,43 +128,69 @@ async function measurePage(
   meta: { fixture: string; archetype: string; width: number },
 ): Promise<Fail[]> {
   await settleFonts(page);
-  const probes = (await page.evaluate(PROBE)) as Probe[];
-  const hide = await page.addStyleTag({
+  // sticky/fixed 내비·바가 fullPage 픽셀 샘플을 오염시키지 않게 해제
+  await page.addStyleTag({
     content:
-      "*{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important;caret-color:transparent!important}svg text,svg tspan{fill:transparent!important;stroke:none!important}",
+      ".pagzly-anchor-nav,[style*='position:sticky'],[style*='position: fixed'],[style*='position:sticky']{position:relative!important;top:auto!important;bottom:auto!important}",
   });
+  const probes = (await page.evaluate(PROBE)) as Probe[];
+  // 인라인 !important로 면 강제 잉크(높은 특이도)보다 글자를 숨김
+  await page.evaluate(`(() => {
+    document.querySelectorAll('p,h1,h2,h3,h4,h5,li,td,th,label,a,span,strong,em,b,small,[data-pz-s],[data-pz-title],[data-pz-eyebrow]').forEach((e) => {
+      e.style.setProperty('color', 'transparent', 'important');
+      e.style.setProperty('-webkit-text-fill-color', 'transparent', 'important');
+      e.style.setProperty('text-shadow', 'none', 'important');
+    });
+    document.querySelectorAll('svg text,svg tspan').forEach((e) => {
+      e.style.setProperty('fill', 'transparent', 'important');
+      e.style.setProperty('stroke', 'none', 'important');
+    });
+  })()`);
   const vp = page.viewportSize()!;
   const full = (await page.evaluate("Math.ceil(document.documentElement.scrollHeight)")) as number;
-  await page.setViewportSize({ width: vp.width, height: Math.min(Math.max(full, vp.height), 16000) });
-  await page.waitForTimeout(80);
-  const buf = await page.screenshot({ fullPage: true, type: "png", animations: "disabled" });
-  await page.setViewportSize(vp);
-  await hide.evaluate((el) => el.remove());
+  const chunkH = vp.height;
+  /** 문서 y → 청크 뷰포트 샷 픽셀 (긴 페이지에서 tall-viewport 텍스처 한계 회피) */
+  type Chunk = { top: number; WW: number; HH: number; raw: Buffer };
+  const chunks: Chunk[] = [];
+  for (let top = 0; top < full; top += chunkH) {
+    await page.evaluate((t) => window.scrollTo(0, t), top);
+    await page.waitForTimeout(40);
+    const buf = await page.screenshot({ type: "png", animations: "disabled" });
+    const im = sharp(buf);
+    const m = await im.metadata();
+    const raw = await im.ensureAlpha().raw().toBuffer();
+    chunks.push({ top, WW: m.width!, HH: m.height!, raw });
+  }
+  await page.evaluate(() => window.scrollTo(0, 0));
 
-  const im = sharp(buf);
-  const m = await im.metadata();
-  const raw = await im.ensureAlpha().raw().toBuffer();
-  const WW = m.width!, HH = m.height!;
-  const fails: Fail[] = [];
-
-  for (const p of probes) {
-    if (p.deco) continue;
+  const sampleBox = (p: Probe): { ls: number[]; sr: number; sg: number; sb: number; n: number } | null => {
+    const midY = p.y + p.h / 2;
+    const ch = chunks.find((c) => midY >= c.top && midY < c.top + c.HH) ?? chunks[chunks.length - 1];
+    if (!ch) return null;
     const x0 = Math.max(0, Math.floor(p.x));
-    const y0 = Math.max(0, Math.floor(p.y));
-    const x1 = Math.min(WW, Math.ceil(p.x + p.w));
-    const y1 = Math.min(HH, Math.ceil(p.y + p.h));
-    if (x1 - x0 < 2 || y1 - y0 < 2) continue;
+    const y0 = Math.max(0, Math.floor(p.y - ch.top));
+    const x1 = Math.min(ch.WW, Math.ceil(p.x + p.w));
+    const y1 = Math.min(ch.HH, Math.ceil(p.y + p.h - ch.top));
+    if (x1 - x0 < 2 || y1 - y0 < 2) return null;
     const ls: number[] = [];
     let sr = 0, sg = 0, sb = 0, n = 0;
     for (let y = y0; y < y1; y += 2) {
       for (let x = x0; x < x1; x += 2) {
-        const i = (y * WW + x) * 4;
-        ls.push(lum(raw[i]!, raw[i + 1]!, raw[i + 2]!));
-        sr += raw[i]!; sg += raw[i + 1]!; sb += raw[i + 2]!;
+        const i = (y * ch.WW + x) * 4;
+        ls.push(lum(ch.raw[i]!, ch.raw[i + 1]!, ch.raw[i + 2]!));
+        sr += ch.raw[i]!; sg += ch.raw[i + 1]!; sb += ch.raw[i + 2]!;
         n += 1;
       }
     }
-    if (!n) continue;
+    return n ? { ls, sr, sg, sb, n } : null;
+  };
+
+  const fails: Fail[] = [];
+  for (const p of probes) {
+    if (p.deco) continue;
+    const samp = sampleBox(p);
+    if (!samp) continue;
+    const { ls, sr, sg, sb, n } = samp;
     ls.sort((a, b) => a - b);
     const a = p.fg[3];
     const mix = (c: number, avg: number) => c * a + avg * (1 - a);
@@ -285,7 +312,16 @@ export function summarizeFails(fails: Fail[]): string {
 if (/contrast-render-478\.ts$/.test(process.argv[1] ?? "")) {
   const short = process.argv.includes("--short");
   const out = process.argv.find((a) => a.startsWith("--out="))?.slice(6) ?? "review/478-contrast.json";
-  void runContrastRender478({ short, outJson: out, capture: !short }).then(({ fails }) => {
+  const fx = process.argv.find((a) => a.startsWith("--fixtures="))?.slice(11)?.split(",").filter(Boolean);
+  const arch = process.argv.find((a) => a.startsWith("--archetypes="))?.slice(13)?.split(",").filter(Boolean);
+  const noCap = process.argv.includes("--no-capture");
+  void runContrastRender478({
+    short,
+    outJson: out,
+    capture: noCap ? false : !short,
+    fixtures: fx,
+    archetypes: arch,
+  }).then(({ fails }) => {
     const md = summarizeFails(fails);
     fs.writeFileSync("review/478-contrast-summary.md", md);
     console.log(md);
