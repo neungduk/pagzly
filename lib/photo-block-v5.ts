@@ -53,7 +53,7 @@ export function photoBlockBand(
     `<div data-pz-pb="band" style="margin:0 -24px">` +
     `<div style="position:relative">${frame(im, alt, ar, pos, p.tints[1])}` +
     `<div data-pz-scrim aria-hidden="true" style="position:absolute;left:0;right:0;bottom:0;height:42%;pointer-events:none;background:linear-gradient(0deg,rgba(10,10,10,.82),transparent)"></div>` +
-    `<div style="position:absolute;left:24px;right:24px;bottom:22px;z-index:2;color:#fff">${chrome}<div style="color:#fff">${titleHtml}</div>${bodyHtml}</div>` +
+    `<div style="position:absolute;left:24px;right:24px;bottom:22px;z-index:2;color:#fff;--pz-on-surface:#FAF8F3">${chrome}<div style="color:#fff">${titleHtml}</div>${bodyHtml}</div>` +
     `</div></div>`
   );
 }
@@ -73,7 +73,7 @@ export function photoBlockScrim(
     `<div data-pz-pb="scrim" style="margin:0 -24px;position:relative">` +
     frame(im, alt, ar, pos, p.tints[1]) +
     `<div data-pz-scrim aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(0deg,rgba(10,10,10,.75),rgba(10,10,10,.25) 50%,transparent)"></div>` +
-    `<div style="position:absolute;left:24px;right:24px;bottom:28px;z-index:2;color:#fff">${chrome}${titleHtml}${bodyHtml}</div></div>`
+    `<div style="position:absolute;left:24px;right:24px;bottom:28px;z-index:2;color:#fff;--pz-on-surface:#FAF8F3">${chrome}${titleHtml}${bodyHtml}</div></div>`
   );
 }
 

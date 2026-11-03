@@ -47,7 +47,8 @@ const SHIFT_CANDIDATES: Partial<Record<ArchetypeId, number[]>> = {
   pop: [240, 220, 255, 200, 270, 150],
 };
 
-function ensureInk(fg: string, bg: string): string {
+/** 478 B — 면 위 글자색 단일 결정(제목/본문/라벨/번호/링크/배지 공통) */
+export function ensureInk(fg: string, bg: string): string {
   if (contrastRatioToken(fg, bg) >= 4.5) return fg;
   const light = "#FAF8F3";
   const dark = "#0A0A0A";
@@ -64,6 +65,11 @@ function ensureInk(fg: string, bg: string): string {
     }
   }
   return best;
+}
+
+/** 면 명도 기준 — 어두운 면이면 밝은 글자 후보를 우선 */
+export function inkOnSurface(surface: string, preferLight: boolean): string {
+  return ensureInk(preferLight ? "#FAF8F3" : "#1B1B18", surface);
 }
 
 function vividPoint(accent: string, shift: number): string {
@@ -142,7 +148,8 @@ export function colorRolesV5(id: ArchetypeId, productAccent: string, paper = "#F
     pointOut = hueShift(productAccent, r.pointShift + 90);
     if (hueBin(pointOut) === hueBin(surface)) pointOut = vividPoint(productAccent, r.pointShift + 120);
   }
-  const ink = ensureInk(r.dark ? "#FAF8F3" : "#1B1B18", surface);
+  // 478 B — 면과 글자색을 같은 경로에서 확정(밝은 면=잉크, 어두운 면=밝은 글자)
+  const ink = inkOnSurface(surface, r.dark || contrastRatioToken("#1B1B18", surface) < 4.5);
   return {
     surface,
     surfaceAlt,
@@ -154,12 +161,37 @@ export function colorRolesV5(id: ArchetypeId, productAccent: string, paper = "#F
 }
 
 export function colorRolesStyleAttr(roles: ColorRolesV5): string {
-  return `--pz-s:${roles.surface};--pz-a:${roles.surfaceAlt};--pz-i:${roles.ink};--pz-p:${roles.point}`;
+  // 478 B — 면/글자 쌍 변수(--pz-s/--pz-i 별칭 유지)
+  return `--pz-s:${roles.surface};--pz-a:${roles.surfaceAlt};--pz-i:${roles.ink};--pz-p:${roles.point};--pz-surface:${roles.surface};--pz-on-surface:${roles.ink}`;
+}
+
+/** 인라인 color를 덮어 실제 면 위 글자로 통일. 밝은 섬·명시 밝은 글자·사진 스크림 예외 */
+function onSurfaceCss(s: string): string {
+  const text = ":is(p,h1,h2,h3,h4,li,td,th,label,a,span,strong,em,b,small)";
+  return (
+    `${s}{background:var(--pz-s);color:var(--pz-i);--pz-surface:var(--pz-s);--pz-on-surface:var(--pz-i)}` +
+    `${s} section[data-pz-face],${s} [data-info]{background:var(--pz-surface)!important;color:var(--pz-on-surface)!important}` +
+    `${s} section[data-pz-face][data-pz-ax$=".5"],${s} [data-info=stat],${s} [data-info=points]{background:var(--pz-a)!important}` +
+    `${s} section[data-pz-face] ${text},${s} [data-info] ${text}{color:var(--pz-on-surface)!important}` +
+    // 밝은 섬(흰/크림 카드·hl-0)
+    `${s} [data-pz-hl-c="0"],${s} [data-pz-on-light]{--pz-on-surface:#1B1B18;color:#1B1B18!important;background:#FAF8F3!important}` +
+    `${s} [data-pz-hl-c="0"] ${text},${s} [data-pz-on-light] ${text}{color:#1B1B18!important}` +
+    `${s} [style*="background:#FFF"]{--pz-on-surface:#1B1B18}${s} [style*="background:#fff"]{--pz-on-surface:#1B1B18}` +
+    `${s} [style*="background:#FFFFFF"]{--pz-on-surface:#1B1B18}${s} [style*="background:#ffffff"]{--pz-on-surface:#1B1B18}` +
+    `${s} [style*="background:#FAF8F3"]{--pz-on-surface:#1B1B18}${s} [style*="background:#FAF7F1"]{--pz-on-surface:#1B1B18}` +
+    `${s} [style*="background:#FFF"] ${text},${s} [style*="background:#fff"] ${text},${s} [style*="background:#FFFFFF"] ${text},${s} [style*="background:#ffffff"] ${text},${s} [style*="background:#FAF8F3"] ${text},${s} [style*="background:#FAF7F1"] ${text}{color:#1B1B18!important}` +
+    // 사진 스크림 위 = 항상 밝은 글자
+    `${s} [data-pz-pb="band"] [style*="z-index:2"],${s} [data-pz-pb="scrim"] [style*="z-index:2"]{--pz-on-surface:#FAF8F3;color:#FAF8F3!important}` +
+    `${s} [data-pz-pb="band"] [style*="z-index:2"] ${text},${s} [data-pz-pb="scrim"] [style*="z-index:2"] ${text}{color:#FAF8F3!important}` +
+    // 명시 밝은 글자(뱃지 등) 유지
+    `${s} [style*="color:#FFF"],${s} [style*="color:#fff"],${s} [style*="color:#FFFFFF"],${s} [style*="color:#ffffff"],${s} [style*="color:#FAF8F3"],${s} [style*="color:#faf8f3"]{color:#FAF8F3!important}`
+  );
 }
 
 /**
  * 실제 면 칠하기 — `data-pz-face` 섹션·래퍼만(가격·고지 제외는 표식 단계에서).
  * 476 B: repeating-linear-gradient 질감 제거(단색·테두리만).
+ * 478 B: 면+글자 CSS 변수 쌍으로 인라인 ink 잔존 제거.
  */
 export function colorRolesCssV5(scope: string, id: ArchetypeId): string {
   const s = `${scope}[data-pz-bsig=${id}]`;
@@ -170,13 +202,7 @@ export function colorRolesCssV5(scope: string, id: ArchetypeId): string {
   else if (id === "catalog") extra = `${s} [data-pz-it] .pagzly-compact-row{display:grid!important;grid-template-columns:96px 1fr}`;
   else if (id === "techsheet") extra = `${s} [data-pz-face]{font-variant-numeric:tabular-nums}${s} [data-pz-hl-g]{display:grid!important;grid-template-columns:1fr 1fr}`;
   else if (id === "impact" || id === "pop" || id === "narrative") extra = `${s} [data-pz-hl-c="0"]{background:#FAF8F3!important;color:#1B1B18!important}`;
-  // 476 F 루프2 — info soft 분홍을 --pz-*로 덮음
-  return (
-    `${s}{background:var(--pz-s);color:var(--pz-i)}` +
-    `${s} section[data-pz-face],${s} [data-info]{background:var(--pz-s)!important}` +
-    `${s} section[data-pz-face][data-pz-ax$=".5"],${s} [data-info=stat],${s} [data-info=points]{background:var(--pz-a)!important}` +
-    extra
-  );
+  return onSurfaceCss(s) + extra;
 }
 
 export function hueBin(hex: string): number {

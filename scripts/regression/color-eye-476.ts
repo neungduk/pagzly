@@ -38,6 +38,7 @@ export async function run(): Promise<string[]> {
     const h = exportHtmlOf(file);
     if (!h.includes("data-pz-face=")) f.push(`${a}: data-pz-face 없음`);
     if (!h.includes("--pz-s:")) f.push(`${a}: --pz-s 없음`);
+    if (!h.includes("--pz-surface:") || !h.includes("--pz-on-surface:")) f.push(`${a}: --pz-surface/--pz-on-surface 없음`);
     htmlBins.push(dominantFaceHueBinFromHtml(h));
   }
   const maxH = maxSameFaceHueCount(htmlBins);

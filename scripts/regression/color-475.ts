@@ -35,6 +35,7 @@ export async function run(): Promise<string[]> {
     setV5ArchetypeForTests(a);
     const h = exportHtmlOf(corpus()[0]![1]);
     if (!h.includes("--pz-s:") || !h.includes("--pz-p:")) f.push(`${a}: 색 토큰 미표기`);
+    if (!h.includes("--pz-surface:") || !h.includes("--pz-on-surface:")) f.push(`${a}: 478 면/글자 쌍 미표기`);
   }
   setV5ArchetypeForTests(null);
   setDesignV5ForTests(false);
