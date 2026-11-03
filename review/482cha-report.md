@@ -36,7 +36,7 @@
 
 ## Push
 - branch: `cloud-work` → `origin/cloud-work` (main 미푸시)
-- HEAD: `15402f4f47372b04474e6c17edf1c7c383bb5a1a` (`docs(482): eye-review notes and cha report`)
+- HEAD: `86a02c9` (`docs(482): record final push hash`) — `origin/cloud-work` 동기화 확인
 
 ## 남은 문제
 - DB theme 재기록 없이는 라이브 같은 결과의 accent가 청회색으로 남을 수 있음(읽기 전용 제약).
