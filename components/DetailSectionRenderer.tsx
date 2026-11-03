@@ -7,6 +7,12 @@ import { esc } from "@/lib/type-treatments";
 import { svgSpriteV5 } from "@/lib/svg-sprite-v5";
 import { colorRolesV5, colorRolesStyleAttr, colorRolesCssV5 } from "@/lib/color-roles-v5";
 import { paletteFromTheme482 } from "@/lib/palette-from-product-482";
+import {
+  bigNumberFromCopy482,
+  calloutSourcesFromDetail482,
+  keyvisualHtml482,
+  planKeyvisual482,
+} from "@/lib/keyvisual-482";
 import { infoCssV5 } from "@/lib/info-v5";
 import StickyBuyBar from "@/components/StickyBuyBar";
 import { COMPOSITION_V2_ENABLED } from "@/lib/detail-story-order";
@@ -2302,6 +2308,36 @@ function renderSection(
       const imgAlt = buildSectionImageAlt(productName ?? category, section.headline, "hero");
       // 437차 — 첫 화면 히어로 재설계(제품명 대형·사진 지배·배지·해시태그). 편집 모드·계획 없음은 기존 히어로. 마크업은 export와 같은 lib/hero-spec 한 벌
       if (section.v2 && !edit?.enabled) {
+        if (designV5On() && v5Id) {
+          const pal = paletteFromTheme482(theme);
+          const kv = planKeyvisual482({
+            archetype: v5Id,
+            imageUrl: section.v2.imageUrl || src || "",
+            alt: imgAlt,
+            palette: pal,
+            slot: "hero",
+            calloutSources: calloutSourcesFromDetail482([], keyFeatures),
+            bigNumber: bigNumberFromCopy482([section.badge, section.subheadline, keyFeatures]),
+            photoKind: section.v2.photoKind,
+            whiteBg: section.v2.whiteBg,
+            role: "hero",
+          });
+          if (kv) {
+            const escT = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const html =
+              keyvisualHtml482(kv) +
+              `<div style="padding:18px 20px 28px;text-align:center"><h1 class="pagzly-display-headline" style="margin:0;color:#1B1B18;font-weight:800;line-height:1.15">${escT(section.headline)}</h1>${section.subheadline ? `<p style="margin:10px auto 0;max-width:36rem;color:rgba(27,27,24,.78)">${escT(section.subheadline)}</p>` : ""}</div>`;
+            return (
+              <div
+                key={`hero-kv-${index}`}
+                data-hero-v2-wrap
+                data-hero-v2="KV"
+                data-pz-kv482={kv.recipe}
+                dangerouslySetInnerHTML={{ __html: html }}
+              />
+            );
+          }
+        }
         return <div key={`hero-v2-${index}`} data-hero-v2-wrap dangerouslySetInnerHTML={{ __html: heroV2Html(section, section.v2, heroPalette(theme, category), imgAlt) }} />;
       }
       const brandMark = resolveHeroBrandMark({
@@ -6464,6 +6500,35 @@ export default function DetailSectionRenderer({
               {quickFacts.length > 0 ? (
                 <SpecBentoGrid facts={quickFacts} theme={getSectionTheme(extendedTheme, "checklist", 0)} />
               ) : null}
+              {designV5On() && display.v5
+                ? (() => {
+                    const heroSec = sections.find((s) => s.type === "hero");
+                    const url =
+                      (heroSec && heroSec.type === "hero" && heroSec.v2?.imageUrl) ||
+                      (heroSec && heroSec.type === "hero"
+                        ? resolveImage(imageUrls, heroSec.imageIndex)
+                        : imageUrls[0]) ||
+                      "";
+                    const sumKv = planKeyvisual482({
+                      archetype: display.v5.id,
+                      imageUrl: url,
+                      alt: productName ?? "",
+                      palette: paletteFromTheme482(baseTheme),
+                      slot: "summary",
+                      calloutSources: calloutSourcesFromDetail482(sections, keyFeatures),
+                      bigNumber: bigNumberFromCopy482([keyFeatures]),
+                      photoKind: heroSec && heroSec.type === "hero" ? heroSec.v2?.photoKind : "product",
+                      whiteBg: heroSec && heroSec.type === "hero" ? heroSec.v2?.whiteBg : true,
+                      role: "package",
+                    });
+                    return sumKv ? (
+                      <div
+                        key="kv482-summary"
+                        dangerouslySetInnerHTML={{ __html: keyvisualHtml482(sumKv) }}
+                      />
+                    ) : null;
+                  })()
+                : null}
               {sectionAnchors.length > 0 ? <SectionAnchorNav anchors={sectionAnchors} theme={baseTheme} afterHero variant={packLayout.anchor} /> : null}
               {content}
               {trustChips.length > 0 && stripAfterContent ? trustStripEl : null}

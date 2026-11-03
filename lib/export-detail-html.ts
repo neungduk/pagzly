@@ -203,6 +203,12 @@ import { impactAlt, impactHtml, impactPalette } from "@/lib/impact-templates";
 import { DESIGN_V3_FONTS_ENABLED, fontLinkHrefs, fontOrigin, fontPairCss, fontPreloadHrefs, pickFontPair } from "@/lib/font-pairs";
 import { typeSystemFontHrefs } from "@/lib/type-system-v5";
 import { paletteFromTheme482, type ProductPalette482 } from "@/lib/palette-from-product-482";
+import {
+  bigNumberFromCopy482,
+  calloutSourcesFromDetail482,
+  keyvisualHtml482,
+  planKeyvisual482,
+} from "@/lib/keyvisual-482";
 import { DESIGN_V3_COLOR_ENABLED, extendThemeFor, paletteInfoCss } from "@/lib/palette-harmony";
 import { dividerCss, dividerStyleFor } from "@/lib/section-dividers";
 import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
@@ -728,6 +734,9 @@ function sectionHtml(
   layout: PackLayout = CLASSIC_LAYOUT,
   heroGradientStrength?: number,
   v5Id?: ArchetypeId | null,
+  /** 482 — 키비주얼 말풍선 후보(기존 문구) */
+  kvSources?: string[],
+  productPalette?: ProductPalette482 | null,
 ): string {
   const sectionIdAttr = anchorId ? ` id="${anchorId}"` : "";
   const pad = "padding:var(--pz-pad-y,48px) var(--pz-pad-x,20px);";
@@ -760,7 +769,29 @@ function sectionHtml(
       const src = resolveExportImage(imageUrls, section.imageIndex);
       const alt = buildSectionImageAlt(productName, section.headline, "hero");
       // 437차 — 라이브와 같은 첫 화면 히어로(lib/hero-spec 한 벌)
-      if (section.v2) return heroV2Html(section, section.v2, heroPalette(baseTheme, category), alt);
+      if (section.v2) {
+        const heroBase = heroV2Html(section, section.v2, heroPalette(baseTheme, category), alt);
+        // 482 B — V5 키비주얼(컷아웃/제품 단독컷만). 불가하면 현행 히어로 유지.
+        if (designV5On() && v5Id) {
+          const pal = productPalette ?? paletteFromTheme482(baseTheme);
+          const kv = planKeyvisual482({
+            archetype: v5Id,
+            imageUrl: section.v2.imageUrl || src,
+            alt,
+            palette: pal,
+            slot: "hero",
+            calloutSources: kvSources ?? [],
+            bigNumber: bigNumberFromCopy482([section.badge, section.subheadline, ...(kvSources ?? [])]),
+            photoKind: section.v2.photoKind,
+            whiteBg: section.v2.whiteBg,
+            role: "hero",
+          });
+          if (kv) {
+            return `<section${sectionIdAttr} class="hero pagzly-hero" data-hero-v2="KV" data-pz-kv482="${kv.recipe}" style="position:relative;width:100%;box-sizing:border-box;overflow:hidden;border-radius:0 0 24px 24px;background:${esc(pal.secondary)}">${keyvisualHtml482(kv)}<div style="padding:18px 20px 28px;text-align:center"><h1 class="pagzly-display-headline" style="margin:0;color:#1B1B18;font-weight:800;line-height:1.15">${esc(section.headline)}</h1>${section.subheadline ? `<p style="margin:10px auto 0;max-width:36rem;color:rgba(27,27,24,.78)">${esc(section.subheadline)}</p>` : ""}</div></section>`;
+          }
+        }
+        return heroBase;
+      }
       const brandMarkHtml = buildHeroBrandMarkHtml({
         logoUrl,
         brandName,
@@ -2287,6 +2318,8 @@ export function buildDetailPageHtml(opts: {
 
   const certTokens = parseCertificationTokens(opts.certifications);
   const quickFacts = extractQuickFacts(visibleSections, trustChips);
+  const kvSources482 = calloutSourcesFromDetail482(visibleSections, opts.keyFeatures);
+  const productPalette482 = opts.productPalette ?? paletteFromTheme482(opts.theme);
   const sectionAnchors = buildSectionAnchors(visibleSections);
   const anchorIdMap = buildSectionAnchorIdMap(visibleSections);
   const anchorNavHtml = buildAnchorNavHtml(sectionAnchors, opts.theme, visibleSections.some((s) => s.type === "hero"), getPackLayout(pack).anchor);
@@ -2381,6 +2414,8 @@ export function buildDetailPageHtml(opts: {
         archetypeHeroLayout(beautyInfoLayout(getPackLayout(pack), opts.category), displayRes.archetype?.hero),
         classicFashionHeroStrength(opts.category, pack, opts.imageRoles),
         displayRes.v5?.id ?? null,
+        kvSources482,
+        productPalette482,
       );
     }
     if (html) {
@@ -2444,6 +2479,28 @@ export function buildDetailPageHtml(opts: {
           else heroFollowParts.push(stripHtml);
         }
         if (bentoHtml) heroFollowParts.push(bentoHtml);
+        // 482 B — 요약 키비주얼 1장(히어로 직후). 가격·고지·접점 위치 불변.
+        if (designV5On() && displayRes.v5) {
+          const heroSec = section.type === "hero" ? section : null;
+          const sumUrl =
+            (heroSec && "v2" in heroSec && heroSec.v2?.imageUrl) ||
+            resolveExportImage(opts.imageUrls, heroSec && "imageIndex" in heroSec ? heroSec.imageIndex : 0) ||
+            opts.imageUrls[0] ||
+            "";
+          const sumKv = planKeyvisual482({
+            archetype: displayRes.v5.id,
+            imageUrl: sumUrl,
+            alt: opts.productName,
+            palette: productPalette482,
+            slot: "summary",
+            calloutSources: kvSources482,
+            bigNumber: bigNumberFromCopy482(kvSources482),
+            photoKind: heroSec && "v2" in heroSec ? heroSec.v2?.photoKind : "product",
+            whiteBg: heroSec && "v2" in heroSec ? heroSec.v2?.whiteBg : true,
+            role: "package",
+          });
+          if (sumKv) heroFollowParts.push(keyvisualHtml482(sumKv));
+        }
         // 236차 — 라이브 hero-follow 북엔드 대각선 클립(trust+bento). 다음 섹션 본문까지
         // 같은 wrapper에 넣는 완전 동일 구조는 루프 회귀 위험으로 이번엔 제외.
         if (heroFollowParts.length > 0) {
