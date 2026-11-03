@@ -56,10 +56,16 @@
     "lifestyle",
     "lifestyle"
   ],
-  "theme": {
+  "themeDb481": {
     "accent": "#20547E",
     "deepAccent": "#183F5F",
     "baseNeutral": "#A7BED0"
+  },
+  "theme": {
+    "accent": "#AA933F",
+    "deepAccent": "#806E2F",
+    "baseNeutral": "#D0C7A8",
+    "accentSoft": "#FAF9F3"
   },
   "infoBackdrops": {
     "points": "https://img.pagzly.com/a2637511-139a-4e00-aa6b-2cc423ca440d/section-backdrops/1793689848179-info-points.png",
@@ -476,9 +482,10 @@
       "https://img.pagzly.com/a2637511-139a-4e00-aa6b-2cc423ca440d/1793689596659-56d27696-e74f-4492-9fd0-7f26a69936be-enhanced-fx-cooling.png"
     ],
     "theme": {
-      "accent": "#20547E",
-      "deepAccent": "#183F5F",
-      "baseNeutral": "#A7BED0"
+      "accent": "#AA933F",
+      "deepAccent": "#806E2F",
+      "baseNeutral": "#D0C7A8",
+      "accentSoft": "#FAF9F3"
     },
     "imageRoles": [
       "hero",

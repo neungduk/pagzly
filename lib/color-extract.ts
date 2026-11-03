@@ -9,13 +9,21 @@ import type { CategoryTheme } from "@/lib/category-theme";
 
 export type ExtractedTheme = Omit<CategoryTheme, "icon">;
 
-export type HueBucketEntry = { weight: number; hueWeightedSum: number };
+export type HueBucketEntry = {
+  weight: number;
+  hueWeightedSum: number;
+  /** 482: 버킷 평균 채도(스튜디오 면 vs 내용물 구분) */
+  satSum: number;
+  satCount: number;
+};
 export type HueBucketMap = Map<number, HueBucketEntry>;
 
 const SAMPLE_SIZE = 48;
 // 상세페이지용 사진은 배경(스튜디오 백드롭)이 넓게 깔리고 상품은 중앙에
 // 놓이는 경우가 많아, 중앙 영역만 크롭해서 배경보다 상품 색을 우선시한다.
 const CENTER_CROP_RATIO = 0.6;
+/** 482: K=3 후보 중 주조 선정 시 최소 상대 가중(리더 대비) */
+const CLUSTER_CONTENDER_RATIO = 0.22;
 
 function rgbToHsl(r: number, g: number, b: number) {
   const rn = r / 255;
@@ -95,15 +103,20 @@ async function sampleImage(imageUrl: string): Promise<ImageSample> {
   const meta = await image.metadata();
   if (!meta.width || !meta.height) return { hueBuckets: new Map(), neutral: null };
 
-  const cropW = Math.max(1, Math.round(meta.width * CENTER_CROP_RATIO));
-  const cropH = Math.max(1, Math.round(meta.height * CENTER_CROP_RATIO));
-  const left = Math.round((meta.width - cropW) / 2);
-  const top = Math.round((meta.height - cropH) / 2);
+  const hasAlpha = meta.hasAlpha === true;
+  // 482: 컷아웃(알파)이 있으면 전체 프레임에서 불투명 픽셀만 — 없으면 중앙 60%
+  let pipeline = image.clone();
+  if (!hasAlpha) {
+    const cropW = Math.max(1, Math.round(meta.width * CENTER_CROP_RATIO));
+    const cropH = Math.max(1, Math.round(meta.height * CENTER_CROP_RATIO));
+    const left = Math.round((meta.width - cropW) / 2);
+    const top = Math.round((meta.height - cropH) / 2);
+    pipeline = pipeline.extract({ left, top, width: cropW, height: cropH });
+  }
 
-  const { data, info } = await image
-    .extract({ left, top, width: cropW, height: cropH })
+  const { data, info } = await pipeline
     .resize(SAMPLE_SIZE, SAMPLE_SIZE, { fit: "fill" })
-    .removeAlpha()
+    .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
 
@@ -114,14 +127,20 @@ async function sampleImage(imageUrl: string): Promise<ImageSample> {
   let lightNeutral = { r: 0, g: 0, b: 0, count: 0 };
   // 위 조건에 맞는 픽셀이 없을 때 쓰는 폭넓은 무채색 폴백.
   let anyNeutral = { r: 0, g: 0, b: 0, count: 0 };
+  let chromaWeight = 0;
+  let neutralPix = 0;
 
   for (let i = 0; i < data.length; i += channels) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
+    const r = data[i]!;
+    const g = data[i + 1]!;
+    const b = data[i + 2]!;
+    const a = channels >= 4 ? data[i + 3]! : 255;
+    // 482: 컷아웃 — 반투명·투명은 배경으로 보고 제외
+    if (a < 200) continue;
     const { h, s, l } = rgbToHsl(r, g, b);
 
     if (s < 0.18) {
+      neutralPix += 1;
       if (l >= 0.05 && l <= 0.97) {
         anyNeutral = {
           r: anyNeutral.r + r,
@@ -145,10 +164,24 @@ async function sampleImage(imageUrl: string): Promise<ImageSample> {
     if (l > 0.93 || l < 0.07) continue;
 
     const bucketKey = Math.round(h / 15) * 15;
-    const entry = buckets.get(bucketKey) ?? { weight: 0, hueWeightedSum: 0 };
-    entry.weight += s;
-    entry.hueWeightedSum += h * s;
+    const entry = buckets.get(bucketKey) ?? { weight: 0, hueWeightedSum: 0, satSum: 0, satCount: 0 };
+    // 482: 채도² 가중 — 작은 면적의 내용물·라벨 색이 배경 파스텔에 밀리지 않게
+    const w = s * s;
+    entry.weight += w;
+    entry.hueWeightedSum += h * w;
+    entry.satSum += s;
+    entry.satCount += 1;
+    chromaWeight += w;
     buckets.set(bucketKey, entry);
+  }
+
+  // 482: 무채 병이 지배적이면 유채 버킷을 한 번 더 부스트(내용물·라벨 우선)
+  if (neutralPix > 0 && chromaWeight > 0 && neutralPix >= SAMPLE_SIZE * SAMPLE_SIZE * 0.45) {
+    for (const entry of buckets.values()) {
+      entry.weight *= 3;
+      entry.hueWeightedSum *= 3;
+      // satSum/satCount는 평균 채도 유지(가중만 키움)
+    }
   }
 
   const neutral = lightNeutral.count > 0 ? lightNeutral : anyNeutral.count > 0 ? anyNeutral : null;
@@ -156,27 +189,62 @@ async function sampleImage(imageUrl: string): Promise<ImageSample> {
   return { hueBuckets: buckets, neutral };
 }
 
-/** 여러 사진의 hue 버킷을 합산해 가장 누적 가중치가 큰 색상대를 반환한다. */
-export function mergeHueBuckets(bucketMaps: HueBucketMap[]): { h: number; weight: number } | null {
-  const merged: HueBucketMap = new Map();
+export type HueCluster482 = { h: number; weight: number; meanSat: number };
 
+function emptyBucket(): HueBucketEntry {
+  return { weight: 0, hueWeightedSum: 0, satSum: 0, satCount: 0 };
+}
+
+/** 여러 사진 hue 버킷 합산 */
+export function mergeHueBucketMaps(bucketMaps: HueBucketMap[]): HueBucketMap {
+  const merged: HueBucketMap = new Map();
   for (const buckets of bucketMaps) {
     for (const [key, entry] of buckets) {
-      const existing = merged.get(key) ?? { weight: 0, hueWeightedSum: 0 };
+      const existing = merged.get(key) ?? emptyBucket();
       existing.weight += entry.weight;
       existing.hueWeightedSum += entry.hueWeightedSum;
+      existing.satSum += entry.satSum;
+      existing.satCount += entry.satCount;
       merged.set(key, existing);
     }
   }
+  return merged;
+}
 
-  let best: { h: number; weight: number } | null = null;
-  for (const entry of merged.values()) {
-    if (!best || entry.weight > best.weight) {
-      best = { h: entry.hueWeightedSum / entry.weight, weight: entry.weight };
-    }
+/** 482: 상위 K 군집 — 면적(가중)뿐 아니라 평균 채도로 내용물 색을 살림 */
+export function topHueClusters(merged: HueBucketMap, k = 3): HueCluster482[] {
+  return [...merged.values()]
+    .filter((e) => e.weight > 0 && e.satCount > 0)
+    .map((e) => ({
+      h: e.hueWeightedSum / e.weight,
+      weight: e.weight,
+      meanSat: e.satSum / e.satCount,
+    }))
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, k);
+}
+
+/**
+ * 482: K 군집에서 상품 주조 hue 선정.
+ * 스튜디오 연청처럼 넓고 채도 중간인 면보다, 가중 ≥22%이면서 채도가 높은 내용물·라벨을 우선.
+ */
+export function pickProductHueCluster(clusters: HueCluster482[]): HueCluster482 | null {
+  if (!clusters.length) return null;
+  const leader = clusters[0]!;
+  const contenders = clusters.filter((c) => c.weight >= leader.weight * CLUSTER_CONTENDER_RATIO);
+  let best = leader;
+  for (const c of contenders) {
+    if (c.meanSat > best.meanSat + 0.04) best = c;
+    else if (Math.abs(c.meanSat - best.meanSat) <= 0.04 && c.weight > best.weight) best = c;
   }
-
   return best;
+}
+
+/** 여러 사진의 hue 버킷을 합산해 상품 주조 색상대를 반환한다. */
+export function mergeHueBuckets(bucketMaps: HueBucketMap[]): { h: number; weight: number } | null {
+  const merged = mergeHueBucketMaps(bucketMaps);
+  const picked = pickProductHueCluster(topHueClusters(merged, 3));
+  return picked ? { h: picked.h, weight: picked.weight } : null;
 }
 
 type SlPair = { s: number; l: number };
@@ -516,4 +584,27 @@ export async function extractProductTheme(imageUrls: string[]): Promise<Extracte
     );
   }
   return theme;
+}
+
+/** 482 — 테마 + 상위 hue 군집으로 ProductPalette482 (동기 폴백은 paletteFromTheme482) */
+export async function extractProductPaletteClusters(
+  imageUrls: string[],
+): Promise<{ theme: ExtractedTheme; clusters: HueCluster482[]; primary: HueCluster482 } | null> {
+  const samples = await Promise.all(imageUrls.slice(0, 3).map((url) => sampleImage(url).catch(() => null)));
+  const valid = samples.filter((s): s is ImageSample => s !== null);
+  const merged = mergeHueBucketMaps(valid.map((s) => s.hueBuckets));
+  const clusters = topHueClusters(merged, 3);
+  const primary = pickProductHueCluster(clusters);
+  if (!primary) return null;
+  const neutralTotal = { r: 0, g: 0, b: 0, count: 0 };
+  for (const s of valid) {
+    if (s.neutral) {
+      neutralTotal.r += s.neutral.r;
+      neutralTotal.g += s.neutral.g;
+      neutralTotal.b += s.neutral.b;
+      neutralTotal.count += s.neutral.count;
+    }
+  }
+  const theme = buildThemeFromHue(primary.h, neutralTotal);
+  return { theme, clusters, primary };
 }

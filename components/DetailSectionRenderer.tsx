@@ -6,6 +6,7 @@ import { highlightFamilyMode, highlightFamilyInnerHtml } from "@/lib/highlight-f
 import { esc } from "@/lib/type-treatments";
 import { svgSpriteV5 } from "@/lib/svg-sprite-v5";
 import { colorRolesV5, colorRolesStyleAttr, colorRolesCssV5 } from "@/lib/color-roles-v5";
+import { paletteFromTheme482 } from "@/lib/palette-from-product-482";
 import { infoCssV5 } from "@/lib/info-v5";
 import StickyBuyBar from "@/components/StickyBuyBar";
 import { COMPOSITION_V2_ENABLED } from "@/lib/detail-story-order";
@@ -6271,7 +6272,14 @@ export default function DetailSectionRenderer({
           ...packRootStyle(category, pack, v2Typo, v2TitleOnly),
           ...(display.v5
             ? Object.fromEntries(
-                colorRolesStyleAttr(colorRolesV5(display.v5.id, baseTheme.accent || BRAND.ink))
+                colorRolesStyleAttr(
+                  colorRolesV5(
+                    display.v5.id,
+                    baseTheme.accent || BRAND.ink,
+                    "#FAF8F3",
+                    paletteFromTheme482(baseTheme),
+                  ),
+                )
                   .split(";")
                   .filter(Boolean)
                   .map((kv) => {
@@ -6307,7 +6315,7 @@ export default function DetailSectionRenderer({
         <style>{packStructureCss(packLayout, "[data-pz-pack]", "live") + infoCss(packLayout.info, "[data-pz-pack]", infoColorsOf(baseTheme), infoBackdrops, { demote: v2Plan?.demoted })}</style>
       )}
       {v2Css ? <style>{v2Css}</style> : null}
-      {DESIGN_V4_ENABLED ? <style>{typeFloorCss("[data-pz-typefloor]") + headingSystemCss("[data-pz-typefloor]", "live") + topPadCssV4((px) => `[data-pz-typefloor] [data-pz-top="${px}"] > section`) + bottomPadCssV4((px) => `[data-pz-typefloor] [data-pz-bot="${px}"] > section`) + mutedFloorCssLive("[data-pz-typefloor]") + typoCssLive("[data-pz-typefloor]") + (display.v5 ? "" : noPhotoCss("[data-pz-typefloor]", baseTheme.deepAccent)) + (display.v5 ? archetypeCssV5("[data-pz-typefloor]", "live", ARCHETYPES[display.v5.id], baseTheme.accent || BRAND.ink) + infoCssV5("[data-pz-typefloor]", ARCHETYPES[display.v5.id], infoColorsOf(baseTheme), infoBackdrops) + colorRolesCssV5("[data-pz-typefloor]", display.v5.id) : "")}</style> : null}
+      {DESIGN_V4_ENABLED ? <style>{typeFloorCss("[data-pz-typefloor]") + headingSystemCss("[data-pz-typefloor]", "live") + topPadCssV4((px) => `[data-pz-typefloor] [data-pz-top="${px}"] > section`) + bottomPadCssV4((px) => `[data-pz-typefloor] [data-pz-bot="${px}"] > section`) + mutedFloorCssLive("[data-pz-typefloor]") + typoCssLive("[data-pz-typefloor]") + (display.v5 ? "" : noPhotoCss("[data-pz-typefloor]", baseTheme.deepAccent)) + (display.v5 ? archetypeCssV5("[data-pz-typefloor]", "live", ARCHETYPES[display.v5.id], paletteFromTheme482(baseTheme).primary || baseTheme.accent || BRAND.ink) + infoCssV5("[data-pz-typefloor]", ARCHETYPES[display.v5.id], infoColorsOf(baseTheme), infoBackdrops) + colorRolesCssV5("[data-pz-typefloor]", display.v5.id) : "")}</style> : null}
       {DESIGN_V3_COLOR_ENABLED && v2On ? <style>{paletteInfoCss("[data-pz-v2]", extendedTheme, packLayout.info)}</style> : null}
       {DESIGN_V3_COLOR_ENABLED && !edit?.enabled ? <style>{dividerCss({ scope: "[data-pz-v2]", mode: "live", sections, ext: extendedTheme, category, info: packLayout.info })}</style> : null}
       {sectionAnchors.length > 0 && !anchorNavAfterHero ? (

@@ -202,6 +202,7 @@ import { buildPriceStrip, priceStripHtml } from "@/lib/price-strip";
 import { impactAlt, impactHtml, impactPalette } from "@/lib/impact-templates";
 import { DESIGN_V3_FONTS_ENABLED, fontLinkHrefs, fontOrigin, fontPairCss, fontPreloadHrefs, pickFontPair } from "@/lib/font-pairs";
 import { typeSystemFontHrefs } from "@/lib/type-system-v5";
+import { paletteFromTheme482, type ProductPalette482 } from "@/lib/palette-from-product-482";
 import { DESIGN_V3_COLOR_ENABLED, extendThemeFor, paletteInfoCss } from "@/lib/palette-harmony";
 import { dividerCss, dividerStyleFor } from "@/lib/section-dividers";
 import { emphasisMarkerGradient, splitBodyEmphasis, storyParagraphs } from "@/lib/body-emphasis";
@@ -2242,6 +2243,8 @@ export function buildDetailPageHtml(opts: {
   hasSizeInfo?: boolean;
   /** 424차 — 숫자 주장 게이트용 입력 사실(라이브 claimFacts와 같은 값) */
   claimFacts?: import("@/lib/numeric-claim-gate").ClaimFacts;
+  /** 482차 — 상품 3+1 팔레트(없으면 theme에서 유도) */
+  productPalette?: ProductPalette482 | null;
 }): string {
   const pack = resolveStylePack(opts.category, opts.stylePackId);
   // 408차 — 팩 색 톤: hue는 세션 theme 그대로, 채도·밝기 곡선만 교체(기본 팩은 같은 객체)
@@ -2553,7 +2556,7 @@ ${NO_PHOTO_EXPORT_SCRIPT}` : ""}
   ${DESIGN_V3_COLOR_ENABLED && designV2On(opts.category) ? paletteInfoCss(".pagzly-wrap", extended, v2Layout.info) : ""}
   ${DESIGN_V3_COLOR_ENABLED ? dividerCss({ scope: ".pagzly-wrap", mode: "export", sections: visibleSections, ext: extended, category: opts.category, info: v2Layout.info }) : ""}
   ${v3Pair ? fontPairCss(".pagzly-wrap", v3Pair) : ""}${DESIGN_V4_ENABLED ? `
-  ${typeFloorCss(".pagzly-wrap[data-pz-typefloor]") + headingSystemCss(".pagzly-wrap[data-pz-typefloor]", "export") + topPadCssV4((px) => `.pagzly-wrap section[data-pz-top="${px}"]`) + bottomPadCssV4((px) => `.pagzly-wrap section[data-pz-bot="${px}"]`) + mutedFloorCssExport(".pagzly-wrap[data-pz-typefloor]") + typoCssExport(".pagzly-wrap[data-pz-typefloor]") + (displayRes.v5 ? "" : noPhotoCss(".pagzly-wrap", opts.theme.deepAccent)) + (displayRes.v5 ? archetypeCssV5(".pagzly-wrap", "export", ARCHETYPES[displayRes.v5.id], opts.theme.accent || BRAND.ink) + infoCssV5(".pagzly-wrap", ARCHETYPES[displayRes.v5.id], infoColorsOf(opts.theme), opts.infoBackdrops) + colorRolesCssV5(".pagzly-wrap", displayRes.v5.id) : "")}` : ""}
+  ${typeFloorCss(".pagzly-wrap[data-pz-typefloor]") + headingSystemCss(".pagzly-wrap[data-pz-typefloor]", "export") + topPadCssV4((px) => `.pagzly-wrap section[data-pz-top="${px}"]`) + bottomPadCssV4((px) => `.pagzly-wrap section[data-pz-bot="${px}"]`) + mutedFloorCssExport(".pagzly-wrap[data-pz-typefloor]") + typoCssExport(".pagzly-wrap[data-pz-typefloor]") + (displayRes.v5 ? "" : noPhotoCss(".pagzly-wrap", opts.theme.deepAccent)) + (displayRes.v5 ? archetypeCssV5(".pagzly-wrap", "export", ARCHETYPES[displayRes.v5.id], (opts.productPalette ?? paletteFromTheme482(opts.theme)).primary || opts.theme.accent || BRAND.ink) + infoCssV5(".pagzly-wrap", ARCHETYPES[displayRes.v5.id], infoColorsOf(opts.theme), opts.infoBackdrops) + colorRolesCssV5(".pagzly-wrap", displayRes.v5.id) : "")}` : ""}
   @media (min-width:640px){.pagzly-usage{flex-direction:row!important;align-items:flex-start;gap:16px!important}.pagzly-usage-line{left:var(--pz-step-edge)!important;right:var(--pz-step-edge);bottom:auto!important;width:auto!important;height:1px}.pagzly-usage-step{flex:1;flex-direction:column;align-items:center!important;gap:12px!important;text-align:center}.pagzly-usage-step>div{flex:none!important;padding-top:0!important}.pagzly-usage-text{max-width:14rem;margin:0 auto}.pagzly-persona-pairs{grid-template-columns:repeat(2,1fr)!important}.pagzly-gallery-grid3,.pagzly-stat-grid3{grid-template-columns:repeat(3,1fr)!important}.pagzly-hl-grid{grid-template-columns:var(--pz-hl-wide)!important}.pagzly-cl-grid{grid-template-columns:var(--pz-cl-wide)!important}.pagzly-step-rows{grid-template-columns:repeat(3,1fr)!important;gap:32px!important;margin-top:48px!important}.pagzly-step-pairs{gap:32px!important}.pagzly-step-row{display:block!important}.pagzly-step-row h3{margin-top:12px!important}.pagzly-step-row .pagzly-step-tag{margin-top:12px!important}.pagzly-step-row .pagzly-step-tag+h3{margin-top:0!important}.pagzly-step-row p,.pagzly-step-pairs p{font-size:14px!important}}
   .pagzly-wrap .pz-fit{font-size:max(min(var(--pz-fs),0.6875rem),min(var(--pz-fs),calc(100cqi / var(--pz-fit-em,0.01))))!important}
   .pagzly-anchor-nav a{scroll-margin-top:52px}
@@ -2588,7 +2591,7 @@ ${NO_PHOTO_EXPORT_SCRIPT}` : ""}
 </style>
 </head>
 <body>
-<div class="pagzly-wrap"${DESIGN_V4_ENABLED ? " data-pz-typefloor" : ""}${displayRes.v5 ? ` data-pz-bsig="${displayRes.v5.id}" style="${colorRolesStyleAttr(colorRolesV5(displayRes.v5.id, opts.theme.accent || BRAND.ink))}"` : ""}>
+<div class="pagzly-wrap"${DESIGN_V4_ENABLED ? " data-pz-typefloor" : ""}${displayRes.v5 ? ` data-pz-bsig="${displayRes.v5.id}" style="${colorRolesStyleAttr(colorRolesV5(displayRes.v5.id, opts.theme.accent || BRAND.ink, "#FAF8F3", opts.productPalette ?? paletteFromTheme482(opts.theme)))}"` : ""}>
 ${displayRes.v5 ? svgSpriteV5() : ""}
 <header style="padding:14px 20px;border-bottom:1px solid #DAD5C9;font-size:${FONT_SIZE.xs};background:#FAF8F3;color:#2B2720">${esc(opts.category)} · ${esc(opts.productName)}</header>
 ${anchorNavAfterHero ? "" : anchorNavHtml}

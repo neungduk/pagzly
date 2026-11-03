@@ -6,6 +6,10 @@
 import type { ArchetypeId } from "@/lib/page-archetype-v5";
 import { hueShift } from "@/lib/hue-shift";
 import { contrastRatioToken, mixHex } from "@/lib/design-tokens";
+import {
+  clampHexToPaletteHue482,
+  type ProductPalette482,
+} from "@/lib/palette-from-product-482";
 
 export type ColorRolesV5 = {
   surface: string;
@@ -167,25 +171,45 @@ function resolveFaceShift(id: ArchetypeId, accent: string): number {
   return chosen[id] ?? r.faceShift;
 }
 
-export function colorRolesV5(id: ArchetypeId, productAccent: string, paper = "#FAF8F3"): ColorRolesV5 {
+export function colorRolesV5(
+  id: ArchetypeId,
+  productAccent: string,
+  paper = "#FAF8F3",
+  /** 482: 상품 3+1 팔레트 — 있으면 hue 이동을 주조 ±25° 안으로 제한 */
+  palette?: ProductPalette482 | null,
+): ColorRolesV5 {
+  const accent = palette?.primary ?? productAccent;
   const r = FACE[id];
-  const base = r.base ?? paper;
-  const faceShift = resolveFaceShift(id, productAccent);
+  // 482: 종이 base도 팔레트 보조색 쪽으로 살짝
+  const base = palette && (r.paper || r.neutral) ? mixHex(r.base ?? paper, palette.secondary, 0.35) : r.base ?? paper;
+  const faceShift = resolveFaceShift(id, accent);
+  // 482: 아키타입 hue shift를 ±25°로 클립한 뒤 적용
+  const cappedShift = palette ? Math.max(-25, Math.min(25, faceShift)) : faceShift;
   let surface: string;
   if (r.neutral || r.paper) {
     // 종이·무채: 상품 accent를 거의 안 섞어 bin 붕괴·분홍 일색 방지
-    surface = r.faceMix <= 0 ? base : mixHex(base, productAccent, Math.min(0.04, r.faceMix));
+    surface = r.faceMix <= 0 ? base : mixHex(base, accent, Math.min(0.04, r.faceMix));
+  } else if (palette && r.dark) {
+    surface = mixHex(palette.dark, accent, 0.12);
   } else {
-    surface = mixFace(base, productAccent, faceShift, r.faceMix, r.dark);
+    surface = mixFace(base, accent, cappedShift, r.faceMix, r.dark);
   }
-  const altAccent = hueShift(productAccent, faceShift + (r.dark ? 20 : 40));
-  const surfaceAlt = r.neutral || r.paper ? mixHex(surface, "#1B1B18", 0.05) : mixHex(surface, altAccent, r.dark ? 0.14 : 0.12);
-  const point = r.neutral ? vividPoint(productAccent, r.pointShift) : hueShift(productAccent, r.pointShift);
-  // point가 surface와 같은 bin이면 추가 이동
+  const altAccent = hueShift(accent, cappedShift + (r.dark ? 20 : 40));
+  let surfaceAlt = r.neutral || r.paper ? mixHex(surface, "#1B1B18", 0.05) : mixHex(surface, altAccent, r.dark ? 0.14 : 0.12);
+  // 482: 팔레트 있을 때만 point shift를 ±25로 — 없으면 기존(475 다양성) 유지
+  const pointShift = palette ? Math.max(-25, Math.min(25, r.pointShift)) : r.pointShift;
+  let point = r.neutral ? vividPoint(accent, pointShift) : hueShift(accent, pointShift);
+  // point가 surface와 같은 bin이면 추가 이동(팔레트 안)
   let pointOut = point;
   if (hueBin(pointOut) === hueBin(surface)) {
-    pointOut = hueShift(productAccent, r.pointShift + 90);
-    if (hueBin(pointOut) === hueBin(surface)) pointOut = vividPoint(productAccent, r.pointShift + 120);
+    const bump = palette ? Math.max(-25, Math.min(25, r.pointShift + 20)) : r.pointShift + 20;
+    pointOut = hueShift(accent, bump);
+    if (hueBin(pointOut) === hueBin(surface)) pointOut = palette?.point ?? vividPoint(accent, 15);
+  }
+  if (palette) {
+    surface = clampHexToPaletteHue482(surface, palette, 25);
+    surfaceAlt = clampHexToPaletteHue482(surfaceAlt, palette, 25);
+    pointOut = clampHexToPaletteHue482(pointOut, palette, 25);
   }
   // 478 B — 면과 글자색을 같은 경로에서 확정(밝은 면=잉크, 어두운 면=밝은 글자)
   const ink = inkOnSurface(surface, r.dark || contrastRatioToken("#1B1B18", surface) < 4.5);
