@@ -267,8 +267,9 @@ function phototextV5(s: ImpactSection, b: V4Block, p: V4Palette, alt: string, t:
   const bg = faceBg(b, p);
   const subOk = contrastRatioToken(on.sub, bg) >= 4.5 ? on.sub : contrastRatioToken("#FFFFFF", bg) >= 4.5 ? "#FFFFFF" : on.sub;
   const inkOk = contrastRatioToken(p.ink, bg) >= 4.5 ? p.ink : contrastRatioToken("#FFFFFF", bg) >= 4.5 ? "#FFFFFF" : p.ink;
-  const title = `<p style="margin:0;overflow-wrap:anywhere;${typeCss("title", inkOk, "font-size:22px")}">${headingHtml(it.title, b, p)}</p>`;
-  const titleLight = `<p style="margin:0;overflow-wrap:anywhere;font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.3;color:#fff;word-break:keep-all">${headingHtml(it.title, b, p)}</p>`;
+  // 482 C — 제목 ≥ 본문×2.2 (body~15 → 34)
+  const title = `<p data-pz-title style="margin:0;overflow-wrap:anywhere;${typeCss("title", inkOk, "font-size:34px")}">${headingHtml(it.title, b, p)}</p>`;
+  const titleLight = `<p data-pz-title style="margin:0;overflow-wrap:anywhere;font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.3;color:#fff;word-break:keep-all">${headingHtml(it.title, b, p)}</p>`;
   const bodyLight = it.body
     ? `<p style="margin:10px 0 0;font-size:15px;line-height:1.65;color:rgba(255,255,255,.88);white-space:pre-line;word-break:keep-all;overflow-wrap:anywhere">${esc(it.body)}</p>`
     : "";
@@ -277,7 +278,7 @@ function phototextV5(s: ImpactSection, b: V4Block, p: V4Palette, alt: string, t:
   // 477 E — zoom bubble: dframe만(2개 버블) — export 상한 유지
   if (b.variant === "dframe") {
     // 479 — 줌 아래 텍스트는 종이 패드 위 → 항상 어두운 글(흰 inkOk 잔존 방지)
-    const titleDark = `<p style="margin:0;overflow-wrap:anywhere;${typeCss("title", "#0A0A0A", "font-size:22px")}">${headingHtml(it.title, b, p)}</p>`;
+    const titleDark = `<p data-pz-title style="margin:0;overflow-wrap:anywhere;${typeCss("title", "#0A0A0A", "font-size:34px")}">${headingHtml(it.title, b, p)}</p>`;
     const zb = zoomBubbleHtml(it.img, alt, titleDark, bodyP(it.body, p, "#0A0A0A", 10), "#0A0A0A", p.tints[1], 2);
     if (zb) return wrap(b, p, zb, { bleed: true, pad: "28px 24px 48px" });
   }
@@ -304,7 +305,7 @@ function phototextV5(s: ImpactSection, b: V4Block, p: V4Palette, alt: string, t:
   if (b.variant !== "callout" && b.variant !== "scene" && (b.no % 3 === 1 || b.variant === "bleed" || b.variant === "stack")) {
     if (pc === "bleed") {
       const light =
-        `<p style="margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.3;color:#fff;word-break:keep-all;overflow-wrap:anywhere">${headingHtml(it.title, b, p)}</p>` +
+        `<p data-pz-title style="margin:0;font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.3;color:#fff;word-break:keep-all;overflow-wrap:anywhere">${headingHtml(it.title, b, p)}</p>` +
         (it.body ? `<p style="margin:10px 0 0;font-size:15px;line-height:1.65;color:rgba(255,255,255,.88);white-space:pre-line;word-break:keep-all;overflow-wrap:anywhere">${esc(it.body)}</p>` : "");
       return wrap(b, p, composeBleedScrim(it.img, alt, light, p), { bleed: true });
     }

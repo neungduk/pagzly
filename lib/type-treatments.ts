@@ -54,7 +54,8 @@ export function highlightKeyword(text: string, keywords: readonly string[], styl
     if (at < 0) continue;
     const span =
       style === "marker"
-        ? `<span data-pz-kw style="font-weight:900;background-image:linear-gradient(transparent 60%,${hexToRgba(color, 0.32)} 60%);box-decoration-break:clone;-webkit-box-decoration-break:clone">${esc(k)}</span>`
+        // 482: 밑줄을 글자 아래(88%+)에 두어 글리프와 겹치지 않게
+        ? `<span data-pz-kw style="font-weight:900;background-image:linear-gradient(transparent 88%,${hexToRgba(color, 0.32)} 88%);background-position:0 100%;background-size:100% 0.22em;background-repeat:no-repeat;padding-bottom:0.18em;box-decoration-break:clone;-webkit-box-decoration-break:clone">${esc(k)}</span>`
         : `<span data-pz-kw style="font-weight:900;color:${color}">${esc(k)}</span>`;
     return { html: `${esc(text.slice(0, at))}${span}${esc(text.slice(at + k.length))}`, hit: k };
   }

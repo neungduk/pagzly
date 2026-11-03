@@ -32,6 +32,7 @@ import { polishHtml } from "@/lib/polish-sections";
 import { v4Html } from "@/lib/layout-variants";
 import { V5_PARTS } from "@/lib/v5-parts";
 import { ARCHETYPES, applyArchetypeHtml, typographyV5, type ArchetypeId } from "@/lib/page-archetype-v5";
+import { simplifyBlockHtml482 } from "@/lib/block-simple-482";
 import { applyDynamicsHtml } from "@/lib/dynamics-layer-v5";
 import { PHOTO_LAYOUT_V2_ENABLED, photoLayoutHtml } from "@/lib/photo-layouts";
 import { ILLUSTRATION_V1_ENABLED, illustStyleFor, pickIllustration } from "@/lib/illustration-map";
@@ -84,7 +85,12 @@ export function impactHtml(s: ImpactSection, pal: ImpactPalette, alt: string): s
   // 466차 V5 — 제목 타이포(굵기·자간·크기 배율)는 제목 위계가 끝난 뒤
   const typed = s.ax && designV5On() && s.ax in ARCHETYPES ? typographyV5(tiered, ARCHETYPES[s.ax as ArchetypeId], { body: s.kind !== "note" && s.origin?.slot !== "shipping_info" }) : tiered;
   // 467차 V5 — 다이나믹 레이어(큰 순번·스티커·테이프·카드 변주·이음새·걸침). 계획(s.dyn)이 있을 때만
-  return s.dyn && s.ax && designV5On() && s.ax in ARCHETYPES ? applyDynamicsHtml(typed, s, ARCHETYPES[s.ax as ArchetypeId], { ink: pal.ink, accent: pal.accent, deep: pal.deep }) : typed;
+  const dyned =
+    s.dyn && s.ax && designV5On() && s.ax in ARCHETYPES
+      ? applyDynamicsHtml(typed, s, ARCHETYPES[s.ax as ArchetypeId], { ink: pal.ink, accent: pal.accent, deep: pal.deep })
+      : typed;
+  // 482 C — 사진 중심 블록 크롬 ≤3
+  return designV5On() ? simplifyBlockHtml482(dyned) : dyned;
 }
 
 function impactHtmlBase(s: ImpactSection, pal: ImpactPalette, alt: string): string {
