@@ -82,7 +82,7 @@ const PROBE = `(() => {
     if (!text) continue;
     const e = n.parentElement;
     if (!e || seen.has(e) || ['SCRIPT','STYLE','NOSCRIPT'].includes(e.tagName)) continue;
-    if (e.closest('[aria-hidden="true"],[data-pagzly-bar],nav,nextjs-portal,footer')) continue;
+    if (e.closest('[aria-hidden="true"],[data-pagzly-bar],nav,nextjs-portal,footer,header')) continue;
     const cs = getComputedStyle(e);
     if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) === 0) continue;
     if (cs.maxHeight === '0px' || cs.maxHeight === '0') continue;

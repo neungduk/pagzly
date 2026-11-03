@@ -540,7 +540,8 @@ export const V5_PARTS: V5Parts = (s, b, p, alt) => {
         const bar = `<span aria-hidden="true" style="display:block;width:64px;height:6px;margin:${ta0 === "left" ? "0 0 22px" : ta0 === "center" ? "0 auto 22px" : "0 0 22px auto"};background:${p.deep}"></span>`;
         return wrap(b, p, `${bar}<p style="margin:0;text-align:${ta0};font-size:${size}px;line-height:1.2;font-weight:${Math.max(t0.type.weight, 800)};letter-spacing:-0.03em;color:${on0.text};word-break:keep-all;overflow-wrap:anywhere;--pz-fixed:1">${headingHtml(s.text, b, p, "color")}</p>`, { minH: 640, pad: "72px 24px" });
       }
-      return b.variant === "ticker" ? wrap(b, p, tickerBand((b.items ?? []).map((i) => i.title), p, { deg: -2, repeat: 3 }), { pad: "28px 24px" }) : null;
+      // 479 — 기울이면 글자 박스가 띠 밖 밝은 면과 섞여 대비 실패 → 수평 유지
+      return b.variant === "ticker" ? wrap(b, p, tickerBand((b.items ?? []).map((i) => i.title), p, { deg: 0, repeat: 3 }), { pad: "28px 24px" }) : null;
     default: return null;
   }
 };

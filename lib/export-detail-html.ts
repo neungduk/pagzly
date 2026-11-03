@@ -5,7 +5,7 @@ import { checklistV5Mode, checklistV5ItemsInnerHtml } from "@/lib/checklist-layo
 import { highlightFamilyMode, highlightFamilyInnerHtml } from "@/lib/highlight-family-v5";
 import { familyKindOf, familyModeAttr } from "@/lib/section-family-v5";
 import { svgSpriteV5 } from "@/lib/svg-sprite-v5";
-import { colorRolesV5, colorRolesStyleAttr, colorRolesCssV5, markLightIslandsV5 } from "@/lib/color-roles-v5";
+import { colorRolesV5, colorRolesStyleAttr, colorRolesCssV5, markLightIslandsV5, markDarkIslandsV5 } from "@/lib/color-roles-v5";
 import { infoCssV5 } from "@/lib/info-v5";
 import { rhythmBreakV5 } from "@/lib/rhythm-break-v5";
 import { renderCanvasSectionHtml } from "@/lib/canvas-section-export-html";
@@ -2410,6 +2410,8 @@ export function buildDetailPageHtml(opts: {
         }
         // 478 B — 밝은 카드/틴트에 data-pz-on-light(면 강제 글자색 예외)
         marked = markLightIslandsV5(marked);
+        // 479 B — 어두운 자기 배경 판에 data-pz-on-dark(밝은 면 잉크가 묻히지 않게)
+        marked = markDarkIslandsV5(marked);
       }
       bodyParts.push(DESIGN_V3_COLOR_ENABLED && dividerStyleFor(opts.category) ? marked.replace(/^(\s*)<section/, `$1<section data-pz-i="${i}"`) : marked);
       lastRenderedSection = section;
@@ -2582,7 +2584,7 @@ ${NO_PHOTO_EXPORT_SCRIPT}` : ""}
 <body>
 <div class="pagzly-wrap"${DESIGN_V4_ENABLED ? " data-pz-typefloor" : ""}${displayRes.v5 ? ` data-pz-bsig="${displayRes.v5.id}" style="${colorRolesStyleAttr(colorRolesV5(displayRes.v5.id, opts.theme.accent || BRAND.ink))}"` : ""}>
 ${displayRes.v5 ? svgSpriteV5() : ""}
-<header style="padding:14px 20px;border-bottom:1px solid #DAD5C9;font-size:${FONT_SIZE.xs};opacity:.65">${esc(opts.category)} · ${esc(opts.productName)}</header>
+<header style="padding:14px 20px;border-bottom:1px solid #DAD5C9;font-size:${FONT_SIZE.xs};background:#FAF8F3;color:#2B2720">${esc(opts.category)} · ${esc(opts.productName)}</header>
 ${anchorNavAfterHero ? "" : anchorNavHtml}
 ${body}
 ${seoBlock}

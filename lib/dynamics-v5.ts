@@ -298,11 +298,11 @@ export function tickerBand(words: string[], p: V4Palette, o: { deg?: number; rep
         }`,
     )
     .join("");
-  // mask: 양끝 페이드. padding으로 첫 글자 잘림 방지. justify flex-start + 시작 패딩으로 정적에서도 첫 항목 완전 노출
+  // 479 — 양끝 페이드를 좁혀(12px) 글자 박스 샘플이 띠 밖으로 섞이지 않게. 어두운 띠+밝은 글자 고정.
   const mask =
-    "-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 28px,#000 calc(100% - 28px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 28px,#000 calc(100% - 28px),transparent 100%)";
+    "-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 12px,#000 calc(100% - 12px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 12px,#000 calc(100% - 12px),transparent 100%)";
   return clip(
-    `<div ${mark("tickerBand")} data-pz-ticker="1" style="margin:0;transform:rotate(${o.deg ?? -2}deg);background:${bg};color:${fg};padding:12px 0;overflow:hidden;${mask}"><div data-pz-ticker-track style="display:flex;align-items:center;gap:0;white-space:nowrap;padding:0 32px;justify-content:flex-start;box-sizing:border-box;${TITLE_FF};font-size:18px;font-weight:900;letter-spacing:0.02em;line-height:1.2">${line}</div></div>`,
+    `<div ${mark("tickerBand")} data-pz-ticker="1" data-pz-on-dark="1" style="margin:0;transform:rotate(${o.deg ?? -2}deg);background:${bg};color:#FAF8F3;padding:12px 0;overflow:hidden;${mask}"><div data-pz-ticker-track style="display:flex;align-items:center;gap:0;white-space:nowrap;padding:0 32px;justify-content:flex-start;box-sizing:border-box;${TITLE_FF};font-size:18px;font-weight:900;letter-spacing:0.02em;line-height:1.2;color:#FAF8F3">${line}</div></div>`,
     "padding:12px 0",
   );
 }

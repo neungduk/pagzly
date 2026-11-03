@@ -544,13 +544,15 @@ function v3Sticker(p: HeroV2Plan, pal: HeroPalette, place: string): string {
   const words = s.split(/\s+/);
   const half = Math.ceil(words.length / 2);
   const lines = words.length >= 2 ? [words.slice(0, half).join(" "), words.slice(half).join(" ")] : [s];
+  // 479 — 스티커 글자 뒤 불투명 원판(사진 위 대비). motif는 장식만.
   return (
-    `<span data-hero-photo ${layerAttrs("sticker")} style="position:absolute;${place};width:84px;height:84px;transform:rotate(-8deg)">${motifSvg("sticker", 84, 84, { a: bg, b: bg, c: bg })}` +
-    `<span style="position:absolute;left:0;top:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;padding:12px;text-align:center;${sans};font-size:12px;font-weight:800;line-height:1.2;color:#FFFFFF;word-break:keep-all">${lines.map(esc).join("<br/>")}</span></span>`
+    `<span data-hero-photo data-pz-on-dark="1" ${layerAttrs("sticker")} style="position:absolute;${place};width:84px;height:84px;transform:rotate(-8deg)">${motifSvg("sticker", 84, 84, { a: bg, b: bg, c: bg })}` +
+    `<span aria-hidden="true" style="position:absolute;left:6px;top:6px;right:6px;bottom:6px;border-radius:50%;background:#0A0A0A"></span>` +
+    `<span style="position:absolute;left:0;top:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;padding:12px;text-align:center;${sans};font-size:12px;font-weight:800;line-height:1.2;color:#FAF8F3;word-break:keep-all">${lines.map(esc).join("<br/>")}</span></span>`
   );
 }
 function v3Price(p: HeroV2Plan, bg: string, fg: string): string {
-  return p.v3?.price ? `<div style="margin-top:14px"><span ${layerAttrs("price")} style="display:inline-block;padding:7px 18px 7px 12px;border-radius:4px 999px 999px 4px;background:${bg};${title};font-size:18px;font-weight:900;letter-spacing:-0.01em;line-height:1.2;color:${fg};white-space:nowrap">${esc(p.v3.price)}</span></div>` : "";
+  return p.v3?.price ? `<div style="margin-top:14px"><span data-pz-chip ${layerAttrs("price")} style="display:inline-block;padding:7px 18px 7px 12px;border-radius:4px 999px 999px 4px;background:${bg};${title};font-size:18px;font-weight:900;letter-spacing:-0.01em;line-height:1.2;color:${fg};white-space:nowrap">${esc(p.v3.price)}</span></div>` : "";
 }
 
 function heroV2HtmlBase(hero: HeroSection, p: HeroV2Plan, pal: HeroPalette, alt: string): string {

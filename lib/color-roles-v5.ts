@@ -90,10 +90,23 @@ export function isLightSurface(hex: string): boolean {
  */
 export function markLightIslandsV5(html: string): string {
   return html.replace(/<(?!\/|section\b|img\b|svg\b|path\b|br\b|hr\b|source\b|meta\b|link\b)([a-zA-Z][\w-]*)(\s[^>]*?)>/g, (full, tag: string, rest: string) => {
-    if (/\bdata-pz-on-light\b/.test(rest) || /\bdata-pz-face\b/.test(rest)) return full;
+    if (/\bdata-pz-on-light\b/.test(rest) || /\bdata-pz-on-dark\b/.test(rest) || /\bdata-pz-face\b/.test(rest) || /\bdata-pz-chip\b/.test(rest)) return full;
     const m = /background:\s*(#[0-9A-Fa-f]{3,8})\b/i.exec(rest);
     if (!m?.[1] || !isLightSurface(m[1])) return full;
     return `<${tag} data-pz-on-light="1"${rest}>`;
+  });
+}
+
+/**
+ * 479 B — 자기 배경이 어두운 판(FAQ 말풍선·가격 칩·다크 카드).
+ * 면 잉크가 어두울 때(밝은 pop 면 등) 어두운 판 위 글자가 묻히지 않게 밝은 글자로 고정.
+ */
+export function markDarkIslandsV5(html: string): string {
+  return html.replace(/<(?!\/|section\b|img\b|svg\b|path\b|br\b|hr\b|source\b|meta\b|link\b)([a-zA-Z][\w-]*)(\s[^>]*?)>/g, (full, tag: string, rest: string) => {
+    if (/\bdata-pz-on-dark\b/.test(rest) || /\bdata-pz-on-light\b/.test(rest) || /\bdata-pz-face\b/.test(rest) || /\bdata-pz-chip\b/.test(rest)) return full;
+    const m = /background:\s*(#[0-9A-Fa-f]{3,8})\b/i.exec(rest);
+    if (!m?.[1] || isLightSurface(m[1])) return full;
+    return `<${tag} data-pz-on-dark="1"${rest}>`;
   });
 }
 
@@ -213,12 +226,21 @@ export function colorRolesStyleAttr(roles: ColorRolesV5): string {
   return `--pz-s:${roles.surface};--pz-a:${roles.surfaceAlt};--pz-i:${roles.ink};--pz-p:${roles.point};--pz-surface:${roles.surface};--pz-on-surface:${roles.ink};--pz-chip:${chip.chip};--pz-on-chip:${chip.onChip};--pz-chip-bd:${chip.border}`;
 }
 
-/** 칩·알약·배지 — forceInk보다 뒤에 두어 자기 배경 기준 글자를 확정 */
+/** 칩·알약·배지 — forceInk(section[data-pz-face] span)보다 특이성 높게 */
 function chipCss(s: string, text: string): string {
+  const chip = `${s} section[data-pz-face] [data-pz-chip],${s} [data-info] [data-pz-chip],${s} [data-pz-chip]`;
+  const chipText = `${s} section[data-pz-face] [data-pz-chip],${s} section[data-pz-face] [data-pz-chip] ${text},${s} [data-info] [data-pz-chip],${s} [data-info] [data-pz-chip] ${text},${s} [data-pz-chip] ${text}`;
+  const chipS = `${s} section[data-pz-face] [data-pz-chip][data-pz-s],${s} section[data-pz-face] [data-pz-chip] [data-pz-s],${s} [data-info] [data-pz-chip][data-pz-s],${s} [data-pz-chip][data-pz-s],${s} [data-pz-chip] [data-pz-s]`;
+  // 밝은 판 안에서는 부모 면 기준 칩이 묻히므로 어두운 칩+밝은 글자로 뒤집음
+  const invChip = `${s} section[data-pz-face] .pagzly-stacked [data-pz-chip],${s} .pagzly-stacked [data-pz-chip],${s} .pagzly-seo-text [data-pz-chip],${s} section[data-pz-face] [data-pz-on-light] [data-pz-chip],${s} [data-pz-on-light] [data-pz-chip],${s} [data-pz-on-light][data-pz-chip],${s} [data-pz-hl-c="0"] [data-pz-chip]`;
+  const inv =
+    `${invChip}{background:#0A0A0A!important;color:#FAF8F3!important;border:none!important;--pz-on-surface:#FAF8F3}` +
+    `${invChip} ${text},${invChip}[data-pz-s],${invChip} [data-pz-s]{color:#FAF8F3!important}`;
   return (
-    `${s} [data-pz-chip]{background:var(--pz-chip)!important;color:var(--pz-on-chip)!important;border:var(--pz-chip-bd,none)!important;--pz-on-surface:var(--pz-on-chip)}` +
-    `${s} [data-pz-chip] ${text}{color:var(--pz-on-chip)!important}` +
-    `${s} [data-pz-chip][data-pz-s],${s} [data-pz-chip] [data-pz-s]{color:var(--pz-on-chip)!important}`
+    `${chip}{background:var(--pz-chip)!important;color:var(--pz-on-chip)!important;border:var(--pz-chip-bd,none)!important;--pz-on-surface:var(--pz-on-chip)}` +
+    `${chipText}{color:var(--pz-on-chip)!important}` +
+    `${chipS}{color:var(--pz-on-chip)!important}` +
+    inv
   );
 }
 
@@ -227,15 +249,28 @@ function onSurfaceCss(s: string, forceInk: boolean): string {
   const text = ":is(p,h1,h2,h3,h4,li,td,th,label,a,span,strong,em,b,small)";
   let css =
     `${s}{background:var(--pz-s);color:var(--pz-i);--pz-surface:var(--pz-s);--pz-on-surface:var(--pz-i)}` +
-    `${s} section[data-pz-face]{position:relative;z-index:1!important;background:var(--pz-surface)!important;color:var(--pz-on-surface)!important}` +
+    // illustration-banner는 사진+스크림 전용 — 면색으로 덮지 않음
+    `${s} section[data-pz-face]:not(.pagzly-illustration-banner){position:relative;z-index:1!important;background:var(--pz-surface)!important;color:var(--pz-on-surface)!important}` +
+    `${s} section.pagzly-illustration-banner[data-pz-face]{position:relative;z-index:1!important;--pz-on-surface:#FAF8F3;color:#FAF8F3!important}` +
     `${s} [data-info]{background:var(--pz-surface)!important;color:var(--pz-on-surface)!important}` +
     `${s} section[data-pz-face][data-pz-ax$=".5"],${s} [data-info=stat],${s} [data-info=points]{background:var(--pz-a)!important}` +
-    // 사진 스크림 위 = 항상 밝은 글자
+    // 사진 스크림·일러스트 배너·티커 = 항상 밝은 글자
     `${s} [data-pz-pb="band"] [style*="z-index:2"],${s} [data-pz-pb="scrim"] [style*="z-index:2"]{--pz-on-surface:#FAF8F3;color:#FAF8F3!important}` +
     `${s} [data-pz-pb="band"] [style*="z-index:2"] ${text},${s} [data-pz-pb="scrim"] [style*="z-index:2"] ${text}{color:#FAF8F3!important}` +
+    `${s} .pagzly-illustration-banner ${text},${s} .pagzly-illustration-banner [data-pz-s]{color:#FAF8F3!important}` +
+    `${s} [data-pz-ticker]{--pz-on-surface:#FAF8F3;color:#FAF8F3!important}` +
+    `${s} [data-pz-ticker] ${text},${s} [data-pz-ticker] [data-pz-s]{color:#FAF8F3!important}` +
     `${s} .pagzly-seo-text{background:#FAF8F3!important;color:#1B1B18!important;--pz-on-surface:#1B1B18;--pz-surface:#FAF8F3}` +
     `${s} .pagzly-seo-text ${text}{color:#1B1B18!important}` +
-    `${s} footer{color:var(--pz-i)!important}`;
+    `${s} footer{color:var(--pz-i)!important}` +
+    // 헤더는 면색과 무관한 종이 띠(어두운 면에서 묻히지 않게)
+    `${s} header{opacity:1!important;background:#FAF8F3!important;color:#2B2720!important}` +
+    // cta_price는 faceLock이라 면 강제 밖 — flatAccentTint 위 악센트 글자가 묻히면 종이 면으로 고정
+    `${s} .pagzly-cta{background:#FAF8F3!important;color:#1B1B18!important;--pz-on-surface:#1B1B18;--pz-surface:#FAF8F3}` +
+    `${s} .pagzly-cta ${text}{color:#1B1B18!important}` +
+    `${s} .pagzly-cta [style*="color:#"],${s} .pagzly-cta [data-pz-s]{color:#1B1B18!important}` +
+    // 구매 CTA 버튼(어두운 면+밝은 글자)은 위 규칙에서 제외
+    `${s} .pagzly-cta [style*="background:#1B1B18"],${s} .pagzly-cta [style*="background:#1b1b18"],${s} .pagzly-cta [style*="background:#0A0A0A"]{color:#FAF8F3!important;--pz-on-surface:#FAF8F3}`;
   if (forceInk) {
     css +=
       `${s} section[data-pz-face] ${text},${s} [data-info] ${text}{color:var(--pz-on-surface)!important}` +
@@ -245,9 +280,23 @@ function onSurfaceCss(s: string, forceInk: boolean): string {
       `${s} :not(section)[style*="background:#FFF"],${s} :not(section)[style*="background:#fff"],${s} :not(section)[style*="background:#FFFFFF"],${s} :not(section)[style*="background:#ffffff"],${s} :not(section)[style*="background:#FAF8F3"],${s} :not(section)[style*="background:#FAF7F1"]{--pz-on-surface:#1B1B18}` +
       `${s} :not(section)[style*="background:#FFF"] ${text},${s} :not(section)[style*="background:#fff"] ${text},${s} :not(section)[style*="background:#FFFFFF"] ${text},${s} :not(section)[style*="background:#ffffff"] ${text},${s} :not(section)[style*="background:#FAF8F3"] ${text},${s} :not(section)[style*="background:#FAF7F1"] ${text}{color:#1B1B18!important}` +
       `${s} [style*="color:#FFF"],${s} [style*="color:#fff"],${s} [style*="color:#FFFFFF"],${s} [style*="color:#ffffff"],${s} [style*="color:#FAF8F3"],${s} [style*="color:#faf8f3"]{color:#FAF8F3!important}` +
-      `${s} .pagzly-stacked,${s} .pagzly-stacked-body,${s} [data-diagram]{--pz-on-surface:#1B1B18;color:#1B1B18!important}` +
-      `${s} .pagzly-stacked ${text},${s} .pagzly-stacked-body ${text},${s} .pagzly-stacked [data-pz-s],${s} .pagzly-stacked-body [data-pz-s],${s} [data-diagram] ${text}{color:#1B1B18!important}`;
+      // 479 B — stacked는 면 강제(--pz-surface 어두움)와 충돌하므로 종이 섬으로 고정(본문·POINT 가독)
+      `${s} .pagzly-stacked{background:#FAF8F3!important;color:#1B1B18!important;--pz-on-surface:#1B1B18;--pz-surface:#FAF8F3}` +
+      `${s} .pagzly-stacked ${text},${s} .pagzly-stacked [data-pz-s],${s} .pagzly-stacked-body ${text},${s} .pagzly-stacked-body [data-pz-s]{color:#1B1B18!important}` +
+      `${s} [data-diagram]{--pz-on-surface:#1B1B18;color:#1B1B18!important;background:#FAF8F3!important}` +
+      `${s} [data-diagram] ${text}{color:#1B1B18!important}` +
+      // forceInk보다 뒤 — 배너·티커 밝은 글자 재확정
+      `${s} section.pagzly-illustration-banner[data-pz-face],${s} section.pagzly-illustration-banner[data-pz-face] ${text},${s} .pagzly-illustration-banner ${text},${s} .pagzly-illustration-banner [data-pz-s]{color:#FAF8F3!important;--pz-on-surface:#FAF8F3}` +
+      `${s} section[data-pz-face] [data-pz-ticker],${s} section[data-pz-face] [data-pz-ticker] ${text},${s} section[data-pz-face] [data-pz-ticker] [data-pz-s],${s} [data-pz-ticker],${s} [data-pz-ticker] ${text},${s} [data-pz-ticker] [data-pz-s]{color:#FAF8F3!important;--pz-on-surface:#FAF8F3}`;
   }
+  // 479 — 어두운 자기 배경 판은 모든 아키타입에서 밝은 글자(forceInk 밖)
+  css +=
+    `${s} [data-pz-on-dark]{--pz-on-surface:#FAF8F3;color:#FAF8F3!important}` +
+    `${s} [data-pz-on-dark] ${text},${s} [data-pz-on-dark] [data-pz-s]{color:#FAF8F3!important}` +
+    // 어두운 판 안의 흰 숫자 원 등은 다시 어두운 글자
+    `${s} [data-pz-on-dark] [data-pz-on-light],${s} [data-pz-on-dark] [data-pz-on-light] ${text}{background:#FAF8F3!important;color:#1B1B18!important;--pz-on-surface:#1B1B18}` +
+    `${s} [data-hl="price"],${s} [data-hl="sticker"]{--pz-on-surface:#FAF8F3;color:#FAF8F3!important}` +
+    `${s} [data-hl="sticker"] ${text}{color:#FAF8F3!important}`;
   // 479 A — 칩 규칙은 면 강제·밝은 섬보다 뒤(자기 배경 기준)
   return css + chipCss(s, text);
 }
@@ -270,6 +319,13 @@ export function colorRolesCssV5(scope: string, id: ArchetypeId): string {
   else if (id === "techsheet") extra = `${s} [data-pz-face]{font-variant-numeric:tabular-nums}${s} [data-pz-hl-g]{display:grid!important;grid-template-columns:1fr 1fr}`;
   else if (id === "impact" || id === "pop" || id === "narrative")
     extra = `${s} [data-pz-hl-c="0"]{background:#FAF8F3!important;color:#1B1B18!important;--pz-on-surface:#1B1B18}`;
+  // narrative cards·softlife pills glance는 CSS만으로 #fff — 섬 표식 없어 종이 섬으로 고정
+  if (id === "narrative" || id === "softlife") {
+    const text = ":is(p,h1,h2,h3,h4,li,td,th,label,a,span,strong,em,b,small)";
+    extra +=
+      `${s} [data-pz-glance-grid]>*{background:#FAF8F3!important;color:#1B1B18!important;--pz-on-surface:#1B1B18}` +
+      `${s} [data-pz-glance-grid]>* ${text},${s} [data-pz-glance-grid]>* [data-pz-s]{color:#1B1B18!important}`;
+  }
   // 어두운 면(impact/narrative) + pop(면이 어두워질 수 있음)만 인라인 잉크 강제
   const forceInk = FACE[id].dark || id === "pop";
   return onSurfaceCss(s, forceInk) + extra;
