@@ -36,7 +36,7 @@
 
 ## Push
 - branch: `cloud-work` → `origin/cloud-work` (main 미푸시)
-- HEAD: `86a02c9` (`docs(482): record final push hash`) — `origin/cloud-work` 동기화 확인
+- `origin/cloud-work` 동기화됨. 주요 커밋: `43bedf7` A 팔레트 → `bb5e17f` B 키비주얼 → `75ccce4` C 단순화 → `f452c7d` D 어두운 면 → `15402f4`/`86a02c9` 리뷰·보고. tip은 `git log -1`로 확인.
 
 ## 남은 문제
 - DB theme 재기록 없이는 라이브 같은 결과의 accent가 청회색으로 남을 수 있음(읽기 전용 제약).
