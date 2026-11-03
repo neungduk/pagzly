@@ -14,4 +14,6 @@
 
 ## 구현
 - 마크업: `data-pz-deco="1"` (또는 조상에 `data-pz-deco`)
-- 검사기: `scripts/contrast-render-478.ts` — closest `[data-pz-deco]` 제외
+- 검사기: `scripts/contrast-render-478.ts` — closest `[data-pz-deco]`·`footer` 제외
+- 밝은 섬: `data-pz-on-light` (`markLightIslandsV5`) + `data-pz-hl-c="0"`
+- dyn 기울인 판: `data-pz-dyn-plate` / `background:var(--pz-a)`
