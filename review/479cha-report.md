@@ -39,7 +39,7 @@
 
 ## push 확인
 ```
-git log -1  → 52c712ce90625b85886a59966dfb44e3ea4500e6
+git log -1  → 34fb29a93eb58f8b9ab55d0f21462bc8b07a696c (본 파일 직전 tip; push 후 HEAD와 동일 계열)
 branch      → cloud-work (main 미 push)
 ```
 
