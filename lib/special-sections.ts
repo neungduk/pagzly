@@ -15,6 +15,9 @@ import type { ImpactPalette } from "@/lib/impact-templates";
 import type { Recipe } from "@/lib/archetype-recipes";
 import { checkText, type ClaimFacts } from "@/lib/numeric-claim-gate";
 import { hexToRgba } from "@/lib/design-tokens";
+import { designV5On } from "@/lib/design-v4";
+import { v4TextOn } from "@/lib/palette-v4";
+import { ARCHETYPES, type ArchetypeId } from "@/lib/page-archetype-v5";
 import { DETAIL_FONT_STACK } from "@/lib/detail-typography";
 
 export type SpecialKind = "swatch" | "timeline" | "chipwall" | "specstrip" | "sizebars";
@@ -40,15 +43,25 @@ export function specialHtml(s: ImpactSection, pal: ImpactPalette): string {
   }
   if (s.kind === "timeline") {
     const steps = s.labels ?? [];
-    // 479 — STEP 라벨은 자기 배경 칩(면 틴트와 무관하게 읽힘)
+    // 479 — V5에서 STEP 라벨은 자기 배경 칩(면 틴트와 무관하게 읽힘)
+    const paperRef = s.ax && s.ax in ARCHETYPES ? ARCHETYPES[s.ax as ArchetypeId].paper : "#F7F3EE";
+    const lumOf = (h: string): number => { const n = parseInt(h.slice(1), 16); return 0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255); };
+    const stepLabel = v4TextOn(pal.accent, lumOf(paperRef) < lumOf("#F7F3EE") ? paperRef : "#F7F3EE");
+    const v5 = designV5On();
     const rows = steps
       .map((t, i) => {
         const last = i === steps.length - 1;
+        const num = v5
+          ? `<span data-pz-chip style="position:absolute;left:0;top:0;width:44px;height:44px;border-radius:50%;background:#0A0A0A;color:#FAF8F3;${title};font-size:20px;font-weight:800;line-height:44px;text-align:center">${i + 1}</span>`
+          : `<span style="position:absolute;left:0;top:0;width:44px;height:44px;border-radius:50%;background:${pal.deep};color:#FFFFFF;${title};font-size:20px;font-weight:800;line-height:44px;text-align:center">${i + 1}</span>`;
+        const step = v5
+          ? `<p data-pz-chip style="margin:0;display:inline-block;padding:3px 8px;border-radius:999px;background:#0A0A0A;${sans};font-size:11px;font-weight:700;letter-spacing:0.14em;color:#FAF8F3">STEP ${String(i + 1).padStart(2, "0")}</p>`
+          : `<p style="margin:0;${sans};font-size:11px;font-weight:700;letter-spacing:0.14em;color:${stepLabel}">STEP ${String(i + 1).padStart(2, "0")}</p>`;
         return (
           `<div style="position:relative;padding:0 0 ${last ? 0 : 28}px 64px;min-height:44px">` +
-          `<span data-pz-chip style="position:absolute;left:0;top:0;width:44px;height:44px;border-radius:50%;background:#0A0A0A;color:#FAF8F3;${title};font-size:20px;font-weight:800;line-height:44px;text-align:center">${i + 1}</span>` +
+          num +
           (last ? "" : `<span aria-hidden="true" style="position:absolute;left:21px;top:48px;bottom:4px;width:2px;background:${hexToRgba(pal.deep, 0.28)}"></span>`) +
-          `<p data-pz-chip style="margin:0;display:inline-block;padding:3px 8px;border-radius:999px;background:#0A0A0A;${sans};font-size:11px;font-weight:700;letter-spacing:0.14em;color:#FAF8F3">STEP ${String(i + 1).padStart(2, "0")}</p>` +
+          step +
           `<p style="margin:4px 0 0;${sans};font-size:16px;font-weight:600;line-height:1.6;color:${pal.ink};word-break:keep-all">${esc(t)}</p></div>`
         );
       })

@@ -18,9 +18,10 @@ export const PHOTO_COMPOSE_V5: Record<ArchetypeId, PhotoComposeKind> = {
   impact: "bleed",
   editorial: "hang",
   catalog: "crop",
-  softlife: "mask",
+  // 479 D / 477 잔여 — softlife·luxe는 상자(mask 라운드·그림자) 없이 bleed 스크림
+  softlife: "bleed",
   narrative: "hang",
-  luxe: "mask",
+  luxe: "bleed",
   pop: "collage",
   techsheet: "crop",
 };

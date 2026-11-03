@@ -68,12 +68,12 @@ export function markHtml(mark: MarkShape, color: string): string {
   );
 }
 
-/** 라벨+표식 한 줄(기존 v5Label만) — 479: 라벨은 자기 배경 칩(사진·틴트 위에서도 읽힘) */
-export function chromeLabelRow(id: ArchetypeId, color: string): string {
+/** 라벨+표식 한 줄(기존 v5Label만) — 479: 라벨은 자기 배경 칩(사진·틴트 위에서도 읽힘). 사진 지배 블록은 noMark로 점/링 끔(477 잔여). */
+export function chromeLabelRow(id: ArchetypeId, color: string, opts: { noMark?: boolean } = {}): string {
   const v = BLOCK_CHROME_V5[id];
   const lab = v5Label(v.labelKey);
-  if (!lab) return markHtml(v.mark, color);
-  const mark = markHtml(v.mark, color);
+  const mark = opts.noMark ? "" : markHtml(v.mark, color);
+  if (!lab) return mark;
   const labChip = `<span data-pz-chip style="display:inline-block;padding:3px 8px;border-radius:999px;background:#0A0A0A;letter-spacing:0.08em;font-size:11px;font-weight:700;color:#FAF8F3">${lab}</span>`;
   if (v.place === "vertical") {
     return `<div data-pz-bchrome="vertical" style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:0 0 10px">${mark}<span data-pz-chip style="writing-mode:vertical-rl;transform:rotate(180deg);display:inline-block;padding:8px 3px;border-radius:999px;background:#0A0A0A;letter-spacing:0.12em;font-size:11px;font-weight:700;color:#FAF8F3">${lab}</span></div>`;

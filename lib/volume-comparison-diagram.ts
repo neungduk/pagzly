@@ -207,9 +207,9 @@ export function buildVolumeComparisonDiagramSvg(
     const strokeW = e.isProduct ? 2 : 1.4;
     const topLabel = e.label.replace(/\s*\d+(?:\.\d+)?\s*mL$/i, "").trim() || e.label;
     return `
-      <text x="${x + bottleW / 2}" y="${y - 10}" text-anchor="middle" font-size="${topPx}" fill="${lcV5}" font-weight="${e.isProduct ? 700 : 500}" opacity="1">${escapeXml(topLabel)}</text>
+      <text x="${x + bottleW / 2}" y="${y - 10}" text-anchor="middle" font-size="${topPx}" fill="${DESIGN_V4_ENABLED ? lcV5 : lc}" font-weight="${e.isProduct ? 700 : 500}" opacity="${e.isProduct || DESIGN_V4_ENABLED ? 1 : subOpacity}">${escapeXml(topLabel)}</text>
       <path d="${bottlePath(x, y, bottleW, h)}" fill="none" stroke="${strokeColor}" stroke-width="${strokeW}" opacity="${opacity}"/>
-      <text x="${x + bottleW / 2}" y="${baseY + botDy}" text-anchor="middle" font-size="${botPx}" fill="${lcV5}" font-weight="${e.isProduct ? 700 : 500}">${e.ml}mL</text>
+      <text x="${x + bottleW / 2}" y="${baseY + botDy}" text-anchor="middle" font-size="${botPx}" fill="${DESIGN_V4_ENABLED ? lcV5 : lc}" font-weight="${e.isProduct ? 700 : 500}">${e.ml}mL</text>
     `;
   });
 

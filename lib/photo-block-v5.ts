@@ -48,7 +48,7 @@ export function photoBlockBand(
   ax: ArchetypeId,
 ): string {
   const { ar, pos } = PHOTO_RATIO_V5.band;
-  const chrome = chromeLabelRow(ax, "#FFFFFF");
+  const chrome = chromeLabelRow(ax, "#FFFFFF", { noMark: true });
   return (
     `<div data-pz-pb="band" style="margin:0 -24px">` +
     `<div style="position:relative">${frame(im, alt, ar, pos, p.tints[1])}` +
@@ -68,7 +68,7 @@ export function photoBlockScrim(
   ax: ArchetypeId,
 ): string {
   const { ar, pos } = PHOTO_RATIO_V5.scrim;
-  const chrome = chromeLabelRow(ax, "#FFFFFF");
+  const chrome = chromeLabelRow(ax, "#FFFFFF", { noMark: true });
   return (
     `<div data-pz-pb="scrim" style="margin:0 -24px;position:relative">` +
     frame(im, alt, ar, pos, p.tints[1]) +
