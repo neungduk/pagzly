@@ -82,6 +82,7 @@ review/475-captures/
 review/476-captures/
 review/477-blocks/
 review/477-captures/
+review/478-captures/
 
 # local agent temp payloads (may contain secrets)
 .tmp*
