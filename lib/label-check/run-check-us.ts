@@ -8,6 +8,7 @@ import {
 } from "@/lib/label-check/extract-pdf";
 import { formatFoundSnippet } from "@/lib/label-check/format-found";
 import { loadUsLabelRules494, type UsRuleDraft } from "@/lib/label-check/load-rules-us";
+import { scanUsAdPhrases500 } from "@/lib/label-check/ad-phrases-us";
 import { includesUs, includesUsWord, normalizeUsLabelText } from "@/lib/label-check/normalize-us";
 import {
   DISCLAIMER_483,
@@ -51,7 +52,7 @@ function withFix(rule: UsRuleDraft, base: Finding): Finding {
     ...base,
     fixSuggestion: rule.fixKo || undefined,
     fixExample: rule.fixExampleEn || undefined,
-    fixKind: rule.id === "US-013" ? "soften" : "fix",
+    fixKind: "fix",
   };
 }
 
@@ -115,16 +116,6 @@ function hasContact(text: string): string | null {
   if (/\bwww\.[a-z0-9.-]+\.[a-z]{2,}/i.test(t)) return "www";
   if (/\b(tel|phone|email)\b/i.test(t)) return "contact cue";
   return null;
-}
-
-function hasDrugClaim(text: string, lookFor: string[]): string | null {
-  const hits: string[] = [];
-  for (const w of lookFor) {
-    if (includesUsWord(text, w)) hits.push(w);
-  }
-  if (!hits.length) return null;
-  // 여러 표현도 항목 1건 — 대표 히트만 반환(호출부에서 한 finding)
-  return hits[0];
 }
 
 function hangulOnlyLabel(text: string): boolean {
@@ -416,27 +407,9 @@ function runUsCodeRule(
     });
   }
 
+  // 500 — US-013 하드코드 lookFor 매칭 제거. 광고는 us-ad-phrases 스캔으로 대체(중복 방지).
   if (rule.id === "US-013") {
-    const hit = hasDrugClaim(text, rule.lookFor);
-    if (hit) {
-      return withFix(rule, {
-        category: "US",
-        label: rule.title,
-        status: "attention",
-        found: formatFoundSnippet(text, hit),
-        suggest: "의약품 주장으로 오인될 수 있는지 확인하세요.",
-        checkType: "code",
-        fixKind: "soften",
-      });
-    }
-    return withFix(rule, {
-      category: "US",
-      label: rule.title,
-      status: "pass",
-      found: "해당 주의 문구 키워드 없음",
-      suggest: "광고 문구를 주기적으로 재확인하세요.",
-      checkType: "code",
-    });
+    return null;
   }
 
   return null;
@@ -533,6 +506,9 @@ export async function runLabelCheckUsFromExtracted494(
       });
     }
   }
+
+  // 500 — 미국 광고 표현(데이터). US-013 대체.
+  findings.push(...scanUsAdPhrases500(extracted.text));
 
   return {
     disclaimer: usDisclaimer(),
