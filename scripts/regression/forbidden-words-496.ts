@@ -57,6 +57,9 @@ export async function run(): Promise<string[]> {
       const text = fs.readFileSync(file, "utf8");
       const lines = text.split(/\r?\n/);
       lines.forEach((line, i) => {
+        // 502: 소스 주석만 있는 줄은 제외(화면 문구·응답 문자열만 검사)
+        const trimmed = line.trim();
+        if (/^(\/\/|\/\*|\*|\*\/)/.test(trimmed)) return;
         for (const word of FORBIDDEN) {
           if (!line.includes(word)) continue;
           if (lineAllowed(line)) continue;

@@ -40,7 +40,7 @@
 
 1. **데이터만** 수정(위 5파일). 원본 백업 또는 브랜치에서 작업.
 2. 로컬에서 `npm run validate:rules` — 오류 0인지 확인.
-3. `npm run regression` — 회귀 통과.
+3. `npm run regression:label-check` — 표시사항 전용 회귀 통과(빠름). 전체(상세페이지 포함)는 `npm run regression`.
 4. `npx tsc --noEmit` 및 `npm run build`.
 5. `cloud-work` 브랜치에 커밋·푸시. **main / Production 직접 푸시 금지.**
 
