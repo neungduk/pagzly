@@ -1,0 +1,184 @@
+{
+ "meta": {
+  "version": "v1.0",
+  "date": "2026-11-09",
+  "source": "식약처 고시 '화장품 사용할 때의 주의사항 및 알레르기 유발성분 표시에 관한 규정' [별표 2] 착향제의 구성 성분 중 알레르기 유발성분(제4조 관련) — 사용자 첨부 원문 (국문명·CAS는 원문, INCI는 기존 초안에서 가져온 것으로 원문 미대조)",
+  "source_verified": true,
+  "ko_names_verified": true,
+  "inci_verified": false,
+  "thresholds": {
+   "rinse_off": "0.01% 초과",
+   "leave_on": "0.001% 초과",
+   "note": "원문 주: 사용 후 씻어내는 제품 0.01% 초과, 씻어내지 않는 제품 0.001% 초과 함유하는 경우에 한함"
+  },
+  "ko_name_corrections_from_draft": [
+   {
+    "no": 7,
+    "draft": "이소유제놀",
+    "official": "아이소유제놀"
+   },
+   {
+    "no": 22,
+    "draft": "메틸2-옥티노에이트",
+    "official": "메틸 2-옥티노에이트"
+   },
+   {
+    "no": 23,
+    "draft": "알파-이소메틸이오논",
+    "official": "알파-아이소메틸아이오논"
+   }
+  ]
+ },
+ "items": [
+  {
+   "no": 1,
+   "ko": "아밀신남알",
+   "cas": "122-40-7",
+   "inci": "Amyl cinnamal"
+  },
+  {
+   "no": 2,
+   "ko": "벤질알코올",
+   "cas": "100-51-6",
+   "inci": "Benzyl alcohol"
+  },
+  {
+   "no": 3,
+   "ko": "신나밀알코올",
+   "cas": "104-54-1",
+   "inci": "Cinnamyl alcohol"
+  },
+  {
+   "no": 4,
+   "ko": "시트랄",
+   "cas": "5392-40-5",
+   "inci": "Citral"
+  },
+  {
+   "no": 5,
+   "ko": "유제놀",
+   "cas": "97-53-0",
+   "inci": "Eugenol"
+  },
+  {
+   "no": 6,
+   "ko": "하이드록시시트로넬알",
+   "cas": "107-75-5",
+   "inci": "Hydroxycitronellal"
+  },
+  {
+   "no": 7,
+   "ko": "아이소유제놀",
+   "cas": "97-54-1",
+   "inci": "Isoeugenol"
+  },
+  {
+   "no": 8,
+   "ko": "아밀신나밀알코올",
+   "cas": "101-85-9",
+   "inci": "Amyl cinnamyl alcohol"
+  },
+  {
+   "no": 9,
+   "ko": "벤질살리실레이트",
+   "cas": "118-58-1",
+   "inci": "Benzyl salicylate"
+  },
+  {
+   "no": 10,
+   "ko": "신남알",
+   "cas": "104-55-2",
+   "inci": "Cinnamal"
+  },
+  {
+   "no": 11,
+   "ko": "쿠마린",
+   "cas": "91-64-5",
+   "inci": "Coumarin"
+  },
+  {
+   "no": 12,
+   "ko": "제라니올",
+   "cas": "106-24-1",
+   "inci": "Geraniol"
+  },
+  {
+   "no": 13,
+   "ko": "아니스알코올",
+   "cas": "105-13-5",
+   "inci": "Anise alcohol"
+  },
+  {
+   "no": 14,
+   "ko": "벤질신나메이트",
+   "cas": "103-41-3",
+   "inci": "Benzyl cinnamate"
+  },
+  {
+   "no": 15,
+   "ko": "파네솔",
+   "cas": "4602-84-0",
+   "inci": "Farnesol"
+  },
+  {
+   "no": 16,
+   "ko": "부틸페닐메틸프로피오날",
+   "cas": "80-54-6",
+   "inci": "Butylphenyl methylpropional"
+  },
+  {
+   "no": 17,
+   "ko": "리날룰",
+   "cas": "78-70-6",
+   "inci": "Linalool"
+  },
+  {
+   "no": 18,
+   "ko": "벤질벤조에이트",
+   "cas": "120-51-4",
+   "inci": "Benzyl benzoate"
+  },
+  {
+   "no": 19,
+   "ko": "시트로넬올",
+   "cas": "106-22-9",
+   "inci": "Citronellol"
+  },
+  {
+   "no": 20,
+   "ko": "헥실신남알",
+   "cas": "101-86-0",
+   "inci": "Hexyl cinnamal"
+  },
+  {
+   "no": 21,
+   "ko": "리모넨",
+   "cas": "5989-27-5",
+   "inci": "Limonene"
+  },
+  {
+   "no": 22,
+   "ko": "메틸 2-옥티노에이트",
+   "cas": "111-12-6",
+   "inci": "Methyl 2-octynoate"
+  },
+  {
+   "no": 23,
+   "ko": "알파-아이소메틸아이오논",
+   "cas": "127-51-5",
+   "inci": "Alpha-isomethyl ionone"
+  },
+  {
+   "no": 24,
+   "ko": "참나무이끼추출물",
+   "cas": "90028-68-5",
+   "inci": "Evernia prunastri extract"
+  },
+  {
+   "no": 25,
+   "ko": "나무이끼추출물",
+   "cas": "90028-67-4",
+   "inci": "Evernia furfuracea extract"
+  }
+ ]
+}
