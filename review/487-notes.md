@@ -42,3 +42,12 @@ sections: Array<{
 | `npm run build` | 통과 — Compiled + Running TypeScript Finished, 55 pages |
 
 추가 타입 오류 없음. 이후 차수 마무리: `review/CHECKLIST.md`에 `npx tsc --noEmit` 한 줄 추가.
+
+## D. 회귀
+| 항목 | 결과 |
+|------|------|
+| `keyvisual-482.ts` | 통과(V5 off 미삽입·마크업 상한 포함) |
+| `label-check-483.ts` | 통과 |
+| `contrast-render-479.ts` 단독 | 통과 |
+| `run-all` | 실패 **25**/172 — 기존 24 + `렌더 대비 479` **시간 초과(721s>720s)** 1건. 단독 재실행은 통과 → 목록 변동 없음(타임아웃 플레이크). |
+| 동작 | 타입 선언만 변경. export HTML 로직 경로 불변. |
