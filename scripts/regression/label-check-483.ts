@@ -34,7 +34,8 @@ export const name = "표시사항 488 — 탭제목·찾은내용·파일럿·A/
 /** 493: A는 ad-phrases로 광고 확인 필요 항목이 세분되어 attention +2 */
 /** 504: v0.2 광고·주의·별표4로 A/C attention 재집계 */
 const EXPECT_SUMMARY = {
-  A: { possible: 3, attention: 5, unknown: 0, pass: 10 },
+  // 505: 공통 주의사항 판정으로 A의 KR-LBL-009가 pass→attention
+  A: { possible: 3, attention: 6, unknown: 0, pass: 9 },
   B: { possible: 2, attention: 3, unknown: 0, pass: 15 },
   C: { possible: 0, attention: 5, unknown: 0, pass: 14 },
 } as const;
@@ -301,6 +302,7 @@ export async function run(): Promise<string[]> {
           row.found === FOUND_CONFIRMED_488 ||
           row.found === "해당 주의 문구 키워드 없음" ||
           row.found.startsWith("감지된 크기") ||
+          row.found.includes("알레르기 목록") ||
           row.found.includes("알레르기 초안");
         if (!ok) f.push(`488: 통과 항목 조각 노출 — ${row.label}: ${row.found.slice(0, 40)}`);
         continue;
@@ -321,7 +323,10 @@ export async function run(): Promise<string[]> {
     for (const row of sampleResultA.result.findings) {
       if (row.status === "pass" && row.found !== FOUND_CONFIRMED_488 && row.found !== "해당 주의 문구 키워드 없음" && !String(row.found).startsWith("감지된")) {
         // 샘플 JSON도 동일 규칙
-        if (!String(row.found).includes("알레르기 초안")) {
+        if (
+          !String(row.found).includes("알레르기 초안") &&
+          !String(row.found).includes("알레르기 목록")
+        ) {
           f.push(`488: sample JSON 통과 조각 — ${row.label}`);
         }
       }
