@@ -42,3 +42,29 @@
 | 텍스트 없음 | `gen_empty_notext.pdf` | 0자, readable=false | **확인 불가** 안내(통과 금지). OCR은 다음 차수 |
 
 스크립트: `scripts/build-label-generators-484.mjs`
+
+## C. 판정 오류 점검·수정
+
+### 스키마 적응 (새 규칙 발명 없음)
+- `load-rules.ts`: `title`→label, `severity_if_missing`(위반→possible, 주의→attention), allergens `items[].ko|inci`.
+- 검색 패턴은 **title/rule/examples**에서만 유도(제조번호→LOT/배치, 사용기한→까지/개봉 후/제조일로부터 등 규칙 문구 근거).
+- ADV `examples`·rule의 재생/염증 등 → soft 스캔(확인 필요). 내부 id 응답 미포함. UI 상태는 위반 가능/확인 필요만.
+
+### 오탐·누락 수정
+| 이슈 | 근거 | 수정 |
+|------|------|------|
+| A 주소 통과 오탐 | 상호만 있고 시·구·로 없는데 `\d`(150mL)로 주소 인정 | 행정구역·도로명 패턴만 주소로 인정. 상호만 있으면 attention |
+| LOT 변형 | 규칙: 제조번호 표시. 샘플 C `제조번호: LOT2411A` | `제조번호`/`LOT`/`Lot`/`배치` 매칭 |
+| 사용기한 변형 | 규칙 문구: 사용기한·까지·개봉 후 ○○개월 | expiry 모드로 위 패턴+날짜형 |
+| B 기능성·제조번호 | 기능성 입력인데 '기능성화장품' 없음, LOT 없음 | possible(위반 가능) |
+| A 4pt 알레르기 | pdfjs 3pt < 5 | allergen found에 pt·5pt 미만 확인 필요 |
+| C 장벽 | ADV-003 기능성 오인 + 규칙 applies 피부장벽 맥락 | `피부 장벽`/`장벽 강화` attention |
+
+### 수정 후 실측 (요약)
+| 샘플 | 실측 | 기대 대비 |
+|------|------|-----------|
+| A | 사용기한·제조번호 possible, 재생/완전 제거 attention, 리모넨·리날룰+3pt attention, 전성분 표시 방법 5pt 미만 possible, 주소 attention | 핵심 일치(제조번호 누락도 실제 없음) |
+| B | 제조번호·기능성화장품 possible | 일치(확인 필요≈위반 가능 UI) |
+| C | possible=0, 장벽 강화 attention, pass≥15 | 일치 |
+
+"위반" 단정 문자열·rule id(`KR-LBL-*`) API 응답 0.
