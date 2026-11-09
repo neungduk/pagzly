@@ -6,12 +6,16 @@ import type { Finding, LabelCheckResult, LabelMarket } from "@/lib/label-check/t
 import {
   DISCLAIMER_483,
   DISCLAIMER_PRINT_485,
+  ERR_TOO_LARGE_485,
   FIX_EXAMPLE_NOTE_494,
   INTRO_LINES_486,
   INTRO_ONE_LINE_486,
   MAX_PDF_BYTES_483,
+  MAX_PDF_MB_498,
+  MAX_PDF_PAGES_485,
   SAMPLE_BANNER_486,
 } from "@/lib/label-check/types";
+import { readLabelCheckApiFailure } from "@/lib/label-check/api-errors";
 import sampleResultA from "@/lib/label-check/sample-result-a.json";
 import { labelContactEmail } from "@/lib/label-check/contact";
 import { fixKindHeading496 } from "@/lib/label-check/fix-kind-label";
@@ -79,7 +83,7 @@ export default function LabelCheckPage() {
       return;
     }
     if (f.size > MAX_PDF_BYTES_483) {
-      setError("파일은 최대 10MB까지 가능합니다.");
+      setError(ERR_TOO_LARGE_485);
       setFile(null);
       return;
     }
@@ -154,11 +158,12 @@ export default function LabelCheckPage() {
       fd.set("hazardous", String(hazardous));
       fd.set("otcDrugLike", String(otcDrugLike));
       const res = await fetch("/api/label-check", { method: "POST", body: fd });
-      const json = (await res.json()) as LabelCheckResult & { error?: string };
       if (!res.ok) {
-        setError(json.error || "검수에 실패했습니다.");
+        const fail = await readLabelCheckApiFailure(res);
+        setError(fail.error);
         return;
       }
+      const json = (await res.json()) as LabelCheckResult;
       setResult(json);
       setCheckedOn(todayKo());
     } catch {
@@ -266,7 +271,7 @@ export default function LabelCheckPage() {
           </label>
 
           <label className="block text-sm font-semibold" htmlFor="lc-guest-pdf">
-            PDF 업로드 (최대 10MB · 10쪽, 1개)
+            PDF 업로드 (최대 {MAX_PDF_MB_498}MB · {MAX_PDF_PAGES_485}쪽, 1개)
             <input
               id="lc-guest-pdf"
               type="file"

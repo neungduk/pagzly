@@ -1,8 +1,7 @@
 /**
- * 495 — 내 검수 결과 단건 조회·삭제(본인만, RLS).
+ * 495/498 — 내 검수 결과 단건 조회·삭제(본인만, RLS).
  */
-import { NextResponse } from "next/server";
-import { ERR_LOGIN_EXPIRED_495, ERR_SERVER_495 } from "@/lib/label-check/member-constants";
+import { labelCheckErrorResponse } from "@/lib/label-check/api-errors";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -18,7 +17,7 @@ export async function GET(_req: Request, ctx: Ctx) {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json({ error: ERR_LOGIN_EXPIRED_495 }, { status: 401 });
+      return labelCheckErrorResponse("LOGIN", 401);
     }
 
     const { data, error } = await supabase
@@ -30,14 +29,14 @@ export async function GET(_req: Request, ctx: Ctx) {
 
     if (error) {
       console.warn("[label-check-runs] get-failed");
-      return NextResponse.json({ error: ERR_SERVER_495 }, { status: 500 });
+      return labelCheckErrorResponse("SERVER", 500);
     }
     if (!data) {
-      return NextResponse.json({ error: "결과를 찾을 수 없습니다." }, { status: 404 });
+      return labelCheckErrorResponse("NOT_FOUND", 404);
     }
-    return NextResponse.json({ run: data });
+    return Response.json({ run: data });
   } catch {
-    return NextResponse.json({ error: ERR_SERVER_495 }, { status: 500 });
+    return labelCheckErrorResponse("SERVER", 500);
   }
 }
 
@@ -49,7 +48,7 @@ export async function DELETE(_req: Request, ctx: Ctx) {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json({ error: ERR_LOGIN_EXPIRED_495 }, { status: 401 });
+      return labelCheckErrorResponse("LOGIN", 401);
     }
 
     const { error, count } = await supabase
@@ -60,13 +59,13 @@ export async function DELETE(_req: Request, ctx: Ctx) {
 
     if (error) {
       console.warn("[label-check-runs] delete-failed");
-      return NextResponse.json({ error: ERR_SERVER_495 }, { status: 500 });
+      return labelCheckErrorResponse("SERVER", 500);
     }
     if (!count) {
-      return NextResponse.json({ error: "결과를 찾을 수 없습니다." }, { status: 404 });
+      return labelCheckErrorResponse("NOT_FOUND", 404);
     }
-    return NextResponse.json({ ok: true });
+    return Response.json({ ok: true });
   } catch {
-    return NextResponse.json({ error: ERR_SERVER_495 }, { status: 500 });
+    return labelCheckErrorResponse("SERVER", 500);
   }
 }

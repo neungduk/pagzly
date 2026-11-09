@@ -4,7 +4,8 @@ import { useCallback, useState } from "react";
 import Link from "next/link";
 import { ResultPanel } from "@/components/label-check/ResultPanel";
 import type { LabelCheckResult, LabelMarket } from "@/lib/label-check/types";
-import { DISCLAIMER_483, MAX_PDF_BYTES_483 } from "@/lib/label-check/types";
+import { DISCLAIMER_483, ERR_TOO_LARGE_485, MAX_PDF_BYTES_483 } from "@/lib/label-check/types";
+import { readLabelCheckApiFailure } from "@/lib/label-check/api-errors";
 import { ERR_LOGIN_EXPIRED_495 } from "@/lib/label-check/member-constants";
 
 function todayKo(): string {
@@ -37,7 +38,7 @@ export default function LabelCheckNewPage() {
       return;
     }
     if (f.size > MAX_PDF_BYTES_483) {
-      setError("파일은 최대 10MB까지 가능합니다.");
+      setError(ERR_TOO_LARGE_485);
       setFile(null);
       return;
     }
@@ -66,20 +67,20 @@ export default function LabelCheckNewPage() {
       fd.set("hazardous", String(hazardous));
       fd.set("otcDrugLike", String(otcDrugLike));
       const res = await fetch("/api/label-check", { method: "POST", body: fd });
-      const json = (await res.json()) as LabelCheckResult & {
-        error?: string;
-        savedId?: string | null;
-      };
       if (res.status === 401) {
         setError(ERR_LOGIN_EXPIRED_495);
         window.location.href = `/login?next=${encodeURIComponent("/label-check/new")}`;
         return;
       }
       if (!res.ok) {
-        setError(json.error || "검수에 실패했습니다.");
+        const fail = await readLabelCheckApiFailure(res);
+        setError(fail.error);
         setStep(4);
         return;
       }
+      const json = (await res.json()) as LabelCheckResult & {
+        savedId?: string | null;
+      };
       setResult(json);
       setSavedId(json.savedId ?? null);
       setCheckedOn(todayKo());

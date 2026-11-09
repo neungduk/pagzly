@@ -89,9 +89,16 @@ export const DISCLAIMER_PRINT_485 =
 export const MIN_CHARS_483 = 40;
 /** 한글이 이 미만이면 아웃라인/스캔으로 보고 판정 생략 */
 export const MIN_HANGUL_CHARS_485 = 10;
-export const MAX_PDF_BYTES_483 = 10 * 1024 * 1024;
+/**
+ * 498 — Vercel Hobby 요청 본문 ~4.5MB보다 작게(서버가 플랫폼보다 먼저 거절).
+ * 표시용 MB는 floor(bytes/1MiB).
+ */
+export const MAX_PDF_BYTES_483 = 4 * 1024 * 1024;
+export const MAX_PDF_MB_498 = Math.floor(MAX_PDF_BYTES_483 / (1024 * 1024));
 export const MAX_PDF_PAGES_485 = 10;
 export const EXTRACT_TIMEOUT_MS_485 = 20_000;
+/** route segment — 추출 20s + 여유 */
+export const LABEL_CHECK_MAX_DURATION_SEC_498 = 30;
 
 export const NOTICE_OUTLINE_485 =
   "글자가 도형으로 변환된 PDF일 수 있어요. 디자인 파일에서 '글자 포함(아웃라인 해제)' 상태로 PDF를 다시 내보내 주세요.";
@@ -107,7 +114,7 @@ export const NOTICE_NO_HANGUL_485 =
   "한글 표시사항이 읽히지 않았어요. 한글이 포함된 텍스트 PDF로 다시 내보내 주세요. 판정을 보류합니다.";
 
 export const ERR_NOT_PDF_485 = "PDF 파일이 아닙니다. 파일 내용을 확인해 주세요.";
-export const ERR_TOO_LARGE_485 = "파일은 최대 10MB까지 가능합니다.";
+export const ERR_TOO_LARGE_485 = `PDF가 너무 큽니다. 이미지 해상도를 낮추거나 점검용으로 저해상도 PDF를 내보내 주세요 (권장 ${MAX_PDF_MB_498}MB 이하).`;
 export const ERR_TOO_MANY_PAGES_485 = "PDF는 최대 10쪽까지 검수할 수 있습니다.";
 export const ERR_TIMEOUT_485 = "처리 시간 초과, 확인 불가";
 export const ERR_UNREADABLE_PDF_485 = "열 수 없는 PDF입니다. 암호화되었거나 손상되었을 수 있습니다.";

@@ -1,8 +1,7 @@
 /**
- * 495 — 내 검수 결과 목록.
+ * 495/498 — 내 검수 결과 목록.
  */
-import { NextResponse } from "next/server";
-import { ERR_LOGIN_EXPIRED_495, ERR_SERVER_495 } from "@/lib/label-check/member-constants";
+import { labelCheckErrorResponse } from "@/lib/label-check/api-errors";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -15,7 +14,7 @@ export async function GET() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json({ error: ERR_LOGIN_EXPIRED_495 }, { status: 401 });
+      return labelCheckErrorResponse("LOGIN", 401);
     }
 
     const { data, error } = await supabase
@@ -27,10 +26,10 @@ export async function GET() {
 
     if (error) {
       console.warn("[label-check-runs] list-failed");
-      return NextResponse.json({ error: ERR_SERVER_495 }, { status: 500 });
+      return labelCheckErrorResponse("SERVER", 500);
     }
-    return NextResponse.json({ runs: data || [] });
+    return Response.json({ runs: data || [] });
   } catch {
-    return NextResponse.json({ error: ERR_SERVER_495 }, { status: 500 });
+    return labelCheckErrorResponse("SERVER", 500);
   }
 }

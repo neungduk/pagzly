@@ -111,6 +111,7 @@ async function pdfJsExtract(
           getPage: (n: number) => Promise<{
             getTextContent: () => Promise<{ items: PdfJsTextItem[] }>;
           }>;
+          destroy?: () => Promise<void>;
         }>;
       };
       disableWorker?: boolean;
@@ -122,38 +123,43 @@ async function pdfJsExtract(
       disableFontFace: true,
     }).promise;
 
-    const parts: string[] = [];
-    const items: Array<{ text: string; sizePt: number }> = [];
-    const emptyPages: number[] = [];
+    try {
+      const parts: string[] = [];
+      const items: Array<{ text: string; sizePt: number }> = [];
+      const emptyPages: number[] = [];
 
-    for (let p = 1; p <= doc.numPages; p++) {
-      const page = await doc.getPage(p);
-      const content = await page.getTextContent();
-      let line = "";
-      for (const it of content.items) {
-        const str = typeof it.str === "string" ? it.str : "";
-        if (!str) continue;
-        const t = it.transform;
-        // Chromium/pdfjs: 렌더 크기는 transform 스케일 (hypot a,b 또는 c,d)
-        const sizePt =
-          t && t.length >= 4
-            ? Math.max(Math.hypot(t[0], t[1]), Math.hypot(t[2], t[3]))
-            : 0;
-        if (sizePt > 0) {
-          items.push({ text: str.normalize("NFC"), sizePt: Math.round(sizePt * 100) / 100 });
+      for (let p = 1; p <= doc.numPages; p++) {
+        const page = await doc.getPage(p);
+        const content = await page.getTextContent();
+        let line = "";
+        for (const it of content.items) {
+          const str = typeof it.str === "string" ? it.str : "";
+          if (!str) continue;
+          const t = it.transform;
+          // Chromium/pdfjs: 렌더 크기는 transform 스케일 (hypot a,b 또는 c,d)
+          const sizePt =
+            t && t.length >= 4
+              ? Math.max(Math.hypot(t[0], t[1]), Math.hypot(t[2], t[3]))
+              : 0;
+          if (sizePt > 0) {
+            items.push({ text: str.normalize("NFC"), sizePt: Math.round(sizePt * 100) / 100 });
+          }
+          line += str;
         }
-        line += str;
+        if (line.trim()) parts.push(line);
+        else emptyPages.push(p);
       }
-      if (line.trim()) parts.push(line);
-      else emptyPages.push(p);
-    }
 
-    return {
-      text: parts.join("\n").normalize("NFC"),
-      items,
-      emptyPages,
-      pageCount: doc.numPages,
-    };
+      return {
+        text: parts.join("\n").normalize("NFC"),
+        items,
+        emptyPages,
+        pageCount: doc.numPages,
+      };
+    } finally {
+      // 498 — 서버리스 메모리: 문서 핸들 해제
+      if (typeof doc.destroy === "function") await doc.destroy().catch(() => undefined);
+    }
   } catch {
     return null;
   }

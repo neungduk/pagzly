@@ -1,13 +1,15 @@
 /**
- * 485/495 — 화장품 표시사항 PDF 검수 API.
+ * 485/495/498 — 화장품 표시사항 PDF 검수 API.
  * 메모리 점검. 로그인+save=true 일 때만 결과 요약 저장(원문·파일명 금지).
  */
-import { NextResponse } from "next/server";
-import { ERR_SERVER_495 } from "@/lib/label-check/member-constants";
+import { labelCheckErrorResponse } from "@/lib/label-check/api-errors";
 import { saveLabelCheckRun } from "@/lib/label-check/save-run";
 import {
-  ERR_RATE_485,
+  ERR_NOT_PDF_485,
+  ERR_TIMEOUT_485,
   ERR_TOO_LARGE_485,
+  ERR_TOO_MANY_PAGES_485,
+  ERR_UNREADABLE_PDF_485,
   MAX_PDF_BYTES_483,
 } from "@/lib/label-check/types";
 import { runLabelCheck483 } from "@/lib/label-check/run-check";
@@ -24,6 +26,17 @@ import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+/** 498 — 추출 20s + 여유. Next는 리터럴 export만 허용 */
+export const maxDuration = 30;
+
+function mapUploadError(message: string) {
+  if (message === ERR_TOO_LARGE_485) return labelCheckErrorResponse("TOO_LARGE", 400);
+  if (message === ERR_NOT_PDF_485) return labelCheckErrorResponse("NOT_PDF", 400);
+  if (message === ERR_TOO_MANY_PAGES_485) return labelCheckErrorResponse("TOO_MANY_PAGES", 400);
+  if (message === ERR_TIMEOUT_485) return labelCheckErrorResponse("TIMEOUT", 408);
+  if (message === ERR_UNREADABLE_PDF_485) return labelCheckErrorResponse("UNREADABLE", 400);
+  return labelCheckErrorResponse("SERVER", 500);
+}
 
 export async function POST(req: Request) {
   try {
@@ -37,10 +50,9 @@ export async function POST(req: Request) {
     const rateKey = user ? `u:${user.id}` : `ip:${ip}`;
     const rate = limiter.check(rateKey);
     if (!rate.allowed) {
-      return NextResponse.json(
-        { error: ERR_RATE_485 },
-        { status: 429, headers: { "Retry-After": String(rate.retryAfterSec) } },
-      );
+      return labelCheckErrorResponse("RATE_LIMIT", 429, {
+        "Retry-After": String(rate.retryAfterSec),
+      });
     }
 
     const form = await req.formData();
@@ -58,25 +70,25 @@ export async function POST(req: Request) {
     const productName = productNameRaw ? productNameRaw.slice(0, 80) : null;
 
     if (!file || !(file instanceof File)) {
-      return NextResponse.json({ error: "PDF 파일이 필요합니다." }, { status: 400 });
+      return labelCheckErrorResponse("NO_FILE", 400);
     }
     if (file.size > MAX_PDF_BYTES_483) {
-      return NextResponse.json({ error: ERR_TOO_LARGE_485 }, { status: 400 });
+      return labelCheckErrorResponse("TOO_LARGE", 400);
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const sigErr = assertPdfSignature(buffer);
     if (sigErr) {
-      return NextResponse.json({ error: sigErr }, { status: 400 });
+      return mapUploadError(sigErr);
     }
 
     const pageInfo = await countPdfPages(buffer);
     if ("error" in pageInfo) {
-      return NextResponse.json({ error: pageInfo.error }, { status: 400 });
+      return mapUploadError(pageInfo.error);
     }
     const pageErr = assertPageLimit(pageInfo.pages);
     if (pageErr) {
-      return NextResponse.json({ error: pageErr }, { status: 400 });
+      return mapUploadError(pageErr);
     }
 
     const timed = await withExtractTimeout(
@@ -92,7 +104,7 @@ export async function POST(req: Request) {
     );
     if (!timed.ok) {
       console.warn("[label-check] extract-limit");
-      return NextResponse.json({ error: timed.error }, { status: 408 });
+      return mapUploadError(timed.error);
     }
 
     const result = timed.value;
@@ -124,13 +136,13 @@ export async function POST(req: Request) {
     console.log(
       `[label-check] ok readable=${result.readable} skip=${Boolean(result.skipJudgment)} findings=${result.findings.length} saved=${Boolean(savedId)}`,
     );
-    return NextResponse.json({
+    return Response.json({
       ...result,
       savedId,
       saveError,
     });
   } catch {
     console.warn("[label-check] failed");
-    return NextResponse.json({ error: ERR_SERVER_495 }, { status: 500 });
+    return labelCheckErrorResponse("SERVER", 500);
   }
 }
