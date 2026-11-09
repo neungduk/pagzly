@@ -1,0 +1,76 @@
+{
+ "meta": {
+  "version": "draft_v0.1",
+  "date": "2026-11-10",
+  "note": "누락 항목을 채울 때 쓰는 빈칸 템플릿. 대괄호는 사용자가 채울 자리. KR-LBL-009 문구는 시행규칙 별표3 제1호 원문. 나머지는 형식 예시(원문 문구 아님)."
+ },
+ "KR": [
+  {
+   "rule_id": "KR-LBL-001",
+   "label": "제품명",
+   "template": "[제품명]"
+  },
+  {
+   "rule_id": "KR-LBL-002",
+   "label": "영업자",
+   "template": "화장품책임판매업자: [상호] / [영업소 주소]"
+  },
+  {
+   "rule_id": "KR-LBL-003",
+   "label": "전성분",
+   "template": "전성분: [성분1], [성분2], … (함량 많은 순)"
+  },
+  {
+   "rule_id": "KR-LBL-004",
+   "label": "내용량",
+   "template": "내용량: [숫자] mL(또는 g)"
+  },
+  {
+   "rule_id": "KR-LBL-005",
+   "label": "제조번호",
+   "template": "제조번호: [제조번호 또는 '별도 표기']"
+  },
+  {
+   "rule_id": "KR-LBL-006",
+   "label": "사용기한",
+   "template": "사용기한: [YYYY.MM.DD]까지  (또는 개봉 후 사용기간: [12]개월 + 제조연월일: [YYYY.MM.DD])"
+  },
+  {
+   "rule_id": "KR-LBL-009",
+   "label": "주의사항",
+   "template": "사용할 때의 주의사항: 1) 화장품 사용 시 또는 사용 후 직사광선에 의하여 사용부위가 붉은 반점, 부어오름 또는 가려움증 등의 이상 증상이나 부작용이 있는 경우에는 전문의 등과 상담할 것 2) 상처가 있는 부위 등에는 사용을 자제할 것 3) 보관 및 취급 시 주의사항 가) 어린이의 손이 닿지 않는 곳에 보관할 것 나) 직사광선을 피해서 보관할 것"
+  }
+ ],
+ "US": [
+  {
+   "rule_id": "US-002",
+   "label": "Identity",
+   "template": "[Product type, e.g. Hydrating Face Serum]"
+  },
+  {
+   "rule_id": "US-003",
+   "label": "Net quantity",
+   "template": "NET [1.7] FL OZ ([50] mL)"
+  },
+  {
+   "rule_id": "US-004",
+   "label": "Business",
+   "template": "Distributed by [Company], [Street], [City], [ST] [ZIP]"
+  },
+  {
+   "rule_id": "US-005",
+   "label": "Origin",
+   "template": "Made in [Country]"
+  },
+  {
+   "rule_id": "US-006",
+   "label": "Ingredients",
+   "template": "Ingredients: [Ingredient 1], [Ingredient 2], …"
+  },
+  {
+   "rule_id": "US-010",
+   "label": "Contact",
+   "template": "Questions or adverse events? [Phone] or [Email]"
+  }
+ ]
+}

@@ -1,0 +1,161 @@
+{
+ "meta": {
+  "version": "draft_v0.1",
+  "date": "2026-11-10",
+  "source": "식약처 화장품 표시·광고 관리 지침(2025.8.14.) 별표1 비고",
+  "source_verified": true,
+  "usage": "광고 스캐너가 target_id 항목의 패턴을 찾았을 때, 같은 문장 안에서 조건을 검사. result: exception_possible=상태를 '예외 조건 해당 가능 — 확인'으로 낮추고 text_ko 표시 / not_applicable=해당 일치 제외 / evidence_required=실증 필요로 표시 / needs_disclaimer=병기 문구 안내. product_condition이 있으면 제품 유형 입력이 그 유형일 때만 완전히 낮추고, 유형 미입력이면 '색조 제품이면 예외' 안내를 덧붙임. 문장 경계는 마침표·줄바꿈·느낌표·물음표.",
+  "caution": "예외 판정도 확정이 아니다. 화면 문구는 '예외에 해당할 수 있어요'까지만."
+ },
+ "rules": [
+  {
+   "id": "EXC-01",
+   "target_id": "MFDS-003",
+   "pattern": "가려움",
+   "requires_all_in_sentence": [
+    "보습",
+    "일시적"
+   ],
+   "result": "exception_possible",
+   "text_ko": "보습을 통해 피부건조에 기인한 가려움의 일시적 완화에 도움을 준다는 표현은 제외('보습'과 '일시적'이 모두 있을 때만)",
+   "source": "식약처 화장품 표시·광고 관리 지침(2025.8.14.) 별표1 비고 p.10"
+  },
+  {
+   "id": "EXC-02",
+   "target_id": "MFDS-003",
+   "pattern_any": [
+    "흉터",
+    "여드름"
+   ],
+   "requires_any_in_sentence": [
+    "가려",
+    "커버"
+   ],
+   "product_condition": "색조 화장용 제품류",
+   "result": "exception_possible",
+   "text_ko": "색조 화장용 제품류에서 흔적을 '가려준다'는 표현은 제외",
+   "source": "식약처 화장품 표시·광고 관리 지침(2025.8.14.) 별표1 비고 p.10"
+  },
+  {
+   "id": "EXC-03",
+   "target_id": "MFDS-006",
+   "pattern_any": [
+    "얼굴 윤곽",
+    "V라인",
+    "브이라인"
+   ],
+   "requires_any_in_sentence": [
+    "연출"
+   ],
+   "product_condition": "색조 화장용 제품류",
+   "result": "exception_possible",
+   "text_ko": "색조 화장용 제품류에서 '연출한다'는 의미를 함께 나타내면 제외",
+   "source": "식약처 화장품 표시·광고 관리 지침(2025.8.14.) 별표1 비고 p.11"
+  },
+  {
+   "id": "EXC-04",
+   "target_id": "MFDS-012",
+   "pattern": "필러",
+   "requires_any_in_sentence": [
+    "채워",
+    "연출"
+   ],
+   "product_condition": "색조 화장용 제품류",
+   "result": "exception_possible",
+   "text_ko": "색조 제품에서 '채워준다·연출한다' 의미를 함께 나타내면 제외",
+   "source": "식약처 화장품 표시·광고 관리 지침(2025.8.14.) 별표1 비고 p.13"
+  },
+  {
+   "id": "EXC-05",
+   "target_id": "MFDS-012",
+   "pattern": "노폐물",
+   "requires_any_in_sentence": [
+    "피부",
+    "모공"
+   ],
+   "forbid_in_sentence": [
+    "체내"
+   ],
+   "result": "not_applicable",
+   "text_ko": "피부·모공 노폐물 제거 표현은 제외(체내 노폐물만 금지)",
+   "source": "식약처 화장품 표시·광고 관리 지침(2025.8.14.) 별표1 비고 p.13"
+  },
+  {
+   "id": "EXC-06",
+   "target_id": "MFDS-013",
+   "pattern_any": [
+    "엑소좀",
+    "exosome",
+    "줄기세포"
+   ],
+   "requires_any_in_sentence": [
+    "식물",
+    "우유",
+    "유래"
+   ],
+   "forbid_in_sentence": [
+    "인체",
+    "사람"
+   ],
+   "result": "exception_possible",
+   "text_ko": "식물 등 인체 외에서 유래한 경우(예: 우유 엑소좀, 식물 엑소좀)는 제외",
+   "source": "식약처 화장품 표시·광고 관리 지침(2025.8.14.) 별표1 비고 p.13"
+  },
+  {
+   "id": "EXC-07",
+   "target_id": "MFDS-016",
+   "pattern_any": [
+    "식약처",
+    "식품의약품안전처"
+   ],
+   "requires_any_in_sentence": [
+    "기능성화장품 심사",
+    "기능성화장품 보고",
+    "심사(보고)"
+   ],
+   "result": "exception_possible",
+   "text_ko": "기능성화장품 심사(보고) 관련 표현은 제외",
+   "source": "식약처 화장품 표시·광고 관리 지침(2025.8.14.) 별표1 비고 p.14"
+  },
+  {
+   "id": "EXC-08",
+   "target_id": "MFDS-018",
+   "pattern_any": [
+    "천연",
+    "유기농"
+   ],
+   "requires_any_in_sentence": [
+    "ISO 16128"
+   ],
+   "result": "needs_disclaimer",
+   "text_ko": "ISO 16128 지수 표시는 가능하나 '천연화장품(유기농화장품) 아님' 등 오인 방지 문구 병기 필요",
+   "source": "지침 주의사항 8"
+  },
+  {
+   "id": "EXC-09",
+   "target_id": "MFDS-002",
+   "pattern": "여드름",
+   "requires_all_in_sentence": [
+    "여드름성 피부",
+    "적합"
+   ],
+   "result": "evidence_required",
+   "text_ko": "'여드름성 피부에 사용에 적합'은 인체적용시험 자료로 입증하면 가능(별표2 1.)",
+   "source": "지침 별표2 p.15"
+  },
+  {
+   "id": "EXC-10",
+   "target_id": "MFDS-002",
+   "pattern_any": [
+    "기미",
+    "주근깨"
+   ],
+   "requires_any_in_sentence": [
+    "완화에 도움"
+   ],
+   "result": "evidence_required",
+   "text_ko": "'기미, 주근깨 완화에 도움'은 미백 기능성화장품 심사(보고) 자료로 입증하면 가능(별표2 1.)",
+   "source": "지침 별표2 p.15"
+  }
+ ]
+}

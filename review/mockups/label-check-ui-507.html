@@ -1,0 +1,121 @@
+<title>Pagzly 라벨 점검 시안</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<style>
+:root{
+  --paper:#f6f4ef; --card:#ffffff; --ink:#1c2430; --sub:#5b6573; --line:#e3ded3;
+  --brand:#1f4d3f; --brand-ink:#ffffff; --brand-soft:#e4efe9;
+  --bad:#b3261e; --bad-soft:#fbe9e7; --warn:#8a5a00; --warn-soft:#fdf1d6;
+  --unk:#4b5563; --unk-soft:#eceef1; --ok:#1f6b3a; --ok-soft:#e3f3e8;
+  --mark:#ffe08a; color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:"Noto Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:15px;line-height:1.6;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding-block:20px 120px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+.note{font-size:12px;color:var(--sub);border:1px dashed var(--line);border-radius:8px;padding:8px 12px;background:var(--card)}
+h1{font-size:22px;font-weight:900;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h2{font-size:13px;font-weight:700;color:var(--sub);margin:0;letter-spacing:.06em}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.steps{display:flex;gap:6px;font-size:12px;color:var(--sub);flex-wrap:wrap}
+.steps b{background:var(--brand);color:var(--brand-ink);border-radius:999px;padding:2px 10px;font-weight:700}
+.steps span{border:1px solid var(--line);border-radius:999px;padding:2px 10px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg button,.tabs button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:12px;font-weight:700;cursor:pointer}
+.seg .on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand)}
+.drop{border:2px dashed var(--brand);border-radius:12px;padding:26px 14px;text-align:center;background:var(--brand-soft);color:var(--brand)}
+.drop b{display:block;font-size:16px}
+.drop small{color:var(--sub)}
+.or{display:flex;gap:8px;align-items:center;color:var(--sub);font-size:12px}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+textarea{font:inherit;width:100%;min-height:74px;border:1px solid var(--line);border-radius:10px;padding:10px;resize:vertical;background:var(--card);color:var(--ink)}
+.cta{font:inherit;font-weight:900;font-size:16px;background:var(--brand);color:var(--brand-ink);border:0;border-radius:12px;padding:14px;cursor:pointer}
+.score{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.score div{border-radius:12px;padding:10px 6px;text-align:center;font-size:12px;font-weight:700}
+.score b{display:block;font-size:24px;font-weight:900;line-height:1.2}
+.s-bad{background:var(--bad-soft);color:var(--bad)}.s-warn{background:var(--warn-soft);color:var(--warn)}
+.s-unk{background:var(--unk-soft);color:var(--unk)}.s-ok{background:var(--ok-soft);color:var(--ok)}
+.verdict{font-size:17px;font-weight:900;margin:0}
+.verdict small{display:block;font-size:13px;font-weight:400;color:var(--sub)}
+.tabs{display:flex;gap:6px;overflow-x:auto}
+.tabs button{padding:8px 14px;border-radius:999px;font-size:13px;white-space:nowrap}
+.tabs .on{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.item{border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--card)}
+.item.bad{border-left:5px solid var(--bad)}.item.warn{border-left:5px solid var(--warn)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chip{font-size:11px;font-weight:700;border-radius:999px;padding:2px 9px}
+.c-bad{background:var(--bad-soft);color:var(--bad)}.c-warn{background:var(--warn-soft);color:var(--warn)}
+.item h3{font-size:16px;margin:0;font-weight:700;min-width:0}
+.quote{background:var(--paper);border-radius:8px;padding:9px 11px;font-size:14px}
+mark{background:var(--mark);color:inherit;padding:0 2px;border-radius:3px}
+.fix{background:var(--brand-soft);border-radius:10px;padding:11px;display:flex;flex-direction:column;gap:8px}
+.fix b{font-size:12px;color:var(--brand);letter-spacing:.04em}
+.alt{display:flex;gap:8px;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px}
+.alt span{min-width:0}
+.copy{font:inherit;font-size:12px;font-weight:700;border:1px solid var(--brand);color:var(--brand);background:var(--card);border-radius:8px;padding:5px 10px;cursor:pointer;white-space:nowrap}
+details{font-size:13px;color:var(--sub)}summary{cursor:pointer;font-weight:500}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--ink);color:var(--card);padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.bar div{max-width:760px;margin:0 auto;display:flex;gap:10px;align-items:center;justify-content:space-between;font-size:13px}
+.bar button{font:inherit;font-weight:900;background:var(--mark);color:var(--ink);border:0;border-radius:10px;padding:10px 14px;cursor:pointer;white-space:nowrap}
+.fine{font-size:12px;color:var(--sub)}
+</style>
+
+<div class="wrap">
+  <div class="note">화면 시안(507차 구현 기준). 데이터는 가상 브랜드 "모아리 수분 토너" 예시입니다.</div>
+
+  <h2>① 올리기</h2>
+  <section class="card">
+    <h1>화장품 라벨·광고 문구, 인쇄 전에 한 번 더 확인하세요</h1>
+    <div class="steps"><b>1 올리기</b><span>2 결과 보기</span><span>3 고쳐서 다시 점검</span></div>
+    <div class="seg" role="radiogroup" aria-label="판매 국가">
+      <button class="on" role="radio" aria-checked="true">🇰🇷 한국에서 판매</button>
+      <button role="radio" aria-checked="false">🇺🇸 미국에서 판매</button>
+    </div>
+    <div class="drop"><b>PDF를 여기에 놓거나 눌러서 선택</b><small>파일은 내 컴퓨터에서 글자만 읽습니다 · 최대 100MB</small></div>
+    <div class="or">또는 문구만 붙여넣기</div>
+    <textarea aria-label="문구 붙여넣기" placeholder="상세페이지·라벨 문구를 붙여넣으세요. 예) 기미·주근깨 완화, 피부 재생…"></textarea>
+    <details><summary>제품 정보 선택 (더 정확해져요)</summary>씻어내는 제품 · 기능성화장품 · 수입품 · 제품 유형(팩, 샴푸 등)</details>
+    <button class="cta">무료로 점검하기</button>
+    <p class="fine">참고용 사전 점검이며 법적 판단이 아닙니다.</p>
+  </section>
+
+  <h2>② 결과</h2>
+  <section class="card">
+    <p class="verdict">먼저 고칠 곳이 2군데 있어요<small>모아리 수분 토너 · 한국 기준 · 점검 기준: 규칙표 v0.2 (2026-11-10)</small></p>
+    <div class="score">
+      <div class="s-bad"><b>2</b>고칠 것</div>
+      <div class="s-warn"><b>3</b>확인할 것</div>
+      <div class="s-unk"><b>1</b>확인 못 함</div>
+      <div class="s-ok"><b>14</b>문제 없음</div>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="on" role="tab" aria-selected="true">고칠 것 2</button><button role="tab">확인할 것 3</button><button role="tab">확인 못 함 1</button><button role="tab">문제 없음 14</button>
+    </div>
+
+    <article class="item bad">
+      <div class="row"><span class="chip c-bad">고칠 것</span><h3>사용기한이 보이지 않아요</h3></div>
+      <div class="fix"><b>이렇게 넣으세요</b>
+        <div class="alt"><span>사용기한: [YYYY.MM.DD]까지</span><button class="copy">복사</button></div>
+        <div class="alt"><span>개봉 후 사용기간: [12]개월 · 제조연월일: [YYYY.MM.DD]</span><button class="copy">복사</button></div>
+      </div>
+      <details><summary>왜 필요한가요? (근거)</summary>화장품법 제10조, 시행규칙 별표 4 제6호. 개봉 후 사용기간을 쓰면 제조연월일을 함께 표시합니다.</details>
+    </article>
+
+    <article class="item bad">
+      <div class="row"><span class="chip c-bad">고칠 것</span><h3>의약품처럼 보일 수 있는 표현</h3></div>
+      <div class="quote">“<mark>피부 재생</mark> · 주름 <mark>완전 제거</mark>”</div>
+      <div class="fix"><b>이렇게 바꿔 보세요 (예시)</b>
+        <div class="alt"><span>피부를 매끄럽게 가꿔줍니다</span><button class="copy">복사</button></div>
+        <div class="alt"><span>피부에 탄력을 줍니다</span><button class="copy">복사</button></div>
+      </div>
+      <details><summary>왜 문제인가요? (근거)</summary>식약처 화장품 표시·광고 관리 지침 별표 1 — 생리활성 관련 금지표현 “피부재생, 세포 재생”.</details>
+    </article>
+
+    <article class="item warn">
+      <div class="row"><span class="chip c-warn">확인할 것</span><h3>향료 속 알레르기 성분 글자가 작아요</h3></div>
+      <div class="quote">“<mark>리모넨, 리날룰</mark>” — 3pt로 읽혔어요 (기준 5pt 이상)</div>
+      <div class="fix"><b>이렇게 하세요</b><div class="alt"><span>전성분 글자를 5pt 이상으로 키우세요</span></div></div>
+    </article>
+  </section>
+</div>
+
+<div class="bar"><div><span>고칠 문구 4개를 한 번에 복사하고, 고친 뒤 다시 점검하세요</span><button>수정안 모두 복사</button></div></div>
