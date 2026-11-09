@@ -13,6 +13,7 @@ import {
   hasPdfSignature,
 } from "../../lib/label-check/safe-upload";
 import { labelContactEmail } from "../../lib/label-check/contact";
+import { FOUND_CONFIRMED_488, FOUND_SNIPPET_MAX_488 } from "../../lib/label-check/format-found";
 import {
   DISCLAIMER_483,
   ERR_NOT_PDF_485,
@@ -25,7 +26,29 @@ import {
 } from "../../lib/label-check/types";
 import sampleResultA from "../../lib/label-check/sample-result-a.json";
 
-export const name = "표시사항 486 — 파일럿 소개·샘플·문의·noindex·A/B/C";
+export const name = "표시사항 488 — 탭제목·찾은내용·파일럿·A/B/C";
+
+/** 이전 차수와 동일한 판정 집계(표시만 바뀜) */
+const EXPECT_SUMMARY = {
+  A: { possible: 3, attention: 5, unknown: 0, pass: 11 },
+  B: { possible: 2, attention: 3, unknown: 0, pass: 16 },
+  C: { possible: 0, attention: 4, unknown: 0, pass: 15 },
+} as const;
+
+function coreSnippet(found: string): string {
+  return found.replace(/\s*—\s*주소 표기 확인 필요\s*$/, "");
+}
+
+function assertSummary(
+  f: string[],
+  tag: string,
+  got: { possible: number; attention: number; unknown: number; pass: number },
+  exp: { possible: number; attention: number; unknown: number; pass: number },
+) {
+  if (got.possible !== exp.possible || got.attention !== exp.attention || got.unknown !== exp.unknown || got.pass !== exp.pass) {
+    f.push(`${tag}: summary ${JSON.stringify(got)} ≠ ${JSON.stringify(exp)}`);
+  }
+}
 
 const samples = path.join(process.cwd(), "review", "data", "samples");
 const gens = path.join(samples, "generators-484");
@@ -80,6 +103,7 @@ export async function run(): Promise<string[]> {
     const blob = JSON.stringify(r);
     if (/"id"\s*:\s*"KR-/.test(blob) || blob.includes("KR-LBL-001")) f.push("A: 내부 rule id 노출");
     if (r.findings.some((x) => x.status === ("위반" as typeof x.status))) f.push("A: status에 단정 위반");
+    assertSummary(f, "A", r.summary, EXPECT_SUMMARY.A);
   }
 
   // B
@@ -88,6 +112,7 @@ export async function run(): Promise<string[]> {
     const r = await runLabelCheck483(buf, { rinseOff: false, functional: true });
     if (!anyStatus(r.findings, ["possible", "attention"], "제조번호")) f.push("B: 제조번호 누락 미검출");
     if (!anyStatus(r.findings, ["possible", "attention"], "기능성")) f.push("B: 기능성 표기 확인 필요 미검출");
+    assertSummary(f, "B", r.summary, EXPECT_SUMMARY.B);
   }
 
   // C
@@ -99,6 +124,7 @@ export async function run(): Promise<string[]> {
       f.push("C: 피부 장벽 강화 확인 필요 미검출");
     }
     if (r.summary.pass < 8) f.push(`C: 통과 ${r.summary.pass} < 8`);
+    assertSummary(f, "C", r.summary, EXPECT_SUMMARY.C);
   }
 
   // 시그니처 불일치
@@ -242,6 +268,51 @@ export async function run(): Promise<string[]> {
       if (fs.existsSync(full)) {
         const s = fs.readFileSync(full, "utf8");
         if (/label-check/.test(s)) f.push(`486: 사이트맵에 label-check — ${p}`);
+      }
+    }
+  }
+
+  // 488 — 탭 제목 · 찾은 내용 표시
+  {
+    const layout = fs.readFileSync(path.join(process.cwd(), "app/label-check/layout.tsx"), "utf8");
+    if (!layout.includes("화장품 표시사항 PDF 검수 | Pagzly")) f.push("488: title 문자열 없음");
+    if (!/noindex|index:\s*false/.test(layout)) f.push("488: noindex 유지 실패");
+
+    const buf = fs.readFileSync(path.join(samples, "sample_A_moari_toner.pdf"));
+    const r = await runLabelCheck483(buf, { rinseOff: false, functional: false });
+    for (const row of r.findings) {
+      if (row.status === "pass") {
+        const ok =
+          row.found === FOUND_CONFIRMED_488 ||
+          row.found === "해당 주의 문구 키워드 없음" ||
+          row.found.startsWith("감지된 크기") ||
+          row.found.includes("알레르기 초안");
+        if (!ok) f.push(`488: 통과 항목 조각 노출 — ${row.label}: ${row.found.slice(0, 40)}`);
+        continue;
+      }
+      const core = coreSnippet(row.found);
+      // 실제 부착(구분자·공백 없이 붙은 경우). ` · ` 제거 후 검사하면 인접 조각이 오탐됨
+      if (/Toner피부|제거내용량/.test(core)) f.push(`488: 단어 중간/부착 — ${row.label}`);
+      // 조각(… 포함)은 ≤60. 고정 안내 문구는 제외
+      if (/…/.test(core) && [...core].length > FOUND_SNIPPET_MAX_488) {
+        f.push(`488: 조각 길이 ${[...core].length} > ${FOUND_SNIPPET_MAX_488} — ${row.label}`);
+      }
+      // 단어 중간 시작: 생략 기호 직후 소문자 영문, 또는 생략 없이 소문자로 시작
+      if (/…[a-z]/.test(core) || /^[a-z]/.test(core)) {
+        f.push(`488: 단어 중간 시작 — ${row.label}: ${core.slice(0, 24)}`);
+      }
+    }
+
+    for (const row of sampleResultA.result.findings) {
+      if (row.status === "pass" && row.found !== FOUND_CONFIRMED_488 && row.found !== "해당 주의 문구 키워드 없음" && !String(row.found).startsWith("감지된")) {
+        // 샘플 JSON도 동일 규칙
+        if (!String(row.found).includes("알레르기 초안")) {
+          f.push(`488: sample JSON 통과 조각 — ${row.label}`);
+        }
+      }
+      const s = String(row.found);
+      if (/Toner피부|제거내용량/.test(s) || /…[a-z]/.test(s)) {
+        f.push(`488: sample JSON 부착 조각 — ${row.label}`);
       }
     }
   }
