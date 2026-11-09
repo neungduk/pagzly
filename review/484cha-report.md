@@ -50,5 +50,5 @@
 
 ## Push
 - branch: `cloud-work` → `origin/cloud-work` (**main 미푸시**)
-- tip: (커밋 후 `git log -1`로 갱신)
-- 항목: targets `e2262fa` → A notes `4a5c422` → B extract `5920e23` → C judgment `abfa98d` → D regression `4d20e82` → E report (본 커밋)
+- tip: `46eae17` (`docs(484): add cha report for real-PDF label-check accuracy`)
+- 항목: targets `e2262fa` → A `4a5c422` → B `5920e23` → C `abfa98d` → D `4d20e82` → E `46eae17`
