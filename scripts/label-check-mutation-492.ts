@@ -206,50 +206,50 @@ export function buildMutationCases(): MutationCase[] {
       id: "inject-forbidden",
       desc: "금지 키워드(피부 재생) 주입",
       fields: { ...all, name: "솔트 바디워시 피부 재생" },
-      expectFailLabel: "의약품 효능·효과 표방(약리·신체 변화)",
+      expectFailLabel: "피부 관련 의학적 표현(튼살·디톡스·흉터·가려움·홍조 등)",
     },
-    // 493 — 광고 표현 변이(항목 제목 = ad-phrases title)
+    // 493/504 — 광고 표현 변이(v0.2 항목 제목)
     {
       id: "ad-whitening",
       desc: "미백 주입",
       fields: { ...all, name: "솔트 바디워시 미백" },
-      expectFailLabel: "미백 표현(기능성 심사·보고 제품만)",
+      expectFailLabel: "미백·주름개선·자외선차단 등 기능성 표현",
     },
     {
       id: "ad-wrinkle",
       desc: "주름개선 주입",
       fields: { ...all, name: "솔트 바디워시 주름개선" },
-      expectFailLabel: "주름 개선 표현(기능성 제품만)",
+      expectFailLabel: "미백·주름개선·자외선차단 등 기능성 표현",
     },
     {
       id: "ad-hospital",
       desc: "병원용 주입",
       fields: { ...all, name: "솔트 바디워시 병원용" },
-      expectFailLabel: "의료인·의료기관 추천·보증",
+      expectFailLabel: "병원·의사·약국 지정·추천 표현",
     },
     {
       id: "ad-stem",
       desc: "줄기세포·엑소좀 주입",
       fields: { ...all, name: "솔트 바디워시 줄기세포 엑소좀" },
-      expectFailLabel: "인체 유래·줄기세포·엑소좀",
+      expectFailLabel: "인체 유래 성분 오인 표현(줄기세포·엑소좀)",
     },
     {
       id: "ad-age",
       desc: "피부나이 주입",
-      fields: { ...all, name: "솔트 바디워시 피부나이 5세" },
-      expectFailLabel: "피부 나이 표현",
+      fields: { ...all, name: "솔트 바디워시 피부나이 -3살" },
+      expectFailLabel: "피부 나이 n세 감소·어려짐 표현",
     },
     {
       id: "ad-super",
-      desc: "최고·즉시 주입",
-      fields: { ...all, name: "솔트 바디워시 최고 즉시" },
-      expectFailLabel: "절대적·즉각적·최상급 표현",
+      desc: "무첨가 주입(실증)",
+      fields: { ...all, name: "솔트 바디워시 무첨가" },
+      expectFailLabel: "'무(無) ○○' 및 타제품 비교 표현",
     },
     {
       id: "ad-pct",
       desc: "30% 개선 주입",
       fields: { ...all, name: "솔트 바디워시 30% 개선" },
-      expectFailLabel: "수치·기간·비교 표현",
+      expectFailLabel: "수치·기간·시험 결과 표현",
     },
   ];
   return cases;

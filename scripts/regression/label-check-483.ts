@@ -32,10 +32,11 @@ export const name = "표시사항 488 — 탭제목·찾은내용·파일럿·A/
 /** 이전 차수와 동일한 판정 집계(표시만 바뀜) */
 /** 492: 소용량 규칙을 skip_info로 교정 → pass 각 1건 감소 */
 /** 493: A는 ad-phrases로 광고 확인 필요 항목이 세분되어 attention +2 */
+/** 504: v0.2 광고·주의·별표4로 A/C attention 재집계 */
 const EXPECT_SUMMARY = {
-  A: { possible: 3, attention: 7, unknown: 0, pass: 10 },
+  A: { possible: 3, attention: 5, unknown: 0, pass: 10 },
   B: { possible: 2, attention: 3, unknown: 0, pass: 15 },
-  C: { possible: 0, attention: 4, unknown: 0, pass: 14 },
+  C: { possible: 0, attention: 5, unknown: 0, pass: 14 },
 } as const;
 
 function coreSnippet(found: string): string {

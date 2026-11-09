@@ -153,6 +153,12 @@ export function ResultPanel({
                 </div>
                 {!summaryOnly && f.found ? <p className="mt-1 text-[#333]">{f.found}</p> : null}
                 <p className="mt-0.5 text-[#555]">{summaryOnly ? f.suggest : f.suggest}</p>
+                {!summaryOnly && f.exceptionNote ? (
+                  <details className="mt-2 rounded-md border border-[#EDE4CF] bg-[#FFFCF5] px-2 py-1">
+                    <summary className="cursor-pointer text-xs font-semibold text-[#6B5A2E]">예외</summary>
+                    <p className="mt-1 text-xs leading-relaxed text-[#444]">예외: {f.exceptionNote}</p>
+                  </details>
+                ) : null}
                 {!summaryOnly && needsFixPanel(f) ? (
                   <details className="mt-2 rounded-md border border-[#EDE4CF] bg-[#FFFCF5] px-2 py-1">
                     <summary className="cursor-pointer text-xs font-semibold text-[#6B5A2E]">

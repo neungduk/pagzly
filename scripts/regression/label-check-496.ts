@@ -18,7 +18,8 @@ export async function run(): Promise<string[]> {
 
   const cov = krFixSuggestionCoverage496();
   if (cov.missing.length) f.push(`496: 제안 누락 ${cov.missing.join(",")}`);
-  if (cov.required.length < 50) f.push(`496: required 부족 ${cov.required.length}`);
+  // 504: 광고는 항목 fix_ko → required는 KR 규칙만(~30+)
+  if (cov.required.length < 25) f.push(`496: required 부족 ${cov.required.length}`);
   if (Object.keys(loadKrFixSuggestions496()).length < 50) f.push("496: suggestions 부족");
 
   // 부착: 용량 누락 → fix_ko 있어야

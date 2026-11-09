@@ -43,6 +43,7 @@ async function postExtracted(
     professionalUse: Boolean(opts.professionalUse),
     hazardous: Boolean(opts.hazardous),
     otcDrugLike: Boolean(opts.otcDrugLike),
+    productTypes: (opts.productTypes || []).join(","),
     save: Boolean(opts.save),
     productName: opts.productName ?? "",
   });
@@ -67,6 +68,7 @@ async function postFile(file: File, opts: ClientSubmitOptions): Promise<Response
   fd.set("professionalUse", String(Boolean(opts.professionalUse)));
   fd.set("hazardous", String(Boolean(opts.hazardous)));
   fd.set("otcDrugLike", String(Boolean(opts.otcDrugLike)));
+  fd.set("productTypes", (opts.productTypes || []).join(","));
   fd.set("save", String(Boolean(opts.save)));
   fd.set("productName", opts.productName ?? "");
   return fetch("/api/label-check", { method: "POST", body: fd });

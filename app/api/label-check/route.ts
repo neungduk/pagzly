@@ -68,6 +68,10 @@ function parseOptions(src: Record<string, unknown> | FormData): {
       professionalUse: bool("professionalUse"),
       hazardous: bool("hazardous"),
       otcDrugLike: bool("otcDrugLike"),
+      productTypes: get("productTypes")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
     },
     save: bool("save"),
     productName: productNameRaw ? productNameRaw.slice(0, 80) : null,

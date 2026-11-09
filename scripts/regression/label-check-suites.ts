@@ -16,6 +16,7 @@ import * as labelCheck499 from "./label-check-499";
 import * as labelCheck500 from "./label-check-500";
 import * as labelRulesValidate501 from "./label-rules-validate-501";
 import * as labelCheck501 from "./label-check-501";
+import * as labelCheck504 from "./label-check-504";
 
 export type LabelCheckSuite = {
   name: string;
@@ -37,4 +38,5 @@ export const LABEL_CHECK_SUITES: LabelCheckSuite[] = [
   labelCheck500,
   labelRulesValidate501,
   labelCheck501,
+  labelCheck504,
 ];

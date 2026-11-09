@@ -21,6 +21,7 @@ export default function LabelCheckNewPage() {
   const [market, setMarket] = useState<LabelMarket>("KR");
   const [rinseOff, setRinseOff] = useState(false);
   const [functional, setFunctional] = useState(false);
+  const [productTypes, setProductTypes] = useState<string[]>([]);
   const [imported, setImported] = useState(false);
   const [professionalUse, setProfessionalUse] = useState(false);
   const [hazardous, setHazardous] = useState(false);
@@ -70,6 +71,7 @@ export default function LabelCheckNewPage() {
           professionalUse,
           hazardous,
           otcDrugLike,
+          productTypes,
           save: true,
           productName: productName.trim().slice(0, 80),
         },
@@ -170,6 +172,38 @@ export default function LabelCheckNewPage() {
                       />
                       기능성화장품
                     </label>
+                    <details className="rounded-md border border-[#E5DCC8] bg-white px-3 py-2">
+                      <summary className="cursor-pointer text-sm font-semibold text-[#6B5A2E]">
+                        세부 유형(주의사항) — 해당 시에만
+                      </summary>
+                      <div className="mt-2 grid gap-1.5">
+                        {(
+                          [
+                            ["scrub", "스크럽"],
+                            ["pack", "팩"],
+                            ["shampoo", "샴푸"],
+                            ["vulva", "외음부세정제"],
+                            ["softener", "손발연화"],
+                            ["deodorant", "체취방지"],
+                            ["spray_sunscreen", "분무형 자외선차단"],
+                            ["aerosol", "에어로졸"],
+                          ] as const
+                        ).map(([id, label]) => (
+                          <label key={id} className="flex items-center gap-2 font-normal">
+                            <input
+                              type="checkbox"
+                              checked={productTypes.includes(id)}
+                              onChange={(e) => {
+                                setProductTypes((prev) =>
+                                  e.target.checked ? [...prev, id] : prev.filter((x) => x !== id),
+                                );
+                              }}
+                            />
+                            {label}
+                          </label>
+                        ))}
+                      </div>
+                    </details>
                   </>
                 ) : (
                   <>
