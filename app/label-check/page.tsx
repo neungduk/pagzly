@@ -165,31 +165,21 @@ export default function LabelCheckPage() {
               ))}
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-[#E5DCC8] bg-white">
-              <table className="w-full min-w-[640px] border-collapse text-left text-sm">
-                <thead className="bg-[#F7F4EE] text-xs uppercase tracking-wide text-[#555]">
-                  <tr>
-                    <th className="px-3 py-2 font-semibold">구분</th>
-                    <th className="px-3 py-2 font-semibold">항목</th>
-                    <th className="px-3 py-2 font-semibold">상태</th>
-                    <th className="px-3 py-2 font-semibold">찾은 내용</th>
-                    <th className="px-3 py-2 font-semibold">제안</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.findings.map((f, i) => (
-                    <tr key={`${f.label}-${i}`} className="border-t border-[#EEE6D6] align-top">
-                      <td className="px-3 py-2 whitespace-nowrap">{f.category}</td>
-                      <td className="px-3 py-2">{f.label}</td>
-                      <td className="px-3 py-2 whitespace-nowrap font-semibold">
-                        {STATUS_KO[f.status] ?? f.status}
-                      </td>
-                      <td className="px-3 py-2 text-[#333]">{f.found}</td>
-                      <td className="px-3 py-2 text-[#555]">{f.suggest}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-3">
+              {result.findings.map((f, i) => (
+                <article
+                  key={`${f.label}-${i}`}
+                  className="break-words rounded-xl border border-[#E5DCC8] bg-white px-3 py-3 text-sm"
+                >
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <span className="text-xs text-[#666]">{f.category}</span>
+                    <span className="font-semibold">{f.label}</span>
+                    <span className="font-semibold text-[#6B5A2E]">{STATUS_KO[f.status] ?? f.status}</span>
+                  </div>
+                  <p className="mt-2 text-[#333]">{f.found}</p>
+                  <p className="mt-1 text-[#555]">{f.suggest}</p>
+                </article>
+              ))}
             </div>
 
             {result.manualItems.length ? (
