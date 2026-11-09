@@ -198,7 +198,50 @@ export function buildMutationCases(): MutationCase[] {
       id: "inject-forbidden",
       desc: "금지 키워드(피부 재생) 주입",
       fields: { ...all, name: "솔트 바디워시 피부 재생" },
-      expectFailLabel: "의약품 오인 우려 표현 금지",
+      expectFailLabel: "의약품 효능·효과 표방(약리·신체 변화)",
+    },
+    // 493 — 광고 표현 변이(항목 제목 = ad-phrases title)
+    {
+      id: "ad-whitening",
+      desc: "미백 주입",
+      fields: { ...all, name: "솔트 바디워시 미백" },
+      expectFailLabel: "미백 표현(기능성 심사·보고 제품만)",
+    },
+    {
+      id: "ad-wrinkle",
+      desc: "주름개선 주입",
+      fields: { ...all, name: "솔트 바디워시 주름개선" },
+      expectFailLabel: "주름 개선 표현(기능성 제품만)",
+    },
+    {
+      id: "ad-hospital",
+      desc: "병원용 주입",
+      fields: { ...all, name: "솔트 바디워시 병원용" },
+      expectFailLabel: "의료인·의료기관 추천·보증",
+    },
+    {
+      id: "ad-stem",
+      desc: "줄기세포·엑소좀 주입",
+      fields: { ...all, name: "솔트 바디워시 줄기세포 엑소좀" },
+      expectFailLabel: "인체 유래·줄기세포·엑소좀",
+    },
+    {
+      id: "ad-age",
+      desc: "피부나이 주입",
+      fields: { ...all, name: "솔트 바디워시 피부나이 5세" },
+      expectFailLabel: "피부 나이 표현",
+    },
+    {
+      id: "ad-super",
+      desc: "최고·즉시 주입",
+      fields: { ...all, name: "솔트 바디워시 최고 즉시" },
+      expectFailLabel: "절대적·즉각적·최상급 표현",
+    },
+    {
+      id: "ad-pct",
+      desc: "30% 개선 주입",
+      fields: { ...all, name: "솔트 바디워시 30% 개선" },
+      expectFailLabel: "수치·기간·비교 표현",
     },
   ];
   return cases;

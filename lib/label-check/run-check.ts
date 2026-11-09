@@ -2,6 +2,7 @@
  * 484 — 규칙표 check_type=code 검사.
  * 패턴은 load-rules가 title/rule/examples에서 유도. 내부 id는 응답에 넣지 않음.
  */
+import { isHitCoveredByAdPhrases493, scanAdPhrases493 } from "@/lib/label-check/ad-phrases";
 import {
   extractLabelPdf,
   normalizeLabelText,
@@ -513,7 +514,18 @@ export async function runLabelCheck483(
   for (const rule of rules) {
     if (rule.check_type === "code") {
       const f = runCodeRule(rule, extracted.text, extracted, input);
-      if (f) findings.push(f);
+      if (!f) continue;
+      // 493 — ad-phrases가 같은 표현을 잡으면 KR-ADV 확인 필요는 생략(이중 표시 방지).
+      // 데이터에 없는 표현(예: 피부 장벽 강화)은 KR-ADV 유지.
+      if (
+        rule.id.startsWith("KR-ADV-") &&
+        f.status === "attention" &&
+        rule.patterns?.length
+      ) {
+        const hit = includesAny(extracted.text, rule.patterns);
+        if (hit && isHitCoveredByAdPhrases493(hit)) continue;
+      }
+      findings.push(f);
     } else {
       manualItems.push({
         category: rule.category,
@@ -522,6 +534,8 @@ export async function runLabelCheck483(
       });
     }
   }
+
+  findings.push(...scanAdPhrases493(extracted.text, input));
 
   // 면책·단정 금지: status에 '위반' 문자열 없음(possible=위반 가능)
   return {
