@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { hasCompletedOnboarding } from "@/lib/onboarding";
+import { isDetailPageEnabled } from "@/lib/feature-flags";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -16,11 +17,16 @@ export async function GET(request: Request) {
       if (next === "/reset-password") {
         return NextResponse.redirect(`${origin}${next}`);
       }
+      const detailOn = isDetailPageEnabled();
       const userId = data.user?.id;
-      if (userId && !(await hasCompletedOnboarding(supabase, userId))) {
+      if (detailOn && userId && !(await hasCompletedOnboarding(supabase, userId))) {
         return NextResponse.redirect(`${origin}/onboarding`);
       }
-      return NextResponse.redirect(`${origin}${next}`);
+      const dest =
+        !detailOn && (next.startsWith("/create") || next.startsWith("/onboarding"))
+          ? "/label-check"
+          : next;
+      return NextResponse.redirect(`${origin}${dest}`);
     }
   }
 

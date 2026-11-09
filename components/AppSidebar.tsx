@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { DETAIL_PAGE_ENABLED } from "@/lib/feature-flags";
 import { createClient } from "@/lib/supabase";
 
-const NAV_ITEMS = [
+const DETAIL_NAV_ITEMS = [
   {
     href: "/create",
     label: "상세페이지 만들기",
@@ -35,6 +36,25 @@ const NAV_ITEMS = [
     ),
   },
 ] as const;
+
+const LABEL_NAV_ITEMS = [
+  {
+    href: "/label-check",
+    label: "PDF 검수",
+    match: (path: string) => path.startsWith("/label-check"),
+    icon: (
+      <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+        />
+      </svg>
+    ),
+  },
+] as const;
+
+const NAV_ITEMS = DETAIL_PAGE_ENABLED ? DETAIL_NAV_ITEMS : LABEL_NAV_ITEMS;
 
 /**
  * /create 영역 공통 사이드바 — 기본 아이콘만, hover 시 폭 확장 + 라벨 표시.

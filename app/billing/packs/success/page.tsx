@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import PagzlyLogo from "@/components/PagzlyLogo";
 import { getCreditPack } from "@/lib/cost/saas-pricing-config";
+import { DETAIL_PAGE_ENABLED } from "@/lib/feature-flags";
 
 type PurchaseResult =
   | { status: "loading" }
@@ -128,10 +129,10 @@ function PackSuccessContent() {
         현재 토큰 잔액: <strong>{result.balance.toLocaleString("ko-KR")}</strong>
       </p>
       <Link
-        href="/create"
+        href={DETAIL_PAGE_ENABLED ? "/create" : "/label-check"}
         className="mt-8 inline-flex rounded-lg bg-registration-red px-5 py-3 text-sm font-semibold text-white"
       >
-        상세페이지 만들기
+        {DETAIL_PAGE_ENABLED ? "상세페이지 만들기" : "PDF 검수 시작"}
       </Link>
     </div>
   );

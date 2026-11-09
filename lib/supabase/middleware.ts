@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { hasCompletedOnboarding } from "@/lib/onboarding";
+import { isDetailPageEnabled } from "@/lib/feature-flags";
 
 function redirectWithCookies(
   url: URL,
@@ -21,6 +22,16 @@ export async function updateSession(request: NextRequest) {
   // /dev/* 는 로컬 시각 검증용 — 프로덕션에서는 404
   if (process.env.NODE_ENV === "production" && path.startsWith("/dev")) {
     return new NextResponse(null, { status: 404 });
+  }
+
+  // 489 — 상세페이지 기능 꺼짐: /create·/onboarding 직접 접근 → 검수
+  if (
+    !isDetailPageEnabled() &&
+    (path.startsWith("/create") || path.startsWith("/onboarding"))
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/label-check";
+    return NextResponse.redirect(url);
   }
 
   const supabase = createServerClient(

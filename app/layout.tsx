@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans_KR, Noto_Serif_KR } from "next/font/google";
+import { DETAIL_PAGE_ENABLED } from "@/lib/feature-flags";
+import { INTRO_ONE_LINE_486 } from "@/lib/label-check/types";
 import "./globals.css";
 
 const notoSansKr = Noto_Sans_KR({
@@ -27,21 +29,26 @@ function siteBase(): URL | undefined {
   }
 }
 
-const DESCRIPTION = "상품 사진과 정보만 넣으면 AI가 한국 이커머스 상세페이지를 만들어 드립니다. 팩즐리(Pagzly)";
+const DESCRIPTION_DETAIL =
+  "상품 사진과 정보만 넣으면 AI가 한국 이커머스 상세페이지를 만들어 드립니다. 팩즐리(Pagzly)";
+const TITLE_DETAIL = "Pagzly(팩즐리) — AI 상세페이지 생성";
+const TITLE_LABEL = "Pagzly · 화장품 표시사항 PDF 검수";
+const DESCRIPTION = DETAIL_PAGE_ENABLED ? DESCRIPTION_DETAIL : INTRO_ONE_LINE_486;
+const TITLE_DEFAULT = DETAIL_PAGE_ENABLED ? TITLE_DETAIL : TITLE_LABEL;
 
 export const metadata: Metadata = {
   metadataBase: siteBase(),
-  title: { default: "Pagzly(팩즐리) — AI 상세페이지 생성", template: "%s | Pagzly" },
+  title: { default: TITLE_DEFAULT, template: "%s | Pagzly" },
   description: DESCRIPTION,
   applicationName: "Pagzly",
   openGraph: {
     type: "website",
     siteName: "Pagzly",
     locale: "ko_KR",
-    title: "Pagzly(팩즐리) — AI 상세페이지 생성",
+    title: TITLE_DEFAULT,
     description: DESCRIPTION,
   },
-  twitter: { card: "summary_large_image", title: "Pagzly(팩즐리) — AI 상세페이지 생성", description: DESCRIPTION },
+  twitter: { card: "summary_large_image", title: TITLE_DEFAULT, description: DESCRIPTION },
   icons: {
     icon: "/pagzly-icon.svg",
   },

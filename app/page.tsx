@@ -24,6 +24,8 @@ import {
   LANDING_PLANS,
   LANDING_PROCESS_STEPS,
 } from "@/lib/landing-content";
+import { DETAIL_PAGE_ENABLED } from "@/lib/feature-flags";
+import { INTRO_LINES_486, INTRO_ONE_LINE_486 } from "@/lib/label-check/types";
 import { createClient } from "@/lib/supabase/server";
 
 const featureVisuals: Record<
@@ -91,16 +93,93 @@ const features = LANDING_FEATURES.map((feature) => ({
   ...featureVisuals[feature.title],
 }));
 
-export const metadata: Metadata = {
-  title: "Pagzly(팩즐리) — 사진 한 장으로 AI 상세페이지",
-  description: "상품 사진과 정보만 넣으면 AI가 한국 이커머스 상세페이지를 만들어 드립니다. 가입 시 첫 1회 무료 생성을 드립니다.",
-};
+export const metadata: Metadata = DETAIL_PAGE_ENABLED
+  ? {
+      title: "Pagzly(팩즐리) — 사진 한 장으로 AI 상세페이지",
+      description:
+        "상품 사진과 정보만 넣으면 AI가 한국 이커머스 상세페이지를 만들어 드립니다. 가입 시 첫 1회 무료 생성을 드립니다.",
+    }
+  : {
+      title: "Pagzly · 화장품 표시사항 PDF 검수",
+      description: INTRO_ONE_LINE_486,
+    };
+
+function LabelCheckLanding({ user }: { user: { id: string } | null }) {
+  return (
+    <div className="min-h-full bg-paper text-ink" data-pagzly-landing data-label-check-landing>
+      <header className="sticky top-0 z-50 border-b border-ink/10 bg-paper/85 backdrop-blur-md">
+        <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <Link href="/" className="flex items-center">
+            <PagzlyLogo className="h-8 w-auto" />
+          </Link>
+          <div className="flex items-center gap-3">
+            {user ? (
+              <LogoutButton />
+            ) : (
+              <Link
+                href="/login"
+                className="px-4 py-2 text-sm font-medium text-ink/60 transition-colors hover:text-ink"
+              >
+                로그인
+              </Link>
+            )}
+          </div>
+        </nav>
+      </header>
+
+      <main className="mx-auto flex max-w-3xl flex-col px-6 py-20 sm:py-28">
+        <p className="font-mono text-xs uppercase tracking-[0.2em] text-registration-red">Pagzly</p>
+        <h1 className="mt-3 font-heading text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+          화장품 표시사항 PDF 검수
+        </h1>
+        <p className="mt-4 text-lg leading-relaxed text-ink/70">{INTRO_ONE_LINE_486}</p>
+        <ul className="mt-8 space-y-3 text-base leading-relaxed text-ink/65">
+          {INTRO_LINES_486.map((line) => (
+            <li key={line} className="flex gap-3">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-ink/40" aria-hidden />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+        <Link
+          href="/label-check"
+          className="mt-10 inline-flex w-fit items-center justify-center bg-ink px-6 py-3 text-sm font-semibold text-paper transition-colors hover:bg-ink/85"
+        >
+          PDF 검수 시작
+        </Link>
+      </main>
+
+      <footer className="border-t border-line bg-paper py-12">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
+            <PagzlyLogo className="h-7 w-auto" />
+            <div className="flex gap-6 text-sm text-ink/50">
+              <a href="/terms" className="transition-colors hover:text-ink">
+                이용약관
+              </a>
+              <a href="/privacy" className="transition-colors hover:text-ink">
+                개인정보처리방침
+              </a>
+            </div>
+          </div>
+          <p className="mt-8 text-center font-mono text-xs text-ink/30 sm:text-left">
+            © 2026 Pagzly. All rights reserved.
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+}
 
 export default async function Home() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (!DETAIL_PAGE_ENABLED) {
+    return <LabelCheckLanding user={user} />;
+  }
 
   const startHref = user ? "/create" : "/signup";
 

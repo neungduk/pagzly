@@ -2,8 +2,13 @@ import { redirect } from "next/navigation";
 import AppSidebar from "@/components/AppSidebar";
 import AccountStatusBadge from "@/components/AccountStatusBadge";
 import { createClient } from "@/lib/supabase/server";
+import { isDetailPageEnabled } from "@/lib/feature-flags";
 
 export default async function CreateLayout({ children }: { children: React.ReactNode }) {
+  if (!isDetailPageEnabled()) {
+    redirect("/label-check");
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

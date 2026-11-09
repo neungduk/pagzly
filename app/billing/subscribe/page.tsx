@@ -17,6 +17,7 @@ import {
   type BillingCycle,
   type PricingTierId,
 } from "@/lib/cost/saas-pricing-config";
+import { DETAIL_PAGE_ENABLED } from "@/lib/feature-flags";
 import { createClient } from "@/lib/supabase";
 
 declare global {
@@ -149,12 +150,21 @@ export default function SubscribePage() {
             <p className="mt-3 text-sm text-ink/70">
               현재 <strong>{tier.label}</strong> 플랜을 이용 중입니다.
             </p>
-            <Link
-              href="/create"
-              className="mt-8 inline-flex rounded-lg bg-registration-red px-5 py-3 text-sm font-semibold text-white"
-            >
-              상세페이지 만들기
-            </Link>
+            {DETAIL_PAGE_ENABLED ? (
+              <Link
+                href="/create"
+                className="mt-8 inline-flex rounded-lg bg-registration-red px-5 py-3 text-sm font-semibold text-white"
+              >
+                상세페이지 만들기
+              </Link>
+            ) : (
+              <Link
+                href="/label-check"
+                className="mt-8 inline-flex rounded-lg bg-registration-red px-5 py-3 text-sm font-semibold text-white"
+              >
+                PDF 검수 시작
+              </Link>
+            )}
           </div>
         </main>
       </div>
@@ -181,8 +191,9 @@ export default function SubscribePage() {
             <p className="text-xs font-medium uppercase tracking-wide text-ink/40">PAGZLY 요금제</p>
             <h1 className="mt-2 text-3xl font-bold">요금제 플랜</h1>
             <p className="mt-3 text-sm text-ink/60">
-              상세페이지 제작에 필요한 토큰을 매월 자동으로 충전합니다. 카드 등록 후 첫 결제가 즉시
-              진행됩니다.
+              {DETAIL_PAGE_ENABLED
+                ? "상세페이지 제작에 필요한 토큰을 매월 자동으로 충전합니다. 카드 등록 후 첫 결제가 즉시 진행됩니다."
+                : "이용에 필요한 토큰을 매월 자동으로 충전합니다. 카드 등록 후 첫 결제가 즉시 진행됩니다."}
             </p>
             <BillingCycleToggle value={cycle} onChange={setCycle} />
           </div>
