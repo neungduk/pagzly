@@ -12,6 +12,7 @@ import {
 import { FOUND_CONFIRMED_488, formatFoundSnippet } from "@/lib/label-check/format-found";
 import { applyKrFixSuggestions496 } from "@/lib/label-check/fix-suggestions-kr";
 import { loadAllergens483, loadLabelRules483, type RuleDraft } from "@/lib/label-check/load-rules";
+import { formatRulesBasisLine501 } from "@/lib/label-check/rules-meta";
 import { runLabelCheckUsFromExtracted494, runLabelCheckUs494 } from "@/lib/label-check/run-check-us";
 import {
   DISCLAIMER_483,
@@ -37,6 +38,7 @@ const EMPTY_SUMMARY: LabelCheckSummary = {
 function noticeOnlyResult(
   extracted: { charCount: number; hangulCount: number },
   notice: string,
+  market: "KR" | "US" = "KR",
 ): LabelCheckResult {
   return {
     disclaimer: DISCLAIMER_483,
@@ -48,6 +50,8 @@ function noticeOnlyResult(
     summary: EMPTY_SUMMARY,
     findings: [],
     manualItems: [],
+    market,
+    rulesBasis: formatRulesBasisLine501(market),
   };
 }
 
@@ -531,21 +535,23 @@ export async function runLabelCheckFromExtracted(
   // 0자·극소 한글: 아웃라인/스캔 가능 → 판정 없이 안내만(위반 가능 폭탄 방지)
   if (extracted.charCount === 0 || extracted.hangulCount < MIN_HANGUL_CHARS_485) {
     if (extracted.charCount >= 40 && extracted.hangulCount < MIN_HANGUL_CHARS_485) {
-      return noticeOnlyResult(extracted, NOTICE_NO_HANGUL_485);
+      return noticeOnlyResult(extracted, NOTICE_NO_HANGUL_485, "KR");
     }
     if (extracted.charCount === 0) {
       return noticeOnlyResult(
         extracted,
         NOTICE_IMAGE_PDF_497 + emptyPagesNoticeSuffix(extracted),
+        "KR",
       );
     }
-    return noticeOnlyResult(extracted, NOTICE_OUTLINE_485);
+    return noticeOnlyResult(extracted, NOTICE_OUTLINE_485, "KR");
   }
 
   if (!extracted.readable) {
     return noticeOnlyResult(
       extracted,
       NOTICE_IMAGE_PDF_497 + emptyPagesNoticeSuffix(extracted),
+      "KR",
     );
   }
 
@@ -589,6 +595,7 @@ export async function runLabelCheckFromExtracted(
     findings: findingsWithFix,
     manualItems,
     market: "KR",
+    rulesBasis: formatRulesBasisLine501("KR"),
   };
 }
 

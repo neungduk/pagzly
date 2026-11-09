@@ -482,7 +482,10 @@ export default function LabelCheckPage() {
             ) : null}
 
             <footer className="lc-print-foot border-t border-[#E5DCC8] pt-3 text-xs leading-relaxed text-[#555]">
-              {result.disclaimer || DISCLAIMER_PRINT_485}
+              <p>{result.disclaimer || DISCLAIMER_PRINT_485}</p>
+              {result.rulesBasis ? (
+                <p className="mt-1 text-[11px] text-[#888]">{result.rulesBasis}</p>
+              ) : null}
             </footer>
           </section>
         ) : null}

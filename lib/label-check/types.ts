@@ -68,6 +68,8 @@ export type LabelCheckResult = {
   }>;
   /** 494 — 사용된 시장 */
   market?: LabelMarket;
+  /** 501 — 결과 하단 점검 기준 한 줄 */
+  rulesBasis?: string;
 };
 
 export const DISCLAIMER_483 =

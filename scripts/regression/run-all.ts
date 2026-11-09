@@ -97,6 +97,8 @@ import * as labelCheck497 from "./label-check-497";
 import * as labelCheck498 from "./label-check-498";
 import * as labelCheck499 from "./label-check-499";
 import * as labelCheck500 from "./label-check-500";
+import * as labelCheck501 from "./label-check-501";
+import * as labelRulesValidate501 from "./label-rules-validate-501";
 import * as stylePacks from "./style-packs";
 import * as packLayout from "./pack-layout";
 import * as heroVariants from "./hero-variants";
@@ -187,15 +189,17 @@ import * as sectionParity454 from "./section-parity-454";
 import * as photoFail455 from "./photo-fail-455";
 import * as photoFail456 from "./photo-fail-456";
 
-const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip, fashionSpecFallback, specRowCap, rhythmTokens, stylePacks, packLayout, heroVariants, flowPhotoFirst, galleryVariants, packStructure, packContrast, flowStory, packFinish, promptRules412, styleSpec, styleAxes, variants413, styleDirector, infoStyle, infoBackdrop, infoBackdropRun, photoTextMatch, beautyHeroTheme, visionCacheCalls, beautyInfo, sceneImages, sceneSize, sceneGen, numericClaimGate, sessionRoundtrip, beautyQuickCards, beautyAccent, usageGuard, uploadSafety, completionCharge, logPolicy, signupFree, comparisonPolicy, landingClaims, designV2, designMetrics, fontPairs, paletteHarmony, storyOrder, impactTemplates, evidenceModules, illustrationMap, photoLayouts, impactBoost, productArchetype, archetypeRecipes, specialSections, heroSpec, referenceSections, typoRhythm, checkV4Off, paletteV4, motifs, typeTreatments, layoutVariants, heroLayers, designLint, v4EyeFixes, iconsV4, v4Tokens, variantAudit, headingSystem, infoSectionsV4, finishComponents, trustStrip, paddingScale, designTokensV4, twinSections, photoTone, ghostFade, fixturePhotos, gapMetrics, eyeFixes444, rhythmV4, decisions444, legacyRhythm445, heroQuick445, reviewFixture445, contrastWheel446, colorBudget446, heroFinish446, flow446, pcVerify447, ghostReplace447, motifGap447, chromaCap447, seoBlock447, photoStress448, fuzz448, a11y448, styleSize448, exposure449, shell449, muted450, heroFold450, v4Doc450, liveEmpty450, r7451, heroFold451, bannerStyle451, pixelContrast451, predeploy452, lintScore452, fuzzStable452, typo452, premigrationDraft453, wordbreak453, linelen453, sectionFloor453, smoke457, fuzzLint457, checkV4OffLive, checkV4OffSection, sectionParity454, photoFail455, photoFail456, pngAlign458, storageProvider459, legacyUrl460, migrateStorage460, migrationSql460, expiredCleanup460, uploadRate460, heavyGuard461, migrationOrder461, envNames461, robust462, variety463, band464, v5465, v5466, dynamics467, dynamics468, dynamics469, dynamics470, hero471, hero472, hero473, body473, checklist473, type474, photo474, spacing474, detail474, family475, color475, colorEye476, deco476, block477, specDiagram477, contrastRender478, contrastRender479, live481, palette482, keyvisual482, blockSimple482, labelCheck483, featureFlag489, labelCheck492, labelCheck493, labelCheck494, labelCheck495, labelCheck496, labelCheck497, labelCheck498, labelCheck499, labelCheck500];
+const SUITES = [keywordSplit, iconRules, deadTracking, liveExportRender, sizeDiagram, conceptIconPolicy, fashionCompositePolicy, fashionDisplay405, backdropSkip, costMerge, costStrip, fashionSpecFallback, specRowCap, rhythmTokens, stylePacks, packLayout, heroVariants, flowPhotoFirst, galleryVariants, packStructure, packContrast, flowStory, packFinish, promptRules412, styleSpec, styleAxes, variants413, styleDirector, infoStyle, infoBackdrop, infoBackdropRun, photoTextMatch, beautyHeroTheme, visionCacheCalls, beautyInfo, sceneImages, sceneSize, sceneGen, numericClaimGate, sessionRoundtrip, beautyQuickCards, beautyAccent, usageGuard, uploadSafety, completionCharge, logPolicy, signupFree, comparisonPolicy, landingClaims, designV2, designMetrics, fontPairs, paletteHarmony, storyOrder, impactTemplates, evidenceModules, illustrationMap, photoLayouts, impactBoost, productArchetype, archetypeRecipes, specialSections, heroSpec, referenceSections, typoRhythm, checkV4Off, paletteV4, motifs, typeTreatments, layoutVariants, heroLayers, designLint, v4EyeFixes, iconsV4, v4Tokens, variantAudit, headingSystem, infoSectionsV4, finishComponents, trustStrip, paddingScale, designTokensV4, twinSections, photoTone, ghostFade, fixturePhotos, gapMetrics, eyeFixes444, rhythmV4, decisions444, legacyRhythm445, heroQuick445, reviewFixture445, contrastWheel446, colorBudget446, heroFinish446, flow446, pcVerify447, ghostReplace447, motifGap447, chromaCap447, seoBlock447, photoStress448, fuzz448, a11y448, styleSize448, exposure449, shell449, muted450, heroFold450, v4Doc450, liveEmpty450, r7451, heroFold451, bannerStyle451, pixelContrast451, predeploy452, lintScore452, fuzzStable452, typo452, premigrationDraft453, wordbreak453, linelen453, sectionFloor453, smoke457, fuzzLint457, checkV4OffLive, checkV4OffSection, sectionParity454, photoFail455, photoFail456, pngAlign458, storageProvider459, legacyUrl460, migrateStorage460, migrationSql460, expiredCleanup460, uploadRate460, heavyGuard461, migrationOrder461, envNames461, robust462, variety463, band464, v5465, v5466, dynamics467, dynamics468, dynamics469, dynamics470, hero471, hero472, hero473, body473, checklist473, type474, photo474, spacing474, detail474, family475, color475, colorEye476, deco476, block477, specDiagram477, contrastRender478, contrastRender479, live481, palette482, keyvisual482, blockSimple482, labelCheck483, featureFlag489, labelCheck492, labelCheck493, labelCheck494, labelCheck495, labelCheck496, labelCheck497, labelCheck498, labelCheck499, labelCheck500, labelRulesValidate501, labelCheck501];
 
 /** 439차 — 이전 차수 단계(스토리 순서·임팩트·사진 레이아웃·보강·비교 정책)를 검사하는 묶음은 v4 레이아웃 계획 없이 돌린다(v4는 자기 묶음이 검사) */
 const V4_OFF_SUITES = new Set<unknown>([storyOrder, impactTemplates, photoLayouts, impactBoost, comparisonPolicy, archetypeRecipes, rhythmTokens]);
 
 async function main() {
   let failed = 0;
+  const timings: Array<{ name: string; ms: number; ok: boolean }> = [];
   for (const suite of SUITES) {
     let fails: string[];
+    const t0 = Date.now();
     try {
       if (V4_OFF_SUITES.has(suite)) setDesignV4ForTests(false);
       fails = await suite.run();
@@ -204,9 +208,16 @@ async function main() {
     } finally {
       setDesignV4ForTests(DESIGN_V4_ENABLED);
     }
-    console.log(`${fails.length ? "실패" : "통과"}  ${suite.name}`);
+    const ms = Date.now() - t0;
+    const ok = fails.length === 0;
+    timings.push({ name: suite.name, ms, ok });
+    console.log(`${ok ? "통과" : "실패"}  ${suite.name}  (${ms}ms)`);
     for (const f of fails) console.log(`      - ${f}`);
-    if (fails.length) failed += 1;
+    if (!ok) failed += 1;
+  }
+  console.log("\n--- 소요 시간 ---");
+  for (const t of timings) {
+    console.log(`${t.ok ? "OK" : "NG"}\t${t.ms}ms\t${t.name}`);
   }
   console.log(failed ? `\n회귀 점검 실패 ${failed}/${SUITES.length}` : `\n회귀 점검 통과 ${SUITES.length}/${SUITES.length}`);
   process.exit(failed ? 1 : 0);

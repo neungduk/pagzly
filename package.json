@@ -9,7 +9,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "pc-verify": "tsx scripts/pc-verify.ts"
+    "pc-verify": "tsx scripts/pc-verify.ts",
+    "validate:rules": "tsx scripts/validate-label-rules.ts",
+    "regression": "tsx scripts/regression/run-all.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.116.0",

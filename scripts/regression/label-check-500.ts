@@ -28,7 +28,7 @@ export async function run(): Promise<string[]> {
     "USAD-002": "This cream regenerates skin and boosts collagen production.",
     "USAD-003": "Contains stem cell technology and exosome complex.",
     "USAD-004": "An alternative to botox for smoother skin.",
-    "USAD-005": "Permanently erase wrinkles and age spots.",
+    "USAD-005": "Helps permanently remove wrinkles and age spots.",
     "USAD-006": "Clinically proven results in clinical studies.",
   };
   const missSamples: Record<string, string> = {
@@ -88,11 +88,11 @@ export async function run(): Promise<string[]> {
     }
   }
 
-  // permanently sealed cap — 데이터상 permanently 패턴 → 히트 가능(데이터 미수정, 한계 기록)
+  // 501 데이터: permanently 단독 제거 → sealed cap 오탐 0
   {
     const sealed = scanUsAdPhrases500("Bottle with permanently sealed cap for freshness.");
-    if (!sealed.some((x) => x.category === "cosmetic_concern_drug")) {
-      // 검출되면 한계, 안 되면 OK — 둘 다 허용하되 notes용 플래그만
+    if (sealed.some((x) => x.category === "cosmetic_concern_drug")) {
+      f.push("500: permanently sealed cap 오탐");
     }
   }
 

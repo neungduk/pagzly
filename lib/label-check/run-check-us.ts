@@ -10,6 +10,7 @@ import { formatFoundSnippet } from "@/lib/label-check/format-found";
 import { loadUsLabelRules494, type UsRuleDraft } from "@/lib/label-check/load-rules-us";
 import { scanUsAdPhrases500 } from "@/lib/label-check/ad-phrases-us";
 import { includesUs, includesUsWord, normalizeUsLabelText } from "@/lib/label-check/normalize-us";
+import { formatRulesBasisLine501 } from "@/lib/label-check/rules-meta";
 import {
   DISCLAIMER_483,
   DISCLAIMER_US_EXTRA_494,
@@ -33,6 +34,10 @@ const EMPTY_SUMMARY: LabelCheckSummary = {
 
 function usDisclaimer(): string {
   return `${DISCLAIMER_483} ${DISCLAIMER_US_EXTRA_494}`;
+}
+
+function withUsBasis<T extends LabelCheckResult>(r: T): T {
+  return { ...r, market: "US", rulesBasis: formatRulesBasisLine501("US") };
 }
 
 function summarize(findings: Finding[], manualCount: number): LabelCheckSummary {
@@ -421,7 +426,7 @@ export async function runLabelCheckUsFromExtracted494(
   input: LabelCheckInput,
 ): Promise<LabelCheckResult> {
   if (input.otcDrugLike) {
-    return {
+    return withUsBasis({
       disclaimer: usDisclaimer(),
       readable: true,
       charCount: 0,
@@ -432,11 +437,11 @@ export async function runLabelCheckUsFromExtracted494(
       findings: [],
       manualItems: [],
       market: "US",
-    };
+    });
   }
 
   if (extracted.charCount === 0) {
-    return {
+    return withUsBasis({
       disclaimer: usDisclaimer(),
       readable: false,
       charCount: 0,
@@ -447,11 +452,11 @@ export async function runLabelCheckUsFromExtracted494(
       findings: [],
       manualItems: [],
       market: "US",
-    };
+    });
   }
 
   if (!extracted.readable && extracted.charCount < 40) {
-    return {
+    return withUsBasis({
       disclaimer: usDisclaimer(),
       readable: false,
       charCount: extracted.charCount,
@@ -462,7 +467,7 @@ export async function runLabelCheckUsFromExtracted494(
       findings: [],
       manualItems: [],
       market: "US",
-    };
+    });
   }
 
   const rules = loadUsLabelRules494();
@@ -475,7 +480,7 @@ export async function runLabelCheckUsFromExtracted494(
       const f = runUsCodeRule(rule007, extracted.text, extracted, input);
       if (f) findings.push(f);
     }
-    return {
+    return withUsBasis({
       disclaimer: usDisclaimer(),
       readable: true,
       charCount: extracted.charCount,
@@ -486,7 +491,7 @@ export async function runLabelCheckUsFromExtracted494(
       findings,
       manualItems: [],
       market: "US",
-    };
+    });
   }
 
   for (const rule of rules) {
@@ -510,7 +515,7 @@ export async function runLabelCheckUsFromExtracted494(
   // 500 — 미국 광고 표현(데이터). US-013 대체.
   findings.push(...scanUsAdPhrases500(extracted.text));
 
-  return {
+  return withUsBasis({
     disclaimer: usDisclaimer(),
     readable: true,
     charCount: extracted.charCount,
@@ -521,7 +526,7 @@ export async function runLabelCheckUsFromExtracted494(
     findings,
     manualItems,
     market: "US",
-  };
+  });
 }
 
 export async function runLabelCheckUs494(
