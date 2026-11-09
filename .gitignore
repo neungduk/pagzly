@@ -65,6 +65,8 @@ supabase/.temp/
 # review capture logs/debug output (review/*.png?? ???? ????)
 review/*.log
 review/**/*.json
+!review/data/
+!review/data/**/*.json
 review/*.txt
 
 # auto loop control files
