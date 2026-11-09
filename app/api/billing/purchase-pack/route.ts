@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCreditPack } from "@/lib/cost/saas-pricing-config";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { confirmPayment } from "@/lib/toss/client";
 
 export async function POST(req: NextRequest) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   const supabase = await createClient();
   const {
     data: { user },

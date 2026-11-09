@@ -35,9 +35,16 @@ const GUARDED_ROUTES = [
   "app/api/proxy-image/route.ts",
   "app/api/storage/upload-url/route.ts",
   "app/api/storage/remove/route.ts",
+  // 490 — 닫힌 상품 결제
+  "app/api/billing/subscribe/route.ts",
+  "app/api/billing/purchase-pack/route.ts",
 ] as const;
 
-const KEEP_OPEN = ["app/api/label-check/route.ts", "app/api/billing/me/route.ts"] as const;
+const KEEP_OPEN = [
+  "app/api/label-check/route.ts",
+  "app/api/billing/me/route.ts",
+  "app/api/billing/renew/route.ts",
+] as const;
 
 function read(rel: string): string {
   return fs.readFileSync(path.join(process.cwd(), rel), "utf8");
@@ -112,6 +119,24 @@ export async function run(): Promise<string[]> {
       const src = read(rel);
       if (src.includes("detailPageDisabledResponse")) {
         f.push(`489: 예외 라우트에 가드 있음 — ${rel}`);
+      }
+    }
+
+    // 490 — 결제 라우트: 가드가 Toss 호출보다 앞(소스 순서 = 외부 결제 0회)
+    for (const [rel, calls] of [
+      ["app/api/billing/subscribe/route.ts", ["issueBillingKey", "chargeBillingKey"]],
+      ["app/api/billing/purchase-pack/route.ts", ["confirmPayment"]],
+    ] as const) {
+      const src = read(rel);
+      const g = src.indexOf("detailPageDisabledResponse()");
+      if (g < 0) {
+        f.push(`490: 결제 가드 없음 — ${rel}`);
+        continue;
+      }
+      for (const fn of calls) {
+        const i = src.indexOf(`${fn}(`);
+        if (i < 0) f.push(`490: ${fn} 호출 위치 없음 — ${rel}`);
+        else if (i < g) f.push(`490: ${fn}이 가드보다 앞 — ${rel}`);
       }
     }
 

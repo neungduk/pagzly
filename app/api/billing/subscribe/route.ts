@@ -6,6 +6,7 @@ import {
   type BillingCycle,
   type PricingTierId,
 } from "@/lib/cost/saas-pricing-config";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { chargeBillingKey, issueBillingKey } from "@/lib/toss/client";
@@ -19,6 +20,9 @@ function parseBillingCycle(raw: unknown): BillingCycle | null {
 }
 
 export async function POST(req: NextRequest) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   const supabase = await createClient();
   const {
     data: { user },
