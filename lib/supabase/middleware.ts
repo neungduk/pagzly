@@ -80,5 +80,15 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // 495 — 회원 검수 신청·내 결과
+  if (path.startsWith("/label-check/new") || path.startsWith("/label-check/history")) {
+    if (!user) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("next", path + (request.nextUrl.search || ""));
+      return redirectWithCookies(url, supabaseResponse);
+    }
+  }
+
   return supabaseResponse;
 }

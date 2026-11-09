@@ -1,8 +1,10 @@
 /**
- * 485 — 화장품 표시사항 PDF 검수 API.
- * 메모리만 사용, 저장·파일명·본문 로그 없음. 유료 AI/OCR 없음.
+ * 485/495 — 화장품 표시사항 PDF 검수 API.
+ * 메모리 점검. 로그인+save=true 일 때만 결과 요약 저장(원문·파일명 금지).
  */
 import { NextResponse } from "next/server";
+import { ERR_SERVER_495 } from "@/lib/label-check/member-constants";
+import { saveLabelCheckRun } from "@/lib/label-check/save-run";
 import {
   ERR_RATE_485,
   ERR_TOO_LARGE_485,
@@ -15,16 +17,25 @@ import {
   countPdfPages,
   labelCheckClientIp,
   labelCheckLimiter,
+  labelCheckMemberLimiter,
   withExtractTimeout,
 } from "@/lib/label-check/safe-upload";
+import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     const ip = labelCheckClientIp(req.headers);
-    const rate = labelCheckLimiter.check(ip);
+    const limiter = user ? labelCheckMemberLimiter : labelCheckLimiter;
+    const rateKey = user ? `u:${user.id}` : `ip:${ip}`;
+    const rate = limiter.check(rateKey);
     if (!rate.allowed) {
       return NextResponse.json(
         { error: ERR_RATE_485 },
@@ -42,6 +53,9 @@ export async function POST(req: Request) {
     const professionalUse = String(form.get("professionalUse") ?? "false") === "true";
     const hazardous = String(form.get("hazardous") ?? "false") === "true";
     const otcDrugLike = String(form.get("otcDrugLike") ?? "false") === "true";
+    const save = String(form.get("save") ?? "false") === "true";
+    const productNameRaw = String(form.get("productName") ?? "").trim();
+    const productName = productNameRaw ? productNameRaw.slice(0, 80) : null;
 
     if (!file || !(file instanceof File)) {
       return NextResponse.json({ error: "PDF 파일이 필요합니다." }, { status: 400 });
@@ -82,13 +96,41 @@ export async function POST(req: Request) {
     }
 
     const result = timed.value;
+    let savedId: string | null = null;
+    let saveError: string | null = null;
+
+    if (save && user && !result.skipJudgment) {
+      const saved = await saveLabelCheckRun(supabase, user.id, {
+        market,
+        productName,
+        options: {
+          rinseOff,
+          functional,
+          imported,
+          professionalUse,
+          hazardous,
+          otcDrugLike,
+        },
+        result,
+      });
+      if ("id" in saved) savedId = saved.id;
+      else {
+        saveError = "save_failed";
+        console.warn("[label-check] save-failed");
+      }
+    }
+
     // 파일명·본문·경로 로그 금지
     console.log(
-      `[label-check] ok readable=${result.readable} skip=${Boolean(result.skipJudgment)} findings=${result.findings.length}`,
+      `[label-check] ok readable=${result.readable} skip=${Boolean(result.skipJudgment)} findings=${result.findings.length} saved=${Boolean(savedId)}`,
     );
-    return NextResponse.json(result);
+    return NextResponse.json({
+      ...result,
+      savedId,
+      saveError,
+    });
   } catch {
     console.warn("[label-check] failed");
-    return NextResponse.json({ error: "검수 중 오류가 발생했습니다." }, { status: 500 });
+    return NextResponse.json({ error: ERR_SERVER_495 }, { status: 500 });
   }
 }

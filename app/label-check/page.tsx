@@ -192,6 +192,17 @@ export default function LabelCheckPage() {
             {" · "}표시사항 사전 점검
           </p>
           <h1 className="mt-2 break-words text-3xl font-extrabold tracking-tight">화장품 표시사항 PDF 검수</h1>
+          <nav className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold text-[#6B5A2E]">
+            <Link href="/login?next=%2Flabel-check%2Fnew" className="underline-offset-2 hover:underline">
+              로그인
+            </Link>
+            <Link href="/label-check/new" className="underline-offset-2 hover:underline">
+              검수 신청
+            </Link>
+            <Link href="/label-check/history" className="underline-offset-2 hover:underline">
+              내 결과
+            </Link>
+          </nav>
           <p className="mt-3 break-words text-base leading-relaxed text-[#3A3428]">{INTRO_ONE_LINE_486}</p>
           <ol className="mt-3 list-decimal space-y-1.5 break-words pl-5 text-sm leading-relaxed text-[#4A3F24]">
             {INTRO_LINES_486.map((line) => (
@@ -329,7 +340,11 @@ export default function LabelCheckPage() {
           >
             {busy ? "검수 중…" : "검수 시작"}
           </button>
-          {error ? <p className="break-words text-sm text-[#9B1C1C]">{error}</p> : null}
+          {error ? (
+            <p className="break-words text-sm text-[#9B1C1C]" role="alert">
+              {error}
+            </p>
+          ) : null}
         </section>
 
         {result ? (

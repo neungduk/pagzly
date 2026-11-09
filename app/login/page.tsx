@@ -8,11 +8,14 @@ import KakaoLoginButton from "@/components/KakaoLoginButton";
 import GoogleLoginButton from "@/components/GoogleLoginButton";
 import { createClient } from "@/lib/supabase";
 import { hasCompletedOnboarding } from "@/lib/onboarding";
+import { safeLabelCheckNext } from "@/lib/label-check/safe-next";
+import { isDetailPageEnabled } from "@/lib/feature-flags";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resetSuccess = searchParams.get("reset") === "success";
+  const nextPath = safeLabelCheckNext(searchParams.get("next"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -37,13 +40,19 @@ function LoginForm() {
     }
 
     const userId = data.user?.id;
-    if (userId && !(await hasCompletedOnboarding(supabase, userId))) {
+    // label-check 복귀(next)면 온보딩 강제 생략. 그 외는 기존 흐름.
+    if (
+      !nextPath &&
+      userId &&
+      isDetailPageEnabled() &&
+      !(await hasCompletedOnboarding(supabase, userId))
+    ) {
       router.push("/onboarding");
       router.refresh();
       return;
     }
 
-    router.push("/");
+    router.push(nextPath || "/");
     router.refresh();
   }
 

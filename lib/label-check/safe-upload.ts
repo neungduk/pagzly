@@ -3,7 +3,11 @@
  * 파일명·본문은 로그하지 않음.
  */
 import { createRequire } from "node:module";
-import { SlidingWindowLimiter, clientIpOf, type RateLimitRule } from "@/lib/rate-limit";
+import { SlidingWindowLimiter, clientIpOf } from "@/lib/rate-limit";
+import {
+  LABEL_CHECK_GUEST_RATE_RULES,
+  LABEL_CHECK_MEMBER_RATE_RULES,
+} from "@/lib/label-check/member-constants";
 import {
   ERR_NOT_PDF_485,
   ERR_TIMEOUT_485,
@@ -15,12 +19,12 @@ import {
 
 const require = createRequire(import.meta.url);
 
-export const LABEL_CHECK_RATE_RULES: RateLimitRule[] = [
-  { name: "minute", windowMs: 60_000, max: 10 },
-];
+/** @deprecated 이름 유지 — 비회원 규칙과 동일 */
+export const LABEL_CHECK_RATE_RULES = LABEL_CHECK_GUEST_RATE_RULES;
 
 /** 인스턴스 메모리 — 서버리스에서는 인스턴스별·콜드스타트 시 초기화(1차 완충) */
-export const labelCheckLimiter = new SlidingWindowLimiter(LABEL_CHECK_RATE_RULES);
+export const labelCheckLimiter = new SlidingWindowLimiter(LABEL_CHECK_GUEST_RATE_RULES);
+export const labelCheckMemberLimiter = new SlidingWindowLimiter(LABEL_CHECK_MEMBER_RATE_RULES);
 
 export function labelCheckClientIp(headers: { get(name: string): string | null }): string {
   return clientIpOf(headers);
