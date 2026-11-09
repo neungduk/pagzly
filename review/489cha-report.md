@@ -45,5 +45,5 @@
 
 ## Push
 - branch: `cloud-work` → `origin/cloud-work` (**main 미푸시**)
-- tip: `(push 후 기재)`
-- 항목: targets `04a6c32` → A `2d59e27` → B `83ebe1a` → C `106bb70` → D `4afc82f` → E `(본 커밋)`
+- tip: `da697f5`
+- 항목: targets `04a6c32` → A `2d59e27` → B `83ebe1a` → C `106bb70` → D `4afc82f` → E `da697f5`
