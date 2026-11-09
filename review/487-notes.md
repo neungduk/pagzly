@@ -31,3 +31,14 @@ sections: Array<{
 - FAQ(`type: "faq"`) 경로는 items를 읽지 않음.
 - `image_text`는 emphasis/heading/callout만, `highlight_box`는 cards.title만.
 → 타입만 `DetailSection[]`로 맞추면 본문 로직 변경 불필요. checklist 분기 후 `items`는 여전히 `string[]`.
+
+## B. 수정
+- `lib/keyvisual-482.ts`: 매개변수 `sections: DetailSection[]` (+ type-only import). 본문 로직 불변.
+
+## C. 빌드 게이트
+| 명령 | 결과 |
+|------|------|
+| `npx tsc --noEmit` | 통과 (exit 0) |
+| `npm run build` | 통과 — Compiled + Running TypeScript Finished, 55 pages |
+
+추가 타입 오류 없음. 이후 차수 마무리: `review/CHECKLIST.md`에 `npx tsc --noEmit` 한 줄 추가.
