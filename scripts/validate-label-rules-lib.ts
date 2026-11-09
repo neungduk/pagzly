@@ -6,10 +6,12 @@ import path from "node:path";
 
 export const LABEL_RULE_FILES = {
   kr: "kr_label_rules_draft_v0.1.json",
-  adKr: "ad-phrases-kr_draft_v0.1.json",
+  adKr: "ad-phrases-kr_draft_v0.2.json",
   fixKr: "fix-suggestions-kr_draft_v0.1.json",
   us: "us_label_rules_draft_v0.1.json",
   adUs: "us-ad-phrases_draft_v0.1.json",
+  cautionsKr: "kr-cautions_draft_v0.1.json",
+  addendaKr: "kr-label-addenda_draft_v0.1.json",
 } as const;
 
 const AD_CONDITIONS = new Set(["always", "non_functional"]);
@@ -96,7 +98,27 @@ export function validateLabelRulesAt(
         const id = String(it.id || "");
         adKrIds.push(id);
         if (!it.title) issues.push({ level: "error", msg: `ad-kr ${id}: title 필수` });
-        checkPatterns(it.patterns, `ad-kr ${id}`, issues);
+        const patterns = it.patterns;
+        const regexPatterns = it.regex_patterns;
+        if (!Array.isArray(patterns) && !Array.isArray(regexPatterns)) {
+          issues.push({ level: "error", msg: `ad-kr ${id}: patterns 또는 regex_patterns 필요` });
+        } else if (Array.isArray(patterns)) {
+          checkPatterns(patterns, `ad-kr ${id}`, issues);
+        }
+        if (Array.isArray(regexPatterns)) {
+          for (const rp of regexPatterns) {
+            if (typeof rp !== "string") {
+              issues.push({ level: "error", msg: `ad-kr ${id}: regex_patterns 문자열 아님` });
+              continue;
+            }
+            try {
+              // eslint-disable-next-line no-new
+              new RegExp(rp, "iu");
+            } catch {
+              issues.push({ level: "error", msg: `ad-kr ${id}: 정규식 컴파일 실패 ${rp}` });
+            }
+          }
+        }
         const cond = String(it.condition || "");
         if (cond && !AD_CONDITIONS.has(cond)) {
           issues.push({ level: "error", msg: `ad-kr ${id}: condition 허용값 아님 (${cond})` });
@@ -115,7 +137,8 @@ export function validateLabelRulesAt(
     if (!data.suggestions || typeof data.suggestions !== "object") {
       issues.push({ level: "error", msg: "fix-suggestions: suggestions 객체 없음" });
     } else {
-      const required = [...krIdsNonPend, ...adKrIds];
+      // 504: 광고는 항목 fix_ko 사용 → KR 규칙만 커버리지 필수
+      const required = [...krIdsNonPend];
       for (const id of required) {
         if (!data.suggestions[id]) {
           issues.push({ level: "error", msg: `fix-suggestions: 커버리지 누락 ${id}` });
@@ -123,6 +146,49 @@ export function validateLabelRulesAt(
           issues.push({ level: "error", msg: `fix-suggestions ${id}: fix_ko 필수` });
         }
       }
+    }
+  }
+
+  const cau = localRead(root, F.cautionsKr);
+  if (!cau.ok) issues.push({ level: "error", msg: cau.error });
+  else {
+    const data = cau.data as {
+      ingredient_cautions?: Array<Record<string, unknown>>;
+      type_cautions?: Array<Record<string, unknown>>;
+    };
+    const ids: string[] = [];
+    for (const row of data.ingredient_cautions || []) {
+      const id = String(row.id || "");
+      ids.push(id);
+      if (!row.required_text_ko) issues.push({ level: "error", msg: `cautions ${id}: required_text_ko 필수` });
+      const trig = row.trigger_ingredients_ko;
+      if (!Array.isArray(trig) || trig.length === 0) {
+        issues.push({ level: "error", msg: `cautions-ing ${id}: trigger_ingredients_ko 비어 있음` });
+      }
+    }
+    for (const row of data.type_cautions || []) {
+      const id = String(row.id || "");
+      ids.push(id);
+      if (!row.required_text_ko) issues.push({ level: "error", msg: `cautions ${id}: required_text_ko 필수` });
+      if (!row.condition_note) issues.push({ level: "warn", msg: `cautions-type ${id}: condition_note 없음` });
+    }
+    dupIds(ids, "kr-cautions", issues);
+  }
+
+  const add = localRead(root, F.addendaKr);
+  if (!add.ok) issues.push({ level: "error", msg: add.error });
+  else {
+    const data = add.data as { addenda?: Array<Record<string, unknown>> };
+    if (!Array.isArray(data.addenda)) issues.push({ level: "error", msg: "addenda: addenda 배열 없음" });
+    else {
+      const ids: string[] = [];
+      for (const row of data.addenda) {
+        const id = String(row.id || "");
+        ids.push(id);
+        if (!row.title) issues.push({ level: "error", msg: `addenda ${id}: title 필수` });
+        if (!row.check_type) issues.push({ level: "error", msg: `addenda ${id}: check_type 필수` });
+      }
+      dupIds(ids, "kr-label-addenda", issues);
     }
   }
 

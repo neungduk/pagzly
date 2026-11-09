@@ -4,6 +4,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { isAdFindingCategory504 } from "@/lib/label-check/ad-phrases";
 import type { Finding, FixKind } from "@/lib/label-check/types";
 export { fixKindHeading496 } from "@/lib/label-check/fix-kind-label";
 
@@ -44,7 +45,8 @@ export function buildKrLabelToFixIdMap(): Map<string, string> {
     if (r.title) map.set(r.title, r.id);
   }
 
-  const ad = JSON.parse(fs.readFileSync(dataPath("ad-phrases-kr_draft_v0.1.json"), "utf8")) as {
+  // 504: v0.2 제목→id(항목 fix_ko가 우선이므로 맵은 보조용)
+  const ad = JSON.parse(fs.readFileSync(dataPath("ad-phrases-kr_draft_v0.2.json"), "utf8")) as {
     items: Array<{ id: string; title: string }>;
   };
   for (const i of ad.items || []) {
@@ -63,16 +65,10 @@ export function krFixSuggestionCoverage496(): { missing: string[]; extra: string
   const kr = JSON.parse(fs.readFileSync(dataPath("kr_label_rules_draft_v0.1.json"), "utf8")) as {
     rules: Array<{ id: string }>;
   };
-  const ad = JSON.parse(fs.readFileSync(dataPath("ad-phrases-kr_draft_v0.1.json"), "utf8")) as {
-    items: Array<{ id: string }>;
-  };
-
-  const required = [
-    ...(kr.rules || []).map((r) => r.id).filter((id) => !id.startsWith("KR-PEND-")),
-    ...(ad.items || []).map((i) => i.id),
-  ];
+  // 504: 광고는 항목 fix_ko 사용 → 커버리지에서 MFDS 제외. KR 규칙 + (참고) v0.1 AD-* 잔여만.
+  const required = (kr.rules || []).map((r) => r.id).filter((id) => !id.startsWith("KR-PEND-"));
   const missing = required.filter((id) => !keys.includes(id));
-  const extra = keys.filter((id) => !required.includes(id) && !id.startsWith("KR-PEND-"));
+  const extra = keys.filter((id) => !required.includes(id) && !id.startsWith("KR-PEND-") && !id.startsWith("AD-") && !id.startsWith("MFDS-"));
   return { missing, extra, required };
 }
 
@@ -84,6 +80,13 @@ export function applyKrFixSuggestions496(findings: Finding[]): Finding[] {
   const byLabel = buildKrLabelToFixIdMap();
 
   return findings.map((f) => {
+    // 504: 광고·별표4 보강이 채운 fix_ko만 유지(임의 잔여 제안은 제거)
+    if (
+      f.fixSuggestion?.trim() &&
+      (isAdFindingCategory504(f.category) || f.category === "표시사항" || f.category === "주의사항")
+    ) {
+      return f;
+    }
     const id = byLabel.get(f.label);
     const s = id ? sug[id] : undefined;
     if (!s || !String(s.fix_ko || "").trim()) {

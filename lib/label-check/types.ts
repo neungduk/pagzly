@@ -21,6 +21,11 @@ export type LabelCheckInput = {
   hazardous?: boolean;
   /** 자외선차단·여드름 등 OTC 성격 → 판정 보류 */
   otcDrugLike?: boolean;
+  /**
+   * 504 — 제품 유형(복수). type_cautions 판정에만 사용.
+   * scrub|pack|shampoo|vulva|softener|deodorant|spray_sunscreen|aerosol
+   */
+  productTypes?: string[];
 };
 
 export type FixKind = "fix" | "soften" | "evidence";
@@ -37,6 +42,8 @@ export type Finding = {
   fixSuggestion?: string;
   fixExample?: string;
   fixKind?: FixKind;
+  /** 504 — 광고·주의 exception_note 등. 접힘 한 줄 */
+  exceptionNote?: string;
 };
 
 export type LabelCheckSummary = {

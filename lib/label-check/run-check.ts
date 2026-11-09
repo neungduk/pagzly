@@ -3,6 +3,8 @@
  * 패턴은 load-rules가 title/rule/examples에서 유도. 내부 id는 응답에 넣지 않음.
  */
 import { isHitCoveredByAdPhrases493, scanAdPhrases493 } from "@/lib/label-check/ad-phrases";
+import { applyKrAddenda504 } from "@/lib/label-check/addenda-kr";
+import { scanIngredientCautions504, scanTypeCautions504 } from "@/lib/label-check/cautions-kr";
 import {
   emptyPagesNoticeSuffix,
   extractLabelPdf,
@@ -582,8 +584,11 @@ export async function runLabelCheckFromExtracted(
   }
 
   findings.push(...scanAdPhrases493(extracted.text, input));
+  findings.push(...scanIngredientCautions504(extracted.text));
+  findings.push(...scanTypeCautions504(extracted.text, input));
 
-  const findingsWithFix = applyKrFixSuggestions496(findings);
+  const merged = applyKrAddenda504(extracted.text, input, findings, manualItems);
+  const findingsWithFix = applyKrFixSuggestions496(merged.findings);
 
   return {
     disclaimer: DISCLAIMER_483,
@@ -591,9 +596,9 @@ export async function runLabelCheckFromExtracted(
     charCount: extracted.charCount,
     hangulCount: extracted.hangulCount,
     skipJudgment: false,
-    summary: summarize(findingsWithFix, manualItems.length),
+    summary: summarize(findingsWithFix, merged.manualItems.length),
     findings: findingsWithFix,
-    manualItems,
+    manualItems: merged.manualItems,
     market: "KR",
     rulesBasis: formatRulesBasisLine501("KR"),
   };
