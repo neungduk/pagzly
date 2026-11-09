@@ -11,12 +11,40 @@ import {
 import { loadAllergens483, loadLabelRules483, type RuleDraft } from "@/lib/label-check/load-rules";
 import {
   DISCLAIMER_483,
+  MIN_HANGUL_CHARS_485,
+  NOTICE_NO_HANGUL_485,
+  NOTICE_OUTLINE_485,
   type CheckStatus,
   type Finding,
   type LabelCheckInput,
   type LabelCheckResult,
   type LabelCheckSummary,
 } from "@/lib/label-check/types";
+
+const EMPTY_SUMMARY: LabelCheckSummary = {
+  possible: 0,
+  attention: 0,
+  unknown: 0,
+  pass: 0,
+  manual: 0,
+};
+
+function noticeOnlyResult(
+  extracted: { charCount: number; hangulCount: number },
+  notice: string,
+): LabelCheckResult {
+  return {
+    disclaimer: DISCLAIMER_483,
+    readable: false,
+    charCount: extracted.charCount,
+    hangulCount: extracted.hangulCount,
+    notice,
+    skipJudgment: true,
+    summary: EMPTY_SUMMARY,
+    findings: [],
+    manualItems: [],
+  };
+}
 
 function includesNormalized(text: string, word: string): boolean {
   if (!word) return false;
@@ -401,25 +429,18 @@ export async function runLabelCheck483(
   input: LabelCheckInput,
 ): Promise<LabelCheckResult> {
   const extracted = await extractLabelPdf(buffer);
+
+  // 0자·극소 한글: 아웃라인/스캔 가능 → 판정 없이 안내만(위반 가능 폭탄 방지)
+  if (extracted.charCount === 0 || extracted.hangulCount < MIN_HANGUL_CHARS_485) {
+    // 영문만 충분히 읽힌 경우: 한글 미검출 안내 + 판정 보류
+    if (extracted.charCount >= 40 && extracted.hangulCount < MIN_HANGUL_CHARS_485) {
+      return noticeOnlyResult(extracted, NOTICE_NO_HANGUL_485);
+    }
+    return noticeOnlyResult(extracted, NOTICE_OUTLINE_485);
+  }
+
   if (!extracted.readable) {
-    return {
-      disclaimer: DISCLAIMER_483,
-      readable: false,
-      charCount: extracted.charCount,
-      summary: { possible: 0, attention: 0, unknown: 1, pass: 0, manual: 0 },
-      findings: [
-        {
-          category: "추출",
-          label: "텍스트 추출",
-          status: "unknown",
-          found: `유효 글자 수 ${extracted.charCount}`,
-          suggest:
-            "텍스트를 읽을 수 없어 확인 불가합니다. (이미지 스캔본·한글 미임베드 PDF는 OCR/재내보내기가 필요합니다. 통과로 처리하지 않습니다.)",
-          checkType: "code",
-        },
-      ],
-      manualItems: [],
-    };
+    return noticeOnlyResult(extracted, NOTICE_OUTLINE_485);
   }
 
   const rules = loadLabelRules483();
@@ -444,6 +465,8 @@ export async function runLabelCheck483(
     disclaimer: DISCLAIMER_483,
     readable: true,
     charCount: extracted.charCount,
+    hangulCount: extracted.hangulCount,
+    skipJudgment: false,
     summary: summarize(findings, manualItems.length),
     findings,
     manualItems,

@@ -14,12 +14,19 @@ const END = "%LABELCHECK_TEXT_END%";
 export type ExtractedPdf = {
   text: string;
   charCount: number;
+  /** 한글(가–힣) 글자 수 */
+  hangulCount: number;
   readable: boolean;
   /** 폰트 크기(pt) 샘플 — 없으면 null(확인 불가, 통과 금지) */
   fontSizesPt: number[] | null;
   /** 글자별(또는 조각별) 크기 — 알레르기 성분 등 부분 검사 */
   textItems: Array<{ text: string; sizePt: number }> | null;
 };
+
+export function countHangulChars(text: string): number {
+  const m = text.normalize("NFC").match(/[가-힣]/g);
+  return m ? m.length : 0;
+}
 
 /** NFC + 공백·콜론 정규화(항목명 변형: "내 용 량", "내용량 :") */
 export function normalizeLabelText(s: string): string {
@@ -146,6 +153,7 @@ export async function extractLabelPdf(buffer: Buffer): Promise<ExtractedPdf> {
   const normalizedFinal = softNormalize(finalText);
 
   const charCount = [...normalizedFinal.replace(/\s+/g, "")].length;
+  const hangulCount = countHangulChars(normalizedFinal);
   const textItems = js && js.items.length ? js.items : null;
   const fontSizesPt = textItems
     ? [...new Set(textItems.map((i) => i.sizePt))].sort((a, b) => a - b)
@@ -154,6 +162,7 @@ export async function extractLabelPdf(buffer: Buffer): Promise<ExtractedPdf> {
   return {
     text: normalizedFinal,
     charCount,
+    hangulCount,
     readable: charCount >= MIN_CHARS_483,
     fontSizesPt,
     textItems,
