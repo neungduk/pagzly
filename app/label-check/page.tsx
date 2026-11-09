@@ -6,8 +6,13 @@ import type { LabelCheckResult } from "@/lib/label-check/types";
 import {
   DISCLAIMER_483,
   DISCLAIMER_PRINT_485,
+  INTRO_LINES_486,
+  INTRO_ONE_LINE_486,
   MAX_PDF_BYTES_483,
+  SAMPLE_BANNER_486,
 } from "@/lib/label-check/types";
+import sampleResultA from "@/lib/label-check/sample-result-a.json";
+import { labelContactEmail } from "@/lib/label-check/contact";
 
 const STATUS_KO: Record<string, string> = {
   possible: "위반 가능",
@@ -33,10 +38,15 @@ export default function LabelCheckPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<LabelCheckResult | null>(null);
   const [checkedOn, setCheckedOn] = useState<string | null>(null);
+  const [isSample, setIsSample] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const contactEmail = labelContactEmail();
 
   const onFile = useCallback((f: File | null) => {
     setResult(null);
     setCheckedOn(null);
+    setIsSample(false);
     setError(null);
     if (!f) {
       setFile(null);
@@ -50,6 +60,26 @@ export default function LabelCheckPage() {
     setFile(f);
   }, []);
 
+  const showSample = useCallback(() => {
+    setError(null);
+    setFile(null);
+    setIsSample(true);
+    setProductName(sampleResultA.meta.product);
+    setResult(sampleResultA.result as LabelCheckResult);
+    setCheckedOn(todayKo());
+  }, []);
+
+  const copyContact = useCallback(async () => {
+    if (!contactEmail) return;
+    try {
+      await navigator.clipboard.writeText(contactEmail);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
+  }, [contactEmail]);
+
   const submit = async () => {
     if (!file) {
       setError("PDF를 선택하세요.");
@@ -58,6 +88,7 @@ export default function LabelCheckPage() {
     setBusy(true);
     setError(null);
     setResult(null);
+    setIsSample(false);
     try {
       const fd = new FormData();
       fd.set("file", file);
@@ -79,9 +110,10 @@ export default function LabelCheckPage() {
   };
 
   const printTitle = useMemo(() => {
+    if (isSample) return sampleResultA.meta.product;
     const n = productName.trim();
     return n || "제품명 미입력";
-  }, [productName]);
+  }, [productName, isSample]);
 
   return (
     <main className="lc-page min-h-screen bg-[#F7F4EE] text-[#1B1B18]">
@@ -93,13 +125,41 @@ export default function LabelCheckPage() {
             </Link>
             {" · "}표시사항 사전 점검
           </p>
-          <h1 className="mt-2 text-3xl font-extrabold tracking-tight">화장품 표시사항 PDF 검수</h1>
+          <h1 className="mt-2 break-words text-3xl font-extrabold tracking-tight">화장품 표시사항 PDF 검수</h1>
+          <p className="mt-3 break-words text-base leading-relaxed text-[#3A3428]">{INTRO_ONE_LINE_486}</p>
+          <ol className="mt-3 list-decimal space-y-1.5 break-words pl-5 text-sm leading-relaxed text-[#4A3F24]">
+            {INTRO_LINES_486.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ol>
           <p className="mt-3 rounded-lg border border-[#D9CBA8] bg-[#FFF9EB] px-3 py-2 text-sm leading-relaxed text-[#4A3F24]">
             {DISCLAIMER_483}
           </p>
+          {contactEmail ? (
+            <div className="lc-contact mt-4 flex flex-wrap items-center gap-2 text-sm">
+              <span className="break-all text-[#3A3428]">문의: {contactEmail}</span>
+              <button
+                type="button"
+                onClick={() => void copyContact()}
+                className="rounded-full border border-[#1B1B18] px-3 py-1 text-xs font-semibold"
+              >
+                {copied ? "복사됨" : "복사"}
+              </button>
+            </div>
+          ) : null}
         </header>
 
         <section className="space-y-4 rounded-2xl border border-[#E5DCC8] bg-white p-5 shadow-sm print:hidden">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={showSample}
+              className="rounded-full border border-[#1B1B18] px-4 py-2 text-sm font-semibold"
+            >
+              샘플 결과 먼저 보기
+            </button>
+          </div>
+
           <label className="block text-sm font-semibold">
             제품명 (선택 · 인쇄 상단에 표시)
             <input
@@ -169,6 +229,11 @@ export default function LabelCheckPage() {
 
             <header className="lc-print-head border-b border-[#E5DCC8] pb-3">
               <p className="text-xs font-semibold tracking-wide text-[#6B5A2E]">Pagzly · 표시사항 사전 점검</p>
+              {isSample ? (
+                <p className="mt-2 break-words rounded-md bg-[#FFF9EB] px-2 py-1 text-sm font-semibold text-[#6B5A2E]">
+                  {SAMPLE_BANNER_486}
+                </p>
+              ) : null}
               <h2 className="mt-1 break-words text-2xl font-extrabold leading-tight">{printTitle}</h2>
               <p className="mt-1 text-sm text-[#555]">점검일 {checkedOn ?? todayKo()}</p>
             </header>
