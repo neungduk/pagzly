@@ -1,0 +1,160 @@
+{
+ "meta": {
+  "version": "draft_v0.1",
+  "date": "2026-11-09",
+  "market": "US",
+  "status": "초안. FDA 경고장 인용 표현 기반 일반 패턴. 법률 자문 아님.",
+  "matching_notes": [
+   "부분문자열(treat→Treatment 등) 오탐 주의: 단어 경계/굴절만 허용(497차 로직).",
+   "성분 목록(Ingredients 영역) 문구는 스캔 제외.",
+   "전문가용 제품이나 OTC 약품 라벨은 별도 규정이라 판정 보류."
+  ],
+  "not_covered": [
+   "이미지·문맥 판단",
+   "주(州) 광고법",
+   "FTC 광고 실증 원칙",
+   "OTC 약품(Drug Facts)"
+  ]
+ },
+ "items": [
+  {
+   "id": "USAD-001",
+   "market": "US",
+   "category": "disease",
+   "title_ko": "질병 진단·치료·예방 주장",
+   "patterns": [
+    "treat",
+    "treating",
+    "treatment of",
+    "cure",
+    "heal",
+    "prevent",
+    "psoriasis",
+    "eczema",
+    "rosacea",
+    "acne treatment",
+    "arthritis",
+    "dermatitis",
+    "anti-inflammatory",
+    "inflammation",
+    "fibromyalgia"
+   ],
+   "condition": "always",
+   "needs_evidence": false,
+   "severity": "attention",
+   "source": "https://www.fda.gov/inspections-compliance-enforcement-and-criminal-investigations/warning-letters/supreme-rejuvenation-llc-700749-05052025",
+   "source_verified": "FDA 경고장 인용 표현(2차 요약 포함) 기준. FD&C Act §201(g), §505 원문 대조 전",
+   "fix_ko": "질병·증상 이름이나 치료·예방 표현은 삭제하고 외관 개선 표현으로 바꾸세요.",
+   "fix_example_en": "e.g. \"Helps soothe the look of dry skin\""
+  },
+  {
+   "id": "USAD-002",
+   "market": "US",
+   "category": "structure_function",
+   "title_ko": "세포·조직 재생·복구 주장",
+   "patterns": [
+    "regenerat",
+    "cellular repair",
+    "repair damaged",
+    "collagen production",
+    "promotes cell growth",
+    "stimulate hair growth",
+    "fibroblast",
+    "nerve regeneration"
+   ],
+   "condition": "always",
+   "needs_evidence": false,
+   "severity": "attention",
+   "source": "https://www.fda.gov/inspections-compliance-enforcement-and-criminal-investigations/warning-letters/supreme-rejuvenation-llc-700749-05052025 ; https://www.agg.com/news-insights/publications/you-wear-it-well-or-do-you-fda-objects-to-these-skincare-companies-unapproved-new-drug-claims-08-12-2016/",
+   "source_verified": "FDA 경고장 인용 표현(2차 요약 포함) 기준. FD&C Act §201(g), §505 원문 대조 전",
+   "fix_ko": "세포·조직 재생, 콜라겐 생성 등 신체 구조·기능을 바꾼다는 표현은 외관 개선 표현으로 낮추세요.",
+   "fix_example_en": "e.g. \"Helps improve the look of skin texture\""
+  },
+  {
+   "id": "USAD-003",
+   "market": "US",
+   "category": "stem_exosome",
+   "title_ko": "줄기세포·엑소좀·생물학적 제제 표현",
+   "patterns": [
+    "stem cell",
+    "exosome",
+    "umbilical cord",
+    "mesenchymal",
+    "growth factor",
+    "cell-derived"
+   ],
+   "condition": "always",
+   "needs_evidence": false,
+   "severity": "attention",
+   "source": "https://www.fda.gov/inspections-compliance-enforcement-and-criminal-investigations/warning-letters/supreme-rejuvenation-llc-700749-05052025",
+   "source_verified": "FDA 경고장 인용 표현(2차 요약 포함) 기준. FD&C Act §201(g), §505 원문 대조 전",
+   "fix_ko": "줄기세포·엑소좀 유래를 내세운 표현은 규제 위험이 큽니다. 전문가 확인 후 제품 설명에서 제거를 검토하세요.",
+   "fix_example_en": ""
+  },
+  {
+   "id": "USAD-004",
+   "market": "US",
+   "category": "drug_alternative",
+   "title_ko": "시술·약품 대체 표현",
+   "patterns": [
+    "alternative to botox",
+    "botox",
+    "restylane",
+    "filler alternative",
+    "alternative to injections",
+    "alternative to medical",
+    "medically administered"
+   ],
+   "condition": "always",
+   "needs_evidence": false,
+   "severity": "attention",
+   "source": "https://www.agg.com/news-insights/publications/you-wear-it-well-or-do-you-fda-objects-to-these-skincare-companies-unapproved-new-drug-claims-08-12-2016/",
+   "source_verified": "FDA 경고장 인용 표현(2차 요약 포함) 기준. FD&C Act §201(g), §505 원문 대조 전",
+   "fix_ko": "주사·시술 대체를 암시하는 표현은 삭제하세요.",
+   "fix_example_en": "e.g. \"A daily moisturizer for smoother-looking skin\""
+  },
+  {
+   "id": "USAD-005",
+   "market": "US",
+   "category": "cosmetic_concern_drug",
+   "title_ko": "주름·색소 예방·교정 주장",
+   "patterns": [
+    "preventing wrinkles",
+    "prevent wrinkles",
+    "age spots",
+    "hyperpigmentation",
+    "reverse skin damage",
+    "reverse aging",
+    "erase wrinkles",
+    "permanently"
+   ],
+   "condition": "always",
+   "needs_evidence": false,
+   "severity": "attention",
+   "source": "https://www.agg.com/news-insights/publications/you-wear-it-well-or-do-you-fda-objects-to-these-skincare-companies-unapproved-new-drug-claims-08-12-2016/",
+   "source_verified": "FDA 경고장 인용 표현(2차 요약 포함) 기준. FD&C Act §201(g), §505 원문 대조 전",
+   "fix_ko": "주름·색소를 예방·교정·영구 제거한다는 표현은 완화하세요.",
+   "fix_example_en": "e.g. \"Helps improve the appearance of fine lines\""
+  },
+  {
+   "id": "USAD-006",
+   "market": "US",
+   "category": "evidence",
+   "title_ko": "입증·임상 표현",
+   "patterns": [
+    "clinically proven",
+    "clinical studies",
+    "dermatologist tested",
+    "medical grade",
+    "doctor recommended"
+   ],
+   "condition": "always",
+   "needs_evidence": true,
+   "severity": "attention",
+   "source": "https://www.fda.gov/inspections-compliance-enforcement-and-criminal-investigations/warning-letters/supreme-rejuvenation-llc-700749-05052025",
+   "source_verified": "FDA 경고장 인용 표현(2차 요약 포함) 기준. FD&C Act §201(g), §505 원문 대조 전",
+   "fix_ko": "입증·임상 표현은 근거 자료가 필요합니다. 자료 없이는 삭제하세요.",
+   "fix_example_en": ""
+  }
+ ]
+}
