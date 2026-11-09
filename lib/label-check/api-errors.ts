@@ -22,6 +22,7 @@ export type LabelCheckErrorCode =
   | "RATE_LIMIT"
   | "LOGIN"
   | "NOT_FOUND"
+  | "BAD_REQUEST"
   | "SERVER";
 
 export const LABEL_CHECK_ERR: Record<LabelCheckErrorCode, string> = {
@@ -34,6 +35,7 @@ export const LABEL_CHECK_ERR: Record<LabelCheckErrorCode, string> = {
   RATE_LIMIT: ERR_RATE_485,
   LOGIN: ERR_LOGIN_EXPIRED_495,
   NOT_FOUND: "결과를 찾을 수 없습니다.",
+  BAD_REQUEST: "요청 형식이 올바르지 않습니다.",
   SERVER: ERR_SERVER_495,
 };
 

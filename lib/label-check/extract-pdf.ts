@@ -24,6 +24,8 @@ export type ExtractedPdf = {
   /** 497 — 텍스트가 비어 있는 쪽(1-based). 혼합 PDF 안내용 */
   emptyPages?: number[];
   pageCount?: number;
+  /** 499 — 쪽별 아이템(클라 페이로드와 동일 의미) */
+  pages?: Array<{ page: number; items: Array<{ text: string; sizePt: number }> }>;
 };
 
 /** 497 — 향후 OCR 등 대체 추출. 지금은 미구현(항상 null). */
@@ -101,6 +103,7 @@ async function pdfJsExtract(
   items: Array<{ text: string; sizePt: number }>;
   emptyPages: number[];
   pageCount: number;
+  pages: Array<{ page: number; items: Array<{ text: string; sizePt: number }> }>;
 } | null> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -127,11 +130,13 @@ async function pdfJsExtract(
       const parts: string[] = [];
       const items: Array<{ text: string; sizePt: number }> = [];
       const emptyPages: number[] = [];
+      const pages: Array<{ page: number; items: Array<{ text: string; sizePt: number }> }> = [];
 
       for (let p = 1; p <= doc.numPages; p++) {
         const page = await doc.getPage(p);
         const content = await page.getTextContent();
         let line = "";
+        const pageItems: Array<{ text: string; sizePt: number }> = [];
         for (const it of content.items) {
           const str = typeof it.str === "string" ? it.str : "";
           if (!str) continue;
@@ -141,11 +146,15 @@ async function pdfJsExtract(
             t && t.length >= 4
               ? Math.max(Math.hypot(t[0], t[1]), Math.hypot(t[2], t[3]))
               : 0;
-          if (sizePt > 0) {
-            items.push({ text: str.normalize("NFC"), sizePt: Math.round(sizePt * 100) / 100 });
+          const normalized = str.normalize("NFC");
+          const rounded = sizePt > 0 ? Math.round(sizePt * 100) / 100 : 0;
+          pageItems.push({ text: normalized, sizePt: rounded });
+          if (rounded > 0) {
+            items.push({ text: normalized, sizePt: rounded });
           }
           line += str;
         }
+        pages.push({ page: p, items: pageItems });
         if (line.trim()) parts.push(line);
         else emptyPages.push(p);
       }
@@ -155,6 +164,7 @@ async function pdfJsExtract(
         items,
         emptyPages,
         pageCount: doc.numPages,
+        pages,
       };
     } finally {
       // 498 — 서버리스 메모리: 문서 핸들 해제
@@ -214,6 +224,7 @@ export async function extractLabelPdf(buffer: Buffer): Promise<ExtractedPdf> {
     textItems,
     emptyPages: js?.emptyPages,
     pageCount: js?.pageCount,
+    pages: js?.pages,
   };
 }
 

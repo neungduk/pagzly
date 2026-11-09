@@ -12,7 +12,7 @@ import {
 import { FOUND_CONFIRMED_488, formatFoundSnippet } from "@/lib/label-check/format-found";
 import { applyKrFixSuggestions496 } from "@/lib/label-check/fix-suggestions-kr";
 import { loadAllergens483, loadLabelRules483, type RuleDraft } from "@/lib/label-check/load-rules";
-import { runLabelCheckUs494 } from "@/lib/label-check/run-check-us";
+import { runLabelCheckUsFromExtracted494, runLabelCheckUs494 } from "@/lib/label-check/run-check-us";
 import {
   DISCLAIMER_483,
   MIN_HANGUL_CHARS_485,
@@ -519,23 +519,20 @@ function summarize(findings: Finding[], manualCount: number): LabelCheckSummary 
   return s;
 }
 
-export async function runLabelCheck483(
-  buffer: Buffer,
+/** 499 — 이미 추출된 구조로 점검(클라 JSON·서버 추출 공유 코어) */
+export async function runLabelCheckFromExtracted(
+  extracted: ExtractedPdf,
   input: LabelCheckInput,
 ): Promise<LabelCheckResult> {
   if ((input.market ?? "KR") === "US") {
-    return runLabelCheckUs494(buffer, input);
+    return runLabelCheckUsFromExtracted494(extracted, input);
   }
-
-  const extracted = await extractLabelPdf(buffer);
 
   // 0자·극소 한글: 아웃라인/스캔 가능 → 판정 없이 안내만(위반 가능 폭탄 방지)
   if (extracted.charCount === 0 || extracted.hangulCount < MIN_HANGUL_CHARS_485) {
-    // 영문만 충분히 읽힌 경우: 한글 미검출 안내 + 판정 보류
     if (extracted.charCount >= 40 && extracted.hangulCount < MIN_HANGUL_CHARS_485) {
       return noticeOnlyResult(extracted, NOTICE_NO_HANGUL_485);
     }
-    // 497 — 본문 0자: 이미지 PDF 안내(+혼합 쪽)
     if (extracted.charCount === 0) {
       return noticeOnlyResult(
         extracted,
@@ -560,8 +557,6 @@ export async function runLabelCheck483(
     if (rule.check_type === "code") {
       const f = runCodeRule(rule, extracted.text, extracted, input);
       if (!f) continue;
-      // 493 — ad-phrases가 같은 표현을 잡으면 KR-ADV 확인 필요는 생략(이중 표시 방지).
-      // 데이터에 없는 표현(예: 피부 장벽 강화)은 KR-ADV 유지.
       if (
         rule.id.startsWith("KR-ADV-") &&
         f.status === "attention" &&
@@ -584,7 +579,6 @@ export async function runLabelCheck483(
 
   const findingsWithFix = applyKrFixSuggestions496(findings);
 
-  // 면책·단정 금지: status에 '위반' 문자열 없음(possible=위반 가능)
   return {
     disclaimer: DISCLAIMER_483,
     readable: true,
@@ -598,7 +592,18 @@ export async function runLabelCheck483(
   };
 }
 
-export { runLabelCheckUs494, runLabelCheckUsText494 } from "@/lib/label-check/run-check-us";
+export async function runLabelCheck483(
+  buffer: Buffer,
+  input: LabelCheckInput,
+): Promise<LabelCheckResult> {
+  if ((input.market ?? "KR") === "US") {
+    return runLabelCheckUs494(buffer, input);
+  }
+  const extracted = await extractLabelPdf(buffer);
+  return runLabelCheckFromExtracted(extracted, input);
+}
+
+export { runLabelCheckUs494, runLabelCheckUsText494, runLabelCheckUsFromExtracted494 } from "@/lib/label-check/run-check-us";
 
 /** 회귀·로컬: 텍스트만으로 검사(레거시 마커 PDF와 동일 형식) */
 export async function runLabelCheckText483(

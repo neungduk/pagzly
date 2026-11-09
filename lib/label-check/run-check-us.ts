@@ -442,8 +442,9 @@ function runUsCodeRule(
   return null;
 }
 
-export async function runLabelCheckUs494(
-  buffer: Buffer,
+/** 499 — 추출 완료분 US 점검 코어 */
+export async function runLabelCheckUsFromExtracted494(
+  extracted: ExtractedPdf,
   input: LabelCheckInput,
 ): Promise<LabelCheckResult> {
   if (input.otcDrugLike) {
@@ -460,8 +461,6 @@ export async function runLabelCheckUs494(
       market: "US",
     };
   }
-
-  const extracted = await extractLabelPdf(buffer);
 
   if (extracted.charCount === 0) {
     return {
@@ -497,7 +496,6 @@ export async function runLabelCheckUs494(
   const findings: Finding[] = [];
   const manualItems: LabelCheckResult["manualItems"] = [];
 
-  // 497 — 한글만 라벨: 영어 표기만 안내하고 영문 필수 possible 연쇄 보류
   if (hangulOnlyLabel(extracted.text)) {
     const rule007 = rules.find((r) => r.id === "US-007");
     if (rule007) {
@@ -548,6 +546,14 @@ export async function runLabelCheckUs494(
     manualItems,
     market: "US",
   };
+}
+
+export async function runLabelCheckUs494(
+  buffer: Buffer,
+  input: LabelCheckInput,
+): Promise<LabelCheckResult> {
+  const extracted = await extractLabelPdf(buffer);
+  return runLabelCheckUsFromExtracted494(extracted, input);
 }
 
 export async function runLabelCheckUsText494(
