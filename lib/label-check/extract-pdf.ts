@@ -1,8 +1,12 @@
 /**
- * 483 — PDF 텍스트 추출(무료). 본문은 로그에 남기지 않음.
- * pdf-parse + 샘플 PDF UTF-8 마커 병합.
+ * 484 — PDF 텍스트 추출(무료). 본문은 로그에 남기지 않음.
+ * pdf-parse + (가능 시) pdfjs 텍스트 아이템 transform 글자 크기.
+ * 483 UTF-8 마커는 보조(레거시 샘플) — 진짜 PDF는 파서/pdfjs 본문 우선.
  */
+import { createRequire } from "node:module";
 import { MIN_CHARS_483 } from "@/lib/label-check/types";
+
+const require = createRequire(import.meta.url);
 
 const BEGIN = "%LABELCHECK_TEXT_BEGIN%";
 const END = "%LABELCHECK_TEXT_END%";
@@ -11,9 +15,33 @@ export type ExtractedPdf = {
   text: string;
   charCount: number;
   readable: boolean;
-  /** 폰트 크기(pt) 샘플 — 없으면 null */
+  /** 폰트 크기(pt) 샘플 — 없으면 null(확인 불가, 통과 금지) */
   fontSizesPt: number[] | null;
+  /** 글자별(또는 조각별) 크기 — 알레르기 성분 등 부분 검사 */
+  textItems: Array<{ text: string; sizePt: number }> | null;
 };
+
+/** NFC + 공백·콜론 정규화(항목명 변형: "내 용 량", "내용량 :") */
+export function normalizeLabelText(s: string): string {
+  return s
+    .normalize("NFC")
+    .replace(/\u0000/g, " ")
+    .replace(/[\u200b\u200c\u200d\ufeff]/g, "")
+    .replace(/[：﹕]/g, ":")
+    .replace(/\s*:\s*/g, ":")
+    .replace(/[\s\u00a0\u3000]+/g, "")
+    .toLowerCase();
+}
+
+/** 표시용 가벼운 정리(스니펫) */
+export function softNormalize(s: string): string {
+  return s
+    .normalize("NFC")
+    .replace(/\u0000/g, " ")
+    .replace(/[ \t\u00a0\u3000]+/g, " ")
+    .replace(/\r\n/g, "\n")
+    .trim();
+}
 
 function markerText(buffer: Buffer): string {
   const raw = buffer.toString("utf8");
@@ -25,9 +53,10 @@ function markerText(buffer: Buffer): string {
 
 async function pdfParseText(buffer: Buffer): Promise<string> {
   try {
-    // index.js 디버그 분기 회피 (pdf-parse 패키지 내부 경로)
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pdfParse = require("pdf-parse/lib/pdf-parse.js") as (buf: Buffer) => Promise<{ text?: string }>;
+    const pdfParse = require("pdf-parse/lib/pdf-parse.js") as (
+      buf: Buffer,
+    ) => Promise<{ text?: string }>;
     const result = await pdfParse(buffer);
     return typeof result.text === "string" ? result.text : "";
   } catch {
@@ -35,7 +64,62 @@ async function pdfParseText(buffer: Buffer): Promise<string> {
   }
 }
 
-/** 스트림에서 /Tf 앞 숫자로 폰트 크기 추정(가능할 때만) */
+type PdfJsTextItem = { str?: string; transform?: number[] };
+
+async function pdfJsExtract(
+  buffer: Buffer,
+): Promise<{ text: string; items: Array<{ text: string; sizePt: number }> } | null> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfjs = require("pdf-parse/lib/pdf.js/v2.0.550/build/pdf.js") as {
+      getDocument: (opts: { data: Uint8Array; disableFontFace?: boolean }) => {
+        promise: Promise<{
+          numPages: number;
+          getPage: (n: number) => Promise<{
+            getTextContent: () => Promise<{ items: PdfJsTextItem[] }>;
+          }>;
+        }>;
+      };
+      disableWorker?: boolean;
+    };
+    if (typeof pdfjs.disableWorker === "boolean") pdfjs.disableWorker = true;
+
+    const doc = await pdfjs.getDocument({
+      data: new Uint8Array(buffer),
+      disableFontFace: true,
+    }).promise;
+
+    const parts: string[] = [];
+    const items: Array<{ text: string; sizePt: number }> = [];
+
+    for (let p = 1; p <= doc.numPages; p++) {
+      const page = await doc.getPage(p);
+      const content = await page.getTextContent();
+      let line = "";
+      for (const it of content.items) {
+        const str = typeof it.str === "string" ? it.str : "";
+        if (!str) continue;
+        const t = it.transform;
+        // Chromium/pdfjs: 렌더 크기는 transform 스케일 (hypot a,b 또는 c,d)
+        const sizePt =
+          t && t.length >= 4
+            ? Math.max(Math.hypot(t[0], t[1]), Math.hypot(t[2], t[3]))
+            : 0;
+        if (sizePt > 0) {
+          items.push({ text: str.normalize("NFC"), sizePt: Math.round(sizePt * 100) / 100 });
+        }
+        line += str;
+      }
+      if (line.trim()) parts.push(line);
+    }
+
+    return { text: parts.join("\n").normalize("NFC"), items };
+  } catch {
+    return null;
+  }
+}
+
+/** 레거시: 스트림 /Tf 추정 — Chromium에서는 부정확할 수 있어 보조만 */
 export function guessFontSizesPt(buffer: Buffer): number[] | null {
   const raw = buffer.toString("latin1");
   const sizes: number[] = [];
@@ -49,16 +133,29 @@ export function guessFontSizesPt(buffer: Buffer): number[] | null {
 }
 
 export async function extractLabelPdf(buffer: Buffer): Promise<ExtractedPdf> {
-  const fromParse = (await pdfParseText(buffer)).replace(/\u0000/g, " ").trim();
-  const fromMarker = markerText(buffer);
-  // 마커(한글 안정)를 우선, 파서 결과는 보조
-  const text = [fromMarker, fromParse].filter(Boolean).join("\n").trim();
-  const charCount = [...text.replace(/\s+/g, "")].length;
-  const fontSizesPt = guessFontSizesPt(buffer);
+  const fromParse = softNormalize(await pdfParseText(buffer));
+  const fromMarker = softNormalize(markerText(buffer));
+  const js = await pdfJsExtract(buffer);
+  const fromJs = js ? softNormalize(js.text) : "";
+
+  // 진짜 PDF: pdfjs ≈ pdf-parse 본문 우선. 마커는 레거시(한글 미임베드) 보조.
+  const primary = fromJs || fromParse;
+  const text = softNormalize([primary, fromMarker && !primary ? fromMarker : ""].filter(Boolean).join("\n"));
+  // 마커만 있는 레거시: primary 비어 있으면 마커 사용
+  const finalText = text || fromMarker || fromParse || fromJs;
+  const normalizedFinal = softNormalize(finalText);
+
+  const charCount = [...normalizedFinal.replace(/\s+/g, "")].length;
+  const textItems = js && js.items.length ? js.items : null;
+  const fontSizesPt = textItems
+    ? [...new Set(textItems.map((i) => i.sizePt))].sort((a, b) => a - b)
+    : guessFontSizesPt(buffer);
+
   return {
-    text,
+    text: normalizedFinal,
     charCount,
     readable: charCount >= MIN_CHARS_483,
     fontSizesPt,
+    textItems,
   };
 }

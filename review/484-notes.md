@@ -18,3 +18,27 @@
 3. 글자 크기: Chromium PDF에서 `/Tf` 추정 실패 → fontSizesPt null.
 
 → B에서 NFC·정규화·pdfjs transform, C에서 title/severity/allergens 스키마 적응(새 규칙 발명 금지).
+
+## B. 글자 추출 품질
+
+### 정규화
+- 추출 후 NFC. 비교 시 `normalizeLabelText`: 공백·ZWSP 제거, 전각/일반 콜론 통일(`내용량:` / `내 용 량` / `내용량 :` 동일 매칭).
+- 항목 존재 검사는 줄 순서 비의존(전체 텍스트 includes).
+
+### 글자 크기 (pdfjs transform)
+- `/Tf` 대신 pdf-parse 번들 pdf.js v2 텍스트 아이템 `transform` 스케일(hypot).
+- 샘플 A 실측: 리모넨·리날룰 **3pt**, 전성분 본문 **6.75pt**, 본문 라벨 8.25~10.5pt. (시안 CSS 4px/9px가 PDF pt로 0.75배 스케일된 값으로 보임. **5pt 미만 vs 이상 구분은 가능**.)
+- 크기 못 읽으면 `fontSizesPt=null` → 전성분 표시 방법 규칙은 **확인 불가(unknown)**, 통과 금지.
+
+### 생성기 비교 (같은 문구)
+문구: `내용량: 100mL / 제조번호: LOT484-TEST / 사용기한: 2028.12.31까지 / 전성분 정제수, 글리세린, 향료, 리모넨`
+
+| 생성기 | 파일 | 추출 | 비고 |
+|--------|------|------|------|
+| Chromium (Playwright page.pdf) | `generators-484/gen_chromium.pdf` | 63자, fonts [12], 한글 OK | 사용자 샘플과 동일 계열 |
+| pdfkit + 맑은 고딕 TTF | `generators-484/gen_pdfkit_malgun.pdf` | 63자, fonts [12], 한글 OK | reportlab 대체(로컬 Python 없음) |
+| LibreOffice | — | 미실시 | 환경에 LibreOffice 미설치 |
+| Helvetica only | `gen_helvetica_nohangul.pdf` | 영문만 68자 | 한글 라벨 없음 → 항목 누락 다수 |
+| 텍스트 없음 | `gen_empty_notext.pdf` | 0자, readable=false | **확인 불가** 안내(통과 금지). OCR은 다음 차수 |
+
+스크립트: `scripts/build-label-generators-484.mjs`

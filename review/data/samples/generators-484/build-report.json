@@ -1,0 +1,32 @@
+{
+  "phrase": "내용량: 100mL / 제조번호: LOT484-TEST / 사용기한: 2028.12.31까지 / 전성분 정제수, 글리세린, 향료, 리모넨",
+  "report": [
+    {
+      "gen": "chromium",
+      "path": "review\\data\\samples\\generators-484\\gen_chromium.pdf",
+      "ok": true
+    },
+    {
+      "gen": "pdfkit-malgun",
+      "path": "review\\data\\samples\\generators-484\\gen_pdfkit_malgun.pdf",
+      "ok": true
+    },
+    {
+      "gen": "libreoffice",
+      "ok": false,
+      "reason": "LibreOffice 미설치"
+    },
+    {
+      "gen": "helvetica-nohangul",
+      "path": "review\\data\\samples\\generators-484\\gen_helvetica_nohangul.pdf",
+      "ok": true,
+      "note": "한글 미임베드"
+    },
+    {
+      "gen": "empty-notext",
+      "path": "review\\data\\samples\\generators-484\\gen_empty_notext.pdf",
+      "ok": true,
+      "note": "텍스트 없음→확인 불가"
+    }
+  ]
+}
