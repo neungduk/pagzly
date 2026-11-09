@@ -116,11 +116,12 @@ export async function run(): Promise<string[]> {
     if (j.code !== "NOT_PDF") f.push("498: JSON code 파싱");
   }
 
-  // UI·멤버 페이지 상수 사용
+  // UI·멤버 페이지 — 499는 client-submit으로 통합(파싱 방어·용량 안내 포함)
   for (const p of ["app/label-check/page.tsx", "app/label-check/new/page.tsx"]) {
     const src = fs.readFileSync(path.join(process.cwd(), p), "utf8");
-    if (!/ERR_TOO_LARGE_485/.test(src)) f.push(`498: ${p} 용량 안내 상수 미사용`);
-    if (!/readLabelCheckApiFailure/.test(src)) f.push(`498: ${p} 파싱 방어 없음`);
+    const hasDirect = /ERR_TOO_LARGE_485|readLabelCheckApiFailure/.test(src);
+    const hasSubmit = /submitLabelCheckClient|assertClientPdfSize/.test(src);
+    if (!hasDirect && !hasSubmit) f.push(`498: ${p} 용량/파싱 가드 없음`);
     if (/최대 10MB/.test(src)) f.push(`498: ${p} 구 10MB 문구 잔존`);
   }
 
