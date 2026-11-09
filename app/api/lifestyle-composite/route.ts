@@ -6,8 +6,12 @@ import { resolveLifestyleCompositeScale } from "@/lib/lifestyle-composite-scale-
 import { compositeProductOnLifestylePhoto } from "@/lib/lifestyle-product-composite";
 import { isTestMode } from "@/lib/test-mode";
 import { uploadPngBuffer } from "@/lib/upload-png";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
 export async function POST(request: Request) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   try {
     const supabase = await createClient();
     const {

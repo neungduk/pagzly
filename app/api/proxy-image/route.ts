@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { PROXY_IMAGE_RULES, SlidingWindowLimiter, clientIpOf } from "@/lib/rate-limit";
 import { PROXY_MAX_BYTES, PROXY_TIMEOUT_MS, isAllowedImageType, isAllowedProxyUrl, readCapped } from "@/lib/proxy-image-policy";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
 // 426차 W6: 무인증 프록시라 IP 단위 인메모리 제한(서버리스 1차 완충)과 호스트·타입·크기·시간 제한을 둔다. 정책은 lib/proxy-image-policy.ts
 const limiter = new SlidingWindowLimiter(PROXY_IMAGE_RULES);
@@ -10,6 +11,9 @@ const limiter = new SlidingWindowLimiter(PROXY_IMAGE_RULES);
  * GET /api/proxy-image?url=https%3A%2F%2F...
  */
 export async function GET(request: Request) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   const limited = limiter.check(clientIpOf(request.headers));
   if (!limited.allowed) {
     return NextResponse.json({ error: "too many requests" }, { status: 429, headers: { "Retry-After": String(limited.retryAfterSec) } });

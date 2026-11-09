@@ -5,6 +5,7 @@ import {
   buildSupportChatSystemPrompt,
   SUPPORT_CONTACT_EMAIL,
 } from "@/lib/support-chat-prompt";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
 const DEEPSEEK_MODEL = "deepseek-v4-flash";
 const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
@@ -38,6 +39,9 @@ function isValidMessage(value: unknown): value is ChatMessage {
 }
 
 export async function POST(request: Request) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   try {
     const killed = killSwitchGate();
     if (killed) return killed;

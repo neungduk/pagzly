@@ -19,6 +19,7 @@ import { productImageProtectedUntil } from "@/lib/product-image-protection";
 import { analyzeSocialProductImages } from "@/lib/social-mini/analyze-images";
 import { generateSocialMiniCopy } from "@/lib/social-mini/generate-copy";
 import type { GeneratedCopy } from "@/lib/types/generate";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
 
 type SocialGenerateBody = {
@@ -39,6 +40,9 @@ async function fetchBackdropBuffer(result: Awaited<ReturnType<typeof generateBac
 }
 
 export async function POST(request: Request) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   try {
     const supabase = await createClient();
     const {

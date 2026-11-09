@@ -123,6 +123,7 @@ import {
   writeImageAnalysisCache,
 } from "@/lib/image-analysis-cache";
 import { HAIKU_VISION_MODEL } from "@/lib/vision-utils";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
 const CLAUDE_MODEL = "claude-sonnet-5";
 const TEST_MODE_ANALYSIS_MAX_IMAGES = 2;
@@ -1339,6 +1340,9 @@ type GenerateCtx = { userId?: string; locked?: boolean };
 
 /** 426차 R1: 사용자당 동시 생성 1건 락을 응답이 끝나면(성공·실패 모두) 해제한다. 락은 최대 10분 뒤 자동 만료 */
 export async function POST(request: Request) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   const ctx: GenerateCtx = {};
   try {
     return await handlePost(request, ctx);

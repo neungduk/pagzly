@@ -10,8 +10,12 @@ import {
 } from "@/lib/image-router/jobs/job-store-config";
 import type { CreateGenerationRequest } from "@/lib/image-router/jobs/generation-api-types";
 import { IMAGE_TASK_TYPES } from "@/lib/image-router/types";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
 export async function POST(request: Request) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   try {
     const supabase = await createClient();
     const {

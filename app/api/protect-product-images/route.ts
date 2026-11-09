@@ -3,12 +3,16 @@ import { usageGate } from "@/lib/usage-guard-server";
 import { USAGE_EST_COST_USD } from "@/lib/usage-guard";
 import { createClient } from "@/lib/supabase/server";
 import { productImageProtectedUntil } from "@/lib/product-image-protection";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
 /**
  * 승인/최종 생성 직전 orphan 원본의 protected_until을 연장한다 (30차).
  * body: { imagePaths: string[] }
  */
 export async function POST(request: Request) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   try {
     const supabase = await createClient();
     const {

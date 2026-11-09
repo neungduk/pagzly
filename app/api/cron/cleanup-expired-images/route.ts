@@ -2,13 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getStorage, StorageConfigError } from "@/lib/storage";
 import { runExpiredCleanup, type ExpiredRow } from "@/lib/storage/expired-cleanup";
+import { isDetailPageEnabled } from "@/lib/feature-flags";
 
 /**
  * 460차 — 만료 이미지 정리(서버). R2에서는 Supabase 엣지 함수가 R2 객체를 못 지우므로 이 라우트가 provider 경유로 지운다.
  * 인증은 /api/billing/renew 와 같은 방식: `Authorization: Bearer $CRON_SECRET` (없거나 다르면 401).
  * 기본 미등록 — vercel.json 에 넣는 방법과 엣지 cron 과의 순서는 docs/r2-setup.md. 로그에는 개수만 남긴다(경로·키 없음).
+ * 489 — 상세페이지 꺼짐 시 no-op(상세 이미지 정리 전용).
  */
 export async function GET(req: NextRequest) {
+  if (!isDetailPageEnabled()) {
+    return NextResponse.json({ ok: true, skipped: true });
+  }
   const authHeader = req.headers.get("authorization");
   if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });

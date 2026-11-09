@@ -20,6 +20,7 @@ import {
   type SceneRefMeta,
 } from "@/lib/scene-image-gen";
 import type { FetchBuffer } from "@/lib/info-backdrop";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
 /** 슬롯당 60초 타임아웃 + 429 재전송 대기를 감안한 실행 상한(초). 문서: route segment config maxDuration */
 export const maxDuration = 150;
@@ -46,6 +47,9 @@ function isOwnStorageUrl(u: string): boolean {
  * 저장 위치는 섹션 배경과 같은 버킷(`<user>/scene-images/`).
  */
 export async function POST(request: Request) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   const empty = (skipped: string, extra: Record<string, unknown> = {}) => NextResponse.json({ sceneImages: {}, cost: 0, skipped, ...extra });
   try {
     const supabase = await createClient();

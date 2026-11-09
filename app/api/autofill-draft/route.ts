@@ -3,8 +3,12 @@ import { usageGate } from "@/lib/usage-guard-server";
 import { USAGE_EST_COST_USD } from "@/lib/usage-guard";
 import { createClient } from "@/lib/supabase/server";
 import { generateAutofillDraft, type AutofillDraftInput } from "@/lib/autofill-draft";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
-export async function POST(request: Request) {
+export async function POST(request: Request) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   try {
     const supabase = await createClient();
     const {

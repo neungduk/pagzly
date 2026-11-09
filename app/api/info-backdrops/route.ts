@@ -20,6 +20,7 @@ import {
   type InfoBackdropMap,
   type InfoZone,
 } from "@/lib/info-backdrop";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
 const ZONES: readonly InfoZone[] = ["steps", "points", "stat", "compare", "care"];
 const FASHION = "의류/패션";
@@ -31,6 +32,9 @@ const clip = (v: unknown, n: number) => (typeof v === "string" ? v.slice(0, n) :
  * 저장 위치는 섹션 배경과 같은 버킷·폴더(`<user>/section-backdrops/`).
  */
 export async function POST(request: Request) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   const empty = (skipped: string, extra: Record<string, unknown> = {}) =>
     NextResponse.json({ infoBackdrops: {} as InfoBackdropMap, cost: 0, skipped, ...extra });
   try {

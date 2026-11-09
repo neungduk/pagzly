@@ -14,8 +14,12 @@ import {
 import { isTestMode } from "@/lib/test-mode";
 import { isForceRegenerate } from "@/lib/force-regenerate";
 import type { ShadowAnalysis } from "@/lib/vision-utils";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
 export async function POST(request: Request) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   try {
     const supabase = await createClient();
     const {

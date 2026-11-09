@@ -25,6 +25,7 @@ import {
   type ShadowAnalysis,
 } from "@/lib/vision-utils";
 import { resetCostLogTallies } from "@/lib/cost-log-tally";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
 const SOURCE_IMAGE_EXPIRED = "SOURCE_IMAGE_EXPIRED";
 
@@ -55,6 +56,9 @@ async function probeSourceImage(url: string): Promise<"ok" | "missing" | "unreac
 }
 
 export async function POST(request: Request) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   try {
     logForceRegenerateStatus();
     const supabase = await createClient();

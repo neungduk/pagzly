@@ -10,6 +10,7 @@ import {
   formatReferencePromptBlock,
   type ReferenceAnalysis,
 } from "@/lib/reference-analysis";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
 const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
 const DEEPSEEK_MODEL = "deepseek-v4-flash";
@@ -42,6 +43,9 @@ function parseDataUrl(dataUrl: string): { buffer: Buffer; mediaType: "image/jpeg
 }
 
 export async function POST(request: Request) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   try {
     const supabase = await createClient();
     const {

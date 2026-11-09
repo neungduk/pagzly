@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { DetailSection } from "@/lib/types/generate";
 import { normalizeDisplayState, withDisplayState } from "@/lib/saved-display";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
 type UpdateProductBody = {
   sections?: DetailSection[];
@@ -25,6 +26,9 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   try {
     const { id } = await params;
     const supabase = await createClient();

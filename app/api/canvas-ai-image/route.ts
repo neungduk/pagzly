@@ -8,8 +8,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { uploadPngBuffer } from "@/lib/upload-png";
 import { productImageProtectedUntil } from "@/lib/product-image-protection";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
 export async function POST(request: Request) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   try {
     const supabase = await createClient();
     const {

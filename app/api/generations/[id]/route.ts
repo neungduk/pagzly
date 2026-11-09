@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getGenerationStatus } from "@/lib/image-router/jobs/async-generation-service";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, { params }: RouteParams) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   try {
     const { id } = await params;
     const supabase = await createClient();

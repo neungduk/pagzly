@@ -5,10 +5,14 @@ import { generateLifestyleShots } from "@/lib/generate-lifestyle-shots";
 import { createClient } from "@/lib/supabase/server";
 import { productImageProtectedUntil } from "@/lib/product-image-protection";
 import { uploadPngBuffer } from "@/lib/upload-png";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
 const STORAGE_BUCKET = "images";
 
 export async function POST(request: Request) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   try {
     const supabase = await createClient();
     const {

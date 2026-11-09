@@ -3,6 +3,7 @@ import { usageGate } from "@/lib/usage-guard-server";
 import { USAGE_EST_COST_USD } from "@/lib/usage-guard";
 import { createClient } from "@/lib/supabase/server";
 import type { DetailSection } from "@/lib/types/generate";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
 const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
 const DEEPSEEK_MODEL = "deepseek-v4-flash";
@@ -57,6 +58,9 @@ function validateActions(actions: unknown, sectionCount: number): PageAction[] {
 }
 
 export async function POST(request: Request) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   try {
     const supabase = await createClient();
     const {

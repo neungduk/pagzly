@@ -2,9 +2,13 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getStorage, StorageConfigError } from "@/lib/storage";
 import { MSG_BAD, planRemove } from "@/lib/storage/validate";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
 /** 459차 — 브라우저 직접 업로드의 롤백 삭제(r2 모드). 로그인 필수·본인 접두사 경로만·한 번에 20개까지. 다른 사용자의 경로가 하나라도 있으면 전부 거절 */
 export async function DELETE(request: Request) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

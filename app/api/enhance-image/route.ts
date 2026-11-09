@@ -8,6 +8,7 @@ import { enhanceProductImage } from "@/lib/photo-enhance";
 import type { ConceptBrief } from "@/lib/concept-brief";
 import { productImageProtectedUntil } from "@/lib/product-image-protection";
 import { logCostLogTallySummaries, resetCostLogTallies } from "@/lib/cost-log-tally";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
 
 const COST_TALLY_SUMMARY_KEYS = [
@@ -17,6 +18,9 @@ const COST_TALLY_SUMMARY_KEYS = [
 ] as const;
 
 export async function POST(request: Request) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   try {
     const supabase = await createClient();
     const {

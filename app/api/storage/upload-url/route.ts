@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getStorage, StorageConfigError } from "@/lib/storage";
 import { MSG_BAD, planUpload } from "@/lib/storage/validate";
 import { createUploadLimiter, uploadRateGate } from "@/lib/storage/upload-rate";
+import { detailPageDisabledResponse } from "@/lib/detail-page-api-guard";
 
 // 460차: 사용자별 시간당·일일 발급 한도(상수는 lib/storage/policy.ts). 인메모리라 서버리스 인스턴스별 1차 완충
 const limiter = createUploadLimiter();
@@ -14,6 +15,9 @@ const limiter = createUploadLimiter();
  * 오류 문구는 기존 것만 쓴다("로그인이 필요합니다."·"잘못된 요청 형식입니다.").
  */
 export async function POST(request: Request) {
+  const __detailOff = detailPageDisabledResponse();
+  if (__detailOff) return __detailOff;
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
