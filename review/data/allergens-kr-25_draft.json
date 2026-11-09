@@ -1,32 +1,139 @@
 {
-  "version": "0.1-draft",
-  "disclaimer": "한글명은 미검증 초안입니다. 공식 고시·성분사전과 대조 필요.",
-  "source_note": "식약처 알레르기 유발성분 표시 대상 25종(초안 매핑)",
-  "allergens": [
-    { "inci": "Amyl cinnamal", "ko_draft": "아밀신남알" },
-    { "inci": "Benzyl alcohol", "ko_draft": "벤질알코올" },
-    { "inci": "Cinnamyl alcohol", "ko_draft": "신나밀알코올" },
-    { "inci": "Citral", "ko_draft": "시트랄" },
-    { "inci": "Eugenol", "ko_draft": "유제놀" },
-    { "inci": "Hydroxycitronellal", "ko_draft": "하이드록시시트로넬랄" },
-    { "inci": "Isoeugenol", "ko_draft": "이소유제놀" },
-    { "inci": "Amylcinnamyl alcohol", "ko_draft": "아밀신나밀알코올" },
-    { "inci": "Benzyl salicylate", "ko_draft": "벤질살리실레이트" },
-    { "inci": "Cinnamal", "ko_draft": "신남알" },
-    { "inci": "Coumarin", "ko_draft": "쿠마린" },
-    { "inci": "Geraniol", "ko_draft": "제라니올" },
-    { "inci": "Hydroxyisohexyl 3-cyclohexene carboxaldehyde", "ko_draft": "하이드록시이소헥실 3-사이클로헥센카복스알데하이드" },
-    { "inci": "Anise alcohol", "ko_draft": "아니스알코올" },
-    { "inci": "Benzyl cinnamate", "ko_draft": "벤질신나메이트" },
-    { "inci": "Farnesol", "ko_draft": "파네솔" },
-    { "inci": "Butylphenyl methylpropional", "ko_draft": "부틸페닐메틸프로피오날" },
-    { "inci": "Linalool", "ko_draft": "리날룰" },
-    { "inci": "Benzyl benzoate", "ko_draft": "벤질벤조에이트" },
-    { "inci": "Citronellol", "ko_draft": "시트로넬롤" },
-    { "inci": "Hexyl cinnamal", "ko_draft": "헥실신남알" },
-    { "inci": "Limonene", "ko_draft": "리모넨" },
-    { "inci": "Methyl 2-octynoate", "ko_draft": "메틸 2-옥티노에이트" },
-    { "inci": "alpha-Isomethyl ionone", "ko_draft": "알파-이소메틸이오논" },
-    { "inci": "Evernia prunastri extract", "ko_draft": "오크모스추출물" }
+  "meta": {
+    "note": "화장품 착향제 중 알레르기 유발성분 25종(영문명은 논문 목록 그대로이고, 한글명은 제가 번역한 초안이라 고시 표기와 다를 수 있음). 식약처 고시 원문 대조 전 초안입니다.",
+    "source_verified": false,
+    "ko_names_verified": false,
+    "basis": "생활화학제품 표시대상 26종 영문 목록(koreascience 논문)에서 HICC를 제외한 25종으로 구성. 화장품 고시는 25종이라고 대한화장품협회 FAQ와 같은 논문이 설명함.",
+    "thresholds": {
+      "rinse_off": "0.01% 초과",
+      "leave_on": "0.001% 초과"
+    }
+  },
+  "items": [
+    {
+      "no": 1,
+      "inci": "Amyl cinnamal",
+      "ko": "아밀신남알"
+    },
+    {
+      "no": 2,
+      "inci": "Benzyl alcohol",
+      "ko": "벤질알코올"
+    },
+    {
+      "no": 3,
+      "inci": "Cinnamyl alcohol",
+      "ko": "신나밀알코올"
+    },
+    {
+      "no": 4,
+      "inci": "Citral",
+      "ko": "시트랄"
+    },
+    {
+      "no": 5,
+      "inci": "Eugenol",
+      "ko": "유제놀"
+    },
+    {
+      "no": 6,
+      "inci": "Hydroxycitronellal",
+      "ko": "하이드록시시트로넬알"
+    },
+    {
+      "no": 7,
+      "inci": "Isoeugenol",
+      "ko": "이소유제놀"
+    },
+    {
+      "no": 8,
+      "inci": "Amyl cinnamyl alcohol",
+      "ko": "아밀신나밀알코올"
+    },
+    {
+      "no": 9,
+      "inci": "Benzyl salicylate",
+      "ko": "벤질살리실레이트"
+    },
+    {
+      "no": 10,
+      "inci": "Cinnamal",
+      "ko": "신남알"
+    },
+    {
+      "no": 11,
+      "inci": "Coumarin",
+      "ko": "쿠마린"
+    },
+    {
+      "no": 12,
+      "inci": "Geraniol",
+      "ko": "제라니올"
+    },
+    {
+      "no": 13,
+      "inci": "Anise alcohol",
+      "ko": "아니스알코올"
+    },
+    {
+      "no": 14,
+      "inci": "Benzyl cinnamate",
+      "ko": "벤질신나메이트"
+    },
+    {
+      "no": 15,
+      "inci": "Farnesol",
+      "ko": "파네솔"
+    },
+    {
+      "no": 16,
+      "inci": "Butylphenyl methylpropional",
+      "ko": "부틸페닐메틸프로피오날"
+    },
+    {
+      "no": 17,
+      "inci": "Linalool",
+      "ko": "리날룰"
+    },
+    {
+      "no": 18,
+      "inci": "Benzyl benzoate",
+      "ko": "벤질벤조에이트"
+    },
+    {
+      "no": 19,
+      "inci": "Citronellol",
+      "ko": "시트로넬올"
+    },
+    {
+      "no": 20,
+      "inci": "Hexyl cinnamal",
+      "ko": "헥실신남알"
+    },
+    {
+      "no": 21,
+      "inci": "Limonene",
+      "ko": "리모넨"
+    },
+    {
+      "no": 22,
+      "inci": "Methyl 2-octynoate",
+      "ko": "메틸2-옥티노에이트"
+    },
+    {
+      "no": 23,
+      "inci": "Alpha-isomethyl ionone",
+      "ko": "알파-이소메틸이오논"
+    },
+    {
+      "no": 24,
+      "inci": "Evernia prunastri extract",
+      "ko": "참나무이끼추출물"
+    },
+    {
+      "no": 25,
+      "inci": "Evernia furfuracea extract",
+      "ko": "나무이끼추출물"
+    }
   ]
 }

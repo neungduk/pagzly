@@ -1,0 +1,32 @@
+{
+  "version": "0.1-draft",
+  "disclaimer": "한글명은 미검증 초안입니다. 공식 고시·성분사전과 대조 필요.",
+  "source_note": "식약처 알레르기 유발성분 표시 대상 25종(초안 매핑)",
+  "allergens": [
+    { "inci": "Amyl cinnamal", "ko_draft": "아밀신남알" },
+    { "inci": "Benzyl alcohol", "ko_draft": "벤질알코올" },
+    { "inci": "Cinnamyl alcohol", "ko_draft": "신나밀알코올" },
+    { "inci": "Citral", "ko_draft": "시트랄" },
+    { "inci": "Eugenol", "ko_draft": "유제놀" },
+    { "inci": "Hydroxycitronellal", "ko_draft": "하이드록시시트로넬랄" },
+    { "inci": "Isoeugenol", "ko_draft": "이소유제놀" },
+    { "inci": "Amylcinnamyl alcohol", "ko_draft": "아밀신나밀알코올" },
+    { "inci": "Benzyl salicylate", "ko_draft": "벤질살리실레이트" },
+    { "inci": "Cinnamal", "ko_draft": "신남알" },
+    { "inci": "Coumarin", "ko_draft": "쿠마린" },
+    { "inci": "Geraniol", "ko_draft": "제라니올" },
+    { "inci": "Hydroxyisohexyl 3-cyclohexene carboxaldehyde", "ko_draft": "하이드록시이소헥실 3-사이클로헥센카복스알데하이드" },
+    { "inci": "Anise alcohol", "ko_draft": "아니스알코올" },
+    { "inci": "Benzyl cinnamate", "ko_draft": "벤질신나메이트" },
+    { "inci": "Farnesol", "ko_draft": "파네솔" },
+    { "inci": "Butylphenyl methylpropional", "ko_draft": "부틸페닐메틸프로피오날" },
+    { "inci": "Linalool", "ko_draft": "리날룰" },
+    { "inci": "Benzyl benzoate", "ko_draft": "벤질벤조에이트" },
+    { "inci": "Citronellol", "ko_draft": "시트로넬롤" },
+    { "inci": "Hexyl cinnamal", "ko_draft": "헥실신남알" },
+    { "inci": "Limonene", "ko_draft": "리모넨" },
+    { "inci": "Methyl 2-octynoate", "ko_draft": "메틸 2-옥티노에이트" },
+    { "inci": "alpha-Isomethyl ionone", "ko_draft": "알파-이소메틸이오논" },
+    { "inci": "Evernia prunastri extract", "ko_draft": "오크모스추출물" }
+  ]
+}
