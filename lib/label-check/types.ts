@@ -69,3 +69,13 @@ export const ERR_TOO_MANY_PAGES_485 = "PDF는 최대 10쪽까지 검수할 수 �
 export const ERR_TIMEOUT_485 = "처리 시간 초과, 확인 불가";
 export const ERR_UNREADABLE_PDF_485 = "열 수 없는 PDF입니다. 암호화되었거나 손상되었을 수 있습니다.";
 export const ERR_RATE_485 = "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.";
+
+/** 486 — 파일럿 소개 카피(범위 고정, 임의 확장 금지) */
+export const INTRO_ONE_LINE_486 =
+  "화장품 패키지 시안(PDF)의 표시사항을 인쇄 전에 사전 점검합니다.";
+export const INTRO_LINES_486 = [
+  "PDF를 올리면 필수 표시사항·알레르기 성분·주의가 필요한 광고 문구를 확인합니다",
+  "업로드한 파일은 점검 직후 저장하지 않고 폐기합니다",
+  "참고용 사전 점검이며 법적 판단이 아닙니다",
+] as const;
+export const SAMPLE_BANNER_486 = "가상 브랜드 예시입니다";
