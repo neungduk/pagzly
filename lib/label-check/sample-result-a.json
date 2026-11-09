@@ -1,0 +1,203 @@
+{
+  "meta": {
+    "sample": "A",
+    "brand": "가상 브랜드",
+    "product": "모아리 수분 토너",
+    "note": "가상 브랜드 예시입니다. 실제 상품 데이터가 아닙니다."
+  },
+  "result": {
+    "disclaimer": "본 결과는 참고용 사전 점검이며 법적 판단이 아닙니다. ‘위반’이 아니라 ‘위반 가능/확인 필요’로만 안내합니다.",
+    "readable": true,
+    "charCount": 170,
+    "hangulCount": 124,
+    "skipJudgment": false,
+    "summary": {
+      "possible": 3,
+      "attention": 5,
+      "unknown": 0,
+      "pass": 11,
+      "manual": 5
+    },
+    "findings": [
+      {
+        "category": "필수기재",
+        "label": "화장품의 명칭",
+        "status": "pass",
+        "found": "모아리 수분 토너MOARI Hydrating Toner피부 재생 · 주름 완전 제거내용량: 150mL화장품책",
+        "suggest": "다른 제품과 구별되는 명칭인지 확인하세요.",
+        "checkType": "code"
+      },
+      {
+        "category": "필수기재",
+        "label": "영업자의 상호 및 주소",
+        "status": "attention",
+        "found": "ydrating Toner피부 재생 · 주름 완전 제거내용량: 150mL화장품책임판매업자: (주)모아리코스메틱제조국: 대한민국전성분 정제수, 글리세린, 부틸렌글 — 주소 표기 확인 필요",
+        "suggest": "상호와 주소를 구분해 표시했는지 확인하세요.",
+        "checkType": "code"
+      },
+      {
+        "category": "필수기재",
+        "label": "제조에 사용된 성분(전성분)",
+        "status": "pass",
+        "found": "내용량: 150mL화장품책임판매업자: (주)모아리코스메틱제조국: 대한민국전성분 정제수, 글리세린, 부틸렌글라이콜, 나이아신아마이드, 판테놀, 1,2-헥",
+        "suggest": "표기 형식·누락 여부를 한 번 더 확인하세요.",
+        "checkType": "code"
+      },
+      {
+        "category": "필수기재",
+        "label": "내용물의 용량 또는 중량",
+        "status": "pass",
+        "found": "토너MOARI Hydrating Toner피부 재생 · 주름 완전 제거내용량: 150mL화장품책임판매업자: (주)모아리코스메틱제조국: 대한민국전성분",
+        "suggest": "표기 형식·누락 여부를 한 번 더 확인하세요.",
+        "checkType": "code"
+      },
+      {
+        "category": "필수기재",
+        "label": "제조번호",
+        "status": "possible",
+        "found": "관련 표기를 찾지 못함",
+        "suggest": "해당 항목을 확인하세요.",
+        "checkType": "code"
+      },
+      {
+        "category": "필수기재",
+        "label": "사용기한 또는 개봉 후 사용기간",
+        "status": "possible",
+        "found": "관련 표기를 찾지 못함",
+        "suggest": "해당 항목을 확인하세요.",
+        "checkType": "code"
+      },
+      {
+        "category": "필수기재",
+        "label": "가격",
+        "status": "attention",
+        "found": "관련 표기를 찾지 못함",
+        "suggest": "해당 항목을 확인하세요.",
+        "checkType": "code"
+      },
+      {
+        "category": "필수기재",
+        "label": "사용할 때의 주의사항",
+        "status": "pass",
+        "found": "다이올, 향료, 소듐하이알루로네이트, 토코페롤리모넨, 리날룰사용할 때의 주의사항: 1) 상처가 있는 부위에는 사용을 자제할 것",
+        "suggest": "표기 형식·누락 여부를 한 번 더 확인하세요.",
+        "checkType": "code"
+      },
+      {
+        "category": "필수기재",
+        "label": "화장품 바코드",
+        "status": "attention",
+        "found": "관련 표기를 찾지 못함",
+        "suggest": "해당 항목을 확인하세요.",
+        "checkType": "code"
+      },
+      {
+        "category": "소용량예외",
+        "label": "소용량·견본품 간략 표시",
+        "status": "pass",
+        "found": "토너MOARI Hydrating Toner피부 재생 · 주름 완전 제거내용량: 150mL화장품책임판매업자: (주)모아리코스메틱제조국: 대한민국전성분",
+        "suggest": "표기 형식·누락 여부를 한 번 더 확인하세요.",
+        "checkType": "code"
+      },
+      {
+        "category": "성분",
+        "label": "전성분 표시 방법",
+        "status": "possible",
+        "found": "감지된 크기(pt): 3, 6.75, 8.25, 10.5, 11.25, 12, 22.5 — 5pt 미만 1건",
+        "suggest": "5pt 이상인지 확인하세요.",
+        "checkType": "code"
+      },
+      {
+        "category": "성분",
+        "label": "알레르기 유발성분 25종 표시",
+        "status": "attention",
+        "found": "리날룰(Linalool), 리모넨(Limonene) / 글자 크기 약 3pt — 5pt 미만 확인 필요",
+        "suggest": "함량·표시 의무와 글자 크기(5포인트 이상)를 확인하세요.",
+        "checkType": "code"
+      },
+      {
+        "category": "표시광고",
+        "label": "의약품 오인 우려 표현 금지",
+        "status": "attention",
+        "found": "모아리 수분 토너MOARI Hydrating Toner피부 재생 · 주름 완전 제거내용량: 150mL화장품책임판매업자: (주)모아리코",
+        "suggest": "오인 우려 표현인지 확인하세요.",
+        "checkType": "code"
+      },
+      {
+        "category": "표시광고",
+        "label": "화장품 범위를 벗어난 사용방법·효능 표현",
+        "status": "pass",
+        "found": "해당 주의 문구 키워드 없음",
+        "suggest": "광고·표시 문구를 주기적으로 재확인하세요.",
+        "checkType": "code"
+      },
+      {
+        "category": "표시광고",
+        "label": "일반화장품의 기능성 오인 / 기능성 심사 결과와 다른 효능",
+        "status": "pass",
+        "found": "해당 주의 문구 키워드 없음",
+        "suggest": "광고·표시 문구를 주기적으로 재확인하세요.",
+        "checkType": "code"
+      },
+      {
+        "category": "광고",
+        "label": "의약전문가 지정·추천 표현",
+        "status": "pass",
+        "found": "해당 주의 문구 키워드 없음",
+        "suggest": "광고·표시 문구를 주기적으로 재확인하세요.",
+        "checkType": "code"
+      },
+      {
+        "category": "광고",
+        "label": "인체유래 성분 표현",
+        "status": "pass",
+        "found": "해당 주의 문구 키워드 없음",
+        "suggest": "광고·표시 문구를 주기적으로 재확인하세요.",
+        "checkType": "code"
+      },
+      {
+        "category": "광고",
+        "label": "사용방법 사실오인 표현",
+        "status": "pass",
+        "found": "해당 주의 문구 키워드 없음",
+        "suggest": "광고·표시 문구를 주기적으로 재확인하세요.",
+        "checkType": "code"
+      },
+      {
+        "category": "광고",
+        "label": "피부나이 감소 표현",
+        "status": "pass",
+        "found": "해당 주의 문구 키워드 없음",
+        "suggest": "광고·표시 문구를 주기적으로 재확인하세요.",
+        "checkType": "code"
+      }
+    ],
+    "manualItems": [
+      {
+        "category": "성분",
+        "label": "표준 국문 성분명 사용",
+        "suggest": "수동 확인이 필요합니다."
+      },
+      {
+        "category": "예외",
+        "label": "수출 전용 제품",
+        "suggest": "수동 확인이 필요합니다."
+      },
+      {
+        "category": "개정동향",
+        "label": "주의사항·알레르기 유발성분 표시 규정 개정안",
+        "suggest": "수동 확인이 필요합니다."
+      },
+      {
+        "category": "세트상품",
+        "label": "세트 상품 제조번호·사용기한 표기",
+        "suggest": "수동 확인이 필요합니다."
+      },
+      {
+        "category": "성분",
+        "label": "색조 제품 착색제 ± 표기",
+        "suggest": "수동 확인이 필요합니다."
+      }
+    ]
+  }
+}
