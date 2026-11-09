@@ -1,0 +1,290 @@
+{
+ "meta": {
+  "version": "draft_v0.1",
+  "date": "2026-11-09",
+  "status": "초안. 문구는 일반 제안이며 법률 자문 아님. 식약처 원문 대조 전. 규칙 id는 kr_label_rules / ad-phrases와 동일.",
+  "fix_kind": {
+   "fix": "누락·형식 보완",
+   "soften": "표현 완화",
+   "evidence": "근거 자료 확인"
+  },
+  "note": "fix_example은 예시이며 그대로 쓰지 말 것."
+ },
+ "suggestions": {
+  "KR-LBL-001": {
+   "fix_kind": "fix",
+   "fix_ko": "포장 앞면 등 잘 보이는 곳에 화장품 이름(제품명)을 표기하세요.",
+   "fix_example": "예: 모아리 수분 토너"
+  },
+  "KR-LBL-002": {
+   "fix_kind": "fix",
+   "fix_ko": "화장품책임판매업자의 상호와 영업소 주소를 함께 표기하세요(제조업자는 병기 가능).",
+   "fix_example": "예: 화장품책임판매업자 (주)○○○ / 인천광역시 ○○구 ○○로 12"
+  },
+  "KR-LBL-003": {
+   "fix_kind": "fix",
+   "fix_ko": "'전성분' 제목 아래 사용된 모든 성분을 많이 든 순서대로 표기하세요(1% 이하는 순서 무관).",
+   "fix_example": "예: 전성분: 정제수, 글리세린, ..."
+  },
+  "KR-LBL-004": {
+   "fix_kind": "fix",
+   "fix_ko": "내용량을 g 또는 mL 단위로 숫자와 함께 표기하세요.",
+   "fix_example": "예: 내용량 150 mL"
+  },
+  "KR-LBL-005": {
+   "fix_kind": "fix",
+   "fix_ko": "제조번호를 표기하세요(인쇄·각인 위치도 확인). 시안 단계에서 자리가 없다면 위치를 확보하세요.",
+   "fix_example": "예: 제조번호: 별도 표기 / LOT 2611A"
+  },
+  "KR-LBL-006": {
+   "fix_kind": "fix",
+   "fix_ko": "'사용기한: ○○○○.○○.○○까지' 또는 '개봉 후 사용기간: 12개월' 형식으로 표기하세요.",
+   "fix_example": "예: 사용기한: 제조일로부터 36개월 / 개봉 후 12개월"
+  },
+  "KR-LBL-007": {
+   "fix_kind": "fix",
+   "fix_ko": "판매가격을 표시해야 하는 제품인지 확인하고, 해당되면 가격을 표기하세요(표시 의무 대상·방법은 원문 확인 필요).",
+   "fix_example": ""
+  },
+  "KR-LBL-008": {
+   "fix_kind": "fix",
+   "fix_ko": "기능성화장품이면 '기능성화장품' 문구 또는 도안을 표시하세요.",
+   "fix_example": ""
+  },
+  "KR-LBL-009": {
+   "fix_kind": "fix",
+   "fix_ko": "사용할 때의 주의사항 고시 문구를 빠짐없이 표기하세요(원문은 식약처 고시 확인 필요).",
+   "fix_example": ""
+  },
+  "KR-LBL-010": {
+   "fix_kind": "fix",
+   "fix_ko": "화장품 바코드(표준 바코드 표시)가 있는지 확인하세요.",
+   "fix_example": ""
+  },
+  "KR-LBL-011": {
+   "fix_kind": "fix",
+   "fix_ko": "기능성화장품이면 심사·보고된 효능·효과와 용법·용량을 그대로 표기하세요.",
+   "fix_example": ""
+  },
+  "KR-LBL-012": {
+   "fix_kind": "fix",
+   "fix_ko": "제품명에 성분명이 들어가면 해당 성분명과 함량을 함께 표기하세요.",
+   "fix_example": ""
+  },
+  "KR-LBL-013": {
+   "fix_kind": "fix",
+   "fix_ko": "인체 세포·조직 배양액이 포함되면 그 함량을 표기하세요.",
+   "fix_example": ""
+  },
+  "KR-LBL-014": {
+   "fix_kind": "fix",
+   "fix_ko": "천연·유기농 표시를 하면 해당 원료의 함량을 함께 표기하세요.",
+   "fix_example": ""
+  },
+  "KR-LBL-015": {
+   "fix_kind": "fix",
+   "fix_ko": "수입 제품이면 제조국, 제조회사명, 소재지를 표기하세요.",
+   "fix_example": "예: 제조국: 프랑스 / 제조회사: ○○ SAS, ○○ 소재"
+  },
+  "KR-LBL-016": {
+   "fix_kind": "fix",
+   "fix_ko": "해당 제품 유형이면 '질병의 예방 및 치료를 위한 의약품이 아님' 문구를 표기하세요.",
+   "fix_example": ""
+  },
+  "KR-LBL-017": {
+   "fix_kind": "fix",
+   "fix_ko": "영유아·어린이 제품이면 보존제 함량을 표기하세요.",
+   "fix_example": ""
+  },
+  "KR-LBL-018": {
+   "fix_kind": "fix",
+   "fix_ko": "2차 포장이 있으면 1차 포장에도 최소 기재사항을 표기하세요.",
+   "fix_example": ""
+  },
+  "KR-LBL-019": {
+   "fix_kind": "fix",
+   "fix_ko": "소용량·견본품이면 간략 표시 대상인지 확인하고, 아니면 모든 항목을 표기하세요.",
+   "fix_example": ""
+  },
+  "KR-LBL-020": {
+   "fix_kind": "fix",
+   "fix_ko": "전성분 생략이 가능한 성분 범위인지 확인하세요.",
+   "fix_example": ""
+  },
+  "KR-LBL-021": {
+   "fix_kind": "fix",
+   "fix_ko": "전성분 표기 방법(순서, 글자 크기 5포인트 이상, 착색제·향료 방식)을 확인하세요.",
+   "fix_example": ""
+  },
+  "KR-LBL-022": {
+   "fix_kind": "fix",
+   "fix_ko": "알레르기 유발성분이 기준 함량을 넘으면 성분명을 전성분에 개별로 표기하세요(씻어내는 제품 0.01% 초과, 안 씻어내는 제품 0.001% 초과).",
+   "fix_example": "예: 향료, 리모넨, 리날룰"
+  },
+  "KR-LBL-023": {
+   "fix_kind": "fix",
+   "fix_ko": "성분명은 표준 국문 성분명으로 표기했는지 확인하세요.",
+   "fix_example": ""
+  },
+  "KR-LBL-024": {
+   "fix_kind": "fix",
+   "fix_ko": "수출 전용 제품이면 한국 표시 의무 적용 여부를 확인하세요.",
+   "fix_example": ""
+  },
+  "KR-LBL-025": {
+   "fix_kind": "fix",
+   "fix_ko": "맞춤형화장품이면 별도 표시사항을 확인하세요.",
+   "fix_example": ""
+  },
+  "KR-LBL-026": {
+   "fix_kind": "fix",
+   "fix_ko": "세트 상품이면 구성 제품별 제조번호·사용기한 표기 방법을 확인하세요.",
+   "fix_example": ""
+  },
+  "KR-LBL-027": {
+   "fix_kind": "fix",
+   "fix_ko": "색조 제품이면 착색제 표시(±) 방식을 확인하세요.",
+   "fix_example": ""
+  },
+  "KR-ADV-001": {
+   "fix_kind": "soften",
+   "fix_ko": "질병 치료·예방을 암시하는 표현은 피부 상태를 가꾼다는 표현으로 낮추세요.",
+   "fix_example": "예: '피부 결을 매끄럽게 가꿔줍니다'"
+  },
+  "KR-ADV-002": {
+   "fix_kind": "soften",
+   "fix_ko": "화장품 범위를 벗어난 효능·사용방법 표현은 제거하거나 일반 화장품 효과 표현으로 바꾸세요.",
+   "fix_example": ""
+  },
+  "KR-ADV-003": {
+   "fix_kind": "evidence",
+   "fix_ko": "기능성 효능은 심사·보고된 범위 안에서만 표현하세요. 일반 화장품이면 해당 표현을 빼세요.",
+   "fix_example": ""
+  },
+  "KR-ADV-004": {
+   "fix_kind": "soften",
+   "fix_ko": "의사 등 전문가의 추천·지정 표현은 근거 자료(실제 협약·시험)가 없으면 삭제하세요.",
+   "fix_example": ""
+  },
+  "KR-ADV-005": {
+   "fix_kind": "evidence",
+   "fix_ko": "인체 유래 성분 표현은 사실과 근거를 확인하세요.",
+   "fix_example": ""
+  },
+  "KR-ADV-006": {
+   "fix_kind": "soften",
+   "fix_ko": "실제 사용방법과 다른 표현은 사실에 맞게 고치세요.",
+   "fix_example": ""
+  },
+  "KR-ADV-007": {
+   "fix_kind": "soften",
+   "fix_ko": "'피부 나이 감소' 같은 표현은 삭제하거나 '피부 컨디션'처럼 완화하세요.",
+   "fix_example": ""
+  },
+  "AD-MED-001": {
+   "fix_kind": "soften",
+   "fix_ko": "질병 이름과 치료·예방·완치 표현은 삭제하고 피부 상태 관리 표현으로 바꾸세요.",
+   "fix_example": "예: '건조한 피부를 촉촉하게'"
+  },
+  "AD-MED-002": {
+   "fix_kind": "soften",
+   "fix_ko": "'재생', '염증 완화' 같은 약리 효능 표현은 일반 화장품 효능 범위의 표현으로 바꾸세요.",
+   "fix_example": ""
+  },
+  "AD-MED-003": {
+   "fix_kind": "soften",
+   "fix_ko": "원료 설명에서도 같은 기준이 적용됩니다. 의약품 효능으로 읽힐 표현을 낮추세요.",
+   "fix_example": ""
+  },
+  "AD-FUN-001": {
+   "fix_kind": "evidence",
+   "fix_ko": "미백 표현은 기능성 심사·보고를 받은 제품만 쓸 수 있습니다. 해당이 아니면 삭제하거나 '피부톤을 환하게 가꿔줌'처럼 완화 여부를 확인하세요.",
+   "fix_example": ""
+  },
+  "AD-FUN-002": {
+   "fix_kind": "evidence",
+   "fix_ko": "주름 개선 표현은 기능성 제품만 쓸 수 있습니다. 해당이 아니면 삭제하세요.",
+   "fix_example": ""
+  },
+  "AD-FUN-003": {
+   "fix_kind": "evidence",
+   "fix_ko": "자외선 차단 표현은 기능성 제품만 쓸 수 있습니다. 해당이 아니면 삭제하세요.",
+   "fix_example": ""
+  },
+  "AD-FUN-004": {
+   "fix_kind": "evidence",
+   "fix_ko": "탈모 관련 표현은 기능성 제품만 쓸 수 있습니다. 해당이 아니면 삭제하세요.",
+   "fix_example": ""
+  },
+  "AD-FUN-005": {
+   "fix_kind": "soften",
+   "fix_ko": "여드름·튼살 등 표현은 허용 범위가 제한됩니다. 해설서 기준 허용 여부를 확인하고 아니면 삭제하세요.",
+   "fix_example": ""
+  },
+  "AD-FUN-006": {
+   "fix_kind": "evidence",
+   "fix_ko": "고시 성분을 앞세운 표현은 기능성 범위와 근거를 확인하세요.",
+   "fix_example": ""
+  },
+  "AD-MIS-001": {
+   "fix_kind": "fix",
+   "fix_ko": "사용 목적과 적용 부위를 실제 제품 용도에 맞게 고치세요.",
+   "fix_example": ""
+  },
+  "AD-MIS-002": {
+   "fix_kind": "soften",
+   "fix_ko": "의료인·병원 추천·보증 표현은 근거 자료가 없으면 삭제하세요.",
+   "fix_example": ""
+  },
+  "AD-MIS-003": {
+   "fix_kind": "soften",
+   "fix_ko": "'부작용 없음', '인증', '허가' 같은 표현은 삭제하거나 사실 확인 후 정확하게 쓰세요.",
+   "fix_example": ""
+  },
+  "AD-MIS-004": {
+   "fix_kind": "soften",
+   "fix_ko": "'피부 나이 n세' 표현은 삭제하거나 완화하세요.",
+   "fix_example": ""
+  },
+  "AD-MIS-005": {
+   "fix_kind": "fix",
+   "fix_ko": "실제 사용 방법과 다른 표현은 사실에 맞게 고치세요.",
+   "fix_example": ""
+  },
+  "AD-MIS-006": {
+   "fix_kind": "evidence",
+   "fix_ko": "줄기세포·엑소좀 표현은 근거와 함량을 확인하고, 약리 효능으로 읽히지 않게 쓰세요.",
+   "fix_example": ""
+  },
+  "AD-MIS-007": {
+   "fix_kind": "evidence",
+   "fix_ko": "'무첨가', '천연', '유기농', '비건' 표현은 근거 자료와 함량 요건을 확인하세요.",
+   "fix_example": ""
+  },
+  "AD-MIS-008": {
+   "fix_kind": "soften",
+   "fix_ko": "'최고', '즉시', '100%' 같은 절대적 표현은 삭제하거나 근거를 갖추세요.",
+   "fix_example": ""
+  },
+  "AD-MIS-009": {
+   "fix_kind": "evidence",
+   "fix_ko": "임상·특허·민간 등급 인용은 출처와 범위를 정확히 쓰고 근거를 갖추세요.",
+   "fix_example": ""
+  },
+  "AD-MIS-010": {
+   "fix_kind": "evidence",
+   "fix_ko": "사용 전·후 사진이나 후기는 대표성과 근거를 확인하세요.",
+   "fix_example": ""
+  },
+  "AD-EVD-001": {
+   "fix_kind": "evidence",
+   "fix_ko": "효능 표현은 인체적용시험 자료가 필요한지 확인하세요.",
+   "fix_example": ""
+  },
+  "AD-EVD-002": {
+   "fix_kind": "evidence",
+   "fix_ko": "수치·기간·비교 표현은 시험 자료의 조건·결과와 일치하는지 확인하세요.",
+   "fix_example": ""
+  }
+ }
+}
