@@ -12,15 +12,20 @@ import {
   countPdfPages,
   hasPdfSignature,
 } from "../../lib/label-check/safe-upload";
+import { labelContactEmail } from "../../lib/label-check/contact";
 import {
   DISCLAIMER_483,
   ERR_NOT_PDF_485,
   ERR_TOO_MANY_PAGES_485,
+  INTRO_LINES_486,
+  INTRO_ONE_LINE_486,
   NOTICE_NO_HANGUL_485,
   NOTICE_OUTLINE_485,
+  SAMPLE_BANNER_486,
 } from "../../lib/label-check/types";
+import sampleResultA from "../../lib/label-check/sample-result-a.json";
 
-export const name = "표시사항 485 — 안전장치·아웃라인안내·인쇄·A/B/C";
+export const name = "표시사항 486 — 파일럿 소개·샘플·문의·noindex·A/B/C";
 
 const samples = path.join(process.cwd(), "review", "data", "samples");
 const gens = path.join(samples, "generators-484");
@@ -183,6 +188,61 @@ export async function run(): Promise<string[]> {
     if (!/max-w-3xl|max-w-full|w-full/.test(page)) f.push("label-check: 폭 제한 클래스 없음");
     if (!/break-words|overflow-x-auto|overflow-hidden/.test(page)) {
       f.push("label-check: 긴 텍스트 줄바꿈/넘침 가드 없음");
+    }
+  }
+
+  // 486 — 소개 문구
+  {
+    const page = fs.readFileSync(path.join(process.cwd(), "app/label-check/page.tsx"), "utf8");
+    if (!page.includes("INTRO_ONE_LINE_486") && !page.includes(INTRO_ONE_LINE_486)) {
+      f.push("486: 한 줄 소개 없음");
+    }
+    for (const line of INTRO_LINES_486) {
+      if (!page.includes("INTRO_LINES_486") && !page.includes(line)) f.push(`486: 안내 문구 누락 — ${line.slice(0, 12)}`);
+    }
+    if (!/샘플 결과 먼저 보기/.test(page)) f.push("486: 샘플 결과 버튼 없음");
+    if (!page.includes("SAMPLE_BANNER_486") && !page.includes(SAMPLE_BANNER_486)) {
+      f.push("486: 가상 브랜드 배너 없음");
+    }
+  }
+
+  // 486 — 샘플 JSON 스키마·단정/id 0
+  {
+    const r = sampleResultA.result;
+    if (!r || typeof r !== "object") f.push("486: sample result 없음");
+    else {
+      if (r.disclaimer !== DISCLAIMER_483) f.push("486: sample 면책 불일치");
+      if (!r.summary || typeof r.summary.possible !== "number") f.push("486: sample summary 스키마");
+      if (!Array.isArray(r.findings)) f.push("486: sample findings 배열 아님");
+      const blob = JSON.stringify(sampleResultA);
+      if (blob.includes("KR-LBL-") || /"id"\s*:\s*"KR-/.test(blob)) f.push("486: sample 내부 id 노출");
+      if (r.findings.some((x: { status: string }) => x.status === "위반")) f.push("486: sample 단정 위반 status");
+      if (sampleResultA.meta?.brand !== "가상 브랜드") f.push("486: sample 가상 브랜드 표기 없음");
+    }
+  }
+
+  // 486 — 문의: env 없으면 영역 없음(소스에 자리표시자 mailto/예시 주소 금지)
+  {
+    const page = fs.readFileSync(path.join(process.cwd(), "app/label-check/page.tsx"), "utf8");
+    if (/mailto:/.test(page)) f.push("486: mailto 의존");
+    if (/example\.com|you@|contact@pagzly/i.test(page)) f.push("486: 문의 자리표시자 주소");
+    if (!/labelContactEmail|lc-contact/.test(page)) f.push("486: 문의 조건부 훅 없음");
+    // 테스트 런타임에 env가 비어 있으면 getter도 빈 문자열
+    if (!process.env.NEXT_PUBLIC_LABEL_CONTACT_EMAIL && labelContactEmail() !== "") {
+      f.push("486: env 없는데 contact 반환");
+    }
+  }
+
+  // 486 — noindex · 사이트맵/내비 미추가
+  {
+    const layout = fs.readFileSync(path.join(process.cwd(), "app/label-check/layout.tsx"), "utf8");
+    if (!/robots/.test(layout) || !/index:\s*false/.test(layout)) f.push("486: noindex 없음");
+    for (const p of ["app/sitemap.ts", "app/sitemap.xml", "public/sitemap.xml"]) {
+      const full = path.join(process.cwd(), p);
+      if (fs.existsSync(full)) {
+        const s = fs.readFileSync(full, "utf8");
+        if (/label-check/.test(s)) f.push(`486: 사이트맵에 label-check — ${p}`);
+      }
     }
   }
 
