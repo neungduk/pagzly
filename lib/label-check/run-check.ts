@@ -5,9 +5,9 @@
 import {
   extractLabelPdf,
   normalizeLabelText,
-  softNormalize,
   type ExtractedPdf,
 } from "@/lib/label-check/extract-pdf";
+import { FOUND_CONFIRMED_488, formatFoundSnippet } from "@/lib/label-check/format-found";
 import { loadAllergens483, loadLabelRules483, type RuleDraft } from "@/lib/label-check/load-rules";
 import {
   DISCLAIMER_483,
@@ -63,35 +63,13 @@ function includesAny(text: string, words: string[]): string | null {
   return null;
 }
 
-function snippetAround(text: string, hit: string, radius = 40): string {
-  let i = text.indexOf(hit);
-  if (i < 0) {
-    // 공백 무시 매칭: 원문에서 hit 글자 순서로 위치 찾기
-    const compactHit = normalizeLabelText(hit);
-    const chars = [...text];
-    let built = "";
-    let start = -1;
-    for (let k = 0; k < chars.length; k++) {
-      const ch = chars[k];
-      if (/\s/.test(ch)) continue;
-      const n = normalizeLabelText(ch);
-      if (!n) continue;
-      if (start < 0) start = k;
-      built += n;
-      if (built.includes(compactHit)) {
-        i = start;
-        break;
-      }
-      if (built.length > compactHit.length + 4) {
-        built = built.slice(-compactHit.length);
-        start = k - built.length + 1;
-      }
-    }
-  }
-  if (i < 0) return softNormalize(hit);
-  const a = Math.max(0, i - radius);
-  const b = Math.min(text.length, i + Math.max(hit.length, 4) + radius);
-  return softNormalize(text.slice(a, b));
+/** 통과: 짧은 확인 문구. 그 외: 읽기 쉬운 조각(판정 불변, 표시만). */
+function foundPass(): string {
+  return FOUND_CONFIRMED_488;
+}
+
+function foundIssue(text: string, hit: string): string {
+  return formatFoundSnippet(text, hit);
 }
 
 function applies(rule: RuleDraft, input: LabelCheckInput, text: string): boolean {
@@ -226,7 +204,7 @@ function runCodeRule(
       category: rule.category,
       label: rule.label,
       status: "attention",
-      found: snippetAround(text, hit),
+      found: foundIssue(text, hit),
       suggest: "오인 우려 표현인지 확인하세요.",
       checkType: "code",
     };
@@ -239,7 +217,7 @@ function runCodeRule(
         category: rule.category,
         label: rule.label,
         status: "pass",
-        found: snippetAround(text, hit),
+        found: foundPass(),
         suggest: "기능성 도안·효능 문구도 함께 확인하세요.",
         checkType: "code",
       };
@@ -295,7 +273,7 @@ function runCodeRule(
       category: rule.category,
       label: rule.label,
       status: hasName ? "pass" : rule.failStatus,
-      found: hasName ? softNormalize(text).slice(0, 60) : "제품 명칭으로 보이는 표기를 찾지 못함",
+      found: hasName ? foundPass() : "제품 명칭으로 보이는 표기를 찾지 못함",
       suggest: "다른 제품과 구별되는 명칭인지 확인하세요.",
       checkType: "code",
     };
@@ -315,7 +293,7 @@ function runCodeRule(
         category: rule.category,
         label: rule.label,
         status: "pass",
-        found: snippetAround(text, org),
+        found: foundPass(),
         suggest: "등록 소재지·반품 교환지와 일치하는지 확인하세요.",
         checkType: "code",
       };
@@ -325,7 +303,7 @@ function runCodeRule(
         category: rule.category,
         label: rule.label,
         status: "attention",
-        found: snippetAround(text, org) + " — 주소 표기 확인 필요",
+        found: `${foundIssue(text, org)} — 주소 표기 확인 필요`,
         suggest: "상호와 주소를 구분해 표시했는지 확인하세요.",
         checkType: "code",
       };
@@ -349,7 +327,7 @@ function runCodeRule(
         category: rule.category,
         label: rule.label,
         status: "pass",
-        found: snippetAround(text, lotCode),
+        found: foundPass(),
         suggest: "사용기한과 구별되는지 확인하세요.",
         checkType: "code",
       };
@@ -375,7 +353,7 @@ function runCodeRule(
         category: rule.category,
         label: rule.label,
         status: "pass",
-        found: hit ? snippetAround(text, hit) : "날짜·기간 표기 감지",
+        found: foundPass(),
         suggest: "사용기한/개봉 후 사용기간 형식을 확인하세요.",
         checkType: "code",
       };
@@ -398,7 +376,7 @@ function runCodeRule(
       category: rule.category,
       label: rule.label,
       status: "pass",
-      found: snippetAround(text, hit),
+      found: foundPass(),
       suggest: "표기 형식·누락 여부를 한 번 더 확인하세요.",
       checkType: "code",
     };
