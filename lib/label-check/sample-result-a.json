@@ -23,7 +23,7 @@
         "category": "필수기재",
         "label": "화장품의 명칭",
         "status": "pass",
-        "found": "모아리 수분 토너MOARI Hydrating Toner피부 재생 · 주름 완전 제거내용량: 150mL화장품책",
+        "found": "표기 확인됨",
         "suggest": "다른 제품과 구별되는 명칭인지 확인하세요.",
         "checkType": "code"
       },
@@ -31,7 +31,7 @@
         "category": "필수기재",
         "label": "영업자의 상호 및 주소",
         "status": "attention",
-        "found": "ydrating Toner피부 재생 · 주름 완전 제거내용량: 150mL화장품책임판매업자: (주)모아리코스메틱제조국: 대한민국전성분 정제수, 글리세린, 부틸렌글 — 주소 표기 확인 필요",
+        "found": "…피부 재생 · 주름 완전 제거 · 내용량: 150mL 화장품책임판매업자: (주)모아리코스메틱 · 제조국:… — 주소 표기 확인 필요",
         "suggest": "상호와 주소를 구분해 표시했는지 확인하세요.",
         "checkType": "code"
       },
@@ -39,7 +39,7 @@
         "category": "필수기재",
         "label": "제조에 사용된 성분(전성분)",
         "status": "pass",
-        "found": "내용량: 150mL화장품책임판매업자: (주)모아리코스메틱제조국: 대한민국전성분 정제수, 글리세린, 부틸렌글라이콜, 나이아신아마이드, 판테놀, 1,2-헥",
+        "found": "표기 확인됨",
         "suggest": "표기 형식·누락 여부를 한 번 더 확인하세요.",
         "checkType": "code"
       },
@@ -47,7 +47,7 @@
         "category": "필수기재",
         "label": "내용물의 용량 또는 중량",
         "status": "pass",
-        "found": "토너MOARI Hydrating Toner피부 재생 · 주름 완전 제거내용량: 150mL화장품책임판매업자: (주)모아리코스메틱제조국: 대한민국전성분",
+        "found": "표기 확인됨",
         "suggest": "표기 형식·누락 여부를 한 번 더 확인하세요.",
         "checkType": "code"
       },
@@ -79,7 +79,7 @@
         "category": "필수기재",
         "label": "사용할 때의 주의사항",
         "status": "pass",
-        "found": "다이올, 향료, 소듐하이알루로네이트, 토코페롤리모넨, 리날룰사용할 때의 주의사항: 1) 상처가 있는 부위에는 사용을 자제할 것",
+        "found": "표기 확인됨",
         "suggest": "표기 형식·누락 여부를 한 번 더 확인하세요.",
         "checkType": "code"
       },
@@ -95,7 +95,7 @@
         "category": "소용량예외",
         "label": "소용량·견본품 간략 표시",
         "status": "pass",
-        "found": "토너MOARI Hydrating Toner피부 재생 · 주름 완전 제거내용량: 150mL화장품책임판매업자: (주)모아리코스메틱제조국: 대한민국전성분",
+        "found": "표기 확인됨",
         "suggest": "표기 형식·누락 여부를 한 번 더 확인하세요.",
         "checkType": "code"
       },
@@ -119,7 +119,7 @@
         "category": "표시광고",
         "label": "의약품 오인 우려 표현 금지",
         "status": "attention",
-        "found": "모아리 수분 토너MOARI Hydrating Toner피부 재생 · 주름 완전 제거내용량: 150mL화장품책임판매업자: (주)모아리코",
+        "found": "…수분 토너 MOARI Hydrating Toner 피부 재생 · 주름 완전 제거 · 내용량: 150mL…",
         "suggest": "오인 우려 표현인지 확인하세요.",
         "checkType": "code"
       },
