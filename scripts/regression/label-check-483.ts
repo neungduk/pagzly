@@ -29,10 +29,11 @@ import sampleResultA from "../../lib/label-check/sample-result-a.json";
 export const name = "표시사항 488 — 탭제목·찾은내용·파일럿·A/B/C";
 
 /** 이전 차수와 동일한 판정 집계(표시만 바뀜) */
+/** 492: 소용량 규칙을 skip_info로 교정 → pass 각 1건 감소 */
 const EXPECT_SUMMARY = {
-  A: { possible: 3, attention: 5, unknown: 0, pass: 11 },
-  B: { possible: 2, attention: 3, unknown: 0, pass: 16 },
-  C: { possible: 0, attention: 4, unknown: 0, pass: 15 },
+  A: { possible: 3, attention: 5, unknown: 0, pass: 10 },
+  B: { possible: 2, attention: 3, unknown: 0, pass: 15 },
+  C: { possible: 0, attention: 4, unknown: 0, pass: 14 },
 } as const;
 
 function coreSnippet(found: string): string {
