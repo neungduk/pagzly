@@ -14,6 +14,9 @@
    "주(州) 광고법",
    "FTC 광고 실증 원칙",
    "OTC 약품(Drug Facts)"
+  ],
+  "changelog": [
+   "2026-11-09: USAD-005 'permanently' 단독 제거(포장 문구 'permanently sealed' 오탐 방지), 구체 구문으로 대체"
   ]
  },
  "items": [
@@ -126,7 +129,12 @@
     "reverse skin damage",
     "reverse aging",
     "erase wrinkles",
-    "permanently"
+    "permanent results",
+    "permanently remove",
+    "permanently eliminate",
+    "permanently reduce",
+    "permanent solution",
+    "permanent cure"
    ],
    "condition": "always",
    "needs_evidence": false,
