@@ -1,5 +1,7 @@
 # 한국 규칙 — 수정 제안 필드 작성 대기 (기획 담당)
 
+완료(496차): 초안 파일 생성 (`fix-suggestions-kr_draft_v0.1.json`)
+
 `kr_label_rules_draft_v0.1.json`·`ad-phrases-kr_draft_v0.1.json`에는 `fix_ko` / `fix_example` / `how_to_fix` 필드가 없다.
 494차는 데이터 파일을 수정하지 않는다. 아래 id에 수정 제안 초안이 필요하다.
 

@@ -123,8 +123,8 @@ export default function LabelCheckHistoryPage() {
                 <Link href={`/label-check/history/${r.id}`} className="min-w-0 flex-1 break-words hover:underline">
                   <span className="font-semibold">{r.product_name || "제품명 미입력"}</span>
                   <span className="mt-1 block text-xs text-[#666]">
-                    {date} · {r.market === "US" ? "미국" : "한국"} · 위반가능 {s.possible ?? 0} / 확인필요{" "}
-                    {s.attention ?? 0} / 확인불가 {s.unknown ?? 0} / 통과 {s.pass ?? 0}
+                    {date} · {r.market === "US" ? "미국" : "한국"} · 위반 가능 {s.possible ?? 0} / 확인 필요{" "}
+                    {s.attention ?? 0} / 확인 불가 {s.unknown ?? 0} / 통과 {s.pass ?? 0}
                   </span>
                 </Link>
                 <button

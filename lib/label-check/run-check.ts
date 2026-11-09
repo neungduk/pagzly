@@ -9,6 +9,7 @@ import {
   type ExtractedPdf,
 } from "@/lib/label-check/extract-pdf";
 import { FOUND_CONFIRMED_488, formatFoundSnippet } from "@/lib/label-check/format-found";
+import { applyKrFixSuggestions496 } from "@/lib/label-check/fix-suggestions-kr";
 import { loadAllergens483, loadLabelRules483, type RuleDraft } from "@/lib/label-check/load-rules";
 import { runLabelCheckUs494 } from "@/lib/label-check/run-check-us";
 import {
@@ -569,6 +570,8 @@ export async function runLabelCheck483(
 
   findings.push(...scanAdPhrases493(extracted.text, input));
 
+  const findingsWithFix = applyKrFixSuggestions496(findings);
+
   // 면책·단정 금지: status에 '위반' 문자열 없음(possible=위반 가능)
   return {
     disclaimer: DISCLAIMER_483,
@@ -576,8 +579,8 @@ export async function runLabelCheck483(
     charCount: extracted.charCount,
     hangulCount: extracted.hangulCount,
     skipJudgment: false,
-    summary: summarize(findings, manualItems.length),
-    findings,
+    summary: summarize(findingsWithFix, manualItems.length),
+    findings: findingsWithFix,
     manualItems,
     market: "KR",
   };

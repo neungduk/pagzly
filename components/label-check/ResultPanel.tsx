@@ -7,6 +7,7 @@ import {
   FIX_EXAMPLE_NOTE_494,
   SAMPLE_BANNER_486,
 } from "@/lib/label-check/types";
+import { fixKindHeading496 } from "@/lib/label-check/fix-kind-label";
 
 const STATUS_KO: Record<string, string> = {
   possible: "위반 가능",
@@ -15,24 +16,16 @@ const STATUS_KO: Record<string, string> = {
   pass: "통과",
 };
 
+/** 496 — fix_ko(fixSuggestion) 있을 때만 표시. 빈 문구 금지 */
 function needsFixPanel(f: Finding): boolean {
   if (f.status === "pass") return false;
-  return Boolean(
-    f.fixSuggestion || f.fixExample || f.fixKind === "soften" || f.fixKind === "evidence",
-  );
+  return Boolean(f.fixSuggestion && f.fixSuggestion.trim());
 }
 
 function formatFixBlock(f: Finding): string {
-  const lines: string[] = [`[${f.label}]`];
-  if (f.fixKind === "soften" || f.fixKind === "evidence") {
-    lines.push("완화 표현 예시: " + (f.fixExample || "—"));
-    if (f.fixKind === "evidence" || f.fixSuggestion) {
-      lines.push("근거 자료 확인: " + (f.fixSuggestion || FIX_EXAMPLE_NOTE_494));
-    }
-  } else if (f.fixSuggestion) {
-    lines.push(f.fixSuggestion);
-    if (f.fixExample) lines.push(f.fixExample);
-  }
+  const heading = fixKindHeading496(f.fixKind);
+  const lines: string[] = [`[${f.label}]`, `${heading}: ${f.fixSuggestion}`];
+  if (f.fixExample) lines.push(f.fixExample);
   lines.push(FIX_EXAMPLE_NOTE_494);
   return lines.join("\n");
 }
@@ -162,30 +155,13 @@ export function ResultPanel({
                 <p className="mt-0.5 text-[#555]">{summaryOnly ? f.suggest : f.suggest}</p>
                 {!summaryOnly && needsFixPanel(f) ? (
                   <details className="mt-2 rounded-md border border-[#EDE4CF] bg-[#FFFCF5] px-2 py-1">
-                    <summary className="cursor-pointer text-xs font-semibold text-[#6B5A2E]">수정 제안</summary>
+                    <summary className="cursor-pointer text-xs font-semibold text-[#6B5A2E]">
+                      {fixKindHeading496(f.fixKind)}
+                    </summary>
                     <div className="mt-1 space-y-1 text-xs leading-relaxed text-[#444]">
-                      {f.fixKind === "soften" || f.fixKind === "evidence" ? (
-                        <>
-                          <p>
-                            <span className="font-semibold">완화 표현 예시</span>
-                            {": "}
-                            {f.fixExample || "—"}
-                          </p>
-                          {(f.fixKind === "evidence" || f.fixSuggestion) && (
-                            <p>
-                              <span className="font-semibold">근거 자료 확인</span>
-                              {": "}
-                              {f.fixSuggestion || "—"}
-                            </p>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          {f.fixSuggestion ? <p>{f.fixSuggestion}</p> : null}
-                          {f.fixExample ? <p>{f.fixExample}</p> : null}
-                        </>
-                      )}
-                      <p className="text-[#6B5A2E]">{FIX_EXAMPLE_NOTE_494}</p>
+                      <p>{f.fixSuggestion}</p>
+                      {f.fixExample ? <p>{f.fixExample}</p> : null}
+                      {f.fixExample ? <p className="text-[#6B5A2E]">{FIX_EXAMPLE_NOTE_494}</p> : null}
                     </div>
                   </details>
                 ) : null}

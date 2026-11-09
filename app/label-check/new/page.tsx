@@ -119,11 +119,21 @@ export default function LabelCheckNewPage() {
               <fieldset className="space-y-2 text-sm">
                 <legend className="font-semibold">① 시장</legend>
                 <label className="flex items-center gap-2">
-                  <input type="radio" checked={market === "KR"} onChange={() => setMarket("KR")} />
+                  <input
+                    type="radio"
+                    name="market"
+                    checked={market === "KR"}
+                    onChange={() => setMarket("KR")}
+                  />
                   한국
                 </label>
                 <label className="flex items-center gap-2">
-                  <input type="radio" checked={market === "US"} onChange={() => setMarket("US")} />
+                  <input
+                    type="radio"
+                    name="market"
+                    checked={market === "US"}
+                    onChange={() => setMarket("US")}
+                  />
                   미국
                 </label>
                 <button
@@ -234,12 +244,14 @@ export default function LabelCheckNewPage() {
 
             {step === 4 || step === 5 ? (
               <div className="space-y-3 text-sm">
-                <label className="block font-semibold">
+                <label className="block font-semibold" htmlFor="lc-new-pdf">
                   ④ PDF 업로드
                   <input
+                    id="lc-new-pdf"
                     type="file"
                     accept="application/pdf,.pdf"
                     className="mt-2 block w-full font-normal"
+                    aria-label="PDF 파일 선택"
                     onChange={(e) => onFile(e.target.files?.[0] ?? null)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") (e.target as HTMLInputElement).click();

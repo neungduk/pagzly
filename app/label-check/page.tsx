@@ -14,6 +14,7 @@ import {
 } from "@/lib/label-check/types";
 import sampleResultA from "@/lib/label-check/sample-result-a.json";
 import { labelContactEmail } from "@/lib/label-check/contact";
+import { fixKindHeading496 } from "@/lib/label-check/fix-kind-label";
 
 const STATUS_KO: Record<string, string> = {
   possible: "위반 가능",
@@ -32,21 +33,13 @@ function todayKo(): string {
 
 function needsFixPanel(f: Finding): boolean {
   if (f.status === "pass") return false;
-  return Boolean(f.fixSuggestion || f.fixExample || f.fixKind === "soften" || f.fixKind === "evidence");
+  return Boolean(f.fixSuggestion && f.fixSuggestion.trim());
 }
 
 function formatFixBlock(f: Finding): string {
-  const lines: string[] = [`[${f.label}]`];
-  if (f.fixKind === "soften" || f.fixKind === "evidence") {
-    lines.push("완화 표현 예시: " + (f.fixExample || "—"));
-    if (f.fixKind === "evidence" || f.fixSuggestion) {
-      lines.push("근거 자료 확인: " + (f.fixSuggestion || FIX_EXAMPLE_NOTE_494));
-    }
-  } else if (f.fixSuggestion) {
-    lines.push(f.fixSuggestion);
-    if (f.fixExample) lines.push(f.fixExample);
-  }
-  lines.push(FIX_EXAMPLE_NOTE_494);
+  const lines: string[] = [`[${f.label}]`, `${fixKindHeading496(f.fixKind)}: ${f.fixSuggestion}`];
+  if (f.fixExample) lines.push(f.fixExample);
+  if (f.fixExample) lines.push(FIX_EXAMPLE_NOTE_494);
   return lines.join("\n");
 }
 
@@ -259,9 +252,10 @@ export default function LabelCheckPage() {
             </label>
           </fieldset>
 
-          <label className="block text-sm font-semibold">
+          <label className="block text-sm font-semibold" htmlFor="lc-guest-name">
             제품명 (선택 · 인쇄 상단에 표시)
             <input
+              id="lc-guest-name"
               type="text"
               value={productName}
               onChange={(e) => setProductName(e.target.value)}
@@ -271,12 +265,14 @@ export default function LabelCheckPage() {
             />
           </label>
 
-          <label className="block text-sm font-semibold">
+          <label className="block text-sm font-semibold" htmlFor="lc-guest-pdf">
             PDF 업로드 (최대 10MB · 10쪽, 1개)
             <input
+              id="lc-guest-pdf"
               type="file"
               accept="application/pdf,.pdf"
               className="mt-2 block w-full text-sm font-normal"
+              aria-label="PDF 파일 선택"
               onChange={(e) => onFile(e.target.files?.[0] ?? null)}
             />
           </label>
@@ -415,31 +411,14 @@ export default function LabelCheckPage() {
                       {needsFixPanel(f) ? (
                         <details className="mt-2 rounded-md border border-[#EDE4CF] bg-[#FFFCF5] px-2 py-1">
                           <summary className="cursor-pointer text-xs font-semibold text-[#6B5A2E]">
-                            수정 제안
+                            {fixKindHeading496(f.fixKind)}
                           </summary>
                           <div className="mt-1 space-y-1 text-xs leading-relaxed text-[#444]">
-                            {f.fixKind === "soften" || f.fixKind === "evidence" ? (
-                              <>
-                                <p>
-                                  <span className="font-semibold">완화 표현 예시</span>
-                                  {": "}
-                                  {f.fixExample || "—"}
-                                </p>
-                                {(f.fixKind === "evidence" || f.fixSuggestion) && (
-                                  <p>
-                                    <span className="font-semibold">근거 자료 확인</span>
-                                    {": "}
-                                    {f.fixSuggestion || "—"}
-                                  </p>
-                                )}
-                              </>
-                            ) : (
-                              <>
-                                {f.fixSuggestion ? <p>{f.fixSuggestion}</p> : null}
-                                {f.fixExample ? <p>{f.fixExample}</p> : null}
-                              </>
-                            )}
-                            <p className="text-[#6B5A2E]">{FIX_EXAMPLE_NOTE_494}</p>
+                            <p>{f.fixSuggestion}</p>
+                            {f.fixExample ? <p>{f.fixExample}</p> : null}
+                            {f.fixExample ? (
+                              <p className="text-[#6B5A2E]">{FIX_EXAMPLE_NOTE_494}</p>
+                            ) : null}
                           </div>
                         </details>
                       ) : null}
