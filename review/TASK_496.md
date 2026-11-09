@@ -5,7 +5,7 @@
 - `review/496-targets.md`에 코드 전 기재. 마무리 전 `npx tsc --noEmit`, `npm run build`. 커밋 최대 4개. 보고서 `review/496cha-report.md`.
 
 ## 1. 한국 수정 제안 연결
-- `review/data/fix-suggestions-kr_draft_v0.1.json`(기획 담당 작성, 49개 id)을 로드해 한국 결과의 항목 아래 "수정 제안" 영역에 `fix_ko`, `fix_example`(있을 때만, 494차 `FIX_EXAMPLE_NOTE_494` 동반)을 표시한다. 같은 id가 없으면 영역을 숨긴다(빈 문구 금지).
+- `review/data/fix-suggestions-kr_draft_v0.1.json`(기획 담당 작성, 55개 id)을 로드해 한국 결과의 항목 아래 "수정 제안" 영역에 `fix_ko`, `fix_example`(있을 때만, 494차 `FIX_EXAMPLE_NOTE_494` 동반)을 표시한다. 같은 id가 없으면 영역을 숨긴다(빈 문구 금지).
 - `fix_kind`가 `evidence`인 항목은 "근거 자료 확인" 라벨, `soften`은 "표현 완화 예시", `fix`는 "수정 제안"으로 구분 표시.
 - "수정 제안 모아 보기"에 한국 항목 포함. `review/data/fix-suggestions-kr_todo.md`는 삭제하지 말고 맨 위에 "완료(496차): 초안 파일 생성" 한 줄만 추가.
 - 규칙 id가 파일에 없는 경우를 알리는 단위 시험: 규칙표 id 전체 대비 제안 파일 커버리지 테스트(누락 0 확인, 누락되면 실패).
