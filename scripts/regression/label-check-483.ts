@@ -272,6 +272,14 @@ export async function run(): Promise<string[]> {
     }
   }
 
+  // 491 — 하단 약관 링크
+  {
+    const page = fs.readFileSync(path.join(process.cwd(), "app/label-check/page.tsx"), "utf8");
+    if (!/href=\"\/privacy\"/.test(page) || !/href=\"\/terms\"/.test(page)) {
+      f.push("491: label-check 하단 privacy/terms 링크 없음");
+    }
+  }
+
   // 488 — 탭 제목 · 찾은 내용 표시
   {
     const layout = fs.readFileSync(path.join(process.cwd(), "app/label-check/layout.tsx"), "utf8");

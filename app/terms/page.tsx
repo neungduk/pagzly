@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import PagzlyLogo from "@/components/PagzlyLogo";
+import { DETAIL_PAGE_ENABLED } from "@/lib/feature-flags";
 
-const ARTICLES: { title: string; body: string }[] = [
+type Article = { title: string; body: string };
+
+/** 상세페이지 기능 켜짐일 때 — 기존 문구 유지 */
+const DETAIL_ARTICLES: Article[] = [
   {
     title: "제1조 (목적)",
     body: `이 약관은 Pagzly(이하 "회사")가 제공하는 AI 상품 상세페이지 생성 서비스(이하 "서비스")의 이용과 관련하여 회사와 이용자의 권리, 의무 및 책임사항을 정함을 목적으로 합니다.`,
@@ -69,12 +73,58 @@ const ARTICLES: { title: string; body: string }[] = [
   },
 ];
 
+/** 상세·결제 기능 꺼짐 — 검수 서비스 기준(결제·요금 조항 없음) */
+const LABEL_CHECK_ARTICLES: Article[] = [
+  {
+    title: "제1조 (목적)",
+    body: `이 약관은 Pagzly(이하 "회사")가 제공하는 화장품 표시사항 PDF 검수 서비스(이하 "서비스")의 이용과 관련하여 회사와 이용자의 권리, 의무 및 책임사항을 정함을 목적으로 합니다.`,
+  },
+  {
+    title: "제2조 (정의)",
+    body: `1. "서비스"란 이용자가 업로드한 화장품 패키지 시안(PDF)의 표시사항을 인쇄 전에 사전 점검할 수 있도록 회사가 웹으로 제공하는 기능을 말합니다.
+2. "이용자"란 이 약관에 따라 서비스를 이용하는 자를 말합니다.
+3. "시안"이란 이용자가 서비스에 업로드하는 PDF 파일 및 그 내용을 말합니다.`,
+  },
+  {
+    title: "제3조 (약관의 효력 및 변경)",
+    body: `1. 이 약관은 서비스 화면에 게시하거나 기타의 방법으로 이용자에게 공지함으로써 효력이 발생합니다.
+2. 회사는 관련 법령을 위배하지 않는 범위에서 이 약관을 개정할 수 있으며, 개정 시 적용일자 및 개정사유를 명시하여 최소 7일 전(이용자에게 불리한 변경은 30일 전)부터 공지합니다.
+3. 이용자가 개정 약관의 적용에 동의하지 않는 경우 서비스 이용을 중단할 수 있습니다.`,
+  },
+  {
+    title: "제4조 (서비스의 내용)",
+    body: `1. 회사는 업로드된 PDF에서 추출한 텍스트를 바탕으로 표시사항·관련 항목을 참고용으로 점검한 결과를 제공합니다.
+2. 서비스는 참고용 사전 점검이며 법적 판단이 아닙니다.
+3. 회사는 점검 결과의 정확성·완전성·특정 목적에의 적합성을 보증하지 않습니다.
+4. 최종 표시·광고·인허가 등에 대한 확인 책임은 이용자(책임판매업자 등)에게 있습니다.
+5. 회사는 서버 점검 등 부득이한 사유가 있으면 서비스 제공을 일시 중단할 수 있습니다.`,
+  },
+  {
+    title: "제5조 (시안의 권리와 이용자 의무)",
+    body: `1. 업로드한 시안에 대한 권리는 이용자에게 있습니다.
+2. 이용자는 시안 및 그 내용에 대해 적법한 권한을 보유해야 하며, 타인의 권리를 침해하거나 법령에 위반되는 목적으로 서비스를 이용해서는 안 됩니다.
+3. 이용자는 서비스의 정상적인 운영을 방해하거나 서버에 과도한 부하를 유발하는 행위를 해서는 안 됩니다.`,
+  },
+  {
+    title: "제6조 (면책)",
+    body: `1. 회사는 천재지변, 설비 장애 등 불가항력으로 서비스를 제공할 수 없는 경우 책임이 면제됩니다.
+2. 회사는 이용자가 점검 결과를 근거로 한 표시·판매·광고·계약 등과 관련하여 발생한 분쟁에 대해 책임을 지지 않습니다.
+3. 회사는 이용자가 서비스를 이용하여 기대하는 수익을 얻지 못하거나 상실한 것에 대하여 책임을 지지 않습니다.`,
+  },
+  {
+    title: "제7조 (분쟁 해결)",
+    body: `이 약관과 관련하여 회사와 이용자 간에 발생한 분쟁에 대해서는 대한민국 법을 준거법으로 하며, 관할 법원은 민사소송법상의 관할 법원으로 합니다.`,
+  },
+];
+
 export const metadata: Metadata = {
   title: "이용약관",
   description: "Pagzly 서비스 이용약관",
 };
 
 export default function TermsPage() {
+  const articles = DETAIL_PAGE_ENABLED ? DETAIL_ARTICLES : LABEL_CHECK_ARTICLES;
+
   return (
     <div className="min-h-full bg-paper">
       <header className="border-b border-line">
@@ -95,7 +145,7 @@ export default function TermsPage() {
         <p className="mt-2 font-mono text-xs text-ink/40">시행일 2026년 8월 20일</p>
 
         <div className="mt-12 space-y-10">
-          {ARTICLES.map((article) => (
+          {articles.map((article) => (
             <section key={article.title}>
               <h2 className="text-base font-semibold text-ink">{article.title}</h2>
               <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink/70">

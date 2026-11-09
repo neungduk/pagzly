@@ -303,6 +303,18 @@ export default function LabelCheckPage() {
             </footer>
           </section>
         ) : null}
+
+        <nav
+          className="lc-legal mt-10 flex flex-wrap gap-x-4 gap-y-1 break-words text-xs text-[#6B5A2E] print:hidden"
+          aria-label="약관"
+        >
+          <Link href="/privacy" className="underline-offset-2 hover:underline">
+            개인정보처리방침
+          </Link>
+          <Link href="/terms" className="underline-offset-2 hover:underline">
+            이용약관
+          </Link>
+        </nav>
       </div>
 
       <style jsx global>{`

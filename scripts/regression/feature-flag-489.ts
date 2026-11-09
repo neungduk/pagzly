@@ -200,6 +200,37 @@ export async function run(): Promise<string[]> {
     if (!/\/api\/generate/.test(notes) || !/유지/.test(notes)) {
       f.push("489: 489-notes 표 불충분");
     }
+
+    // 491 — privacy/terms 검수 문구 · label-check 하단 링크 (플래그 꺼짐 분기)
+    {
+      const privacy = read("app/privacy/page.tsx");
+      const terms = read("app/terms/page.tsx");
+      if (!/DETAIL_PAGE_ENABLED/.test(privacy) || !/labelCheckArticles|저장하지 않습니다/.test(privacy)) {
+        f.push("491: privacy 검수 분기/저장 없음 문구 부족");
+      }
+      if (!/labelContactEmail/.test(privacy)) f.push("491: privacy 문의가 labelContactEmail 아님");
+      {
+        const labelPart = privacy.slice(privacy.indexOf("function labelCheckArticles"));
+        if (/example\.com|you@|tjsmdejr@|contact@pagzly/i.test(labelPart)) {
+          f.push("491: privacy 검수 분기에 임의 문의 주소");
+        }
+        if (!/if \(contact\)/.test(labelPart)) f.push("491: privacy 문의 조항 조건부 아님");
+      }
+      if (!/DETAIL_PAGE_ENABLED/.test(terms) || !/법적 판단이 아닙니다/.test(terms)) {
+        f.push("491: terms 검수 분기 부족");
+      }
+      const labelTerms = terms.slice(terms.indexOf("LABEL_CHECK_ARTICLES"));
+      if (/요금|토큰 팩|결제|구독 플랜|₩/.test(labelTerms)) {
+        f.push("491: terms 검수 분기에 결제·요금 문구");
+      }
+      if (/Anthropic|DeepSeek|상세페이지 문구·이미지 자동 생성/.test(labelTerms)) {
+        f.push("491: terms 검수 분기에 상세 AI 생성 문단");
+      }
+      if (!/href=\"\/privacy\"/.test(labelPage) || !/href=\"\/terms\"/.test(labelPage)) {
+        f.push("491: label-check 하단 privacy/terms 링크 없음");
+      }
+      if (/min-w-\[\d{3,}px\]/.test(labelPage)) f.push("491: label-check 고정 min-width(가로 넘침)");
+    }
   } finally {
     if (prev === undefined) delete process.env.NEXT_PUBLIC_DETAIL_PAGE_ENABLED;
     else process.env.NEXT_PUBLIC_DETAIL_PAGE_ENABLED = prev;

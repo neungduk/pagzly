@@ -2,8 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import PagzlyLogo from "@/components/PagzlyLogo";
 import { CONTACT_EMAIL } from "@/lib/contact";
+import { DETAIL_PAGE_ENABLED } from "@/lib/feature-flags";
+import { labelContactEmail } from "@/lib/label-check/contact";
 
-const ARTICLES: { title: string; body: string }[] = [
+type Article = { title: string; body: string };
+
+/** 상세페이지 기능 켜짐일 때 — 기존 문구 유지 */
+const DETAIL_ARTICLES: Article[] = [
   {
     title: "제1조 (수집하는 개인정보 항목 및 수집 방법)",
     body: `1. 회사는 회원가입 및 서비스 제공을 위해 다음의 개인정보를 수집합니다.
@@ -62,12 +67,69 @@ const ARTICLES: { title: string; body: string }[] = [
   },
 ];
 
+/** 상세페이지 꺼짐(검수 서비스) — 코드 감사 결과만 반영 */
+function labelCheckArticles(contact: string): Article[] {
+  const articles: Article[] = [
+    {
+      title: "제1조 (수집·처리하는 정보)",
+      body: `1. 화장품 표시사항 PDF 검수 서비스 이용 시 다음 정보가 처리될 수 있습니다.
+   - 이용자가 업로드한 PDF 시안(요청 처리 중 서버 메모리에서만 사용)
+   - 호출 제한을 위한 접속 IP(아래 제3조)
+2. 회원가입을 하는 경우 이메일 주소, 비밀번호(암호화 저장)가 수집될 수 있습니다.
+3. 검수 서비스는 로그인 없이도 이용할 수 있으며, 업로드한 PDF를 회원 계정에 연결해 저장하지 않습니다.`,
+    },
+    {
+      title: "제2조 (이용 목적)",
+      body: `회사는 위 정보를 다음 목적에만 이용합니다.
+1. 업로드한 PDF의 표시사항 사전 점검 결과 제공(요청 응답)
+2. 단기간 호출 제한(남용 방지)
+3. 회원인 경우 본인 식별·부정 이용 방지 및(설정된 경우) 문의 응대`,
+    },
+    {
+      title: "제3조 (저장 여부 · IP 일시 처리)",
+      body: `1. 업로드한 PDF 파일과 추출 본문, 검수 결과(JSON)는 디스크·데이터베이스·객체 스토리지에 저장하지 않습니다. 요청이 끝나면 서버 메모리에서 폐기됩니다.
+2. 샘플 검수 결과는 서비스에 포함된 정적 예시이며, 이용자 업로드와 무관합니다.
+3. 호출 제한을 위해 접속 IP와 요청 시각을 서버 인스턴스의 메모리에 일시 보관합니다(슬라이딩 창 약 60초, 창당 횟수 제한). 별도 DB에 쌓지 않으며, 인스턴스 재시작·교체 시 초기화될 수 있습니다.
+4. 서버 운영 로그에는 파일명·PDF 본문을 남기지 않으며, 처리 성공·실패 여부와 결과 항목 수 등 최소 정보만 기록할 수 있습니다.`,
+    },
+    {
+      title: "제4조 (외부 제공 · 처리 위탁)",
+      body: `1. 검수 과정에서 업로드한 PDF 본문을 외부 AI·OCR·분석 서비스로 전송하지 않습니다. 텍스트 추출은 회사 서버에서 로컬로 수행합니다.
+2. 회원가입·로그인에 Supabase 등 인증 인프라를 사용하는 경우, 그에 필요한 범위의 회원 정보가 해당 업체에서 처리될 수 있습니다. 검수 PDF 자체는 이 경로로 저장·전송하지 않습니다.
+3. 법령에 근거가 있거나 수사기관이 법령에 따른 절차로 요구하는 경우는 예외로 할 수 있습니다.`,
+    },
+    {
+      title: "제5조 (이용자의 권리)",
+      body: `이용자는 관련 법령에 따라 개인정보의 열람·정정·삭제·처리정지 등을 요청할 수 있습니다. 회원 정보는 계정 설정 또는 탈퇴로 처리할 수 있으며, 검수 업로드분은 서버에 보관하지 않으므로 별도 삭제 대상 파일이 없습니다.`,
+    },
+    {
+      title: "제6조 (안전성 확보 조치)",
+      body: `회사는 전송 구간 암호화(SSL) 등 합리적 보호 조치를 취합니다. 다만 인터넷 전송의 고유 위험을 완전히 제거할 수는 없습니다.`,
+    },
+    {
+      title: "제7조 (고지의 의무)",
+      body: `이 개인정보처리방침의 내용 추가, 삭제 및 수정이 있는 경우 시행 최소 7일 전에 서비스 화면을 통해 공지합니다.`,
+    },
+  ];
+  if (contact) {
+    articles.push({
+      title: "제8조 (문의)",
+      body: `개인정보 처리에 관한 문의는 다음 이메일로 할 수 있습니다.
+   - 이메일: ${contact}`,
+    });
+  }
+  return articles;
+}
+
 export const metadata: Metadata = {
   title: "개인정보처리방침",
   description: "Pagzly 개인정보처리방침",
 };
 
 export default function PrivacyPage() {
+  const contact = labelContactEmail();
+  const articles = DETAIL_PAGE_ENABLED ? DETAIL_ARTICLES : labelCheckArticles(contact);
+
   return (
     <div className="min-h-full bg-paper">
       <header className="border-b border-line">
@@ -93,7 +155,7 @@ export default function PrivacyPage() {
         </p>
 
         <div className="mt-12 space-y-10">
-          {ARTICLES.map((article) => (
+          {articles.map((article) => (
             <section key={article.title}>
               <h2 className="text-base font-semibold text-ink">{article.title}</h2>
               <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink/70">
