@@ -22,6 +22,8 @@
 
 # 430차: 폰트 빌드 산출물(scripts/build-detail-fonts.mjs, 바이너리는 저장소에 넣지 않는다)
 /public/fonts
+# 499차: pdfjs 브라우저 빌드 복사본(scripts/copy-label-check-pdfjs.mjs)
+/public/label-check-pdfjs
 
 # misc
 .DS_Store

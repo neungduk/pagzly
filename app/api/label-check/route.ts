@@ -1,8 +1,13 @@
 /**
- * 485/495/498 — 화장품 표시사항 PDF 검수 API.
- * 메모리 점검. 로그인+save=true 일 때만 결과 요약 저장(원문·파일명 금지).
+ * 485/495/498/499 — 화장품 표시사항 PDF 검수 API.
+ * 499: JSON(ExtractedLabelPayload) 우선 경로 + 기존 FormData 업로드 유지.
+ * 로그인+save=true 일 때만 결과 요약 저장(원문·파일명 금지).
  */
-import { labelCheckErrorResponse } from "@/lib/label-check/api-errors";
+import { labelCheckErrorResponse, type LabelCheckErrorCode } from "@/lib/label-check/api-errors";
+import {
+  payloadToExtractedPdf,
+  validateExtractedPayload,
+} from "@/lib/label-check/extracted-payload";
 import { saveLabelCheckRun } from "@/lib/label-check/save-run";
 import {
   ERR_NOT_PDF_485,
@@ -11,8 +16,10 @@ import {
   ERR_TOO_MANY_PAGES_485,
   ERR_UNREADABLE_PDF_485,
   MAX_PDF_BYTES_483,
+  type LabelCheckInput,
+  type LabelMarket,
 } from "@/lib/label-check/types";
-import { runLabelCheck483 } from "@/lib/label-check/run-check";
+import { runLabelCheck483, runLabelCheckFromExtracted } from "@/lib/label-check/run-check";
 import {
   assertPageLimit,
   assertPdfSignature,
@@ -38,6 +45,74 @@ function mapUploadError(message: string) {
   return labelCheckErrorResponse("SERVER", 500);
 }
 
+function parseOptions(src: Record<string, unknown> | FormData): {
+  input: LabelCheckInput;
+  save: boolean;
+  productName: string | null;
+} {
+  const get = (k: string) =>
+    src instanceof FormData ? String(src.get(k) ?? "") : String(src[k] ?? "");
+  const bool = (k: string) => {
+    if (src instanceof FormData) return get(k) === "true";
+    return src[k] === true || src[k] === "true";
+  };
+  const marketRaw = get("market").toUpperCase() || "KR";
+  const market: LabelMarket = marketRaw === "US" ? "US" : "KR";
+  const productNameRaw = get("productName").trim();
+  return {
+    input: {
+      rinseOff: bool("rinseOff"),
+      functional: bool("functional"),
+      market,
+      imported: bool("imported"),
+      professionalUse: bool("professionalUse"),
+      hazardous: bool("hazardous"),
+      otcDrugLike: bool("otcDrugLike"),
+    },
+    save: bool("save"),
+    productName: productNameRaw ? productNameRaw.slice(0, 80) : null,
+  };
+}
+
+async function finishResult(
+  result: Awaited<ReturnType<typeof runLabelCheck483>>,
+  opts: {
+    save: boolean;
+    userId: string | undefined;
+    productName: string | null;
+    input: LabelCheckInput;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    supabase: any;
+  },
+) {
+  let savedId: string | null = null;
+  let saveError: string | null = null;
+  if (opts.save && opts.userId && !result.skipJudgment) {
+    const saved = await saveLabelCheckRun(opts.supabase, opts.userId, {
+      market: opts.input.market ?? "KR",
+      productName: opts.productName,
+      options: {
+        rinseOff: opts.input.rinseOff,
+        functional: opts.input.functional,
+        imported: Boolean(opts.input.imported),
+        professionalUse: Boolean(opts.input.professionalUse),
+        hazardous: Boolean(opts.input.hazardous),
+        otcDrugLike: Boolean(opts.input.otcDrugLike),
+      },
+      result,
+    });
+    if ("id" in saved) savedId = saved.id;
+    else {
+      saveError = "save_failed";
+      console.warn("[label-check] save-failed");
+    }
+  }
+  console.log(
+    `[label-check] ok readable=${result.readable} skip=${Boolean(result.skipJudgment)} findings=${result.findings.length} saved=${Boolean(savedId)}`,
+  );
+  return Response.json({ ...result, savedId, saveError });
+}
+
 export async function POST(req: Request) {
   try {
     const supabase = await createClient();
@@ -55,19 +130,42 @@ export async function POST(req: Request) {
       });
     }
 
+    const ct = req.headers.get("content-type") || "";
+
+    // 499 — 클라 추출 JSON
+    if (ct.includes("application/json")) {
+      const rawText = await req.text();
+      let body: Record<string, unknown>;
+      try {
+        body = JSON.parse(rawText) as Record<string, unknown>;
+      } catch {
+        return labelCheckErrorResponse("BAD_REQUEST", 400);
+      }
+      const validated = validateExtractedPayload(body.extracted, Buffer.byteLength(rawText, "utf8"));
+      if (!validated.ok) {
+        const code = validated.code as LabelCheckErrorCode;
+        const status = code === "TOO_LARGE" || code === "TOO_MANY_PAGES" ? 400 : 400;
+        return labelCheckErrorResponse(code === "TOO_LARGE" ? "TOO_LARGE" : code, status);
+      }
+      const { input, save, productName } = parseOptions(body);
+      const extracted = payloadToExtractedPdf(validated.payload);
+      const timed = await withExtractTimeout(runLabelCheckFromExtracted(extracted, input));
+      if (!timed.ok) {
+        console.warn("[label-check] extract-limit");
+        return mapUploadError(timed.error);
+      }
+      return finishResult(timed.value, {
+        save,
+        userId: user?.id,
+        productName,
+        input,
+        supabase,
+      });
+    }
+
     const form = await req.formData();
+    const { input, save, productName } = parseOptions(form);
     const file = form.get("file");
-    const rinseOff = String(form.get("rinseOff") ?? "false") === "true";
-    const functional = String(form.get("functional") ?? "false") === "true";
-    const marketRaw = String(form.get("market") ?? "KR").toUpperCase();
-    const market = marketRaw === "US" ? "US" : "KR";
-    const imported = String(form.get("imported") ?? "false") === "true";
-    const professionalUse = String(form.get("professionalUse") ?? "false") === "true";
-    const hazardous = String(form.get("hazardous") ?? "false") === "true";
-    const otcDrugLike = String(form.get("otcDrugLike") ?? "false") === "true";
-    const save = String(form.get("save") ?? "false") === "true";
-    const productNameRaw = String(form.get("productName") ?? "").trim();
-    const productName = productNameRaw ? productNameRaw.slice(0, 80) : null;
 
     if (!file || !(file instanceof File)) {
       return labelCheckErrorResponse("NO_FILE", 400);
@@ -91,55 +189,18 @@ export async function POST(req: Request) {
       return mapUploadError(pageErr);
     }
 
-    const timed = await withExtractTimeout(
-      runLabelCheck483(buffer, {
-        rinseOff,
-        functional,
-        market,
-        imported,
-        professionalUse,
-        hazardous,
-        otcDrugLike,
-      }),
-    );
+    const timed = await withExtractTimeout(runLabelCheck483(buffer, input));
     if (!timed.ok) {
       console.warn("[label-check] extract-limit");
       return mapUploadError(timed.error);
     }
 
-    const result = timed.value;
-    let savedId: string | null = null;
-    let saveError: string | null = null;
-
-    if (save && user && !result.skipJudgment) {
-      const saved = await saveLabelCheckRun(supabase, user.id, {
-        market,
-        productName,
-        options: {
-          rinseOff,
-          functional,
-          imported,
-          professionalUse,
-          hazardous,
-          otcDrugLike,
-        },
-        result,
-      });
-      if ("id" in saved) savedId = saved.id;
-      else {
-        saveError = "save_failed";
-        console.warn("[label-check] save-failed");
-      }
-    }
-
-    // 파일명·본문·경로 로그 금지
-    console.log(
-      `[label-check] ok readable=${result.readable} skip=${Boolean(result.skipJudgment)} findings=${result.findings.length} saved=${Boolean(savedId)}`,
-    );
-    return Response.json({
-      ...result,
-      savedId,
-      saveError,
+    return finishResult(timed.value, {
+      save,
+      userId: user?.id,
+      productName,
+      input,
+      supabase,
     });
   } catch {
     console.warn("[label-check] failed");

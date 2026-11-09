@@ -4,8 +4,11 @@ import { useCallback, useState } from "react";
 import Link from "next/link";
 import { ResultPanel } from "@/components/label-check/ResultPanel";
 import type { LabelCheckResult, LabelMarket } from "@/lib/label-check/types";
-import { DISCLAIMER_483, ERR_TOO_LARGE_485, MAX_PDF_BYTES_483 } from "@/lib/label-check/types";
-import { readLabelCheckApiFailure } from "@/lib/label-check/api-errors";
+import { DISCLAIMER_483 } from "@/lib/label-check/types";
+import {
+  assertClientPdfSize,
+  submitLabelCheckClient,
+} from "@/lib/label-check/client-submit";
 import { ERR_LOGIN_EXPIRED_495 } from "@/lib/label-check/member-constants";
 
 function todayKo(): string {
@@ -25,6 +28,7 @@ export default function LabelCheckNewPage() {
   const [productName, setProductName] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<LabelCheckResult | null>(null);
   const [checkedOn, setCheckedOn] = useState<string | null>(null);
@@ -37,8 +41,9 @@ export default function LabelCheckNewPage() {
       setFile(null);
       return;
     }
-    if (f.size > MAX_PDF_BYTES_483) {
-      setError(ERR_TOO_LARGE_485);
+    const sizeErr = assertClientPdfSize(f);
+    if (sizeErr) {
+      setError(sizeErr);
       setFile(null);
       return;
     }
@@ -55,40 +60,37 @@ export default function LabelCheckNewPage() {
     setResult(null);
     setStep(5);
     try {
-      const fd = new FormData();
-      fd.set("file", file);
-      fd.set("save", "true");
-      fd.set("market", market);
-      fd.set("productName", productName.trim().slice(0, 80));
-      fd.set("rinseOff", String(rinseOff));
-      fd.set("functional", String(functional));
-      fd.set("imported", String(imported));
-      fd.set("professionalUse", String(professionalUse));
-      fd.set("hazardous", String(hazardous));
-      fd.set("otcDrugLike", String(otcDrugLike));
-      const res = await fetch("/api/label-check", { method: "POST", body: fd });
-      if (res.status === 401) {
-        setError(ERR_LOGIN_EXPIRED_495);
-        window.location.href = `/login?next=${encodeURIComponent("/label-check/new")}`;
-        return;
-      }
-      if (!res.ok) {
-        const fail = await readLabelCheckApiFailure(res);
-        setError(fail.error);
+      const out = await submitLabelCheckClient(
+        file,
+        {
+          rinseOff,
+          functional,
+          market,
+          imported,
+          professionalUse,
+          hazardous,
+          otcDrugLike,
+          save: true,
+          productName: productName.trim().slice(0, 80),
+        },
+        setProgress,
+      );
+      if (!out.ok) {
+        if (out.status === 401) {
+          setError(ERR_LOGIN_EXPIRED_495);
+          window.location.href = `/login?next=${encodeURIComponent("/label-check/new")}`;
+          return;
+        }
+        setError(out.error);
         setStep(4);
         return;
       }
-      const json = (await res.json()) as LabelCheckResult & {
-        savedId?: string | null;
-      };
-      setResult(json);
-      setSavedId(json.savedId ?? null);
+      setResult(out.result);
+      setSavedId(out.result.savedId ?? null);
       setCheckedOn(todayKo());
       setStep(6);
-    } catch {
-      setError("네트워크 오류로 검수에 실패했습니다.");
-      setStep(4);
     } finally {
+      setProgress(null);
       setBusy(false);
     }
   };
@@ -260,7 +262,9 @@ export default function LabelCheckNewPage() {
                   />
                 </label>
                 {file ? <p className="text-xs text-[#666]">선택됨 · {(file.size / 1024).toFixed(1)} KB</p> : null}
-                {step === 5 && busy ? <p className="text-sm font-semibold">⑤ 검수 중…</p> : null}
+                {step === 5 && busy ? (
+                  <p className="text-sm font-semibold">⑤ {progress || "검수 중…"}</p>
+                ) : null}
                 {error ? (
                   <p className="break-words text-sm text-[#9B1C1C]" role="alert">
                     {error}
@@ -281,7 +285,7 @@ export default function LabelCheckNewPage() {
                     className="rounded-full bg-[#1B1B18] px-4 py-2 font-semibold text-[#FAF8F3] disabled:opacity-40"
                     onClick={() => void submit()}
                   >
-                    {busy ? "검수 중…" : "검수 시작"}
+                    {busy ? progress || "검수 중…" : "검수 시작"}
                   </button>
                 </div>
               </div>

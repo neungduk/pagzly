@@ -6,16 +6,16 @@ import type { Finding, LabelCheckResult, LabelMarket } from "@/lib/label-check/t
 import {
   DISCLAIMER_483,
   DISCLAIMER_PRINT_485,
-  ERR_TOO_LARGE_485,
   FIX_EXAMPLE_NOTE_494,
   INTRO_LINES_486,
   INTRO_ONE_LINE_486,
-  MAX_PDF_BYTES_483,
-  MAX_PDF_MB_498,
   MAX_PDF_PAGES_485,
   SAMPLE_BANNER_486,
 } from "@/lib/label-check/types";
-import { readLabelCheckApiFailure } from "@/lib/label-check/api-errors";
+import {
+  assertClientPdfSize,
+  submitLabelCheckClient,
+} from "@/lib/label-check/client-submit";
 import sampleResultA from "@/lib/label-check/sample-result-a.json";
 import { labelContactEmail } from "@/lib/label-check/contact";
 import { fixKindHeading496 } from "@/lib/label-check/fix-kind-label";
@@ -58,6 +58,7 @@ export default function LabelCheckPage() {
   const [hazardous, setHazardous] = useState(false);
   const [otcDrugLike, setOtcDrugLike] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<LabelCheckResult | null>(null);
   const [checkedOn, setCheckedOn] = useState<string | null>(null);
@@ -82,8 +83,9 @@ export default function LabelCheckPage() {
       setFile(null);
       return;
     }
-    if (f.size > MAX_PDF_BYTES_483) {
-      setError(ERR_TOO_LARGE_485);
+    const sizeErr = assertClientPdfSize(f);
+    if (sizeErr) {
+      setError(sizeErr);
       setFile(null);
       return;
     }
@@ -148,27 +150,27 @@ export default function LabelCheckPage() {
     setResult(null);
     setIsSample(false);
     try {
-      const fd = new FormData();
-      fd.set("file", file);
-      fd.set("rinseOff", String(rinseOff));
-      fd.set("functional", String(functional));
-      fd.set("market", market);
-      fd.set("imported", String(imported));
-      fd.set("professionalUse", String(professionalUse));
-      fd.set("hazardous", String(hazardous));
-      fd.set("otcDrugLike", String(otcDrugLike));
-      const res = await fetch("/api/label-check", { method: "POST", body: fd });
-      if (!res.ok) {
-        const fail = await readLabelCheckApiFailure(res);
-        setError(fail.error);
+      const out = await submitLabelCheckClient(
+        file,
+        {
+          rinseOff,
+          functional,
+          market,
+          imported,
+          professionalUse,
+          hazardous,
+          otcDrugLike,
+        },
+        setProgress,
+      );
+      if (!out.ok) {
+        setError(out.error);
         return;
       }
-      const json = (await res.json()) as LabelCheckResult;
-      setResult(json);
+      setResult(out.result);
       setCheckedOn(todayKo());
-    } catch {
-      setError("네트워크 오류로 검수에 실패했습니다.");
     } finally {
+      setProgress(null);
       setBusy(false);
     }
   };
@@ -271,7 +273,7 @@ export default function LabelCheckPage() {
           </label>
 
           <label className="block text-sm font-semibold" htmlFor="lc-guest-pdf">
-            PDF 업로드 (최대 {MAX_PDF_MB_498}MB · {MAX_PDF_PAGES_485}쪽, 1개)
+            PDF 업로드 (최대 100MB · {MAX_PDF_PAGES_485}쪽, 1개 · 글자만 전송)
             <input
               id="lc-guest-pdf"
               type="file"
@@ -339,7 +341,7 @@ export default function LabelCheckPage() {
             onClick={() => void submit()}
             className="rounded-full bg-[#1B1B18] px-5 py-2.5 text-sm font-semibold text-[#FAF8F3] disabled:opacity-40"
           >
-            {busy ? "검수 중…" : "검수 시작"}
+            {busy ? progress || "검수 중…" : "검수 시작"}
           </button>
           {error ? (
             <p className="break-words text-sm text-[#9B1C1C]" role="alert">
