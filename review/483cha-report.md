@@ -40,4 +40,4 @@
 
 ## Push
 - branch: `cloud-work` → `origin/cloud-work` (main 미푸시)
-- tip: `git log -1` 로 확인. 항목 커밋: 데이터 → 추출 → 규칙엔진 → UI → 회귀 → 본 보고.
+- tip: `548816a` (`docs(483): track draft rule JSON and cha report`). 항목: `2cf6844` 샘플 → `245d58a` 추출 → `cdb1dd1` 규칙 → `751e404` UI → `c57e791` 회귀.
