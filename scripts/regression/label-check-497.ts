@@ -53,11 +53,19 @@ export async function run(): Promise<string[]> {
     const net = r.findings.find((x) => x.label.includes("내용량"));
     const ing = r.findings.find((x) => x.label.includes("성분"));
     const biz = r.findings.find((x) => x.label.includes("제조·판매자"));
-    const drug = r.findings.find((x) => x.label.includes("불실") || x.label.includes("의약품"));
+    // 500 — US-013 단일 건 → us-ad-phrases 항목(질병 등)으로 대체
+    const drug = r.findings.find(
+      (x) =>
+        x.status === "attention" &&
+        (x.label.includes("불실") ||
+          x.label.includes("의약품") ||
+          x.label.includes("질병") ||
+          x.category === "disease"),
+    );
     if (net?.status !== "possible") f.push(`497: us2 내용량=${net?.status}`);
     if (ing?.status !== "possible") f.push(`497: us2 성분=${ing?.status}`);
     if (biz?.status !== "possible") f.push(`497: us2 상호=${biz?.status}`);
-    if (drug?.status !== "attention") f.push(`497: us2 US-013=${drug?.status}`);
+    if (!drug) f.push("497: us2 광고/질병 확인 필요 없음");
   }
 
   // us3 — 영어 아님 안내 + possible 연쇄 금지
