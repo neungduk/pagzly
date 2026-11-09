@@ -125,20 +125,58 @@ function deriveModeAndPatterns(raw: {
       patterns: ["화장품책임판매업자", "책임판매업자", "제조업자", "상호"],
     };
   }
+  // 소용량은 title에 '용량'이 들어가므로 내용량 규칙보다 먼저 skip
+  if (title.includes("소용량") || title.includes("견본품")) {
+    return { mode: "skip_info", patterns: [] };
+  }
   if (title.includes("전성분") && title.includes("제조에 사용된")) {
     return { mode: "presence", patterns: ["전성분"] };
   }
   if (title.includes("용량") || title.includes("중량")) {
-    return { mode: "presence", patterns: ["내용량", "중량", "mL", "ml", "g", "그램"] };
+    // 단위 단독(g/ml)은 영문 제품명 오탐 → 내용량·중량·숫자+단위는 run-check에서 추가 매칭
+    return {
+      mode: "presence",
+      patterns: ["내용량", "중량", "그램"],
+    };
   }
   if (title.includes("제조번호")) {
-    return { mode: "lot", patterns: ["제조번호", "LOT", "Lot", "lot", "배치", "Batch", "batch"] };
+    return {
+      mode: "lot",
+      patterns: [
+        "제조번호",
+        "LOT",
+        "Lot",
+        "lot",
+        "Lot.No",
+        "Lot. No",
+        "Lot No",
+        "L/N",
+        "L/N:",
+        "배치",
+        "Batch",
+        "batch",
+      ],
+    };
   }
   if (title.includes("사용기한") || title.includes("개봉 후")) {
     return {
       mode: "expiry",
-      patterns: ["사용기한", "개봉 후", "개봉후", "까지", "제조일로부터", "제조연월일", "PAO"],
+      patterns: [
+        "사용기한",
+        "개봉 후 사용기간",
+        "개봉 후",
+        "개봉후",
+        "까지",
+        "제조일로부터",
+        "제조연월일",
+        "PAO",
+        "EXP",
+        "Exp",
+      ],
     };
+  }
+  if (title.includes("표준 국문 성분명")) {
+    return { mode: "skip_info", patterns: [] };
   }
   if (title === "가격") {
     return { mode: "presence", patterns: ["가격", "원", "₩", "\\"] };

@@ -95,6 +95,65 @@ function findAllergens(text: string): Array<{ name: string; hit: string; sizePt?
   return hits;
 }
 
+/** 전성분 라벨 이후~다음 주요 항목 전까지의 글자 크기. 식별 실패 시 null */
+export function ingredientRegionSizes(
+  extracted: ExtractedPdf,
+): { sizes: number[]; via: "items" | "fallback" } | null {
+  const items = extracted.textItems;
+  if (!items?.length) {
+    // 아이템 없으면 전역 크기로 대체하지 않음(통과 금지 경로 = null)
+    return null;
+  }
+  const joined = items.map((i) => i.text).join("");
+  const normJoined = normalizeLabelText(joined);
+  const startKeys = ["전성분", "ingredients"];
+  let start = -1;
+  let startKeyLen = 0;
+  for (const k of startKeys) {
+    const nk = normalizeLabelText(k);
+    const idx = normJoined.indexOf(nk);
+    if (idx >= 0 && (start < 0 || idx < start)) {
+      start = idx;
+      startKeyLen = nk.length;
+    }
+  }
+  if (start < 0) return null;
+
+  const endKeys = [
+    "사용할때의주의사항",
+    "주의사항",
+    "내용량",
+    "제조번호",
+    "사용기한",
+    "개봉후",
+    "가격",
+    "바코드",
+    "화장품책임판매업자",
+    "책임판매업자",
+  ];
+  let end = normJoined.length;
+  for (const k of endKeys) {
+    const nk = normalizeLabelText(k);
+    const idx = normJoined.indexOf(nk, start + startKeyLen);
+    if (idx >= 0 && idx < end) end = idx;
+  }
+
+  // norm 인덱스 → 원문 아이템 구간 근사: 누적 normalize 길이로 매핑
+  const sizes: number[] = [];
+  let normPos = 0;
+  for (const it of items) {
+    const n = normalizeLabelText(it.text);
+    if (!n) continue;
+    const a = normPos;
+    const b = normPos + n.length;
+    normPos = b;
+    if (b <= start + startKeyLen) continue;
+    if (a >= end) break;
+    if (it.sizePt > 0) sizes.push(it.sizePt);
+  }
+  return { sizes, via: "items" };
+}
+
 function allergenSizes(
   extracted: ExtractedPdf,
   hits: Array<{ hit: string }>,
@@ -233,25 +292,38 @@ function runCodeRule(
   }
 
   if (rule.mode === "font_size") {
-    const sizes = extracted.fontSizesPt;
-    if (!sizes || !sizes.length) {
+    // 492 — 전성분 영역 글자만 측정. 영역 식별 불가 → 확인 불가(통과 금지)
+    const region = ingredientRegionSizes(extracted);
+    if (!region) {
       return {
         category: rule.category,
         label: rule.label,
         status: "unknown",
-        found: "폰트 크기 정보를 읽을 수 없음",
+        found: "전성분 영역 글자 크기를 구분할 수 없음",
+        suggest: "글자 크기를 확인할 수 없어 확인 불가합니다. 통과로 보지 마세요.",
+        checkType: "code",
+      };
+    }
+    const sizes = region.sizes;
+    if (!sizes.length) {
+      return {
+        category: rule.category,
+        label: rule.label,
+        status: "unknown",
+        found: "전성분 영역에서 크기를 읽지 못함",
         suggest: "글자 크기를 확인할 수 없어 확인 불가합니다. 통과로 보지 마세요.",
         checkType: "code",
       };
     }
     const minPt = rule.min_pt ?? 5;
-    const tooSmall = sizes.filter((s) => s < minPt);
+    // Chromium 등에서 5pt가 4.99로 나오는 오차 → 소수 1자리 반올림 후 비교(4.9 실패·5.0 통과)
+    const tooSmall = sizes.filter((s) => Math.round(s * 10) / 10 < minPt);
     if (tooSmall.length) {
       return {
         category: rule.category,
         label: rule.label,
         status: "possible",
-        found: `감지된 크기(pt): ${[...new Set(sizes)].slice(0, 10).join(", ")} — ${minPt}pt 미만 ${tooSmall.length}건`,
+        found: `전성분 영역 크기(pt): ${[...new Set(sizes)].slice(0, 10).join(", ")} — ${minPt}pt 미만 ${tooSmall.length}건`,
         suggest: `${minPt}pt 이상인지 확인하세요.`,
         checkType: "code",
       };
@@ -260,7 +332,7 @@ function runCodeRule(
       category: rule.category,
       label: rule.label,
       status: "pass",
-      found: `감지된 크기(pt): ${[...new Set(sizes)].slice(0, 10).join(", ")}`,
+      found: `전성분 영역 크기(pt): ${[...new Set(sizes)].slice(0, 10).join(", ")}`,
       suggest: "추출된 크기이며 인쇄물과 다를 수 있습니다.",
       checkType: "code",
     };
@@ -320,8 +392,12 @@ function runCodeRule(
 
   if (rule.mode === "lot") {
     const hit = includesAny(text, rule.patterns);
-    // LOT2411A 형태(라벨 없이 코드만)
-    const lotCode = hit || text.match(/\bLOT[-\s]?[A-Za-z0-9]+\b/i)?.[0] || null;
+    // LOT2411A · L/N:A123 형태
+    const lotCode =
+      hit ||
+      text.match(/\bLOT[.\s\-:]?[A-Za-z0-9]+\b/i)?.[0] ||
+      text.match(/\bL\s*\/\s*N\s*[:\-]?\s*[A-Za-z0-9]+/i)?.[0] ||
+      null;
     if (lotCode) {
       return {
         category: rule.category,
@@ -344,9 +420,13 @@ function runCodeRule(
 
   if (rule.mode === "expiry") {
     const hit = includesAny(text, rule.patterns);
+    // 규칙 문구: 연월일·개월·개봉 후 기간(+심벌 M)·EXP 등
     const dateLike =
       /\d{4}\s*[.\-/년]\s*\d{1,2}/.test(text) ||
       /\d+\s*개월/.test(text) ||
+      /개봉\s*후\s*\d+\s*(개월|월|M)/i.test(text) ||
+      /\b\d{1,2}\s*M\b/i.test(text) ||
+      /EXP\.?\s*\d{4}/i.test(text) ||
       includesNormalized(text, "제조일로부터");
     if (hit || dateLike) {
       return {
@@ -370,7 +450,12 @@ function runCodeRule(
 
   // presence / conditional_presence
   const keys = rule.patterns ?? [];
-  const hit = includesAny(text, keys);
+  let hit = includesAny(text, keys);
+  // 용량·중량: 숫자+단위(규칙 문구의 용량/중량 표시). 단독 'g'/'ml' 영문 오탐 방지
+  if (!hit && (rule.label.includes("용량") || rule.label.includes("중량"))) {
+    const unit = text.match(/\d+(?:\.\d+)?\s*(?:mL|ml|㎖|g|그램|fl\.?\s*oz\.?)\b/i);
+    if (unit) hit = unit[0];
+  }
   if (hit) {
     return {
       category: rule.category,
