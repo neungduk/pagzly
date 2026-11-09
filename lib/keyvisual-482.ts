@@ -6,6 +6,7 @@
  */
 import type { ArchetypeId } from "@/lib/page-archetype-v5";
 import type { ProductPalette482 } from "@/lib/palette-from-product-482";
+import type { DetailSection } from "@/lib/types/generate";
 import { contrastRatioToken, mixHex } from "@/lib/design-tokens";
 
 export type KeyvisualRecipe482 = "stage" | "bloom" | "callouts";
@@ -244,17 +245,9 @@ export function keyvisualMarkupBytes482(html: string): number {
   return Buffer.byteLength(html.replace(/src="[^"]*"/g, 'src=""'), "utf8");
 }
 
-/** 섹션·키피처에서 말풍선 후보(기존 문구만) */
+/** 섹션·키피처에서 말풍선 후보(기존 문구만). 매개변수는 실제 DetailSection 유니온(487: FAQ items 타입 충돌 해소). */
 export function calloutSourcesFromDetail482(
-  sections: Array<{
-    type: string;
-    slot?: string;
-    heading?: string;
-    emphasis?: string;
-    callout?: string;
-    items?: string[];
-    cards?: Array<{ title?: string; body?: string }>;
-  }>,
+  sections: DetailSection[],
   keyFeatures?: string | null,
 ): string[] {
   const out: string[] = [];
