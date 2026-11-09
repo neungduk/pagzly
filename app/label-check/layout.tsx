@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import { INTRO_ONE_LINE_486 } from "@/lib/label-check/types";
 
-/** 486 — 파일럿 경로. 정식 공개 전 검색 제외. 사이트맵·내비 링크 추가하지 않음. */
+/** 488 — 탭 제목·설명. 486 noindex 유지. 사이트맵·내비 링크 추가하지 않음. */
 export const metadata: Metadata = {
+  title: "화장품 표시사항 PDF 검수 | Pagzly",
+  description: INTRO_ONE_LINE_486,
   robots: {
     index: false,
     follow: false,
