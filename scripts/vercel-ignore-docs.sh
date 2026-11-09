@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# 490 — Vercel Ignored Build Step.
+# exit 0 = 빌드 건너뜀, exit 1 = 빌드 진행.
+# review/** 와 *.md 만 바뀐 커밋은 건너뛰고, 그 외(코드) 변경·첫 커밋(HEAD^ 없음)은 진행.
+set -e
+if ! git rev-parse -q --verify HEAD^ >/dev/null 2>&1; then
+  echo "vercel-ignore-docs: no HEAD^ — build"
+  exit 1
+fi
+if git diff --quiet HEAD^ HEAD -- . \
+  ':(exclude)review' \
+  ':(exclude)review/**' \
+  ':(exclude)*.md' \
+  ':(exclude)**/*.md'
+then
+  echo "vercel-ignore-docs: docs/review only — skip"
+  exit 0
+fi
+echo "vercel-ignore-docs: code changes — build"
+exit 1
