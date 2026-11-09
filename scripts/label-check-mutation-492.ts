@@ -1,7 +1,15 @@
 /**
  * 492 — 변이(결함 주입)·표기 변형 PDF 하네스 (Playwright page.pdf, 한글 폰트).
- * 유료 호출 없음. 결과는 review/492-notes.md 표에 반영·회귀 label-check-492에서 재사용.
+ * 유료 호출 없음. 결과는 review/492-notes.md 표에 반영·회귀는 커밋된 PDF만 읽음(503).
+ * chromium을 쓰므로 진입 시 assertHeavyEntry 필요(회귀가 순수 함수만 import할 때는 isMain=false).
  */
+import { assertHeavyEntry } from "./lib/heavy-guard";
+assertHeavyEntry(
+  "label-check-mutation-492",
+  typeof require !== "undefined" && typeof module !== "undefined"
+    ? require.main === module
+    : Boolean(process.argv[1]?.includes("label-check-mutation-492")),
+);
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "playwright";

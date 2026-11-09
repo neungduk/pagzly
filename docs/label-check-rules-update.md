@@ -59,3 +59,9 @@
 ## 6. 결과 화면의 「점검 기준」
 
 사용자는 결과 하단에 `점검 기준: 규칙표 v… (날짜)`를 봅니다. `meta.version`과 `meta.date`(없으면 `meta.created`, 둘 다 없으면 **미표기**)에서 옵니다. 데이터를 바꾸면 version/date도 함께 갱신하세요.
+
+## 7. 회귀 실행 방법
+
+- 빠른 표시사항 회귀: `npm run regression:label-check` (수 십 초~2분).
+- `npm run regression`은 전체(상세페이지 시험 포함)라 매우 오래 걸리고, 알려진 NG가 섞여 있다.
+- 알려진 NG·분류는 `review/502cha-report.md`를 본다.

@@ -1,41 +1,36 @@
 /**
  * 493 — 광고 표현 스캔·독립 시안·광고 변이 회귀.
+ * 503: playwright 제거. PDF는 review/data/samples/** 만 읽음.
  */
 import fs from "node:fs";
 import path from "node:path";
-import { chromium } from "playwright";
 import { runLabelCheck483, runLabelCheckText483 } from "../../lib/label-check/run-check";
 import {
   BASE_FIELDS_FOR_TEST,
   buildMutationCases,
-  htmlFromFieldsForTest,
 } from "../label-check-mutation-492";
 
 export const name = "표시사항 493 — 광고표현·독립시안·변이";
 
 const AD_CATS = new Set(["의약품 오인", "기능성 오인", "소비자 오인", "실증 필요"]);
 const IND = path.join("review", "data", "samples", "independent-492");
+const FIX = path.join("review", "data", "samples", "regression-503");
+const MUT = path.join("review", "data", "samples", "mutation-492");
 
 function adFindings(r: Awaited<ReturnType<typeof runLabelCheck483>>) {
   return r.findings.filter((f) => AD_CATS.has(f.category) && f.status === "attention");
 }
 
-async function pdfHtml(html: string): Promise<Buffer> {
-  const browser = await chromium.launch({ headless: true });
-  try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "load" });
-    const buf = await page.pdf({ format: "A4", printBackground: true });
-    return Buffer.from(buf);
-  } finally {
-    await browser.close();
+function resolvePdf(...candidates: string[]): string | null {
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
   }
+  return null;
 }
 
 export async function run(): Promise<string[]> {
   const f: string[] = [];
 
-  // 독립 시안 기대표
   const table: Array<{
     file: string;
     functional?: boolean;
@@ -113,7 +108,6 @@ export async function run(): Promise<string[]> {
     if (err) f.push(`493: ${row.file} — ${err}`);
   }
 
-  // 오탐: 전성분 알부틴·천연 / 주의사항 전문의 / 재생지 / 100% / 보다
   {
     const base = BASE_FIELDS_FOR_TEST;
     const texts = [
@@ -130,7 +124,6 @@ export async function run(): Promise<string[]> {
     }
   }
 
-  // sample C 광고 0
   {
     const c = path.join("review", "data", "samples", "sample_C_salt_bodywash.pdf");
     if (fs.existsSync(c)) {
@@ -142,38 +135,40 @@ export async function run(): Promise<string[]> {
     }
   }
 
-  // 광고 변이: 해당 항목만 추가
   const adCases = buildMutationCases().filter((c) => c.id.startsWith("ad-") || c.id === "inject-forbidden");
   if (adCases.length < 6) f.push(`493: 광고 변이 부족 (${adCases.length})`);
 
-  try {
-    for (const c of adCases) {
-      const html = htmlFromFieldsForTest(c.fields);
-      const buf = await pdfHtml(html);
-      const r = await runLabelCheck483(buf, {
-        rinseOff: true,
-        functional: c.input?.functional ?? false,
-      });
-      const ads = adFindings(r);
-      const hit = ads.find((a) => a.label === c.expectFailLabel);
-      if (!hit) f.push(`493: 변이 ${c.id} 미검출 (기대 ${c.expectFailLabel})`);
-      const extra = ads.filter((a) => a.label !== c.expectFailLabel);
-      if (extra.length) {
-        f.push(`493: 변이 ${c.id} 여분 ${extra.map((a) => a.label).join(";")}`);
-      }
+  for (const c of adCases) {
+    const p = resolvePdf(path.join(FIX, `${c.id}.pdf`), path.join(MUT, `${c.id}.pdf`));
+    if (!p) {
+      f.push(`493: 픽스처 없음 ${c.id}.pdf (label-check-make-fixtures-492 실행)`);
+      continue;
     }
-
-    // 정상 base PDF — 광고 0
-    const baseBuf = await pdfHtml(htmlFromFieldsForTest(BASE_FIELDS_FOR_TEST));
-    const baseR = await runLabelCheck483(baseBuf, { rinseOff: true, functional: false });
-    if (adFindings(baseR).length) {
-      f.push(`493: base PDF 광고 오탐 ${adFindings(baseR).map((a) => a.label).join(",")}`);
+    const r = await runLabelCheck483(fs.readFileSync(p), {
+      rinseOff: true,
+      functional: c.input?.functional ?? false,
+    });
+    const ads = adFindings(r);
+    const hit = ads.find((a) => a.label === c.expectFailLabel);
+    if (!hit) f.push(`493: 변이 ${c.id} 미검출 (기대 ${c.expectFailLabel})`);
+    const extra = ads.filter((a) => a.label !== c.expectFailLabel);
+    if (extra.length) {
+      f.push(`493: 변이 ${c.id} 여분 ${extra.map((a) => a.label).join(";")}`);
     }
-  } catch (e) {
-    f.push(`493: Playwright 실패 — ${String(e).slice(0, 120)}`);
   }
 
-  // KR-ADV id 화면 비노출: findings label에 KR-ADV / AD- 없음
+  {
+    const baseP = resolvePdf(path.join(FIX, "base.pdf"), path.join(MUT, "base.pdf"));
+    if (!baseP) {
+      f.push("493: base.pdf 픽스처 없음");
+    } else {
+      const baseR = await runLabelCheck483(fs.readFileSync(baseP), { rinseOff: true, functional: false });
+      if (adFindings(baseR).length) {
+        f.push(`493: base PDF 광고 오탐 ${adFindings(baseR).map((a) => a.label).join(",")}`);
+      }
+    }
+  }
+
   {
     const r = await runLabelCheckText483(
       `${BASE_FIELDS_FOR_TEST.name} 피부 재생 아토피\n${BASE_FIELDS_FOR_TEST.org}\n${BASE_FIELDS_FOR_TEST.addr}`,
