@@ -4,6 +4,7 @@
  */
 import { isHitCoveredByAdPhrases493, scanAdPhrases493 } from "@/lib/label-check/ad-phrases";
 import {
+  emptyPagesNoticeSuffix,
   extractLabelPdf,
   normalizeLabelText,
   type ExtractedPdf,
@@ -15,6 +16,7 @@ import { runLabelCheckUs494 } from "@/lib/label-check/run-check-us";
 import {
   DISCLAIMER_483,
   MIN_HANGUL_CHARS_485,
+  NOTICE_IMAGE_PDF_497,
   NOTICE_NO_HANGUL_485,
   NOTICE_OUTLINE_485,
   type CheckStatus,
@@ -533,11 +535,21 @@ export async function runLabelCheck483(
     if (extracted.charCount >= 40 && extracted.hangulCount < MIN_HANGUL_CHARS_485) {
       return noticeOnlyResult(extracted, NOTICE_NO_HANGUL_485);
     }
+    // 497 — 본문 0자: 이미지 PDF 안내(+혼합 쪽)
+    if (extracted.charCount === 0) {
+      return noticeOnlyResult(
+        extracted,
+        NOTICE_IMAGE_PDF_497 + emptyPagesNoticeSuffix(extracted),
+      );
+    }
     return noticeOnlyResult(extracted, NOTICE_OUTLINE_485);
   }
 
   if (!extracted.readable) {
-    return noticeOnlyResult(extracted, NOTICE_OUTLINE_485);
+    return noticeOnlyResult(
+      extracted,
+      NOTICE_IMAGE_PDF_497 + emptyPagesNoticeSuffix(extracted),
+    );
   }
 
   const rules = loadLabelRules483();

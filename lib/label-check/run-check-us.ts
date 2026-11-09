@@ -2,19 +2,19 @@
  * 494 — 미국 시장 코드 판정(데이터 look_for만 사용, 임의 규칙 신설 금지).
  */
 import {
+  emptyPagesNoticeSuffix,
   extractLabelPdf,
   type ExtractedPdf,
 } from "@/lib/label-check/extract-pdf";
 import { formatFoundSnippet } from "@/lib/label-check/format-found";
 import { loadUsLabelRules494, type UsRuleDraft } from "@/lib/label-check/load-rules-us";
-import { includesUs, normalizeUsLabelText } from "@/lib/label-check/normalize-us";
+import { includesUs, includesUsWord, normalizeUsLabelText } from "@/lib/label-check/normalize-us";
 import {
   DISCLAIMER_483,
   DISCLAIMER_US_EXTRA_494,
-  MIN_HANGUL_CHARS_485,
-  NOTICE_NO_HANGUL_485,
+  NOTICE_IMAGE_PDF_497,
   NOTICE_OTC_US_494,
-  NOTICE_OUTLINE_485,
+  NOTICE_US_NON_ENGLISH_497,
   type Finding,
   type LabelCheckInput,
   type LabelCheckResult,
@@ -58,7 +58,8 @@ function withFix(rule: UsRuleDraft, base: Finding): Finding {
 function hasIdentityWord(text: string, lookFor: string[]): string | null {
   for (const w of lookFor) {
     if (/pattern:/i.test(w)) continue;
-    if (includesUs(text, w)) return w;
+    // 짧은 품명 단어는 경계 일치(성분 Aqua 등이 identity로 잡히지 않게)
+    if (includesUsWord(text, w)) return w;
   }
   return null;
 }
@@ -117,10 +118,13 @@ function hasContact(text: string): string | null {
 }
 
 function hasDrugClaim(text: string, lookFor: string[]): string | null {
+  const hits: string[] = [];
   for (const w of lookFor) {
-    if (includesUs(text, w)) return w;
+    if (includesUsWord(text, w)) hits.push(w);
   }
-  return null;
+  if (!hits.length) return null;
+  // 여러 표현도 항목 1건 — 대표 히트만 반환(호출부에서 한 finding)
+  return hits[0];
 }
 
 function hangulOnlyLabel(text: string): boolean {
@@ -465,7 +469,7 @@ export async function runLabelCheckUs494(
       readable: false,
       charCount: 0,
       hangulCount: 0,
-      notice: NOTICE_OUTLINE_485,
+      notice: NOTICE_IMAGE_PDF_497 + emptyPagesNoticeSuffix(extracted),
       skipJudgment: true,
       summary: EMPTY_SUMMARY,
       findings: [],
@@ -474,14 +478,13 @@ export async function runLabelCheckUs494(
     };
   }
 
-  // 미국 모드는 영어 본문 기준. 한글만 극소+영문 없으면 안내는 US-007에서.
   if (!extracted.readable && extracted.charCount < 40) {
     return {
       disclaimer: usDisclaimer(),
       readable: false,
       charCount: extracted.charCount,
       hangulCount: extracted.hangulCount,
-      notice: NOTICE_OUTLINE_485,
+      notice: NOTICE_IMAGE_PDF_497 + emptyPagesNoticeSuffix(extracted),
       skipJudgment: true,
       summary: EMPTY_SUMMARY,
       findings: [],
@@ -494,12 +497,32 @@ export async function runLabelCheckUs494(
   const findings: Finding[] = [];
   const manualItems: LabelCheckResult["manualItems"] = [];
 
+  // 497 — 한글만 라벨: 영어 표기만 안내하고 영문 필수 possible 연쇄 보류
+  if (hangulOnlyLabel(extracted.text)) {
+    const rule007 = rules.find((r) => r.id === "US-007");
+    if (rule007) {
+      const f = runUsCodeRule(rule007, extracted.text, extracted, input);
+      if (f) findings.push(f);
+    }
+    return {
+      disclaimer: usDisclaimer(),
+      readable: true,
+      charCount: extracted.charCount,
+      hangulCount: extracted.hangulCount,
+      notice: NOTICE_US_NON_ENGLISH_497,
+      skipJudgment: false,
+      summary: summarize(findings, 0),
+      findings,
+      manualItems: [],
+      market: "US",
+    };
+  }
+
   for (const rule of rules) {
     if (rule.checkType === "code") {
       const f = runUsCodeRule(rule, extracted.text, extracted, input);
       if (f) findings.push(f);
     } else {
-      // 조건부 manual
       if (rule.needsImported && !input.imported) continue;
       if (rule.needsProfessional && !input.professionalUse) continue;
       if (rule.needsHazardous && !input.hazardous) continue;
@@ -513,15 +536,12 @@ export async function runLabelCheckUs494(
     }
   }
 
-  // 한글만 PDF에서 영문 안내가 겹치면 NOTICE 보조(판정은 US-007)
-  void NOTICE_NO_HANGUL_485;
-  void MIN_HANGUL_CHARS_485;
-
   return {
     disclaimer: usDisclaimer(),
     readable: true,
     charCount: extracted.charCount,
     hangulCount: extracted.hangulCount,
+    notice: emptyPagesNoticeSuffix(extracted).trim() || undefined,
     skipJudgment: false,
     summary: summarize(findings, manualItems.length),
     findings,

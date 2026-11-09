@@ -25,3 +25,23 @@ export function includesUs(text: string, needle: string): boolean {
   if (!n) return false;
   return normalizeUsLabelText(text).includes(n);
 }
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * 497 — 영문 단어 경계. 단일 토큰은 굴절(s/es/ed/ing)만 허용해
+ * Treatment⊃treat, healthy⊃heal 오탐을 줄인다.
+ */
+export function includesUsWord(text: string, needle: string): boolean {
+  if (!needle) return false;
+  const n = normalizeUsLabelText(needle);
+  if (!n) return false;
+  const t = normalizeUsLabelText(text);
+  if (n.includes(" ") || n.includes("-")) {
+    return t.includes(n);
+  }
+  const re = new RegExp(`(?:^|[^a-z0-9])${escapeRegExp(n)}(?:s|es|ed|ing)?(?![a-z0-9])`, "i");
+  return re.test(t);
+}

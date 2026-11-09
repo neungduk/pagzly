@@ -21,7 +21,28 @@ export type ExtractedPdf = {
   fontSizesPt: number[] | null;
   /** 글자별(또는 조각별) 크기 — 알레르기 성분 등 부분 검사 */
   textItems: Array<{ text: string; sizePt: number }> | null;
+  /** 497 — 텍스트가 비어 있는 쪽(1-based). 혼합 PDF 안내용 */
+  emptyPages?: number[];
+  pageCount?: number;
 };
+
+/** 497 — 향후 OCR 등 대체 추출. 지금은 미구현(항상 null). */
+export type ExtractFallback = {
+  name: string;
+  extract: (buffer: Buffer) => Promise<string | null>;
+};
+
+export async function runExtractFallback(
+  _buffer: Buffer,
+  fallback: ExtractFallback | null,
+): Promise<string | null> {
+  if (!fallback) return null;
+  try {
+    return await fallback.extract(_buffer);
+  } catch {
+    return null;
+  }
+}
 
 export function countHangulChars(text: string): number {
   const m = text.normalize("NFC").match(/[가-힣]/g);
@@ -75,7 +96,12 @@ type PdfJsTextItem = { str?: string; transform?: number[] };
 
 async function pdfJsExtract(
   buffer: Buffer,
-): Promise<{ text: string; items: Array<{ text: string; sizePt: number }> } | null> {
+): Promise<{
+  text: string;
+  items: Array<{ text: string; sizePt: number }>;
+  emptyPages: number[];
+  pageCount: number;
+} | null> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const pdfjs = require("pdf-parse/lib/pdf.js/v2.0.550/build/pdf.js") as {
@@ -98,6 +124,7 @@ async function pdfJsExtract(
 
     const parts: string[] = [];
     const items: Array<{ text: string; sizePt: number }> = [];
+    const emptyPages: number[] = [];
 
     for (let p = 1; p <= doc.numPages; p++) {
       const page = await doc.getPage(p);
@@ -118,9 +145,15 @@ async function pdfJsExtract(
         line += str;
       }
       if (line.trim()) parts.push(line);
+      else emptyPages.push(p);
     }
 
-    return { text: parts.join("\n").normalize("NFC"), items };
+    return {
+      text: parts.join("\n").normalize("NFC"),
+      items,
+      emptyPages,
+      pageCount: doc.numPages,
+    };
   } catch {
     return null;
   }
@@ -149,7 +182,14 @@ export async function extractLabelPdf(buffer: Buffer): Promise<ExtractedPdf> {
   const primary = fromJs || fromParse;
   const text = softNormalize([primary, fromMarker && !primary ? fromMarker : ""].filter(Boolean).join("\n"));
   // 마커만 있는 레거시: primary 비어 있으면 마커 사용
-  const finalText = text || fromMarker || fromParse || fromJs;
+  let finalText = text || fromMarker || fromParse || fromJs;
+
+  // 497 — OCR 등 fallback 자리(현재 null). 본문 0자일 때만 시도.
+  if (![...softNormalize(finalText).replace(/\s+/g, "")].length) {
+    const fb = await runExtractFallback(buffer, null);
+    if (fb) finalText = softNormalize(fb);
+  }
+
   const normalizedFinal = softNormalize(finalText);
 
   const charCount = [...normalizedFinal.replace(/\s+/g, "")].length;
@@ -166,5 +206,17 @@ export async function extractLabelPdf(buffer: Buffer): Promise<ExtractedPdf> {
     readable: charCount >= MIN_CHARS_483,
     fontSizesPt,
     textItems,
+    emptyPages: js?.emptyPages,
+    pageCount: js?.pageCount,
   };
+}
+
+/** 이미지·혼합 PDF 안내 부가(쪽 번호) */
+export function emptyPagesNoticeSuffix(extracted: ExtractedPdf): string {
+  const pages = extracted.emptyPages;
+  const total = extracted.pageCount ?? 0;
+  if (!pages?.length || total < 2) return "";
+  // 전 쪽이 비면 쪽 나열 생략(전체 이미지 안내와 중복)
+  if (pages.length >= total) return "";
+  return ` 텍스트가 없는 쪽: ${pages.join(", ")}.`;
 }

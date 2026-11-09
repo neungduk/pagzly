@@ -21,6 +21,7 @@ import {
   INTRO_LINES_486,
   INTRO_ONE_LINE_486,
   NOTICE_NO_HANGUL_485,
+  NOTICE_IMAGE_PDF_497,
   NOTICE_OUTLINE_485,
   SAMPLE_BANNER_486,
 } from "../../lib/label-check/types";
@@ -156,7 +157,10 @@ export async function run(): Promise<string[]> {
     else {
       const r = await runLabelCheck483(fs.readFileSync(empty), { rinseOff: false, functional: false });
       if (!r.skipJudgment) f.push("empty: skipJudgment 아님");
-      if (r.notice !== NOTICE_OUTLINE_485) f.push("empty: 아웃라인 안내 불일치");
+      // 497 — 본문 0자는 이미지 PDF 안내(쪽 번호 suffix 가능)
+      if (!r.notice?.startsWith(NOTICE_IMAGE_PDF_497) && r.notice !== NOTICE_OUTLINE_485) {
+        f.push("empty: 이미지/아웃라인 안내 불일치");
+      }
       if (r.findings.length !== 0) f.push(`empty: findings ${r.findings.length} (기대 0)`);
       if (r.summary.possible !== 0) f.push("empty: 위반 가능이 나오면 안 됨");
     }
