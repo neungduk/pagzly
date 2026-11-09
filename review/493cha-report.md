@@ -44,3 +44,5 @@ i1·i5·sample C·정상 base·전성분(알부틴/천연)·주의사항(전문�
 - `npx tsc --noEmit` 통과
 - `npm run build` 통과
 - 회귀 label-check-483 / label-check-493 통과
+- `git push origin cloud-work` 완료 (`main` 미푸시)
+- tip: `26cbe89` (docs report) / `2502bb4` (feat) / `0fc5809` (targets)
