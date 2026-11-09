@@ -77,6 +77,11 @@ export type LabelCheckResult = {
   market?: LabelMarket;
   /** 501 — 결과 하단 점검 기준 한 줄 */
   rulesBasis?: string;
+  /**
+   * 505 — 광고 fix_kind=evidence 항목이 있을 때 결과 하단에 1회만 표시하는
+   * 실증 체크포인트(상위 N줄). 항목별 접힘에 반복하지 않음.
+   */
+  evidenceCheckpoints?: string[];
 };
 
 export const DISCLAIMER_483 =

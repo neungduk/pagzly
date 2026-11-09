@@ -44,7 +44,16 @@ export type RuleDraft = {
 
 export type AllergenDraft = {
   inci: string;
+  /** 고시 원문 국문명(화면 표시용) */
   ko: string;
+  cas?: string;
+  no?: number;
+};
+
+export type AllergenThresholds505 = {
+  rinse_off: string;
+  leave_on: string;
+  note?: string;
 };
 
 function dataPath(...parts: string[]) {
@@ -277,21 +286,56 @@ export function loadLabelRules483(): RuleDraft[] {
   });
 }
 
-export function loadAllergens483(): { disclaimer: string; allergens: AllergenDraft[] } {
-  const raw = fs.readFileSync(dataPath("allergens-kr-25_draft.json"), "utf8");
+/**
+ * 505 — 고시 별표2 원문본 `allergens-kr-25_v1.json`(초안 draft는 보관만).
+ */
+export function loadAllergens483(): {
+  disclaimer: string;
+  allergens: AllergenDraft[];
+  thresholds: AllergenThresholds505 | null;
+  sourceFile: string;
+} {
+  const sourceFile = "allergens-kr-25_v1.json";
+  const raw = fs.readFileSync(dataPath(sourceFile), "utf8");
   const json = JSON.parse(raw) as {
-    meta?: { note?: string };
+    meta?: {
+      note?: string;
+      source?: string;
+      thresholds?: Partial<AllergenThresholds505>;
+    };
     disclaimer?: string;
-    items?: Array<{ inci: string; ko: string }>;
-    allergens?: Array<{ inci: string; ko?: string; ko_draft?: string }>;
+    items?: Array<{ no?: number; inci: string; ko: string; cas?: string }>;
+    allergens?: Array<{ inci: string; ko?: string; ko_draft?: string; cas?: string }>;
   };
   const items = json.items ?? json.allergens ?? [];
   const allergens: AllergenDraft[] = items.map((a) => ({
     inci: a.inci,
     ko: "ko" in a && a.ko ? a.ko : (a as { ko_draft?: string }).ko_draft || "",
+    cas: "cas" in a ? a.cas : undefined,
+    no: "no" in a ? a.no : undefined,
   }));
+  const th = json.meta?.thresholds;
+  const thresholds =
+    th?.rinse_off && th?.leave_on
+      ? {
+          rinse_off: String(th.rinse_off),
+          leave_on: String(th.leave_on),
+          note: th.note ? String(th.note) : undefined,
+        }
+      : null;
   return {
-    disclaimer: json.disclaimer || json.meta?.note || "",
+    disclaimer: json.disclaimer || json.meta?.note || json.meta?.source || "",
     allergens,
+    thresholds,
+    sourceFile,
   };
+}
+
+/** 매칭용: 공백 제거 후 아이소↔이소 통일(화면 표시는 고시 원문 ko 유지) */
+export function normalizeAllergenKey505(s: string): string {
+  return s
+    .normalize("NFC")
+    .replace(/\s+/g, "")
+    .replace(/아이소/g, "이소")
+    .toLowerCase();
 }

@@ -10,9 +10,12 @@ export const LABEL_RULE_FILES = {
   fixKr: "fix-suggestions-kr_draft_v0.1.json",
   us: "us_label_rules_draft_v0.1.json",
   adUs: "us-ad-phrases_draft_v0.1.json",
-  cautionsKr: "kr-cautions_draft_v0.1.json",
+  cautionsKr: "kr-cautions_draft_v0.2.json",
   addendaKr: "kr-label-addenda_draft_v0.1.json",
+  allergensKr: "allergens-kr-25_v1.json",
 } as const;
+
+const CAS_RE = /^\d{2,7}-\d{2}-\d$/;
 
 const AD_CONDITIONS = new Set(["always", "non_functional"]);
 
@@ -155,6 +158,9 @@ export function validateLabelRulesAt(
     const data = cau.data as {
       ingredient_cautions?: Array<Record<string, unknown>>;
       type_cautions?: Array<Record<string, unknown>>;
+      common_cautions?: {
+        items?: Array<Record<string, unknown>>;
+      };
     };
     const ids: string[] = [];
     for (const row of data.ingredient_cautions || []) {
@@ -172,7 +178,55 @@ export function validateLabelRulesAt(
       if (!row.required_text_ko) issues.push({ level: "error", msg: `cautions ${id}: required_text_ko 필수` });
       if (!row.condition_note) issues.push({ level: "warn", msg: `cautions-type ${id}: condition_note 없음` });
     }
+    const commons = data.common_cautions?.items;
+    if (!Array.isArray(commons) || commons.length !== 4) {
+      issues.push({
+        level: "error",
+        msg: `cautions common_cautions: 4개 필요(현재 ${Array.isArray(commons) ? commons.length : 0})`,
+      });
+    } else {
+      for (const row of commons) {
+        const id = String(row.id || "");
+        ids.push(id);
+        if (!row.required_text_ko) {
+          issues.push({ level: "error", msg: `cautions-common ${id}: required_text_ko 필수` });
+        }
+        const keys = row.match_keys_ko;
+        if (!Array.isArray(keys) || keys.length === 0) {
+          issues.push({ level: "error", msg: `cautions-common ${id}: match_keys_ko 비어 있음` });
+        }
+      }
+    }
     dupIds(ids, "kr-cautions", issues);
+  }
+
+  const alg = localRead(root, F.allergensKr);
+  if (!alg.ok) issues.push({ level: "error", msg: alg.error });
+  else {
+    const data = alg.data as {
+      items?: Array<{ no?: number; ko?: string; cas?: string; inci?: string }>;
+    };
+    const items = data.items || [];
+    if (items.length !== 25) {
+      issues.push({ level: "error", msg: `allergens v1: 25개 필요(현재 ${items.length})` });
+    }
+    const nos = items.map((it) => Number(it.no));
+    for (let i = 1; i <= 25; i++) {
+      if (!nos.includes(i)) {
+        issues.push({ level: "error", msg: `allergens v1: no ${i} 누락` });
+      }
+    }
+    for (const it of items) {
+      const id = `no${it.no ?? "?"}`;
+      if (!it.ko || !String(it.ko).trim()) {
+        issues.push({ level: "error", msg: `allergens v1 ${id}: ko 필수` });
+      }
+      if (!it.cas || !String(it.cas).trim()) {
+        issues.push({ level: "error", msg: `allergens v1 ${id}: cas 필수` });
+      } else if (!CAS_RE.test(String(it.cas).trim())) {
+        issues.push({ level: "error", msg: `allergens v1 ${id}: CAS 형식 아님 (${it.cas})` });
+      }
+    }
   }
 
   const add = localRead(root, F.addendaKr);

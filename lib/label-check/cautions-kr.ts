@@ -1,10 +1,12 @@
 /**
  * 504 — 주의사항 고시 별표1 기반 성분·유형 주의 판정.
+ * 505 — v0.2 common_cautions(시행규칙 별표3 제1호) + KR-LBL-009 통합.
  */
 import fs from "node:fs";
 import path from "node:path";
 import { normalizeLabelText } from "@/lib/label-check/extract-pdf";
-import type { Finding, LabelCheckInput } from "@/lib/label-check/types";
+import { FOUND_CONFIRMED_488 } from "@/lib/label-check/format-found";
+import type { CheckStatus, Finding, LabelCheckInput } from "@/lib/label-check/types";
 
 export type IngredientCaution = {
   id: string;
@@ -20,10 +22,38 @@ export type TypeCaution = IngredientCaution & {
   /** condition_note에 유형 키워드 */
 };
 
+export type CommonCautionItem505 = {
+  id: string;
+  required_text_ko: string;
+  match_keys_ko: string[];
+  /** 화면용 짧은 제목(새 카피 한정) */
+  title_ko: string;
+};
+
 type CautionsFile = {
   ingredient_cautions?: IngredientCaution[];
   type_cautions?: TypeCaution[];
+  common_cautions?: {
+    items?: Array<{
+      id: string;
+      required_text_ko: string;
+      match_keys_ko: string[];
+    }>;
+    severity_if_missing?: string;
+  };
 };
+
+/** 공통사항 4개 — 데이터에 title이 없어 필수 문구에서 짧은 제목만 사용 */
+const COMMON_CAUTION_TITLES_505: Record<string, string> = {
+  "CAU-C01": "이상 증상·부작용 시 전문의 상담",
+  "CAU-C02": "상처가 있는 부위 사용 자제",
+  "CAU-C03": "어린이의 손이 닿지 않는 곳 보관",
+  "CAU-C04": "직사광선을 피해서 보관",
+};
+
+/** 기능성(규칙 제2조제6·7호) 안내 — 새 카피 이 한 줄만 */
+export const FUNCTIONAL_COMMON_CAUTION_LINE_505 =
+  "기능성화장품(규칙 제2조제6·7호)은 공통사항을 외부 포장에 표기해야 합니다(별표4 8.).";
 
 /** UI 유형 키 → type_cautions condition_note 매칭용 */
 export const PRODUCT_TYPE_OPTIONS_504: Array<{ id: string; label: string; noteKey: string }> = [
@@ -45,9 +75,110 @@ function dataPath(...parts: string[]) {
 
 export function loadKrCautions504(): CautionsFile {
   if (cached) return cached;
-  const raw = fs.readFileSync(dataPath("kr-cautions_draft_v0.1.json"), "utf8");
+  const raw = fs.readFileSync(dataPath("kr-cautions_draft_v0.2.json"), "utf8");
   cached = JSON.parse(raw) as CautionsFile;
   return cached;
+}
+
+export function loadCommonCautions505(): CommonCautionItem505[] {
+  const file = loadKrCautions504();
+  const items = file.common_cautions?.items || [];
+  return items.map((it) => ({
+    id: it.id,
+    required_text_ko: it.required_text_ko,
+    match_keys_ko: it.match_keys_ko || [],
+    title_ko: COMMON_CAUTION_TITLES_505[it.id] || it.id,
+  }));
+}
+
+function includesAnyPattern(text: string, patterns: string[]): boolean {
+  const n = normalizeLabelText(text);
+  for (const p of patterns) {
+    const nk = normalizeLabelText(p);
+    if (nk && n.includes(nk)) return true;
+  }
+  return false;
+}
+
+/**
+ * KR-LBL-009 존재 여부 + common_cautions 통합 판정(중복 finding 없음).
+ */
+export function evaluateCommonCautionsForLbl009_505(
+  text: string,
+  input: LabelCheckInput,
+  opts: {
+    category: string;
+    label: string;
+    failStatus: CheckStatus;
+    sectionPatterns: string[];
+  },
+): Finding {
+  const sectionHit = includesAnyPattern(text, opts.sectionPatterns);
+  const cautionRegion = extractCautionRegion504(text);
+  const haystack = cautionRegion ?? normalizeLabelText(text);
+  const commons = loadCommonCautions505();
+  const missing: string[] = [];
+  for (const c of commons) {
+    if (!c.match_keys_ko.length || !allKeysPresent(haystack, c.match_keys_ko)) {
+      missing.push(c.title_ko);
+    }
+  }
+
+  const functionalNote = input.functional ? FUNCTIONAL_COMMON_CAUTION_LINE_505 : undefined;
+
+  if (!sectionHit) {
+    return {
+      category: opts.category,
+      label: opts.label,
+      status: opts.failStatus,
+      found: "관련 표기를 찾지 못함",
+      suggest: [
+        "공통 주의사항 문구 누락 가능(확인 필요)",
+        functionalNote,
+      ]
+        .filter(Boolean)
+        .join(" "),
+      checkType: "code",
+    };
+  }
+
+  if (missing.length === 0) {
+    return {
+      category: opts.category,
+      label: opts.label,
+      status: "pass",
+      found: FOUND_CONFIRMED_488,
+      suggest: [
+        "공통 주의사항 핵심 문구가 확인되었습니다. 개별사항·형식을 한 번 더 확인하세요.",
+        functionalNote,
+      ]
+        .filter(Boolean)
+        .join(" "),
+      checkType: "code",
+    };
+  }
+
+  if (missing.length === commons.length) {
+    return {
+      category: opts.category,
+      label: opts.label,
+      status: "attention",
+      found: "공통 주의사항 문구 누락 가능(확인 필요)",
+      suggest: [functionalNote || "시행규칙 별표3 제1호 공통사항 문구를 확인하세요."]
+        .filter(Boolean)
+        .join(" "),
+      checkType: "code",
+    };
+  }
+
+  return {
+    category: opts.category,
+    label: opts.label,
+    status: "attention",
+    found: `공통 주의사항 일부 확인 필요: ${missing.join(", ")}`,
+    suggest: [functionalNote || "누락된 공통사항 문구를 확인하세요."].filter(Boolean).join(" "),
+    checkType: "code",
+  };
 }
 
 export function resetKrCautionsCache504(): void {

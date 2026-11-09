@@ -25,9 +25,18 @@ export type AdPhraseItem = {
 };
 
 type AdPhraseFile = {
-  meta?: { matching_notes?: string[]; notes?: string[] };
+  meta?: {
+    matching_notes?: string[];
+    notes?: string[];
+    evidence_requirements?: {
+      points_ko?: string[];
+      source?: string;
+    };
+  };
   items: AdPhraseItem[];
 };
+
+let cachedFile: AdPhraseFile | null = null;
 
 /** ReDoS 완화: 정규식 적용 전 스캔 문자열 상한 */
 export const AD_REGEX_SCAN_MAX_CHARS_504 = 80_000;
@@ -68,10 +77,16 @@ function dataPath(...parts: string[]) {
   return path.join(process.cwd(), "review", "data", ...parts);
 }
 
+function loadAdPhraseFile504(): AdPhraseFile {
+  if (cachedFile) return cachedFile;
+  const raw = fs.readFileSync(dataPath("ad-phrases-kr_draft_v0.2.json"), "utf8");
+  cachedFile = JSON.parse(raw) as AdPhraseFile;
+  return cachedFile;
+}
+
 export function loadAdPhrases493(): AdPhraseItem[] {
   if (cached) return cached;
-  const raw = fs.readFileSync(dataPath("ad-phrases-kr_draft_v0.2.json"), "utf8");
-  const parsed = JSON.parse(raw) as AdPhraseFile;
+  const parsed = loadAdPhraseFile504();
   cached = (parsed.items || []).filter(
     (i) =>
       i?.title &&
@@ -80,9 +95,18 @@ export function loadAdPhrases493(): AdPhraseItem[] {
   return cached;
 }
 
+/**
+ * 505 — 실증 체크포인트(상위 N줄). 법적 충족 판정 금지, 안내만.
+ */
+export function loadEvidenceCheckpoints505(limit = 3): string[] {
+  const points = loadAdPhraseFile504().meta?.evidence_requirements?.points_ko || [];
+  return points.filter((p) => typeof p === "string" && p.trim()).slice(0, limit);
+}
+
 /** 테스트용 캐시 리셋 */
 export function resetAdPhrasesCache504(): void {
   cached = null;
+  cachedFile = null;
   compiledRegex.clear();
 }
 

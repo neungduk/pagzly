@@ -512,6 +512,17 @@ export default function LabelCheckPage() {
                     </pre>
                   </div>
                 ) : null}
+
+                {result.evidenceCheckpoints?.length ? (
+                  <div className="rounded-lg border border-[#EDE4CF] bg-[#FFFCF5] p-3 print:break-inside-avoid">
+                    <h3 className="text-sm font-bold">근거 자료 확인</h3>
+                    <ul className="mt-2 list-disc space-y-1.5 pl-5 text-xs leading-relaxed text-[#444]">
+                      {result.evidenceCheckpoints.map((p, i) => (
+                        <li key={`ev-${i}`}>{p}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </>
             ) : null}
 

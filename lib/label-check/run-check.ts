@@ -2,9 +2,17 @@
  * 484 — 규칙표 check_type=code 검사.
  * 패턴은 load-rules가 title/rule/examples에서 유도. 내부 id는 응답에 넣지 않음.
  */
-import { isHitCoveredByAdPhrases493, scanAdPhrases493 } from "@/lib/label-check/ad-phrases";
+import {
+  loadEvidenceCheckpoints505,
+  isHitCoveredByAdPhrases493,
+  scanAdPhrases493,
+} from "@/lib/label-check/ad-phrases";
 import { applyKrAddenda504 } from "@/lib/label-check/addenda-kr";
-import { scanIngredientCautions504, scanTypeCautions504 } from "@/lib/label-check/cautions-kr";
+import {
+  evaluateCommonCautionsForLbl009_505,
+  scanIngredientCautions504,
+  scanTypeCautions504,
+} from "@/lib/label-check/cautions-kr";
 import {
   emptyPagesNoticeSuffix,
   extractLabelPdf,
@@ -13,7 +21,12 @@ import {
 } from "@/lib/label-check/extract-pdf";
 import { FOUND_CONFIRMED_488, formatFoundSnippet } from "@/lib/label-check/format-found";
 import { applyKrFixSuggestions496 } from "@/lib/label-check/fix-suggestions-kr";
-import { loadAllergens483, loadLabelRules483, type RuleDraft } from "@/lib/label-check/load-rules";
+import {
+  loadAllergens483,
+  loadLabelRules483,
+  normalizeAllergenKey505,
+  type RuleDraft,
+} from "@/lib/label-check/load-rules";
 import { formatRulesBasisLine501 } from "@/lib/label-check/rules-meta";
 import { runLabelCheckUsFromExtracted494, runLabelCheckUs494 } from "@/lib/label-check/run-check-us";
 import {
@@ -118,17 +131,42 @@ function applies(rule: RuleDraft, input: LabelCheckInput, text: string): boolean
   return true;
 }
 
+function allergenThresholdSuggest505(rinseOff: boolean): string {
+  const { thresholds } = loadAllergens483();
+  if (!thresholds) {
+    return "함량 기준·표시 의무는 제품 유형에 따라 다를 수 있습니다.";
+  }
+  const th = rinseOff ? thresholds.rinse_off : thresholds.leave_on;
+  const kind = rinseOff ? "씻어내는 제품" : "씻어내지 않는 제품";
+  return `${kind} 임계값(고시): ${th}. 함량·표시 의무와 글자 크기(5포인트 이상)를 확인하세요.`;
+}
+
+/**
+ * 505 — 국문명(고시) 우선 → CAS 보조 → INCI.
+ * 공백·이소/아이소 정규화로 매칭, 표시명은 고시 ko.
+ */
 function findAllergens(text: string): Array<{ name: string; hit: string; sizePt?: number }> {
   const { allergens } = loadAllergens483();
+  const nText = normalizeAllergenKey505(normalizeLabelText(text));
+  const rawLower = text.toLowerCase();
   const hits: Array<{ name: string; hit: string; sizePt?: number }> = [];
   for (const a of allergens) {
-    const names = [a.ko, a.inci].filter(Boolean);
-    for (const n of names) {
-      if (includesNormalized(text, n)) {
-        hits.push({ name: `${a.ko}(${a.inci})`, hit: n });
-        break;
+    const display = a.ko ? `${a.ko}${a.inci ? `(${a.inci})` : ""}` : a.inci;
+    let hit: string | null = null;
+    if (a.ko) {
+      const koKey = normalizeAllergenKey505(normalizeLabelText(a.ko));
+      if (koKey && nText.includes(koKey)) hit = a.ko;
+    }
+    if (!hit && a.cas) {
+      const cas = String(a.cas).trim();
+      if (cas && (rawLower.includes(cas.toLowerCase()) || nText.includes(cas.replace(/\s+/g, "")))) {
+        hit = cas;
       }
     }
+    if (!hit && a.inci && includesNormalized(text, a.inci)) {
+      hit = a.inci;
+    }
+    if (hit) hits.push({ name: display, hit });
   }
   return hits;
 }
@@ -244,6 +282,7 @@ function runCodeRule(
 
   if (rule.mode === "allergen") {
     const hits = findAllergens(text);
+    const thSuggest = allergenThresholdSuggest505(input.rinseOff);
     if (!hits.length) {
       const frag = includesAnyWithHangulBoundary(text, rule.patterns);
       if (frag) {
@@ -252,7 +291,7 @@ function runCodeRule(
           label: rule.label,
           status: "attention",
           found: `향료 관련(“${frag}”) — 알레르기 개별 성분 표기 여부 확인 필요`,
-          suggest: "함량 기준·표시 의무는 제품 유형에 따라 다를 수 있습니다.",
+          suggest: thSuggest,
           checkType: "code",
         };
       }
@@ -260,8 +299,8 @@ function runCodeRule(
         category: rule.category,
         label: rule.label,
         status: "pass",
-        found: "알레르기 초안 목록과 일치하는 표기 없음",
-        suggest: "함량 기준·표시 의무는 제품 유형에 따라 다를 수 있습니다.",
+        found: "알레르기 목록과 일치하는 표기 없음",
+        suggest: thSuggest,
         checkType: "code",
       };
     }
@@ -280,7 +319,7 @@ function runCodeRule(
       label: rule.label,
       status: "attention",
       found: hits.map((h) => h.name).join(", ") + sizeNote,
-      suggest: "함량·표시 의무와 글자 크기(5포인트 이상)를 확인하세요.",
+      suggest: thSuggest,
       checkType: "code",
     };
   }
@@ -487,6 +526,16 @@ function runCodeRule(
   }
 
   // presence / conditional_presence
+  // 505 — KR-LBL-009: 공통 주의사항과 통합(중복 표시 방지)
+  if (rule.label === "사용할 때의 주의사항") {
+    return evaluateCommonCautionsForLbl009_505(text, input, {
+      category: rule.category,
+      label: rule.label,
+      failStatus: rule.failStatus,
+      sectionPatterns: rule.patterns ?? [],
+    });
+  }
+
   const keys = rule.patterns ?? [];
   let hit = includesAny(text, keys);
   // 용량·중량: 숫자+단위(규칙 문구의 용량/중량 표시). 단독 'g'/'ml' 영문 오탐 방지
@@ -590,6 +639,12 @@ export async function runLabelCheckFromExtracted(
   const merged = applyKrAddenda504(extracted.text, input, findings, manualItems);
   const findingsWithFix = applyKrFixSuggestions496(merged.findings);
 
+  // 505 — evidence 접힘 문구는 항목마다 반복하지 않고 결과 하단에 1회
+  const hasEvidenceFix = findingsWithFix.some(
+    (f) => f.fixKind === "evidence" && f.status !== "pass",
+  );
+  const evidenceCheckpoints = hasEvidenceFix ? loadEvidenceCheckpoints505(3) : undefined;
+
   return {
     disclaimer: DISCLAIMER_483,
     readable: true,
@@ -601,6 +656,7 @@ export async function runLabelCheckFromExtracted(
     manualItems: merged.manualItems,
     market: "KR",
     rulesBasis: formatRulesBasisLine501("KR"),
+    evidenceCheckpoints,
   };
 }
 
