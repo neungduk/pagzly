@@ -233,6 +233,9 @@ export function scanAdPhrases493(text: string, input: LabelCheckInput): Finding[
       found,
       suggest,
       checkType: "code",
+      // 494 — 광고: 완화·근거 안내(예시 문구는 KR 데이터 없어 비움)
+      fixSuggestion: item.needs_evidence ? EVIDENCE_LINE : undefined,
+      fixKind: item.needs_evidence ? "evidence" : "soften",
     });
   }
 

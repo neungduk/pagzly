@@ -6,10 +6,24 @@ export type CheckStatus = "pass" | "possible" | "attention" | "unknown";
 
 export type CheckType = "code" | "ai" | "manual";
 
+export type LabelMarket = "KR" | "US";
+
 export type LabelCheckInput = {
   rinseOff: boolean;
   functional: boolean;
+  /** 기본 KR */
+  market?: LabelMarket;
+  /** US-005 수입품 */
+  imported?: boolean;
+  /** US-011 전문가용 */
+  professionalUse?: boolean;
+  /** US-009 에어로졸·아동용 등 */
+  hazardous?: boolean;
+  /** 자외선차단·여드름 등 OTC 성격 → 판정 보류 */
+  otcDrugLike?: boolean;
 };
+
+export type FixKind = "fix" | "soften" | "evidence";
 
 export type Finding = {
   /** 화면용 한글 라벨만 — 내부 id는 API 응답에 넣지 않음 */
@@ -19,6 +33,10 @@ export type Finding = {
   found: string;
   suggest: string;
   checkType: CheckType;
+  /** 494 — 수정 제안(데이터에서만). 없으면 UI에서 접힘 생략 가능 */
+  fixSuggestion?: string;
+  fixExample?: string;
+  fixKind?: FixKind;
 };
 
 export type LabelCheckSummary = {
@@ -41,11 +59,29 @@ export type LabelCheckResult = {
   skipJudgment?: boolean;
   summary: LabelCheckSummary;
   findings: Finding[];
-  manualItems: Array<{ category: string; label: string; suggest: string }>;
+  manualItems: Array<{
+    category: string;
+    label: string;
+    suggest: string;
+    fixSuggestion?: string;
+    fixExample?: string;
+  }>;
+  /** 494 — 사용된 시장 */
+  market?: LabelMarket;
 };
 
 export const DISCLAIMER_483 =
   "본 결과는 참고용 사전 점검이며 법적 판단이 아닙니다. ‘위반’이 아니라 ‘위반 가능/확인 필요’로만 안내합니다.";
+
+/** 미국 모드 추가 면책(한 줄). DISCLAIMER_483 뒤에 붙임 */
+export const DISCLAIMER_US_EXTRA_494 =
+  "미국 연방 규정 기준이며 주(州) 법(예: 캘리포니아)은 포함되지 않음";
+
+export const NOTICE_OTC_US_494 =
+  "이 점검기는 일반 화장품만 다룹니다(OTC 약품은 Drug Facts 라벨 별도)";
+
+export const FIX_EXAMPLE_NOTE_494 =
+  "예시이며 그대로 사용하지 말고 실제 정보로 바꾸세요";
 
 export const DISCLAIMER_PRINT_485 =
   "참고용 사전 점검이며 법적 판단이 아닙니다.";

@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import type { LabelCheckResult } from "@/lib/label-check/types";
+import type { Finding, LabelCheckResult, LabelMarket } from "@/lib/label-check/types";
 import {
   DISCLAIMER_483,
   DISCLAIMER_PRINT_485,
+  FIX_EXAMPLE_NOTE_494,
   INTRO_LINES_486,
   INTRO_ONE_LINE_486,
   MAX_PDF_BYTES_483,
@@ -29,19 +30,51 @@ function todayKo(): string {
   return `${y}-${m}-${day}`;
 }
 
+function needsFixPanel(f: Finding): boolean {
+  if (f.status === "pass") return false;
+  return Boolean(f.fixSuggestion || f.fixExample || f.fixKind === "soften" || f.fixKind === "evidence");
+}
+
+function formatFixBlock(f: Finding): string {
+  const lines: string[] = [`[${f.label}]`];
+  if (f.fixKind === "soften" || f.fixKind === "evidence") {
+    lines.push("완화 표현 예시: " + (f.fixExample || "—"));
+    if (f.fixKind === "evidence" || f.fixSuggestion) {
+      lines.push("근거 자료 확인: " + (f.fixSuggestion || FIX_EXAMPLE_NOTE_494));
+    }
+  } else if (f.fixSuggestion) {
+    lines.push(f.fixSuggestion);
+    if (f.fixExample) lines.push(f.fixExample);
+  }
+  lines.push(FIX_EXAMPLE_NOTE_494);
+  return lines.join("\n");
+}
+
 export default function LabelCheckPage() {
   const [file, setFile] = useState<File | null>(null);
   const [productName, setProductName] = useState("");
+  const [market, setMarket] = useState<LabelMarket>("KR");
   const [rinseOff, setRinseOff] = useState(false);
   const [functional, setFunctional] = useState(false);
+  const [imported, setImported] = useState(false);
+  const [professionalUse, setProfessionalUse] = useState(false);
+  const [hazardous, setHazardous] = useState(false);
+  const [otcDrugLike, setOtcDrugLike] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<LabelCheckResult | null>(null);
   const [checkedOn, setCheckedOn] = useState<string | null>(null);
   const [isSample, setIsSample] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [fixCopied, setFixCopied] = useState(false);
 
   const contactEmail = labelContactEmail();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const q = new URLSearchParams(window.location.search).get("market");
+    if (q && q.toUpperCase() === "US") setMarket("US");
+  }, []);
 
   const onFile = useCallback((f: File | null) => {
     setResult(null);
@@ -64,6 +97,7 @@ export default function LabelCheckPage() {
     setError(null);
     setFile(null);
     setIsSample(true);
+    setMarket("KR");
     setProductName(sampleResultA.meta.product);
     setResult(sampleResultA.result as LabelCheckResult);
     setCheckedOn(todayKo());
@@ -80,6 +114,33 @@ export default function LabelCheckPage() {
     }
   }, [contactEmail]);
 
+  const fixBundle = useMemo(() => {
+    if (!result || result.skipJudgment) return "";
+    const parts: string[] = [];
+    for (const f of result.findings) {
+      if (!needsFixPanel(f)) continue;
+      parts.push(formatFixBlock(f));
+    }
+    for (const m of result.manualItems) {
+      if (!m.fixSuggestion && !m.fixExample) continue;
+      parts.push(
+        `[${m.label}]\n${m.fixSuggestion || ""}\n${m.fixExample || ""}\n${FIX_EXAMPLE_NOTE_494}`.trim(),
+      );
+    }
+    return parts.filter(Boolean).join("\n\n");
+  }, [result]);
+
+  const copyFixes = useCallback(async () => {
+    if (!fixBundle) return;
+    try {
+      await navigator.clipboard.writeText(fixBundle);
+      setFixCopied(true);
+      window.setTimeout(() => setFixCopied(false), 1500);
+    } catch {
+      setFixCopied(false);
+    }
+  }, [fixBundle]);
+
   const submit = async () => {
     if (!file) {
       setError("PDF를 선택하세요.");
@@ -94,6 +155,11 @@ export default function LabelCheckPage() {
       fd.set("file", file);
       fd.set("rinseOff", String(rinseOff));
       fd.set("functional", String(functional));
+      fd.set("market", market);
+      fd.set("imported", String(imported));
+      fd.set("professionalUse", String(professionalUse));
+      fd.set("hazardous", String(hazardous));
+      fd.set("otcDrugLike", String(otcDrugLike));
       const res = await fetch("/api/label-check", { method: "POST", body: fd });
       const json = (await res.json()) as LabelCheckResult & { error?: string };
       if (!res.ok) {
@@ -160,6 +226,28 @@ export default function LabelCheckPage() {
             </button>
           </div>
 
+          <fieldset className="space-y-2 text-sm">
+            <legend className="font-semibold">시장</legend>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="market"
+                checked={market === "KR"}
+                onChange={() => setMarket("KR")}
+              />
+              한국
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="market"
+                checked={market === "US"}
+                onChange={() => setMarket("US")}
+              />
+              미국
+            </label>
+          </fieldset>
+
           <label className="block text-sm font-semibold">
             제품명 (선택 · 인쇄 상단에 표시)
             <input
@@ -183,25 +271,55 @@ export default function LabelCheckPage() {
           </label>
           {file ? <p className="text-xs text-[#666]">선택됨 · {(file.size / 1024).toFixed(1)} KB</p> : null}
 
-          <fieldset className="space-y-2 text-sm">
-            <legend className="font-semibold">제품 유형</legend>
-            <label className="flex items-center gap-2">
-              <input type="radio" name="rinse" checked={!rinseOff} onChange={() => setRinseOff(false)} />
-              안 씻어내는 제품
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="radio" name="rinse" checked={rinseOff} onChange={() => setRinseOff(true)} />
-              씻어내는 제품
-            </label>
-            <label className="flex items-center gap-2 pt-1">
-              <input
-                type="checkbox"
-                checked={functional}
-                onChange={(e) => setFunctional(e.target.checked)}
-              />
-              기능성화장품
-            </label>
-          </fieldset>
+          {market === "KR" ? (
+            <fieldset className="space-y-2 text-sm">
+              <legend className="font-semibold">제품 유형</legend>
+              <label className="flex items-center gap-2">
+                <input type="radio" name="rinse" checked={!rinseOff} onChange={() => setRinseOff(false)} />
+                안 씻어내는 제품
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="radio" name="rinse" checked={rinseOff} onChange={() => setRinseOff(true)} />
+                씻어내는 제품
+              </label>
+              <label className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  checked={functional}
+                  onChange={(e) => setFunctional(e.target.checked)}
+                />
+                기능성화장품
+              </label>
+            </fieldset>
+          ) : (
+            <fieldset className="space-y-2 text-sm">
+              <legend className="font-semibold">미국 추가 입력</legend>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={imported} onChange={(e) => setImported(e.target.checked)} />
+                수입품
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={professionalUse}
+                  onChange={(e) => setProfessionalUse(e.target.checked)}
+                />
+                전문가용
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={hazardous} onChange={(e) => setHazardous(e.target.checked)} />
+                에어로졸/아동용 등 위험 제품
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={otcDrugLike}
+                  onChange={(e) => setOtcDrugLike(e.target.checked)}
+                />
+                자외선차단·여드름 등 OTC 의약품 성격
+              </label>
+            </fieldset>
+          )}
 
           <button
             type="button"
@@ -235,7 +353,10 @@ export default function LabelCheckPage() {
                 </p>
               ) : null}
               <h2 className="mt-1 break-words text-2xl font-extrabold leading-tight">{printTitle}</h2>
-              <p className="mt-1 text-sm text-[#555]">점검일 {checkedOn ?? todayKo()}</p>
+              <p className="mt-1 text-sm text-[#555]">
+                점검일 {checkedOn ?? todayKo()}
+                {result.market ? ` · 시장 ${result.market === "US" ? "미국" : "한국"}` : ""}
+              </p>
             </header>
 
             {result.notice ? (
@@ -276,30 +397,91 @@ export default function LabelCheckPage() {
                       </div>
                       <p className="mt-1 text-[#333]">{f.found}</p>
                       <p className="mt-0.5 text-[#555]">{f.suggest}</p>
+                      {needsFixPanel(f) ? (
+                        <details className="mt-2 rounded-md border border-[#EDE4CF] bg-[#FFFCF5] px-2 py-1">
+                          <summary className="cursor-pointer text-xs font-semibold text-[#6B5A2E]">
+                            수정 제안
+                          </summary>
+                          <div className="mt-1 space-y-1 text-xs leading-relaxed text-[#444]">
+                            {f.fixKind === "soften" || f.fixKind === "evidence" ? (
+                              <>
+                                <p>
+                                  <span className="font-semibold">완화 표현 예시</span>
+                                  {": "}
+                                  {f.fixExample || "—"}
+                                </p>
+                                {(f.fixKind === "evidence" || f.fixSuggestion) && (
+                                  <p>
+                                    <span className="font-semibold">근거 자료 확인</span>
+                                    {": "}
+                                    {f.fixSuggestion || "—"}
+                                  </p>
+                                )}
+                              </>
+                            ) : (
+                              <>
+                                {f.fixSuggestion ? <p>{f.fixSuggestion}</p> : null}
+                                {f.fixExample ? <p>{f.fixExample}</p> : null}
+                              </>
+                            )}
+                            <p className="text-[#6B5A2E]">{FIX_EXAMPLE_NOTE_494}</p>
+                          </div>
+                        </details>
+                      ) : null}
                     </article>
                   ))}
                 </div>
 
                 {result.manualItems.length ? (
                   <div className="rounded-lg border border-dashed border-[#CDBF9A] bg-[#FFFCF5] p-3 print:break-inside-avoid">
-                    <h3 className="text-sm font-bold">수동 확인 필요</h3>
-                    <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[#444]">
+                    <h3 className="text-sm font-bold">확인 필요 질문</h3>
+                    <ul className="mt-2 list-disc space-y-2 pl-5 text-sm text-[#444]">
                       {result.manualItems.map((m, i) => (
                         <li key={`${m.label}-${i}`} className="break-words">
                           <span className="font-medium">
                             [{m.category}] {m.label}
                           </span>
                           — {m.suggest}
+                          {m.fixSuggestion || m.fixExample ? (
+                            <details className="mt-1">
+                              <summary className="cursor-pointer text-xs font-semibold text-[#6B5A2E]">
+                                수정 제안
+                              </summary>
+                              <div className="mt-1 text-xs">
+                                {m.fixSuggestion ? <p>{m.fixSuggestion}</p> : null}
+                                {m.fixExample ? <p>{m.fixExample}</p> : null}
+                                <p className="text-[#6B5A2E]">{FIX_EXAMPLE_NOTE_494}</p>
+                              </div>
+                            </details>
+                          ) : null}
                         </li>
                       ))}
                     </ul>
+                  </div>
+                ) : null}
+
+                {fixBundle ? (
+                  <div className="rounded-lg border border-[#E5DCC8] bg-white p-3 print:hidden">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="text-sm font-bold">수정 제안 모아 보기</h3>
+                      <button
+                        type="button"
+                        onClick={() => void copyFixes()}
+                        className="rounded-full border border-[#1B1B18] px-3 py-1 text-xs font-semibold"
+                      >
+                        {fixCopied ? "복사됨" : "텍스트 복사"}
+                      </button>
+                    </div>
+                    <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-md bg-[#FFFCF5] p-2 text-xs text-[#333]">
+                      {fixBundle}
+                    </pre>
                   </div>
                 ) : null}
               </>
             ) : null}
 
             <footer className="lc-print-foot border-t border-[#E5DCC8] pt-3 text-xs leading-relaxed text-[#555]">
-              {DISCLAIMER_PRINT_485}
+              {result.disclaimer || DISCLAIMER_PRINT_485}
             </footer>
           </section>
         ) : null}

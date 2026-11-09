@@ -10,6 +10,7 @@ import {
 } from "@/lib/label-check/extract-pdf";
 import { FOUND_CONFIRMED_488, formatFoundSnippet } from "@/lib/label-check/format-found";
 import { loadAllergens483, loadLabelRules483, type RuleDraft } from "@/lib/label-check/load-rules";
+import { runLabelCheckUs494 } from "@/lib/label-check/run-check-us";
 import {
   DISCLAIMER_483,
   MIN_HANGUL_CHARS_485,
@@ -59,6 +60,33 @@ function includesNormalized(text: string, word: string): boolean {
 
 function includesAny(text: string, words: string[]): string | null {
   for (const w of words) {
+    if (includesNormalized(text, w)) return w;
+  }
+  return null;
+}
+
+/**
+ * 494 — 단독 한 글자 한글 패턴: 앞뒤가 한글이면 주소(향남읍) 등 오탐 → 제외.
+ * 완결 어휘(향료·착향제)는 길이≥2로 별도 매칭.
+ */
+export function includesAnyWithHangulBoundary(text: string, words: string[]): string | null {
+  const nfc = text.normalize("NFC");
+  for (const w of words) {
+    if (!w) continue;
+    if ([...w].length <= 1 && /[가-힣]/.test(w)) {
+      let from = 0;
+      while (from < nfc.length) {
+        const idx = nfc.indexOf(w, from);
+        if (idx < 0) break;
+        const before = idx > 0 ? nfc[idx - 1] : "";
+        const after = idx + w.length < nfc.length ? nfc[idx + w.length] : "";
+        const beforeH = before ? /[가-힣]/.test(before) : false;
+        const afterH = after ? /[가-힣]/.test(after) : false;
+        if (!beforeH && !afterH) return w;
+        from = idx + 1;
+      }
+      continue;
+    }
     if (includesNormalized(text, w)) return w;
   }
   return null;
@@ -208,7 +236,7 @@ function runCodeRule(
   if (rule.mode === "allergen") {
     const hits = findAllergens(text);
     if (!hits.length) {
-      const frag = includesAny(text, rule.patterns);
+      const frag = includesAnyWithHangulBoundary(text, rule.patterns);
       if (frag) {
         return {
           category: rule.category,
@@ -492,6 +520,10 @@ export async function runLabelCheck483(
   buffer: Buffer,
   input: LabelCheckInput,
 ): Promise<LabelCheckResult> {
+  if ((input.market ?? "KR") === "US") {
+    return runLabelCheckUs494(buffer, input);
+  }
+
   const extracted = await extractLabelPdf(buffer);
 
   // 0자·극소 한글: 아웃라인/스캔 가능 → 판정 없이 안내만(위반 가능 폭탄 방지)
@@ -547,8 +579,11 @@ export async function runLabelCheck483(
     summary: summarize(findings, manualItems.length),
     findings,
     manualItems,
+    market: "KR",
   };
 }
+
+export { runLabelCheckUs494, runLabelCheckUsText494 } from "@/lib/label-check/run-check-us";
 
 /** 회귀·로컬: 텍스트만으로 검사(레거시 마커 PDF와 동일 형식) */
 export async function runLabelCheckText483(

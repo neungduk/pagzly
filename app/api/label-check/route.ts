@@ -36,6 +36,12 @@ export async function POST(req: Request) {
     const file = form.get("file");
     const rinseOff = String(form.get("rinseOff") ?? "false") === "true";
     const functional = String(form.get("functional") ?? "false") === "true";
+    const marketRaw = String(form.get("market") ?? "KR").toUpperCase();
+    const market = marketRaw === "US" ? "US" : "KR";
+    const imported = String(form.get("imported") ?? "false") === "true";
+    const professionalUse = String(form.get("professionalUse") ?? "false") === "true";
+    const hazardous = String(form.get("hazardous") ?? "false") === "true";
+    const otcDrugLike = String(form.get("otcDrugLike") ?? "false") === "true";
 
     if (!file || !(file instanceof File)) {
       return NextResponse.json({ error: "PDF 파일이 필요합니다." }, { status: 400 });
@@ -59,7 +65,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: pageErr }, { status: 400 });
     }
 
-    const timed = await withExtractTimeout(runLabelCheck483(buffer, { rinseOff, functional }));
+    const timed = await withExtractTimeout(
+      runLabelCheck483(buffer, {
+        rinseOff,
+        functional,
+        market,
+        imported,
+        professionalUse,
+        hazardous,
+        otcDrugLike,
+      }),
+    );
     if (!timed.ok) {
       console.warn("[label-check] extract-limit");
       return NextResponse.json({ error: timed.error }, { status: 408 });
