@@ -1,6 +1,9 @@
 /**
- * 514 — 랜딩 제품 화면 데모 데이터(하드코딩은 여기만).
+ * 514/515 — 랜딩 제품 화면·문구 띠 데모 데이터(하드코딩은 여기만).
  * TASK_512 카드 구조: 이 문장 → 이렇게.
+ *
+ * 515: 띠·카드의 `before`/`caught`는 걸린 문구 예시라 의도적으로 문제 표현을 담을 수 있음.
+ * 금지어 검사는 `after` 등 대체 문구에만 적용한다.
  */
 export type LandingDemoCard514 = {
   kind: "fix" | "check" | "ok";
@@ -12,6 +15,13 @@ export type LandingDemoCard514 = {
   after?: string;
   afterNote?: string;
   body?: string;
+};
+
+export type LandingBeltChip515 = {
+  /** 걸린 문구 예시(금지어 검사 제외) */
+  caught: string;
+  kind: "fix" | "check" | "ok";
+  badge: string;
 };
 
 export const LANDING_DEMO_FILE_514 = "라벨_뒷면_앰플30ml.pdf";
@@ -42,6 +52,12 @@ export const LANDING_DEMO_CARDS_514: LandingDemoCard514[] = [
     body: '개봉 후 사용기간 또는 "사용기한: 0000.00.00"을 넣어 주세요.',
   },
   {
+    kind: "check",
+    badge: "확인할 것",
+    title: "효능 표현을 한 번 더 보세요",
+    body: "「피부 재생」 등 표현이 기능성 인정 범위와 맞는지 확인하세요.",
+  },
+  {
     kind: "ok",
     badge: "문제 없음",
     title: "",
@@ -49,7 +65,21 @@ export const LANDING_DEMO_CARDS_514: LandingDemoCard514[] = [
   },
 ];
 
-export const LANDING_DEMO_SUMMARY_514 = "고칠 것 1 · 확인할 것 2";
+/** 떠 있는 칩·요약용 — 카드 kind 실측 */
+export function landingDemoChipCounts514(): { fix: number; check: number; ok: number } {
+  let fix = 0;
+  let check = 0;
+  let ok = 0;
+  for (const c of LANDING_DEMO_CARDS_514) {
+    if (c.kind === "fix") fix += 1;
+    else if (c.kind === "check") check += 1;
+    else ok += 1;
+  }
+  return { fix, check, ok };
+}
+
+const _chip = landingDemoChipCounts514();
+export const LANDING_DEMO_SUMMARY_514 = `고칠 것 ${_chip.fix} · 확인할 것 ${_chip.check}`;
 
 export const LANDING_DEMO_DISCLAIMER_514 =
   "예시 문구입니다 · 법적 판단이 아닙니다";
@@ -59,3 +89,17 @@ export const LANDING_BEFORE_AFTER_514 = {
   after: "피부 탄력 개선에 도움을 줍니다",
   note: "예시 문구입니다. 제품 인정 범위에 맞게 쓰세요. 법적 판단이 아닙니다.",
 };
+
+/** 515 — 문구 띠(가상 예시만). caught는 걸린 문구. */
+export const LANDING_BELT_CHIPS_515: LandingBeltChip515[] = [
+  { caught: "피부 주름을 완전히 없애 주는", kind: "fix", badge: "고칠 것" },
+  { caught: "사용기한 표기 없음", kind: "check", badge: "확인할 것" },
+  { caught: "내용량 30 ml", kind: "ok", badge: "문제 없음" },
+  { caught: "여드름 완치", kind: "fix", badge: "고칠 것" },
+  { caught: "리날룰, 리모넨 포함", kind: "check", badge: "확인할 것" },
+  { caught: "제조번호 LOT 2411A", kind: "ok", badge: "문제 없음" },
+  { caught: "Reduces wrinkles permanently", kind: "fix", badge: "고칠 것" },
+  { caught: "Net Wt. 1 fl oz", kind: "ok", badge: "문제 없음" },
+];
+
+export const LANDING_BELT_NOTE_515 = "예시 문구입니다";
