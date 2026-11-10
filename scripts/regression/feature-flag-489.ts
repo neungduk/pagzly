@@ -214,14 +214,26 @@ export async function run(): Promise<string[]> {
         if (/example\.com|you@|tjsmdejr@|contact@pagzly/i.test(labelPart)) {
           f.push("491: privacy 검수 분기에 임의 문의 주소");
         }
-        if (!/if \(contact\)/.test(labelPart)) f.push("491: privacy 문의 조항 조건부 아님");
+        // 2026-11-10: 문의 주소는 labelContactEmail() 우선, 없으면 공용 CONTACT_EMAIL(lib/contact) — 하드코딩 금지.
+        if (!/contact \|\| CONTACT_EMAIL/.test(labelPart)) f.push("491: privacy 문의가 contact||CONTACT_EMAIL 아님");
+        // 사진 읽기(OCR) 도입 이후: 외부 전송·국외 이전 고지가 있어야 하고, '전송하지 않습니다' 단정 금지.
+        if (!/네이버클라우드/.test(labelPart) || !/Google LLC/.test(labelPart) || !/국외 이전/.test(labelPart)) {
+          f.push("491: privacy 검수 분기에 OCR 위탁·국외 이전 고지 부족");
+        }
+        if (/외부 AI·OCR·분석 서비스로 전송하지 않습니다/.test(labelPart)) {
+          f.push("491: privacy 검수 분기에 사실과 다른 '외부 전송 없음' 문구");
+        }
       }
       if (!/DETAIL_PAGE_ENABLED/.test(terms) || !/법적 판단이 아닙니다/.test(terms)) {
         f.push("491: terms 검수 분기 부족");
       }
       const labelTerms = terms.slice(terms.indexOf("LABEL_CHECK_ARTICLES"));
-      if (/요금|토큰 팩|결제|구독 플랜|₩/.test(labelTerms)) {
-        f.push("491: terms 검수 분기에 결제·요금 문구");
+      // 2026-11-10: 월 구독 방침 — 약관에 유료 구독·해지·환불 조항이 있어야 한다. 금액(₩)·토큰 팩은 약관에 넣지 않는다.
+      if (!/유료 구독/.test(labelTerms) || !/해지/.test(labelTerms) || !/환불/.test(labelTerms)) {
+        f.push("491: terms 검수 분기에 구독·해지·환불 조항 부족");
+      }
+      if (/토큰 팩|₩/.test(labelTerms)) {
+        f.push("491: terms 검수 분기에 금액·토큰 팩 문구");
       }
       if (/Anthropic|DeepSeek|상세페이지 문구·이미지 자동 생성/.test(labelTerms)) {
         f.push("491: terms 검수 분기에 상세 AI 생성 문단");
