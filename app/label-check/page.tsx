@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import "@/components/label-check/ui-507/label-check-507.css";
-import { UploadCard507, ResultView507, OcrReviewCard508 } from "@/components/label-check/ui-507";
+import {
+  UploadCard507,
+  ResultView507,
+  OcrReviewCard508,
+  OcrLimitBanner509,
+} from "@/components/label-check/ui-507";
 import type { LabelCheckInput, LabelCheckResult, LabelMarket } from "@/lib/label-check/types";
 import { SAMPLE_BANNER_486 } from "@/lib/label-check/types";
 import {
@@ -22,6 +27,7 @@ import {
 } from "@/lib/label-check/client-ocr-submit";
 import { isOcrImageFile508, isHeicFile508 } from "@/lib/label-check/client-ocr-prepare";
 import { ERR_OCR_HEIC_508 } from "@/lib/label-check/ocr/constants";
+import type { OcrProviderId508 } from "@/lib/label-check/ocr/provider";
 
 function todayKo(): string {
   const d = new Date();
@@ -50,6 +56,8 @@ export default function LabelCheckPage() {
   const [ocrAvailable, setOcrAvailable] = useState(false);
   const [ocrTileH, setOcrTileH] = useState(2400);
   const [ocrNotice, setOcrNotice] = useState<string | null>(null);
+  const [ocrProvider, setOcrProvider] = useState<OcrProviderId508 | null>(null);
+  const [ocrLimitMsg, setOcrLimitMsg] = useState<string | null>(null);
   const [ocrReview, setOcrReview] = useState<{
     text: string;
     corrections: string[];
@@ -72,6 +80,7 @@ export default function LabelCheckPage() {
       setOcrAvailable(r.available);
       setOcrTileH(r.tileHeightPx);
       setOcrNotice(r.notice || null);
+      setOcrProvider(r.provider);
     });
   }, [market]);
 
@@ -79,6 +88,7 @@ export default function LabelCheckPage() {
     setResult(null);
     setIsSample(false);
     setError(null);
+    setOcrLimitMsg(null);
     setOcrReview(null);
     if (!f) {
       setFile(null);
@@ -112,18 +122,26 @@ export default function LabelCheckPage() {
     setFile(null);
     setResult(null);
     setOcrReview(null);
+    setOcrLimitMsg(null);
+    setError(null);
     window.setTimeout(() => pasteRef.current?.focus(), 50);
   }, []);
 
   const runOcrCore = async () => {
     if (!file) return;
     setError(null);
+    setOcrLimitMsg(null);
     setResult(null);
     const out = await runOcrFromFile508(file, (msg) => setProgress(msg), {
       market,
       tileHeightPx: ocrTileH,
+      provider: ocrProvider,
     });
     if (!out.ok) {
+      if (out.code === "OCR_LIMIT") {
+        setOcrLimitMsg(out.error);
+        return;
+      }
       setError(out.error);
       return;
     }
@@ -290,6 +308,8 @@ export default function LabelCheckPage() {
             busy={busy}
             onConfirm={() => void confirmOcr()}
             onCancel={() => setOcrReview(null)}
+            transferNotice={ocrNotice}
+            avgConfidence={ocrReview.avgConfidence}
           />
         )}
 
@@ -298,6 +318,10 @@ export default function LabelCheckPage() {
             샘플 결과 보기
           </button>
         </p>
+
+        {ocrLimitMsg ? (
+          <OcrLimitBanner509 message={ocrLimitMsg} onFocusPaste={focusPaste} />
+        ) : null}
 
         {error ? (
           <p className="lc507-card" role="alert" style={{ borderColor: "var(--lc507-bad)" }}>

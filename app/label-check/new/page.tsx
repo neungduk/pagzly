@@ -1,9 +1,14 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import "@/components/label-check/ui-507/label-check-507.css";
-import { UploadCard507, ResultView507 } from "@/components/label-check/ui-507";
+import {
+  UploadCard507,
+  ResultView507,
+  OcrReviewCard508,
+  OcrLimitBanner509,
+} from "@/components/label-check/ui-507";
 import type { LabelCheckInput, LabelCheckResult, LabelMarket } from "@/lib/label-check/types";
 import {
   assertClientPdfSize,
@@ -13,6 +18,14 @@ import {
 import { ERR_LOGIN_EXPIRED_495 } from "@/lib/label-check/member-constants";
 import { issueKeysFromFindings506 } from "@/lib/label-check/compare-506";
 import { PROGRESS_READ_507, PROGRESS_RULES_507 } from "@/lib/label-check/ui-status-507";
+import {
+  fetchOcrAvailable508,
+  runOcrFromFile508,
+  submitOcrReviewedText508,
+} from "@/lib/label-check/client-ocr-submit";
+import { isOcrImageFile508, isHeicFile508 } from "@/lib/label-check/client-ocr-prepare";
+import { ERR_OCR_HEIC_508 } from "@/lib/label-check/ocr/constants";
+import type { OcrProviderId508 } from "@/lib/label-check/ocr/provider";
 
 function todayKo(): string {
   const d = new Date();
@@ -38,11 +51,38 @@ export default function LabelCheckNewPage() {
   const [checkedOn, setCheckedOn] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [recheckText, setRecheckText] = useState("");
+  const [ocrAvailable, setOcrAvailable] = useState(false);
+  const [ocrTileH, setOcrTileH] = useState(2400);
+  const [ocrNotice, setOcrNotice] = useState<string | null>(null);
+  const [ocrProvider, setOcrProvider] = useState<OcrProviderId508 | null>(null);
+  const [ocrLimitMsg, setOcrLimitMsg] = useState<string | null>(null);
+  const [ocrReview, setOcrReview] = useState<{
+    text: string;
+    corrections: string[];
+    avgConfidence: number;
+  } | null>(null);
+  const pasteRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    void fetchOcrAvailable508(market).then((r) => {
+      setOcrAvailable(r.available);
+      setOcrTileH(r.tileHeightPx);
+      setOcrNotice(r.notice || null);
+      setOcrProvider(r.provider);
+    });
+  }, [market]);
 
   const onFile = useCallback((f: File | null) => {
     setError(null);
+    setOcrLimitMsg(null);
     setResult(null);
+    setOcrReview(null);
     if (!f) {
+      setFile(null);
+      return;
+    }
+    if (isHeicFile508(f)) {
+      setError(ERR_OCR_HEIC_508);
       setFile(null);
       return;
     }
@@ -55,9 +95,88 @@ export default function LabelCheckNewPage() {
     setFile(f);
   }, []);
 
+  const focusPaste = useCallback(() => {
+    setFile(null);
+    setResult(null);
+    setSavedId(null);
+    setOcrReview(null);
+    setOcrLimitMsg(null);
+    setError(null);
+    window.setTimeout(() => pasteRef.current?.focus(), 50);
+  }, []);
+
+  const runOcrCore = async () => {
+    if (!file) return;
+    setError(null);
+    setOcrLimitMsg(null);
+    setResult(null);
+    const out = await runOcrFromFile508(file, (msg) => setProgress(msg), {
+      market,
+      tileHeightPx: ocrTileH,
+      provider: ocrProvider,
+    });
+    if (!out.ok) {
+      if (out.code === "OCR_LIMIT") {
+        setOcrLimitMsg(out.error);
+        return;
+      }
+      setError(out.error);
+      return;
+    }
+    setOcrReview({
+      text: out.review.text,
+      corrections: out.review.corrections,
+      avgConfidence: out.review.avgConfidence,
+    });
+  };
+
+  const startOcr = async () => {
+    setBusy(true);
+    try {
+      await runOcrCore();
+    } finally {
+      setProgress(null);
+      setBusy(false);
+    }
+  };
+
+  const confirmOcr = async () => {
+    if (!ocrReview?.text.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      setProgress(PROGRESS_RULES_507);
+      const out = await submitOcrReviewedText508(ocrReview.text, {
+        ...input,
+        market,
+        save: true,
+        productName: productName.trim().slice(0, 80),
+        avgOcrConfidence: ocrReview.avgConfidence,
+      });
+      if (!out.ok) {
+        if (out.status === 401) {
+          setError(ERR_LOGIN_EXPIRED_495);
+          window.location.href = `/login?next=${encodeURIComponent("/label-check/new")}`;
+          return;
+        }
+        setError(out.error);
+        return;
+      }
+      // unreadable 은 서버에서 저장 안 함 — savedId 없을 수 있음
+      setResult(out.result);
+      setSavedId(out.result.savedId ?? null);
+      setCheckedOn(todayKo());
+      setOcrReview(null);
+    } finally {
+      setProgress(null);
+      setBusy(false);
+    }
+  };
+
   const runCheck = async () => {
     setBusy(true);
     setError(null);
+    setOcrLimitMsg(null);
     try {
       const opts = {
         ...input,
@@ -65,6 +184,14 @@ export default function LabelCheckNewPage() {
         save: true as const,
         productName: productName.trim().slice(0, 80),
       };
+      if (file && isOcrImageFile508(file)) {
+        if (!ocrAvailable) {
+          setError("사진은 글자 읽기(OCR)가 켜져 있을 때만 점검할 수 있어요. 문구를 붙여넣어 주세요.");
+          return;
+        }
+        await runOcrCore();
+        return;
+      }
       if (file) {
         setProgress(PROGRESS_READ_507);
         const out = await submitLabelCheckClient(file, opts, (msg) =>
@@ -101,7 +228,7 @@ export default function LabelCheckNewPage() {
         setSavedId(out.result.savedId ?? null);
         setCheckedOn(todayKo());
       } else {
-        setError("PDF를 선택하거나 문구를 붙여넣으세요.");
+        setError("PDF·사진을 선택하거나 문구를 붙여넣으세요.");
       }
     } finally {
       setProgress(null);
@@ -124,6 +251,11 @@ export default function LabelCheckNewPage() {
         productName: productName.trim().slice(0, 80),
       });
       if (!out.ok) {
+        if (out.status === 401) {
+          setError(ERR_LOGIN_EXPIRED_495);
+          window.location.href = `/login?next=${encodeURIComponent("/label-check/new")}`;
+          return;
+        }
         setError(out.error);
         return;
       }
@@ -133,6 +265,8 @@ export default function LabelCheckNewPage() {
       setBusy(false);
     }
   };
+
+  const showUpload = !result && !ocrReview;
 
   return (
     <main className="lc507 min-h-screen">
@@ -148,7 +282,7 @@ export default function LabelCheckNewPage() {
           </Link>
         </header>
 
-        {!result ? (
+        {showUpload ? (
           <UploadCard507
             market={market}
             onMarket={(m) => {
@@ -170,8 +304,29 @@ export default function LabelCheckNewPage() {
             progress={progress}
             onSubmit={() => void runCheck()}
             bothInputsHint={Boolean(file && pasteText.trim())}
+            pasteTextareaRef={pasteRef}
             acceptImages
+            ocrAvailable={ocrAvailable}
+            onStartOcr={() => void startOcr()}
+            ocrTransferNotice={ocrNotice}
           />
+        ) : null}
+
+        {ocrReview ? (
+          <OcrReviewCard508
+            text={ocrReview.text}
+            onText={(t) => setOcrReview((p) => (p ? { ...p, text: t } : p))}
+            corrections={ocrReview.corrections}
+            busy={busy}
+            onConfirm={() => void confirmOcr()}
+            onCancel={() => setOcrReview(null)}
+            transferNotice={ocrNotice}
+            avgConfidence={ocrReview.avgConfidence}
+          />
+        ) : null}
+
+        {ocrLimitMsg ? (
+          <OcrLimitBanner509 message={ocrLimitMsg} onFocusPaste={focusPaste} />
         ) : null}
 
         {error ? (
@@ -192,10 +347,9 @@ export default function LabelCheckNewPage() {
               onRecheckText={setRecheckText}
               onRecheck={() => void recheck()}
               recheckBusy={busy}
-              onFocusPaste={() => {
-                setResult(null);
-                setSavedId(null);
-              }}
+              ocrAvailable={ocrAvailable}
+              onStartOcr={() => void startOcr()}
+              onFocusPaste={focusPaste}
             />
             <p className="lc507-fine lc507-print-hide">
               <button
@@ -204,6 +358,8 @@ export default function LabelCheckNewPage() {
                 onClick={() => {
                   setResult(null);
                   setSavedId(null);
+                  setOcrReview(null);
+                  setOcrLimitMsg(null);
                 }}
               >
                 새 점검하기

@@ -109,6 +109,16 @@
   outline-offset: 2px;
 }
 
+/* 509 — OCR 확인·한도 배너: 좁은 폭에서 가로 스크롤 방지 */
+.lc507-ocr-review,
+.lc507-ocr-limit,
+.lc507-ocr-review-label,
+.lc507-ocr-review-textarea {
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .lc507-drop {
   border: 2px dashed var(--lc507-brand);
   border-radius: 12px;

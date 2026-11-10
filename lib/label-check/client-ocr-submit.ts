@@ -1,5 +1,5 @@
 /**
- * 508 — OCR API 호출(배치 순차) + 텍스트 점검(ocrFromPhoto).
+ * 508/509 — OCR API 호출(배치 순차) + 텍스트 점검(ocrFromPhoto).
  */
 import { readLabelCheckApiFailure } from "@/lib/label-check/api-errors";
 import {
@@ -8,9 +8,13 @@ import {
   type OcrTilePayload508,
 } from "@/lib/label-check/client-ocr-prepare";
 import {
+  ERR_OCR_DAILY_LIMIT_509,
+  ERR_OCR_LIMIT_508,
   PROGRESS_OCR_PREP_508,
   PROGRESS_OCR_READ_508,
 } from "@/lib/label-check/ocr/constants";
+import { maxTilesPerOcrRequest509 } from "@/lib/label-check/ocr/run-ocr-batch";
+import type { OcrProviderId508 } from "@/lib/label-check/ocr/provider";
 import type { ClientSubmitOptions, ClientSubmitOk, ClientSubmitFail } from "@/lib/label-check/client-submit";
 import { submitLabelCheckTextClient } from "@/lib/label-check/client-submit";
 
@@ -22,32 +26,46 @@ export type OcrReviewPayload508 = {
   netContentConflict: boolean;
 };
 
+export type OcrClientFail509 = {
+  ok: false;
+  error: string;
+  code?: string;
+  limitKind?: "monthly" | "daily";
+};
+
 export async function fetchOcrAvailable508(
   market: "KR" | "US" = "KR",
-): Promise<{ available: boolean; tileHeightPx: number; notice: string }> {
+): Promise<{
+  available: boolean;
+  tileHeightPx: number;
+  notice: string;
+  provider: OcrProviderId508 | null;
+}> {
   try {
     const res = await fetch(`/api/label-check/ocr?market=${market}`);
-    if (!res.ok) return { available: false, tileHeightPx: 2400, notice: "" };
+    if (!res.ok) return { available: false, tileHeightPx: 2400, notice: "", provider: null };
     const j = (await res.json()) as {
       available?: boolean;
       tileHeightPx?: number;
       notice?: string;
+      provider?: OcrProviderId508 | null;
     };
     return {
       available: Boolean(j.available),
       tileHeightPx: j.tileHeightPx || 2400,
       notice: j.notice || "",
+      provider: j.provider === "clova" || j.provider === "google" ? j.provider : null,
     };
   } catch {
-    return { available: false, tileHeightPx: 2400, notice: "" };
+    return { available: false, tileHeightPx: 2400, notice: "", provider: null };
   }
 }
 
 export async function runOcrFromFile508(
   file: File,
   onProgress?: (msg: string) => void,
-  opts?: { market?: "KR" | "US"; tileHeightPx?: number },
-): Promise<{ ok: true; review: OcrReviewPayload508 } | { ok: false; error: string }> {
+  opts?: { market?: "KR" | "US"; tileHeightPx?: number; provider?: OcrProviderId508 | null },
+): Promise<{ ok: true; review: OcrReviewPayload508 } | OcrClientFail509> {
   const market = opts?.market ?? "KR";
   const prepared = await prepareOcrTilesFromFile508(
     file,
@@ -59,7 +77,10 @@ export async function runOcrFromFile508(
   if (!prepared.ok) return prepared;
 
   onProgress?.(PROGRESS_OCR_READ_508);
-  const batches = batchOcrTiles508(prepared.tiles);
+  const providerId: OcrProviderId508 = opts?.provider === "clova" ? "clova" : "google";
+  const batches = batchOcrTiles508(prepared.tiles, {
+    maxTilesPerRequest: maxTilesPerOcrRequest509(providerId),
+  });
   const texts: string[] = [];
   const raws: string[] = [];
   const corrections: string[] = [];
@@ -79,8 +100,32 @@ export async function runOcrFromFile508(
       body,
     });
     if (!res.ok) {
-      const fail = await readLabelCheckApiFailure(res);
-      return { ok: false, error: fail.error };
+      const raw = await res.text();
+      let parsed: { error?: string; code?: string; limitKind?: string } | null = null;
+      try {
+        parsed = JSON.parse(raw) as { error?: string; code?: string; limitKind?: string };
+      } catch {
+        parsed = null;
+      }
+      if (parsed?.code === "OCR_LIMIT") {
+        const daily =
+          parsed.limitKind === "daily" ||
+          parsed.error === ERR_OCR_DAILY_LIMIT_509 ||
+          (parsed.error || "").includes("오늘");
+        return {
+          ok: false,
+          error: daily ? ERR_OCR_DAILY_LIMIT_509 : ERR_OCR_LIMIT_508,
+          code: "OCR_LIMIT",
+          limitKind: daily ? "daily" : "monthly",
+        };
+      }
+      if (parsed?.error) {
+        return { ok: false, error: parsed.error, code: parsed.code };
+      }
+      const fail = await readLabelCheckApiFailure(
+        new Response(raw, { status: res.status, headers: res.headers }),
+      );
+      return { ok: false, error: fail.error, code: fail.code };
     }
     const j = (await res.json()) as {
       text?: string;
