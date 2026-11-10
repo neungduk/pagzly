@@ -35,7 +35,8 @@ export const name = "표시사항 488 — 탭제목·찾은내용·파일럿·A/
 /** 504: v0.2 광고·주의·별표4로 A/C attention 재집계 */
 const EXPECT_SUMMARY = {
   // 505: 공통 주의사항 판정으로 A의 KR-LBL-009가 pass→attention
-  A: { possible: 3, attention: 6, unknown: 0, pass: 9 },
+  // 510: 파일럿 A 광고 1건이 명백한 의약품 효능으로 possible 승격(possible 3→4, attention 6→5)
+  A: { possible: 4, attention: 5, unknown: 0, pass: 9 },
   B: { possible: 2, attention: 3, unknown: 0, pass: 15 },
   C: { possible: 0, attention: 5, unknown: 0, pass: 14 },
 } as const;

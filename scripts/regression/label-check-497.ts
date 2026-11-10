@@ -56,7 +56,7 @@ export async function run(): Promise<string[]> {
     // 500 — US-013 단일 건 → us-ad-phrases 항목(질병 등)으로 대체
     const drug = r.findings.find(
       (x) =>
-        x.status === "attention" &&
+        (x.status === "attention" || x.status === "possible") &&
         (x.label.includes("불실") ||
           x.label.includes("의약품") ||
           x.label.includes("질병") ||

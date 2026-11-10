@@ -49,7 +49,13 @@ export async function run(): Promise<string[]> {
     }
     const hitFindings = scanUsAdPhrases500(hitText);
     const missFindings = scanUsAdPhrases500(missText);
-    if (!hitFindings.some((x) => x.label === item.title_ko && x.status === "attention")) {
+    if (
+      !hitFindings.some(
+        (x) =>
+          x.label === item.title_ko &&
+          (x.status === "attention" || x.status === "possible"),
+      )
+    ) {
       f.push(`500: ${item.id} 일치 미검출`);
     }
     if (missFindings.some((x) => x.label === item.title_ko)) {
@@ -122,7 +128,12 @@ export async function run(): Promise<string[]> {
       market: "US",
     });
     for (const cat of ["disease", "structure_function", "stem_exosome", "evidence"]) {
-      if (!r.findings.some((x) => x.status === "attention" && x.category === cat)) {
+      if (
+        !r.findings.some(
+          (x) =>
+            (x.status === "attention" || x.status === "possible") && x.category === cat,
+        )
+      ) {
         f.push(`500: us2 ${cat} 확인 필요 없음`);
       }
     }

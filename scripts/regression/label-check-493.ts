@@ -18,7 +18,12 @@ const FIX = path.join("review", "data", "samples", "regression-503");
 const MUT = path.join("review", "data", "samples", "mutation-492");
 
 function adFindings(r: Awaited<ReturnType<typeof runLabelCheck483>>) {
-  return r.findings.filter((f) => isAdFindingCategory504(f.category) && f.status === "attention");
+  // 510: 명백한 의약품 효능은 possible(고칠 것)으로 승격될 수 있음
+  return r.findings.filter(
+    (f) =>
+      isAdFindingCategory504(f.category) &&
+      (f.status === "attention" || f.status === "possible"),
+  );
 }
 
 function resolvePdf(...candidates: string[]): string | null {
