@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import "@/components/label-check/ui-507/label-check-507.css";
 import {
   UploadCard507,
@@ -9,6 +8,13 @@ import {
   OcrReviewCard508,
   OcrLimitBanner509,
 } from "@/components/label-check/ui-507";
+import {
+  LabelSiteShell511,
+  LabelHeader511,
+  LabelFooter511,
+  CheckBusyOverlay511,
+} from "@/components/label-check/ui-511";
+import LogoutButton from "@/components/LogoutButton";
 import type { LabelCheckInput, LabelCheckResult, LabelMarket } from "@/lib/label-check/types";
 import {
   assertClientPdfSize,
@@ -272,19 +278,14 @@ export default function LabelCheckNewPage() {
   const showUpload = !result && !ocrReview;
 
   return (
-    <main className="lc507 min-h-screen">
+    <LabelSiteShell511>
+      <LabelHeader511
+        user={{ id: "member" }}
+        logoutSlot={<LogoutButton />}
+      />
+      <CheckBusyOverlay511 busy={busy} />
+      <main className="lc507 min-h-screen">
       <div className="lc507-wrap">
-        <header className="lc507-print-hide flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-[var(--lc507-brand)]">
-            <Link href="/label-check" className="underline-offset-2 hover:underline">
-              표시사항 사전 점검
-            </Link>
-          </p>
-          <Link href="/label-check/history" className="text-sm underline-offset-2 hover:underline">
-            내 결과
-          </Link>
-        </header>
-
         {showUpload ? (
           <UploadCard507
             market={market}
@@ -373,6 +374,8 @@ export default function LabelCheckNewPage() {
           </>
         ) : null}
       </div>
-    </main>
+      </main>
+      <LabelFooter511 />
+    </LabelSiteShell511>
   );
 }

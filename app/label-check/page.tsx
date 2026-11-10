@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import "@/components/label-check/ui-507/label-check-507.css";
 import {
   UploadCard507,
@@ -9,6 +8,12 @@ import {
   OcrReviewCard508,
   OcrLimitBanner509,
 } from "@/components/label-check/ui-507";
+import {
+  LabelSiteShell511,
+  LabelHeader511,
+  LabelFooter511,
+  CheckBusyOverlay511,
+} from "@/components/label-check/ui-511";
 import type { LabelCheckInput, LabelCheckResult, LabelMarket } from "@/lib/label-check/types";
 import { SAMPLE_BANNER_486 } from "@/lib/label-check/types";
 import {
@@ -261,23 +266,11 @@ export default function LabelCheckPage() {
   };
 
   return (
-    <main className="lc507 min-h-screen">
+    <LabelSiteShell511>
+      <LabelHeader511 />
+      <CheckBusyOverlay511 busy={busy} />
+      <main className="lc507 min-h-screen">
       <div className="lc507-wrap">
-        <header className="lc507-print-hide flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-semibold tracking-wide text-[var(--lc507-brand)]">Pagzly · 표시사항 사전 점검</p>
-          <nav className="flex flex-wrap gap-3 text-sm" aria-label="계정">
-            <Link href="/login?next=%2Flabel-check%2Fnew" className="underline-offset-2 hover:underline">
-              로그인
-            </Link>
-            <Link href="/label-check/history" className="underline-offset-2 hover:underline">
-              내 결과
-            </Link>
-            <Link href="/label-check/new" className="underline-offset-2 hover:underline">
-              회원 점검
-            </Link>
-          </nav>
-        </header>
-
         {!ocrReview ? (
           <UploadCard507
             market={market}
@@ -370,15 +363,9 @@ export default function LabelCheckPage() {
           </p>
         ) : null}
 
-        <nav className="lc507-fine flex flex-wrap gap-3 lc507-print-hide" aria-label="약관">
-          <Link href="/privacy" className="underline-offset-2 hover:underline">
-            개인정보처리방침
-          </Link>
-          <Link href="/terms" className="underline-offset-2 hover:underline">
-            이용약관
-          </Link>
-        </nav>
       </div>
-    </main>
+      </main>
+      <LabelFooter511 />
+    </LabelSiteShell511>
   );
 }

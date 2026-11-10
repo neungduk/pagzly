@@ -8,7 +8,6 @@ import {
   CTA_LABEL_507,
   PROGRESS_READ_507,
   PROGRESS_RULES_507,
-  UPLOAD_TITLE_507,
 } from "@/lib/label-check/ui-status-507";
 import { CTA_OCR_508 } from "@/lib/label-check/ocr/constants";
 
@@ -30,9 +29,7 @@ export type UploadCard507Props = {
   progress: string | null;
   onSubmit: () => void;
   bothInputsHint?: boolean;
-  /** 508 — 붙여넣기 포커스용 */
   pasteTextareaRef?: RefObject<HTMLTextAreaElement | null>;
-  /** 508 — PDF+이미지 */
   acceptImages?: boolean;
   ocrHint?: string | null;
   onStartOcr?: () => void;
@@ -88,53 +85,81 @@ export function UploadCard507(props: UploadCard507Props) {
   const canSubmit = Boolean(file) || Boolean(pasteText.trim());
 
   return (
-    <section className="lc507-card">
-      <h1 className="lc507-title">{UPLOAD_TITLE_507}</h1>
-      <div className="lc507-steps" aria-label="진행 단계">
-        <b>1 올리기</b>
-        <span>2 결과 보기</span>
-        <span>3 고쳐서 다시 점검</span>
+    <section className="lc507-card" style={{ gap: 22, border: 0, background: "transparent", padding: 0 }}>
+      <div className="lc-a1" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <ol className="lc507-steps" aria-label="진행 단계" style={{ listStyle: "none", margin: 0, padding: 0, gap: 10 }}>
+          <li className="lc-pill lc-pill-on">1 올리기</li>
+          <li className="lc-pill lc-pill-off">2 결과 보기</li>
+          <li className="lc-pill lc-pill-off">3 고쳐서 다시 점검</li>
+        </ol>
+        <h1 className="lc507-title">어떤 문구를 점검할까요?</h1>
       </div>
 
-      <div className="lc507-seg" role="radiogroup" aria-label="판매 국가">
+      <div className="lc507-seg lc-a2" role="radiogroup" aria-label="판매 국가">
         <button
           type="button"
           role="radio"
           aria-checked={market === "KR"}
-          className={market === "KR" ? "on" : undefined}
+          className={market === "KR" ? "on lc-mk" : "lc-mk"}
           onClick={() => onMarket("KR")}
         >
           한국에서 판매
+          <span>표시사항·광고 문구</span>
         </button>
         <button
           type="button"
           role="radio"
           aria-checked={market === "US"}
-          className={market === "US" ? "on" : undefined}
+          className={market === "US" ? "on lc-mk" : "lc-mk"}
           onClick={() => onMarket("US")}
         >
           미국에서 판매
+          <span>US labeling & claims</span>
         </button>
       </div>
 
       <div
-        className="lc507-drop"
+        className="lc507-drop lc-drop lc-a3"
         role="button"
         tabIndex={0}
-        aria-label="PDF를 여기에 놓거나 눌러서 선택"
+        aria-label="PDF나 사진을 여기에 놓거나 눌러서 고르세요"
         onClick={pick}
         onKeyDown={onKeyDrop}
         onDragOver={(e) => e.preventDefault()}
         onDrop={onDrop}
       >
-        <b>
+        <span
+          className="lc-ico"
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 32,
+            background: "#E6EEEA",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          aria-hidden
+        >
+          <svg width="32" height="32" viewBox="0 0 40 40" fill="none" stroke="#0F3D36" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 27V8M12 15l8-8 8 8" />
+            <path d="M6 27v5h28v-5" />
+          </svg>
+        </span>
+        <b style={{ fontSize: 22, fontWeight: 900, letterSpacing: "-0.02em", color: "#13201C" }}>
           {props.acceptImages
-            ? "PDF·사진(JPG/PNG/WEBP)을 놓거나 눌러서 선택"
-            : "PDF를 여기에 놓거나 눌러서 선택"}
+            ? "PDF나 사진을 여기에 놓거나 눌러서 고르세요"
+            : "PDF를 여기에 놓거나 눌러서 고르세요"}
         </b>
-        <small>파일은 내 컴퓨터에서 글자만 읽습니다 · PDF 최대 100MB · 사진 장당 10MB</small>
+        <small style={{ fontSize: 15, lineHeight: 1.7 }}>
+          {props.acceptImages
+            ? "PDF 최대 100MB · 사진(JPG·PNG·WEBP) 10MB"
+            : "PDF 최대 100MB"}
+          <br />
+          파일은 내 컴퓨터에서 먼저 읽고, 점검 후 저장하지 않습니다
+        </small>
         {file ? (
-          <p className="lc507-fine" style={{ marginTop: 8 }}>
+          <p className="lc507-fine" style={{ marginTop: 8, color: "#13201C" }}>
             {file.name} · {(file.size / 1024).toFixed(1)} KB{" "}
             <button
               type="button"
@@ -163,53 +188,60 @@ export function UploadCard507(props: UploadCard507Props) {
         onChange={(e) => onFile(e.target.files?.[0] ?? null)}
       />
 
-      <div className="lc507-or">또는 문구만 붙여넣기</div>
+      <div className="lc507-or lc-a4">또는 문구만 붙여넣기</div>
       {props.bothInputsHint ? (
         <p className="lc507-fine">PDF와 문구가 모두 있으면 PDF를 먼저 점검합니다.</p>
       ) : null}
-      <label className="lc507-fine">
+      <label className="lc507-fine lc-a4" style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 15, fontWeight: 700, color: "#13201C" }}>
         문구 붙여넣기
         <textarea
           ref={props.pasteTextareaRef}
-          className="lc507-textarea"
+          id="lc511-paste"
+          className="lc507-textarea lc-textarea"
           aria-label="문구 붙여넣기"
-          placeholder="상세페이지·라벨 문구를 붙여넣으세요"
+          placeholder="상세페이지나 라벨의 문구를 붙여 넣으세요"
           value={pasteText}
           onChange={(e) => onPasteText(e.target.value)}
           disabled={Boolean(file)}
+          rows={5}
         />
       </label>
       {props.ocrHint ? <p className="lc507-fine">{props.ocrHint}</p> : null}
       {props.ocrAvailable && props.onStartOcr && file ? (
         <div className="flex flex-col gap-1">
           {props.ocrTransferNotice ? <p className="lc507-fine">{props.ocrTransferNotice}</p> : null}
-          <button type="button" className="lc507-cta" style={{ fontSize: 14 }} disabled={busy} onClick={props.onStartOcr}>
+          <button type="button" className="lc507-cta lc-go" style={{ fontSize: 14 }} disabled={busy} onClick={props.onStartOcr}>
             {CTA_OCR_508}
           </button>
         </div>
       ) : null}
       {!file ? (
-        <fieldset className="flex flex-wrap gap-3 text-sm" style={{ border: 0, padding: 0, margin: 0 }}>
-          <legend className="sr-only">문구 점검 범위</legend>
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="lc507-scope"
-              checked={textScope === "ad_only"}
-              onChange={() => onTextScope("ad_only")}
-            />
-            광고 문구만
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="lc507-scope"
-              checked={textScope === "full"}
-              onChange={() => onTextScope("full")}
-            />
-            라벨 전체 문구
-          </label>
-        </fieldset>
+        <div className="lc-a4" style={{ display: "flex", flexWrap: "wrap", gap: "12px 20px", alignItems: "center", fontSize: 15 }}>
+          <fieldset style={{ border: 0, padding: 0, margin: 0, display: "contents" }}>
+            <legend className="sr-only">문구 점검 범위</legend>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 44 }}>
+              <input
+                type="radio"
+                name="lc507-scope"
+                checked={textScope === "ad_only"}
+                onChange={() => onTextScope("ad_only")}
+              />
+              광고 문구만
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 44 }}>
+              <input
+                type="radio"
+                name="lc507-scope"
+                checked={textScope === "full"}
+                onChange={() => onTextScope("full")}
+              />
+              라벨 전체 문구
+            </label>
+          </fieldset>
+          <span className="lc-mono" style={{ marginLeft: "auto", color: "#5B6B65" }}>
+            {pasteText.length}자
+          </span>
+        </div>
       ) : null}
 
       {props.showProductName ? (
@@ -226,7 +258,7 @@ export function UploadCard507(props: UploadCard507Props) {
       ) : null}
 
       <details>
-        <summary className="cursor-pointer text-sm font-semibold text-[var(--lc507-sub)]">
+        <summary className="cursor-pointer text-sm font-semibold" style={{ color: "#5B6B65" }}>
           제품 정보 선택 (더 정확해져요)
         </summary>
         <div className="mt-2 space-y-2 text-sm">
@@ -317,15 +349,19 @@ export function UploadCard507(props: UploadCard507Props) {
         </div>
       </details>
 
-      <button
-        type="button"
-        className="lc507-cta"
-        disabled={busy || !canSubmit}
-        onClick={onSubmit}
-      >
-        {ctaLabel}
-      </button>
-      <p className="lc507-fine">{DISCLAIMER_PRINT_485}</p>
+      <div className="lc-a5" style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center" }}>
+        <button
+          type="button"
+          className="lc507-cta lc-go"
+          disabled={busy || !canSubmit}
+          onClick={onSubmit}
+        >
+          {ctaLabel}
+        </button>
+        <span className="lc507-fine" style={{ fontSize: 14 }}>
+          {DISCLAIMER_PRINT_485}
+        </span>
+      </div>
     </section>
   );
 }
