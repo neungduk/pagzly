@@ -257,7 +257,8 @@ export async function run(): Promise<string[]> {
     const route = fs.readFileSync(path.join("app", "api", "label-check", "ocr", "route.ts"), "utf8");
     if (/console\.(log|info|debug)\([^)]*base64/i.test(route)) f.push("508B: base64 로그");
     if (/console\.(log|info|debug)\([^)]*GOOGLE_VISION/i.test(route)) f.push("508B: 키 로그");
-    if (!/maxDuration\s*=\s*10/.test(route)) f.push("508B: maxDuration");
+    // 509: Hobby 허용 범위에 맞춰 maxDuration 상향(≥10). 구 10 고정 검사는 해제.
+    if (!/maxDuration\s*=\s*\d+/.test(route)) f.push("508B: maxDuration");
     if (!/available/.test(route)) f.push("508B: GET available");
   }
 
