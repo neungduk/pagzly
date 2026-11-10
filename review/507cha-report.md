@@ -36,10 +36,10 @@
 
 ## 커밋·push
 - 브랜치: `cloud-work` only (main 미push)
+- push 확인: `origin/cloud-work` == `ba36357`
 - 커밋:
   - `275bdd9` docs(507): targets
   - `f5d721a` feat(507): ui-507 components
   - `82f7005` feat(507): wire pages
   - `cc15a35` test(507): regression
-  - `7834acd` docs(507): cha-report
-- tip: `7834acd` (push 확인 후 동일 유지 예정)
+  - `ba36357` docs(507): cha-report
