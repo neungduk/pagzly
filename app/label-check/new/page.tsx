@@ -2,14 +2,17 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
-import { ResultPanel } from "@/components/label-check/ResultPanel";
-import type { LabelCheckResult, LabelMarket } from "@/lib/label-check/types";
-import { DISCLAIMER_483 } from "@/lib/label-check/types";
+import "@/components/label-check/ui-507/label-check-507.css";
+import { UploadCard507, ResultView507 } from "@/components/label-check/ui-507";
+import type { LabelCheckInput, LabelCheckResult, LabelMarket } from "@/lib/label-check/types";
 import {
   assertClientPdfSize,
   submitLabelCheckClient,
+  submitLabelCheckTextClient,
 } from "@/lib/label-check/client-submit";
 import { ERR_LOGIN_EXPIRED_495 } from "@/lib/label-check/member-constants";
+import { issueKeysFromFindings506 } from "@/lib/label-check/compare-506";
+import { PROGRESS_READ_507, PROGRESS_RULES_507 } from "@/lib/label-check/ui-status-507";
 
 function todayKo(): string {
   const d = new Date();
@@ -17,23 +20,24 @@ function todayKo(): string {
 }
 
 export default function LabelCheckNewPage() {
-  const [step, setStep] = useState(1);
   const [market, setMarket] = useState<LabelMarket>("KR");
-  const [rinseOff, setRinseOff] = useState(false);
-  const [functional, setFunctional] = useState(false);
-  const [productTypes, setProductTypes] = useState<string[]>([]);
-  const [imported, setImported] = useState(false);
-  const [professionalUse, setProfessionalUse] = useState(false);
-  const [hazardous, setHazardous] = useState(false);
-  const [otcDrugLike, setOtcDrugLike] = useState(false);
+  const [input, setInput] = useState<LabelCheckInput>({
+    rinseOff: false,
+    functional: false,
+    market: "KR",
+    productTypes: [],
+  });
   const [productName, setProductName] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [pasteText, setPasteText] = useState("");
+  const [textScope, setTextScope] = useState<"ad_only" | "full">("ad_only");
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<LabelCheckResult | null>(null);
   const [checkedOn, setCheckedOn] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [recheckText, setRecheckText] = useState("");
 
   const onFile = useCallback((f: File | null) => {
     setError(null);
@@ -51,297 +55,155 @@ export default function LabelCheckNewPage() {
     setFile(f);
   }, []);
 
-  const submit = async () => {
-    if (!file) {
-      setError("PDF를 선택하세요.");
-      return;
-    }
+  const runCheck = async () => {
     setBusy(true);
     setError(null);
-    setResult(null);
-    setStep(5);
     try {
-      const out = await submitLabelCheckClient(
-        file,
-        {
-          rinseOff,
-          functional,
-          market,
-          imported,
-          professionalUse,
-          hazardous,
-          otcDrugLike,
-          productTypes,
-          save: true,
-          productName: productName.trim().slice(0, 80),
-        },
-        setProgress,
-      );
-      if (!out.ok) {
-        if (out.status === 401) {
-          setError(ERR_LOGIN_EXPIRED_495);
-          window.location.href = `/login?next=${encodeURIComponent("/label-check/new")}`;
+      const opts = {
+        ...input,
+        market,
+        save: true as const,
+        productName: productName.trim().slice(0, 80),
+      };
+      if (file) {
+        setProgress(PROGRESS_READ_507);
+        const out = await submitLabelCheckClient(file, opts, (msg) =>
+          setProgress(msg || PROGRESS_RULES_507),
+        );
+        if (!out.ok) {
+          if (out.status === 401) {
+            setError(ERR_LOGIN_EXPIRED_495);
+            window.location.href = `/login?next=${encodeURIComponent("/label-check/new")}`;
+            return;
+          }
+          setError(out.error);
           return;
         }
-        setError(out.error);
-        setStep(4);
-        return;
+        setResult(out.result);
+        setSavedId(out.result.savedId ?? null);
+        setCheckedOn(todayKo());
+      } else if (pasteText.trim()) {
+        setProgress(PROGRESS_RULES_507);
+        const out = await submitLabelCheckTextClient(pasteText, {
+          ...opts,
+          scope: textScope,
+        });
+        if (!out.ok) {
+          if (out.status === 401) {
+            setError(ERR_LOGIN_EXPIRED_495);
+            window.location.href = `/login?next=${encodeURIComponent("/label-check/new")}`;
+            return;
+          }
+          setError(out.error);
+          return;
+        }
+        setResult(out.result);
+        setSavedId(out.result.savedId ?? null);
+        setCheckedOn(todayKo());
+      } else {
+        setError("PDF를 선택하거나 문구를 붙여넣으세요.");
       }
-      setResult(out.result);
-      setSavedId(out.result.savedId ?? null);
-      setCheckedOn(todayKo());
-      setStep(6);
     } finally {
       setProgress(null);
       setBusy(false);
     }
   };
 
+  const recheck = async () => {
+    if (!recheckText.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const priorKeys = result ? issueKeysFromFindings506(result.findings) : undefined;
+      const out = await submitLabelCheckTextClient(recheckText, {
+        ...input,
+        market,
+        scope: textScope,
+        priorKeys,
+        save: false,
+        productName: productName.trim().slice(0, 80),
+      });
+      if (!out.ok) {
+        setError(out.error);
+        return;
+      }
+      setResult(out.result);
+      setCheckedOn(todayKo());
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <main className="lc-page min-h-screen bg-[#F7F4EE] text-[#1B1B18]">
-      <div className="lc-shell mx-auto w-full max-w-3xl px-4 py-10">
-        <header className="mb-6 print:hidden">
-          <p className="text-sm font-semibold tracking-wide text-[#6B5A2E]">
+    <main className="lc507 min-h-screen">
+      <div className="lc507-wrap">
+        <header className="lc507-print-hide flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-[var(--lc507-brand)]">
             <Link href="/label-check" className="underline-offset-2 hover:underline">
               표시사항 사전 점검
             </Link>
-            {" · "}검수 신청
           </p>
-          <h1 className="mt-2 break-words text-2xl font-extrabold tracking-tight">검수 신청</h1>
-          <p className="mt-2 break-words text-sm text-[#4A3F24]">{DISCLAIMER_483}</p>
-          <nav className="mt-3 flex flex-wrap gap-3 text-sm">
-            <Link href="/label-check/history" className="underline-offset-2 hover:underline">
-              내 결과
-            </Link>
-          </nav>
+          <Link href="/label-check/history" className="text-sm underline-offset-2 hover:underline">
+            내 결과
+          </Link>
         </header>
 
-        {step < 6 ? (
-          <section className="space-y-4 rounded-2xl border border-[#E5DCC8] bg-white p-5 shadow-sm print:hidden">
-            <p className="text-xs text-[#666]">단계 {Math.min(step, 5)} / 5</p>
-
-            {step === 1 ? (
-              <fieldset className="space-y-2 text-sm">
-                <legend className="font-semibold">① 시장</legend>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="market"
-                    checked={market === "KR"}
-                    onChange={() => setMarket("KR")}
-                  />
-                  한국
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="market"
-                    checked={market === "US"}
-                    onChange={() => setMarket("US")}
-                  />
-                  미국
-                </label>
-                <button
-                  type="button"
-                  className="mt-3 rounded-full bg-[#1B1B18] px-4 py-2 text-sm font-semibold text-[#FAF8F3]"
-                  onClick={() => setStep(2)}
-                >
-                  다음
-                </button>
-              </fieldset>
-            ) : null}
-
-            {step === 2 ? (
-              <fieldset className="space-y-2 text-sm">
-                <legend className="font-semibold">② 옵션</legend>
-                {market === "KR" ? (
-                  <>
-                    <label className="flex items-center gap-2">
-                      <input type="radio" name="rinse" checked={!rinseOff} onChange={() => setRinseOff(false)} />
-                      안 씻어내는 제품
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input type="radio" name="rinse" checked={rinseOff} onChange={() => setRinseOff(true)} />
-                      씻어내는 제품
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={functional}
-                        onChange={(e) => setFunctional(e.target.checked)}
-                      />
-                      기능성화장품
-                    </label>
-                    <details className="rounded-md border border-[#E5DCC8] bg-white px-3 py-2">
-                      <summary className="cursor-pointer text-sm font-semibold text-[#6B5A2E]">
-                        세부 유형(주의사항) — 해당 시에만
-                      </summary>
-                      <div className="mt-2 grid gap-1.5">
-                        {(
-                          [
-                            ["scrub", "스크럽"],
-                            ["pack", "팩"],
-                            ["shampoo", "샴푸"],
-                            ["vulva", "외음부세정제"],
-                            ["softener", "손발연화"],
-                            ["deodorant", "체취방지"],
-                            ["spray_sunscreen", "분무형 자외선차단"],
-                            ["aerosol", "에어로졸"],
-                          ] as const
-                        ).map(([id, label]) => (
-                          <label key={id} className="flex items-center gap-2 font-normal">
-                            <input
-                              type="checkbox"
-                              checked={productTypes.includes(id)}
-                              onChange={(e) => {
-                                setProductTypes((prev) =>
-                                  e.target.checked ? [...prev, id] : prev.filter((x) => x !== id),
-                                );
-                              }}
-                            />
-                            {label}
-                          </label>
-                        ))}
-                      </div>
-                    </details>
-                  </>
-                ) : (
-                  <>
-                    <label className="flex items-center gap-2">
-                      <input type="checkbox" checked={imported} onChange={(e) => setImported(e.target.checked)} />
-                      수입품
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={professionalUse}
-                        onChange={(e) => setProfessionalUse(e.target.checked)}
-                      />
-                      전문가용
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={hazardous}
-                        onChange={(e) => setHazardous(e.target.checked)}
-                      />
-                      에어로졸/아동용 등 위험 제품
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={otcDrugLike}
-                        onChange={(e) => setOtcDrugLike(e.target.checked)}
-                      />
-                      OTC 의약품 성격
-                    </label>
-                  </>
-                )}
-                <div className="flex flex-wrap gap-2 pt-2">
-                  <button type="button" className="rounded-full border px-4 py-2 text-sm" onClick={() => setStep(1)}>
-                    이전
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-full bg-[#1B1B18] px-4 py-2 text-sm font-semibold text-[#FAF8F3]"
-                    onClick={() => setStep(3)}
-                  >
-                    다음
-                  </button>
-                </div>
-              </fieldset>
-            ) : null}
-
-            {step === 3 ? (
-              <div className="space-y-3 text-sm">
-                <label className="block font-semibold">
-                  ③ 제품명 (선택)
-                  <input
-                    type="text"
-                    value={productName}
-                    onChange={(e) => setProductName(e.target.value)}
-                    maxLength={80}
-                    className="mt-2 block w-full rounded-lg border border-[#E5DCC8] px-3 py-2 font-normal"
-                  />
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  <button type="button" className="rounded-full border px-4 py-2" onClick={() => setStep(2)}>
-                    이전
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-full bg-[#1B1B18] px-4 py-2 font-semibold text-[#FAF8F3]"
-                    onClick={() => setStep(4)}
-                  >
-                    다음
-                  </button>
-                </div>
-              </div>
-            ) : null}
-
-            {step === 4 || step === 5 ? (
-              <div className="space-y-3 text-sm">
-                <label className="block font-semibold" htmlFor="lc-new-pdf">
-                  ④ PDF 업로드
-                  <input
-                    id="lc-new-pdf"
-                    type="file"
-                    accept="application/pdf,.pdf"
-                    className="mt-2 block w-full font-normal"
-                    aria-label="PDF 파일 선택"
-                    onChange={(e) => onFile(e.target.files?.[0] ?? null)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") (e.target as HTMLInputElement).click();
-                    }}
-                  />
-                </label>
-                {file ? <p className="text-xs text-[#666]">선택됨 · {(file.size / 1024).toFixed(1)} KB</p> : null}
-                {step === 5 && busy ? (
-                  <p className="text-sm font-semibold">⑤ {progress || "검수 중…"}</p>
-                ) : null}
-                {error ? (
-                  <p className="break-words text-sm text-[#9B1C1C]" role="alert">
-                    {error}
-                  </p>
-                ) : null}
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="rounded-full border px-4 py-2"
-                    onClick={() => setStep(3)}
-                    disabled={busy}
-                  >
-                    이전
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy || !file}
-                    className="rounded-full bg-[#1B1B18] px-4 py-2 font-semibold text-[#FAF8F3] disabled:opacity-40"
-                    onClick={() => void submit()}
-                  >
-                    {busy ? progress || "검수 중…" : "검수 시작"}
-                  </button>
-                </div>
-              </div>
-            ) : null}
-          </section>
+        {!result ? (
+          <UploadCard507
+            market={market}
+            onMarket={(m) => {
+              setMarket(m);
+              setInput((p) => ({ ...p, market: m }));
+            }}
+            file={file}
+            onFile={onFile}
+            pasteText={pasteText}
+            onPasteText={setPasteText}
+            textScope={textScope}
+            onTextScope={setTextScope}
+            input={{ ...input, market }}
+            onInputPatch={(p) => setInput((prev) => ({ ...prev, ...p }))}
+            showProductName
+            productName={productName}
+            onProductName={setProductName}
+            busy={busy}
+            progress={progress}
+            onSubmit={() => void runCheck()}
+            bothInputsHint={Boolean(file && pasteText.trim())}
+          />
         ) : null}
 
-        {result && step === 6 ? (
+        {error ? (
+          <p className="lc507-card" role="alert" style={{ borderColor: "var(--lc507-bad)" }}>
+            {error}
+          </p>
+        ) : null}
+
+        {result ? (
           <>
-            {savedId ? (
-              <p className="mb-3 text-sm text-[#4A3F24] print:hidden">
-                요약이 저장되었습니다.{" "}
-                <Link href="/label-check/history" className="underline-offset-2 hover:underline">
-                  내 결과 보기
-                </Link>
-              </p>
-            ) : null}
-            <ResultPanel
+            <ResultView507
               result={result}
-              printTitle={productName.trim() || "제품명 미입력"}
-              checkedOn={checkedOn ?? todayKo()}
+              productName={productName || null}
+              checkedOn={checkedOn ?? undefined}
+              isMember
+              savedId={savedId}
+              recheckText={recheckText}
+              onRecheckText={setRecheckText}
+              onRecheck={() => void recheck()}
+              recheckBusy={busy}
             />
+            <p className="lc507-fine lc507-print-hide">
+              <button
+                type="button"
+                className="underline-offset-2 hover:underline"
+                onClick={() => {
+                  setResult(null);
+                  setSavedId(null);
+                }}
+              >
+                새 점검하기
+              </button>
+            </p>
           </>
         ) : null}
       </div>

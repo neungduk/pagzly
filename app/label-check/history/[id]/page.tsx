@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ResultPanel } from "@/components/label-check/ResultPanel";
+import "@/components/label-check/ui-507/label-check-507.css";
+import { ResultView507 } from "@/components/label-check/ui-507";
 import {
   ERR_LOGIN_EXPIRED_495,
   NOTICE_HISTORY_NO_REANALYZE_495,
@@ -88,33 +89,37 @@ export default function LabelCheckHistoryDetailPage() {
     : "—";
 
   return (
-    <main className="min-h-screen bg-[#F7F4EE] text-[#1B1B18]">
-      <div className="mx-auto w-full max-w-3xl px-4 py-10">
-        <header className="mb-6 print:hidden">
-          <p className="text-sm font-semibold tracking-wide text-[#6B5A2E]">
+    <main className="lc507 min-h-screen">
+      <div className="lc507-wrap">
+        <header className="lc507-print-hide">
+          <p className="text-sm font-semibold text-[var(--lc507-brand)]">
             <Link href="/label-check/history" className="underline-offset-2 hover:underline">
               내 결과
             </Link>
           </p>
-          <h1 className="mt-2 text-2xl font-extrabold">저장된 요약</h1>
+          <h1 className="lc507-title" style={{ fontSize: 20, marginTop: 8 }}>
+            저장된 요약
+          </h1>
+          <p className="lc507-fine mt-2">{NOTICE_HISTORY_NO_REANALYZE_495}</p>
         </header>
 
         {error ? (
-          <p className="break-words text-sm text-[#9B1C1C]" role="alert">
+          <p className="lc507-card" role="alert">
             {error}
           </p>
         ) : null}
 
         {result ? (
-          <ResultPanel
+          <ResultView507
             result={result}
-            printTitle={run?.product_name || "제품명 미입력"}
+            productName={run?.product_name}
             checkedOn={checkedOn}
-            summaryOnly
-            summaryNotice={NOTICE_HISTORY_NO_REANALYZE_495}
+            hideEvidence
+            isMember
+            showBottomBar={false}
           />
         ) : !error ? (
-          <p className="text-sm text-[#555]">불러오는 중…</p>
+          <p className="lc507-fine">불러오는 중…</p>
         ) : null}
       </div>
     </main>
