@@ -30,6 +30,7 @@ import * as labelCheck512Card from "./label-check-512-card";
 import * as labelCheck513Gating from "./label-check-513-gating";
 import * as labelCheck514Landing from "./label-check-514-landing";
 import * as labelCheck515Landing from "./label-check-515-landing";
+import * as labelCheck516LawWatch from "./label-check-516-law-watch";
 
 export type LabelCheckSuite = {
   name: string;
@@ -65,4 +66,5 @@ export const LABEL_CHECK_SUITES: LabelCheckSuite[] = [
   labelCheck513Gating,
   labelCheck514Landing,
   labelCheck515Landing,
+  labelCheck516LawWatch,
 ];
