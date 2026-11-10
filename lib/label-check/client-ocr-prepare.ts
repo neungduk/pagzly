@@ -9,6 +9,7 @@ import {
   OCR_MAX_PAGES_508,
   OCR_MAX_TILES_PER_JOB_508,
   OCR_REQUEST_BODY_MAX_508,
+  OCR_TILE_HEIGHT_508,
   OCR_TILE_MAX_BYTES_508,
   ERR_OCR_HEIC_508,
   ERR_OCR_TOO_MANY_TILES_508,
@@ -87,6 +88,7 @@ async function bitmapToTiles(
   width: number,
   height: number,
   baseOffsetY: number,
+  tileHeightPx = OCR_TILE_HEIGHT_508,
 ): Promise<OcrTilePayload508[]> {
   const fitted = fitLongEdge508(width, height, OCR_LONG_EDGE_MAX_508);
   const scaleCanvas = document.createElement("canvas");
@@ -96,7 +98,9 @@ async function bitmapToTiles(
   if (!sctx) throw new Error("canvas");
   sctx.drawImage(source, 0, 0, fitted.width, fitted.height);
 
-  const { tiles, truncated } = computeVerticalTiles508(fitted.width, fitted.height);
+  const { tiles, truncated } = computeVerticalTiles508(fitted.width, fitted.height, {
+    tileHeight: tileHeightPx,
+  });
   if (truncated) throw new Error(ERR_OCR_TOO_MANY_TILES_508);
 
   const out: OcrTilePayload508[] = [];
@@ -135,7 +139,9 @@ export function isHeicFile508(file: File): boolean {
 export async function prepareOcrTilesFromFile508(
   file: File,
   onProgress?: (n: number, N: number) => void,
+  opts?: { tileHeightPx?: number },
 ): Promise<OcrPrepareResult508> {
+  const tileH = opts?.tileHeightPx ?? OCR_TILE_HEIGHT_508;
   try {
     if (isHeicFile508(file)) return { ok: false, error: ERR_OCR_HEIC_508 };
 
@@ -152,7 +158,7 @@ export async function prepareOcrTilesFromFile508(
           el.src = url;
         });
         onProgress?.(1, 1);
-        const tiles = await bitmapToTiles(img, img.naturalWidth, img.naturalHeight, 0);
+        const tiles = await bitmapToTiles(img, img.naturalWidth, img.naturalHeight, 0, tileH);
         if (tiles.length > OCR_MAX_TILES_PER_JOB_508) {
           return { ok: false, error: ERR_OCR_TOO_MANY_TILES_508 };
         }
@@ -182,7 +188,7 @@ export async function prepareOcrTilesFromFile508(
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("canvas");
       await page.render({ canvasContext: ctx, viewport }).promise;
-      const tiles = await bitmapToTiles(canvas, canvas.width, canvas.height, pageOffset);
+      const tiles = await bitmapToTiles(canvas, canvas.width, canvas.height, pageOffset, tileH);
       all.push(...tiles);
       pageOffset += canvas.height + 40;
       if (all.length > OCR_MAX_TILES_PER_JOB_508) {

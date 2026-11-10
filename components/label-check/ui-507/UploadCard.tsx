@@ -10,7 +10,7 @@ import {
   PROGRESS_RULES_507,
   UPLOAD_TITLE_507,
 } from "@/lib/label-check/ui-status-507";
-import { CTA_OCR_508, NOTICE_OCR_TRANSFER_508 } from "@/lib/label-check/ocr/constants";
+import { CTA_OCR_508 } from "@/lib/label-check/ocr/constants";
 
 export type UploadCard507Props = {
   market: LabelMarket;
@@ -37,6 +37,7 @@ export type UploadCard507Props = {
   ocrHint?: string | null;
   onStartOcr?: () => void;
   ocrAvailable?: boolean;
+  ocrTransferNotice?: string | null;
 };
 
 export function UploadCard507(props: UploadCard507Props) {
@@ -181,7 +182,7 @@ export function UploadCard507(props: UploadCard507Props) {
       {props.ocrHint ? <p className="lc507-fine">{props.ocrHint}</p> : null}
       {props.ocrAvailable && props.onStartOcr && file ? (
         <div className="flex flex-col gap-1">
-          <p className="lc507-fine">{NOTICE_OCR_TRANSFER_508}</p>
+          {props.ocrTransferNotice ? <p className="lc507-fine">{props.ocrTransferNotice}</p> : null}
           <button type="button" className="lc507-cta" style={{ fontSize: 14 }} disabled={busy} onClick={props.onStartOcr}>
             {CTA_OCR_508}
           </button>

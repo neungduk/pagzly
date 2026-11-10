@@ -3,12 +3,15 @@
  * 서버리스 인스턴스 메모리 limiter는 약한 보호 — 월 합계가 본 보호장치.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { ocrMonthlyLimit508 } from "@/lib/label-check/ocr/provider";
+import { ocrGoogleMonthlyLimit508 } from "@/lib/label-check/ocr/provider";
 
-export function ocrPeriodKey508(d = new Date()): string {
+export function ocrPeriodKey508(
+  vendor: "google" | "clova" = "google",
+  d = new Date(),
+): string {
   const y = d.getUTCFullYear();
   const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-  return `${y}-${m}`;
+  return `${y}-${m}:${vendor}`;
 }
 
 /**
@@ -23,7 +26,7 @@ export async function consumeOcrUnits508(
 ): Promise<boolean> {
   if (units < 1) return true;
   const period = opts?.period ?? ocrPeriodKey508();
-  const limit = opts?.limit ?? ocrMonthlyLimit508();
+  const limit = opts?.limit ?? ocrGoogleMonthlyLimit508();
   try {
     const { data, error } = await supabase.rpc("label_ocr_consume", {
       p_period: period,

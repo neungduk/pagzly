@@ -48,6 +48,8 @@ export default function LabelCheckPage() {
   const [recheckText, setRecheckText] = useState("");
   const [copied, setCopied] = useState(false);
   const [ocrAvailable, setOcrAvailable] = useState(false);
+  const [ocrTileH, setOcrTileH] = useState(2400);
+  const [ocrNotice, setOcrNotice] = useState<string | null>(null);
   const [ocrReview, setOcrReview] = useState<{
     text: string;
     corrections: string[];
@@ -63,8 +65,15 @@ export default function LabelCheckPage() {
       setMarket("US");
       setInput((p) => ({ ...p, market: "US" }));
     }
-    void fetchOcrAvailable508().then(setOcrAvailable);
   }, []);
+
+  useEffect(() => {
+    void fetchOcrAvailable508(market).then((r) => {
+      setOcrAvailable(r.available);
+      setOcrTileH(r.tileHeightPx);
+      setOcrNotice(r.notice || null);
+    });
+  }, [market]);
 
   const onFile = useCallback((f: File | null) => {
     setResult(null);
@@ -110,7 +119,10 @@ export default function LabelCheckPage() {
     if (!file) return;
     setError(null);
     setResult(null);
-    const out = await runOcrFromFile508(file, (msg) => setProgress(msg));
+    const out = await runOcrFromFile508(file, (msg) => setProgress(msg), {
+      market,
+      tileHeightPx: ocrTileH,
+    });
     if (!out.ok) {
       setError(out.error);
       return;
@@ -268,6 +280,7 @@ export default function LabelCheckPage() {
             acceptImages
             ocrAvailable={ocrAvailable}
             onStartOcr={() => void startOcr()}
+            ocrTransferNotice={ocrNotice}
           />
         ) : (
           <OcrReviewCard508

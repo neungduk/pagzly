@@ -22,24 +22,40 @@ export type OcrReviewPayload508 = {
   netContentConflict: boolean;
 };
 
-export async function fetchOcrAvailable508(): Promise<boolean> {
+export async function fetchOcrAvailable508(
+  market: "KR" | "US" = "KR",
+): Promise<{ available: boolean; tileHeightPx: number; notice: string }> {
   try {
-    const res = await fetch("/api/label-check/ocr");
-    if (!res.ok) return false;
-    const j = (await res.json()) as { available?: boolean };
-    return Boolean(j.available);
+    const res = await fetch(`/api/label-check/ocr?market=${market}`);
+    if (!res.ok) return { available: false, tileHeightPx: 2400, notice: "" };
+    const j = (await res.json()) as {
+      available?: boolean;
+      tileHeightPx?: number;
+      notice?: string;
+    };
+    return {
+      available: Boolean(j.available),
+      tileHeightPx: j.tileHeightPx || 2400,
+      notice: j.notice || "",
+    };
   } catch {
-    return false;
+    return { available: false, tileHeightPx: 2400, notice: "" };
   }
 }
 
 export async function runOcrFromFile508(
   file: File,
   onProgress?: (msg: string) => void,
+  opts?: { market?: "KR" | "US"; tileHeightPx?: number },
 ): Promise<{ ok: true; review: OcrReviewPayload508 } | { ok: false; error: string }> {
-  const prepared = await prepareOcrTilesFromFile508(file, (n, N) => {
-    onProgress?.(PROGRESS_OCR_PREP_508(n, N));
-  });
+  const market = opts?.market ?? "KR";
+  const prepared = await prepareOcrTilesFromFile508(
+    file,
+    (n, N) => {
+      onProgress?.(PROGRESS_OCR_PREP_508(n, N));
+    },
+    { tileHeightPx: opts?.tileHeightPx },
+  );
   if (!prepared.ok) return prepared;
 
   onProgress?.(PROGRESS_OCR_READ_508);
@@ -55,6 +71,7 @@ export async function runOcrFromFile508(
     const body = JSON.stringify({
       imagesBase64: batch.map((t) => t.base64),
       tileOffsetY: batch.map((t) => t.offsetY),
+      market,
     });
     const res = await fetch("/api/label-check/ocr", {
       method: "POST",

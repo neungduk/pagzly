@@ -8,7 +8,7 @@ create table if not exists public.label_ocr_usage (
 );
 
 comment on table public.label_ocr_usage is
-  '표시사항 OCR(Vision) 월 단위 조각 수. YYYY-MM. 원본 이미지·텍스트 저장 금지.';
+  '표시사항 OCR 월 단위 조각 수. period = YYYY-MM:google|YYYY-MM:clova. 원본 이미지·텍스트 저장 금지.';
 
 alter table public.label_ocr_usage enable row level security;
 

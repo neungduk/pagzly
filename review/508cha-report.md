@@ -22,9 +22,10 @@
 
 ## OCR 흐름(텍스트)
 ```
-파일(PDF/JPG/PNG/WEBP)
-  → 클라: 리사이즈·세로 타일(2400+120겹침, ≤20)
-  → POST /api/label-check/ocr (≤4MB 배치, 월 consume 후 Vision)
+파일(PDF/JPG/PNG/WEBP) + market
+  → pickProvider(KR→CLOVA, 없으면 Google 대체 / US→Google)
+  → 클라: 리사이즈·세로 타일(CLOVA 1900 / Google 2400 + 120겹침, ≤20)
+  → POST /api/label-check/ocr (≤4MB 배치, period YYYY-MM:vendor consume)
   → 줄 병합·정규화 → 고객 확인 화면
   → "이 글자로 점검" = text full + ocrFromPhoto
   → runLabelCheckFromExtracted (sizePt 미상→unknown)
@@ -33,13 +34,16 @@
 ## 환경변수
 | 이름 | 기본 | 역할 |
 |---|---|---|
-| `GOOGLE_VISION_API_KEY` | (없음=OCR 꺼짐) | Vision REST |
-| `LABEL_OCR_MONTHLY_LIMIT` | 900 | 월 조각 상한 |
-| `LABEL_OCR_PER_USER_DAILY` | 30(회원)/5(비회원) | 일일(인메모리·약한 보호) |
+| `GOOGLE_VISION_API_KEY` | — | US(및 KR CLOVA 없을 때 대체) |
+| `CLOVA_OCR_INVOKE_URL` / `CLOVA_OCR_SECRET` | — | KR CLOVA |
+| `LABEL_OCR_GOOGLE_MONTHLY_LIMIT` | 900 | Google 월 조각 |
+| `LABEL_OCR_CLOVA_MONTHLY_LIMIT` | 90 | CLOVA 월 조각(무료 100 안) |
+| `LABEL_OCR_PER_USER_DAILY` | 30/5 | 일일(인메모리·약한 보호) |
 
 ## 비용식
-- 요청당 최대 조각 20 · 본문 배치 ≤4MB · 동시 Vision 4.
-- 과금: 조각 수 × (1,000장당 US$1.50), 월 1,000장 무료(공식 가격 페이지 확인값, 변동 가능).
+- 요청당 최대 조각 20 · 본문 배치 ≤4MB · 동시 4.
+- Google: 조각 수 × (1,000장당 US$1.50), 월 1,000장 무료(공식 가격·변동 가능).
+- CLOVA: 조각 수 × 3원(KRW, VAT 별도), 월 100건 무료(사용자 확인 요금).
 
 ## 마이그레이션
 - `supabase/migrations/20261110100000_label_ocr_usage.sql` — **적용하지 않음**(사용자 적용).

@@ -1,5 +1,5 @@
 /**
- * 508 — OCR 배치 처리 코어(라우트·회귀에서 공유). Vision fetch 주입 가능.
+ * 508 — OCR 배치 처리 코어(라우트·회귀에서 공유). fetch 주입 가능.
  */
 import {
   ERR_OCR_LIMIT_508,
@@ -18,15 +18,17 @@ import {
   NET_CONTENT_CONFLICT_LABEL_508,
   NET_CONTENT_CONFLICT_SUGGEST_508,
 } from "@/lib/label-check/ocr/normalize-ocr";
-import { isOcrConfigured508, type OcrProvider508 } from "@/lib/label-check/ocr/provider";
-import { createVisionProvider508, type VisionFetch508 } from "@/lib/label-check/ocr/vision-provider";
-import { consumeOcrUnits508 } from "@/lib/label-check/ocr/usage";
+import {
+  pickProvider508,
+  type OcrProvider508,
+  type OcrProviderId508,
+} from "@/lib/label-check/ocr/provider";
+import { consumeOcrUnits508, ocrPeriodKey508 } from "@/lib/label-check/ocr/usage";
 
 export type OcrBatchInput508 = {
-  /** raw base64 (data-url prefix 없이) */
   imagesBase64: string[];
-  /** 각 타일 상단 y(전역). 없으면 index*2400 */
   tileOffsetY?: number[];
+  market?: "KR" | "US";
 };
 
 export type OcrBatchOk508 = {
@@ -37,6 +39,8 @@ export type OcrBatchOk508 = {
   avgConfidence: number;
   netContents: ReturnType<typeof normalizeOcrText508>["netContents"];
   netContentConflict: boolean;
+  providerId: OcrProviderId508;
+  fallbackFromClova?: boolean;
   conflictFinding?: {
     label: string;
     suggest: string;
@@ -56,15 +60,34 @@ export async function runOcrBatch508(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     supabase: { rpc: Function };
     env?: NodeJS.ProcessEnv;
-    fetchImpl?: VisionFetch508;
+    fetchImpl?: typeof fetch;
     provider?: OcrProvider508;
+    providerId?: OcrProviderId508;
+    monthlyLimit?: number;
     skipConsume?: boolean;
   },
 ): Promise<OcrBatchOk508 | OcrBatchFail508> {
   const env = deps.env || process.env;
-  if (!isOcrConfigured508(env) && !deps.provider) {
-    return { ok: false, code: "OCR_OFF", error: "사진에서 글자 읽기가 꺼져 있어요. 문구 붙여넣기로 점검해 주세요." };
+  const market = input.market === "US" ? "US" : "KR";
+  const picked =
+    deps.provider && deps.providerId
+      ? {
+          id: deps.providerId,
+          provider: deps.provider,
+          tileHeightPx: 2400,
+          monthlyLimit: deps.monthlyLimit ?? 900,
+          fallbackFromClova: false as boolean | undefined,
+        }
+      : pickProvider508(market, env, deps.fetchImpl);
+
+  if (!picked) {
+    return {
+      ok: false,
+      code: "OCR_OFF",
+      error: "사진에서 글자 읽기가 꺼져 있어요. 문구 붙여넣기로 점검해 주세요.",
+    };
   }
+
   const images = (input.imagesBase64 || []).filter((s) => typeof s === "string" && s.length > 0);
   if (!images.length) {
     return { ok: false, code: "BAD_REQUEST", error: "이미지가 없습니다." };
@@ -72,33 +95,32 @@ export async function runOcrBatch508(
   if (images.length > OCR_MAX_TILES_PER_JOB_508) {
     return { ok: false, code: "TOO_MANY", error: ERR_OCR_TOO_MANY_TILES_508 };
   }
-  // 대략적 본문 크기(base64)
   const approx = images.reduce((n, s) => n + s.length, 0);
   if (approx > OCR_REQUEST_BODY_MAX_508 * 1.4) {
     return { ok: false, code: "BAD_REQUEST", error: "요청이 너무 큽니다. 조각을 나눠 보내 주세요." };
   }
 
   if (!deps.skipConsume) {
-    const allowed = await consumeOcrUnits508(deps.supabase, images.length);
+    const allowed = await consumeOcrUnits508(deps.supabase, images.length, {
+      period: ocrPeriodKey508(picked.id),
+      limit: picked.monthlyLimit,
+    });
     if (!allowed) {
       return { ok: false, code: "OCR_LIMIT", error: ERR_OCR_LIMIT_508 };
     }
   }
 
-  const key = (env.GOOGLE_VISION_API_KEY || "").trim();
-  const provider =
-    deps.provider ||
-    createVisionProvider508({ apiKey: key, fetchImpl: deps.fetchImpl });
+  const languageHints = market === "US" ? ["en", "ko"] : ["ko", "en"];
 
   try {
-    const tiles = await provider.annotateDocumentText({
+    const tiles = await picked.provider.annotateDocumentText({
       imagesBase64: images,
-      languageHints: ["ko", "en"],
+      languageHints,
     });
     const offsets =
       input.tileOffsetY && input.tileOffsetY.length === images.length
         ? input.tileOffsetY
-        : images.map((_, i) => i * 2400);
+        : images.map((_, i) => i * picked.tileHeightPx);
     const lines = dedupeOverlappingLines508(tiles, offsets);
     const rawText = joinLinesText508(lines) || tiles.map((t) => t.fullText).filter(Boolean).join("\n");
     const avgConfidence = averageConfidence508(lines);
@@ -118,14 +140,12 @@ export async function runOcrBatch508(
       avgConfidence,
       netContents: norm.netContents,
       netContentConflict: norm.netContentConflict,
+      providerId: picked.id,
+      fallbackFromClova: picked.fallbackFromClova,
       conflictFinding,
     };
-  } catch (e) {
-    const status = (e as { status?: number })?.status;
-    if (status === 401 || status === 403 || status === 429 || (status && status >= 500)) {
-      return { ok: false, code: "VISION", error: ERR_OCR_UNAVAILABLE_508 };
-    }
-    console.warn("[label-ocr] vision-failed");
+  } catch {
+    console.warn("[label-ocr] provider-failed");
     return { ok: false, code: "VISION", error: ERR_OCR_UNAVAILABLE_508 };
   }
 }

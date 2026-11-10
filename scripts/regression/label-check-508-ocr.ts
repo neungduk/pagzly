@@ -178,8 +178,35 @@ export async function run(): Promise<string[]> {
     if (a.readStatus !== "unreadable") f.push("508B: 낮은 신뢰도");
   }
 
-  // Vision fixture + 가짜 fetch
+  // Vision fixture + 가짜 fetch + pickProvider
   {
+    const { pickProvider508 } = await import("../../lib/label-check/ocr/provider");
+    const { parseClovaResponse508 } = await import("../../lib/label-check/ocr/clova");
+    if (pickProvider508("KR", {} as NodeJS.ProcessEnv)) f.push("508B: 키 없을 때 pick");
+    const fb = pickProvider508("KR", {
+      GOOGLE_VISION_API_KEY: "g",
+    } as NodeJS.ProcessEnv);
+    if (!fb || fb.id !== "google" || !fb.fallbackFromClova) f.push("508B: KR Google 대체");
+
+    const clovaParsed = parseClovaResponse508(
+      {
+        images: [
+          {
+            inferResult: "SUCCESS",
+            fields: [
+              {
+                inferText: "내용량 100 ml",
+                inferConfidence: 0.95,
+                boundingPoly: { vertices: [{ y: 1 }, { y: 20 }] },
+              },
+            ],
+          },
+        ],
+      },
+      0,
+    );
+    if (!clovaParsed.fullText.includes("100")) f.push("508B: CLOVA 파싱");
+
     const parsed = parseVisionAnnotateResponse508(FIXTURE_VISION, 0);
     if (!parsed.fullText.includes("1OO") && !parsed.lines.length) f.push("508B: fixture 파싱");
 
@@ -190,7 +217,7 @@ export async function run(): Promise<string[]> {
     };
     const rpc = async () => ({ data: true, error: null });
     const off = await runOcrBatch508(
-      { imagesBase64: ["aaaa"] },
+      { imagesBase64: ["aaaa"], market: "US" },
       {
         supabase: { rpc },
         env: {} as NodeJS.ProcessEnv,
@@ -200,7 +227,7 @@ export async function run(): Promise<string[]> {
     if (off.ok || off.code !== "OCR_OFF") f.push("508B: 키 없음 OCR_OFF");
 
     const limited = await runOcrBatch508(
-      { imagesBase64: ["bbbb"] },
+      { imagesBase64: ["bbbb"], market: "US" },
       {
         supabase: {
           rpc: async () => ({ data: false, error: null }),
@@ -213,7 +240,7 @@ export async function run(): Promise<string[]> {
     if (visionCalled !== 0) f.push("508B: 한도 시 Vision 호출됨");
 
     const ok = await runOcrBatch508(
-      { imagesBase64: ["cccc"] },
+      { imagesBase64: ["cccc"], market: "US" },
       {
         supabase: { rpc },
         env: { GOOGLE_VISION_API_KEY: "test-key-not-real" } as NodeJS.ProcessEnv,
