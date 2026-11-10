@@ -3,12 +3,45 @@ import { LabelMark511 } from "./LabelMark";
 
 export type LabelHeader511Props = {
   user?: { id: string } | null;
-  /** landing: 앵커 링크 포함 */
+  /** landing: 떠 있는 상단 바 */
   variant?: "landing" | "app";
   logoutSlot?: React.ReactNode;
 };
 
 export function LabelHeader511({ user, variant = "app", logoutSlot }: LabelHeader511Props) {
+  if (variant === "landing") {
+    return (
+      <div className="lc514-top">
+        <header className="lc514-bar">
+          <Link href="/" className="lc-brand-mark" style={{ textDecoration: "none" }}>
+            Pagzly
+          </Link>
+          <nav className="lc514-bar-nav" aria-label="주요">
+            <a href="#how">검사 항목</a>
+            <a href="#fix">수정 안내</a>
+            <a href="/label-check">시작하기</a>
+          </nav>
+          <div className="lc514-bar-actions">
+            {user ? (
+              logoutSlot ?? (
+                <Link href="/label-check/history" className="lc514-ghost">
+                  내 결과
+                </Link>
+              )
+            ) : (
+              <Link href="/login" className="lc514-ghost">
+                로그인
+              </Link>
+            )}
+            <Link href="/label-check" className="lc514-bar-cta">
+              점검하기
+            </Link>
+          </div>
+        </header>
+      </div>
+    );
+  }
+
   return (
     <header className="lc-header">
       <Link href="/" className="lc-brand-mark">
@@ -18,28 +51,15 @@ export function LabelHeader511({ user, variant = "app", logoutSlot }: LabelHeade
         Pagzly
       </Link>
       <nav className="lc-nav" aria-label="주요">
-        {variant === "landing" ? (
-          <>
-            <a href="#try">직접 해 보기</a>
-            <a href="#how">이렇게 점검해요</a>
-          </>
-        ) : (
-          <>
-            <Link href="/label-check">새 점검</Link>
-            <Link href="/label-check/history">내 결과</Link>
-          </>
-        )}
+        <Link href="/label-check">새 점검</Link>
+        <Link href="/label-check/history">내 결과</Link>
         {user ? (
           logoutSlot ?? null
         ) : (
           <Link
             href="/login"
-            style={{
-              color: "#F2F5F3",
-              border: "1px solid #5E8379",
-              borderRadius: 8,
-              padding: "9px 16px",
-            }}
+            className="lc514-ghost"
+            style={{ color: "var(--lc-ink)" }}
           >
             로그인
           </Link>
