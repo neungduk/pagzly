@@ -1,4 +1,4 @@
--- 508 — OCR 월 사용량 카운터. 적용은 사용자가 한다(에이전트 미적용).
+-- 508 — OCR 월 사용량 카운터. 2026-11-10 Supabase에 적용 완료(anon/authenticated 실행 권한 회수 포함).
 -- RLS 켜고 정책 없음 → service role만 접근.
 
 create table if not exists public.label_ocr_usage (
@@ -50,5 +50,5 @@ begin
 end;
 $$;
 
-revoke all on function public.label_ocr_consume(text, int, int) from public;
+revoke all on function public.label_ocr_consume(text, int, int) from public, anon, authenticated;
 grant execute on function public.label_ocr_consume(text, int, int) to service_role;
