@@ -529,21 +529,36 @@ function runCodeRule(
 
   if (rule.mode === "expiry") {
     const hit = includesAny(text, rule.patterns);
-    // 규칙 문구: 연월일·개월·개봉 후 기간(+심벌 M)·EXP 등
-    const dateLike =
-      /\d{4}\s*[.\-/년]\s*\d{1,2}/.test(text) ||
+    // 510 — 키워드만이 아니라 값이 있어야 pass
+    const hasExpiryValue =
+      /\d{4}\s*[.\-/년]\s*\d{1,2}(\s*[.\-/월]\s*\d{1,2}\s*일?)?/.test(text) ||
       /\d+\s*개월/.test(text) ||
       /개봉\s*후\s*\d+\s*(개월|월|M)/i.test(text) ||
       /\b\d{1,2}\s*M\b/i.test(text) ||
       /EXP\.?\s*\d{4}/i.test(text) ||
-      includesNormalized(text, "제조일로부터");
-    if (hit || dateLike) {
+      /제조일(?:로)?부터\s*\d+/.test(text);
+    const emptyMarker =
+      /사용기한\s*[:：]?\s*(별도\s*표기\s*없음|없음|해당\s*없음)/.test(text) ||
+      /개봉\s*후[^\n]{0,24}(별도\s*표기\s*없음|없음|해당\s*없음)/.test(text);
+    if (hasExpiryValue && !emptyMarker) {
       return {
         category: rule.category,
         label: rule.label,
         status: "pass",
         found: foundPass(),
         suggest: "사용기한/개봉 후 사용기간 형식을 확인하세요.",
+        checkType: "code",
+      };
+    }
+    if (hit || emptyMarker) {
+      return {
+        category: rule.category,
+        label: rule.label,
+        status: "attention",
+        found: emptyMarker
+          ? formatFoundSnippet(text, "별도 표기 없음") || "별도 표기 없음"
+          : foundPass(),
+        suggest: "사용기한 또는 개봉 후 사용기간의 값을 찾지 못했어요.",
         checkType: "code",
       };
     }

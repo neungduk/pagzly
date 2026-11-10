@@ -1,6 +1,7 @@
 /**
  * 504 — 광고 표현 스캔(식약처 지침 기반 ad-phrases-kr_draft_v0.2).
- * 단어 일치만으로 단정하지 않음 → status는 attention(확인 필요)만.
+ * 기본 status는 attention(확인 필요).
+ * 510 — 예외 불가한 명백한 의약품 효능은 possible(고칠 것)으로 승격.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -10,6 +11,10 @@ import {
   evaluateExceptionsForHit506,
   sentenceContainingHit506,
 } from "@/lib/label-check/ad-exceptions";
+import {
+  isHardKrMedicalClaim510,
+  scanHardKrMedicalGaps510,
+} from "@/lib/label-check/ad-hard-claims-510";
 import { normalizeLabelText } from "@/lib/label-check/extract-pdf";
 import { formatFoundSnippet } from "@/lib/label-check/format-found";
 import type {
@@ -436,10 +441,17 @@ export function scanAdPhrases493(text: string, input: LabelCheckInput): Finding[
     if (pendingColorHint) notes.push(COLOR_EXCEPTION_HINT_506);
     if (appliedException?.text && !softOnly) notes.push(appliedException.text);
 
+    // 510: 예외 soft가 아닌 명백한 의약품 효능 → 고칠 것
+    const hardBlob = [...keptHits, ...evidence.map((e) => e.sentence)].join(" ");
+    const hard =
+      !softOnly &&
+      !pendingColorHint &&
+      isHardKrMedicalClaim510(hardBlob);
+
     findings.push({
       category: categoryFromAdKind504(item.kind, item.category),
       label: item.title,
-      status: "attention",
+      status: hard ? "possible" : "attention",
       found,
       suggest,
       checkType: "code",
@@ -459,5 +471,6 @@ export function scanAdPhrases493(text: string, input: LabelCheckInput): Finding[
     });
   }
 
+  findings.push(...scanHardKrMedicalGaps510(text, findings));
   return findings;
 }

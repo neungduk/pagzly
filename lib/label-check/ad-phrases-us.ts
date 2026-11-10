@@ -1,9 +1,14 @@
 /**
  * 500 — 미국 광고 표현 스캔(초안 JSON).
  * 항목 제목 단위 확인 필요 1건, 찾은 표현 최대 3개. 단정 표현 쓰지 않음.
+ * 510 — cure/permanently/FDA approved 등 명백한 의약품 효능은 possible.
  */
 import fs from "node:fs";
 import path from "node:path";
+import {
+  isHardUsMedicalClaim510,
+  scanHardUsMedicalGaps510,
+} from "@/lib/label-check/ad-hard-claims-510";
 import { formatFoundSnippet } from "@/lib/label-check/format-found";
 import { includesUsWord, normalizeUsLabelText } from "@/lib/label-check/normalize-us";
 import type { Finding } from "@/lib/label-check/types";
@@ -130,10 +135,13 @@ export function scanUsAdPhrases500(text: string): Finding[] {
       return { found: h, sentence: text.slice(a, b).replace(/\s+/g, " ").trim().slice(0, 240) };
     });
 
+    // 문서 전체가 아니라 이번 히트·문장만 보고 승격(다른 항목까지 possible로 물리지 않음)
+    const hard = isHardUsMedicalClaim510(`${found} ${hits.join(" ")}`);
+
     findings.push({
       category: item.category,
       label: item.title_ko,
-      status: "attention",
+      status: hard ? "possible" : "attention",
       found,
       suggest: needsEv ? EVIDENCE_LINE_500 : "오인 우려 표현인지 확인하세요.",
       checkType: "code",
@@ -147,5 +155,6 @@ export function scanUsAdPhrases500(text: string): Finding[] {
     });
   }
 
+  findings.push(...scanHardUsMedicalGaps510(text, findings));
   return findings;
 }
