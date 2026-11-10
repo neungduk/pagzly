@@ -209,32 +209,62 @@ export async function run(): Promise<string[]> {
     if (!fs.existsSync(path.join(process.cwd(), p))) f.push(`경로 없음: ${p}`);
   }
 
-  // 인쇄 UI · 가로 넘침 가드
+  // 인쇄 UI · 가로 넘침 가드 (507: page + ui-507 공유 컴포넌트·CSS)
   {
     const page = fs.readFileSync(path.join(process.cwd(), "app/label-check/page.tsx"), "utf8");
-    if (!/제품명/.test(page)) f.push("인쇄: 제품명 입력 없음");
-    if (!/인쇄\/PDF로 저장|window\.print/.test(page)) f.push("인쇄: 인쇄 버튼 없음");
-    if (!/@media print/.test(page)) f.push("인쇄: @media print 없음");
-    if (!/DISCLAIMER_PRINT_485|참고용 사전 점검이며 법적 판단이 아닙니다/.test(page)) {
+    const upload = fs.existsSync(path.join(process.cwd(), "components/label-check/ui-507/UploadCard.tsx"))
+      ? fs.readFileSync(path.join(process.cwd(), "components/label-check/ui-507/UploadCard.tsx"), "utf8")
+      : "";
+    const result = fs.existsSync(path.join(process.cwd(), "components/label-check/ui-507/ResultView.tsx"))
+      ? fs.readFileSync(path.join(process.cwd(), "components/label-check/ui-507/ResultView.tsx"), "utf8")
+      : "";
+    const css = fs.existsSync(path.join(process.cwd(), "components/label-check/ui-507/label-check-507.css"))
+      ? fs.readFileSync(path.join(process.cwd(), "components/label-check/ui-507/label-check-507.css"), "utf8")
+      : "";
+    const ui = page + upload + result + css;
+    if (!/제품명/.test(ui)) f.push("인쇄: 제품명 입력 없음");
+    if (!/인쇄\/PDF로 저장|window\.print/.test(ui)) f.push("인쇄: 인쇄 버튼 없음");
+    if (!/@media print/.test(ui)) f.push("인쇄: @media print 없음");
+    if (!/DISCLAIMER_PRINT_485|참고용 사전 점검이며 법적 판단이 아닙니다/.test(ui)) {
       f.push("인쇄: 하단 면책 없음");
     }
-    if (/min-w-\[(?:[6-9]\d{2}|[1-9]\d{3,})px\]/.test(page)) f.push("label-check: 넓은 min-width로 가로 넘침 위험");
-    if (!/max-w-3xl|max-w-full|w-full/.test(page)) f.push("label-check: 폭 제한 클래스 없음");
-    if (!/break-words|overflow-x-auto|overflow-hidden/.test(page)) {
+    if (/min-w-\[(?:[6-9]\d{2}|[1-9]\d{3,})px\]/.test(ui)) f.push("label-check: 넓은 min-width로 가로 넘침 위험");
+    if (!/max-w-3xl|max-w-full|w-full|lc507-wrap|max-width:\s*760px/.test(ui)) {
+      f.push("label-check: 폭 제한 클래스 없음");
+    }
+    if (!/break-words|overflow-x-auto|overflow-hidden|overflow-wrap|word-break/.test(ui)) {
       f.push("label-check: 긴 텍스트 줄바꿈/넘침 가드 없음");
     }
   }
 
-  // 486 — 소개 문구
+  // 486 — 소개 문구 (507: 시안 제목·샘플 링크로 대체 허용)
   {
     const page = fs.readFileSync(path.join(process.cwd(), "app/label-check/page.tsx"), "utf8");
-    if (!page.includes("INTRO_ONE_LINE_486") && !page.includes(INTRO_ONE_LINE_486)) {
-      f.push("486: 한 줄 소개 없음");
+    const upload = fs.existsSync(path.join(process.cwd(), "components/label-check/ui-507/UploadCard.tsx"))
+      ? fs.readFileSync(path.join(process.cwd(), "components/label-check/ui-507/UploadCard.tsx"), "utf8")
+      : "";
+    const status = fs.existsSync(path.join(process.cwd(), "lib/label-check/ui-status-507.ts"))
+      ? fs.readFileSync(path.join(process.cwd(), "lib/label-check/ui-status-507.ts"), "utf8")
+      : "";
+    const ui = page + upload + status;
+    const has507Title =
+      ui.includes("UPLOAD_TITLE_507") ||
+      ui.includes("화장품 라벨·광고 문구, 인쇄 전에 한 번 더 확인하세요");
+    const has486Intro =
+      page.includes("INTRO_ONE_LINE_486") ||
+      page.includes(INTRO_ONE_LINE_486) ||
+      INTRO_LINES_486.every(
+        (line) => page.includes("INTRO_LINES_486") || page.includes(line) || ui.includes(line),
+      );
+    if (!has507Title && !has486Intro) f.push("486: 한 줄 소개 없음");
+    if (!has507Title) {
+      for (const line of INTRO_LINES_486) {
+        if (!page.includes("INTRO_LINES_486") && !page.includes(line) && !ui.includes(line)) {
+          f.push(`486: 안내 문구 누락 — ${line.slice(0, 12)}`);
+        }
+      }
     }
-    for (const line of INTRO_LINES_486) {
-      if (!page.includes("INTRO_LINES_486") && !page.includes(line)) f.push(`486: 안내 문구 누락 — ${line.slice(0, 12)}`);
-    }
-    if (!/샘플 결과 먼저 보기/.test(page)) f.push("486: 샘플 결과 버튼 없음");
+    if (!/샘플 결과/.test(page)) f.push("486: 샘플 결과 버튼 없음");
     if (!page.includes("SAMPLE_BANNER_486") && !page.includes(SAMPLE_BANNER_486)) {
       f.push("486: 가상 브랜드 배너 없음");
     }

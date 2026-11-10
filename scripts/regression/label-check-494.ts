@@ -126,12 +126,21 @@ Some Korean only text without english required fields
   // 어댑터 로드
   if (loadUsLabelRules494().length < 10) f.push("494: US 규칙 로드 부족");
 
-  // 카피 가드
+  // 카피 가드 (507: 공유 ResultView·UploadCard 포함)
   {
     const page = fs.readFileSync(path.join("app", "label-check", "page.tsx"), "utf8");
-    if (/완벽\s*검수|자동\s*수정\s*보장/.test(page)) f.push("494: 금지 카피 화면 존재");
-    if (!/수정 제안/.test(page)) f.push("494: 수정 제안 UI 없음");
-    if (!/시장/.test(page)) f.push("494: 시장 선택 없음");
+    const upload = fs.existsSync(path.join("components", "label-check", "ui-507", "UploadCard.tsx"))
+      ? fs.readFileSync(path.join("components", "label-check", "ui-507", "UploadCard.tsx"), "utf8")
+      : "";
+    const result = fs.existsSync(path.join("components", "label-check", "ui-507", "ResultView.tsx"))
+      ? fs.readFileSync(path.join("components", "label-check", "ui-507", "ResultView.tsx"), "utf8")
+      : "";
+    const ui = page + upload + result;
+    if (/완벽\s*검수|자동\s*수정\s*보장/.test(ui)) f.push("494: 금지 카피 화면 존재");
+    if (!/수정 제안|수정안|이렇게 넣으세요|fixKindHeading507|fixSheet/.test(ui)) {
+      f.push("494: 수정 제안 UI 없음");
+    }
+    if (!/시장|판매 국가|한국에서 판매|미국에서 판매/.test(ui)) f.push("494: 시장 선택 없음");
   }
 
   // KR 텍스트 경로 market 기본

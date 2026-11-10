@@ -19,13 +19,14 @@ import * as labelCheck501 from "./label-check-501";
 import * as labelCheck504 from "./label-check-504";
 import * as labelCheck505 from "./label-check-505";
 import * as labelCheck506 from "./label-check-506";
+import * as labelCheck507 from "./label-check-507";
 
 export type LabelCheckSuite = {
   name: string;
   run: () => Promise<string[]>;
 };
 
-/** 483(파일)·스위트명 488 · 489 · 492~501 · 규칙 JSON 검증 · 504~506 */
+/** 483(파일)·스위트명 488 · 489 · 492~501 · 규칙 JSON 검증 · 504~507 */
 export const LABEL_CHECK_SUITES: LabelCheckSuite[] = [
   labelCheck483,
   featureFlag489,
@@ -43,4 +44,5 @@ export const LABEL_CHECK_SUITES: LabelCheckSuite[] = [
   labelCheck504,
   labelCheck505,
   labelCheck506,
+  labelCheck507,
 ];

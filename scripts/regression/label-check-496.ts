@@ -69,13 +69,17 @@ export async function run(): Promise<string[]> {
   const todo = fs.readFileSync(path.join("review/data/fix-suggestions-kr_todo.md"), "utf8");
   if (!/완료\(496차\)/.test(todo)) f.push("496: todo 완료 표기 없음");
 
-  // a11y: 업로드 input + label / market name
+  // a11y: 업로드 input + label / market name (507: UploadCard 공유)
   const neu = fs.readFileSync(path.join("app/label-check/new/page.tsx"), "utf8");
-  if (!/name=\"market\"/.test(neu) && !/name='market'/.test(neu)) {
+  const upload496 = fs.existsSync(path.join("components/label-check/ui-507/UploadCard.tsx"))
+    ? fs.readFileSync(path.join("components/label-check/ui-507/UploadCard.tsx"), "utf8")
+    : "";
+  const neuUi = neu + upload496;
+  if (!/name=\"market\"/.test(neuUi) && !/name='market'/.test(neuUi)) {
     // radio may use checked without name — require htmlFor or aria
-    if (!/htmlFor|aria-label|fieldset/.test(neu)) f.push("496: new 접근성 레이블 부족");
+    if (!/htmlFor|aria-label|fieldset|radiogroup/.test(neuUi)) f.push("496: new 접근성 레이블 부족");
   }
-  if (!/role=\"alert\"/.test(neu)) f.push("496: new role=alert 없음");
+  if (!/role=\"alert\"/.test(neuUi)) f.push("496: new role=alert 없음");
 
   const hist = fs.readFileSync(path.join("app/label-check/history/page.tsx"), "utf8");
   if (!/confirm\(/.test(hist)) f.push("496: 삭제 확인 없음");
