@@ -205,14 +205,22 @@ export async function prepareOcrTilesFromFile508(
   }
 }
 
-/** 4MB 본문 한도에 맞게 타일 배치 */
-export function batchOcrTiles508(tiles: OcrTilePayload508[]): OcrTilePayload508[][] {
+/**
+ * 4MB 본문 한도 + 509 공급자별 조각 상한(CLOVA 6 / Google 8)에 맞게 타일 배치.
+ */
+export function batchOcrTiles508(
+  tiles: OcrTilePayload508[],
+  opts?: { maxTilesPerRequest?: number },
+): OcrTilePayload508[][] {
+  const maxTiles = opts?.maxTilesPerRequest ?? 8;
   const batches: OcrTilePayload508[][] = [];
   let cur: OcrTilePayload508[] = [];
   let size = 2; // JSON overhead
   for (const t of tiles) {
     const add = t.base64.length + 32;
-    if (cur.length && size + add > OCR_REQUEST_BODY_MAX_508) {
+    const overBytes = cur.length && size + add > OCR_REQUEST_BODY_MAX_508;
+    const overCount = cur.length >= maxTiles;
+    if (overBytes || overCount) {
       batches.push(cur);
       cur = [];
       size = 2;

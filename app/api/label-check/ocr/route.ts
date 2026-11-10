@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { SlidingWindowLimiter } from "@/lib/rate-limit";
 import {
-  ERR_OCR_LIMIT_508,
+  ERR_OCR_DAILY_LIMIT_509,
   ERR_OCR_UNAVAILABLE_508,
   OCR_MAX_DURATION_SEC_508,
 } from "@/lib/label-check/ocr/constants";
@@ -21,8 +21,11 @@ import { labelCheckClientIp } from "@/lib/label-check/safe-upload";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-/** Hobby 한도 이내 — Next는 리터럴만 허용 */
-export const maxDuration = 10;
+/**
+ * 509 — Hobby Fluid maxDuration 최대 300s. 호출당 8s·동시 4·조각 상한(CLOVA6/Google8)에 맞춰 30.
+ * Next는 리터럴만 허용.
+ */
+export const maxDuration = 30;
 
 void OCR_MAX_DURATION_SEC_508;
 
@@ -70,7 +73,10 @@ export async function POST(req: Request) {
     const rate = dayLim.check(dayKey);
     const rate2 = ocrDailyLimiter.check(dayKey);
     if (!rate.allowed || !rate2.allowed) {
-      return Response.json({ error: ERR_OCR_LIMIT_508, code: "OCR_LIMIT" }, { status: 429 });
+      return Response.json(
+        { error: ERR_OCR_DAILY_LIMIT_509, code: "OCR_LIMIT", limitKind: "daily" },
+        { status: 429 },
+      );
     }
 
     const raw = await req.text();
@@ -121,8 +127,21 @@ export async function POST(req: Request) {
 
     if (!out.ok) {
       const status =
-        out.code === "OCR_LIMIT" ? 429 : out.code === "OCR_OFF" ? 503 : out.code === "VISION" ? 502 : 400;
-      return Response.json({ error: out.error, code: out.code }, { status });
+        out.code === "OCR_LIMIT"
+          ? 429
+          : out.code === "OCR_OFF"
+            ? 503
+            : out.code === "VISION" || out.code === "OCR_TIMEOUT"
+              ? 502
+              : 400;
+      return Response.json(
+        {
+          error: out.error,
+          code: out.code,
+          ...(out.limitKind ? { limitKind: out.limitKind } : {}),
+        },
+        { status },
+      );
     }
 
     return Response.json({

@@ -3,11 +3,15 @@
  */
 import {
   ERR_OCR_LIMIT_508,
+  ERR_OCR_TIMEOUT_509,
   ERR_OCR_TOO_MANY_TILES_508,
   ERR_OCR_UNAVAILABLE_508,
   OCR_MAX_TILES_PER_JOB_508,
+  OCR_MAX_TILES_PER_REQUEST_CLOVA_509,
+  OCR_MAX_TILES_PER_REQUEST_GOOGLE_509,
   OCR_REQUEST_BODY_MAX_508,
 } from "@/lib/label-check/ocr/constants";
+import { isOcrTimeoutError509 } from "@/lib/label-check/ocr/fetch-timeout";
 import {
   averageConfidence508,
   dedupeOverlappingLines508,
@@ -24,6 +28,13 @@ import {
   type OcrProviderId508,
 } from "@/lib/label-check/ocr/provider";
 import { consumeOcrUnits508, ocrPeriodKey508 } from "@/lib/label-check/ocr/usage";
+
+/** 509 — 한 요청당 공급자별 조각 상한 */
+export function maxTilesPerOcrRequest509(providerId: OcrProviderId508): number {
+  return providerId === "clova"
+    ? OCR_MAX_TILES_PER_REQUEST_CLOVA_509
+    : OCR_MAX_TILES_PER_REQUEST_GOOGLE_509;
+}
 
 export type OcrBatchInput508 = {
   imagesBase64: string[];
@@ -50,8 +61,10 @@ export type OcrBatchOk508 = {
 
 export type OcrBatchFail508 = {
   ok: false;
-  code: "OCR_OFF" | "OCR_LIMIT" | "TOO_MANY" | "BAD_REQUEST" | "VISION" | "SERVER";
+  code: "OCR_OFF" | "OCR_LIMIT" | "TOO_MANY" | "BAD_REQUEST" | "VISION" | "OCR_TIMEOUT" | "SERVER";
   error: string;
+  /** OCR_LIMIT 일 때 월/일 구분 */
+  limitKind?: "monthly" | "daily";
 };
 
 export async function runOcrBatch508(
@@ -95,6 +108,14 @@ export async function runOcrBatch508(
   if (images.length > OCR_MAX_TILES_PER_JOB_508) {
     return { ok: false, code: "TOO_MANY", error: ERR_OCR_TOO_MANY_TILES_508 };
   }
+  const perReq = maxTilesPerOcrRequest509(picked.id);
+  if (images.length > perReq) {
+    return {
+      ok: false,
+      code: "TOO_MANY",
+      error: "요청 조각이 많아요. 클라이언트가 더 잘게 나눠 보내 주세요.",
+    };
+  }
   const approx = images.reduce((n, s) => n + s.length, 0);
   if (approx > OCR_REQUEST_BODY_MAX_508 * 1.4) {
     return { ok: false, code: "BAD_REQUEST", error: "요청이 너무 큽니다. 조각을 나눠 보내 주세요." };
@@ -106,7 +127,12 @@ export async function runOcrBatch508(
       limit: picked.monthlyLimit,
     });
     if (!allowed) {
-      return { ok: false, code: "OCR_LIMIT", error: ERR_OCR_LIMIT_508 };
+      return {
+        ok: false,
+        code: "OCR_LIMIT",
+        error: ERR_OCR_LIMIT_508,
+        limitKind: "monthly",
+      };
     }
   }
 
@@ -144,7 +170,12 @@ export async function runOcrBatch508(
       fallbackFromClova: picked.fallbackFromClova,
       conflictFinding,
     };
-  } catch {
+  } catch (e) {
+    // 509: 시간 초과여도 이미 consume한 조각 수는 되돌리지 않음(보수적).
+    if (isOcrTimeoutError509(e)) {
+      console.warn("[label-ocr] provider-timeout");
+      return { ok: false, code: "OCR_TIMEOUT", error: ERR_OCR_TIMEOUT_509 };
+    }
     console.warn("[label-ocr] provider-failed");
     return { ok: false, code: "VISION", error: ERR_OCR_UNAVAILABLE_508 };
   }

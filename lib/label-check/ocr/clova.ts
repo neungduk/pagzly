@@ -4,6 +4,7 @@
  */
 import type { OcrLine508, OcrProvider508, OcrTileResult508, OcrWord508 } from "@/lib/label-check/ocr/provider";
 import { OCR_PARALLEL_508 } from "@/lib/label-check/ocr/constants";
+import { wrapFetchWithTimeout509 } from "@/lib/label-check/ocr/fetch-timeout";
 
 export type ClovaFetch508 = typeof fetch;
 
@@ -64,7 +65,7 @@ export function createClovaProvider508(opts: {
   fetchImpl?: ClovaFetch508;
   parallel?: number;
 }): OcrProvider508 {
-  const fetchImpl = opts.fetchImpl || fetch;
+  const fetchImpl = wrapFetchWithTimeout509(opts.fetchImpl || fetch);
   const parallel = opts.parallel ?? OCR_PARALLEL_508;
 
   return {
@@ -83,6 +84,7 @@ export function createClovaProvider508(opts: {
             lang: "ko",
             images: [{ format: "jpg", name: `tile-${i}`, data: b64 }],
           };
+          // 509: 호출당 8s. 시간 초과 조각은 이미 consume한 수를 되돌리지 않음(보수적).
           const res = await fetchImpl(opts.invokeUrl, {
             method: "POST",
             headers: {

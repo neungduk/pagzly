@@ -4,6 +4,7 @@
  */
 import type { OcrLine508, OcrProvider508, OcrTileResult508, OcrWord508 } from "@/lib/label-check/ocr/provider";
 import { OCR_PARALLEL_508 } from "@/lib/label-check/ocr/constants";
+import { wrapFetchWithTimeout509 } from "@/lib/label-check/ocr/fetch-timeout";
 
 export type VisionFetch508 = typeof fetch;
 
@@ -115,7 +116,7 @@ export function createVisionProvider508(opts: {
   fetchImpl?: VisionFetch508;
   parallel?: number;
 }): OcrProvider508 {
-  const fetchImpl = opts.fetchImpl || fetch;
+  const fetchImpl = wrapFetchWithTimeout509(opts.fetchImpl || fetch);
   const parallel = opts.parallel ?? OCR_PARALLEL_508;
   const endpoint = `https://vision.googleapis.com/v1/images:annotate?key=${encodeURIComponent(opts.apiKey)}`;
 
@@ -139,6 +140,7 @@ export function createVisionProvider508(opts: {
               },
             ],
           };
+          // 509: 호출당 8s. 시간 초과 조각은 이미 consume한 수를 되돌리지 않음(보수적).
           const res = await fetchImpl(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
