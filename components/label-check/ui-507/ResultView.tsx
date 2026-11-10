@@ -281,6 +281,11 @@ export function ResultView507({
         ) : null}
 
         {result.scopeNotice ? <p className="lc507-fine">{result.scopeNotice}</p> : null}
+        {result.exportNotice513 ? (
+          <p className="lc507-fine" role="status">
+            {result.exportNotice513}
+          </p>
+        ) : null}
 
         {result.compare ? (
           <div className="lc507-compare" role="status">
@@ -459,12 +464,18 @@ export function ResultView507({
                     <div className="lc507-item" style={{ borderStyle: "dashed" }}>
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="lc507-chip lc507-c-unk">직접 확인</span>
-                        <h3>추가로 직접 확인할 항목</h3>
+                        <h3>판매자가 꼭 확인할 것</h3>
                       </div>
-                      <ul className="list-disc space-y-1 pl-5 text-sm">
+                      <ul className="list-disc space-y-2 pl-5 text-sm">
                         {result.manualItems.map((m, i) => (
                           <li key={i}>
-                            {m.label} — {m.suggest}
+                            <div className="font-medium">{m.label}</div>
+                            <div>{m.suggest}</div>
+                            {m.whyManual ? (
+                              <div className="lc507-fine" style={{ marginTop: 2 }}>
+                                {m.whyManual}
+                              </div>
+                            ) : null}
                           </li>
                         ))}
                       </ul>
@@ -534,6 +545,42 @@ export function ResultView507({
             </Link>
           </p>
         )}
+
+        {(result.skippedItems513?.length || result.referenceNotes513?.length) ? (
+          <div className="lc507-print-hide space-y-2" style={{ marginTop: 12 }}>
+            {result.skippedItems513?.length ? (
+              <details>
+                <summary className="cursor-pointer text-sm font-semibold" style={{ color: "#5B6B65" }}>
+                  이 제품에는 해당하지 않아 뺀 항목 {result.skippedItems513.length}건
+                </summary>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+                  {result.skippedItems513.map((s, i) => (
+                    <li key={i}>
+                      {s.label} — {s.reason}
+                    </li>
+                  ))}
+                </ul>
+                <p className="lc507-fine mt-1">
+                  제품 정보에서 해당 옵션을 체크하면 점검 대상이 됩니다.
+                </p>
+              </details>
+            ) : null}
+            {result.referenceNotes513?.length ? (
+              <details>
+                <summary className="cursor-pointer text-sm font-semibold" style={{ color: "#5B6B65" }}>
+                  참고: 개정 예정·동향
+                </summary>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+                  {result.referenceNotes513.map((n, i) => (
+                    <li key={i}>
+                      {n.label} — {n.text}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
+          </div>
+        ) : null}
 
         <p className="lc507-fine" style={{ marginTop: 8 }}>
           참고용 사전 점검이며 법적 판단이 아닙니다.
