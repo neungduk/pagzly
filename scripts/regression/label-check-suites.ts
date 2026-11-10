@@ -26,6 +26,7 @@ import * as labelCheck509OcrHardening from "./label-check-509-ocr-hardening";
 import * as labelCheckOcrFix510 from "./label-check-ocr-fix-510";
 import * as labelCheck510bAccuracy from "./label-check-510b-accuracy";
 import * as labelCheck511Ui from "./label-check-511-ui";
+import * as labelCheck512Card from "./label-check-512-card";
 
 export type LabelCheckSuite = {
   name: string;
@@ -57,4 +58,5 @@ export const LABEL_CHECK_SUITES: LabelCheckSuite[] = [
   labelCheckOcrFix510,
   labelCheck510bAccuracy,
   labelCheck511Ui,
+  labelCheck512Card,
 ];
