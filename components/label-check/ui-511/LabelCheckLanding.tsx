@@ -12,10 +12,13 @@ export function LabelCheckLanding511({ user }: { user: { id: string } | null }) 
 
   return (
     <LabelSiteShell511 data-pagzly-landing="" data-label-check-landing="true">
-      <div
-        className="lc-w-full lc-min-h-screen"
-        style={{ display: "flex", flexDirection: "column", background: "var(--lc-bg)", overflowX: "hidden" }}
-      >
+      <div className="lc-w-full lc-min-h-screen lc515-landing">
+        <div className="lc515-wash" aria-hidden>
+          <i className="a" />
+          <i className="b" />
+          <i className="c" />
+        </div>
+
         <LabelHeader511
           user={user}
           variant="landing"
@@ -31,7 +34,7 @@ export function LabelCheckLanding511({ user }: { user: { id: string } | null }) 
           }
         />
 
-        <section className="lc514-hero">
+        <section className="lc514-hero lc515-above">
           <h1>
             화장품 라벨, 인쇄 전에
             <br />
@@ -56,7 +59,9 @@ export function LabelCheckLanding511({ user }: { user: { id: string } | null }) 
           </div>
         </section>
 
-        <LandingProofDemo511 />
+        <div className="lc515-above">
+          <LandingProofDemo511 />
+        </div>
 
         <section id="how" className="lc514-stats">
           <div className="lc514-stats-inner">
@@ -110,62 +115,64 @@ export function LabelCheckLanding511({ user }: { user: { id: string } | null }) 
           </div>
         </section>
 
-        <section id="fix" className="lc514-fix">
-          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-            <h2
+        <div className="lc515-fix-band">
+          <section id="fix" className="lc514-fix">
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: "clamp(28px, 4vw, 38px)",
+                  lineHeight: 1.3,
+                  fontWeight: 900,
+                  letterSpacing: "-0.03em",
+                  textWrap: "balance",
+                }}
+              >
+                틀렸다는 말로 끝내지 않고 고친 문장까지
+              </h2>
+              <p style={{ margin: 0, fontSize: 17, lineHeight: 1.8, color: "var(--lc-sub)" }}>
+                어느 문장이 걸렸는지 표시하고, 빠진 항목은 넣을 문구 예시를 함께 보여 드립니다. 고친 뒤 다시 올려
+                확인하세요.
+              </p>
+              <a href="#demo" style={{ fontSize: 16, fontWeight: 700, color: "var(--lc-brand)", textDecoration: "none" }}>
+                결과 화면 둘러보기 →
+              </a>
+            </div>
+            <div
               style={{
-                margin: 0,
-                fontSize: "clamp(28px, 4vw, 38px)",
-                lineHeight: 1.3,
-                fontWeight: 900,
-                letterSpacing: "-0.03em",
-                textWrap: "balance",
+                background: "#fff",
+                border: "1px solid var(--lc-line)",
+                borderRadius: 20,
+                padding: 28,
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
               }}
             >
-              틀렸다는 말로 끝내지 않고 고친 문장까지
-            </h2>
-            <p style={{ margin: 0, fontSize: 17, lineHeight: 1.8, color: "var(--lc-sub)" }}>
-              어느 문장이 걸렸는지 표시하고, 빠진 항목은 넣을 문구 예시를 함께 보여 드립니다. 고친 뒤 다시 올려
-              확인하세요.
-            </p>
-            <a href="#demo" style={{ fontSize: 16, fontWeight: 700, color: "var(--lc-brand)", textDecoration: "none" }}>
-              결과 화면 둘러보기 →
-            </a>
-          </div>
-          <div
-            style={{
-              background: "#fff",
-              border: "1px solid var(--lc-line)",
-              borderRadius: 20,
-              padding: 28,
-              display: "flex",
-              flexDirection: "column",
-              gap: 16,
-            }}
-          >
-            <div>
-              <div className="lc-mono" style={{ fontSize: 11, color: "var(--lc-mute)", marginBottom: 6 }}>
-                BEFORE
+              <div>
+                <div className="lc-mono" style={{ fontSize: 11, color: "var(--lc-mute)", marginBottom: 6 }}>
+                  BEFORE
+                </div>
+                <div style={{ fontSize: 16, lineHeight: 1.7 }}>
+                  <span className="lc514-mark-bad">{LANDING_BEFORE_AFTER_514.before}</span>
+                </div>
               </div>
-              <div style={{ fontSize: 16, lineHeight: 1.7 }}>
-                <span className="lc514-mark-bad">{LANDING_BEFORE_AFTER_514.before}</span>
+              <div style={{ height: 1, background: "var(--lc-line-soft)" }} />
+              <div>
+                <div className="lc-mono" style={{ fontSize: 11, color: "var(--lc-ok)", marginBottom: 6 }}>
+                  AFTER
+                </div>
+                <div style={{ fontSize: 16, lineHeight: 1.7 }}>
+                  <span className="lc514-mark-hl">{LANDING_BEFORE_AFTER_514.after}</span>
+                </div>
               </div>
+              <div style={{ fontSize: 12.5, color: "var(--lc-mute)" }}>{LANDING_BEFORE_AFTER_514.note}</div>
             </div>
-            <div style={{ height: 1, background: "var(--lc-line-soft)" }} />
-            <div>
-              <div className="lc-mono" style={{ fontSize: 11, color: "var(--lc-ok)", marginBottom: 6 }}>
-                AFTER
-              </div>
-              <div style={{ fontSize: 16, lineHeight: 1.7 }}>
-                <span className="lc514-mark-hl">{LANDING_BEFORE_AFTER_514.after}</span>
-              </div>
-            </div>
-            <div style={{ fontSize: 12.5, color: "var(--lc-mute)" }}>{LANDING_BEFORE_AFTER_514.note}</div>
-          </div>
-        </section>
+          </section>
+        </div>
 
         <section id="start" className="lc514-cta-band">
-          <div className="lc514-cta-panel">
+          <div className="lc514-cta-panel lc515-cta-grad">
             <h2
               style={{
                 margin: 0,
