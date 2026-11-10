@@ -43,6 +43,8 @@ export function assertSavePayloadSafe(payload: {
   }
   for (const f of payload.findings) {
     if ("found" in (f as object)) errs.push("finding.found forbidden");
+    if ("sentence" in (f as object)) errs.push("finding.sentence forbidden");
+    if ("evidence" in (f as object)) errs.push("finding.evidence forbidden");
     // 긴 원문 조각 휴리스틱
     if ((f.line || "").length > 160) errs.push("line too long");
   }

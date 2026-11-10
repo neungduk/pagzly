@@ -4,9 +4,21 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import {
+  COLOR_EXCEPTION_HINT_506,
+  EXCEPTION_SOFT_LINE_506,
+  evaluateExceptionsForHit506,
+  sentenceContainingHit506,
+} from "@/lib/label-check/ad-exceptions";
 import { normalizeLabelText } from "@/lib/label-check/extract-pdf";
 import { formatFoundSnippet } from "@/lib/label-check/format-found";
-import type { Finding, FixKind, LabelCheckInput } from "@/lib/label-check/types";
+import type {
+  Finding,
+  FindingEvidence506,
+  FindingException506,
+  FixKind,
+  LabelCheckInput,
+} from "@/lib/label-check/types";
 
 export type AdPhraseItem = {
   id: string;
@@ -326,10 +338,76 @@ export function scanAdPhrases493(text: string, input: LabelCheckInput): Finding[
     const hits = collectHits(scanNorm, item.patterns || [], item.regex_patterns || []);
     if (!hits.length) continue;
 
-    const snippets = hits.map((h) => formatFoundSnippet(text, h));
+    const targetId = String(item.id || "").trim();
+    const keptHits: string[] = [];
+    const evidence: FindingEvidence506[] = [];
+    let appliedException: FindingException506 | undefined;
+    let pendingColorHint = false;
+    let forceEvidence = false;
+    let forceDisclaimer = false;
+    let allNotApplicable = hits.length > 0;
+
+    for (const h of hits) {
+      const sentence = sentenceContainingHit506(text, h);
+      const evals = targetId
+        ? evaluateExceptionsForHit506(targetId, h, sentence, input)
+        : [];
+      let dropHit = false;
+      let softHit = false;
+      for (const ev of evals) {
+        if (!ev.matched) continue;
+        if (ev.pendingProductType) {
+          pendingColorHint = true;
+          continue;
+        }
+        if (ev.rule.result === "not_applicable") {
+          dropHit = true;
+          appliedException = {
+            id: ev.rule.id,
+            result: ev.rule.result,
+            text: ev.rule.text_ko,
+          };
+          break;
+        }
+        if (ev.rule.result === "exception_possible") {
+          softHit = true;
+          appliedException = {
+            id: ev.rule.id,
+            result: ev.rule.result,
+            text: ev.rule.text_ko,
+          };
+        } else if (ev.rule.result === "evidence_required") {
+          forceEvidence = true;
+          appliedException = {
+            id: ev.rule.id,
+            result: ev.rule.result,
+            text: ev.rule.text_ko,
+          };
+        } else if (ev.rule.result === "needs_disclaimer") {
+          forceDisclaimer = true;
+          appliedException = {
+            id: ev.rule.id,
+            result: ev.rule.result,
+            text: ev.rule.text_ko,
+          };
+        }
+      }
+      if (dropHit) continue;
+      allNotApplicable = false;
+      keptHits.push(h);
+      if (evidence.length < 3) {
+        evidence.push({ found: h, sentence: sentence.slice(0, 240) });
+      }
+      // softHit만 있는 경우에도 일치는 남김(상태 유지를 위해 kept) — 전부 soft면 안내
+      void softHit;
+    }
+
+    if (!keptHits.length || allNotApplicable) continue;
+
+    const snippets = keptHits.map((h) => formatFoundSnippet(text, h));
     const found = snippets.join(" · ");
     const fixKo = String(item.fix_ko || "").trim();
-    const fixKind = (item.fix_kind as FixKind | undefined) || undefined;
+    let fixKind = (item.fix_kind as FixKind | undefined) || undefined;
     let suggest = fixKo
       ? fixKo
       : item.needs_evidence
@@ -337,7 +415,26 @@ export function scanAdPhrases493(text: string, input: LabelCheckInput): Finding[
         : "오인 우려 표현인지 확인하세요.";
     if (loweredFunctional) {
       suggest = FUNCTIONAL_SCOPE_LINE;
+      fixKind = "evidence";
     }
+    if (forceEvidence) {
+      fixKind = "evidence";
+      suggest = item.exception_note?.trim() || appliedException?.text || EVIDENCE_LINE;
+    }
+    if (forceDisclaimer) {
+      suggest = appliedException?.text || suggest;
+    }
+
+    const softOnly =
+      appliedException?.result === "exception_possible" &&
+      !forceEvidence &&
+      !forceDisclaimer;
+
+    const notes: string[] = [];
+    if (item.exception_note?.trim()) notes.push(item.exception_note.trim());
+    if (softOnly) notes.push(EXCEPTION_SOFT_LINE_506);
+    if (pendingColorHint) notes.push(COLOR_EXCEPTION_HINT_506);
+    if (appliedException?.text && !softOnly) notes.push(appliedException.text);
 
     findings.push({
       category: categoryFromAdKind504(item.kind, item.category),
@@ -346,9 +443,19 @@ export function scanAdPhrases493(text: string, input: LabelCheckInput): Finding[
       found,
       suggest,
       checkType: "code",
-      fixSuggestion: loweredFunctional ? FUNCTIONAL_SCOPE_LINE : fixKo || undefined,
+      fixSuggestion: loweredFunctional
+        ? FUNCTIONAL_SCOPE_LINE
+        : forceDisclaimer
+          ? suggest
+          : fixKo || undefined,
       fixKind: loweredFunctional ? "evidence" : fixKind,
-      exceptionNote: item.exception_note?.trim() || undefined,
+      exceptionNote: notes.length ? notes.join(" · ") : undefined,
+      checkKey: targetId || undefined,
+      evidence: evidence.length ? evidence : undefined,
+      exception: appliedException,
+      basis: item.law_basis
+        ? { law: item.law_basis, source: "ad-phrases-kr" }
+        : undefined,
     });
   }
 

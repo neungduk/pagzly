@@ -4,11 +4,17 @@
  * 로그인+save=true 일 때만 결과 요약 저장(원문·파일명 금지).
  */
 import { labelCheckErrorResponse, type LabelCheckErrorCode } from "@/lib/label-check/api-errors";
+import { validatePriorKeys506 } from "@/lib/label-check/compare-506";
 import {
   payloadToExtractedPdf,
   validateExtractedPayload,
 } from "@/lib/label-check/extracted-payload";
 import { saveLabelCheckRun } from "@/lib/label-check/save-run";
+import {
+  assertTextModeLength506,
+  parseTextModeScope506,
+  textToExtractedPdf506,
+} from "@/lib/label-check/text-mode-506";
 import {
   ERR_NOT_PDF_485,
   ERR_TIMEOUT_485,
@@ -59,6 +65,19 @@ function parseOptions(src: Record<string, unknown> | FormData): {
   const marketRaw = get("market").toUpperCase() || "KR";
   const market: LabelMarket = marketRaw === "US" ? "US" : "KR";
   const productNameRaw = get("productName").trim();
+  const scopeRaw =
+    src instanceof FormData ? get("scope") : (src as Record<string, unknown>).scope;
+  const priorRaw =
+    src instanceof FormData
+      ? (() => {
+          try {
+            return JSON.parse(get("priorKeys") || "[]");
+          } catch {
+            return null;
+          }
+        })()
+      : (src as Record<string, unknown>).priorKeys;
+  const priorKeys = validatePriorKeys506(priorRaw);
   return {
     input: {
       rinseOff: bool("rinseOff"),
@@ -72,6 +91,8 @@ function parseOptions(src: Record<string, unknown> | FormData): {
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean),
+      scope: scopeRaw != null && String(scopeRaw).trim() ? parseTextModeScope506(scopeRaw) : undefined,
+      priorKeys: priorKeys === null ? undefined : priorKeys,
     },
     save: bool("save"),
     productName: productNameRaw ? productNameRaw.slice(0, 80) : null,
@@ -136,7 +157,7 @@ export async function POST(req: Request) {
 
     const ct = req.headers.get("content-type") || "";
 
-    // 499 — 클라 추출 JSON
+    // 499 — 클라 추출 JSON / 506 — 텍스트 모드
     if (ct.includes("application/json")) {
       const rawText = await req.text();
       let body: Record<string, unknown>;
@@ -145,13 +166,41 @@ export async function POST(req: Request) {
       } catch {
         return labelCheckErrorResponse("BAD_REQUEST", 400);
       }
+      const { input, save, productName } = parseOptions(body);
+
+      // 506 — text 필드가 있으면 문구 붙여넣기 경로
+      if (typeof body.text === "string") {
+        const len = assertTextModeLength506(body.text);
+        if (len === "empty") return labelCheckErrorResponse("NO_FILE", 400);
+        if (len === "too_large") return labelCheckErrorResponse("TOO_LARGE", 400);
+        const scope = parseTextModeScope506(body.scope ?? input.scope ?? "ad_only");
+        const extracted = textToExtractedPdf506(body.text);
+        const timed = await withExtractTimeout(
+          runLabelCheckFromExtracted(extracted, { ...input, scope }),
+        );
+        if (!timed.ok) {
+          console.warn("[label-check] extract-limit");
+          return mapUploadError(timed.error);
+        }
+        return finishResult(timed.value, {
+          save,
+          userId: user?.id,
+          productName,
+          input: { ...input, scope },
+          supabase,
+        });
+      }
+
+      if (body.priorKeys != null && validatePriorKeys506(body.priorKeys) === null) {
+        return labelCheckErrorResponse("BAD_REQUEST", 400);
+      }
+
       const validated = validateExtractedPayload(body.extracted, Buffer.byteLength(rawText, "utf8"));
       if (!validated.ok) {
         const code = validated.code as LabelCheckErrorCode;
         const status = code === "TOO_LARGE" || code === "TOO_MANY_PAGES" ? 400 : 400;
         return labelCheckErrorResponse(code === "TOO_LARGE" ? "TOO_LARGE" : code, status);
       }
-      const { input, save, productName } = parseOptions(body);
       const extracted = payloadToExtractedPdf(validated.payload);
       const timed = await withExtractTimeout(runLabelCheckFromExtracted(extracted, input));
       if (!timed.ok) {

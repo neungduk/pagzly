@@ -14,6 +14,12 @@ import {
   scanTypeCautions504,
 } from "@/lib/label-check/cautions-kr";
 import {
+  compareIssueKeys506,
+  issueKeysFromFindings506,
+  validatePriorKeys506,
+} from "@/lib/label-check/compare-506";
+import { enrichFindings506 } from "@/lib/label-check/enrich-findings-506";
+import {
   emptyPagesNoticeSuffix,
   extractLabelPdf,
   normalizeLabelText,
@@ -21,6 +27,11 @@ import {
 } from "@/lib/label-check/extract-pdf";
 import { FOUND_CONFIRMED_488, formatFoundSnippet } from "@/lib/label-check/format-found";
 import { applyKrFixSuggestions496 } from "@/lib/label-check/fix-suggestions-kr";
+import { buildFixSheet } from "@/lib/label-check/fix-sheet";
+import {
+  attachCautionTemplates506,
+  scanKrIngredientsExtra506,
+} from "@/lib/label-check/ingredients-extra-506";
 import {
   loadAllergens483,
   loadLabelRules483,
@@ -32,6 +43,7 @@ import { runLabelCheckUsFromExtracted494, runLabelCheckUs494 } from "@/lib/label
 import {
   DISCLAIMER_483,
   MIN_HANGUL_CHARS_485,
+  NOTICE_AD_ONLY_506,
   NOTICE_IMAGE_PDF_497,
   NOTICE_NO_HANGUL_485,
   NOTICE_OUTLINE_485,
@@ -369,6 +381,10 @@ function runCodeRule(
   }
 
   if (rule.mode === "font_size") {
+    // 506 — 텍스트 모드 등 크기 정보 없음 → 판정 대상 제외(확인 불가 아님)
+    if (!extracted.textItems?.length && !extracted.fontSizesPt?.length) {
+      return null;
+    }
     // 492 — 전성분 영역 글자만 측정. 영역 식별 불가 → 확인 불가(통과 금지)
     const region = ingredientRegionSizes(extracted);
     if (!region) {
@@ -574,6 +590,46 @@ function summarize(findings: Finding[], manualCount: number): LabelCheckSummary 
   return s;
 }
 
+function finalizeKrResult506(
+  extracted: ExtractedPdf,
+  input: LabelCheckInput,
+  findings: Finding[],
+  manualItems: LabelCheckResult["manualItems"],
+  opts?: { scopeNotice?: string; ingredientCount?: number },
+): LabelCheckResult {
+  const enriched = attachCautionTemplates506(enrichFindings506(findings, "KR"));
+  const hasEvidenceFix = enriched.some(
+    (f) =>
+      (f.fixKind === "evidence" || f.fix?.kind === "evidence") && f.status !== "pass",
+  );
+  const evidenceCheckpoints = hasEvidenceFix ? loadEvidenceCheckpoints505(3) : undefined;
+
+  const prior = validatePriorKeys506(input.priorKeys);
+  const compare =
+    prior && prior.length
+      ? compareIssueKeys506(prior, issueKeysFromFindings506(enriched))
+      : undefined;
+
+  const result: LabelCheckResult = {
+    disclaimer: DISCLAIMER_483,
+    readable: true,
+    charCount: extracted.charCount,
+    hangulCount: extracted.hangulCount,
+    skipJudgment: false,
+    summary: summarize(enriched, manualItems.length),
+    findings: enriched,
+    manualItems,
+    market: "KR",
+    rulesBasis: formatRulesBasisLine501("KR"),
+    evidenceCheckpoints,
+    scopeNotice: opts?.scopeNotice,
+    ingredientCount: opts?.ingredientCount,
+    compare,
+  };
+  result.fixSheet = buildFixSheet(result);
+  return result;
+}
+
 /** 499 — 이미 추출된 구조로 점검(클라 JSON·서버 추출 공유 코어) */
 export async function runLabelCheckFromExtracted(
   extracted: ExtractedPdf,
@@ -583,27 +639,41 @@ export async function runLabelCheckFromExtracted(
     return runLabelCheckUsFromExtracted494(extracted, input);
   }
 
-  // 0자·극소 한글: 아웃라인/스캔 가능 → 판정 없이 안내만(위반 가능 폭탄 방지)
-  if (extracted.charCount === 0 || extracted.hangulCount < MIN_HANGUL_CHARS_485) {
-    if (extracted.charCount >= 40 && extracted.hangulCount < MIN_HANGUL_CHARS_485) {
-      return noticeOnlyResult(extracted, NOTICE_NO_HANGUL_485, "KR");
+  const adOnly = input.scope === "ad_only";
+
+  // 506 ad_only: 아웃라인 가드 완화 — 광고 문구만 스캔
+  if (!adOnly) {
+    // 0자·극소 한글: 아웃라인/스캔 가능 → 판정 없이 안내만(위반 가능 폭탄 방지)
+    if (extracted.charCount === 0 || extracted.hangulCount < MIN_HANGUL_CHARS_485) {
+      if (extracted.charCount >= 40 && extracted.hangulCount < MIN_HANGUL_CHARS_485) {
+        return noticeOnlyResult(extracted, NOTICE_NO_HANGUL_485, "KR");
+      }
+      if (extracted.charCount === 0) {
+        return noticeOnlyResult(
+          extracted,
+          NOTICE_IMAGE_PDF_497 + emptyPagesNoticeSuffix(extracted),
+          "KR",
+        );
+      }
+      return noticeOnlyResult(extracted, NOTICE_OUTLINE_485, "KR");
     }
-    if (extracted.charCount === 0) {
+
+    if (!extracted.readable) {
       return noticeOnlyResult(
         extracted,
         NOTICE_IMAGE_PDF_497 + emptyPagesNoticeSuffix(extracted),
         "KR",
       );
     }
+  } else if (!extracted.text.trim()) {
     return noticeOnlyResult(extracted, NOTICE_OUTLINE_485, "KR");
   }
 
-  if (!extracted.readable) {
-    return noticeOnlyResult(
-      extracted,
-      NOTICE_IMAGE_PDF_497 + emptyPagesNoticeSuffix(extracted),
-      "KR",
-    );
+  if (adOnly) {
+    const ads = scanAdPhrases493(extracted.text, input);
+    return finalizeKrResult506(extracted, input, ads, [], {
+      scopeNotice: NOTICE_AD_ONLY_506,
+    });
   }
 
   const rules = loadLabelRules483();
@@ -638,26 +708,12 @@ export async function runLabelCheckFromExtracted(
 
   const merged = applyKrAddenda504(extracted.text, input, findings, manualItems);
   const findingsWithFix = applyKrFixSuggestions496(merged.findings);
+  const extra = scanKrIngredientsExtra506(extracted.text);
+  findingsWithFix.push(...extra.findings);
 
-  // 505 — evidence 접힘 문구는 항목마다 반복하지 않고 결과 하단에 1회
-  const hasEvidenceFix = findingsWithFix.some(
-    (f) => f.fixKind === "evidence" && f.status !== "pass",
-  );
-  const evidenceCheckpoints = hasEvidenceFix ? loadEvidenceCheckpoints505(3) : undefined;
-
-  return {
-    disclaimer: DISCLAIMER_483,
-    readable: true,
-    charCount: extracted.charCount,
-    hangulCount: extracted.hangulCount,
-    skipJudgment: false,
-    summary: summarize(findingsWithFix, merged.manualItems.length),
-    findings: findingsWithFix,
-    manualItems: merged.manualItems,
-    market: "KR",
-    rulesBasis: formatRulesBasisLine501("KR"),
-    evidenceCheckpoints,
-  };
+  return finalizeKrResult506(extracted, input, findingsWithFix, merged.manualItems, {
+    ingredientCount: extra.ingredientCount,
+  });
 }
 
 export async function runLabelCheck483(

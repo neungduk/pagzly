@@ -121,20 +121,29 @@ export function scanUsAdPhrases500(text: string): Finding[] {
 
     const snippets = hits.map((h) => formatFoundSnippet(text, h));
     const found = snippets.join(" · ");
-    const evidence = Boolean(item.needs_evidence);
+    const needsEv = Boolean(item.needs_evidence);
+    const targetId = String(item.id || "").trim();
+    const evidence = hits.slice(0, 3).map((h) => {
+      const idx = text.toLowerCase().indexOf(h.toLowerCase());
+      const a = Math.max(0, idx < 0 ? 0 : idx - 40);
+      const b = Math.min(text.length, (idx < 0 ? 0 : idx) + h.length + 80);
+      return { found: h, sentence: text.slice(a, b).replace(/\s+/g, " ").trim().slice(0, 240) };
+    });
 
     findings.push({
       category: item.category,
       label: item.title_ko,
       status: "attention",
       found,
-      suggest: evidence ? EVIDENCE_LINE_500 : "오인 우려 표현인지 확인하세요.",
+      suggest: needsEv ? EVIDENCE_LINE_500 : "오인 우려 표현인지 확인하세요.",
       checkType: "code",
-      fixSuggestion: evidence
+      fixSuggestion: needsEv
         ? EVIDENCE_LINE_500
         : item.fix_ko?.trim() || undefined,
-      fixExample: evidence ? undefined : item.fix_example_en?.trim() || undefined,
-      fixKind: evidence ? "evidence" : "soften",
+      fixExample: needsEv ? undefined : item.fix_example_en?.trim() || undefined,
+      fixKind: needsEv ? "evidence" : "soften",
+      checkKey: targetId || undefined,
+      evidence,
     });
   }
 

@@ -1,19 +1,29 @@
 /**
  * 494 — 미국 시장 코드 판정(데이터 look_for만 사용, 임의 규칙 신설 금지).
  */
+import { scanUsAdPhrases500 } from "@/lib/label-check/ad-phrases-us";
+import {
+  compareIssueKeys506,
+  issueKeysFromFindings506,
+  validatePriorKeys506,
+} from "@/lib/label-check/compare-506";
+import { enrichFindings506 } from "@/lib/label-check/enrich-findings-506";
 import {
   emptyPagesNoticeSuffix,
   extractLabelPdf,
+  countHangulChars,
   type ExtractedPdf,
 } from "@/lib/label-check/extract-pdf";
 import { formatFoundSnippet } from "@/lib/label-check/format-found";
+import { buildFixSheet } from "@/lib/label-check/fix-sheet";
+import { scanUsIngredientsExtra506 } from "@/lib/label-check/ingredients-extra-506";
 import { loadUsLabelRules494, type UsRuleDraft } from "@/lib/label-check/load-rules-us";
-import { scanUsAdPhrases500 } from "@/lib/label-check/ad-phrases-us";
 import { includesUs, includesUsWord, normalizeUsLabelText } from "@/lib/label-check/normalize-us";
 import { formatRulesBasisLine501 } from "@/lib/label-check/rules-meta";
 import {
   DISCLAIMER_483,
   DISCLAIMER_US_EXTRA_494,
+  NOTICE_AD_ONLY_506,
   NOTICE_IMAGE_PDF_497,
   NOTICE_OTC_US_494,
   NOTICE_US_NON_ENGLISH_497,
@@ -22,7 +32,6 @@ import {
   type LabelCheckResult,
   type LabelCheckSummary,
 } from "@/lib/label-check/types";
-import { countHangulChars } from "@/lib/label-check/extract-pdf";
 
 const EMPTY_SUMMARY: LabelCheckSummary = {
   possible: 0,
@@ -36,8 +45,23 @@ function usDisclaimer(): string {
   return `${DISCLAIMER_483} ${DISCLAIMER_US_EXTRA_494}`;
 }
 
-function withUsBasis<T extends LabelCheckResult>(r: T): T {
-  return { ...r, market: "US", rulesBasis: formatRulesBasisLine501("US") };
+function withUsBasis(r: LabelCheckResult, input?: LabelCheckInput): LabelCheckResult {
+  const findings = enrichFindings506(r.findings || [], "US");
+  const prior = input ? validatePriorKeys506(input.priorKeys) : [];
+  const compare =
+    prior && prior.length
+      ? compareIssueKeys506(prior, issueKeysFromFindings506(findings))
+      : r.compare;
+  const out: LabelCheckResult = {
+    ...r,
+    findings,
+    summary: summarize(findings, r.manualItems?.length || 0),
+    market: "US",
+    rulesBasis: formatRulesBasisLine501("US"),
+    compare,
+  };
+  out.fixSheet = buildFixSheet(out);
+  return out;
 }
 
 function summarize(findings: Finding[], manualCount: number): LabelCheckSummary {
@@ -426,48 +450,78 @@ export async function runLabelCheckUsFromExtracted494(
   input: LabelCheckInput,
 ): Promise<LabelCheckResult> {
   if (input.otcDrugLike) {
-    return withUsBasis({
-      disclaimer: usDisclaimer(),
-      readable: true,
-      charCount: 0,
-      hangulCount: 0,
-      notice: NOTICE_OTC_US_494,
-      skipJudgment: true,
-      summary: EMPTY_SUMMARY,
-      findings: [],
-      manualItems: [],
-      market: "US",
-    });
+    return withUsBasis(
+      {
+        disclaimer: usDisclaimer(),
+        readable: true,
+        charCount: 0,
+        hangulCount: 0,
+        notice: NOTICE_OTC_US_494,
+        skipJudgment: true,
+        summary: EMPTY_SUMMARY,
+        findings: [],
+        manualItems: [],
+        market: "US",
+      },
+      input,
+    );
   }
 
-  if (extracted.charCount === 0) {
-    return withUsBasis({
-      disclaimer: usDisclaimer(),
-      readable: false,
-      charCount: 0,
-      hangulCount: 0,
-      notice: NOTICE_IMAGE_PDF_497 + emptyPagesNoticeSuffix(extracted),
-      skipJudgment: true,
-      summary: EMPTY_SUMMARY,
-      findings: [],
-      manualItems: [],
-      market: "US",
-    });
+  const adOnly = input.scope === "ad_only";
+
+  if (!adOnly && extracted.charCount === 0) {
+    return withUsBasis(
+      {
+        disclaimer: usDisclaimer(),
+        readable: false,
+        charCount: 0,
+        hangulCount: 0,
+        notice: NOTICE_IMAGE_PDF_497 + emptyPagesNoticeSuffix(extracted),
+        skipJudgment: true,
+        summary: EMPTY_SUMMARY,
+        findings: [],
+        manualItems: [],
+        market: "US",
+      },
+      input,
+    );
   }
 
-  if (!extracted.readable && extracted.charCount < 40) {
-    return withUsBasis({
-      disclaimer: usDisclaimer(),
-      readable: false,
-      charCount: extracted.charCount,
-      hangulCount: extracted.hangulCount,
-      notice: NOTICE_IMAGE_PDF_497 + emptyPagesNoticeSuffix(extracted),
-      skipJudgment: true,
-      summary: EMPTY_SUMMARY,
-      findings: [],
-      manualItems: [],
-      market: "US",
-    });
+  if (!adOnly && !extracted.readable && extracted.charCount < 40) {
+    return withUsBasis(
+      {
+        disclaimer: usDisclaimer(),
+        readable: false,
+        charCount: extracted.charCount,
+        hangulCount: extracted.hangulCount,
+        notice: NOTICE_IMAGE_PDF_497 + emptyPagesNoticeSuffix(extracted),
+        skipJudgment: true,
+        summary: EMPTY_SUMMARY,
+        findings: [],
+        manualItems: [],
+        market: "US",
+      },
+      input,
+    );
+  }
+
+  if (adOnly) {
+    const ads = scanUsAdPhrases500(extracted.text);
+    return withUsBasis(
+      {
+        disclaimer: usDisclaimer(),
+        readable: true,
+        charCount: extracted.charCount,
+        hangulCount: extracted.hangulCount,
+        skipJudgment: false,
+        summary: summarize(ads, 0),
+        findings: ads,
+        manualItems: [],
+        market: "US",
+        scopeNotice: NOTICE_AD_ONLY_506,
+      },
+      input,
+    );
   }
 
   const rules = loadUsLabelRules494();
@@ -480,22 +534,48 @@ export async function runLabelCheckUsFromExtracted494(
       const f = runUsCodeRule(rule007, extracted.text, extracted, input);
       if (f) findings.push(f);
     }
-    return withUsBasis({
-      disclaimer: usDisclaimer(),
-      readable: true,
-      charCount: extracted.charCount,
-      hangulCount: extracted.hangulCount,
-      notice: NOTICE_US_NON_ENGLISH_497,
-      skipJudgment: false,
-      summary: summarize(findings, 0),
-      findings,
-      manualItems: [],
-      market: "US",
-    });
+    return withUsBasis(
+      {
+        disclaimer: usDisclaimer(),
+        readable: true,
+        charCount: extracted.charCount,
+        hangulCount: extracted.hangulCount,
+        notice: NOTICE_US_NON_ENGLISH_497,
+        skipJudgment: false,
+        summary: summarize(findings, 0),
+        findings,
+        manualItems: [],
+        market: "US",
+      },
+      input,
+    );
   }
 
   for (const rule of rules) {
     if (rule.checkType === "code") {
+      // 506 — 텍스트 모드: Ingredients 글자 크기 판정 제외
+      if (
+        rule.id === "US-006" &&
+        !extracted.textItems?.length &&
+        !extracted.fontSizesPt?.length
+      ) {
+        const hit = hasIngredientsBlock(extracted.text);
+        if (!hit) {
+          const f = runUsCodeRule(rule, extracted.text, extracted, input);
+          if (f) findings.push(f);
+        } else {
+          findings.push({
+            category: "US",
+            label: rule.title,
+            status: "pass",
+            found: hit,
+            suggest: "함량 순·INCI 명칭을 확인하세요.",
+            checkType: "code",
+            checkKey: "US-006",
+          });
+        }
+        continue;
+      }
       const f = runUsCodeRule(rule, extracted.text, extracted, input);
       if (f) findings.push(f);
     } else {
@@ -515,18 +595,29 @@ export async function runLabelCheckUsFromExtracted494(
   // 500 — 미국 광고 표현(데이터). US-013 대체.
   findings.push(...scanUsAdPhrases500(extracted.text));
 
-  return withUsBasis({
-    disclaimer: usDisclaimer(),
-    readable: true,
-    charCount: extracted.charCount,
-    hangulCount: extracted.hangulCount,
-    notice: emptyPagesNoticeSuffix(extracted).trim() || undefined,
-    skipJudgment: false,
-    summary: summarize(findings, manualItems.length),
-    findings,
-    manualItems,
-    market: "US",
-  });
+  const extra = scanUsIngredientsExtra506(
+    extracted.text,
+    Boolean(extracted.textItems?.length || extracted.fontSizesPt?.length),
+    extracted.fontSizesPt,
+  );
+  findings.push(...extra.findings);
+
+  return withUsBasis(
+    {
+      disclaimer: usDisclaimer(),
+      readable: true,
+      charCount: extracted.charCount,
+      hangulCount: extracted.hangulCount,
+      notice: emptyPagesNoticeSuffix(extracted).trim() || undefined,
+      skipJudgment: false,
+      summary: summarize(findings, manualItems.length),
+      findings,
+      manualItems,
+      market: "US",
+      ingredientCount: extra.ingredientCount,
+    },
+    input,
+  );
 }
 
 export async function runLabelCheckUs494(
