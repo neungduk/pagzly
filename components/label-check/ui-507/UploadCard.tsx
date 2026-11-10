@@ -141,7 +141,7 @@ export function UploadCard507(props: UploadCard507Props) {
           }}
           aria-hidden
         >
-          <svg width="32" height="32" viewBox="0 0 40 40" fill="none" stroke="#0F3D36" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="32" height="32" viewBox="0 0 40 40" fill="none" stroke="#111214" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 27V8M12 15l8-8 8 8" />
             <path d="M6 27v5h28v-5" />
           </svg>

@@ -118,10 +118,10 @@ function FindingCard({
             style={{
               minHeight: 44,
               padding: "8px 16px",
-              borderRadius: 8,
-              background: done ? "#FFFFFF" : "#0F3D36",
-              color: done ? "#0F3D36" : "#F2F5F3",
-              border: done ? "1px solid #0F3D36" : "0",
+              borderRadius: 10,
+              background: done ? "#FFFFFF" : "#111214",
+              color: done ? "#111214" : "#FFFFFF",
+              border: done ? "1px solid #111214" : "0",
               fontWeight: 700,
             }}
             onClick={onToggleDone}
@@ -368,8 +368,8 @@ export function ResultView507({
                 <div
                   style={{
                     height: 10,
-                    borderRadius: 6,
-                    background: "#E3E9E5",
+                    borderRadius: 10,
+                    background: "#E6E6E1",
                     overflow: "hidden",
                   }}
                   aria-hidden
@@ -378,8 +378,8 @@ export function ResultView507({
                     className="lc-bar lc-h-full"
                     style={{
                       width: `${progressPct}%`,
-                      background: "#0F3D36",
-                      borderRadius: 6,
+                      background: "#1D4ED8",
+                      borderRadius: 10,
                     }}
                   />
                 </div>

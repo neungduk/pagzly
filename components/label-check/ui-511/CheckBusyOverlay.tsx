@@ -38,8 +38,8 @@ export function CheckBusyOverlay511({ busy }: { busy: boolean }) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(15,61,54,.94)",
-        color: "#F2F5F3",
+        background: "rgba(17,18,20,.94)",
+        color: "#F7F7F5",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -55,8 +55,8 @@ export function CheckBusyOverlay511({ busy }: { busy: boolean }) {
               width: 34,
               height: 34,
               borderRadius: 17,
-              border: "4px solid #3E6B60",
-              borderTopColor: "#FF6B52",
+              border: "4px solid #2E3036",
+              borderTopColor: "#1D4ED8",
               display: "inline-block",
             }}
             aria-hidden
@@ -76,7 +76,7 @@ export function CheckBusyOverlay511({ busy }: { busy: boolean }) {
                   alignItems: "center",
                   gap: 12,
                   fontSize: 17,
-                  color: active ? "#F2F5F3" : done ? "#C6D8D0" : "#5E8379",
+                  color: active ? "#F7F7F5" : done ? "#B4B7BE" : "#6A6D74",
                 }}
               >
                 <span
@@ -84,14 +84,14 @@ export function CheckBusyOverlay511({ busy }: { busy: boolean }) {
                     flex: "none",
                     width: 24,
                     height: 24,
-                    borderRadius: 12,
-                    background: active || done ? "#FF6B52" : "#3E6B60",
+                    borderRadius: 10,
+                    background: active || done ? "#1D4ED8" : "#2E3036",
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
                     fontSize: 13,
                     fontWeight: 700,
-                    color: "#0F3D36",
+                    color: "#FFFFFF",
                   }}
                 >
                   {done ? "✓" : i + 1}

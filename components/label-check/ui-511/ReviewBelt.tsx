@@ -13,7 +13,7 @@ const BELT = [
 export function ReviewBelt511() {
   const items = [...BELT, ...BELT];
   return (
-    <div style={{ background: "#13201C", color: "#F2F5F3", overflow: "hidden", padding: "20px 0", borderBottom: "4px solid #FF6B52" }}>
+    <div style={{ background: "#111214", color: "#F7F7F5", overflow: "hidden", padding: "20px 0", borderBottom: "4px solid #1D4ED8" }}>
       <div className="lc-belt" aria-hidden>
         {items.map((b, i) => (
           <span key={`${b.text}-${i}`} style={{ display: "inline-flex", alignItems: "center", gap: 12, padding: "0 28px", fontSize: 17, whiteSpace: "nowrap" }}>

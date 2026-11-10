@@ -61,7 +61,7 @@ export function TryItPicker511() {
               minHeight: 64,
               padding: "14px 20px",
               borderRadius: 12,
-              border: `2px solid ${i === pick ? "#0F3D36" : "transparent"}`,
+              border: `2px solid ${i === pick ? "#111214" : "transparent"}`,
               background: i === pick ? "#FFFFFF" : "#E9EFEC",
               color: "#13201C",
               fontSize: 17,
@@ -102,10 +102,10 @@ export function TryItPicker511() {
         </div>
         <p style={{ margin: 0, fontSize: 17, lineHeight: 1.8, color: "#3E4F49" }}>{sel.why}</p>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid #E3E9E5", paddingTop: 18 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: "#0F3D36" }}>이렇게 고쳐 보세요</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: "#111214" }}>이렇게 고쳐 보세요</span>
           <p style={{ margin: 0, fontSize: 18, lineHeight: 1.7, display: "flex", flexWrap: "wrap", gap: "6px 14px", alignItems: "center" }}>
             <span style={{ textDecoration: "line-through", textDecorationColor: "#D6402B", color: "#8A968F" }}>{sel.text}</span>
-            <span style={{ color: "#0F3D36", fontWeight: 700, background: "rgba(31,122,86,.12)", padding: "2px 10px", borderRadius: 6 }}>{sel.fix}</span>
+            <span style={{ color: "#1F7A56", fontWeight: 700, background: "rgba(31,122,86,.12)", padding: "2px 10px", borderRadius: 10 }}>{sel.fix}</span>
           </p>
         </div>
       </div>
