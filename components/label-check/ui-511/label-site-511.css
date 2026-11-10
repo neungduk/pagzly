@@ -34,8 +34,8 @@
   line-height: 1.7;
   min-height: 100vh;
   overflow-x: hidden;
-  word-break: break-word;
-  overflow-wrap: anywhere;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 .lc-site .lc-mono {
@@ -1062,6 +1062,8 @@
   align-items: center;
 }
 .lc-site .lc514-cta-band {
+  width: 100%;
+  box-sizing: border-box;
   max-width: 1040px;
   margin: 0 auto;
   padding: 0 24px 96px;
