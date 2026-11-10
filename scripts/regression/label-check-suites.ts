@@ -23,6 +23,7 @@ import * as labelCheck507 from "./label-check-507";
 import * as labelCheck508Unreadable from "./label-check-508-unreadable";
 import * as labelCheck508Ocr from "./label-check-508-ocr";
 import * as labelCheck509OcrHardening from "./label-check-509-ocr-hardening";
+import * as labelCheckOcrFix510 from "./label-check-ocr-fix-510";
 
 export type LabelCheckSuite = {
   name: string;
@@ -51,4 +52,5 @@ export const LABEL_CHECK_SUITES: LabelCheckSuite[] = [
   labelCheck508Unreadable,
   labelCheck508Ocr,
   labelCheck509OcrHardening,
+  labelCheckOcrFix510,
 ];

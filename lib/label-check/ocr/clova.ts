@@ -26,6 +26,7 @@ export function parseClovaResponse508(json: unknown, tileIndex: number): OcrTile
       fields?: Array<{
         inferText?: string;
         inferConfidence?: number;
+        lineBreak?: boolean;
         boundingPoly?: { vertices?: Array<{ x?: number; y?: number }> };
       }>;
     }>;
@@ -35,25 +36,33 @@ export function parseClovaResponse508(json: unknown, tileIndex: number): OcrTile
     return { tileIndex, lines: [], fullText: "", avgConfidence: 0 };
   }
   const lines: OcrLine508[] = [];
-  for (const field of img.fields || []) {
+  // CLOVA 는 단어(field) 단위로 돌려준다. lineBreak=true 인 단어에서 줄을 끝내고, 그 전까지는 공백으로 잇는다.
+  let curWords: OcrWord508[] = [];
+  const flush = () => {
+    if (!curWords.length) return;
+    const text = curWords.map((w) => w.text).join(" ");
+    const conf = curWords.reduce((s, w) => s + w.confidence, 0) / curWords.length;
+    lines.push({ text, confidence: conf, words: curWords, y: curWords[0]!.y });
+    curWords = [];
+  };
+  for (const field of (img.fields || []) as Array<{
+    inferText?: string;
+    inferConfidence?: number;
+    lineBreak?: boolean;
+    boundingPoly?: { vertices?: Array<{ x?: number; y?: number }> };
+  }>) {
     const text = (field.inferText || "").trim();
     if (!text) continue;
     const conf = typeof field.inferConfidence === "number" ? field.inferConfidence : 0;
-    const words: OcrWord508[] = [
-      {
-        text,
-        confidence: conf,
-        boxHeightPx: boxHeight(field.boundingPoly?.vertices),
-        y: boxY(field.boundingPoly?.vertices),
-      },
-    ];
-    lines.push({
+    curWords.push({
       text,
       confidence: conf,
-      words,
+      boxHeightPx: boxHeight(field.boundingPoly?.vertices),
       y: boxY(field.boundingPoly?.vertices),
     });
+    if (field.lineBreak) flush();
   }
+  flush();
   const fullText = lines.map((l) => l.text).join("\n");
   const avg = lines.length ? lines.reduce((s, l) => s + l.confidence, 0) / lines.length : 0;
   return { tileIndex, lines, fullText, avgConfidence: avg };

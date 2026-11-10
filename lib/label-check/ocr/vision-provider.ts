@@ -35,7 +35,11 @@ function parseAnnotateResponse(json: unknown, tileIndex: number): OcrTileResult5
               words?: Array<{
                 confidence?: number;
                 boundingBox?: VisionBox;
-                symbols?: Array<{ text?: string; confidence?: number }>;
+                symbols?: Array<{
+                  text?: string;
+                  confidence?: number;
+                  property?: { detectedBreak?: { type?: string } };
+                }>;
               }>;
               confidence?: number;
               boundingBox?: VisionBox;
@@ -62,7 +66,11 @@ function parseAnnotateResponse(json: unknown, tileIndex: number): OcrTileResult5
         let confN = 0;
         let text = "";
         for (const w of para.words || []) {
-          const t = (w.symbols || []).map((s) => s.text || "").join("");
+          // 단어 사이 공백/줄바꿈은 마지막 글자의 detectedBreak 로 복원한다(없으면 붙어 읽힘).
+          const syms = w.symbols || [];
+          const t = syms.map((s) => s.text || "").join("");
+          const brk = syms[syms.length - 1]?.property?.detectedBreak?.type;
+          const sep = brk === "LINE_BREAK" ? "\n" : brk === "SPACE" || brk === "SURE_SPACE" || brk === "EOL_SURE_SPACE" ? " " : "";
           const c = typeof w.confidence === "number" ? w.confidence : 0;
           words.push({
             text: t,
@@ -70,7 +78,7 @@ function parseAnnotateResponse(json: unknown, tileIndex: number): OcrTileResult5
             boxHeightPx: boxHeight(w.boundingBox),
             y: boxY(w.boundingBox),
           });
-          text += t;
+          text += t + sep;
           confSum += c;
           confN += 1;
         }
