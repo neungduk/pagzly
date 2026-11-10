@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Noto_Sans_KR, Noto_Serif_KR } from "next/font/google";
+import { IBM_Plex_Mono, Noto_Sans_KR, Noto_Serif_KR } from "next/font/google";
 import { DETAIL_PAGE_ENABLED } from "@/lib/feature-flags";
 import { INTRO_ONE_LINE_486 } from "@/lib/label-check/types";
 import "./globals.css";
@@ -15,6 +15,14 @@ const notoSerifKr = Noto_Serif_KR({
   variable: "--font-noto-serif-kr",
   subsets: ["latin"],
   weight: ["400", "600", "700"],
+  display: "swap",
+});
+
+/** 511 — 라벨 화면 숫자·라벨용 (next/font 자체 호스팅) */
+const ibmPlexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
+  subsets: ["latin"],
+  weight: ["500", "700"],
   display: "swap",
 });
 
@@ -58,7 +66,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ko"
-      className={`${notoSansKr.variable} ${notoSerifKr.variable} h-full antialiased`}
+      className={`${notoSansKr.variable} ${notoSerifKr.variable} ${ibmPlexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">{children}</body>
     </html>
