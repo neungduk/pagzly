@@ -15,6 +15,7 @@ import {
 } from "@/lib/label-check/ui-status-507";
 import { CopyButton507 } from "./CopyButton";
 import { FindingCardBody512 } from "@/components/label-check/ui-511/FindingCardBody512";
+import { useLawBaseline516 } from "@/components/label-check/LawBaselineClient516";
 
 export type ResultView507Props = {
   result: LabelCheckResult;
@@ -33,6 +34,8 @@ export type ResultView507Props = {
   ocrAvailable?: boolean;
   onStartOcr?: () => void;
   onFocusPaste?: () => void;
+  /** 516 — 법령 확인 기준일 한 줄(없으면 숨김) */
+  lawBaseline?: string | null;
 };
 
 function chipClass(b: UiBucket507): string {
@@ -150,7 +153,9 @@ export function ResultView507({
   ocrAvailable,
   onStartOcr,
   onFocusPaste,
+  lawBaseline,
 }: ResultView507Props) {
+  const lawBaselineLine = useLawBaseline516(lawBaseline);
   const verdictRef = useRef<HTMLParagraphElement>(null);
   const unreadable = result.readStatus === "unreadable";
   const counts = useMemo(() => {
@@ -580,6 +585,12 @@ export function ResultView507({
               </details>
             ) : null}
           </div>
+        ) : null}
+
+        {lawBaselineLine ? (
+          <p className="lc507-fine lc516-law-baseline" style={{ marginTop: 8 }}>
+            {lawBaselineLine}
+          </p>
         ) : null}
 
         <p className="lc507-fine" style={{ marginTop: 8 }}>

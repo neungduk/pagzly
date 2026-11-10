@@ -7,7 +7,14 @@ import { LabelFooter511 } from "./LabelFooter";
 import { LandingProofDemo511 } from "./LandingProofDemo";
 import { LANDING_BEFORE_AFTER_514 } from "./landing-demo-514";
 
-export function LabelCheckLanding511({ user }: { user: { id: string } | null }) {
+export function LabelCheckLanding511({
+  user,
+  lawBaseline = null,
+}: {
+  user: { id: string } | null;
+  /** 516 — 법령 확인 기준일(푸터 위). 없으면 숨김 */
+  lawBaseline?: string | null;
+}) {
   const counts = labelRuleCounts514();
 
   return (
@@ -190,7 +197,7 @@ export function LabelCheckLanding511({ user }: { user: { id: string } | null }) 
           </div>
         </section>
 
-        <LabelFooter511 />
+        <LabelFooter511 lawBaseline={lawBaseline} />
       </div>
     </LabelSiteShell511>
   );

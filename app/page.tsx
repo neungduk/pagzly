@@ -28,6 +28,7 @@ import { DETAIL_PAGE_ENABLED } from "@/lib/feature-flags";
 import { INTRO_ONE_LINE_486 } from "@/lib/label-check/types";
 import { createClient } from "@/lib/supabase/server";
 import { LabelCheckLanding511 } from "@/components/label-check/ui-511";
+import { getLawWatchBaselineLabel516 } from "@/lib/law-watch/baseline-date";
 
 const featureVisuals: Record<
   string,
@@ -105,8 +106,14 @@ export const metadata: Metadata = DETAIL_PAGE_ENABLED
       description: INTRO_ONE_LINE_486,
     };
 
-function LabelCheckLanding({ user }: { user: { id: string } | null }) {
-  return <LabelCheckLanding511 user={user} />;
+function LabelCheckLanding({
+  user,
+  lawBaseline,
+}: {
+  user: { id: string } | null;
+  lawBaseline?: string | null;
+}) {
+  return <LabelCheckLanding511 user={user} lawBaseline={lawBaseline} />;
 }
 
 export default async function Home() {
@@ -116,7 +123,8 @@ export default async function Home() {
   } = await supabase.auth.getUser();
 
   if (!DETAIL_PAGE_ENABLED) {
-    return <LabelCheckLanding user={user} />;
+    const lawBaseline = await getLawWatchBaselineLabel516();
+    return <LabelCheckLanding user={user} lawBaseline={lawBaseline} />;
   }
 
   const startHref = user ? "/create" : "/signup";

@@ -1,10 +1,32 @@
+"use client";
+
 import Link from "next/link";
 import { labelContactEmail } from "@/lib/label-check/contact";
+import { useLawBaseline516 } from "@/components/label-check/LawBaselineClient516";
 
-export function LabelFooter511() {
+export function LabelFooter511({
+  lawBaseline,
+}: {
+  /** 516 — 서버에서 넘기면 그대로. 생략 시 API 조회 */
+  lawBaseline?: string | null;
+} = {}) {
   const email = labelContactEmail();
+  const baseline = useLawBaseline516(lawBaseline);
   return (
     <footer className="lc-footer">
+      {baseline ? (
+        <p
+          className="lc516-law-baseline"
+          style={{
+            margin: "0 0 8px",
+            fontSize: 12,
+            lineHeight: 1.4,
+            color: "#5B6B65",
+          }}
+        >
+          {baseline}
+        </p>
+      ) : null}
       <span>
         참고용 사전 점검이며 법적 판단이 아닙니다
         {" · "}
