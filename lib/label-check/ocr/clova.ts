@@ -94,7 +94,16 @@ export function createClovaProvider508(opts: {
             body: JSON.stringify(body),
           });
           if (!res.ok) {
-            const err = new Error(`CLOVA_HTTP_${res.status}`);
+            // 진단용: HTTP 상태와 CLOVA 오류 코드(숫자 4자리)만 남긴다. 본문 원문·키는 남기지 않는다.
+            let codeSuffix = "";
+            try {
+              const j = (await res.json()) as { code?: unknown };
+              const c = typeof j?.code === "string" || typeof j?.code === "number" ? String(j.code) : "";
+              if (/^\d{1,5}$/.test(c)) codeSuffix = `_${c}`;
+            } catch {
+              /* 본문이 JSON이 아니면 무시 */
+            }
+            const err = new Error(`CLOVA_HTTP_${res.status}${codeSuffix}`);
             (err as Error & { status?: number }).status = res.status;
             throw err;
           }

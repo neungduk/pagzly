@@ -176,7 +176,8 @@ export async function runOcrBatch508(
       console.warn("[label-ocr] provider-timeout");
       return { ok: false, code: "OCR_TIMEOUT", error: ERR_OCR_TIMEOUT_509 };
     }
-    console.warn("[label-ocr] provider-failed");
+    const diag = e instanceof Error && /^CLOVA_HTTP_\d{3}(_\d{1,5})?$/.test(e.message) ? ` ${e.message}` : "";
+    console.warn(`[label-ocr] provider-failed${diag}`);
     return { ok: false, code: "VISION", error: ERR_OCR_UNAVAILABLE_508 };
   }
 }
