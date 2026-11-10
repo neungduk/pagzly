@@ -35,14 +35,14 @@
 ## 2. 파트 B — OCR (시장별 공급자: 한국=네이버 CLOVA OCR, 미국·해외=Google Cloud Vision)
 **사용자 결정(2026-11-10)**: 판매 국가가 **한국**이면 **CLOVA OCR(General)**, **미국(및 이후 추가될 해외)**이면 **Google Cloud Vision**. 공급자는 `lib/label-check/ocr/provider.ts`의 인터페이스(`recognize(tile) → {lines:[{text,confidence,heightPx}]}`) 뒤에 두고, `pickProvider(market)`이 고른다. 두 구현 파일: `ocr/google-vision.ts`, `ocr/clova.ts`.
 - **Google**(공식 가격 페이지 확인): Document Text Detection 월 1,000장 무료, 이후 1,000장당 US$1.50(PDF는 쪽마다 1장).
-- **CLOVA**(공식 API 문서 확인): `POST {Invoke URL}`, 헤더 `X-OCR-SECRET`, 본문 `version:"V2"`, `requestId`(UUID), `timestamp`(ms), `lang:"ko"`, `images:[{format,name,data(base64)}]`(**호출당 이미지 1개**), 응답 `images[0].fields[].{inferText, inferConfidence(0~1), boundingPoly.vertices}`, `inferResult`가 `SUCCESS`가 아니면 실패. 이미지 50MB 이하, PDF는 호출당 10쪽 이하. 문서에 긴 변 제한이 **1,960px(이전) → 8,000px 미만(2026-04-23 이후 한국 리전)** 두 가지로 적혀 있어 **어느 쪽인지 확인하지 못했다** → 조각 높이를 **1,900px**로 두고 상수로 분리(확인 후 키울 수 있게). **요금과 무료 제공량은 확인하지 못했다**(공개 가격표에서 수치를 못 찾음) → 비용은 호출 수로만 센다.
+- **CLOVA**(공식 API 문서 확인): `POST {Invoke URL}`, 헤더 `X-OCR-SECRET`, 본문 `version:"V2"`, `requestId`(UUID), `timestamp`(ms), `lang:"ko"`, `images:[{format,name,data(base64)}]`(**호출당 이미지 1개**), 응답 `images[0].fields[].{inferText, inferConfidence(0~1), boundingPoly.vertices}`, `inferResult`가 `SUCCESS`가 아니면 실패. 이미지 50MB 이하, PDF는 호출당 10쪽 이하. 문서에 긴 변 제한이 **1,960px(이전) → 8,000px 미만(2026-04-23 이후 한국 리전)** 두 가지로 적혀 있어 **어느 쪽인지 확인하지 못했다** → 조각 높이를 **1,900px**로 두고 상수로 분리(확인 후 키울 수 있게). **요금(사용자가 네이버클라우드 요금 화면으로 확인, 한국 리전·KRW·VAT 별도)**: General OCR **글자 추출 1건(=호출 1회)당 3원, 월 100건 무료**. 표 추출은 별도 요금(22원)이므로 **`enableTableDetection`은 항상 보내지 않는다(false)**. 호출 1회 = 조각 1개라서 비용 = 조각 수 × 3원(무료분 제외).
 - 한국 시장에서 CLOVA 설정이 없고 `GOOGLE_VISION_API_KEY`가 있으면 **Google로 대체**한다(보고서에 이 동작을 명시. 대체하지 않기를 원하면 사용자가 알려 준다). 둘 다 없으면 OCR 꺼짐.
 
 ### B-1. 환경변수 (코드는 이름만 쓴다. 값은 사용자가 Vercel에 넣는다)
 - `GOOGLE_VISION_API_KEY` — 미국·해외용. 없으면 해당 시장 OCR은 **꺼진 상태**(버튼 숨김, 붙여넣기만 안내, 에러 아님).
 - `CLOVA_OCR_INVOKE_URL`, `CLOVA_OCR_SECRET` — 한국용. 둘 중 하나라도 없으면 한국 OCR은 위 대체 규칙을 따른다.
 - `LABEL_OCR_GOOGLE_MONTHLY_LIMIT` — 기본 **900**(무료 한도 안).
-- `LABEL_OCR_CLOVA_MONTHLY_LIMIT` — 기본 **0**(= 한도 미설정 시 CLOVA 호출 안 함). 사용자가 CLOVA 요금을 확인한 뒤 숫자를 넣어야 켜진다.
+- `LABEL_OCR_CLOVA_MONTHLY_LIMIT` — 기본 **90**(월 무료 100건 안). 사용자가 더 쓰려면 Vercel에서 숫자를 올린다(초과분은 건당 3원).
 - `LABEL_OCR_PER_USER_DAILY` — 기본 **30**(회원), 비회원은 **5**(IP 기준).
 
 ### B-2. 흐름
@@ -92,6 +92,6 @@
 ## 4. 보고서에 반드시 포함
 1. 파트 A 전/후 화면 상태표(unreadable/partial/ok)와 "발견된 항목이 없어요"가 나오는 모든 경로 목록.
 2. OCR 흐름 다이어그램(텍스트)과 환경변수 3개 표.
-3. 시장별 요청당 최대 조각 수·본문 크기·호출 수 계산식. Google 단가는 "1,000장당 US$1.50, 월 1,000장 무료(공식 가격 페이지 확인값, 변동 가능)"로만 기재. **CLOVA 단가는 확인하지 못했다고 적고 추정 금지.** 한국 시장 대체(Google) 동작과 CLOVA 한도 기본 0의 의미를 설명.
+3. 시장별 요청당 최대 조각 수·본문 크기·호출 수 계산식. Google 단가는 "1,000장당 US$1.50, 월 1,000장 무료(공식 가격 페이지 확인값, 변동 가능)"로만 기재. CLOVA 단가는 "글자 추출 건당 3원, 월 100건 무료, VAT 별도(사용자가 요금 화면으로 확인한 값, 변동 가능)"로만 기재하고 표 추출 요금은 쓰지 않는다는 점을 적는다. 한국 시장 대체(Google) 동작과 CLOVA 한도 기본 90의 의미를 설명.
 4. 마이그레이션 파일 경로(적용 안 함 명시).
 5. 확인하지 못한 항목(실제 호출, 실사진 정확도, 브라우저 렌더링 등).
