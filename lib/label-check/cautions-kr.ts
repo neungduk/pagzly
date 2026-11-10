@@ -6,7 +6,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { normalizeLabelText } from "@/lib/label-check/extract-pdf";
 import { FOUND_CONFIRMED_488 } from "@/lib/label-check/format-found";
+import { PRODUCT_TYPE_OPTIONS_504 } from "@/lib/label-check/product-type-options-504";
 import type { CheckStatus, Finding, LabelCheckInput } from "@/lib/label-check/types";
+
+export { PRODUCT_TYPE_OPTIONS_504 } from "@/lib/label-check/product-type-options-504";
 
 export type IngredientCaution = {
   id: string;
@@ -54,20 +57,6 @@ const COMMON_CAUTION_TITLES_505: Record<string, string> = {
 /** 기능성(규칙 제2조제6·7호) 안내 — 새 카피 이 한 줄만 */
 export const FUNCTIONAL_COMMON_CAUTION_LINE_505 =
   "기능성화장품(규칙 제2조제6·7호)은 공통사항을 외부 포장에 표기해야 합니다(별표4 8.).";
-
-/** UI 유형 키 → type_cautions condition_note 매칭용 */
-export const PRODUCT_TYPE_OPTIONS_504: Array<{ id: string; label: string; noteKey: string }> = [
-  { id: "scrub", label: "스크럽", noteKey: "스크럽" },
-  { id: "pack", label: "팩", noteKey: "팩" },
-  { id: "shampoo", label: "샴푸", noteKey: "샴푸" },
-  { id: "vulva", label: "외음부세정제", noteKey: "외음부" },
-  { id: "softener", label: "손발연화", noteKey: "손·발" },
-  { id: "deodorant", label: "체취방지", noteKey: "체취" },
-  { id: "spray_sunscreen", label: "분무형 자외선차단", noteKey: "분무형 자외선" },
-  { id: "aerosol", label: "에어로졸", noteKey: "에어로졸" },
-  /** 506 — 광고 예외(색조 화장용 제품류) */
-  { id: "color_makeup", label: "색조", noteKey: "색조" },
-];
 
 let cached: CautionsFile | null = null;
 
