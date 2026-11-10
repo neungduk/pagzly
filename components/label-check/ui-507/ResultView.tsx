@@ -9,12 +9,12 @@ import {
   buildVerdict507,
   compareBanner507,
   defaultTab507,
-  highlightEvidence507,
   sortFindings507,
   statusToBucket507,
   type UiBucket507,
 } from "@/lib/label-check/ui-status-507";
 import { CopyButton507 } from "./CopyButton";
+import { FindingCardBody512 } from "@/components/label-check/ui-511/FindingCardBody512";
 
 export type ResultView507Props = {
   result: LabelCheckResult;
@@ -53,76 +53,6 @@ function findingKey(f: Finding): string {
   return f.checkKey || `${f.status}:${f.label}:${f.found || ""}`;
 }
 
-function collectExamples(f: Finding): string[] {
-  const out: string[] = [];
-  for (const t of f.fix?.templates || []) {
-    if (t.trim()) out.push(t.trim());
-  }
-  for (const a of f.fix?.alternatives || []) {
-    if (a.text?.trim()) out.push(a.text.trim());
-  }
-  return out;
-}
-
-function evidenceBefore(f: Finding): string | null {
-  const ev = f.evidence?.[0];
-  if (ev?.found?.trim()) return ev.found.trim();
-  if (f.found?.trim()) return f.found.trim();
-  return null;
-}
-
-function FixSuggestBlock({ f }: { f: Finding }) {
-  const [expanded, setExpanded] = useState(false);
-  const examples = collectExamples(f);
-  const before = evidenceBefore(f);
-  const isDelete = f.fix?.kind === "delete";
-  const visible = expanded ? examples.slice(0, 3) : examples.slice(0, Math.min(3, examples.length));
-  const hiddenCount = Math.max(0, examples.length - 3);
-
-  return (
-    <div className="lc511-fix-block">
-      <p className="lc511-fix-title">이렇게 수정해 보세요</p>
-      {isDelete ? (
-        <p className="lc507-fine" style={{ margin: 0, fontSize: 15, color: "#13201C" }}>
-          이 문구는 빼는 것을 권해요
-        </p>
-      ) : null}
-      {visible.length ? (
-        visible.map((ex, i) => (
-          <div key={`ex-${i}`} className="lc511-pair">
-            {before ? <span className="before">{before}</span> : null}
-            {before ? <span aria-hidden>→</span> : null}
-            <span className="after">{ex}</span>
-            <CopyButton507 text={ex} />
-          </div>
-        ))
-      ) : !isDelete ? (
-        <p className="lc507-fine" style={{ margin: 0, fontSize: 15, color: "#13201C" }}>
-          <b>확인 방법</b> · {f.suggest || f.fix?.note || f.fix?.headline || "해당 항목을 확인해 주세요."}
-        </p>
-      ) : null}
-      {hiddenCount > 0 && !expanded ? (
-        <button type="button" className="lc507-copy" onClick={() => setExpanded(true)}>
-          더 보기 ({hiddenCount})
-        </button>
-      ) : null}
-      {expanded && examples.length > 3
-        ? examples.slice(3).map((ex, i) => (
-            <div key={`ex-more-${i}`} className="lc511-pair">
-              {before ? <span className="before">{before}</span> : null}
-              {before ? <span aria-hidden>→</span> : null}
-              <span className="after">{ex}</span>
-              <CopyButton507 text={ex} />
-            </div>
-          ))
-        : null}
-      <p className="lc507-fine" style={{ margin: 0 }}>
-        예시 문구입니다. 제품에 맞게 고치고, 최종 확인은 판매자가 합니다.
-      </p>
-    </div>
-  );
-}
-
 function FindingCard({
   f,
   index,
@@ -130,6 +60,7 @@ function FindingCard({
   done,
   onToggleDone,
   animClass,
+  readStatus,
 }: {
   f: Finding;
   index: number;
@@ -137,6 +68,7 @@ function FindingCard({
   done?: boolean;
   onToggleDone?: () => void;
   animClass?: string;
+  readStatus?: LabelCheckResult["readStatus"];
 }) {
   const bucket = statusToBucket507(f.status);
   const showFix =
@@ -145,8 +77,8 @@ function FindingCard({
       Boolean(f.fix?.alternatives?.length) ||
       f.fix?.kind === "delete" ||
       Boolean(f.fix?.headline));
-  const wantsSuggestBlock = f.status === "possible" || f.status === "attention";
-  // showFix는 507 회귀 가드용으로 유지. 수정 블록은 고칠 것/확인할 것에 항상 표시.
+  const wantsBody512 = f.status === "possible" || f.status === "attention";
+  // showFix·f.fix 는 507 회귀 가드용으로 유지.
 
   return (
     <article
@@ -158,34 +90,12 @@ function FindingCard({
         <h3>{f.label}</h3>
       </div>
 
-      {!hideEvidence && f.evidence?.length ? (
-        <div className="lc507-quote">
-          {f.evidence.slice(0, 3).map((ev, i) => {
-            const h = highlightEvidence507(ev.sentence, ev.found);
-            if (!h) return <p key={i}>{ev.found}</p>;
-            return (
-              <p key={i}>
-                “{h.before}
-                <mark>{h.hit}</mark>
-                {h.after}”
-              </p>
-            );
-          })}
-        </div>
+      {wantsBody512 ? (
+        <FindingCardBody512 f={f} hideEvidence={hideEvidence} readStatus={readStatus} />
       ) : null}
 
-      {f.exception ? (
-        <p className="lc507-fine">
-          예외에 해당할 수 있어요: {f.exception.text}
-        </p>
-      ) : f.exceptionNote ? (
-        <p className="lc507-fine">예외에 해당할 수 있어요: {f.exceptionNote}</p>
-      ) : null}
-
-      {wantsSuggestBlock ? <FixSuggestBlock f={f} /> : null}
-
-      {/* 기존 showFix 경로 흔적(회귀 가드) — 고칠 것/확인할 것 블록이 없을 때만 */}
-      {!wantsSuggestBlock && showFix && f.fix ? (
+      {/* 기존 showFix 경로 흔적(회귀 가드) — 고칠 것/확인할 것 밖 */}
+      {!wantsBody512 && showFix && f.fix ? (
         <div className="lc507-fix">
           {(f.fix.templates || []).map((t, i) => (
             <div key={`t-${i}`} className="lc507-alt">
@@ -197,20 +107,7 @@ function FindingCard({
       ) : null}
 
       {f.status === "unknown" ? (
-        <p className="lc507-fine">
-          {f.found || f.suggest}
-          {f.suggest && f.found ? ` · ${f.suggest}` : ""}
-        </p>
-      ) : null}
-
-      {f.basis?.law ? (
-        <details>
-          <summary>왜 필요한가요? (근거)</summary>
-          <p className="mt-1">
-            {f.basis.law}
-            {f.basis.source ? ` — ${f.basis.source}` : ""}
-          </p>
-        </details>
+        <FindingCardBody512 f={f} hideEvidence={hideEvidence} readStatus={readStatus} />
       ) : null}
 
       {onToggleDone && (f.status === "possible" || f.status === "attention") ? (
@@ -233,7 +130,6 @@ function FindingCard({
           </button>
         </div>
       ) : null}
-      {/* index unused except key stability upstream */}
       {index < 0 ? null : null}
     </article>
   );
@@ -537,6 +433,7 @@ export function ResultView507({
                         done={Boolean(doneMap[key])}
                         onToggleDone={() => toggleDone(key)}
                         animClass={`lc-r${Math.min(5, i + 2)}`}
+                        readStatus={result.readStatus}
                       />
                     );
                   })
@@ -554,6 +451,7 @@ export function ResultView507({
                         done={Boolean(doneMap[key])}
                         onToggleDone={() => toggleDone(key)}
                         animClass={`lc-r${Math.min(5, i + 2)}`}
+                        readStatus={result.readStatus}
                       />
                     );
                   })}
@@ -576,7 +474,14 @@ export function ResultView507({
               ) : null}
               {tab === "unknown"
                 ? byTab.unknown.map((f, i) => (
-                    <FindingCard key={`u-${i}`} f={f} index={i} hideEvidence={hideEvidence} animClass={`lc-r${Math.min(5, i + 2)}`} />
+                    <FindingCard
+                      key={`u-${i}`}
+                      f={f}
+                      index={i}
+                      hideEvidence={hideEvidence}
+                      animClass={`lc-r${Math.min(5, i + 2)}`}
+                      readStatus={result.readStatus}
+                    />
                   ))
                 : null}
               {tab === "pass"
