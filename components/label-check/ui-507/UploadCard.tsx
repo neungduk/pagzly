@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, type DragEvent, type KeyboardEvent } from "react";
+import { useCallback, useRef, type DragEvent, type KeyboardEvent, type RefObject } from "react";
 import type { LabelCheckInput, LabelMarket } from "@/lib/label-check/types";
 import { DISCLAIMER_PRINT_485 } from "@/lib/label-check/types";
 import { PRODUCT_TYPE_OPTIONS_504 } from "@/lib/label-check/product-type-options-504";
@@ -10,6 +10,7 @@ import {
   PROGRESS_RULES_507,
   UPLOAD_TITLE_507,
 } from "@/lib/label-check/ui-status-507";
+import { CTA_OCR_508, NOTICE_OCR_TRANSFER_508 } from "@/lib/label-check/ocr/constants";
 
 export type UploadCard507Props = {
   market: LabelMarket;
@@ -29,6 +30,13 @@ export type UploadCard507Props = {
   progress: string | null;
   onSubmit: () => void;
   bothInputsHint?: boolean;
+  /** 508 — 붙여넣기 포커스용 */
+  pasteTextareaRef?: RefObject<HTMLTextAreaElement | null>;
+  /** 508 — PDF+이미지 */
+  acceptImages?: boolean;
+  ocrHint?: string | null;
+  onStartOcr?: () => void;
+  ocrAvailable?: boolean;
 };
 
 export function UploadCard507(props: UploadCard507Props) {
@@ -118,8 +126,12 @@ export function UploadCard507(props: UploadCard507Props) {
         onDragOver={(e) => e.preventDefault()}
         onDrop={onDrop}
       >
-        <b>PDF를 여기에 놓거나 눌러서 선택</b>
-        <small>파일은 내 컴퓨터에서 글자만 읽습니다 · 최대 100MB</small>
+        <b>
+          {props.acceptImages
+            ? "PDF·사진(JPG/PNG/WEBP)을 놓거나 눌러서 선택"
+            : "PDF를 여기에 놓거나 눌러서 선택"}
+        </b>
+        <small>파일은 내 컴퓨터에서 글자만 읽습니다 · PDF 최대 100MB · 사진 장당 10MB</small>
         {file ? (
           <p className="lc507-fine" style={{ marginTop: 8 }}>
             {file.name} · {(file.size / 1024).toFixed(1)} KB{" "}
@@ -139,7 +151,11 @@ export function UploadCard507(props: UploadCard507Props) {
       <input
         ref={inputRef}
         type="file"
-        accept="application/pdf,.pdf"
+        accept={
+          props.acceptImages
+            ? "application/pdf,.pdf,image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+            : "application/pdf,.pdf"
+        }
         className="sr-only"
         aria-hidden
         tabIndex={-1}
@@ -153,6 +169,7 @@ export function UploadCard507(props: UploadCard507Props) {
       <label className="lc507-fine">
         문구 붙여넣기
         <textarea
+          ref={props.pasteTextareaRef}
           className="lc507-textarea"
           aria-label="문구 붙여넣기"
           placeholder="상세페이지·라벨 문구를 붙여넣으세요"
@@ -161,6 +178,15 @@ export function UploadCard507(props: UploadCard507Props) {
           disabled={Boolean(file)}
         />
       </label>
+      {props.ocrHint ? <p className="lc507-fine">{props.ocrHint}</p> : null}
+      {props.ocrAvailable && props.onStartOcr && file ? (
+        <div className="flex flex-col gap-1">
+          <p className="lc507-fine">{NOTICE_OCR_TRANSFER_508}</p>
+          <button type="button" className="lc507-cta" style={{ fontSize: 14 }} disabled={busy} onClick={props.onStartOcr}>
+            {CTA_OCR_508}
+          </button>
+        </div>
+      ) : null}
       {!file ? (
         <fieldset className="flex flex-wrap gap-3 text-sm" style={{ border: 0, padding: 0, margin: 0 }}>
           <legend className="sr-only">문구 점검 범위</legend>

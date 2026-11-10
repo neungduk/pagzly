@@ -25,6 +25,9 @@ export type ClientSubmitOptions = LabelCheckInput & {
   text?: string;
   scope?: "ad_only" | "full";
   priorKeys?: string[];
+  /** 508 — 사진 OCR 후 고객 확인 글자 */
+  ocrFromPhoto?: boolean;
+  avgOcrConfidence?: number;
 };
 
 export type ClientSubmitOk = {
@@ -81,6 +84,8 @@ export async function submitLabelCheckTextClient(
       ...opts,
       scope: opts.scope ?? "ad_only",
     }),
+    ocrFromPhoto: Boolean(opts.ocrFromPhoto),
+    avgOcrConfidence: opts.avgOcrConfidence,
   });
   const res = await fetch("/api/label-check", {
     method: "POST",
@@ -115,6 +120,13 @@ async function postFile(file: File, opts: ClientSubmitOptions): Promise<Response
 }
 
 export function assertClientPdfSize(file: File): string | null {
+  const isImage = /^image\//i.test(file.type) || /\.(jpe?g|png|webp)$/i.test(file.name);
+  if (isImage) {
+    if (file.size > 10 * 1024 * 1024) {
+      return "이미지 파일이 너무 큽니다(장당 10MB 이하).";
+    }
+    return null;
+  }
   if (file.size > MAX_CLIENT_PDF_BYTES_499) {
     return `PDF가 너무 큽니다. 점검용 파일은 ${Math.floor(MAX_CLIENT_PDF_BYTES_499 / (1024 * 1024))}MB 이하로 준비해 주세요.`;
   }

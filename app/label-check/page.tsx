@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import "@/components/label-check/ui-507/label-check-507.css";
-import { UploadCard507, ResultView507 } from "@/components/label-check/ui-507";
+import { UploadCard507, ResultView507, OcrReviewCard508 } from "@/components/label-check/ui-507";
 import type { LabelCheckInput, LabelCheckResult, LabelMarket } from "@/lib/label-check/types";
 import { SAMPLE_BANNER_486 } from "@/lib/label-check/types";
 import {
@@ -15,6 +15,13 @@ import sampleResultA from "@/lib/label-check/sample-result-a.json";
 import { labelContactEmail } from "@/lib/label-check/contact";
 import { issueKeysFromFindings506 } from "@/lib/label-check/compare-506";
 import { PROGRESS_READ_507, PROGRESS_RULES_507 } from "@/lib/label-check/ui-status-507";
+import {
+  fetchOcrAvailable508,
+  runOcrFromFile508,
+  submitOcrReviewedText508,
+} from "@/lib/label-check/client-ocr-submit";
+import { isOcrImageFile508, isHeicFile508 } from "@/lib/label-check/client-ocr-prepare";
+import { ERR_OCR_HEIC_508 } from "@/lib/label-check/ocr/constants";
 
 function todayKo(): string {
   const d = new Date();
@@ -40,6 +47,13 @@ export default function LabelCheckPage() {
   const [isSample, setIsSample] = useState(false);
   const [recheckText, setRecheckText] = useState("");
   const [copied, setCopied] = useState(false);
+  const [ocrAvailable, setOcrAvailable] = useState(false);
+  const [ocrReview, setOcrReview] = useState<{
+    text: string;
+    corrections: string[];
+    avgConfidence: number;
+  } | null>(null);
+  const pasteRef = useRef<HTMLTextAreaElement | null>(null);
   const contactEmail = labelContactEmail();
 
   useEffect(() => {
@@ -49,13 +63,20 @@ export default function LabelCheckPage() {
       setMarket("US");
       setInput((p) => ({ ...p, market: "US" }));
     }
+    void fetchOcrAvailable508().then(setOcrAvailable);
   }, []);
 
   const onFile = useCallback((f: File | null) => {
     setResult(null);
     setIsSample(false);
     setError(null);
+    setOcrReview(null);
     if (!f) {
+      setFile(null);
+      return;
+    }
+    if (isHeicFile508(f)) {
+      setError(ERR_OCR_HEIC_508);
       setFile(null);
       return;
     }
@@ -72,16 +93,82 @@ export default function LabelCheckPage() {
     setError(null);
     setFile(null);
     setIsSample(true);
+    setOcrReview(null);
     setMarket("KR");
     setResult(sampleResultA.result as LabelCheckResult);
     setCheckedOn(todayKo());
   }, []);
+
+  const focusPaste = useCallback(() => {
+    setFile(null);
+    setResult(null);
+    setOcrReview(null);
+    window.setTimeout(() => pasteRef.current?.focus(), 50);
+  }, []);
+
+  const runOcrCore = async () => {
+    if (!file) return;
+    setError(null);
+    setResult(null);
+    const out = await runOcrFromFile508(file, (msg) => setProgress(msg));
+    if (!out.ok) {
+      setError(out.error);
+      return;
+    }
+    setOcrReview({
+      text: out.review.text,
+      corrections: out.review.corrections,
+      avgConfidence: out.review.avgConfidence,
+    });
+  };
+
+  const startOcr = async () => {
+    setBusy(true);
+    try {
+      await runOcrCore();
+    } finally {
+      setProgress(null);
+      setBusy(false);
+    }
+  };
+
+  const confirmOcr = async () => {
+    if (!ocrReview?.text.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      setProgress(PROGRESS_RULES_507);
+      const out = await submitOcrReviewedText508(ocrReview.text, {
+        ...input,
+        market,
+        avgOcrConfidence: ocrReview.avgConfidence,
+      });
+      if (!out.ok) {
+        setError(out.error);
+        return;
+      }
+      setResult(out.result);
+      setCheckedOn(todayKo());
+      setOcrReview(null);
+    } finally {
+      setProgress(null);
+      setBusy(false);
+    }
+  };
 
   const runCheck = async () => {
     setBusy(true);
     setError(null);
     setIsSample(false);
     try {
+      if (file && isOcrImageFile508(file)) {
+        if (!ocrAvailable) {
+          setError("사진은 글자 읽기(OCR)가 켜져 있을 때만 점검할 수 있어요. 문구를 붙여넣어 주세요.");
+          return;
+        }
+        await runOcrCore();
+        return;
+      }
       if (file) {
         setProgress(PROGRESS_READ_507);
         const out = await submitLabelCheckClient(
@@ -109,7 +196,7 @@ export default function LabelCheckPage() {
         setResult(out.result);
         setCheckedOn(todayKo());
       } else {
-        setError("PDF를 선택하거나 문구를 붙여넣으세요.");
+        setError("PDF·사진을 선택하거나 문구를 붙여넣으세요.");
       }
     } finally {
       setProgress(null);
@@ -158,25 +245,40 @@ export default function LabelCheckPage() {
           </nav>
         </header>
 
-        <UploadCard507
-          market={market}
-          onMarket={(m) => {
-            setMarket(m);
-            setInput((p) => ({ ...p, market: m }));
-          }}
-          file={file}
-          onFile={onFile}
-          pasteText={pasteText}
-          onPasteText={setPasteText}
-          textScope={textScope}
-          onTextScope={setTextScope}
-          input={{ ...input, market }}
-          onInputPatch={(p) => setInput((prev) => ({ ...prev, ...p }))}
-          busy={busy}
-          progress={progress}
-          onSubmit={() => void runCheck()}
-          bothInputsHint={Boolean(file && pasteText.trim())}
-        />
+        {!ocrReview ? (
+          <UploadCard507
+            market={market}
+            onMarket={(m) => {
+              setMarket(m);
+              setInput((p) => ({ ...p, market: m }));
+            }}
+            file={file}
+            onFile={onFile}
+            pasteText={pasteText}
+            onPasteText={setPasteText}
+            textScope={textScope}
+            onTextScope={setTextScope}
+            input={{ ...input, market }}
+            onInputPatch={(p) => setInput((prev) => ({ ...prev, ...p }))}
+            busy={busy}
+            progress={progress}
+            onSubmit={() => void runCheck()}
+            bothInputsHint={Boolean(file && pasteText.trim())}
+            pasteTextareaRef={pasteRef}
+            acceptImages
+            ocrAvailable={ocrAvailable}
+            onStartOcr={() => void startOcr()}
+          />
+        ) : (
+          <OcrReviewCard508
+            text={ocrReview.text}
+            onText={(t) => setOcrReview((p) => (p ? { ...p, text: t } : p))}
+            corrections={ocrReview.corrections}
+            busy={busy}
+            onConfirm={() => void confirmOcr()}
+            onCancel={() => setOcrReview(null)}
+          />
+        )}
 
         <p className="lc507-fine lc507-print-hide">
           <button type="button" className="underline-offset-2 hover:underline" onClick={showSample}>
@@ -202,6 +304,9 @@ export default function LabelCheckPage() {
             onRecheckText={setRecheckText}
             onRecheck={() => void recheck()}
             recheckBusy={busy}
+            ocrAvailable={ocrAvailable}
+            onStartOcr={() => void startOcr()}
+            onFocusPaste={focusPaste}
           />
         ) : null}
 

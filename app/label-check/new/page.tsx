@@ -170,6 +170,7 @@ export default function LabelCheckNewPage() {
             progress={progress}
             onSubmit={() => void runCheck()}
             bothInputsHint={Boolean(file && pasteText.trim())}
+            acceptImages
           />
         ) : null}
 
@@ -191,6 +192,10 @@ export default function LabelCheckNewPage() {
               onRecheckText={setRecheckText}
               onRecheck={() => void recheck()}
               recheckBusy={busy}
+              onFocusPaste={() => {
+                setResult(null);
+                setSavedId(null);
+              }}
             />
             <p className="lc507-fine lc507-print-hide">
               <button
