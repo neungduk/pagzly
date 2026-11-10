@@ -15,10 +15,13 @@ import {
 import {
   assertClientPdfSize,
   submitLabelCheckClient,
+  submitLabelCheckTextClient,
 } from "@/lib/label-check/client-submit";
 import sampleResultA from "@/lib/label-check/sample-result-a.json";
 import { labelContactEmail } from "@/lib/label-check/contact";
 import { fixKindHeading496 } from "@/lib/label-check/fix-kind-label";
+import { issueKeysFromFindings506 } from "@/lib/label-check/compare-506";
+import { NOTICE_RECHECK_EMPTY_506 } from "@/lib/label-check/types";
 
 const STATUS_KO: Record<string, string> = {
   possible: "위반 가능",
@@ -37,10 +40,22 @@ function todayKo(): string {
 
 function needsFixPanel(f: Finding): boolean {
   if (f.status === "pass") return false;
+  if (f.fix?.headline || f.fix?.templates?.length || f.fix?.alternatives?.length) return true;
   return Boolean(f.fixSuggestion && f.fixSuggestion.trim());
 }
 
 function formatFixBlock(f: Finding): string {
+  if (f.fix) {
+    const lines: string[] = [`[${f.label}]`, f.fix.headline];
+    for (const t of f.fix.templates || []) lines.push(`넣을 문구(예시): ${t}`);
+    for (const a of (f.fix.alternatives || []).slice(0, 2)) {
+      lines.push(`바꿀 문구(예시): ${a.text}`);
+      if (a.basis) lines.push(`근거: ${a.basis}`);
+    }
+    if (f.fix.note) lines.push(f.fix.note);
+    lines.push(FIX_EXAMPLE_NOTE_494);
+    return lines.join("\n");
+  }
   const lines: string[] = [`[${f.label}]`, `${fixKindHeading496(f.fixKind)}: ${f.fixSuggestion}`];
   if (f.fixExample) lines.push(f.fixExample);
   if (f.fixExample) lines.push(FIX_EXAMPLE_NOTE_494);
@@ -66,6 +81,8 @@ export default function LabelCheckPage() {
   const [isSample, setIsSample] = useState(false);
   const [copied, setCopied] = useState(false);
   const [fixCopied, setFixCopied] = useState(false);
+  const [pasteText, setPasteText] = useState("");
+  const [textScope, setTextScope] = useState<"ad_only" | "full">("ad_only");
 
   const contactEmail = labelContactEmail();
 
@@ -116,6 +133,7 @@ export default function LabelCheckPage() {
 
   const fixBundle = useMemo(() => {
     if (!result || result.skipJudgment) return "";
+    if (result.fixSheet?.trim()) return result.fixSheet;
     const parts: string[] = [];
     for (const f of result.findings) {
       if (!needsFixPanel(f)) continue;
@@ -140,6 +158,42 @@ export default function LabelCheckPage() {
       setFixCopied(false);
     }
   }, [fixBundle]);
+
+  const submitText = async (recheck: boolean) => {
+    if (!pasteText.trim()) {
+      setError("점검할 문구를 붙여넣으세요.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setIsSample(false);
+    try {
+      const priorKeys =
+        recheck && result ? issueKeysFromFindings506(result.findings) : undefined;
+      const out = await submitLabelCheckTextClient(pasteText, {
+        rinseOff,
+        functional,
+        market,
+        imported,
+        professionalUse,
+        hazardous,
+        otcDrugLike,
+        productTypes,
+        scope: textScope,
+        priorKeys,
+        productName: productName || undefined,
+      });
+      if (!out.ok) {
+        setError(out.error);
+        return;
+      }
+      setResult(out.result);
+      setCheckedOn(todayKo());
+      setFile(null);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const submit = async () => {
     if (!file) {
@@ -287,6 +341,55 @@ export default function LabelCheckPage() {
           </label>
           {file ? <p className="text-xs text-[#666]">선택됨 · {(file.size / 1024).toFixed(1)} KB</p> : null}
 
+          <label className="block text-sm font-semibold">
+            문구만 붙여넣기
+            <textarea
+              className="mt-2 min-h-[88px] w-full rounded-md border border-[#E5DCC8] bg-white px-3 py-2 text-sm font-normal"
+              placeholder="광고·라벨 문구를 붙여넣으세요"
+              value={pasteText}
+              onChange={(e) => setPasteText(e.target.value)}
+            />
+          </label>
+          <fieldset className="flex flex-wrap gap-3 text-sm">
+            <legend className="sr-only">문구 점검 범위</legend>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="textScope"
+                checked={textScope === "ad_only"}
+                onChange={() => setTextScope("ad_only")}
+              />
+              광고만
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="textScope"
+                checked={textScope === "full"}
+                onChange={() => setTextScope("full")}
+              />
+              라벨 전체
+            </label>
+          </fieldset>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void submitText(false)}
+              className="rounded-full border border-[#1B1B18] px-4 py-2 text-sm font-semibold"
+            >
+              문구 점검
+            </button>
+            <button
+              type="button"
+              disabled={busy || !result}
+              onClick={() => void submitText(true)}
+              className="rounded-full border border-[#CDBF9A] px-4 py-2 text-sm font-semibold"
+            >
+              고친 문구로 다시 점검
+            </button>
+          </div>
+
           {market === "KR" ? (
             <fieldset className="space-y-2 text-sm">
               <legend className="font-semibold">제품 유형</legend>
@@ -321,6 +424,7 @@ export default function LabelCheckPage() {
                       ["deodorant", "체취방지"],
                       ["spray_sunscreen", "분무형 자외선차단"],
                       ["aerosol", "에어로졸"],
+                      ["color_makeup", "색조"],
                     ] as const
                   ).map(([id, label]) => (
                     <label key={id} className="flex items-center gap-2 font-normal">
@@ -417,6 +521,20 @@ export default function LabelCheckPage() {
               </p>
             ) : null}
 
+            {result.scopeNotice ? (
+              <p className="text-sm text-[#6B5A2E]">{result.scopeNotice}</p>
+            ) : null}
+
+            {result.compare ? (
+              <p className="text-sm text-[#444]">
+                {result.compare.resolved.length}개 해결, {result.compare.remaining.length}개 남음
+                {result.compare.added.length ? `, ${result.compare.added.length}개 새로 생김` : ""}
+                {result.compare.remaining.length === 0 && result.compare.added.length === 0
+                  ? ` — ${NOTICE_RECHECK_EMPTY_506}`
+                  : ""}
+              </p>
+            ) : null}
+
             {!result.skipJudgment ? (
               <>
                 <div className="lc-summary grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -449,17 +567,35 @@ export default function LabelCheckPage() {
                       </div>
                       <p className="mt-1 text-[#333]">{f.found}</p>
                       <p className="mt-0.5 text-[#555]">{f.suggest}</p>
+                      {f.exceptionNote ? (
+                        <p className="mt-1 text-xs text-[#6B5A2E]">예외: {f.exceptionNote}</p>
+                      ) : null}
                       {needsFixPanel(f) ? (
                         <details className="mt-2 rounded-md border border-[#EDE4CF] bg-[#FFFCF5] px-2 py-1">
                           <summary className="cursor-pointer text-xs font-semibold text-[#6B5A2E]">
-                            {fixKindHeading496(f.fixKind)}
+                            {f.fix?.headline || fixKindHeading496(f.fixKind)}
                           </summary>
                           <div className="mt-1 space-y-1 text-xs leading-relaxed text-[#444]">
-                            <p>{f.fixSuggestion}</p>
-                            {f.fixExample ? <p>{f.fixExample}</p> : null}
-                            {f.fixExample ? (
-                              <p className="text-[#6B5A2E]">{FIX_EXAMPLE_NOTE_494}</p>
-                            ) : null}
+                            {f.fix ? (
+                              <>
+                                {(f.fix.templates || []).map((t, ti) => (
+                                  <p key={`t-${ti}`}>넣을 문구(예시): {t}</p>
+                                ))}
+                                {(f.fix.alternatives || []).slice(0, 2).map((a, ai) => (
+                                  <p key={`a-${ai}`}>
+                                    바꿀 문구(예시): {a.text}
+                                    {a.basis ? ` — ${a.basis}` : ""}
+                                  </p>
+                                ))}
+                                {f.fix.note ? <p>{f.fix.note}</p> : null}
+                              </>
+                            ) : (
+                              <>
+                                <p>{f.fixSuggestion}</p>
+                                {f.fixExample ? <p>{f.fixExample}</p> : null}
+                              </>
+                            )}
+                            <p className="text-[#6B5A2E]">{FIX_EXAMPLE_NOTE_494}</p>
                           </div>
                         </details>
                       ) : null}

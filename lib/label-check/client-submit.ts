@@ -21,6 +21,10 @@ export const PROGRESS_CLIENT_EXTRACT_499 = "내 컴퓨터에서 글자를 읽는
 export type ClientSubmitOptions = LabelCheckInput & {
   save?: boolean;
   productName?: string;
+  /** 506 — 텍스트 모드 */
+  text?: string;
+  scope?: "ad_only" | "full";
+  priorKeys?: string[];
 };
 
 export type ClientSubmitOk = {
@@ -30,12 +34,8 @@ export type ClientSubmitOk = {
 export type ClientSubmitFail = { ok: false; error: string; status?: number };
 export type ClientSubmitProgress = (msg: string | null) => void;
 
-async function postExtracted(
-  payload: ExtractedLabelPayload,
-  opts: ClientSubmitOptions,
-): Promise<Response> {
-  const body = JSON.stringify({
-    extracted: payload,
+function commonJsonOpts(opts: ClientSubmitOptions): Record<string, unknown> {
+  return {
     rinseOff: opts.rinseOff,
     functional: opts.functional,
     market: opts.market ?? "KR",
@@ -46,6 +46,18 @@ async function postExtracted(
     productTypes: (opts.productTypes || []).join(","),
     save: Boolean(opts.save),
     productName: opts.productName ?? "",
+    scope: opts.scope,
+    priorKeys: opts.priorKeys,
+  };
+}
+
+async function postExtracted(
+  payload: ExtractedLabelPayload,
+  opts: ClientSubmitOptions,
+): Promise<Response> {
+  const body = JSON.stringify({
+    extracted: payload,
+    ...commonJsonOpts(opts),
   });
   const bytes = new TextEncoder().encode(body).length;
   if (bytes > MAX_EXTRACTED_JSON_BYTES_499) {
@@ -56,6 +68,34 @@ async function postExtracted(
     headers: { "Content-Type": "application/json" },
     body,
   });
+}
+
+/** 506 — 문구 붙여넣기 / 다시 점검 */
+export async function submitLabelCheckTextClient(
+  text: string,
+  opts: ClientSubmitOptions,
+): Promise<ClientSubmitOk | ClientSubmitFail> {
+  const body = JSON.stringify({
+    text,
+    ...commonJsonOpts({
+      ...opts,
+      scope: opts.scope ?? "ad_only",
+    }),
+  });
+  const res = await fetch("/api/label-check", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+  });
+  if (!res.ok) {
+    const fail = await readLabelCheckApiFailure(res);
+    return { ok: false, error: fail.error, status: res.status };
+  }
+  const result = (await res.json()) as LabelCheckResult & {
+    savedId?: string | null;
+    saveError?: string | null;
+  };
+  return { ok: true, result };
 }
 
 async function postFile(file: File, opts: ClientSubmitOptions): Promise<Response> {
