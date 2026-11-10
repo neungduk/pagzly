@@ -1,6 +1,7 @@
 {
   "crons": [
-    { "path": "/api/billing/renew", "schedule": "0 1 * * *" }
+    { "path": "/api/billing/renew", "schedule": "0 1 * * *" },
+    { "path": "/api/cron/law-watch", "schedule": "0 2 * * *" }
   ],
   "ignoreCommand": "bash scripts/vercel-ignore-docs.sh"
 }
