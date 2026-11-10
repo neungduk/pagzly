@@ -30,6 +30,10 @@ export type ResultView507Props = {
   onRecheckText?: (t: string) => void;
   onRecheck?: () => void;
   recheckBusy?: boolean;
+  /** 508 — OCR 가능 시 버튼 표시 */
+  ocrAvailable?: boolean;
+  onStartOcr?: () => void;
+  onFocusPaste?: () => void;
 };
 
 function chipClass(b: UiBucket507): string {
@@ -153,8 +157,12 @@ export function ResultView507({
   onRecheckText,
   onRecheck,
   recheckBusy,
+  ocrAvailable,
+  onStartOcr,
+  onFocusPaste,
 }: ResultView507Props) {
   const verdictRef = useRef<HTMLParagraphElement>(null);
+  const unreadable = result.readStatus === "unreadable";
   const counts = useMemo(() => {
     const fix = result.summary.possible || 0;
     const check = (result.summary.attention || 0) + (result.summary.manual || 0);
@@ -174,7 +182,10 @@ export function ResultView507({
     verdictRef.current?.focus();
   }, [result]);
 
-  const verdict = buildVerdict507(result.summary);
+  const verdict = buildVerdict507(result.summary, {
+    readStatus: result.readStatus,
+    skipJudgment: result.skipJudgment,
+  });
   const sorted = useMemo(() => sortFindings507(result.findings), [result.findings]);
 
   const byTab = useMemo(() => {
@@ -228,6 +239,10 @@ export function ResultView507({
   return (
     <>
       <section className="lc507-card">
+        {result.ocrFromPhoto ? (
+          <p className="lc507-fine">사진에서 읽은 글자 기준</p>
+        ) : null}
+
         {result.scopeNotice ? <p className="lc507-fine">{result.scopeNotice}</p> : null}
 
         {result.compare ? (
@@ -239,19 +254,57 @@ export function ResultView507({
           </div>
         ) : null}
 
+        {result.readStatus === "partial" && result.notice ? (
+          <div className="lc507-compare" role="status" style={{ background: "var(--lc507-warn-soft)" }}>
+            {result.notice}
+            <div className="mt-2 flex flex-wrap gap-2">
+              {ocrAvailable && onStartOcr ? (
+                <button type="button" className="lc507-cta" style={{ fontSize: 13, padding: "8px 12px" }} onClick={onStartOcr}>
+                  사진·캡처에서 글자 읽기
+                </button>
+              ) : null}
+              {onFocusPaste ? (
+                <button type="button" className="lc507-copy" onClick={onFocusPaste}>
+                  문구 붙여넣기로 점검
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
         <p className="lc507-verdict" ref={verdictRef} tabIndex={-1}>
           {verdict.headline}
           {verdict.subNote ? <small>{verdict.subNote}</small> : null}
           {metaLine ? <small>{metaLine}</small> : null}
         </p>
 
-        {result.notice ? (
+        {unreadable ? (
+          <div role="status">
+            {result.notice ? <p className="lc507-fine">{result.notice}</p> : null}
+            <div className="mt-3 flex flex-col gap-2">
+              {ocrAvailable && onStartOcr ? (
+                <button type="button" className="lc507-cta" onClick={onStartOcr}>
+                  사진·캡처에서 글자 읽기
+                </button>
+              ) : null}
+              {onFocusPaste ? (
+                <button type="button" className="lc507-cta" style={{ background: "var(--lc507-ink)" }} onClick={onFocusPaste}>
+                  문구 붙여넣기로 점검
+                </button>
+              ) : (
+                <p className="lc507-fine">문구를 붙여넣어 다시 점검해 주세요.</p>
+              )}
+            </div>
+          </div>
+        ) : null}
+
+        {!unreadable && result.readStatus !== "partial" && result.notice ? (
           <p className="lc507-fine" role="status">
             {result.notice}
           </p>
         ) : null}
 
-        {!result.skipJudgment ? (
+        {!result.skipJudgment && !unreadable ? (
           <>
             <div className="lc507-score" aria-label="요약 숫자">
               <button type="button" className="lc507-s-bad" onClick={() => setTab("fix")}>

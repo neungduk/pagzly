@@ -8,6 +8,7 @@ import {
   validatePriorKeys506,
 } from "@/lib/label-check/compare-506";
 import { enrichFindings506 } from "@/lib/label-check/enrich-findings-506";
+import { attachReadStatus508 } from "@/lib/label-check/attach-read-status-508";
 import {
   emptyPagesNoticeSuffix,
   extractLabelPdf,
@@ -45,14 +46,19 @@ function usDisclaimer(): string {
   return `${DISCLAIMER_483} ${DISCLAIMER_US_EXTRA_494}`;
 }
 
-function withUsBasis(r: LabelCheckResult, input?: LabelCheckInput): LabelCheckResult {
+function withUsBasis(
+  r: LabelCheckResult,
+  input?: LabelCheckInput,
+  extracted?: ExtractedPdf,
+  opts?: { skipReadAssess?: boolean },
+): LabelCheckResult {
   const findings = enrichFindings506(r.findings || [], "US");
   const prior = input ? validatePriorKeys506(input.priorKeys) : [];
   const compare =
     prior && prior.length
       ? compareIssueKeys506(prior, issueKeysFromFindings506(findings))
       : r.compare;
-  const out: LabelCheckResult = {
+  let out: LabelCheckResult = {
     ...r,
     findings,
     summary: summarize(findings, r.manualItems?.length || 0),
@@ -60,7 +66,14 @@ function withUsBasis(r: LabelCheckResult, input?: LabelCheckInput): LabelCheckRe
     rulesBasis: formatRulesBasisLine501("US"),
     compare,
   };
-  out.fixSheet = buildFixSheet(out);
+  if (extracted && !opts?.skipReadAssess) {
+    out = attachReadStatus508(out, extracted);
+  } else if (!out.readStatus) {
+    out.readStatus = "ok";
+  }
+  if (!out.skipJudgment) {
+    out.fixSheet = buildFixSheet(out);
+  }
   return out;
 }
 
@@ -157,6 +170,17 @@ function ingredientFontFinding(
   rule: UsRuleDraft,
   extracted: ExtractedPdf,
 ): Finding | null {
+  // 508 — OCR: 크기 미상
+  if (extracted.ocrSizeUnknown) {
+    return withFix(rule, {
+      category: "US",
+      label: rule.title,
+      status: "unknown",
+      found: "사진에서 읽은 글자라 크기를 알 수 없음",
+      suggest: "인쇄본에서 글자 높이 1/16인치(약 4.5pt) 이상을 직접 확인하세요.",
+      checkType: "code",
+    });
+  }
   // 1/16 inch ≈ 4.5pt (notes 근거). 폰트 아이템이 있을 때만 크기 판정.
   // 텍스트 마커 PDF 등 아이템 없음 → 크기 생략(null), 목록 존재 판정만.
   if (!extracted.textItems?.length) {
@@ -462,8 +486,11 @@ export async function runLabelCheckUsFromExtracted494(
         findings: [],
         manualItems: [],
         market: "US",
+        readStatus: "ok",
       },
       input,
+      undefined,
+      { skipReadAssess: true },
     );
   }
 
@@ -484,6 +511,7 @@ export async function runLabelCheckUsFromExtracted494(
         market: "US",
       },
       input,
+      extracted,
     );
   }
 
@@ -502,6 +530,7 @@ export async function runLabelCheckUsFromExtracted494(
         market: "US",
       },
       input,
+      extracted,
     );
   }
 
@@ -521,6 +550,7 @@ export async function runLabelCheckUsFromExtracted494(
         scopeNotice: NOTICE_AD_ONLY_506,
       },
       input,
+      extracted,
     );
   }
 
@@ -548,6 +578,7 @@ export async function runLabelCheckUsFromExtracted494(
         market: "US",
       },
       input,
+      extracted,
     );
   }
 
@@ -556,6 +587,7 @@ export async function runLabelCheckUsFromExtracted494(
       // 506 — 텍스트 모드: Ingredients 글자 크기 판정 제외
       if (
         rule.id === "US-006" &&
+        !extracted.ocrSizeUnknown &&
         !extracted.textItems?.length &&
         !extracted.fontSizesPt?.length
       ) {
@@ -617,6 +649,7 @@ export async function runLabelCheckUsFromExtracted494(
       ingredientCount: extra.ingredientCount,
     },
     input,
+    extracted,
   );
 }
 

@@ -19,6 +19,7 @@ import {
   validatePriorKeys506,
 } from "@/lib/label-check/compare-506";
 import { enrichFindings506 } from "@/lib/label-check/enrich-findings-506";
+import { attachReadStatus508 } from "@/lib/label-check/attach-read-status-508";
 import {
   emptyPagesNoticeSuffix,
   extractLabelPdf,
@@ -63,11 +64,14 @@ const EMPTY_SUMMARY: LabelCheckSummary = {
 };
 
 function noticeOnlyResult(
-  extracted: { charCount: number; hangulCount: number },
+  extracted: Pick<
+    ExtractedPdf,
+    "charCount" | "hangulCount" | "pageCount" | "emptyPages" | "avgOcrConfidence" | "ocrSizeUnknown"
+  >,
   notice: string,
   market: "KR" | "US" = "KR",
 ): LabelCheckResult {
-  return {
+  const base: LabelCheckResult = {
     disclaimer: DISCLAIMER_483,
     readable: false,
     charCount: extracted.charCount,
@@ -80,6 +84,7 @@ function noticeOnlyResult(
     market,
     rulesBasis: formatRulesBasisLine501(market),
   };
+  return attachReadStatus508(base, extracted);
 }
 
 function includesNormalized(text: string, word: string): boolean {
@@ -381,6 +386,17 @@ function runCodeRule(
   }
 
   if (rule.mode === "font_size") {
+    // 508 — OCR: 크기 미상 → 확인 못 함(통과 금지)
+    if (extracted.ocrSizeUnknown) {
+      return {
+        category: rule.category,
+        label: rule.label,
+        status: "unknown",
+        found: "사진에서 읽은 글자라 크기를 알 수 없음",
+        suggest: "인쇄본에서 글자 크기(5포인트 이상)를 직접 확인하세요.",
+        checkType: "code",
+      };
+    }
     // 506 — 텍스트 모드 등 크기 정보 없음 → 판정 대상 제외(확인 불가 아님)
     if (!extracted.textItems?.length && !extracted.fontSizesPt?.length) {
       return null;
@@ -626,8 +642,11 @@ function finalizeKrResult506(
     ingredientCount: opts?.ingredientCount,
     compare,
   };
-  result.fixSheet = buildFixSheet(result);
-  return result;
+  const withRead = attachReadStatus508(result, extracted);
+  if (!withRead.skipJudgment) {
+    withRead.fixSheet = buildFixSheet(withRead);
+  }
+  return withRead;
 }
 
 /** 499 — 이미 추출된 구조로 점검(클라 JSON·서버 추출 공유 코어) */

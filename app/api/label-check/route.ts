@@ -112,7 +112,13 @@ async function finishResult(
 ) {
   let savedId: string | null = null;
   let saveError: string | null = null;
-  if (opts.save && opts.userId && !result.skipJudgment) {
+  // 508 — unreadable 결과는 저장하지 않음(기록·통계 오염 방지)
+  if (
+    opts.save &&
+    opts.userId &&
+    !result.skipJudgment &&
+    result.readStatus !== "unreadable"
+  ) {
     const saved = await saveLabelCheckRun(opts.supabase, opts.userId, {
       market: opts.input.market ?? "KR",
       productName: opts.productName,
@@ -174,7 +180,13 @@ export async function POST(req: Request) {
         if (len === "empty") return labelCheckErrorResponse("NO_FILE", 400);
         if (len === "too_large") return labelCheckErrorResponse("TOO_LARGE", 400);
         const scope = parseTextModeScope506(body.scope ?? input.scope ?? "ad_only");
-        const extracted = textToExtractedPdf506(body.text);
+        const ocrFromPhoto = body.ocrFromPhoto === true || body.ocrFromPhoto === "true";
+        const avgOcr =
+          typeof body.avgOcrConfidence === "number" ? body.avgOcrConfidence : null;
+        const extracted = textToExtractedPdf506(body.text, {
+          ocrFromPhoto,
+          avgConfidence: avgOcr,
+        });
         const timed = await withExtractTimeout(
           runLabelCheckFromExtracted(extracted, { ...input, scope }),
         );
@@ -182,7 +194,31 @@ export async function POST(req: Request) {
           console.warn("[label-check] extract-limit");
           return mapUploadError(timed.error);
         }
-        return finishResult(timed.value, {
+        let result = timed.value;
+        if (ocrFromPhoto) {
+          result = { ...result, ocrFromPhoto: true };
+          // 용량 불일치 finding(정규화 재검)
+          const { normalizeOcrText508, NET_CONTENT_CONFLICT_LABEL_508, NET_CONTENT_CONFLICT_SUGGEST_508 } =
+            await import("@/lib/label-check/ocr/normalize-ocr");
+          const norm = normalizeOcrText508(body.text);
+          if (norm.netContentConflict && !result.skipJudgment) {
+            const findings = [
+              ...result.findings,
+              {
+                category: "OCR",
+                label: NET_CONTENT_CONFLICT_LABEL_508,
+                status: "attention" as const,
+                found: norm.netContents.map((h) => h.raw).slice(0, 4).join(" / "),
+                suggest: NET_CONTENT_CONFLICT_SUGGEST_508,
+                checkType: "code" as const,
+                checkKey: "OCR-NET-CONFLICT",
+              },
+            ];
+            const summary = { ...result.summary, attention: (result.summary.attention || 0) + 1 };
+            result = { ...result, findings, summary };
+          }
+        }
+        return finishResult(result, {
           save,
           userId: user?.id,
           productName,

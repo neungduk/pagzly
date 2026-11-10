@@ -26,6 +26,12 @@ export type ExtractedPdf = {
   pageCount?: number;
   /** 499 — 쪽별 아이템(클라 페이로드와 동일 의미) */
   pages?: Array<{ page: number; items: Array<{ text: string; sizePt: number }> }>;
+  /** 508 — OCR 평균 신뢰도(0~1) */
+  avgOcrConfidence?: number | null;
+  /** 508 — OCR 경로: 글자 크기 미상 → 크기 규칙은 unknown */
+  ocrSizeUnknown?: boolean;
+  /** 508 — 추출 출처(붙여넣기는 짧은 문구도 점검) */
+  extractSource?: "pdf" | "text" | "ocr";
 };
 
 /** 497 — 향후 OCR 등 대체 추출. 지금은 미구현(항상 null). */

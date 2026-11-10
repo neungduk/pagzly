@@ -144,6 +144,18 @@ export type LabelCheckResult = {
   ingredientCount?: number;
   /** 506 — 수정안 모아보기 텍스트 */
   fixSheet?: string;
+  /**
+   * 508 — 추출 품질.
+   * unreadable: 점검 불가(점수·"발견된 항목이 없어요" 금지).
+   * partial: 일부 쪽만 읽음.
+   */
+  readStatus?: "ok" | "partial" | "unreadable";
+  pagesWithText?: number;
+  pagesTotal?: number;
+  /** OCR 평균 신뢰도(0~1). 저장 요약에는 넣지 않음 */
+  avgOcrConfidence?: number;
+  /** 508 — 사진 OCR 후 고객 확인 글자 기준 */
+  ocrFromPhoto?: boolean;
 };
 
 /** 506 — 텍스트 모드 상한 */

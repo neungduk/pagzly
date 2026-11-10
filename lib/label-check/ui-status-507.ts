@@ -34,7 +34,23 @@ export type Verdict507 = {
   subNote?: string;
 };
 
-export function buildVerdict507(summary: LabelCheckResult["summary"]): Verdict507 {
+export function buildVerdict507(
+  summary: LabelCheckResult["summary"],
+  opts?: {
+    readStatus?: LabelCheckResult["readStatus"];
+    skipJudgment?: boolean;
+  },
+): Verdict507 {
+  // 508 — 점검 불가: "발견된 항목이 없어요"/문제 없음 제목 금지
+  if (opts?.readStatus === "unreadable") {
+    return { headline: "글자를 읽지 못해 점검하지 못했어요" };
+  }
+  if (opts?.skipJudgment && opts?.readStatus !== "partial" && opts?.readStatus !== "ok") {
+    // 레거시 skip(읽기 실패)도 동일 제목 — 빈 요약을 통과로 오해하지 않게
+    if (!summary.possible && !summary.attention && !summary.unknown && !summary.pass) {
+      return { headline: "글자를 읽지 못해 점검하지 못했어요" };
+    }
+  }
   const fix = summary.possible || 0;
   const check = (summary.attention || 0) + (summary.manual || 0);
   if (fix > 0) {
@@ -42,6 +58,12 @@ export function buildVerdict507(summary: LabelCheckResult["summary"]): Verdict50
   }
   if (check > 0) {
     return { headline: `확인할 곳이 ${check}군데 있어요` };
+  }
+  if (opts?.readStatus === "partial") {
+    return {
+      headline: "읽은 부분에서는 발견된 항목이 없어요",
+      subNote: "최종 확인은 직접 하셔야 합니다.",
+    };
   }
   return {
     headline: "이번 점검에서 발견된 항목이 없어요",
