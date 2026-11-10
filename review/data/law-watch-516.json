@@ -1,0 +1,87 @@
+{
+  "items": [
+    {
+      "key": "law:화장품법",
+      "target": "law",
+      "name": "화장품법",
+      "affects": [
+        "kr_label_rules_draft_v0.1.json legal_basis",
+        "ad-phrases-kr_draft_v0.2.json law_basis",
+        "kr-cautions_draft_v0.2.json",
+        "kr-label-addenda_draft_v0.1.json"
+      ]
+    },
+    {
+      "key": "law:화장품법 시행령",
+      "target": "law",
+      "name": "화장품법 시행령",
+      "affects": [
+        "화장품법 하위법령(규칙 JSON에 직접 인용은 적으나 표시·광고·주의사항 체계의 상위 시행령)"
+      ]
+    },
+    {
+      "key": "law:화장품법 시행규칙",
+      "target": "law",
+      "name": "화장품법 시행규칙",
+      "affects": [
+        "kr_label_rules_draft_v0.1.json legal_basis",
+        "kr-label-addenda_draft_v0.1.json source",
+        "kr-cautions_draft_v0.2.json source"
+      ]
+    },
+    {
+      "key": "eflaw:화장품법",
+      "target": "eflaw",
+      "name": "화장품법",
+      "affects": ["시행예정 개정 감지 — kr_label_rules / ad-phrases law_basis"]
+    },
+    {
+      "key": "eflaw:화장품법 시행령",
+      "target": "eflaw",
+      "name": "화장품법 시행령",
+      "affects": ["시행예정 개정 감지 — 화장품법 시행령"]
+    },
+    {
+      "key": "eflaw:화장품법 시행규칙",
+      "target": "eflaw",
+      "name": "화장품법 시행규칙",
+      "affects": ["시행예정 개정 감지 — kr-label-addenda / kr-cautions"]
+    },
+    {
+      "key": "admrul:화장품 사용할 때의 주의사항 및 알레르기 유발성분 표시에 관한 규정",
+      "target": "admrul",
+      "name": "화장품 사용할 때의 주의사항 및 알레르기 유발성분 표시에 관한 규정",
+      "affects": [
+        "allergens-kr-25_v1.json source",
+        "kr-cautions_draft_v0.2.json source",
+        "kr_label_rules_draft_v0.1.json"
+      ]
+    },
+    {
+      "key": "admrul:화장품 표시·광고 실증에 관한 규정",
+      "target": "admrul",
+      "name": "화장품 표시·광고 실증에 관한 규정",
+      "affects": ["ad-phrases-kr_draft_v0.2.json source"]
+    },
+    {
+      "key": "admrul:기능성화장품 기준 및 시험방법",
+      "target": "admrul",
+      "name": "기능성화장품 기준 및 시험방법",
+      "affects": [
+        "기능성 관련 표시·광고(ad-phrases 기능성 고시 성분) — 법제처 admrul 확인용"
+      ]
+    }
+  ],
+  "unwatchable": [
+    {
+      "name": "식약처 화장품 표시·광고 관리 지침",
+      "reason": "민원인 안내서(지침) — 법제처 행정규칙(admrul) DB에 없거나 검색 불안정. 규칙 JSON basis/source에 다수 인용",
+      "affects": [
+        "ad-phrases-kr_draft_v0.2.json source",
+        "ad-exceptions-kr_draft_v0.1.json source",
+        "rewrite-map-kr_draft_v0.1.json basis",
+        "kr_label_rules_draft_v0.1.json"
+      ]
+    }
+  ]
+}
