@@ -171,17 +171,8 @@ export function applyKrAddenda504(
     }
   }
 
-  // manual addenda → 확인 질문 카드
-  for (const id of ["KR-ADD-002", "KR-ADD-009", "KR-ADD-010", "KR-ADD-011"]) {
-    const a = byId.get(id);
-    if (!a) continue;
-    manuals.push({
-      category: "별표4 보강",
-      label: a.title,
-      suggest: a.rule,
-      fixSuggestion: a.fix_ko,
-    });
-  }
+  // 513 — KR-ADD-002/009/010/011 수동 카드는 gating-513이 해당 여부·코드 판정으로 대체
+  // (여기선 더 이상 무조건 붙이지 않음)
 
   return { findings: next, manualItems: manuals };
 }

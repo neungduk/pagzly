@@ -12,4 +12,10 @@ export const PRODUCT_TYPE_OPTIONS_504: Array<{ id: string; label: string; noteKe
   { id: "aerosol", label: "에어로졸", noteKey: "에어로졸" },
   /** 506 — 광고 예외(색조 화장용 제품류) */
   { id: "color_makeup", label: "색조", noteKey: "색조" },
+  /** 513 — 게이팅용(유형 주의사항 note 매칭 방지: noteKey는 id) */
+  { id: "export_only", label: "수출 전용", noteKey: "export_only" },
+  { id: "set_product", label: "세트 상품", noteKey: "set_product" },
+  { id: "soap", label: "비누", noteKey: "soap" },
+  { id: "professional", label: "전문가용(미국)", noteKey: "professional" },
+  { id: "hazardous", label: "에어로졸·위험 제품(미국)", noteKey: "hazardous" },
 ];

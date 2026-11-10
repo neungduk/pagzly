@@ -20,6 +20,8 @@ import { buildFixSheet } from "@/lib/label-check/fix-sheet";
 import { scanUsIngredientsExtra506 } from "@/lib/label-check/ingredients-extra-506";
 import { loadUsLabelRules494, type UsRuleDraft } from "@/lib/label-check/load-rules-us";
 import { includesUs, includesUsWord, normalizeUsLabelText } from "@/lib/label-check/normalize-us";
+import { checkUsEnglish513 } from "@/lib/label-check/checks-513";
+import { applyUsGating513, normalizeInputFlags513 } from "@/lib/label-check/gating-513";
 import { formatRulesBasisLine501 } from "@/lib/label-check/rules-meta";
 import {
   DISCLAIMER_483,
@@ -65,6 +67,8 @@ function withUsBasis(
     market: "US",
     rulesBasis: formatRulesBasisLine501("US"),
     compare,
+    skippedItems513: r.skippedItems513,
+    referenceNotes513: r.referenceNotes513,
   };
   if (extracted && !opts?.skipReadAssess) {
     out = attachReadStatus508(out, extracted);
@@ -367,24 +371,8 @@ function runUsCodeRule(
   }
 
   if (rule.id === "US-007") {
-    if (hangulOnlyLabel(text)) {
-      return withFix(rule, {
-        category: "US",
-        label: rule.title,
-        status: rule.failStatus,
-        found: "한글 위주 라벨로 보이며 영어 필수 문구가 부족할 수 있음",
-        suggest: rule.fixKo || "필수 문구를 영어로 표기하세요.",
-        checkType: "code",
-      });
-    }
-    return withFix(rule, {
-      category: "US",
-      label: rule.title,
-      status: "pass",
-      found: "영어 문자 흔적 있음",
-      suggest: "필수 문구가 영어로 읽히는지 확인하세요.",
-      checkType: "code",
-    });
+    // 513 — 영문 필수 단서 긍정 증거 있을 때만 pass
+    return withFix(rule, checkUsEnglish513(text, rule.failStatus));
   }
 
   if (rule.id === "US-010") {
@@ -554,16 +542,42 @@ export async function runLabelCheckUsFromExtracted494(
     );
   }
 
+  const gatedInput = normalizeInputFlags513(input);
   const rules = loadUsLabelRules494();
   const findings: Finding[] = [];
-  const manualItems: LabelCheckResult["manualItems"] = [];
+  const pendingManualRules: Array<{
+    id: string;
+    title: string;
+    requirement: string;
+    lookFor: string[];
+    failStatus: Finding["status"];
+    fixKo?: string;
+    fixExampleEn?: string;
+  }> = [];
 
   if (hangulOnlyLabel(extracted.text)) {
     const rule007 = rules.find((r) => r.id === "US-007");
     if (rule007) {
-      const f = runUsCodeRule(rule007, extracted.text, extracted, input);
+      const f = runUsCodeRule(rule007, extracted.text, extracted, gatedInput);
       if (f) findings.push(f);
     }
+    const gatedHangul = applyUsGating513({
+      text: extracted.text,
+      extracted,
+      input: gatedInput,
+      findings,
+      pendingManualRules: rules
+        .filter((r) => r.checkType !== "code")
+        .map((r) => ({
+          id: r.id,
+          title: r.title,
+          requirement: r.requirement,
+          lookFor: r.lookFor,
+          failStatus: r.failStatus,
+          fixKo: r.fixKo,
+          fixExampleEn: r.fixExampleEn,
+        })),
+    });
     return withUsBasis(
       {
         disclaimer: usDisclaimer(),
@@ -572,12 +586,14 @@ export async function runLabelCheckUsFromExtracted494(
         hangulCount: extracted.hangulCount,
         notice: NOTICE_US_NON_ENGLISH_497,
         skipJudgment: false,
-        summary: summarize(findings, 0),
-        findings,
-        manualItems: [],
+        summary: summarize(gatedHangul.findings, gatedHangul.manualItems.length),
+        findings: gatedHangul.findings,
+        manualItems: gatedHangul.manualItems,
         market: "US",
+        skippedItems513: gatedHangul.skippedItems513,
+        referenceNotes513: gatedHangul.referenceNotes513,
       },
-      input,
+      gatedInput,
       extracted,
     );
   }
@@ -593,7 +609,7 @@ export async function runLabelCheckUsFromExtracted494(
       ) {
         const hit = hasIngredientsBlock(extracted.text);
         if (!hit) {
-          const f = runUsCodeRule(rule, extracted.text, extracted, input);
+          const f = runUsCodeRule(rule, extracted.text, extracted, gatedInput);
           if (f) findings.push(f);
         } else {
           findings.push({
@@ -608,18 +624,20 @@ export async function runLabelCheckUsFromExtracted494(
         }
         continue;
       }
-      const f = runUsCodeRule(rule, extracted.text, extracted, input);
+      // US-009/011은 입력 플래그 없이도 텍스트 감지로 점검(게이팅)
+      if (rule.id === "US-009" || rule.id === "US-011") continue;
+      const f = runUsCodeRule(rule, extracted.text, extracted, gatedInput);
       if (f) findings.push(f);
     } else {
-      if (rule.needsImported && !input.imported) continue;
-      if (rule.needsProfessional && !input.professionalUse) continue;
-      if (rule.needsHazardous && !input.hazardous) continue;
-      manualItems.push({
-        category: "US",
-        label: rule.title,
-        suggest: "확인 필요 질문: " + (rule.requirement || "해당 항목을 확인하세요."),
-        fixSuggestion: rule.fixKo || undefined,
-        fixExample: rule.fixExampleEn || undefined,
+      if (rule.needsImported && !gatedInput.imported) continue;
+      pendingManualRules.push({
+        id: rule.id,
+        title: rule.title,
+        requirement: rule.requirement,
+        lookFor: rule.lookFor,
+        failStatus: rule.failStatus,
+        fixKo: rule.fixKo,
+        fixExampleEn: rule.fixExampleEn,
       });
     }
   }
@@ -634,6 +652,14 @@ export async function runLabelCheckUsFromExtracted494(
   );
   findings.push(...extra.findings);
 
+  const gated = applyUsGating513({
+    text: extracted.text,
+    extracted,
+    input: gatedInput,
+    findings,
+    pendingManualRules,
+  });
+
   return withUsBasis(
     {
       disclaimer: usDisclaimer(),
@@ -642,13 +668,15 @@ export async function runLabelCheckUsFromExtracted494(
       hangulCount: extracted.hangulCount,
       notice: emptyPagesNoticeSuffix(extracted).trim() || undefined,
       skipJudgment: false,
-      summary: summarize(findings, manualItems.length),
-      findings,
-      manualItems,
+      summary: summarize(gated.findings, gated.manualItems.length),
+      findings: gated.findings,
+      manualItems: gated.manualItems,
       market: "US",
       ingredientCount: extra.ingredientCount,
+      skippedItems513: gated.skippedItems513,
+      referenceNotes513: gated.referenceNotes513,
     },
-    input,
+    gatedInput,
     extracted,
   );
 }

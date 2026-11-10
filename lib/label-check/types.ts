@@ -122,7 +122,15 @@ export type LabelCheckResult = {
     suggest: string;
     fixSuggestion?: string;
     fixExample?: string;
+    /** 513 — "왜 직접 봐야 하나요: …" */
+    whyManual?: string;
   }>;
+  /** 513 — 해당 없어 뺀 항목(접이식) */
+  skippedItems513?: Array<{ label: string; reason: string }>;
+  /** 513 — 개정 예정·동향 참고 */
+  referenceNotes513?: Array<{ label: string; text: string }>;
+  /** 513 — 수출 전용 안내(결과 상단) */
+  exportNotice513?: string;
   /** 494 — 사용된 시장 */
   market?: LabelMarket;
   /** 501 — 결과 하단 점검 기준 한 줄 */

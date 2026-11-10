@@ -39,6 +39,7 @@ import {
   normalizeAllergenKey505,
   type RuleDraft,
 } from "@/lib/label-check/load-rules";
+import { applyKrGating513, normalizeInputFlags513 } from "@/lib/label-check/gating-513";
 import { formatRulesBasisLine501 } from "@/lib/label-check/rules-meta";
 import { runLabelCheckUsFromExtracted494, runLabelCheckUs494 } from "@/lib/label-check/run-check-us";
 import {
@@ -626,7 +627,13 @@ function finalizeKrResult506(
   input: LabelCheckInput,
   findings: Finding[],
   manualItems: LabelCheckResult["manualItems"],
-  opts?: { scopeNotice?: string; ingredientCount?: number },
+  opts?: {
+    scopeNotice?: string;
+    ingredientCount?: number;
+    skippedItems513?: LabelCheckResult["skippedItems513"];
+    referenceNotes513?: LabelCheckResult["referenceNotes513"];
+    exportNotice513?: string;
+  },
 ): LabelCheckResult {
   const enriched = attachCautionTemplates506(enrichFindings506(findings, "KR"));
   const hasEvidenceFix = enriched.some(
@@ -656,6 +663,9 @@ function finalizeKrResult506(
     scopeNotice: opts?.scopeNotice,
     ingredientCount: opts?.ingredientCount,
     compare,
+    skippedItems513: opts?.skippedItems513,
+    referenceNotes513: opts?.referenceNotes513,
+    exportNotice513: opts?.exportNotice513,
   };
   const withRead = attachReadStatus508(result, extracted);
   if (!withRead.skipJudgment) {
@@ -710,13 +720,14 @@ export async function runLabelCheckFromExtracted(
     });
   }
 
+  const gatedInput = normalizeInputFlags513(input);
   const rules = loadLabelRules483();
   const findings: Finding[] = [];
   const manualItems: LabelCheckResult["manualItems"] = [];
 
   for (const rule of rules) {
     if (rule.check_type === "code") {
-      const f = runCodeRule(rule, extracted.text, extracted, input);
+      const f = runCodeRule(rule, extracted.text, extracted, gatedInput);
       if (!f) continue;
       if (
         rule.id.startsWith("KR-ADV-") &&
@@ -727,26 +738,32 @@ export async function runLabelCheckFromExtracted(
         if (hit && isHitCoveredByAdPhrases493(hit)) continue;
       }
       findings.push(f);
-    } else {
-      manualItems.push({
-        category: rule.category,
-        label: rule.label,
-        suggest: "수동 확인이 필요합니다.",
-      });
     }
+    // 513 — ai/manual 규칙은 무조건 manualItems에 넣지 않고 gating-513에서 처리
   }
 
-  findings.push(...scanAdPhrases493(extracted.text, input));
+  findings.push(...scanAdPhrases493(extracted.text, gatedInput));
   findings.push(...scanIngredientCautions504(extracted.text));
-  findings.push(...scanTypeCautions504(extracted.text, input));
+  findings.push(...scanTypeCautions504(extracted.text, gatedInput));
 
-  const merged = applyKrAddenda504(extracted.text, input, findings, manualItems);
+  const merged = applyKrAddenda504(extracted.text, gatedInput, findings, manualItems);
   const findingsWithFix = applyKrFixSuggestions496(merged.findings);
   const extra = scanKrIngredientsExtra506(extracted.text);
   findingsWithFix.push(...extra.findings);
 
-  return finalizeKrResult506(extracted, input, findingsWithFix, merged.manualItems, {
+  const gated = applyKrGating513({
+    text: extracted.text,
+    extracted,
+    input: gatedInput,
+    findings: findingsWithFix,
+    manualItems: merged.manualItems,
+  });
+
+  return finalizeKrResult506(extracted, gatedInput, gated.findings, gated.manualItems, {
     ingredientCount: extra.ingredientCount,
+    skippedItems513: gated.skippedItems513,
+    referenceNotes513: gated.referenceNotes513,
+    exportNotice513: gated.exportNotice513,
   });
 }
 
