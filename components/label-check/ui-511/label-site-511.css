@@ -765,3 +765,11 @@
 .lc-site .lc-cta-band {
   margin: 0 max(24px, calc((100% - 1160px) / 2)) 88px;
 }
+.lc-site .lc512-measure {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+@media (max-width: 420px) {
+  .lc-site .lc512-measure {
+    grid-template-columns: 1fr;
+  }
+}

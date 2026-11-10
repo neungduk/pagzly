@@ -7,3 +7,5 @@ export { LandingProofDemo511 } from "./LandingProofDemo";
 export { ReviewBelt511 } from "./ReviewBelt";
 export { TryItPicker511 } from "./TryItPicker";
 export { CheckBusyOverlay511 } from "./CheckBusyOverlay";
+export { classifyFinding512 } from "./finding-kind-512";
+export { FindingCardBody512 } from "./FindingCardBody512";
