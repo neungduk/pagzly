@@ -106,7 +106,7 @@ export async function run(): Promise<string[]> {
   // 6) lib/label-check · DETAIL_PAGE_ENABLED 분기 미변경(이름 기준)
   // 513 이후: 게이팅·run-check 연결 등 후속 차수 파일은 허용
   const allowLib511 =
-    /gating-513|checks-513|product-type-options-504|addenda-kr|run-check(-us)?\.ts|types\.ts/;
+    /gating-513|checks-513|product-type-options-504|addenda-kr|run-check(-us)?\.ts|types\.ts|rules-count-514/;
   try {
     const names = execSync("git diff --name-only HEAD", { encoding: "utf8" })
       .split(/\r?\n/)
