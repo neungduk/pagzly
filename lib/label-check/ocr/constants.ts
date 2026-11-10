@@ -33,6 +33,13 @@ export const OCR_MAX_TILES_PER_REQUEST_GOOGLE_509 = 8;
 
 export const NOTICE_OCR_REVIEW_508 =
   "사진에서 읽은 글자라 틀릴 수 있어요. 숫자·성분명을 꼭 확인해 주세요.";
+/** 510 — 고객용 쉬운 안내(확인 화면) */
+export const NOTICE_OCR_REVIEW_510 =
+  "사진에서 읽은 글자예요. 틀린 곳을 고친 뒤 점검하세요.";
+export const NOTICE_OCR_REVIEW_USED_510 =
+  "여기서 고친 글자가 그대로 점검에 쓰여요.";
+export const NOTICE_OCR_PARTIAL_510 =
+  "일부만 읽었어요. 빠진 부분은 직접 붙여넣어 주세요";
 export const NOTICE_OCR_TRANSFER_508 =
   "사진을 글자로 바꾸기 위해 이미지가 외부 OCR 서비스(Google)로 전송되며, 저장하지 않습니다.";
 export const NOTICE_OCR_LOW_CONF_509 =

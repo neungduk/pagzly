@@ -1,15 +1,18 @@
 "use client";
 
 import {
+  CTA_OCR_PASTE_509,
   NOTICE_OCR_LOW_CONF_509,
-  NOTICE_OCR_REVIEW_508,
+  NOTICE_OCR_PARTIAL_510,
+  NOTICE_OCR_REVIEW_510,
+  NOTICE_OCR_REVIEW_USED_510,
   OCR_LOW_CONF_THRESHOLD_509,
   PROGRESS_OCR_REVIEW_508,
 } from "@/lib/label-check/ocr/constants";
 
 /**
- * 509 — 게스트·회원 공용 OCR 확인 화면
- * (읽은 글자 편집 · 보정 · 외부 전송 안내 · 신뢰도 낮음 경고)
+ * 509/510 — 게스트·회원 공용 OCR 확인 화면
+ * (읽은 글자 편집 · 보정 · 외부 전송 안내 · 신뢰도 · partial 안내)
  */
 export type OcrReviewCard508Props = {
   text: string;
@@ -21,6 +24,9 @@ export type OcrReviewCard508Props = {
   /** 외부 OCR 전송 안내(공급자별) */
   transferNotice?: string | null;
   avgConfidence?: number;
+  /** 508 readStatus — partial 이면 붙여넣기 안내 */
+  readStatus?: "ok" | "partial" | "unreadable";
+  onFocusPaste?: () => void;
 };
 
 export function OcrReviewCard508({
@@ -32,17 +38,31 @@ export function OcrReviewCard508({
   onCancel,
   transferNotice,
   avgConfidence,
+  readStatus,
+  onFocusPaste,
 }: OcrReviewCard508Props) {
   const lowConf =
     typeof avgConfidence === "number" && avgConfidence > 0 && avgConfidence < OCR_LOW_CONF_THRESHOLD_509;
+  const partial = readStatus === "partial";
 
   return (
     <section className="lc507-card lc507-ocr-review">
       <h2 className="lc507-title" style={{ fontSize: 18 }}>
         {PROGRESS_OCR_REVIEW_508}
       </h2>
-      <p className="lc507-fine">{NOTICE_OCR_REVIEW_508}</p>
+      <p className="lc507-fine">{NOTICE_OCR_REVIEW_510}</p>
+      <p className="lc507-fine">{NOTICE_OCR_REVIEW_USED_510}</p>
       {transferNotice ? <p className="lc507-fine">{transferNotice}</p> : null}
+      {partial ? (
+        <div className="lc507-fine" role="status" style={{ color: "var(--lc507-warn)" }}>
+          <p style={{ margin: 0 }}>{NOTICE_OCR_PARTIAL_510}</p>
+          {onFocusPaste ? (
+            <button type="button" className="lc507-copy" onClick={onFocusPaste}>
+              {CTA_OCR_PASTE_509}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       {lowConf ? (
         <p className="lc507-fine" role="status" style={{ color: "var(--lc507-warn)" }}>
           {NOTICE_OCR_LOW_CONF_509}

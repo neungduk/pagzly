@@ -60,6 +60,7 @@ export default function LabelCheckNewPage() {
     text: string;
     corrections: string[];
     avgConfidence: number;
+    readStatus?: "ok" | "partial" | "unreadable";
   } | null>(null);
   const pasteRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -109,6 +110,7 @@ export default function LabelCheckNewPage() {
     if (!file) return;
     setError(null);
     setOcrLimitMsg(null);
+    const priorRead = result?.readStatus;
     setResult(null);
     const out = await runOcrFromFile508(file, (msg) => setProgress(msg), {
       market,
@@ -127,6 +129,7 @@ export default function LabelCheckNewPage() {
       text: out.review.text,
       corrections: out.review.corrections,
       avgConfidence: out.review.avgConfidence,
+      readStatus: priorRead === "partial" ? "partial" : undefined,
     });
   };
 
@@ -322,6 +325,8 @@ export default function LabelCheckNewPage() {
             onCancel={() => setOcrReview(null)}
             transferNotice={ocrNotice}
             avgConfidence={ocrReview.avgConfidence}
+            readStatus={ocrReview.readStatus}
+            onFocusPaste={focusPaste}
           />
         ) : null}
 
