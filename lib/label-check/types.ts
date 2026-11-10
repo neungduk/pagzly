@@ -8,6 +8,9 @@ export type CheckType = "code" | "ai" | "manual";
 
 export type LabelMarket = "KR" | "US";
 
+/** 506 — 텍스트 모드 범위 */
+export type LabelCheckScope506 = "ad_only" | "full";
+
 export type LabelCheckInput = {
   rinseOff: boolean;
   functional: boolean;
@@ -24,14 +27,52 @@ export type LabelCheckInput = {
   /**
    * 504 — 제품 유형(복수). type_cautions 판정에만 사용.
    * scrub|pack|shampoo|vulva|softener|deodorant|spray_sunscreen|aerosol
+   * 506 — color_makeup = 색조 화장용(예외 product_condition)
    */
   productTypes?: string[];
+  /** 506 — 텍스트 모드 등. 기본 full(PDF). ad_only=광고만 */
+  scope?: LabelCheckScope506;
+  /**
+   * 506 — 재점검 비교용 직전 항목 키 목록(클라 전송).
+   * 형식: "checkKey||label" (checkKey는 광고 MFDS/USAD 등, 필수항목은 label 기반)
+   */
+  priorKeys?: string[];
 };
 
 export type FixKind = "fix" | "soften" | "evidence";
 
+/** 506 — 수정안 블록(데이터에서만) */
+export type FindingFix506 = {
+  kind: "fill" | "replace" | "delete" | "evidence" | "functional_only" | "manual";
+  headline: string;
+  templates?: string[];
+  alternatives?: Array<{
+    text: string;
+    basis: string;
+    kind: "general" | "guideline_exception";
+  }>;
+  note?: string;
+};
+
+export type FindingEvidence506 = {
+  found: string;
+  sentence: string;
+  page?: number;
+};
+
+export type FindingBasis506 = {
+  law: string;
+  source: string;
+};
+
+export type FindingException506 = {
+  id: string;
+  result: string;
+  text: string;
+};
+
 export type Finding = {
-  /** 화면용 한글 라벨만 — 내부 id는 API 응답에 넣지 않음 */
+  /** 화면용 한글 라벨만 — 내부 KR-LBL-* id는 API에 넣지 않음 */
   category: string;
   label: string;
   status: CheckStatus;
@@ -44,6 +85,15 @@ export type Finding = {
   fixKind?: FixKind;
   /** 504 — 광고·주의 exception_note 등. 접힘 한 줄 */
   exceptionNote?: string;
+  /**
+   * 506 — 비교·매핑용 키(광고는 MFDS-/USAD- 계열, 그 외는 lbl:제목).
+   * KR-LBL 계열 문자열은 넣지 않음(483 노출 금지).
+   */
+  checkKey?: string;
+  fix?: FindingFix506;
+  evidence?: FindingEvidence506[];
+  basis?: FindingBasis506;
+  exception?: FindingException506;
 };
 
 export type LabelCheckSummary = {
@@ -82,7 +132,27 @@ export type LabelCheckResult = {
    * 실증 체크포인트(상위 N줄). 항목별 접힘에 반복하지 않음.
    */
   evidenceCheckpoints?: string[];
+  /** 506 — 광고만 점검 안내 */
+  scopeNotice?: string;
+  /** 506 — 재점검 비교 */
+  compare?: {
+    resolved: string[];
+    remaining: string[];
+    added: string[];
+  };
+  /** 506 — 성분 개수(파싱 성공 시) */
+  ingredientCount?: number;
+  /** 506 — 수정안 모아보기 텍스트 */
+  fixSheet?: string;
 };
+
+/** 506 — 텍스트 모드 상한 */
+export const MAX_TEXT_MODE_CHARS_506 = 20_000;
+export const NOTICE_AD_ONLY_506 = "광고 문구만 점검했어요";
+export const NOTICE_RECHECK_EMPTY_506 =
+  "이번 점검에서 발견된 항목이 없어요. 최종 확인은 직접 하셔야 합니다.";
+/** 색조 예외용 productTypes id */
+export const PRODUCT_TYPE_COLOR_MAKEUP_506 = "color_makeup";
 
 export const DISCLAIMER_483 =
   "본 결과는 참고용 사전 점검이며 법적 판단이 아닙니다. ‘위반’이 아니라 ‘위반 가능/확인 필요’로만 안내합니다.";

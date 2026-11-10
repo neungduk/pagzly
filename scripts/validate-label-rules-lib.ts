@@ -13,6 +13,10 @@ export const LABEL_RULE_FILES = {
   cautionsKr: "kr-cautions_draft_v0.2.json",
   addendaKr: "kr-label-addenda_draft_v0.1.json",
   allergensKr: "allergens-kr-25_v1.json",
+  rewriteKr: "rewrite-map-kr_draft_v0.1.json",
+  rewriteUs: "rewrite-map-us_draft_v0.1.json",
+  adExcKr: "ad-exceptions-kr_draft_v0.1.json",
+  templates: "required-templates_draft_v0.1.json",
 } as const;
 
 const CAS_RE = /^\d{2,7}-\d{2}-\d$/;
@@ -281,6 +285,67 @@ export function validateLabelRulesAt(
         }
       }
       dupIds(ids, "us-ad-phrases", issues);
+    }
+  }
+
+  // 506 — rewrite-map / exceptions / templates
+  for (const [key, label] of [
+    [F.rewriteKr, "rewrite-kr"],
+    [F.rewriteUs, "rewrite-us"],
+  ] as const) {
+    const rw = localRead(root, key);
+    if (!rw.ok) issues.push({ level: "error", msg: rw.error });
+    else {
+      const data = rw.data as { items?: Array<Record<string, unknown>> };
+      if (!Array.isArray(data.items)) issues.push({ level: "error", msg: `${label}: items 없음` });
+      else {
+        const ids: string[] = [];
+        for (const it of data.items) {
+          const id = String(it.target_id || "");
+          ids.push(id);
+          if (!it.action) issues.push({ level: "error", msg: `${label} ${id}: action 필수` });
+          if (!Array.isArray(it.alternatives)) {
+            issues.push({ level: "error", msg: `${label} ${id}: alternatives 배열 필요` });
+          }
+        }
+        dupIds(ids, label, issues);
+      }
+    }
+  }
+
+  const exc = localRead(root, F.adExcKr);
+  if (!exc.ok) issues.push({ level: "error", msg: exc.error });
+  else {
+    const data = exc.data as { rules?: Array<Record<string, unknown>> };
+    if (!Array.isArray(data.rules) || data.rules.length !== 10) {
+      issues.push({
+        level: "error",
+        msg: `ad-exceptions: 10개 필요(현재 ${Array.isArray(data.rules) ? data.rules.length : 0})`,
+      });
+    } else {
+      const ids: string[] = [];
+      for (const r of data.rules) {
+        const id = String(r.id || "");
+        ids.push(id);
+        if (!r.target_id) issues.push({ level: "error", msg: `ad-exc ${id}: target_id 필수` });
+        if (!r.result) issues.push({ level: "error", msg: `ad-exc ${id}: result 필수` });
+      }
+      dupIds(ids, "ad-exceptions-kr", issues);
+    }
+  }
+
+  const tpl = localRead(root, F.templates);
+  if (!tpl.ok) issues.push({ level: "error", msg: tpl.error });
+  else {
+    const data = tpl.data as {
+      KR?: Array<Record<string, unknown>>;
+      US?: Array<Record<string, unknown>>;
+    };
+    if (!Array.isArray(data.KR) || data.KR.length < 1) {
+      issues.push({ level: "error", msg: "required-templates: KR 배열 필요" });
+    }
+    if (!Array.isArray(data.US) || data.US.length < 1) {
+      issues.push({ level: "error", msg: "required-templates: US 배열 필요" });
     }
   }
 
