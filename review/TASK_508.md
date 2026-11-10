@@ -32,18 +32,23 @@
 ### A-3. 테스트
 `scripts/regression/label-check-508-unreadable.ts`: (1) 글자 0 → unreadable, 점수 칸·"발견된 항목이 없어요" 미출력 (2) 혼합 → partial 배너와 바뀐 제목 (3) 정상 → 기존과 동일(회귀) (4) unreadable은 저장 호출이 없다. 기존 507 UI 매핑 테스트 갱신.
 
-## 2. 파트 B — OCR (Google Cloud Vision REST)
-**선택 이유(확인된 공개 가격 기준)**: Document Text Detection은 월 1,000장 무료, 이후 1,000장당 US$1.50(PDF는 쪽마다 1장 계산). CLOVA OCR은 긴 변 1,960px 이하 제한(캡처 같은 세로로 긴 이미지에 불리)이고 요금표를 확인하지 못해 보류. 구현은 공급자를 바꿀 수 있게 **인터페이스 하나 뒤에** 둔다(`lib/label-check/ocr/provider.ts`).
+## 2. 파트 B — OCR (시장별 공급자: 한국=네이버 CLOVA OCR, 미국·해외=Google Cloud Vision)
+**사용자 결정(2026-11-10)**: 판매 국가가 **한국**이면 **CLOVA OCR(General)**, **미국(및 이후 추가될 해외)**이면 **Google Cloud Vision**. 공급자는 `lib/label-check/ocr/provider.ts`의 인터페이스(`recognize(tile) → {lines:[{text,confidence,heightPx}]}`) 뒤에 두고, `pickProvider(market)`이 고른다. 두 구현 파일: `ocr/google-vision.ts`, `ocr/clova.ts`.
+- **Google**(공식 가격 페이지 확인): Document Text Detection 월 1,000장 무료, 이후 1,000장당 US$1.50(PDF는 쪽마다 1장).
+- **CLOVA**(공식 API 문서 확인): `POST {Invoke URL}`, 헤더 `X-OCR-SECRET`, 본문 `version:"V2"`, `requestId`(UUID), `timestamp`(ms), `lang:"ko"`, `images:[{format,name,data(base64)}]`(**호출당 이미지 1개**), 응답 `images[0].fields[].{inferText, inferConfidence(0~1), boundingPoly.vertices}`, `inferResult`가 `SUCCESS`가 아니면 실패. 이미지 50MB 이하, PDF는 호출당 10쪽 이하. 문서에 긴 변 제한이 **1,960px(이전) → 8,000px 미만(2026-04-23 이후 한국 리전)** 두 가지로 적혀 있어 **어느 쪽인지 확인하지 못했다** → 조각 높이를 **1,900px**로 두고 상수로 분리(확인 후 키울 수 있게). **요금과 무료 제공량은 확인하지 못했다**(공개 가격표에서 수치를 못 찾음) → 비용은 호출 수로만 센다.
+- 한국 시장에서 CLOVA 설정이 없고 `GOOGLE_VISION_API_KEY`가 있으면 **Google로 대체**한다(보고서에 이 동작을 명시. 대체하지 않기를 원하면 사용자가 알려 준다). 둘 다 없으면 OCR 꺼짐.
 
 ### B-1. 환경변수 (코드는 이름만 쓴다. 값은 사용자가 Vercel에 넣는다)
-- `GOOGLE_VISION_API_KEY` — 없으면 OCR 기능은 **꺼진 상태**: 화면에서 OCR 버튼을 숨기고 붙여넣기만 안내한다(에러 아님).
-- `LABEL_OCR_MONTHLY_LIMIT` — 기본 **900**(무료 한도 안). 초과하면 OCR 거절(아래 B-4).
+- `GOOGLE_VISION_API_KEY` — 미국·해외용. 없으면 해당 시장 OCR은 **꺼진 상태**(버튼 숨김, 붙여넣기만 안내, 에러 아님).
+- `CLOVA_OCR_INVOKE_URL`, `CLOVA_OCR_SECRET` — 한국용. 둘 중 하나라도 없으면 한국 OCR은 위 대체 규칙을 따른다.
+- `LABEL_OCR_GOOGLE_MONTHLY_LIMIT` — 기본 **900**(무료 한도 안).
+- `LABEL_OCR_CLOVA_MONTHLY_LIMIT` — 기본 **0**(= 한도 미설정 시 CLOVA 호출 안 함). 사용자가 CLOVA 요금을 확인한 뒤 숫자를 넣어야 켜진다.
 - `LABEL_OCR_PER_USER_DAILY` — 기본 **30**(회원), 비회원은 **5**(IP 기준).
 
 ### B-2. 흐름
 1. **브라우저에서 준비**(이미 쓰는 pdfjs 재사용): PDF면 쪽을 캔버스로 그려 JPEG로, 이미지 파일(JPG/PNG/WEBP, 각 10MB 이하, 최대 10장)이면 그대로. HEIC는 이번 차수 제외(안내 문구만).
 2. **세로로 긴 이미지 분할**: 긴 변이 3,000px를 넘으면 가로 폭은 유지하고 세로로 **2,400px 조각 + 120px 겹침**으로 자른다. 조각 합쳐 최대 **20조각/요청**(넘으면 "10쪽/20조각까지"라고 안내). 업로드 전 긴 변을 4,000px 이하로 줄이고 JPEG 품질 0.85로 압축해 조각당 **3MB 이하**.
-3. **서버 `POST /api/label-check/ocr`**: 조각 base64 배열(요청 본문 총 **4MB 이하**라서 필요하면 요청을 여러 번 나눠 보낸다 — 클라이언트가 4MB씩 묶어 순차 전송) → Vision `images:annotate`, feature `DOCUMENT_TEXT_DETECTION`, `languageHints: ["ko","en"]`. 응답에서 **줄/단어 단위 텍스트, 신뢰도, 바운딩박스 높이(px)**만 뽑아 반환. 원본 이미지·응답 원문은 **저장·로그 금지**.
+3. **서버 `POST /api/label-check/ocr`**: 요청에 `market`(KR/US)을 받아 `pickProvider(market)` 호출. 조각 base64 배열(요청 본문 총 **4MB 이하**라서 필요하면 요청을 여러 번 나눠 보낸다 — 클라이언트가 4MB씩 묶어 순차 전송). **Google**: Vision `images:annotate`, feature `DOCUMENT_TEXT_DETECTION`, `languageHints: ["ko","en"]`(미국 라벨은 `["en"]` 우선, 한글 병기 대비 `ko` 포함). **CLOVA**: 조각마다 1회 호출(동시 4개까지), `lang:"ko"`. 응답에서 **줄 단위 텍스트, 신뢰도, 바운딩박스 높이(px)**만 뽑아 공통 모양으로 반환. CLOVA 조각 높이는 1,900px(위 설명), Google은 2,400px. 시장에 따라 조각 크기가 다르므로 분할 함수에 `maxHeightPx`를 인자로 받는다. 원본 이미지·응답 원문은 **저장·로그 금지**.
 4. 겹침 구간 중복 줄 제거(같은 텍스트 + y좌표 근접).
 5. 결과를 기존 `ExtractedLabelPayload` 모양으로 변환해 **기존 `runLabelCheckFromExtracted`에 그대로** 넣는다. 글자 크기(sizePt)는 OCR에서는 알 수 없으므로 **`sizePt: 0`(미상)** 으로 두고, 글자 크기 규칙(5pt 등)은 이 경로에서 **"확인 못 함"**(unknown)으로 처리한다(크기를 추정해서 판정하지 않는다).
 6. **고객이 읽은 글자를 고칠 수 있게 한다(필수)**: 점검 전에 "읽은 글자" 확인 화면(큰 입력칸, 조각별 구분 없이 하나로)을 보여주고, 고객이 오타를 고친 뒤 "이 글자로 점검"을 누르게 한다. 상단 안내: **"사진에서 읽은 글자라 틀릴 수 있어요. 숫자·성분명을 꼭 확인해 주세요."** 고친 글자는 기존 **텍스트 모드(full)**로 점검한다. 결과 화면에도 "사진에서 읽은 글자 기준" 표시.
@@ -57,15 +62,15 @@
 - 정규화 전 원문은 확인 화면에서 보여주고, 보정이 일어난 곳은 연한 표시(예: `100 ml ← 1OO ml`)로 고객이 알 수 있게 한다.
 
 ### B-4. 비용 보호(중요)
-- 서버에서 **월 합계 카운터**를 Supabase 테이블에 원자적으로 증가: 신규 마이그레이션 `supabase/migrations/20261110100000_label_ocr_usage.sql` — `label_ocr_usage(period text primary key /* 'YYYY-MM' */, units int not null default 0, updated_at timestamptz default now())`, RLS **켜고 정책 없음**(서버 service role만 접근), 증가용 SQL 함수 `public.label_ocr_consume(p_period text, p_units int, p_limit int) returns boolean`(한도 초과면 증가하지 않고 false). **마이그레이션 파일만 만들고 적용은 하지 않는다**(적용은 내가 한다).
+- 서버에서 **공급자별 월 합계 카운터**를 Supabase 테이블에 원자적으로 증가(기간 키는 `'YYYY-MM:google'`, `'YYYY-MM:clova'`): 신규 마이그레이션 `supabase/migrations/20261110100000_label_ocr_usage.sql` — `label_ocr_usage(period text primary key /* 'YYYY-MM:공급자' */, units int not null default 0, updated_at timestamptz default now())`, RLS **켜고 정책 없음**(서버 service role만 접근), 증가용 SQL 함수 `public.label_ocr_consume(p_period text, p_units int, p_limit int) returns boolean`(한도 초과면 증가하지 않고 false). **마이그레이션 파일만 만들고 적용은 하지 않는다**(적용은 내가 한다).
 - 서버는 호출 **전에** 조각 수만큼 consume → 한도 초과면 Vision 호출 없이 `OCR_LIMIT` 에러(문구: "이번 달 사진 읽기 한도에 도달했어요. 문구 붙여넣기로 점검해 주세요.").
 - 회원 일일 한도·비회원 IP 한도(B-1 값)는 기존 `limiter`를 재사용하되, **서버리스에서는 인스턴스마다 메모리가 따로라 약한 보호**임을 코드 주석에 쓰고, 월 합계 카운터가 진짜 보호장치임을 명시.
-- Vision 오류(401/403/429/5xx)는 고객에게 일반 문구로("지금은 사진을 읽을 수 없어요"), 키·응답 원문·스택은 노출 금지. 실패한 호출은 카운터를 되돌리지 않아도 된다(보수적).
+- 공급자 오류(Google 401/403/429/5xx, CLOVA 400 코드 0002·0023·0025·05xx·10xx 등)는 고객에게 일반 문구로("지금은 사진을 읽을 수 없어요"), 키·응답 원문·스택은 노출 금지. 실패한 호출은 카운터를 되돌리지 않아도 된다(보수적).
 - `export const maxDuration`는 문서 확인 후 Hobby 한도 이내로 설정(조각 병렬 호출은 동시 4개까지).
 
 ### B-5. 개인정보·안내
-- 올리기 화면의 OCR 사용 직전에 한 줄: **"사진을 글자로 바꾸기 위해 이미지가 외부 OCR 서비스(Google)로 전송되며, 저장하지 않습니다."** 동의 체크 없이 안내만 하되, 버튼 이름에 명시("사진에서 글자 읽기(외부 전송)").
-- `/privacy` 문서에 처리 위탁/국외 이전 문구 **초안**을 추가하지 말고, `review/508-privacy-note.md`에 "개인정보처리방침에 넣을 항목 목록(수탁자 Google LLC, 국외 이전 항목, 보관 안 함 등)"만 적어 둔다(전문가 검토 대상).
+- 올리기 화면의 OCR 사용 직전에 한 줄: **"사진을 글자로 바꾸기 위해 이미지가 외부 OCR 서비스로 전송되며, 저장하지 않습니다."** (한국 선택 시 "네이버 클라우드", 미국 선택 시 "Google"로 이름을 시장에 맞게 표시.) 동의 체크 없이 안내만 하되, 버튼 이름에 명시("사진에서 글자 읽기(외부 전송)").
+- `/privacy` 문서에 처리 위탁/국외 이전 문구 **초안**을 추가하지 말고, `review/508-privacy-note.md`에 "개인정보처리방침에 넣을 항목 목록(수탁자: 한국용 네이버클라우드, 미국용 Google LLC — 국외 이전은 Google만 해당 여부를 전문가가 확인, 항목·보관 안 함 등)"만 적어 둔다(전문가 검토 대상).
 
 ### B-6. UI
 - 올리기 카드: 파일 선택이 PDF + 이미지(JPG/PNG/WEBP)를 받는다. 이미지/글자 없는 PDF를 올리면 자동으로 **"사진에서 글자 읽기"** 단계로 안내(파트 A의 unreadable 화면과 연결).
@@ -74,19 +79,19 @@
 - 320px·390px에서 확인 화면 입력칸이 넘치지 않게(가로 스크롤 금지), 키보드로 모든 버튼 접근 가능.
 
 ### B-7. 테스트(네트워크 없이)
-- `scripts/regression/label-check-508-ocr.ts`: Vision 응답 fixture(한글 라벨 문장, `1OO ml` 오인식, 겹침 중복 줄, 낮은 신뢰도)로 (1) 겹침 제거 (2) 정규화·용량 추출(한국·미국 oz 병기) (3) sizePt=0 → 크기 규칙이 unknown (4) 용량 불일치 → "서로 다르게 읽혔어요" (5) 평균 신뢰도 낮음 → unreadable/partial 연결.
+- `scripts/regression/label-check-508-ocr.ts`: Google·CLOVA 각각의 응답 fixture(CLOVA는 `fields[].inferText/inferConfidence/boundingPoly`)(한글 라벨 문장, `1OO ml` 오인식, 겹침 중복 줄, 낮은 신뢰도)로 (1) 겹침 제거 (2) 정규화·용량 추출(한국·미국 oz 병기) (3) sizePt=0 → 크기 규칙이 unknown (4) 용량 불일치 → "서로 다르게 읽혔어요" (5) 평균 신뢰도 낮음 → unreadable/partial 연결.
 - 서버 라우트 테스트: `fetch`를 가짜로 바꿔 (1) 키 없음 → 기능 꺼짐 응답 (2) 한도 초과 → Vision 미호출 (3) 정상 → 응답 변환 (4) 오류 → 일반 문구·키 미노출. 응답·로그에 base64/원문이 남지 않는지 정적 검사.
 - 분할 함수(세로 긴 이미지 → 조각)는 캔버스 없이 **순수 계산 함수**로 분리해 단위 테스트(조각 수·겹침·마지막 조각 높이).
 - 기존 17개 묶음 전부 통과 + 새 2개 묶음을 `label-check-suites.ts`에 등록. 금지어 검사·heavy-guard(playwright 미사용) 통과.
 
 ## 3. 하지 말 것
-- 실제 사진·PDF 다운로드/업로드 검증, 실제 Vision 호출, 키 생성·열람.
+- 실제 사진·PDF 다운로드/업로드 검증, 실제 Google·CLOVA 호출, 키·Invoke URL·시크릿 생성·열람.
 - OCR 결과로 글자 크기 판정, 읽은 글자를 서버에 저장, 원본 이미지 로그.
 - 판정 규칙·`review/data` 수정, 상세페이지·결제 화면 변경.
 
 ## 4. 보고서에 반드시 포함
 1. 파트 A 전/후 화면 상태표(unreadable/partial/ok)와 "발견된 항목이 없어요"가 나오는 모든 경로 목록.
 2. OCR 흐름 다이어그램(텍스트)과 환경변수 3개 표.
-3. 요청당 최대 조각 수·본문 크기·비용 계산식(조각 수 × 단가) — 단가는 "1,000장당 US$1.50, 월 1,000장 무료(공식 가격 페이지 확인값, 변동 가능)"로만 기재.
+3. 시장별 요청당 최대 조각 수·본문 크기·호출 수 계산식. Google 단가는 "1,000장당 US$1.50, 월 1,000장 무료(공식 가격 페이지 확인값, 변동 가능)"로만 기재. **CLOVA 단가는 확인하지 못했다고 적고 추정 금지.** 한국 시장 대체(Google) 동작과 CLOVA 한도 기본 0의 의미를 설명.
 4. 마이그레이션 파일 경로(적용 안 함 명시).
 5. 확인하지 못한 항목(실제 호출, 실사진 정확도, 브라우저 렌더링 등).
