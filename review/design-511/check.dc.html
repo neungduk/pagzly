@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>점검 시작</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+body{margin:0;background:#F2F5F3;font-family:'Noto Sans KR',system-ui,sans-serif;color:#13201C}
+a{color:inherit}
+button,textarea{font-family:inherit}
+.mk{transition:background .2s,color .2s,border-color .2s,transform .2s}
+.mk:hover{transform:translateY(-3px)}
+.drop{transition:background .25s,border-color .25s,transform .25s}
+.drop:hover{border-color:#0F3D36;background:#E6EEEA;transform:scale(1.01)}
+.go{transition:transform .2s,box-shadow .2s}
+.go:hover{transform:translateY(-3px);box-shadow:0 12px 24px -10px rgba(255,107,82,.7)}
+@keyframes up{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes march{to{background-position:28px 0,-28px 100%,0 -28px,100% 28px}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes row{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+.a1{animation:up .7s .05s cubic-bezier(.2,.7,.2,1) both}
+.a2{animation:up .7s .15s cubic-bezier(.2,.7,.2,1) both}
+.a3{animation:up .7s .25s cubic-bezier(.2,.7,.2,1) both}
+.a4{animation:up .7s .35s cubic-bezier(.2,.7,.2,1) both}
+.a5{animation:up .7s .45s cubic-bezier(.2,.7,.2,1) both}
+.ico{animation:float 3s ease-in-out infinite}
+.spin{animation:spin .9s linear infinite}
+.ov{animation:fadeIn .3s ease both}
+.rw{animation:row .4s ease both}
+@media (prefers-reduced-motion:reduce){.a1,.a2,.a3,.a4,.a5,.ico,.spin,.ov,.rw{animation:none}}
+</style>
+</helmet>
+<div style="position:relative;width:100%;min-height:900px;display:flex;flex-direction:column;background:#F2F5F3">
+
+<header style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;padding:22px max(24px,calc((100% - 1000px)/2));background:#0F3D36;color:#F2F5F3">
+<a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:900;font-size:20px;letter-spacing:-0.02em">
+<span style="width:28px;height:28px;border-radius:6px;background:#F2F5F3;display:inline-flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#0F3D36" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.5"/></svg></span>Pagzly</a>
+<nav style="display:flex;gap:24px;font-size:15px;color:#C6D8D0"><a href="Result.dc.html" style="text-decoration:none">내 결과</a><a href="Main.dc.html" style="text-decoration:none">로그인</a></nav>
+</header>
+
+<main style="padding:48px max(24px,calc((100% - 1000px)/2)) 72px;display:flex;flex-direction:column;gap:30px">
+
+<div class="a1" style="display:flex;flex-direction:column;gap:16px">
+<ol style="margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:10px;font-size:14px;font-weight:700">
+<li style="padding:8px 16px;border-radius:20px;background:#0F3D36;color:#F2F5F3">1 올리기</li>
+<li style="padding:8px 16px;border-radius:20px;background:#E3E9E5;color:#5B6B65">2 결과 보기</li>
+<li style="padding:8px 16px;border-radius:20px;background:#E3E9E5;color:#5B6B65">3 고쳐서 다시 점검</li>
+</ol>
+<h1 style="margin:0;font-size:46px;line-height:1.2;font-weight:900;letter-spacing:-0.04em;text-wrap:balance">어떤 문구를 점검할까요?</h1>
+</div>
+
+<div class="a2" style="display:flex;flex-wrap:wrap;gap:12px" role="group" aria-label="판매 국가">
+<sc-for list="{{markets}}" as="m" hint-placeholder-count="2">
+<button type="button" class="mk" onClick="{{ m.go }}" style="flex:1 1 220px;min-height:72px;border-radius:12px;border:2px solid {{ m.bd }};background:{{ m.bg }};color:{{ m.fg }};font-size:18px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">{{ m.name }}<span style="font-size:13px;font-weight:400;opacity:.8">{{ m.sub }}</span></button>
+</sc-for>
+</div>
+
+<label class="drop a3" style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:260px;border:2px dashed #7E968D;border-radius:16px;background:#FFFFFF;text-align:center;padding:32px;cursor:pointer">
+<span class="ico" style="width:64px;height:64px;border-radius:32px;background:#E6EEEA;display:inline-flex;align-items:center;justify-content:center"><svg width="32" height="32" viewBox="0 0 40 40" fill="none" stroke="#0F3D36" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 27V8M12 15l8-8 8 8"/><path d="M6 27v5h28v-5"/></svg></span>
+<span style="font-size:22px;font-weight:900;letter-spacing:-0.02em">PDF나 사진을 여기에 놓거나 눌러서 고르세요</span>
+<span style="font-size:15px;color:#5B6B65;line-height:1.7">PDF 최대 100MB · 사진(JPG·PNG·WEBP) 10MB<br>파일은 내 컴퓨터에서 먼저 읽고, 점검 후 저장하지 않습니다</span>
+<input type="file" accept=".pdf,image/*" style="position:absolute;width:1px;height:1px;opacity:0" aria-label="파일 선택">
+</label>
+
+<div class="a4" style="display:flex;align-items:center;gap:16px;color:#5B6B65;font-size:14px"><span style="flex:1;height:1px;background:#CBD5CF"></span>또는 문구만 붙여넣기<span style="flex:1;height:1px;background:#CBD5CF"></span></div>
+
+<div class="a4" style="display:flex;flex-direction:column;gap:12px">
+<label for="paste" style="font-size:15px;font-weight:700">문구 붙여넣기</label>
+<textarea id="paste" rows="5" onInput="{{ onText }}" placeholder="상세페이지나 라벨의 문구를 붙여 넣으세요" style="width:100%;box-sizing:border-box;border:2px solid #9FB0A8;border-radius:12px;padding:16px;font-size:16px;line-height:1.7;background:#FFFFFF;color:#13201C;resize:vertical;outline:none"></textarea>
+<div style="display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;font-size:15px">
+<label style="display:flex;align-items:center;gap:8px;min-height:44px"><input type="radio" name="kind" checked> 광고 문구만</label>
+<label style="display:flex;align-items:center;gap:8px;min-height:44px"><input type="radio" name="kind"> 라벨 전체 문구</label>
+<span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;color:#5B6B65">{{charCount}}자</span>
+</div>
+</div>
+
+<div class="a5" style="display:flex;flex-wrap:wrap;gap:16px;align-items:center">
+<button type="button" class="go" onClick="{{ start }}" style="display:inline-flex;align-items:center;justify-content:center;min-height:60px;padding:0 44px;border:0;border-radius:12px;background:#FF6B52;color:#1A0A06;font-size:19px;font-weight:900;cursor:pointer">무료로 점검하기</button>
+<span style="font-size:14px;color:#5B6B65">참고용 사전 점검이며 법적 판단이 아닙니다.</span>
+</div>
+</main>
+
+<sc-if value="{{busy}}" hint-placeholder-val="{{false}}">
+<div class="ov" style="position:absolute;inset:0;background:rgba(15,61,54,.94);color:#F2F5F3;display:flex;align-items:center;justify-content:center;padding:24px;z-index:5">
+<div style="width:100%;max-width:460px;display:flex;flex-direction:column;gap:26px">
+<div style="display:flex;align-items:center;gap:16px"><span class="spin" style="width:34px;height:34px;border-radius:17px;border:4px solid #3E6B60;border-top-color:#FF6B52;display:inline-block"></span><span style="font-size:26px;font-weight:900;letter-spacing:-0.03em">{{busyTitle}}</span></div>
+<div style="display:flex;flex-direction:column;gap:12px">
+<sc-for list="{{steps}}" as="st" hint-placeholder-count="4">
+<div class="rw" style="display:flex;align-items:center;gap:12px;font-size:17px;color:{{ st.fg }}"><span style="flex:none;width:24px;height:24px;border-radius:12px;background:{{ st.dot }};display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#0F3D36">{{ st.mark }}</span>{{ st.text }}</div>
+</sc-for>
+</div>
+<sc-if value="{{done}}" hint-placeholder-val="{{false}}">
+<a href="Result.dc.html" class="rw" style="display:inline-flex;align-self:flex-start;align-items:center;justify-content:center;min-height:56px;padding:0 32px;border-radius:12px;background:#FF6B52;color:#1A0A06;font-size:18px;font-weight:900;text-decoration:none">결과 보기</a>
+</sc-if>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { market: 0, chars: 0, busy: false, step: 0 };
+  }
+  componentWillUnmount() { clearInterval(this._t); }
+  renderVals() {
+    const mk = this.state.market;
+    const markets = [
+      { name: '한국에서 판매', sub: '표시·광고 기준 (식약처)' },
+      { name: '미국에서 판매', sub: '연방 기준 일부 항목' },
+    ].map((m, i) => ({
+      ...m,
+      bg: i === mk ? '#0F3D36' : '#FFFFFF',
+      fg: i === mk ? '#F2F5F3' : '#13201C',
+      bd: i === mk ? '#0F3D36' : '#CBD5CF',
+      go: () => this.setState({ market: i }),
+    }));
+    const texts = ['글자를 읽는 중', '필수 표시사항 확인', '광고 문구 확인', '결과 정리'];
+    const cur = this.state.step;
+    const steps = texts.slice(0, Math.min(cur + 1, 4)).map((text, i) => ({
+      text,
+      fg: i < cur || cur >= 4 ? '#C6D8D0' : '#FFFFFF',
+      dot: i < cur || cur >= 4 ? '#7FD3A8' : '#F2F5F3',
+      mark: i < cur || cur >= 4 ? '✓' : '',
+    }));
+    return {
+      markets,
+      charCount: this.state.chars,
+      onText: (e) => this.setState({ chars: (e && e.target && e.target.value ? e.target.value.length : 0) }),
+      busy: this.state.busy,
+      done: cur >= 4,
+      busyTitle: cur >= 4 ? '점검이 끝났어요' : '점검하는 중',
+      steps,
+      start: () => {
+        clearInterval(this._t);
+        this.setState({ busy: true, step: 0 });
+        this._t = setInterval(() => {
+          const n = this.state.step + 1;
+          this.setState({ step: n });
+          if (n >= 4) clearInterval(this._t);
+        }, 750);
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>
