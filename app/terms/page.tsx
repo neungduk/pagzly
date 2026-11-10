@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import PagzlyLogo from "@/components/PagzlyLogo";
 import { DETAIL_PAGE_ENABLED } from "@/lib/feature-flags";
+import { LabelSiteShell511, LabelHeader511, LabelFooter511 } from "@/components/label-check/ui-511";
 
 type Article = { title: string; body: string };
 
@@ -158,39 +157,32 @@ export default function TermsPage() {
   const articles = DETAIL_PAGE_ENABLED ? DETAIL_ARTICLES : LABEL_CHECK_ARTICLES;
 
   return (
-    <div className="min-h-full bg-paper">
-      <header className="border-b border-line">
-        <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-6">
-          <Link href="/" aria-label="Pagzly 홈">
-            <PagzlyLogo className="h-6 w-auto" />
-          </Link>
-          <Link href="/" className="text-sm text-ink/50 transition-colors hover:text-ink">
-            홈으로
-          </Link>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-3xl px-6 py-16">
-        <h1 className="font-heading text-2xl font-semibold text-ink sm:text-3xl">
+    <LabelSiteShell511>
+      <LabelHeader511 />
+      <main className="lc-wrap lc-prose" style={{ paddingTop: 48, paddingBottom: 72 }}>
+        <h1 style={{ margin: 0, fontSize: "clamp(28px, 5vw, 40px)", fontWeight: 900, letterSpacing: "-0.035em" }}>
           이용약관
         </h1>
-        <p className="mt-2 font-mono text-xs text-ink/40">시행일 {EFFECTIVE_DATE}</p>
+        <p className="lc-mono" style={{ margin: "8px 0 0", fontSize: 13, color: "#5B6B65" }}>
+          시행일 {EFFECTIVE_DATE}
+        </p>
 
-        <div className="mt-12 space-y-10">
+        <div style={{ marginTop: 48, display: "flex", flexDirection: "column", gap: 36 }}>
           {articles.map((article) => (
             <section key={article.title}>
-              <h2 className="text-base font-semibold text-ink">{article.title}</h2>
-              <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink/70">
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900 }}>{article.title}</h2>
+              <p style={{ margin: "12px 0 0", whiteSpace: "pre-line", fontSize: 15, lineHeight: 1.85, color: "#3E4F49" }}>
                 {article.body}
               </p>
             </section>
           ))}
         </div>
 
-        <p className="mt-16 border-t border-line pt-8 font-mono text-xs text-ink/40">
+        <p className="lc-mono" style={{ marginTop: 64, borderTop: "1px solid #D5DDD8", paddingTop: 32, fontSize: 13, color: "#5B6B65" }}>
           부칙 — 이 약관은 {EFFECTIVE_DATE}부터 시행합니다.
         </p>
       </main>
-    </div>
+      <LabelFooter511 />
+    </LabelSiteShell511>
   );
 }

@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import PagzlyLogo from "@/components/PagzlyLogo";
 import KakaoLoginButton from "@/components/KakaoLoginButton";
 import GoogleLoginButton from "@/components/GoogleLoginButton";
 import { createClient } from "@/lib/supabase";
 import { hasCompletedOnboarding } from "@/lib/onboarding";
+import { LabelSiteShell511, LabelHeader511, LabelFooter511 } from "@/components/label-check/ui-511";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -53,114 +53,67 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-full flex-col bg-paper text-ink">
-      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-registration-red/5 to-paper" />
+    <LabelSiteShell511>
+      <LabelHeader511 />
+      <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 24px 72px" }}>
+        <div className="lc511-auth-card">
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, letterSpacing: "-0.03em" }}>회원가입</h1>
+          <p style={{ margin: 0, fontSize: 15, color: "#5B6B65" }}>Pagzly를 시작하려면 계정을 만드세요</p>
 
-      <header className="px-6 py-6">
-        <Link href="/">
-          <PagzlyLogo className="h-8 w-auto" />
-        </Link>
-      </header>
-
-      <main className="flex flex-1 items-center justify-center px-6 pb-16">
-        <div className="w-full max-w-md">
-          <div className="rounded-2xl border border-line bg-white p-8 shadow-sm">
-            <h1 className="text-2xl font-bold text-ink">회원가입</h1>
-            <p className="mt-2 text-sm text-ink/60">
-              Pagzly를 시작하려면 계정을 만드세요
-            </p>
-
-            <div className="mt-8 space-y-3">
-              <KakaoLoginButton
-                label="카카오로 시작하기"
-                onError={setError}
-              />
-              <GoogleLoginButton
-                label="Google로 시작하기"
-                onError={setError}
-              />
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="bg-white px-3 text-gray-400">또는</span>
-                </div>
-              </div>
-            </div>
-
-            <form onSubmit={handleSubmit} className="mt-5 space-y-5">
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-ink/80"
-                >
-                  이메일
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="mt-1.5 w-full rounded-lg border border-line px-4 py-2.5 text-sm outline-none transition-colors focus:border-registration-red focus:ring-2 focus:ring-registration-red/20"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-ink/80"
-                >
-                  비밀번호
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  required
-                  minLength={6}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="6자 이상"
-                  className="mt-1.5 w-full rounded-lg border border-line px-4 py-2.5 text-sm outline-none transition-colors focus:border-registration-red focus:ring-2 focus:ring-registration-red/20"
-                />
-              </div>
-
-              {error && (
-                <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
-                  {error}
-                </p>
-              )}
-
-              {message && (
-                <p className="rounded-lg bg-registration-red/10 px-4 py-3 text-sm text-registration-red">
-                  {message}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {loading ? "가입 중..." : "회원가입"}
-              </button>
-            </form>
-
-            <p className="mt-6 text-center text-sm text-ink/60">
-              이미 계정이 있으신가요?{" "}
-              <Link
-                href="/login"
-                className="font-medium text-registration-red hover:text-registration-red/80"
-              >
-                로그인
-              </Link>
-            </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <KakaoLoginButton label="카카오로 시작하기" onError={setError} />
+            <GoogleLoginButton label="Google로 시작하기" onError={setError} />
+            <p style={{ margin: "8px 0 0", textAlign: "center", fontSize: 13, color: "#5B6B65" }}>또는</p>
           </div>
+
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <label htmlFor="email">
+              이메일
+              <input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+              />
+            </label>
+            <label htmlFor="password">
+              비밀번호
+              <input
+                id="password"
+                type="password"
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="6자 이상"
+              />
+            </label>
+            {error ? (
+              <p style={{ margin: 0, padding: 12, borderRadius: 8, background: "rgba(214,64,43,.12)", color: "#B3321F", fontSize: 14 }}>
+                {error}
+              </p>
+            ) : null}
+            {message ? (
+              <p style={{ margin: 0, padding: 12, borderRadius: 8, background: "rgba(15,61,54,.08)", color: "#0F3D36", fontSize: 14 }}>
+                {message}
+              </p>
+            ) : null}
+            <button type="submit" className="lc-cta lc-cta-solid lc-w-full" disabled={loading}>
+              {loading ? "가입 중..." : "회원가입"}
+            </button>
+          </form>
+
+          <p style={{ margin: 0, textAlign: "center", fontSize: 14, color: "#5B6B65" }}>
+            이미 계정이 있으신가요?{" "}
+            <Link href="/login" style={{ fontWeight: 700, color: "#0F3D36" }}>
+              로그인
+            </Link>
+          </p>
         </div>
       </main>
-    </div>
+      <LabelFooter511 />
+    </LabelSiteShell511>
   );
 }

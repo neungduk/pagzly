@@ -6,6 +6,12 @@ import { useParams, useRouter } from "next/navigation";
 import "@/components/label-check/ui-507/label-check-507.css";
 import { ResultView507 } from "@/components/label-check/ui-507";
 import {
+  LabelSiteShell511,
+  LabelHeader511,
+  LabelFooter511,
+} from "@/components/label-check/ui-511";
+import LogoutButton from "@/components/LogoutButton";
+import {
   ERR_LOGIN_EXPIRED_495,
   NOTICE_HISTORY_NO_REANALYZE_495,
 } from "@/lib/label-check/member-constants";
@@ -89,39 +95,43 @@ export default function LabelCheckHistoryDetailPage() {
     : "—";
 
   return (
-    <main className="lc507 min-h-screen">
-      <div className="lc507-wrap">
-        <header className="lc507-print-hide">
-          <p className="text-sm font-semibold text-[var(--lc507-brand)]">
-            <Link href="/label-check/history" className="underline-offset-2 hover:underline">
-              내 결과
-            </Link>
-          </p>
-          <h1 className="lc507-title" style={{ fontSize: 20, marginTop: 8 }}>
-            저장된 요약
-          </h1>
-          <p className="lc507-fine mt-2">{NOTICE_HISTORY_NO_REANALYZE_495}</p>
-        </header>
+    <LabelSiteShell511>
+      <LabelHeader511 user={{ id: "member" }} logoutSlot={<LogoutButton />} />
+      <main className="lc507 min-h-screen">
+        <div className="lc507-wrap">
+          <header className="lc507-print-hide">
+            <p className="text-sm font-semibold" style={{ color: "#0F3D36" }}>
+              <Link href="/label-check/history" className="underline-offset-2 hover:underline">
+                내 결과
+              </Link>
+            </p>
+            <h1 className="lc507-title" style={{ fontSize: 28, marginTop: 8 }}>
+              저장된 요약
+            </h1>
+            <p className="lc507-fine mt-2">{NOTICE_HISTORY_NO_REANALYZE_495}</p>
+          </header>
 
-        {error ? (
-          <p className="lc507-card" role="alert">
-            {error}
-          </p>
-        ) : null}
+          {error ? (
+            <p className="lc507-card" role="alert">
+              {error}
+            </p>
+          ) : null}
 
-        {result ? (
-          <ResultView507
-            result={result}
-            productName={run?.product_name}
-            checkedOn={checkedOn}
-            hideEvidence
-            isMember
-            showBottomBar={false}
-          />
-        ) : !error ? (
-          <p className="lc507-fine">불러오는 중…</p>
-        ) : null}
-      </div>
-    </main>
+          {result ? (
+            <ResultView507
+              result={result}
+              productName={run?.product_name}
+              checkedOn={checkedOn}
+              hideEvidence
+              isMember
+              showBottomBar={false}
+            />
+          ) : !error ? (
+            <p className="lc507-fine">불러오는 중…</p>
+          ) : null}
+        </div>
+      </main>
+      <LabelFooter511 />
+    </LabelSiteShell511>
   );
 }

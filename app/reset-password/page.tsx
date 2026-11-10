@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import PagzlyLogo from "@/components/PagzlyLogo";
 import { createClient } from "@/lib/supabase";
+import { LabelSiteShell511, LabelHeader511, LabelFooter511 } from "@/components/label-check/ui-511";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -57,97 +57,63 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-full flex-col bg-paper text-ink">
-      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-registration-red/5 to-paper" />
-
-      <header className="px-6 py-6">
-        <Link href="/">
-          <PagzlyLogo className="h-8 w-auto" />
-        </Link>
-      </header>
-
-      <main className="flex flex-1 items-center justify-center px-6 pb-16">
-        <div className="w-full max-w-md">
-          <div className="rounded-2xl border border-line bg-white p-8 shadow-sm">
-            {!hasSession ? (
-              <>
-                <h1 className="text-2xl font-bold text-ink">링크가 만료되었습니다</h1>
-                <p className="mt-2 text-sm text-ink/60">
-                  비밀번호 재설정 링크가 만료되었거나 유효하지 않습니다. 다시
-                  요청해 주세요.
-                </p>
-                <Link
-                  href="/forgot-password"
-                  className="mt-6 block w-full rounded-lg bg-ink px-4 py-2.5 text-center text-sm font-semibold text-paper transition-colors hover:bg-ink/90"
-                >
-                  비밀번호 찾기로 돌아가기
-                </Link>
-              </>
-            ) : (
-              <>
-                <h1 className="text-2xl font-bold text-ink">새 비밀번호 설정</h1>
-                <p className="mt-2 text-sm text-ink/60">
-                  새로 사용할 비밀번호를 입력해 주세요.
-                </p>
-
-                <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-                  <div>
-                    <label
-                      htmlFor="password"
-                      className="block text-sm font-medium text-ink/80"
-                    >
-                      새 비밀번호
-                    </label>
-                    <input
-                      id="password"
-                      type="password"
-                      required
-                      minLength={6}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="6자 이상"
-                      className="mt-1.5 w-full rounded-lg border border-line px-4 py-2.5 text-sm outline-none transition-colors focus:border-registration-red focus:ring-2 focus:ring-registration-red/20"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="confirmPassword"
-                      className="block text-sm font-medium text-ink/80"
-                    >
-                      새 비밀번호 확인
-                    </label>
-                    <input
-                      id="confirmPassword"
-                      type="password"
-                      required
-                      minLength={6}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="6자 이상"
-                      className="mt-1.5 w-full rounded-lg border border-line px-4 py-2.5 text-sm outline-none transition-colors focus:border-registration-red focus:ring-2 focus:ring-registration-red/20"
-                    />
-                  </div>
-
-                  {error && (
-                    <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
-                      {error}
-                    </p>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {loading ? "변경 중..." : "비밀번호 변경"}
-                  </button>
-                </form>
-              </>
-            )}
-          </div>
+    <LabelSiteShell511>
+      <LabelHeader511 />
+      <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 24px 72px" }}>
+        <div className="lc511-auth-card">
+          {!hasSession ? (
+            <>
+              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, letterSpacing: "-0.03em" }}>링크가 만료되었습니다</h1>
+              <p style={{ margin: 0, fontSize: 15, color: "#5B6B65" }}>
+                비밀번호 재설정 링크가 만료되었거나 유효하지 않습니다. 다시 요청해 주세요.
+              </p>
+              <Link href="/forgot-password" className="lc-cta lc-cta-solid" style={{ textAlign: "center" }}>
+                비밀번호 찾기로 돌아가기
+              </Link>
+            </>
+          ) : (
+            <>
+              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, letterSpacing: "-0.03em" }}>새 비밀번호 설정</h1>
+              <p style={{ margin: 0, fontSize: 15, color: "#5B6B65" }}>새로 사용할 비밀번호를 입력해 주세요.</p>
+              <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <label htmlFor="password">
+                  새 비밀번호
+                  <input
+                    id="password"
+                    type="password"
+                    required
+                    minLength={6}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="6자 이상"
+                  />
+                </label>
+                <label htmlFor="confirmPassword">
+                  새 비밀번호 확인
+                  <input
+                    id="confirmPassword"
+                    type="password"
+                    required
+                    minLength={6}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="6자 이상"
+                  />
+                </label>
+                {error ? (
+                  <p style={{ margin: 0, padding: 12, borderRadius: 8, background: "rgba(214,64,43,.12)", color: "#B3321F", fontSize: 14 }}>
+                    {error}
+                  </p>
+                ) : null}
+                <button type="submit" className="lc-cta lc-cta-solid lc-w-full" disabled={loading}>
+                  {loading ? "변경 중..." : "비밀번호 변경"}
+                </button>
+              </form>
+            </>
+          )}
         </div>
       </main>
-    </div>
+      <LabelFooter511 />
+    </LabelSiteShell511>
   );
 }

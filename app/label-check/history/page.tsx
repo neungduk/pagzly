@@ -4,6 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ERR_LOGIN_EXPIRED_495 } from "@/lib/label-check/member-constants";
+import {
+  LabelSiteShell511,
+  LabelHeader511,
+  LabelFooter511,
+} from "@/components/label-check/ui-511";
+import LogoutButton from "@/components/LogoutButton";
 
 type RunRow = {
   id: string;
@@ -76,62 +82,86 @@ export default function LabelCheckHistoryPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#F7F4EE] text-[#1B1B18]">
-      <div className="mx-auto w-full max-w-3xl px-4 py-10">
-        <header className="mb-6">
-          <p className="text-sm font-semibold tracking-wide text-[#6B5A2E]">
-            <Link href="/label-check" className="underline-offset-2 hover:underline">
-              표시사항 사전 점검
-            </Link>
-            {" · "}내 결과
-          </p>
-          <h1 className="mt-2 text-2xl font-extrabold">내 결과</h1>
-          <nav className="mt-3 flex flex-wrap gap-3 text-sm">
-            <Link href="/label-check/new" className="underline-offset-2 hover:underline">
-              검수 신청
-            </Link>
-          </nav>
-        </header>
+    <LabelSiteShell511>
+      <LabelHeader511 user={{ id: "member" }} logoutSlot={<LogoutButton />} />
+      <main className="lc-wrap" style={{ paddingTop: 40, paddingBottom: 72, flex: 1 }}>
+        <h1 style={{ margin: 0, fontSize: "clamp(28px, 5vw, 40px)", fontWeight: 900, letterSpacing: "-0.035em" }}>
+          내 결과
+        </h1>
+        <p style={{ margin: "8px 0 24px", color: "#5B6B65", fontSize: 15 }}>
+          저장한 점검 요약을 다시 볼 수 있습니다.
+        </p>
 
         {error ? (
-          <p className="mb-4 break-words text-sm text-[#9B1C1C]" role="alert">
+          <p style={{ marginBottom: 16, color: "#B3321F", fontSize: 14 }} role="alert">
             {error}
           </p>
         ) : null}
 
-        {loading ? <p className="text-sm text-[#555]">불러오는 중…</p> : null}
+        {loading ? <p style={{ fontSize: 14, color: "#5B6B65" }}>불러오는 중…</p> : null}
 
         {!loading && runs.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-[#CDBF9A] bg-white p-4 text-sm text-[#555]">
+          <p
+            style={{
+              border: "1px dashed #CBD5CF",
+              borderRadius: 12,
+              background: "#FFFFFF",
+              padding: 20,
+              fontSize: 15,
+              color: "#3E4F49",
+            }}
+          >
             저장된 결과가 없습니다.{" "}
-            <Link href="/label-check/new" className="underline-offset-2 hover:underline">
-              검수 신청
+            <Link href="/label-check/new" style={{ fontWeight: 700, textDecoration: "underline" }}>
+              새 점검
             </Link>
             에서 첫 결과를 남겨 보세요.
           </p>
         ) : null}
 
-        <ul className="space-y-2">
+        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
           {runs.map((r) => {
             const s = r.summary || {};
             const date = r.created_at ? new Date(r.created_at).toLocaleString("ko-KR") : "—";
             return (
               <li
                 key={r.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#E5DCC8] bg-white px-3 py-3 text-sm"
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  border: "1px solid #CBD5CF",
+                  borderRadius: 12,
+                  background: "#FFFFFF",
+                  padding: "14px 16px",
+                  fontSize: 15,
+                }}
               >
-                <Link href={`/label-check/history/${r.id}`} className="min-w-0 flex-1 break-words hover:underline">
-                  <span className="font-semibold">{r.product_name || "제품명 미입력"}</span>
-                  <span className="mt-1 block text-xs text-[#666]">
-                    {date} · {r.market === "US" ? "미국" : "한국"} · 위반 가능 {s.possible ?? 0} / 확인 필요{" "}
-                    {s.attention ?? 0} / 확인 불가 {s.unknown ?? 0} / 통과 {s.pass ?? 0}
+                <Link href={`/label-check/history/${r.id}`} style={{ minWidth: 0, flex: 1, textDecoration: "none" }}>
+                  <span style={{ fontWeight: 800 }}>{r.product_name || "제품명 미입력"}</span>
+                  <span style={{ display: "block", marginTop: 4, fontSize: 13, color: "#5B6B65" }}>
+                    {date} · {r.market === "US" ? "미국" : "한국"} · 고칠 것 {s.possible ?? 0} / 확인할 것{" "}
+                    {s.attention ?? 0} / 확인 못 함 {s.unknown ?? 0} / 문제 없음 {s.pass ?? 0}
                   </span>
                 </Link>
                 <button
                   type="button"
                   disabled={deleting === r.id}
                   onClick={() => void onDelete(r.id)}
-                  className="rounded-full border border-[#9B1C1C] px-3 py-1 text-xs font-semibold text-[#9B1C1C] disabled:opacity-40"
+                  style={{
+                    minHeight: 44,
+                    borderRadius: 8,
+                    border: "1px solid #D6402B",
+                    padding: "8px 14px",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "#B3321F",
+                    background: "#FFFFFF",
+                    cursor: "pointer",
+                    opacity: deleting === r.id ? 0.4 : 1,
+                  }}
                 >
                   {deleting === r.id ? "삭제 중…" : "삭제"}
                 </button>
@@ -139,7 +169,8 @@ export default function LabelCheckHistoryPage() {
             );
           })}
         </ul>
-      </div>
-    </main>
+      </main>
+      <LabelFooter511 />
+    </LabelSiteShell511>
   );
 }
