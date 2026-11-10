@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # 490 — Vercel Ignored Build Step.
 # 2026-11-10: 프로덕션 배포 트리거를 위해 주석 추가(동작 변경 없음).
+# 514차 배포 트리거(동작 변경 없음).
 # exit 0 = 빌드 건너뜀, exit 1 = 빌드 진행.
 # review/** 와 *.md 만 바뀐 커밋은 건너뛰고, 그 외(코드) 변경·첫 커밋(HEAD^ 없음)은 진행.
 set -e
