@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 
-export function CopyButton507({ text, label = "복사" }: { text: string; label?: string }) {
+export function CopyButton507({ text, label = "문구 복사" }: { text: string; label?: string }) {
   const [done, setDone] = useState(false);
 
   const onCopy = useCallback(async () => {
@@ -32,7 +32,7 @@ export function CopyButton507({ text, label = "복사" }: { text: string; label?
 
   return (
     <button type="button" className="lc507-copy" onClick={() => void onCopy()} aria-live="polite">
-      {done ? "복사됨" : label}
+      {done ? "복사했어요" : label}
     </button>
   );
 }

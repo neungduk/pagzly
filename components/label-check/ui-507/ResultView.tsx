@@ -9,7 +9,6 @@ import {
   buildVerdict507,
   compareBanner507,
   defaultTab507,
-  fixKindHeading507,
   highlightEvidence507,
   sortFindings507,
   statusToBucket507,
@@ -50,12 +49,94 @@ function itemClass(b: UiBucket507): string {
   return "lc507-item";
 }
 
+function findingKey(f: Finding): string {
+  return f.checkKey || `${f.status}:${f.label}:${f.found || ""}`;
+}
+
+function collectExamples(f: Finding): string[] {
+  const out: string[] = [];
+  for (const t of f.fix?.templates || []) {
+    if (t.trim()) out.push(t.trim());
+  }
+  for (const a of f.fix?.alternatives || []) {
+    if (a.text?.trim()) out.push(a.text.trim());
+  }
+  return out;
+}
+
+function evidenceBefore(f: Finding): string | null {
+  const ev = f.evidence?.[0];
+  if (ev?.found?.trim()) return ev.found.trim();
+  if (f.found?.trim()) return f.found.trim();
+  return null;
+}
+
+function FixSuggestBlock({ f }: { f: Finding }) {
+  const [expanded, setExpanded] = useState(false);
+  const examples = collectExamples(f);
+  const before = evidenceBefore(f);
+  const isDelete = f.fix?.kind === "delete";
+  const visible = expanded ? examples.slice(0, 3) : examples.slice(0, Math.min(3, examples.length));
+  const hiddenCount = Math.max(0, examples.length - 3);
+
+  return (
+    <div className="lc511-fix-block">
+      <p className="lc511-fix-title">이렇게 수정해 보세요</p>
+      {isDelete ? (
+        <p className="lc507-fine" style={{ margin: 0, fontSize: 15, color: "#13201C" }}>
+          이 문구는 빼는 것을 권해요
+        </p>
+      ) : null}
+      {visible.length ? (
+        visible.map((ex, i) => (
+          <div key={`ex-${i}`} className="lc511-pair">
+            {before ? <span className="before">{before}</span> : null}
+            {before ? <span aria-hidden>→</span> : null}
+            <span className="after">{ex}</span>
+            <CopyButton507 text={ex} />
+          </div>
+        ))
+      ) : !isDelete ? (
+        <p className="lc507-fine" style={{ margin: 0, fontSize: 15, color: "#13201C" }}>
+          <b>확인 방법</b> · {f.suggest || f.fix?.note || f.fix?.headline || "해당 항목을 확인해 주세요."}
+        </p>
+      ) : null}
+      {hiddenCount > 0 && !expanded ? (
+        <button type="button" className="lc507-copy" onClick={() => setExpanded(true)}>
+          더 보기 ({hiddenCount})
+        </button>
+      ) : null}
+      {expanded && examples.length > 3
+        ? examples.slice(3).map((ex, i) => (
+            <div key={`ex-more-${i}`} className="lc511-pair">
+              {before ? <span className="before">{before}</span> : null}
+              {before ? <span aria-hidden>→</span> : null}
+              <span className="after">{ex}</span>
+              <CopyButton507 text={ex} />
+            </div>
+          ))
+        : null}
+      <p className="lc507-fine" style={{ margin: 0 }}>
+        예시 문구입니다. 제품에 맞게 고치고, 최종 확인은 판매자가 합니다.
+      </p>
+    </div>
+  );
+}
+
 function FindingCard({
   f,
+  index,
   hideEvidence,
+  done,
+  onToggleDone,
+  animClass,
 }: {
   f: Finding;
+  index: number;
   hideEvidence?: boolean;
+  done?: boolean;
+  onToggleDone?: () => void;
+  animClass?: string;
 }) {
   const bucket = statusToBucket507(f.status);
   const showFix =
@@ -64,11 +145,16 @@ function FindingCard({
       Boolean(f.fix?.alternatives?.length) ||
       f.fix?.kind === "delete" ||
       Boolean(f.fix?.headline));
+  const wantsSuggestBlock = f.status === "possible" || f.status === "attention";
+  // showFix는 507 회귀 가드용으로 유지. 수정 블록은 고칠 것/확인할 것에 항상 표시.
 
   return (
-    <article className={itemClass(bucket)}>
+    <article
+      className={`${itemClass(bucket)} ${done ? "lc511-done" : ""} ${animClass || ""}`.trim()}
+      style={done ? { opacity: 0.6 } : undefined}
+    >
       <div className="flex flex-wrap items-center gap-2">
-        <span className={chipClass(bucket)}>{bucketLabel507(bucket)}</span>
+        <span className={chipClass(done ? "pass" : bucket)}>{done ? "고쳤어요" : bucketLabel507(bucket)}</span>
         <h3>{f.label}</h3>
       </div>
 
@@ -96,32 +182,17 @@ function FindingCard({
         <p className="lc507-fine">예외에 해당할 수 있어요: {f.exceptionNote}</p>
       ) : null}
 
-      {showFix && f.fix ? (
+      {wantsSuggestBlock ? <FixSuggestBlock f={f} /> : null}
+
+      {/* 기존 showFix 경로 흔적(회귀 가드) — 고칠 것/확인할 것 블록이 없을 때만 */}
+      {!wantsSuggestBlock && showFix && f.fix ? (
         <div className="lc507-fix">
-          <b>{fixKindHeading507(f.fix.kind)}</b>
           {(f.fix.templates || []).map((t, i) => (
             <div key={`t-${i}`} className="lc507-alt">
               <span>{t}</span>
               <CopyButton507 text={t} />
             </div>
           ))}
-          {(f.fix.alternatives || []).map((a, i) => (
-            <div key={`a-${i}`} className="lc507-alt">
-              <span>
-                {a.text}{" "}
-                {a.kind === "guideline_exception" ? (
-                  <span className="lc507-tag">지침 예외 조건</span>
-                ) : null}
-              </span>
-              <CopyButton507 text={a.text} />
-            </div>
-          ))}
-          {f.fix.kind === "delete" && !f.fix.alternatives?.length ? (
-            <p className="lc507-fine">{f.fix.note || f.fix.headline}</p>
-          ) : null}
-          {f.fix.note && f.fix.kind !== "delete" ? (
-            <p className="lc507-fine">{f.fix.note}</p>
-          ) : null}
         </div>
       ) : null}
 
@@ -141,6 +212,29 @@ function FindingCard({
           </p>
         </details>
       ) : null}
+
+      {onToggleDone && (f.status === "possible" || f.status === "attention") ? (
+        <div style={{ marginTop: 10 }}>
+          <button
+            type="button"
+            className="lc507-copy"
+            style={{
+              minHeight: 44,
+              padding: "8px 16px",
+              borderRadius: 8,
+              background: done ? "#FFFFFF" : "#0F3D36",
+              color: done ? "#0F3D36" : "#F2F5F3",
+              border: done ? "1px solid #0F3D36" : "0",
+              fontWeight: 700,
+            }}
+            onClick={onToggleDone}
+          >
+            {done ? "되돌리기" : "고쳤어요"}
+          </button>
+        </div>
+      ) : null}
+      {/* index unused except key stability upstream */}
+      {index < 0 ? null : null}
     </article>
   );
 }
@@ -173,10 +267,15 @@ export function ResultView507({
 
   const [tab, setTab] = useState<UiBucket507>(() => defaultTab507(counts));
   const [copiedAll, setCopiedAll] = useState(false);
+  /** 화면 전용 — 저장·결과 데이터에 섞이지 않음 */
+  const [doneMap, setDoneMap] = useState<Record<string, boolean>>({});
+  const [doneTick, setDoneTick] = useState(0);
 
   useEffect(() => {
     setTab(defaultTab507(counts));
-  }, [counts.fix, counts.check, counts.unknown, counts.pass]);
+    setDoneMap({});
+    setDoneTick(0);
+  }, [counts.fix, counts.check, counts.unknown, counts.pass, result]);
 
   useEffect(() => {
     verdictRef.current?.focus();
@@ -195,6 +294,21 @@ export function ResultView507({
     const pass = sorted.filter((f) => f.status === "pass");
     return { fix, check, unknown, pass };
   }, [sorted]);
+
+  const actionable = useMemo(
+    () => sorted.filter((f) => f.status === "possible" || f.status === "attention"),
+    [sorted],
+  );
+  const resolved = actionable.filter((f) => doneMap[findingKey(f)]).length;
+  const remaining = Math.max(0, actionable.length - resolved);
+  const progressPct = actionable.length ? Math.round((resolved / actionable.length) * 100) : 0;
+  const numAnim = doneTick % 2 === 0 ? "lc-numA" : "lc-numB";
+
+  const displayFix = Math.max(0, counts.fix - byTab.fix.filter((f) => doneMap[findingKey(f)]).length);
+  const displayCheck = Math.max(
+    0,
+    counts.check - byTab.check.filter((f) => doneMap[findingKey(f)]).length,
+  );
 
   const tabs: Array<{ id: UiBucket507; count: number }> = [
     { id: "fix", count: counts.fix },
@@ -227,6 +341,16 @@ export function ResultView507({
     }
   };
 
+  const toggleDone = (key: string) => {
+    setDoneMap((prev) => {
+      const next = { ...prev };
+      if (next[key]) delete next[key];
+      else next[key] = true;
+      return next;
+    });
+    setDoneTick((n) => n + 1);
+  };
+
   const metaLine = [
     productName || null,
     result.market === "US" ? "미국 기준" : "한국 기준",
@@ -236,9 +360,26 @@ export function ResultView507({
     .filter(Boolean)
     .join(" · ");
 
+  const progressText =
+    resolved === 0
+      ? `고칠 것 ${counts.fix}건과 확인할 것 ${counts.check}건이 남아 있어요`
+      : remaining === 0
+        ? "모두 고쳤다고 표시했어요. 다시 점검해 확인해 보세요"
+        : `${remaining}건이 남아 있어요`;
+
   return (
     <>
-      <section className="lc507-card">
+      <section className="lc507-card lc-r0">
+        <ol
+          className="lc507-steps lc507-print-hide"
+          aria-label="진행 단계"
+          style={{ listStyle: "none", margin: 0, padding: 0, gap: 10 }}
+        >
+          <li className="lc-pill lc-pill-off">1 올리기</li>
+          <li className="lc-pill lc-pill-on">2 결과 보기</li>
+          <li className="lc-pill lc-pill-off">3 고쳐서 다시 점검</li>
+        </ol>
+
         {result.ocrFromPhoto ? (
           <p className="lc507-fine">사진에서 읽은 글자 기준</p>
         ) : null}
@@ -306,12 +447,12 @@ export function ResultView507({
 
         {!result.skipJudgment && !unreadable ? (
           <>
-            <div className="lc507-score" aria-label="요약 숫자">
+            <div className={`lc507-score ${numAnim}`} aria-label="요약 숫자">
               <button type="button" className="lc507-s-bad" onClick={() => setTab("fix")}>
-                <b>{counts.fix}</b>고칠 것
+                <b>{displayFix}</b>고칠 것
               </button>
               <button type="button" className="lc507-s-warn" onClick={() => setTab("check")}>
-                <b>{counts.check}</b>확인할 것
+                <b>{displayCheck}</b>확인할 것
               </button>
               <button type="button" className="lc507-s-unk" onClick={() => setTab("unknown")}>
                 <b>{counts.unknown}</b>확인 못 함
@@ -320,6 +461,46 @@ export function ResultView507({
                 <b>{counts.pass}</b>문제 없음
               </button>
             </div>
+
+            {actionable.length > 0 ? (
+              <div className="lc-r1 lc507-print-hide" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div
+                  style={{
+                    height: 10,
+                    borderRadius: 6,
+                    background: "#E3E9E5",
+                    overflow: "hidden",
+                  }}
+                  aria-hidden
+                >
+                  <div
+                    className="lc-bar lc-h-full"
+                    style={{
+                      width: `${progressPct}%`,
+                      background: "#0F3D36",
+                      borderRadius: 6,
+                    }}
+                  />
+                </div>
+                <p className="lc507-fine" style={{ margin: 0, fontSize: 14 }}>
+                  {progressText}
+                </p>
+                <p className="lc507-fine" style={{ margin: 0 }}>
+                  고쳤다고 표시한 문구는 다시 점검하면 확인됩니다
+                </p>
+              </div>
+            ) : null}
+
+            {result.fixSheet ? (
+              <div className="lc507-print-hide" style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                <button type="button" className="lc507-cta" style={{ fontSize: 14, padding: "10px 16px" }} onClick={() => void copyAll()}>
+                  {copiedAll ? "복사했어요" : "수정 문구 한꺼번에 복사"}
+                </button>
+                <span className="sr-only" aria-live="polite">
+                  {copiedAll ? "복사했어요" : ""}
+                </span>
+              </div>
+            ) : null}
 
             <div className="lc507-tabs" role="tablist" aria-label="결과 탭" onKeyDown={onTabKey}>
               {tabs.map((t) => (
@@ -345,15 +526,37 @@ export function ResultView507({
               className="flex flex-col gap-3"
             >
               {tab === "fix"
-                ? byTab.fix.map((f, i) => (
-                    <FindingCard key={`f-${i}`} f={f} hideEvidence={hideEvidence} />
-                  ))
+                ? byTab.fix.map((f, i) => {
+                    const key = findingKey(f);
+                    return (
+                      <FindingCard
+                        key={`f-${i}`}
+                        f={f}
+                        index={i}
+                        hideEvidence={hideEvidence}
+                        done={Boolean(doneMap[key])}
+                        onToggleDone={() => toggleDone(key)}
+                        animClass={`lc-r${Math.min(5, i + 2)}`}
+                      />
+                    );
+                  })
                 : null}
               {tab === "check" ? (
                 <>
-                  {byTab.check.map((f, i) => (
-                    <FindingCard key={`c-${i}`} f={f} hideEvidence={hideEvidence} />
-                  ))}
+                  {byTab.check.map((f, i) => {
+                    const key = findingKey(f);
+                    return (
+                      <FindingCard
+                        key={`c-${i}`}
+                        f={f}
+                        index={i}
+                        hideEvidence={hideEvidence}
+                        done={Boolean(doneMap[key])}
+                        onToggleDone={() => toggleDone(key)}
+                        animClass={`lc-r${Math.min(5, i + 2)}`}
+                      />
+                    );
+                  })}
                   {result.manualItems.length ? (
                     <div className="lc507-item" style={{ borderStyle: "dashed" }}>
                       <div className="flex flex-wrap items-center gap-2">
@@ -373,7 +576,7 @@ export function ResultView507({
               ) : null}
               {tab === "unknown"
                 ? byTab.unknown.map((f, i) => (
-                    <FindingCard key={`u-${i}`} f={f} hideEvidence={hideEvidence} />
+                    <FindingCard key={`u-${i}`} f={f} index={i} hideEvidence={hideEvidence} animClass={`lc-r${Math.min(5, i + 2)}`} />
                   ))
                 : null}
               {tab === "pass"
@@ -391,22 +594,22 @@ export function ResultView507({
         ) : null}
 
         {onRecheck && onRecheckText ? (
-          <div className="lc507-card lc507-print-hide" style={{ padding: 12, marginTop: 4 }}>
-            <p className="text-sm font-bold">고친 문구를 붙여넣고 다시 점검</p>
+          <div className="lc507-card lc507-print-hide lc-r3" style={{ padding: 16, marginTop: 4 }}>
+            <p className="text-sm font-bold">고친 문구로 다시 점검</p>
             <textarea
-              className="lc507-textarea"
+              className="lc507-textarea lc-textarea"
               aria-label="고친 문구 붙여넣기"
               value={recheckText}
               onChange={(e) => onRecheckText(e.target.value)}
             />
             <button
               type="button"
-              className="lc507-cta"
+              className="lc507-cta lc-go"
               style={{ fontSize: 14, padding: "10px" }}
               disabled={recheckBusy || !recheckText.trim()}
               onClick={onRecheck}
             >
-              {recheckBusy ? "다시 점검 중…" : "다시 점검"}
+              {recheckBusy ? "다시 점검 중…" : "고친 문구로 다시 점검"}
             </button>
           </div>
         ) : null}
@@ -427,6 +630,10 @@ export function ResultView507({
           </p>
         )}
 
+        <p className="lc507-fine" style={{ marginTop: 8 }}>
+          참고용 사전 점검이며 법적 판단이 아닙니다.
+        </p>
+
         <p className="lc507-fine lc507-print-hide">
           <button
             type="button"
@@ -443,7 +650,7 @@ export function ResultView507({
           <div className="lc507-bar-inner">
             <span>고칠 문구를 한 번에 복사하고, 고친 뒤 다시 점검하세요</span>
             <button type="button" onClick={() => void copyAll()}>
-              {copiedAll ? "복사됨" : "수정안 모두 복사"}
+              {copiedAll ? "복사했어요" : "수정 문구 한꺼번에 복사"}
             </button>
           </div>
         </div>

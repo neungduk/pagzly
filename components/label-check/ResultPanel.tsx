@@ -10,10 +10,10 @@ import {
 import { fixKindHeading496 } from "@/lib/label-check/fix-kind-label";
 
 const STATUS_KO: Record<string, string> = {
-  possible: "위반 가능",
-  attention: "확인 필요",
-  unknown: "확인 불가",
-  pass: "통과",
+  possible: "고칠 것",
+  attention: "확인할 것",
+  unknown: "확인 못 함",
+  pass: "문제 없음",
 };
 
 /** 496 — fix_ko(fixSuggestion) 있을 때만 표시. 빈 문구 금지 */
