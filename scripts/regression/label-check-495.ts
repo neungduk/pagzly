@@ -92,8 +92,12 @@ export async function run(): Promise<string[]> {
   }
 
   const guest = fs.readFileSync(path.join(process.cwd(), "app/label-check/page.tsx"), "utf8");
-  if (!/로그인/.test(guest) || !/내 결과/.test(guest)) f.push("495: 게스트 상단 링크 없음");
-  if (/완벽\s*검수|자동\s*수정\s*보장/.test(guest)) f.push("495: 금지 카피");
+  const header511 = fs.existsSync(path.join(process.cwd(), "components/label-check/ui-511/LabelHeader.tsx"))
+    ? fs.readFileSync(path.join(process.cwd(), "components/label-check/ui-511/LabelHeader.tsx"), "utf8")
+    : "";
+  const guestNav = guest + header511;
+  if (!/로그인/.test(guestNav) || !/내 결과/.test(guestNav)) f.push("495: 게스트 상단 링크 없음");
+  if (/완벽\s*검수|자동\s*수정\s*보장/.test(guestNav)) f.push("495: 금지 카피");
 
   const api = fs.readFileSync(path.join(process.cwd(), "app/api/label-check/route.ts"), "utf8");
   if (!/saveLabelCheckRun/.test(api)) f.push("495: API 저장 연동 없음");

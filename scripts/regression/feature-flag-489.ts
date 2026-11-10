@@ -238,8 +238,14 @@ export async function run(): Promise<string[]> {
       if (/Anthropic|DeepSeek|상세페이지 문구·이미지 자동 생성/.test(labelTerms)) {
         f.push("491: terms 검수 분기에 상세 AI 생성 문단");
       }
-      if (!/href=\"\/privacy\"/.test(labelPage) || !/href=\"\/terms\"/.test(labelPage)) {
-        f.push("491: label-check 하단 privacy/terms 링크 없음");
+      {
+        const footer = fs.existsSync(path.join(process.cwd(), "components/label-check/ui-511/LabelFooter.tsx"))
+          ? fs.readFileSync(path.join(process.cwd(), "components/label-check/ui-511/LabelFooter.tsx"), "utf8")
+          : "";
+        const blob = labelPage + footer;
+        if (!/href=\"\/privacy\"/.test(blob) || !/href=\"\/terms\"/.test(blob)) {
+          f.push("491: label-check 하단 privacy/terms 링크 없음");
+        }
       }
       if (/min-w-\[\d{3,}px\]/.test(labelPage)) f.push("491: label-check 고정 min-width(가로 넘침)");
     }

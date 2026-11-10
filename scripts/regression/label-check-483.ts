@@ -250,7 +250,8 @@ export async function run(): Promise<string[]> {
     const ui = page + upload + status;
     const has507Title =
       ui.includes("UPLOAD_TITLE_507") ||
-      ui.includes("화장품 라벨·광고 문구, 인쇄 전에 한 번 더 확인하세요");
+      ui.includes("화장품 라벨·광고 문구, 인쇄 전에 한 번 더 확인하세요") ||
+      ui.includes("어떤 문구를 점검할까요?");
     const has486Intro =
       page.includes("INTRO_ONE_LINE_486") ||
       page.includes(INTRO_ONE_LINE_486) ||
@@ -311,10 +312,14 @@ export async function run(): Promise<string[]> {
     }
   }
 
-  // 491 — 하단 약관 링크
+  // 491 — 하단 약관 링크 (511: 공통 LabelFooter로 이동 허용)
   {
     const page = fs.readFileSync(path.join(process.cwd(), "app/label-check/page.tsx"), "utf8");
-    if (!/href=\"\/privacy\"/.test(page) || !/href=\"\/terms\"/.test(page)) {
+    const footer = fs.existsSync(path.join(process.cwd(), "components/label-check/ui-511/LabelFooter.tsx"))
+      ? fs.readFileSync(path.join(process.cwd(), "components/label-check/ui-511/LabelFooter.tsx"), "utf8")
+      : "";
+    const blob = page + footer;
+    if (!/href=\"\/privacy\"/.test(blob) || !/href=\"\/terms\"/.test(blob)) {
       f.push("491: label-check 하단 privacy/terms 링크 없음");
     }
   }
