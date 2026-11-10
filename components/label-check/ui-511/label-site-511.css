@@ -462,8 +462,17 @@
   .lc-site .lc-scan514,
   .lc-site .lc514-r1,
   .lc-site .lc514-r2,
-  .lc-site .lc514-r3 {
+  .lc-site .lc514-r3,
+  .lc-site .lc514-r4,
+  .lc-site .lc515-wash i,
+  .lc-site .lc515-float1,
+  .lc-site .lc515-float2,
+  .lc-site .lc515-belt,
+  .lc-site .lc515-mk {
     animation: none !important;
+  }
+  .lc-site .lc515-mk {
+    background-size: 100% 100% !important;
   }
   .lc-site .lc-cta,
   .lc-site .lc-lift,
@@ -474,8 +483,12 @@
   .lc-site .lc-mk,
   .lc-site .lc-drop,
   .lc-site .lc-go,
-  .lc-site .lc514-rc {
+  .lc-site .lc514-rc,
+  .lc-site .lc515-tilt {
     transition: none !important;
+  }
+  .lc-site .lc515-tilt {
+    transform: none !important;
   }
 }
 
@@ -945,7 +958,7 @@
   border: 1px solid var(--lc-line);
   border-radius: 20px;
   padding: 30px 30px 34px;
-  box-shadow: 0 24px 60px rgba(17, 18, 20, 0.08);
+  box-shadow: 0 30px 70px rgba(40, 60, 140, 0.18);
   overflow: hidden;
 }
 .lc-site .lc-scan514 {
@@ -1010,6 +1023,9 @@
 }
 .lc-site .lc514-r3 {
   animation: lc-rise514 0.5s 0.8s both;
+}
+.lc-site .lc514-r4 {
+  animation: lc-rise514 0.5s 1s both;
 }
 .lc-site .lc514-stats {
   background: #111214;
@@ -1079,6 +1095,9 @@
   text-align: center;
   gap: 20px;
 }
+.lc-site .lc515-cta-grad {
+  background: linear-gradient(135deg, #1d4ed8, #3b5bff 60%, #6c7dff);
+}
 .lc-site .lc514-cta-panel a {
   display: inline-flex;
   align-items: center;
@@ -1128,9 +1147,238 @@
   .lc-site .lc514-cta-panel {
     padding: 48px 24px;
   }
+  .lc-site .lc515-wash i.a,
+  .lc-site .lc515-wash i.b,
+  .lc-site .lc515-wash i.c {
+    width: 60%;
+    height: auto;
+    aspect-ratio: 1;
+  }
+  .lc-site .lc515-tilt {
+    transform: none;
+  }
+  .lc-site .lc515-tilt:hover {
+    transform: none;
+  }
+  .lc-site .lc515-float1 {
+    left: 8px;
+    top: -12px;
+  }
+  .lc-site .lc515-float2 {
+    right: 8px;
+    bottom: -14px;
+  }
+  .lc-site .lc515-belt-section {
+    padding: 4px 0 40px;
+  }
   .lc-site .lc-wrap,
   .lc-site .lc-wrap-wide {
     padding-left: max(16px, env(safe-area-inset-left, 0px));
     padding-right: max(16px, env(safe-area-inset-right, 0px));
   }
+}
+
+/* —— 515 landing wash / motion / belt —— */
+.lc-site .lc515-landing {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #f3f5fb;
+  overflow-x: hidden;
+}
+.lc-site .lc515-wash {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1250px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.lc-site .lc515-wash i {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.85;
+  animation: lc515-drift 9s ease-in-out infinite alternate;
+}
+.lc-site .lc515-wash i.a {
+  width: 620px;
+  height: 620px;
+  left: -120px;
+  top: 40px;
+  background: #d5deff;
+}
+.lc-site .lc515-wash i.b {
+  width: 560px;
+  height: 560px;
+  right: -100px;
+  top: 120px;
+  background: #ffdccb;
+}
+.lc-site .lc515-wash i.c {
+  width: 520px;
+  height: 520px;
+  left: 38%;
+  top: 620px;
+  background: #cfefe0;
+}
+@keyframes lc515-drift {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(30px, 24px);
+  }
+}
+.lc-site .lc515-above {
+  position: relative;
+  z-index: 1;
+}
+.lc-site .lc515-fix-band {
+  background: #fff;
+  position: relative;
+  z-index: 1;
+}
+.lc-site .lc515-label-wrap {
+  position: relative;
+}
+.lc-site .lc515-tilt {
+  transform: rotate(-2.2deg);
+  transition: transform 0.35s;
+}
+.lc-site .lc515-tilt:hover {
+  transform: rotate(0deg);
+}
+.lc-site .lc515-float1,
+.lc-site .lc515-float2 {
+  position: absolute;
+  background: #fff;
+  border: 1px solid #e6e6e1;
+  border-radius: 14px;
+  box-shadow: 0 14px 36px rgba(17, 18, 20, 0.14);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 3;
+  white-space: nowrap;
+}
+.lc-site .lc515-float1 {
+  left: -18px;
+  top: -16px;
+  color: #d6402b;
+  animation: lc515-bob 3s ease-in-out infinite alternate;
+}
+.lc-site .lc515-float2 {
+  right: 26px;
+  bottom: -18px;
+  color: #b7791f;
+  animation: lc515-bob 3.6s 0.6s ease-in-out infinite alternate;
+}
+.lc-site .lc515-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 10px;
+  background: currentColor;
+  display: inline-block;
+}
+@keyframes lc515-bob {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-7px);
+  }
+}
+@keyframes lc515-draw {
+  from {
+    background-size: 0 100%;
+  }
+  to {
+    background-size: 100% 100%;
+  }
+}
+.lc-site .lc515-mk {
+  background-repeat: no-repeat;
+  background-size: 0 100%;
+  animation: lc515-draw 0.7s ease-out forwards;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+.lc-site .lc515-mk.bad {
+  background-image: linear-gradient(#ffd9d2, #ffd9d2);
+  border-bottom: 2px solid #d6402b;
+  animation-delay: 1s;
+}
+.lc-site .lc515-mk.warn {
+  background-image: linear-gradient(#fff1cc, #fff1cc);
+  border-bottom: 2px solid #b7791f;
+  animation-delay: 1.7s;
+}
+.lc-site .lc515-mk.bad2 {
+  background-image: linear-gradient(#ffd9d2, #ffd9d2);
+  animation-delay: 2.3s;
+}
+.lc-site .lc515-belt-section {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  padding: 6px 0 70px;
+}
+.lc-site .lc515-belt-note {
+  margin: 0 auto 10px;
+  max-width: 1040px;
+  padding: 0 24px;
+  font-size: 12px;
+  color: var(--lc-mute);
+}
+.lc-site .lc515-belt-viewport {
+  overflow: hidden;
+}
+.lc-site .lc515-belt {
+  display: flex;
+  width: max-content;
+  animation: lc515-slide 40s linear infinite;
+}
+.lc-site .lc515-belt:hover {
+  animation-play-state: paused;
+}
+.lc-site .lc515-belt-copy {
+  display: flex;
+  gap: 14px;
+  padding-right: 14px;
+}
+@keyframes lc515-slide {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.lc-site .lc515-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #e6e6e1;
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.lc-site .lc515-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.lc-site .lc515-tag.fix {
+  background: #d6402b;
+}
+.lc-site .lc515-tag.check {
+  background: #b7791f;
+}
+.lc-site .lc515-tag.ok {
+  background: #1f7a56;
 }

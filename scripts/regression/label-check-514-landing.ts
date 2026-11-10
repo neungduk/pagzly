@@ -4,6 +4,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { labelRuleCounts514 } from "../../lib/label-check/rules-count-514";
+import {
+  LANDING_BEFORE_AFTER_514,
+  LANDING_DEMO_CARDS_514,
+  LANDING_DEMO_DISCLAIMER_514,
+} from "../../components/label-check/ui-511/landing-demo-514";
 
 export const name = "표시사항 514 — 랜딩 v3 디자인";
 
@@ -45,13 +50,19 @@ export async function run(): Promise<string[]> {
   const demoData = read(path.join("components", "label-check", "ui-511", "landing-demo-514.ts"));
   const footer = read(path.join("components", "label-check", "ui-511", "LabelFooter.tsx"));
   const css = read(path.join("components", "label-check", "ui-511", "label-site-511.css"));
-  const blob = landing + header + demo + demoData + footer;
-
+  // UI 카피(+ after 대체 문구). 데모 before/caught는 515에서 걸린 문구 예시로 제외.
+  const uiBlob = landing + header + demo + footer;
+  const afterBlob = [
+    LANDING_BEFORE_AFTER_514.after,
+    LANDING_BEFORE_AFTER_514.note,
+    LANDING_DEMO_DISCLAIMER_514,
+    ...LANDING_DEMO_CARDS_514.map((c) => [c.after, c.afterNote, c.body].filter(Boolean).join(" ")),
+  ].join("\n");
   for (const w of FORBIDDEN) {
-    if (blob.includes(w)) fails.push(`514: 금지어 ${w}`);
+    if (uiBlob.includes(w) || afterBlob.includes(w)) fails.push(`514: 금지어 ${w}`);
   }
   for (const w of BANNED_COPY) {
-    if (blob.includes(w)) fails.push(`514: 금지 문구 ${w}`);
+    if (uiBlob.includes(w)) fails.push(`514: 금지 문구 ${w}`);
   }
   if (!demo.includes("예시 화면입니다") && !landing.includes("예시 화면입니다")) {
     fails.push("514: '예시 화면입니다' 없음");
