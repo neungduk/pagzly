@@ -36,9 +36,10 @@ export const name = "표시사항 488 — 탭제목·찾은내용·파일럿·A/
 const EXPECT_SUMMARY = {
   // 505: 공통 주의사항 판정으로 A의 KR-LBL-009가 pass→attention
   // 510: 파일럿 A 광고 1건이 명백한 의약품 효능으로 possible 승격(possible 3→4, attention 6→5)
-  A: { possible: 4, attention: 5, unknown: 0, pass: 9 },
-  B: { possible: 2, attention: 3, unknown: 0, pass: 15 },
-  C: { possible: 0, attention: 5, unknown: 0, pass: 14 },
+  // 513: 제조번호·사용기한 구별 등 게이팅 finding 추가(A attention+1, B attention+1·unknown+1, C pass+1)
+  A: { possible: 4, attention: 6, unknown: 0, pass: 9 },
+  B: { possible: 2, attention: 4, unknown: 1, pass: 15 },
+  C: { possible: 0, attention: 5, unknown: 0, pass: 15 },
 } as const;
 
 function coreSnippet(found: string): string {

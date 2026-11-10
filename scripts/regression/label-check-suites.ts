@@ -27,13 +27,14 @@ import * as labelCheckOcrFix510 from "./label-check-ocr-fix-510";
 import * as labelCheck510bAccuracy from "./label-check-510b-accuracy";
 import * as labelCheck511Ui from "./label-check-511-ui";
 import * as labelCheck512Card from "./label-check-512-card";
+import * as labelCheck513Gating from "./label-check-513-gating";
 
 export type LabelCheckSuite = {
   name: string;
   run: () => Promise<string[]>;
 };
 
-/** 483(파일)·스위트명 488 · 489 · 492~501 · 규칙 JSON 검증 · 504~511 */
+/** 483(파일)·스위트명 488 · 489 · 492~501 · 규칙 JSON 검증 · 504~513 */
 export const LABEL_CHECK_SUITES: LabelCheckSuite[] = [
   labelCheck483,
   featureFlag489,
@@ -59,4 +60,5 @@ export const LABEL_CHECK_SUITES: LabelCheckSuite[] = [
   labelCheck510bAccuracy,
   labelCheck511Ui,
   labelCheck512Card,
+  labelCheck513Gating,
 ];
