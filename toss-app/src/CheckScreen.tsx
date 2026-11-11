@@ -18,7 +18,6 @@ import {
   submitLabelCheckTextClient,
 } from "@/lib/label-check/client-submit";
 import sampleResultA from "@/lib/label-check/sample-result-a.json";
-import { labelContactEmail } from "@/lib/label-check/contact";
 import { issueKeysFromFindings506 } from "@/lib/label-check/compare-506";
 import { PROGRESS_READ_507, PROGRESS_RULES_507 } from "@/lib/label-check/ui-status-507";
 import {
@@ -35,6 +34,7 @@ import { TOSS_COPY } from "./copy";
 import { demoEnabled } from "./demo/enabled";
 import { applyDemo, isDemoName } from "./demo/applyDemo";
 import { IconChevronRight, IconRefresh, IconWarn } from "./ui/icons";
+import { StartExplain525 } from "./ui/StartExplain525";
 
 type Stage = "start" | "ocr" | "result";
 
@@ -51,7 +51,6 @@ export function CheckScreen({
   demoName?: string | null;
 }) {
   const [demoTextTab, setDemoTextTab] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [market, setMarket] = useState<LabelMarket>("KR");
   const [input, setInput] = useState<LabelCheckInput>({
     rinseOff: false,
@@ -70,7 +69,6 @@ export function CheckScreen({
   const [checkedOn, setCheckedOn] = useState<string | null>(null);
   const [isSample, setIsSample] = useState(false);
   const [recheckText, setRecheckText] = useState("");
-  const [copied, setCopied] = useState(false);
   const [ocrAvailable, setOcrAvailable] = useState(false);
   const [ocrTileH, setOcrTileH] = useState(2400);
   const [ocrNotice, setOcrNotice] = useState<string | null>(null);
@@ -98,7 +96,6 @@ export function CheckScreen({
   const [ocrAdOnly, setOcrAdOnly] = useState(false);
   const ocrThumb = useOcrThumbnail518(file, Boolean(ocrReview));
   const pasteRef = useRef<HTMLTextAreaElement | null>(null);
-  const contactEmail = labelContactEmail();
   const histDepth = useRef(0);
   const busyLock = useRef(false);
   const reqSeq = useRef(0);
@@ -111,48 +108,8 @@ export function CheckScreen({
   }, []);
 
   useEffect(() => {
-    const root = document.querySelector(".toss-app");
-    if (!root) return;
-    root.classList.toggle("toss-settings-open", settingsOpen);
-  }, [settingsOpen]);
-
-  useEffect(() => {
-    if (!settingsOpen) return;
-    const sheet = document.querySelector<HTMLElement>(".toss-app .lc517-aside");
-    if (!sheet) return;
-    const focusables = sheet.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-    );
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    first?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setSettingsOpen(false);
-        if (histDepth.current > 0) window.history.back();
-        return;
-      }
-      if (e.key !== "Tab" || focusables.length === 0) return;
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last?.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first?.focus();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [settingsOpen]);
-
-  useEffect(() => {
     if (typeof window === "undefined") return;
     const onPop = () => {
-      if (settingsOpen) {
-        setSettingsOpen(false);
-        if (histDepth.current > 0) histDepth.current -= 1;
-        return;
-      }
       if (result) {
         setResult(null);
         setIsSample(false);
@@ -173,21 +130,7 @@ export function CheckScreen({
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, [result, ocrReview, settingsOpen]);
-
-  const openSettings = () => {
-    setSettingsOpen(true);
-    window.history.pushState({ tossLc: "settings" }, "");
-    histDepth.current += 1;
-  };
-
-  const settingsSummary = [
-    market === "US" ? "미국" : "한국",
-    input.rinseOff ? "씻어내는 제품" : "안 씻어내는 제품",
-    input.functional ? "기능성" : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  }, [result, ocrReview]);
 
   const resetToStart = () => {
     setResult(null);
@@ -199,7 +142,6 @@ export function CheckScreen({
     setError(null);
     setOcrLimitMsg(null);
     setRecheckText("");
-    setSettingsOpen(false);
   };
 
   useEffect(() => {
@@ -497,23 +439,6 @@ export function CheckScreen({
         <i className="b" />
       </div>
       <CheckBusyOverlay517 busy={busy} useIcons />
-      {settingsOpen ? (
-        <button
-          type="button"
-          aria-label="설정 닫기"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 36,
-            background: "transparent",
-            border: 0,
-          }}
-          onClick={() => {
-            setSettingsOpen(false);
-            if (histDepth.current > 0) window.history.back();
-          }}
-        />
-      ) : null}
       <main className="lc517-wrap">
         {!result ? (
           <>
@@ -561,6 +486,7 @@ export function CheckScreen({
             <CheckStart517
               touch
               deferMobileCta
+              inlineSettings
               accept={TOSS_ACCEPT}
               initialTab={demoTextTab ? "text" : undefined}
               reviewSlot={
@@ -626,31 +552,7 @@ export function CheckScreen({
                   <span className="label">{TOSS_COPY.sampleCtaTitle}</span>
                   <IconChevronRight size={20} />
                 </button>
-                <button type="button" className="toss-settings-summary" onClick={openSettings}>
-                  <span>{TOSS_COPY.settingsSummary}</span>
-                  <span className="muted">{settingsSummary}</span>
-                  <IconChevronRight size={18} />
-                </button>
-                <p className="toss-foot-note">
-                  {TOSS_COPY.saveNote}
-                  {contactEmail ? (
-                    <>
-                      {" · "}
-                      <button
-                        type="button"
-                        className="underline-offset-2 hover:underline"
-                        onClick={() => {
-                          void navigator.clipboard.writeText(contactEmail).then(() => {
-                            setCopied(true);
-                            window.setTimeout(() => setCopied(false), 1500);
-                          });
-                        }}
-                      >
-                        {copied ? "복사했어요" : `문의 ${contactEmail}`}
-                      </button>
-                    </>
-                  ) : null}
-                </p>
+                <StartExplain525 />
               </>
             ) : null}
             {ocrLimitMsg ? (

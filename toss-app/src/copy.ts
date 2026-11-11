@@ -4,7 +4,8 @@ export const TOSS_COPY = {
   heroLine1: "라벨을 올리면,",
   heroLine2Before: "바로 읽어서",
   heroLine2After: " 점검해요",
-  heroSub: "파일 하나면 충분해요. 설정은 아래에서 골라요.",
+  heroSub:
+    "화장품 라벨의 표시사항·광고 문구를 올리자마자 읽어서 고칠 곳을 알려 줘요.",
   sampleCtaTitle: "결과가 어떻게 나오는지 먼저 볼까요",
   sampleBanner: "예시 결과예요 · 가상 브랜드로 만든 화면이에요",
   sampleBannerCta: "내 라벨 점검하기",
