@@ -8,6 +8,7 @@ import {
   useState,
   type DragEvent,
   type KeyboardEvent,
+  type ReactNode,
   type RefObject,
 } from "react";
 import type { LabelCheckInput, LabelMarket } from "@/lib/label-check/types";
@@ -26,8 +27,17 @@ function formatSize(n: number): string {
   return `${(n / 1024).toFixed(1)}KB`;
 }
 
+export type CheckStart517Props = UploadCard507Props & {
+  /**
+   * 518 — 읽은 글자 확인(OcrReview517). 있으면 무대(왼쪽 큰 패널)에 이 내용을 보여 주고,
+   * 오른쪽 설정 패널의 점검 버튼은 숨겨 버튼이 둘로 보이지 않게 한다.
+   */
+  reviewSlot?: ReactNode;
+};
+
 /** 517 — 점검 시작 화면(UploadCard507 대체 연결). props·전송 값은 기존과 동일. */
-export function CheckStart517(props: UploadCard507Props) {
+export function CheckStart517(props: CheckStart517Props) {
+  const reviewing = Boolean(props.reviewSlot);
   const {
     market,
     onMarket,
@@ -257,7 +267,7 @@ export function CheckStart517(props: UploadCard507Props) {
           />
         </label>
       ) : null}
-      {props.ocrAvailable && props.onStartOcr && file ? (
+      {!reviewing && props.ocrAvailable && props.onStartOcr && file ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {props.ocrTransferNotice ? (
             <p style={{ margin: 0, fontSize: 13, color: "#6A6D74" }}>{props.ocrTransferNotice}</p>
@@ -274,15 +284,21 @@ export function CheckStart517(props: UploadCard507Props) {
         </div>
       ) : null}
       {props.ocrHint ? <p style={{ margin: 0, fontSize: 13, color: "#6A6D74" }}>{props.ocrHint}</p> : null}
-      <button
-        type="button"
-        className={`lc517-go${canSubmit && !busy ? " ready" : ""}`}
-        disabled={busy || !canSubmit}
-        aria-disabled={busy || !canSubmit}
-        onClick={onSubmit}
-      >
-        {ctaLabel}
-      </button>
+      {reviewing ? (
+        <p className="lc517-legal" style={{ margin: 0, fontSize: 13, color: "#6a6d74", lineHeight: 1.6 }}>
+          왼쪽에서 읽은 글자를 확인한 뒤 &quot;이 글자로 점검&quot;을 눌러 주세요.
+        </p>
+      ) : (
+        <button
+          type="button"
+          className={`lc517-go${canSubmit && !busy ? " ready" : ""}`}
+          disabled={busy || !canSubmit}
+          aria-disabled={busy || !canSubmit}
+          onClick={onSubmit}
+        >
+          {ctaLabel}
+        </button>
+      )}
       <span className="lc517-legal" style={{ fontSize: 12.5, color: "#8A8D94", textAlign: "center" }}>
         {DISCLAIMER_PRINT_485}
       </span>
@@ -292,6 +308,9 @@ export function CheckStart517(props: UploadCard507Props) {
   return (
     <div className="lc517-grid">
       <section className="lc517-stage-card">
+        {reviewing ? props.reviewSlot : null}
+        {reviewing ? null : (
+        <>
         <div
           style={{
             display: "flex",
@@ -495,6 +514,8 @@ export function CheckStart517(props: UploadCard507Props) {
             ) : null}
           </div>
         ) : null}
+        </>
+        )}
 
         <input
           ref={inputRef}
@@ -516,17 +537,19 @@ export function CheckStart517(props: UploadCard507Props) {
 
       <aside className="lc517-aside">{settingsPanel}</aside>
 
-      <div className="lc517-mobile-bar">
-        <button
-          type="button"
-          className={`lc517-go${canSubmit && !busy ? " ready" : ""}`}
-          disabled={busy || !canSubmit}
-          aria-disabled={busy || !canSubmit}
-          onClick={onSubmit}
-        >
-          {ctaLabel}
-        </button>
-      </div>
+      {reviewing ? null : (
+        <div className="lc517-mobile-bar">
+          <button
+            type="button"
+            className={`lc517-go${canSubmit && !busy ? " ready" : ""}`}
+            disabled={busy || !canSubmit}
+            aria-disabled={busy || !canSubmit}
+            onClick={onSubmit}
+          >
+            {ctaLabel}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

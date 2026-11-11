@@ -4,13 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import "@/components/label-check/ui-507/label-check-507.css";
 import "@/components/label-check/ui-517/label-check-517.css";
-import { OcrReviewCard508, OcrLimitBanner509 } from "@/components/label-check/ui-507";
+import { OcrLimitBanner509 } from "@/components/label-check/ui-507";
 import { LabelFooter511 } from "@/components/label-check/ui-511";
 import {
   CheckStart517,
   ResultView517,
   CheckBusyOverlay517,
+  OcrReview517,
+  useOcrThumbnail518,
 } from "@/components/label-check/ui-517";
+import type { OcrReviewLine517 } from "@/components/label-check/ui-517";
 import LogoutButton from "@/components/LogoutButton";
 import type { LabelCheckInput, LabelCheckResult, LabelMarket } from "@/lib/label-check/types";
 import {
@@ -65,7 +68,23 @@ export default function LabelCheckNewPage() {
     corrections: string[];
     avgConfidence: number;
     readStatus?: "ok" | "partial" | "unreadable";
+    /** 518 — 읽기 품질(화면 전용). 읽기 쪽이 채워 주면 그대로 전달 */
+    lines?: OcrReviewLine517[];
+    notices?: string[];
+    qualityLabel?: string;
+    detailPageHint?: string | null;
+    ocrQuality?: {
+      avgConfidence: number;
+      lowLineCount: number;
+      lineCount: number;
+      renderScale?: number;
+      tiles?: number;
+    };
+    blockForLowQuality?: boolean;
   } | null>(null);
+  const [ocrQualityLabel, setOcrQualityLabel] = useState<string | null>(null);
+  const [ocrAdOnly, setOcrAdOnly] = useState(false);
+  const ocrThumb = useOcrThumbnail518(file, Boolean(ocrReview));
   const pasteRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
@@ -83,6 +102,7 @@ export default function LabelCheckNewPage() {
     setResult(null);
     setSourceText(null);
     setOcrReview(null);
+    setOcrQualityLabel(null);
     if (!f) {
       setFile(null);
       return;
@@ -106,6 +126,7 @@ export default function LabelCheckNewPage() {
     setResult(null);
     setSavedId(null);
     setOcrReview(null);
+    setOcrQualityLabel(null);
     setOcrLimitMsg(null);
     setError(null);
     window.setTimeout(() => pasteRef.current?.focus(), 50);
@@ -130,11 +151,25 @@ export default function LabelCheckNewPage() {
       setError(out.error);
       return;
     }
+    setOcrAdOnly(false);
+    const q = out.review;
+    const blocked = Boolean(q.blockForLowQuality);
+    setOcrQualityLabel(q.qualityLabel || null);
     setOcrReview({
       text: out.review.text,
       corrections: out.review.corrections,
       avgConfidence: out.review.avgConfidence,
-      readStatus: priorRead === "partial" ? "partial" : undefined,
+      readStatus: blocked
+        ? "unreadable"
+        : priorRead === "partial" || q.prepareMeta?.truncated
+          ? "partial"
+          : undefined,
+      lines: q.lines,
+      notices: q.notices,
+      qualityLabel: q.qualityLabel,
+      detailPageHint: q.detailPageHint,
+      ocrQuality: q.ocrQuality,
+      blockForLowQuality: blocked,
     });
   };
 
@@ -150,6 +185,10 @@ export default function LabelCheckNewPage() {
 
   const confirmOcr = async () => {
     if (!ocrReview?.text.trim()) return;
+    if (ocrReview.blockForLowQuality || ocrReview.readStatus === "unreadable") {
+      setError("글자를 제대로 읽지 못했어요. 다시 찍거나 PDF로 올려 주세요");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -159,6 +198,7 @@ export default function LabelCheckNewPage() {
         market,
         save: true,
         productName: productName.trim().slice(0, 80),
+        scope: ocrAdOnly ? "ad_only" : "full",
         avgOcrConfidence: ocrReview.avgConfidence,
       });
       if (!out.ok) {
@@ -314,8 +354,33 @@ export default function LabelCheckNewPage() {
                 파일 하나면 충분해요. 설정은 오른쪽에서 고르세요.
               </p>
             </div>
-            {!ocrReview ? (
-              <CheckStart517
+            <CheckStart517
+                reviewSlot={
+                  ocrReview ? (
+                    <OcrReview517
+                      text={ocrReview.text}
+                      onChange={(t) => setOcrReview((p) => (p ? { ...p, text: t } : p))}
+                      onConfirm={() => void confirmOcr()}
+                      onCancel={() => {
+                        setOcrReview(null);
+                        setOcrQualityLabel(null);
+                      }}
+                      thumbnailUrl={ocrThumb}
+                      lines={ocrReview.lines}
+                      notices={ocrReview.notices}
+                      qualityLabel={ocrReview.qualityLabel}
+                      detailPageHint={ocrReview.detailPageHint}
+                      onSuggestAdOnly={ocrReview.detailPageHint ? () => setOcrAdOnly((v) => !v) : undefined}
+                      adOnlySelected={ocrAdOnly}
+                      transferNotice={ocrNotice}
+                      busy={busy}
+                      corrections={ocrReview.corrections}
+                      avgConfidence={ocrReview.avgConfidence}
+                      readStatus={ocrReview.readStatus}
+                      onFocusPaste={focusPaste}
+                    />
+                  ) : undefined
+                }
                 market={market}
                 onMarket={(m) => {
                   setMarket(m);
@@ -342,22 +407,6 @@ export default function LabelCheckNewPage() {
                 onStartOcr={() => void startOcr()}
                 ocrTransferNotice={ocrNotice}
               />
-            ) : (
-              <div className="lc517-stage-card" style={{ padding: 18 }}>
-                <OcrReviewCard508
-                  text={ocrReview.text}
-                  onText={(t) => setOcrReview((p) => (p ? { ...p, text: t } : p))}
-                  corrections={ocrReview.corrections}
-                  busy={busy}
-                  onConfirm={() => void confirmOcr()}
-                  onCancel={() => setOcrReview(null)}
-                  transferNotice={ocrNotice}
-                  avgConfidence={ocrReview.avgConfidence}
-                  readStatus={ocrReview.readStatus}
-                  onFocusPaste={focusPaste}
-                />
-              </div>
-            )}
             {ocrLimitMsg ? <OcrLimitBanner509 message={ocrLimitMsg} onFocusPaste={focusPaste} /> : null}
             {error ? (
               <p
@@ -399,6 +448,7 @@ export default function LabelCheckNewPage() {
               onFocusPaste={focusPaste}
               sourceText={sourceText}
               fileLabel={file?.name}
+              ocrQualityLabel={ocrQualityLabel}
             />
             <p style={{ marginTop: 16, fontSize: 13, color: "#6A6D74" }} className="lc507-print-hide">
               <button
@@ -409,6 +459,7 @@ export default function LabelCheckNewPage() {
                   setSavedId(null);
                   setSourceText(null);
                   setOcrReview(null);
+                  setOcrQualityLabel(null);
                   setOcrLimitMsg(null);
                 }}
               >

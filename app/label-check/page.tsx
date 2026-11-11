@@ -3,13 +3,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import "@/components/label-check/ui-507/label-check-507.css";
 import "@/components/label-check/ui-517/label-check-517.css";
-import { OcrReviewCard508, OcrLimitBanner509 } from "@/components/label-check/ui-507";
+import { OcrLimitBanner509 } from "@/components/label-check/ui-507";
 import { LabelSiteShell511, LabelFooter511 } from "@/components/label-check/ui-511";
 import {
   CheckStart517,
   ResultView517,
   CheckBusyOverlay517,
+  OcrReview517,
+  useOcrThumbnail518,
 } from "@/components/label-check/ui-517";
+import type { OcrReviewLine517 } from "@/components/label-check/ui-517";
+import { applyGatingToStaticResult518 } from "@/lib/label-check/sample-gating-518";
 import Link from "next/link";
 import type { LabelCheckInput, LabelCheckResult, LabelMarket } from "@/lib/label-check/types";
 import { SAMPLE_BANNER_486 } from "@/lib/label-check/types";
@@ -66,7 +70,23 @@ export default function LabelCheckPage() {
     corrections: string[];
     avgConfidence: number;
     readStatus?: "ok" | "partial" | "unreadable";
+    /** 518 — 읽기 품질(화면 전용). 읽기 쪽이 채워 주면 그대로 전달 */
+    lines?: OcrReviewLine517[];
+    notices?: string[];
+    qualityLabel?: string;
+    detailPageHint?: string | null;
+    ocrQuality?: {
+      avgConfidence: number;
+      lowLineCount: number;
+      lineCount: number;
+      renderScale?: number;
+      tiles?: number;
+    };
+    blockForLowQuality?: boolean;
   } | null>(null);
+  const [ocrQualityLabel, setOcrQualityLabel] = useState<string | null>(null);
+  const [ocrAdOnly, setOcrAdOnly] = useState(false);
+  const ocrThumb = useOcrThumbnail518(file, Boolean(ocrReview));
   const pasteRef = useRef<HTMLTextAreaElement | null>(null);
   const contactEmail = labelContactEmail();
 
@@ -95,6 +115,7 @@ export default function LabelCheckPage() {
     setError(null);
     setOcrLimitMsg(null);
     setOcrReview(null);
+    setOcrQualityLabel(null);
     if (!f) {
       setFile(null);
       return;
@@ -119,12 +140,17 @@ export default function LabelCheckPage() {
     setIsSample(true);
     setOcrReview(null);
     setMarket("KR");
-    setResult(sampleResultA.result as LabelCheckResult);
+    // 518 — 샘플도 513 게이팅을 거친다(옵션 미선택 항목은 '뺀 항목', 개정안은 '참고')
+    setResult(
+      applyGatingToStaticResult518(sampleResultA.result as LabelCheckResult, {
+        productTypes: input.productTypes,
+      }),
+    );
     setSourceText(
       "피부 주름을 완전히 없애 주는 앰플. 비타민C 함유로 피부 재생을 돕고 칙칙함을 개선합니다.",
     );
     setCheckedOn(todayKo());
-  }, []);
+  }, [input.productTypes]);
 
   const focusPaste = useCallback(() => {
     setFile(null);
@@ -154,11 +180,25 @@ export default function LabelCheckPage() {
       setError(out.error);
       return;
     }
+    setOcrAdOnly(false);
+    const q = out.review;
+    const blocked = Boolean(q.blockForLowQuality);
+    setOcrQualityLabel(q.qualityLabel || null);
     setOcrReview({
       text: out.review.text,
       corrections: out.review.corrections,
       avgConfidence: out.review.avgConfidence,
-      readStatus: priorRead === "partial" ? "partial" : undefined,
+      readStatus: blocked
+        ? "unreadable"
+        : priorRead === "partial" || q.prepareMeta?.truncated
+          ? "partial"
+          : undefined,
+      lines: q.lines,
+      notices: q.notices,
+      qualityLabel: q.qualityLabel,
+      detailPageHint: q.detailPageHint,
+      ocrQuality: q.ocrQuality,
+      blockForLowQuality: blocked,
     });
   };
 
@@ -174,6 +214,10 @@ export default function LabelCheckPage() {
 
   const confirmOcr = async () => {
     if (!ocrReview?.text.trim()) return;
+    if (ocrReview.blockForLowQuality || ocrReview.readStatus === "unreadable") {
+      setError("글자를 제대로 읽지 못했어요. 다시 찍거나 PDF로 올려 주세요");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -181,6 +225,7 @@ export default function LabelCheckPage() {
       const out = await submitOcrReviewedText508(ocrReview.text, {
         ...input,
         market,
+        scope: ocrAdOnly ? "ad_only" : "full",
         avgOcrConfidence: ocrReview.avgConfidence,
       });
       if (!out.ok) {
@@ -307,8 +352,30 @@ export default function LabelCheckPage() {
                 파일 하나면 충분해요. 설정은 오른쪽에서 고르세요.
               </p>
             </div>
-            {!ocrReview ? (
-              <CheckStart517
+            <CheckStart517
+                reviewSlot={
+                  ocrReview ? (
+                    <OcrReview517
+                      text={ocrReview.text}
+                      onChange={(t) => setOcrReview((p) => (p ? { ...p, text: t } : p))}
+                      onConfirm={() => void confirmOcr()}
+                      onCancel={() => setOcrReview(null)}
+                      thumbnailUrl={ocrThumb}
+                      lines={ocrReview.lines}
+                      notices={ocrReview.notices}
+                      qualityLabel={ocrReview.qualityLabel}
+                      detailPageHint={ocrReview.detailPageHint}
+                      onSuggestAdOnly={ocrReview.detailPageHint ? () => setOcrAdOnly((v) => !v) : undefined}
+                      adOnlySelected={ocrAdOnly}
+                      transferNotice={ocrNotice}
+                      busy={busy}
+                      corrections={ocrReview.corrections}
+                      avgConfidence={ocrReview.avgConfidence}
+                      readStatus={ocrReview.readStatus}
+                      onFocusPaste={focusPaste}
+                    />
+                  ) : undefined
+                }
                 market={market}
                 onMarket={(m) => {
                   setMarket(m);
@@ -332,22 +399,6 @@ export default function LabelCheckPage() {
                 onStartOcr={() => void startOcr()}
                 ocrTransferNotice={ocrNotice}
               />
-            ) : (
-              <div className="lc517-stage-card" style={{ padding: 18 }}>
-                <OcrReviewCard508
-                  text={ocrReview.text}
-                  onText={(t) => setOcrReview((p) => (p ? { ...p, text: t } : p))}
-                  corrections={ocrReview.corrections}
-                  busy={busy}
-                  onConfirm={() => void confirmOcr()}
-                  onCancel={() => setOcrReview(null)}
-                  transferNotice={ocrNotice}
-                  avgConfidence={ocrReview.avgConfidence}
-                  readStatus={ocrReview.readStatus}
-                  onFocusPaste={focusPaste}
-                />
-              </div>
-            )}
             <p style={{ marginTop: 16, fontSize: 13, color: "#6A6D74" }}>
               <button type="button" className="underline-offset-2 hover:underline" onClick={showSample}>
                 샘플 결과 보기
@@ -408,6 +459,7 @@ export default function LabelCheckPage() {
               onFocusPaste={focusPaste}
               sourceText={sourceText}
               fileLabel={file?.name ?? (isSample ? "샘플" : null)}
+              ocrQualityLabel={ocrQualityLabel}
             />
           </>
         )}
