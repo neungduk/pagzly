@@ -8,6 +8,7 @@ import {
   useState,
   type CSSProperties,
   type KeyboardEvent,
+  type ReactNode,
 } from "react";
 import Link from "next/link";
 import type { Finding, LabelCheckResult } from "@/lib/label-check/types";
@@ -22,7 +23,7 @@ import {
   type UiBucket507,
 } from "@/lib/label-check/ui-status-507";
 import type { ResultView507Props } from "@/components/label-check/ui-507/ResultView";
-import { FindingCardBody512 } from "@/components/label-check/ui-511/FindingCardBody512";
+import { FindingBody518 } from "./FindingBody518";
 import { useLawBaseline516 } from "@/components/label-check/LawBaselineClient516";
 import { collectPins517, type PinSpec517 } from "./pin-match-517";
 import { LabelSourcePanel517 } from "./LabelSourcePanel517";
@@ -31,11 +32,13 @@ export type ResultView517Props = ResultView507Props & {
   /** 읽은 라벨 원문 — 없으면(저장본) 왼쪽 패널 숨김 */
   sourceText?: string | null;
   fileLabel?: string | null;
+  /** 518 — 화면 전용 읽기 품질(저장·로그 금지) */
+  ocrQualityLabel?: string | null;
 };
 
 type FilterId517 = "all" | "fix" | "check" | "manual" | "pass";
 
-type Row517 =
+export type Row517 =
   | { id: string; no: number; kind: "finding"; f: Finding; bucket: UiBucket507 }
   | { id: string; no: number; kind: "manual"; m: LabelCheckResult["manualItems"][number]; bucket: "manual" };
 
@@ -56,6 +59,9 @@ const FILTER_LABEL: Record<FilterId517, string> = {
 };
 
 const FILTER_ORDER: FilterId517[] = ["all", "fix", "check", "manual", "pass"];
+
+/** 문제 없음처럼 직접 확인도 이 개수를 넘으면 접는다 */
+export const MANUAL_COLLAPSE_AFTER_518 = 3;
 
 const fineStyle: CSSProperties = { margin: 0, fontSize: 13, lineHeight: 1.6, color: "#4a4d54" };
 const noticeStyle: CSSProperties = {
@@ -83,6 +89,31 @@ const solidBtn: CSSProperties = {
   background: "#111214",
   color: "#fff",
 };
+
+/** 518 — 행 목록 생성 + 연속 번호. 보이는 행만 다시 매기지 않는다. */
+export function buildRows518(
+  sortedFindings: Finding[],
+  manualItems: LabelCheckResult["manualItems"],
+): Row517[] {
+  const ofBucket = (b: UiBucket507) =>
+    sortedFindings
+      .map((f, i) => ({ f, i }))
+      .filter(({ f }) => statusToBucket507(f.status) === b);
+  const out: Row517[] = [];
+  const pushFindings = (b: UiBucket507) => {
+    for (const { f, i } of ofBucket(b)) {
+      out.push({ id: `f-${i}`, no: out.length + 1, kind: "finding", f, bucket: b });
+    }
+  };
+  pushFindings("fix");
+  pushFindings("check");
+  pushFindings("unknown");
+  manualItems.forEach((m, i) => {
+    out.push({ id: `m-${i}`, no: out.length + 1, kind: "manual", m, bucket: "manual" });
+  });
+  pushFindings("pass");
+  return out;
+}
 
 function findingKey(f: Finding): string {
   return f.checkKey || `${f.status}:${f.label}:${f.found || ""}`;
@@ -133,6 +164,7 @@ export function ResultView517({
   onFocusPaste,
   lawBaseline,
   sourceText,
+  ocrQualityLabel,
   fileLabel,
 }: ResultView517Props) {
   const lawBaselineLine = useLawBaseline516(lawBaseline);
@@ -154,19 +186,14 @@ export function ResultView517({
 
   const sorted = useMemo(() => sortFindings507(result.findings), [result.findings]);
 
-  const rows = useMemo<Row517[]>(() => {
-    const out: Row517[] = sorted.map((f, i) => ({
-      id: `f-${i}`,
-      no: i + 1,
-      kind: "finding" as const,
-      f,
-      bucket: statusToBucket507(f.status),
-    }));
-    (result.manualItems || []).forEach((m, i) => {
-      out.push({ id: `m-${i}`, no: out.length + 1, kind: "manual", m, bucket: "manual" });
-    });
-    return out;
-  }, [sorted, result.manualItems]);
+  /**
+   * 518 — 번호는 목록을 만드는 순서대로 한 번만 매긴다(화면에 보이는 것만 다시 세지 않음).
+   * 순서: 고칠 것 → 확인할 것 → 확인 못 함 → 직접 확인 → 문제 없음. 핀 번호와 같다.
+   */
+  const rows = useMemo<Row517[]>(
+    () => buildRows518(sorted, result.manualItems || []),
+    [sorted, result.manualItems],
+  );
 
   const rowsFor = useCallback(
     (filter: FilterId517): Row517[] => {
@@ -190,6 +217,7 @@ export function ResultView517({
   const [openId, setOpenId] = useState<string | null>(() => firstSevereId(rows));
   const [copiedAll, setCopiedAll] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [showManual, setShowManual] = useState(false);
   /** 화면 전용 — 저장·결과 데이터에 섞이지 않음 */
   const [doneMap, setDoneMap] = useState<Record<string, boolean>>({});
   const [doneTick, setDoneTick] = useState(0);
@@ -199,6 +227,8 @@ export function ResultView517({
     setOpenId(firstSevereId(rows));
     setDoneMap({});
     setDoneTick(0);
+    setShowManual(false);
+    setShowPass(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result]);
 
@@ -431,43 +461,24 @@ export function ResultView517({
         </button>
 
         {open ? (
-          <div
-            id={bodyId}
-            role="region"
-            aria-labelledby={btnId}
-            style={{
-              marginTop: 12,
-              padding: "4px 16px 16px",
-              borderRadius: 14,
-              background: "#fff",
-              color: "#111214",
-            }}
-          >
+          <div id={bodyId} role="region" aria-labelledby={btnId} className="lc518-open">
             {finding && wantsBody ? (
-              <FindingCardBody512
+              <FindingBody518
                 f={finding}
+                dark={openFix}
                 hideEvidence={hideEvidence}
                 readStatus={result.readStatus}
+                done={done}
+                onToggleDone={actionableRow ? () => toggleDone(key) : undefined}
               />
             ) : null}
             {finding && finding.status === "pass" ? (
-              <p style={{ ...fineStyle, marginTop: 12 }}>이번 점검에서는 문제가 보이지 않았어요.</p>
+              <p style={{ ...fineStyle, margin: 0 }}>이번 점검에서는 문제가 보이지 않았어요.</p>
             ) : null}
             {r.kind === "manual" ? (
-              <div style={{ marginTop: 12 }}>
+              <div>
                 <p style={{ margin: 0, fontSize: 15, lineHeight: 1.7 }}>{r.m.suggest}</p>
                 {r.m.whyManual ? <p style={{ ...fineStyle, marginTop: 6 }}>{r.m.whyManual}</p> : null}
-              </div>
-            ) : null}
-            {actionableRow ? (
-              <div style={{ marginTop: 12 }}>
-                <button
-                  type="button"
-                  style={done ? outlineBtn : solidBtn}
-                  onClick={() => toggleDone(key)}
-                >
-                  {done ? "되돌리기" : "고쳤어요"}
-                </button>
               </div>
             ) : null}
           </div>
@@ -696,20 +707,49 @@ export function ResultView517({
                 aria-labelledby={`lc517-tab-${filter}`}
                 style={{ display: "flex", flexDirection: "column", gap: 10 }}
               >
-                {(filter === "all" && !showPass ? visibleRows.filter((r) => r.bucket !== "pass" || r.id === openId) : visibleRows).map((r, i) =>
-                  renderRow(r, i),
-                )}
-                {filter === "all" && counts.pass > 0 && visibleRows.some((r) => r.bucket === "pass") ? (
-                  <button
-                    type="button"
-                    className="lc517-pass-toggle"
-                    aria-expanded={showPass}
-                    onClick={() => setShowPass((v) => !v)}
-                  >
-                    <span>문제 없음 {visibleRows.filter((r) => r.bucket === "pass").length}개</span>
-                    <span>{showPass ? "접기" : "펼쳐 보기"}</span>
-                  </button>
-                ) : null}
+                {(() => {
+                  // 518 — 번호는 rows 생성 때 이미 정해졌다. 여기서는 접기만 한다.
+                  const manualRows = visibleRows.filter((r) => r.bucket === "manual");
+                  const passRows = visibleRows.filter((r) => r.bucket === "pass");
+                  const head = visibleRows.filter((r) => r.bucket !== "manual" && r.bucket !== "pass");
+                  const collapseManual = filter === "all" && manualRows.length > MANUAL_COLLAPSE_AFTER_518 && !showManual;
+                  const collapsePass = filter === "all" && passRows.length > 0 && !showPass;
+                  let idx = 0;
+                  const nodes: ReactNode[] = head.map((r) => renderRow(r, idx++));
+                  const manualShown = collapseManual ? manualRows.filter((r) => r.id === openId) : manualRows;
+                  manualShown.forEach((r) => nodes.push(renderRow(r, idx++)));
+                  if (filter === "all" && manualRows.length > MANUAL_COLLAPSE_AFTER_518) {
+                    nodes.push(
+                      <button
+                        key="toggle-manual"
+                        type="button"
+                        className="lc517-group-toggle"
+                        aria-expanded={showManual}
+                        onClick={() => setShowManual((v) => !v)}
+                      >
+                        <span>직접 확인 {manualRows.length}개</span>
+                        <span>{showManual ? "접기" : "펼쳐 보기"}</span>
+                      </button>,
+                    );
+                  }
+                  const passShown = collapsePass ? passRows.filter((r) => r.id === openId) : passRows;
+                  passShown.forEach((r) => nodes.push(renderRow(r, idx++)));
+                  if (filter === "all" && passRows.length > 0) {
+                    nodes.push(
+                      <button
+                        key="toggle-pass"
+                        type="button"
+                        className="lc517-pass-toggle"
+                        aria-expanded={showPass}
+                        onClick={() => setShowPass((v) => !v)}
+                      >
+                        <span>문제 없음 {passRows.length}개</span>
+                        <span>{showPass ? "접기" : "펼쳐 보기"}</span>
+                      </button>,
+                    );
+                  }
+                  return nodes;
+                })()}
                 {visibleRows.length === 0 ? <p style={fineStyle}>이 필터에 해당하는 항목이 없어요.</p> : null}
               </div>
 
@@ -840,6 +880,12 @@ export function ResultView517({
           ) : null}
 
           <p style={fineStyle}>참고용 사전 점검이며 법적 판단이 아닙니다.</p>
+
+          {ocrQualityLabel ? (
+            <p style={{ ...fineStyle, fontSize: 12, color: "#8a8f99" }} data-lc518-ocr-quality>
+              {ocrQualityLabel}
+            </p>
+          ) : null}
 
           <p className="lc507-print-hide" style={fineStyle}>
             <button
