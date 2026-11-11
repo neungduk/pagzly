@@ -321,7 +321,7 @@ export function CheckStart517(props: CheckStart517Props) {
 
   return (
     <div className="lc517-grid">
-      <section className="lc517-stage-card">
+      <section className="lc517-stage-card" {...(props.touch ? { "data-tab": tab } : null)}>
         {reviewing ? props.reviewSlot : null}
         {reviewing ? null : (
         <>
@@ -354,7 +354,10 @@ export function CheckStart517(props: CheckStart517Props) {
               문구 붙여넣기
             </button>
           </div>
-          <span className="lc517-mono" style={{ fontSize: 12, color: "#8A8D94" }}>
+          <span
+            className={props.touch ? "lc517-mono lc517-size-hint" : "lc517-mono"}
+            style={{ fontSize: 12, color: "#8A8D94" }}
+          >
             PDF 100MB · 사진 10MB
           </span>
         </div>
@@ -392,8 +395,12 @@ export function CheckStart517(props: CheckStart517Props) {
             </div>
             <div style={{ fontSize: 14, color: "#6A6D74", lineHeight: 1.7 }}>
               {props.touch ? "여기를 눌러 파일을 골라요" : "눌러서 파일 고르기"}
-              <br />
-              파일은 점검 후 저장하지 않습니다
+              {props.touch ? null : (
+                <>
+                  <br />
+                  파일은 점검 후 저장하지 않습니다
+                </>
+              )}
             </div>
             <span className="lc517-mono" style={{ fontSize: 11, color: "#8A8D94" }}>
               JPG · PNG · WEBP · PDF
@@ -554,7 +561,15 @@ export function CheckStart517(props: CheckStart517Props) {
         />
       </section>
 
-      <aside className="lc517-aside">{settingsPanel}</aside>
+      <aside
+        className="lc517-aside"
+        role={props.touch ? "dialog" : undefined}
+        aria-modal={props.touch ? true : undefined}
+        aria-label={props.touch ? "점검 설정" : undefined}
+      >
+        {props.touch ? <div className="lc517-sheet-handle" aria-hidden /> : null}
+        {settingsPanel}
+      </aside>
 
       {reviewing || (props.deferMobileCta && !canSubmit) ? null : (
         <div className={`lc517-mobile-bar${props.deferMobileCta ? " lc517-mobile-bar--ready" : ""}`}>

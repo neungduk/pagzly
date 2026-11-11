@@ -32,7 +32,7 @@ import { TOSS_ACCEPT, TOSS_SHOW_US_MARKET } from "./config";
 import { TOSS_COPY } from "./copy";
 import { demoEnabled } from "./demo/enabled";
 import { applyDemo, isDemoName } from "./demo/applyDemo";
-import { IconChevronRight } from "./ui/icons";
+import { IconChevronRight, IconRefresh, IconWarn } from "./ui/icons";
 
 type Stage = "start" | "ocr" | "result";
 
@@ -110,6 +110,35 @@ export function CheckScreen({
     const root = document.querySelector(".toss-app");
     if (!root) return;
     root.classList.toggle("toss-settings-open", settingsOpen);
+  }, [settingsOpen]);
+
+  useEffect(() => {
+    if (!settingsOpen) return;
+    const sheet = document.querySelector<HTMLElement>(".toss-app .lc517-aside");
+    if (!sheet) return;
+    const focusables = sheet.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    first?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSettingsOpen(false);
+        if (histDepth.current > 0) window.history.back();
+        return;
+      }
+      if (e.key !== "Tab" || focusables.length === 0) return;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
   }, [settingsOpen]);
 
   useEffect(() => {
@@ -448,16 +477,44 @@ export function CheckScreen({
       <main className="lc517-wrap">
         {!result ? (
           <>
-            <div className="toss-hero">
-              <h1 onClick={onTitleTap}>
-                <span className="toss-hero-l1">{TOSS_COPY.heroLine1}</span>
-                <span className="toss-hero-l2">
-                  <span style={{ color: "#1D4ED8" }}>{TOSS_COPY.heroLine2Before}</span>
-                  {TOSS_COPY.heroLine2After}
-                </span>
-              </h1>
-              <p className="toss-hero-sub">{TOSS_COPY.heroSub}</p>
-            </div>
+            {!ocrReview ? (
+              <div className="toss-hero">
+                <h1 onClick={onTitleTap}>
+                  <span className="toss-hero-l1">{TOSS_COPY.heroLine1}</span>
+                  <span className="toss-hero-l2">
+                    <span style={{ color: "#1D4ED8" }}>{TOSS_COPY.heroLine2Before}</span>
+                    {TOSS_COPY.heroLine2After}
+                  </span>
+                </h1>
+                <p className="toss-hero-sub">{TOSS_COPY.heroSub}</p>
+              </div>
+            ) : null}
+            {error ? (
+              <div className="toss-alert-card" role="alert" style={{ marginBottom: 12 }}>
+                <IconWarn size={28} style={{ color: "#d6402b" }} />
+                <div>
+                  <p style={{ margin: 0, fontWeight: 800 }}>
+                    {/HEIC|heic/.test(error) ? TOSS_COPY.heicTitle : TOSS_COPY.errorTitle}
+                  </p>
+                  <p style={{ margin: "6px 0 0", color: "#6a6d74", fontSize: 14, lineHeight: 1.55 }}>
+                    {/HEIC|heic/.test(error) ? TOSS_COPY.heicBody : "잠시 후 다시 시도해 주세요."}
+                  </p>
+                  {/HEIC|heic/.test(error) ? null : (
+                    <button
+                      type="button"
+                      className="toss-alert-retry"
+                      onClick={() => {
+                        setError(null);
+                        if (file || pasteText.trim()) void runCheck();
+                      }}
+                    >
+                      <IconRefresh size={18} />
+                      {TOSS_COPY.errorRetry}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : null}
             <CheckStart517
               touch
               deferMobileCta
@@ -485,6 +542,9 @@ export function CheckScreen({
                     avgConfidence={ocrReview.avgConfidence}
                     readStatus={ocrReview.readStatus}
                     onFocusPaste={focusPaste}
+                    title={TOSS_COPY.ocrTitle}
+                    desc={TOSS_COPY.ocrDesc}
+                    useIcons
                   />
                 ) : undefined
               }
@@ -559,22 +619,6 @@ export function CheckScreen({
                 </button>
               </div>
             ) : null}
-            {error ? (
-              <div
-                role="alert"
-                style={{
-                  marginTop: 12,
-                  padding: 16,
-                  borderRadius: 16,
-                  background: "#fff",
-                  border: "1px solid #e3e6ee",
-                  boxShadow: "0 8px 24px rgba(40,60,140,.06)",
-                }}
-              >
-                <p style={{ margin: 0, fontWeight: 800 }}>{TOSS_COPY.errorTitle}</p>
-                <p style={{ margin: "8px 0 0", color: "#6a6d74", fontSize: 14 }}>{error}</p>
-              </div>
-            ) : null}
           </>
         ) : (
           <>
@@ -600,6 +644,10 @@ export function CheckScreen({
               checkedOn={checkedOn ?? undefined}
               isMember={false}
               embedded
+              cleanHeadline={TOSS_COPY.cleanHeadline}
+              cleanNote={TOSS_COPY.cleanNote}
+              unreadablePhotoLabel={TOSS_COPY.unreadableRetryPhoto}
+              unreadablePasteLabel={TOSS_COPY.unreadableRetryPaste}
               recheckText={recheckText}
               onRecheckText={setRecheckText}
               onRecheck={() => void recheck()}

@@ -55,3 +55,46 @@
 | 12 | 하단 빈 바탕 | 부분(패딩) | start/result |
 
 ---
+
+## 라운드 2 — `review/523-screens/round-2/`
+
+### 점수 (1~5) · 대표 화면
+
+| 상태 | ①할일 | ②여백 | ③정렬 | ④일관 | ⑤절제 | ⑥줄바꿈 | ⑦누름감 |
+|------|------|------|------|------|------|--------|--------|
+| start | 5 | 4 | 4 | 4 | 4 | 5 | 4 |
+| picked | 5 | 4 | 4 | 4 | 4 | 4 | 5 |
+| text | 4 | 3 | 4 | 4 | 3 | 4 | 5 |
+| busy | 5 | 4 | 5 | 5 | 4 | 5 | 3 |
+| ocr | 5 | 4 | 4 | 4 | 4 | 4 | 4 |
+| result | 5 | 4 | 4 | 4 | 3 | 4 | 4 |
+| result-open | 5 | 4 | 4 | 4 | 3 | 4 | 4 |
+| result-clean | 4 | 4 | 4 | 3 | 3 | 5 | 4 |
+| result-many | 4 | 3 | 4 | 4 | 3 | 4 | 4 |
+| unreadable | 4 | 3 | 4 | 3 | 3 | 4 | 4 |
+| error | 4 | 4 | 4 | 4 | 4 | 4 | 4 |
+| limit | 4 | 4 | 4 | 4 | 4 | 4 | 4 |
+| heic | 4 | 4 | 4 | 4 | 4 | 4 | 3 |
+
+### 흠 목록 (10개 이상) → 고친/다음
+
+1. **result-390-fold**: 요약이 폴드 대부분을 차지해 필터가 안 보였음(r1). → **고침**: 요약 압축 + 소스 접힘 + 필터를 소스 위로 order.
+2. **ocr**: 히어로가 OCR 위에 남아 제목이 이중. → **고침**: OCR 중 히어로 숨김.
+3. **start**: 드롭존 안 저장 안내와 하단 노트가 중복. → **고침**: touch 시 드롭존 문구 제거.
+4. **text**: 붙여넣기 탭에도 `PDF 100MB` 용량 힌트. → **고침**: `data-tab=text`에서 size-hint 숨김.
+5. **busy**: 문서 훑기 그림 없음. → **고침**: useIcons 시 ov-doc + scan.
+6. **settings**: 손잡이·aria-modal·초점 가두기 없음. → **고침**: sheet-handle + dialog + Tab trap + Escape.
+7. **result-clean**: 웹 verdict 문장. → **고침**: cleanHeadline/cleanNote.
+8. **error/heic**: 폴드 밖·구분 약함. → **고침**: 히어로 바로 아래 alert 카드 + HEIC 전용 제목.
+9. **result-open**: 칩·셰브론 정렬. → **고침**: stack 정렬·셰브론 회전.
+10. **result**: 항목 등장 움직임·reduced-motion 미흡. → **고침**: toss-rise + stagger + reduce.
+11. **result-clean**: 필터 `전체 0`인데 요약 `문제 없음 11` — fixture/표시 불일치. → r3: clean fixture에 pass 행 반영 또는 필터 숨김.
+12. **unreadable**: 재점검 textarea가 폴드에서 크고, 사진 다시 CTA가 약함. → r3: 버튼 우선·영역 축소.
+13. **text-390-fold**: 범위 칩이 CTA에 가려 보임. → r3: 붙여넣기 높이·바 여백.
+14. **picked**: 미리보기 하단 스캔선이 카드 가장자리에 붙어 보임. → r3: scan inset.
+15. **가로 스크롤**: problems.txt 비어 있음(0) — 유지.
+
+### r1→r2에서 반영한 5장 품질
+- 글자 체계·대비(`#6A6D74`), 간격 4배수, 아이콘 SVG, 시트 a11y, 화면 전환/행 stagger, OCR/clean 카피 연결.
+
+---

@@ -38,6 +38,11 @@ export type OcrReview517Props = {
   avgConfidence?: number;
   readStatus?: "ok" | "partial" | "unreadable";
   onFocusPaste?: () => void;
+  /** 523 — 토스 등. 미전달 시 웹 기본 제목·설명 */
+  title?: string;
+  desc?: string;
+  /** 523 — 참이면 광고칩에 ✓ 글자 대신 '(선택됨)' */
+  useIcons?: boolean;
 };
 
 /**
@@ -62,6 +67,9 @@ export function OcrReview517({
   avgConfidence,
   readStatus,
   onFocusPaste,
+  title,
+  desc,
+  useIcons = false,
 }: OcrReview517Props) {
   const lowLines = (lines || []).filter((l) => l.lowConfidence && l.text.trim());
   const hasLow = lowLines.length > 0;
@@ -75,9 +83,9 @@ export function OcrReview517({
   return (
     <div className="lc517-ocr" data-testid="lc517-ocr-review">
       <header className="lc517-ocr-head">
-        <h2 className="lc517-ocr-title">읽은 글자를 확인해 주세요</h2>
+        <h2 className="lc517-ocr-title">{title ?? "읽은 글자를 확인해 주세요"}</h2>
         <p className="lc517-ocr-desc">
-          {NOTICE_OCR_REVIEW_510} {NOTICE_OCR_REVIEW_USED_510}
+          {desc ?? `${NOTICE_OCR_REVIEW_510} ${NOTICE_OCR_REVIEW_USED_510}`}
         </p>
         <p className="lc517-ocr-fine" role="note">
           {transferNotice || NOTICE_OCR_TRANSFER_508}
@@ -95,7 +103,11 @@ export function OcrReview517({
               aria-pressed={adOnlySelected}
               onClick={onSuggestAdOnly}
             >
-              {adOnlySelected ? "광고 문구만 점검 ✓" : "광고 문구만 점검"}
+              {adOnlySelected
+                ? useIcons
+                  ? "광고 문구만 점검 (선택됨)"
+                  : "광고 문구만 점검 ✓"
+                : "광고 문구만 점검"}
             </button>
           ) : null}
         </div>

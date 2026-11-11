@@ -212,6 +212,14 @@
   display: none;
 }
 
+.toss-app .lc517-sheet-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: #d5dae6;
+  margin: 4px auto 12px;
+}
+
 .toss-app.toss-settings-open .lc517-aside {
   display: block;
   position: fixed;
@@ -224,7 +232,7 @@
   background: #fff;
   border-radius: 20px 20px 0 0;
   box-shadow: 0 -12px 40px rgba(20, 30, 60, 0.18);
-  padding: 12px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  padding: 8px 16px calc(20px + env(safe-area-inset-bottom, 0px));
   animation: toss-sheet-up 0.22s ease-out;
 }
 
@@ -253,12 +261,12 @@
   gap: 12px;
   width: 100%;
   min-height: 56px;
-  margin: 12px 0 0;
+  margin: 8px 0 0;
   padding: 0 16px;
   border-radius: 16px;
   background: #fff;
   border: 1px solid #e3e6ee;
-  box-shadow: 0 8px 24px rgba(40, 60, 140, 0.06);
+  box-shadow: 0 4px 16px rgba(40, 60, 140, 0.05);
   text-align: left;
   font-size: 15px;
   font-weight: 700;
@@ -272,18 +280,22 @@
 }
 
 /* —— 예시 CTA —— */
+.toss-app .lc517-stage-card[data-tab="text"] .lc517-size-hint {
+  display: none;
+}
+
 .toss-app .toss-sample-cta {
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
-  margin: 12px 0 0;
+  margin: 16px 0 0;
   padding: 12px 14px;
   min-height: 64px;
   border-radius: 16px;
   background: #fff;
   border: 1px solid #e3e6ee;
-  box-shadow: 0 8px 24px rgba(40, 60, 140, 0.06);
+  box-shadow: 0 8px 24px rgba(40, 60, 140, 0.08);
   text-align: left;
 }
 
@@ -353,12 +365,58 @@
 }
 
 /* —— 결과 —— */
+.toss-app .lc517-result {
+  gap: 12px !important;
+  animation: toss-rise 0.22s ease-out;
+}
+
+@keyframes toss-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .toss-app .lc517-summary {
   grid-template-columns: 1fr !important;
+  gap: 12px !important;
+  padding: 16px !important;
 }
 
 .toss-app .lc517-summary > div:first-child h2 {
-  font-size: 26px !important;
+  font-size: 22px !important;
+  margin-top: 6px !important;
+}
+
+.toss-app .lc517-ratio {
+  margin-top: 10px !important;
+  height: 8px !important;
+}
+
+.toss-app .lc517-summary .lc507-print-hide {
+  margin-top: 10px !important;
+}
+
+.toss-app .lc517-summary .lc507-print-hide > p:last-child {
+  display: none;
+}
+
+.toss-app .lc517-summary [aria-label="요약 숫자"] {
+  gap: 8px !important;
+}
+
+.toss-app .lc517-summary [aria-label="요약 숫자"] > button {
+  min-height: 72px !important;
+  padding: 10px 12px !important;
+  border-radius: 16px !important;
+}
+
+.toss-app .lc517-summary [aria-label="요약 숫자"] b {
+  font-size: 28px !important;
 }
 
 .toss-app .lc517-stats {
@@ -366,27 +424,91 @@
 }
 
 .toss-app .lc517-stat {
-  min-height: 84px !important;
-  padding: 12px !important;
+  min-height: 72px !important;
+  padding: 10px 12px !important;
+}
+
+.toss-app .lc517-result-grid {
+  display: flex !important;
+  flex-direction: column;
+  gap: 12px !important;
+}
+
+.toss-app .lc517-result-grid > .lc517-source {
+  order: 2;
+}
+
+.toss-app .lc517-result-grid > div:last-child {
+  order: 1;
 }
 
 .toss-app .lc517-source {
   max-height: none;
+  padding: 14px 16px !important;
 }
 
-.toss-app .lc517-source > div {
+.toss-app .lc517-source.is-clamp > div:last-of-type {
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  max-height: 7.2em;
+  max-height: 5.7em;
+  line-height: 1.65 !important;
+  font-size: 14px !important;
 }
 
-.toss-app .lc517-source.is-open > div {
+.toss-app .lc517-source.is-open > div:last-of-type {
   display: block;
   -webkit-line-clamp: unset;
   max-height: 50vh;
   overflow: auto;
+}
+
+.toss-app .lc517-source-toggle {
+  margin-top: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid #e3e6ee;
+  background: #f7f8fc;
+  font-size: 13px;
+  font-weight: 700;
+  color: #4a4d54;
+}
+
+.toss-app .lc517-row {
+  border-radius: 20px !important;
+  margin-bottom: 10px;
+  box-shadow: 0 4px 16px rgba(40, 60, 140, 0.05);
+  animation: toss-rise 0.22s ease-out both;
+}
+
+.toss-app .lc517-row:nth-child(1) {
+  animation-delay: 0s;
+}
+.toss-app .lc517-row:nth-child(2) {
+  animation-delay: 0.04s;
+}
+.toss-app .lc517-row:nth-child(3) {
+  animation-delay: 0.08s;
+}
+.toss-app .lc517-row:nth-child(4) {
+  animation-delay: 0.12s;
+}
+.toss-app .lc517-row:nth-child(5) {
+  animation-delay: 0.16s;
+}
+.toss-app .lc517-row:nth-child(6) {
+  animation-delay: 0.2s;
+}
+.toss-app .lc517-row:nth-child(7) {
+  animation-delay: 0.24s;
+}
+.toss-app .lc517-row:nth-child(8) {
+  animation-delay: 0.28s;
+}
+.toss-app .lc517-row:nth-child(n + 9) {
+  animation: none;
 }
 
 .toss-app .lc517-filters {
@@ -422,14 +544,86 @@
   font-weight: 700;
 }
 
-.toss-app .lc517-row {
-  border-radius: 20px !important;
-  margin-bottom: 10px;
+.toss-app .lc517-row-btn--stack {
+  align-items: flex-start !important;
+}
+
+.toss-app .lc517-row-btn--stack .lc517-chevron {
+  margin-top: 2px;
+  transition: transform 0.2s ease;
+}
+
+.toss-app .lc517-row button[aria-expanded="true"] .lc517-chevron {
+  transform: rotate(180deg);
 }
 
 .toss-app .lc517-chevron {
   background: center / 24px 24px no-repeat
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%236A6D74' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+
+.toss-app .lc517-ov-doc {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.toss-app .lc517-ov-doc-inner {
+  position: relative;
+  width: 120px;
+  height: 96px;
+  padding: 14px 12px;
+  border-radius: 12px;
+  background: #f7f8fc;
+  border: 1px solid #e3e6ee;
+  overflow: hidden;
+}
+
+.toss-app .toss-alert-card {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid #e3e6ee;
+  box-shadow: 0 8px 24px rgba(40, 60, 140, 0.06);
+}
+
+.toss-app .toss-alert-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 14px;
+  background: #111214;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.toss-app .lc517-ocr-title {
+  font-size: 22px !important;
+  font-weight: 900 !important;
+}
+
+.toss-app .lc517-ocr-desc {
+  font-size: 15px !important;
+  color: #6a6d74 !important;
+}
+
+.toss-app .lc517-ocr-thumb {
+  max-height: 72px;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.toss-app .lc517-ocr-textarea {
+  font-size: 16px !important;
+  line-height: 1.7 !important;
+  min-height: 200px !important;
 }
 
 .toss-app .lc518-open {
@@ -512,7 +706,9 @@
   .toss-app [role="button"]:active,
   .toss-app .lc517-mobile-bar--ready,
   .toss-app.toss-settings-open .lc517-aside,
-  .toss-app .lc517-step-ico.active {
+  .toss-app .lc517-step-ico.active,
+  .toss-app .lc517-result,
+  .toss-app .lc517-row {
     transform: none !important;
     animation: none !important;
   }

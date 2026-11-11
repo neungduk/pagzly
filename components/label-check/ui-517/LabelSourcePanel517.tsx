@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useMemo, type ReactNode } from "react";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
 import type { PinHit517 } from "./pin-match-517";
 
 export type LabelSourcePanel517Props = {
@@ -12,6 +12,8 @@ export type LabelSourcePanel517Props = {
   fileLabel?: string | null;
   /** 523 — 참이면 "아래 목록", 미전달/거짓은 웹 문구("오른쪽 목록") */
   listBelow?: boolean;
+  /** 523 — 참이면 기본 접힘 + 펼쳐 보기. 미전달/거짓은 웹과 동일(항상 전체) */
+  collapsible?: boolean;
 };
 
 /**
@@ -68,14 +70,19 @@ export function LabelSourcePanel517({
   onPinClick,
   fileLabel,
   listBelow = false,
+  collapsible = false,
 }: LabelSourcePanel517Props) {
+  const [open, setOpen] = useState(false);
   const body = useMemo(
     () => renderSourceWithPins517(sourceText, pins, activePinId, onPinClick),
     [sourceText, pins, activePinId, onPinClick],
   );
 
   return (
-    <aside className="lc517-source lc507-print-hide" aria-label="읽은 라벨">
+    <aside
+      className={`lc517-source lc507-print-hide${collapsible && open ? " is-open" : ""}${collapsible && !open ? " is-clamp" : ""}`}
+      aria-label="읽은 라벨"
+    >
       <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>읽은 라벨</h2>
       {fileLabel ? (
         <p style={{ margin: "4px 0 0", fontSize: 12.5, color: "#8a8d94", wordBreak: "break-all" }}>
@@ -100,6 +107,16 @@ export function LabelSourcePanel517({
       >
         {body}
       </div>
+      {collapsible ? (
+        <button
+          type="button"
+          className="lc517-source-toggle"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+        >
+          {open ? "접기" : "펼쳐 보기"}
+        </button>
+      ) : null}
     </aside>
   );
 }

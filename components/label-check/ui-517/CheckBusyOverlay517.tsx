@@ -48,10 +48,26 @@ export function CheckBusyOverlay517({
   return (
     <div className="lc517-ov" role="status" aria-live="polite" aria-busy="true">
       <div className="lc517-ov-card">
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span className="lc517-spin" aria-hidden />
-          <span style={{ fontSize: 19, fontWeight: 700 }}>점검하는 중</span>
-        </div>
+        {useIcons ? (
+          <div className="lc517-ov-doc" aria-hidden>
+            <div className="lc517-ov-doc-inner">
+              <div style={{ height: 6, width: "55%", background: "#111214", borderRadius: 2, marginBottom: 8 }} />
+              <div style={{ height: 4, width: "88%", background: "#E3E6EE", borderRadius: 2, marginBottom: 5 }} />
+              <div style={{ height: 4, width: "76%", background: "#E3E6EE", borderRadius: 2, marginBottom: 5 }} />
+              <div style={{ height: 4, width: "82%", background: "#FFD9D2", borderRadius: 2, marginBottom: 5 }} />
+              <div style={{ height: 4, width: "70%", background: "#E3E6EE", borderRadius: 2 }} />
+              <div className="lc517-scan" />
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span className="lc517-spin" aria-hidden />
+            <span style={{ fontSize: 19, fontWeight: 700 }}>점검하는 중</span>
+          </div>
+        )}
+        {useIcons ? (
+          <p style={{ margin: 0, fontSize: 19, fontWeight: 700, textAlign: "center" }}>점검하는 중</p>
+        ) : null}
         <div style={{ height: 6, background: "#E8EBF3", borderRadius: 3, overflow: "hidden" }}>
           <div
             style={{

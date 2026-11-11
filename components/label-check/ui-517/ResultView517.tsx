@@ -39,6 +39,13 @@ export type ResultView517Props = ResultView507Props & {
    * 미전달(기본)은 웹과 동일.
    */
   embedded?: boolean;
+  /** 523 — 깨끗할 때 요약 문장(미전달 시 웹 verdict) */
+  cleanHeadline?: string;
+  /** 523 — 깨끗할 때 보조 한 줄 */
+  cleanNote?: string;
+  /** 523 — 못 읽음 CTA 문구 */
+  unreadablePhotoLabel?: string;
+  unreadablePasteLabel?: string;
 };
 
 type FilterId517 = "all" | "fix" | "check" | "manual" | "pass";
@@ -172,6 +179,10 @@ export function ResultView517({
   ocrQualityLabel,
   fileLabel,
   embedded = false,
+  cleanHeadline,
+  cleanNote,
+  unreadablePhotoLabel,
+  unreadablePasteLabel,
 }: ResultView517Props) {
   const lawBaselineLine = useLawBaseline516(lawBaseline);
   const verdictRef = useRef<HTMLHeadingElement>(null);
@@ -365,6 +376,14 @@ export function ResultView517({
   ];
 
   const showCounts = judged && (counts.fix > 0 || counts.check > 0);
+  const isClean = judged && counts.fix === 0 && counts.check === 0;
+  const headlineText =
+    isClean && cleanHeadline
+      ? cleanHeadline
+      : showCounts
+        ? null
+        : verdict.headline;
+  const cleanSub = isClean && cleanNote ? cleanNote : verdict.subNote && !showCounts ? verdict.subNote : null;
 
   const stats: Array<{ label: string; n: number; color: string; onClick: () => void }> = [
     { label: "고칠 것", n: displayFix, color: "#FF7A66", onClick: () => selectFilter("fix") },
@@ -567,11 +586,11 @@ export function ResultView517({
                   <Num color="#FFC857">{counts.check}</Num>개가 있어요
                 </>
               ) : (
-                verdict.headline
+                headlineText
               )}
             </h2>
-            {verdict.subNote && !showCounts ? (
-              <p style={{ margin: "8px 0 0", fontSize: 14, color: "#b9bcc4" }}>{verdict.subNote}</p>
+            {cleanSub ? (
+              <p style={{ margin: "8px 0 0", fontSize: 14, color: "#b9bcc4" }}>{cleanSub}</p>
             ) : null}
 
             {judged && ratioTotal > 0 ? (
@@ -691,12 +710,12 @@ export function ResultView517({
                 {result.notice ? <p style={fineStyle}>{result.notice}</p> : null}
                 {ocrAvailable && onStartOcr ? (
                   <button type="button" style={solidBtn} onClick={onStartOcr}>
-                    사진·캡처에서 글자 읽기
+                    {unreadablePhotoLabel ?? "사진·캡처에서 글자 읽기"}
                   </button>
                 ) : null}
                 {onFocusPaste ? (
                   <button type="button" style={outlineBtn} onClick={onFocusPaste}>
-                    문구 붙여넣기로 점검
+                    {unreadablePasteLabel ?? "문구 붙여넣기로 점검"}
                   </button>
                 ) : (
                   <p style={fineStyle}>문구를 붙여넣어 다시 점검해 주세요.</p>
@@ -721,6 +740,7 @@ export function ResultView517({
                 onPinClick={onPinClick}
                 fileLabel={fileLabel}
                 listBelow={embedded}
+                collapsible={embedded}
               />
             ) : null}
 

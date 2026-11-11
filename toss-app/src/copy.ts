@@ -15,6 +15,8 @@ export const TOSS_COPY = {
   cleanNote: "규칙으로 확인한 범위예요. 최종 확인은 직접 해 주세요",
   errorTitle: "연결이 잠시 끊겼어요",
   errorRetry: "다시 시도",
+  heicTitle: "이 사진 형식은 아직 못 읽어요",
+  heicBody: "JPG·PNG·WEBP로 보내 주세요.",
   limitTitle: "오늘 사진 읽기는 여기까지예요",
   limitCta: "문구를 붙여넣어 점검해요",
   unreadableRetryPhoto: "다른 사진으로 다시",
