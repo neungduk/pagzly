@@ -33,6 +33,10 @@ export type CheckStart517Props = UploadCard507Props & {
    * 오른쪽 설정 패널의 점검 버튼은 숨겨 버튼이 둘로 보이지 않게 한다.
    */
   reviewSlot?: ReactNode;
+  /** 522 — 토스 등 터치 UI. 참일 때만 드롭존 문구 3개 변경. 기본(미전달)은 웹과 동일 */
+  touch?: boolean;
+  /** 522 — 있으면 파일 input accept를 이 값으로(미전달 시 기존 계산) */
+  accept?: string;
 };
 
 /** 517 — 점검 시작 화면(UploadCard507 대체 연결). props·전송 값은 기존과 동일. */
@@ -350,7 +354,9 @@ export function CheckStart517(props: CheckStart517Props) {
             className={`lc517-drop${drag ? " drag" : ""}`}
             role="button"
             tabIndex={0}
-            aria-label="라벨 PDF나 사진을 여기에 놓으세요"
+            aria-label={
+              props.touch ? "라벨 사진이나 PDF를 골라 주세요" : "라벨 PDF나 사진을 여기에 놓으세요"
+            }
             onClick={pick}
             onKeyDown={onKeyDrop}
             onDragOver={(e) => {
@@ -372,10 +378,10 @@ export function CheckStart517(props: CheckStart517Props) {
               <div className="lc517-scan" />
             </div>
             <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: "-0.01em" }}>
-              라벨 PDF나 사진을 여기에 놓으세요
+              {props.touch ? "라벨 사진이나 PDF를 골라 주세요" : "라벨 PDF나 사진을 여기에 놓으세요"}
             </div>
             <div style={{ fontSize: 14, color: "#6A6D74", lineHeight: 1.7 }}>
-              눌러서 파일 고르기
+              {props.touch ? "여기를 눌러 파일을 골라요" : "눌러서 파일 고르기"}
               <br />
               파일은 점검 후 저장하지 않습니다
             </div>
@@ -459,7 +465,9 @@ export function CheckStart517(props: CheckStart517Props) {
                 whiteSpace: "nowrap",
               }}
             >
-              준비 완료 · 오른쪽에서 점검하기를 누르세요
+              {props.touch
+                ? "준비 완료 · 아래 점검하기를 눌러요"
+                : "준비 완료 · 오른쪽에서 점검하기를 누르세요"}
             </div>
           </div>
         ) : null}
@@ -521,9 +529,10 @@ export function CheckStart517(props: CheckStart517Props) {
           ref={inputRef}
           type="file"
           accept={
-            props.acceptImages
+            props.accept ||
+            (props.acceptImages
               ? "application/pdf,.pdf,image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-              : "application/pdf,.pdf"
+              : "application/pdf,.pdf")
           }
           className="sr-only"
           aria-hidden

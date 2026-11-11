@@ -34,6 +34,11 @@ export type ResultView517Props = ResultView507Props & {
   fileLabel?: string | null;
   /** 518 — 화면 전용 읽기 품질(저장·로그 금지) */
   ocrQualityLabel?: string | null;
+  /**
+   * 522 — 토스 등 임베드. 참일 때만 가입 유도·인쇄 버튼 숨김.
+   * 미전달(기본)은 웹과 동일.
+   */
+  embedded?: boolean;
 };
 
 type FilterId517 = "all" | "fix" | "check" | "manual" | "pass";
@@ -166,6 +171,7 @@ export function ResultView517({
   sourceText,
   ocrQualityLabel,
   fileLabel,
+  embedded = false,
 }: ResultView517Props) {
   const lawBaselineLine = useLawBaseline516(lawBaseline);
   const verdictRef = useRef<HTMLHeadingElement>(null);
@@ -857,21 +863,23 @@ export function ResultView517({
         ) : null}
 
         <footer style={{ display: "flex", flexDirection: "column", gap: 8, paddingBottom: 8 }}>
-          {isMember ? (
-            <p style={fineStyle}>
-              {savedId ? "이 결과 저장됨 · " : null}
-              <Link href="/label-check/history" className="underline-offset-2 hover:underline">
-                내 결과
-              </Link>
-            </p>
-          ) : (
-            <p style={fineStyle}>
-              가입하면 결과를 다시 볼 수 있어요.{" "}
-              <Link href="/signup" className="underline-offset-2 hover:underline">
-                가입
-              </Link>
-            </p>
-          )}
+          {!embedded ? (
+            isMember ? (
+              <p style={fineStyle}>
+                {savedId ? "이 결과 저장됨 · " : null}
+                <Link href="/label-check/history" className="underline-offset-2 hover:underline">
+                  내 결과
+                </Link>
+              </p>
+            ) : (
+              <p style={fineStyle}>
+                가입하면 결과를 다시 볼 수 있어요.{" "}
+                <Link href="/signup" className="underline-offset-2 hover:underline">
+                  가입
+                </Link>
+              </p>
+            )
+          ) : null}
 
           {lawBaselineLine ? (
             <p style={fineStyle} className="lc516-law-baseline">
@@ -887,16 +895,25 @@ export function ResultView517({
             </p>
           ) : null}
 
-          <p className="lc507-print-hide" style={fineStyle}>
-            <button
-              type="button"
-              className="underline-offset-2 hover:underline"
-              style={{ background: "none", border: 0, padding: 0, font: "inherit", color: "inherit", cursor: "pointer" }}
-              onClick={() => window.print()}
-            >
-              인쇄/PDF로 저장
-            </button>
-          </p>
+          {!embedded ? (
+            <p className="lc507-print-hide" style={fineStyle}>
+              <button
+                type="button"
+                className="underline-offset-2 hover:underline"
+                style={{
+                  background: "none",
+                  border: 0,
+                  padding: 0,
+                  font: "inherit",
+                  color: "inherit",
+                  cursor: "pointer",
+                }}
+                onClick={() => window.print()}
+              >
+                인쇄/PDF로 저장
+              </button>
+            </p>
+          ) : null}
         </footer>
       </section>
 
