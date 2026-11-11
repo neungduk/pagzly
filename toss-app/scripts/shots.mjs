@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(path.resolve(here, "../../package.json"));
-const { chromium } = require("playwright");
+let chromium; try { if (process.env.PLAYWRIGHT_PATH) throw 0; ({ chromium } = require("playwright")); } catch { ({ chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_PATH || "playwright")); }
 
 const BASE = process.env.SHOTS_BASE || "http://127.0.0.1:4173/";
 const outDir = path.resolve(process.argv[2] || "../review/523-screens/round-x");

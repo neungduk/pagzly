@@ -447,7 +447,16 @@
 .toss-app .lc517-result-grid {
   display: flex !important;
   flex-direction: column;
+  /* 523 검수: 웹 규칙의 align-items:start 가 남으면 자식이 내용 폭(필터 줄 513px)으로 늘어나
+     항목 카드 오른쪽이 화면 밖으로 잘린다. 폰에서는 반드시 stretch. */
+  align-items: stretch !important;
   gap: 12px !important;
+  min-width: 0;
+}
+
+.toss-app .lc517-result-grid > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .toss-app .lc517-result-grid > .lc517-source {
@@ -789,4 +798,10 @@
 
 .toss-app .lc517-color-muted {
   color: #6a6d74 !important;
+}
+
+/* 523 검수: 짧은 버튼 글자가 두 줄로 꺾이지 않게 */
+.toss-app .lc517-preview button,
+.toss-app .lc517-ocr-actions > button {
+  white-space: nowrap;
 }
