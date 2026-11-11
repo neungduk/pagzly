@@ -4,7 +4,7 @@ import { labelRuleCounts514 } from "@/lib/label-check/rules-count-514";
 import { LabelSiteShell511 } from "./LabelSiteShell";
 import { LabelHeader511 } from "./LabelHeader";
 import { LabelFooter511 } from "./LabelFooter";
-import { LANDING_BEFORE_AFTER_514 } from "./landing-demo-514";
+import { FixShowcase519, Finale519 } from "../ui-519/LandingBottom519";
 import { LandingBelt515, LandingStage519 } from "@/components/label-check/ui-519";
 
 export function LabelCheckLanding511({
@@ -98,80 +98,9 @@ export function LabelCheckLanding511({
           </div>
         </section>
 
-        <div className="lc515-fix-band">
-          <section id="fix" className="lc514-fix">
-            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: "clamp(28px, 4vw, 38px)",
-                  lineHeight: 1.3,
-                  fontWeight: 900,
-                  letterSpacing: "-0.03em",
-                  textWrap: "balance",
-                }}
-              >
-                틀렸다는 말로 끝내지 않고 고친 문장까지
-              </h2>
-              <p style={{ margin: 0, fontSize: 17, lineHeight: 1.8, color: "var(--lc-sub)" }}>
-                어느 문장이 걸렸는지 표시하고, 빠진 항목은 넣을 문구 예시를 함께 보여 드립니다. 고친 뒤 다시 올려
-                확인하세요.
-              </p>
-              <a href="#demo" style={{ fontSize: 16, fontWeight: 700, color: "var(--lc-brand)", textDecoration: "none" }}>
-                결과 화면 둘러보기 →
-              </a>
-            </div>
-            <div
-              style={{
-                background: "#fff",
-                border: "1px solid var(--lc-line)",
-                borderRadius: 20,
-                padding: 28,
-                display: "flex",
-                flexDirection: "column",
-                gap: 16,
-              }}
-            >
-              <div>
-                <div className="lc-mono" style={{ fontSize: 11, color: "var(--lc-mute)", marginBottom: 6 }}>
-                  BEFORE
-                </div>
-                <div style={{ fontSize: 16, lineHeight: 1.7 }}>
-                  <span className="lc514-mark-bad">{LANDING_BEFORE_AFTER_514.before}</span>
-                </div>
-              </div>
-              <div style={{ height: 1, background: "var(--lc-line-soft)" }} />
-              <div>
-                <div className="lc-mono" style={{ fontSize: 11, color: "var(--lc-ok)", marginBottom: 6 }}>
-                  AFTER
-                </div>
-                <div style={{ fontSize: 16, lineHeight: 1.7 }}>
-                  <span className="lc514-mark-hl">{LANDING_BEFORE_AFTER_514.after}</span>
-                </div>
-              </div>
-              <div style={{ fontSize: 12.5, color: "var(--lc-mute)" }}>{LANDING_BEFORE_AFTER_514.note}</div>
-            </div>
-          </section>
-        </div>
+        <FixShowcase519 />
 
-        <section id="start" className="lc514-cta-band">
-          <div className="lc514-cta-panel lc515-cta-grad">
-            <h2
-              style={{
-                margin: 0,
-                fontSize: "clamp(28px, 4vw, 40px)",
-                lineHeight: 1.3,
-                fontWeight: 900,
-                letterSpacing: "-0.03em",
-                textWrap: "balance",
-              }}
-            >
-              지금 올려 보세요
-            </h2>
-            <p style={{ margin: 0, fontSize: 17, color: "#d4deff" }}>회원가입 없이 바로 점검할 수 있습니다.</p>
-            <Link href="/label-check">내 라벨 점검하기</Link>
-          </div>
-        </section>
+        <Finale519 />
 
         <LabelFooter511 lawBaseline={lawBaseline} />
       </div>

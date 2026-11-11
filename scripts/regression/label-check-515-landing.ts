@@ -25,7 +25,9 @@ function read(p: string): string {
 export async function run(): Promise<string[]> {
   const fails: string[] = [];
   const css = read(path.join("components", "label-check", "ui-511", "label-site-511.css"));
-  const landing = read(path.join("components", "label-check", "ui-511", "LabelCheckLanding.tsx"));
+  const landing =
+    read(path.join("components", "label-check", "ui-511", "LabelCheckLanding.tsx")) +
+    read(path.join("components", "label-check", "ui-519", "LandingBottom519.tsx")); // 519: 하단 CTA 이동
   const demo = read(path.join("components", "label-check", "ui-511", "LandingProofDemo.tsx"));
   const stage = read(path.join("components", "label-check", "ui-519", "LandingStage519.tsx"));
   const belt = read(path.join("components", "label-check", "ui-519", "LandingBelt515.tsx"));

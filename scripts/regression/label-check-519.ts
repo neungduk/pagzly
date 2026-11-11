@@ -29,7 +29,8 @@ export async function run(): Promise<string[]> {
   const belt = read("components/label-check/ui-519/LandingBelt515.tsx");
   const countUp = read("components/label-check/ui-519/CountUp514.tsx");
   const data = read("components/label-check/ui-511/landing-demo-514.ts");
-  const landing = read("components/label-check/ui-511/LabelCheckLanding.tsx");
+  const landing =
+    read("components/label-check/ui-511/LabelCheckLanding.tsx") + read("components/label-check/ui-519/LandingBottom519.tsx");
 
   if (!stage || !css) f.push("519: ui-519 LandingStage/CSS 없음");
 

@@ -44,7 +44,9 @@ const ALLOWED_RADIUS = new Set([3, 10, 14, 16, 20, 28, 999]); // 3=mark highligh
 export async function run(): Promise<string[]> {
   const fails: string[] = [];
 
-  const landing = read(path.join("components", "label-check", "ui-511", "LabelCheckLanding.tsx"));
+  const landing =
+    read(path.join("components", "label-check", "ui-511", "LabelCheckLanding.tsx")) +
+    read(path.join("components", "label-check", "ui-519", "LandingBottom519.tsx")); // 519: 하단 CTA 이동
   const header = read(path.join("components", "label-check", "ui-511", "LabelHeader.tsx"));
   const demo = read(path.join("components", "label-check", "ui-511", "LandingProofDemo.tsx"));
   const stage = read(path.join("components", "label-check", "ui-519", "LandingStage519.tsx"));

@@ -165,3 +165,33 @@ export const LANDING_STAGE_LEGAL_519 = "법적 판단이 아닌 사전 점검 �
 
 export const LANDING_STAGE_LEAD_519 =
   "화장품 라벨 사진이나 상세페이지 PDF를 올리면, 고칠 문구와 빠진 표시사항을 근거와 함께 보여 드립니다. 고쳐 쓴 문구 예시도 함께 나옵니다.";
+
+/** 519 — 하단 '고친 문장' 쪽지 데모. before는 걸린 문구 예시(금지어 검사 제외), after에는 금지어를 쓰지 않는다. */
+export type LandingFixPair519 = { before: string; beforeEm: string; after: string; note: string };
+export const LANDING_FIX_PAIRS_519: LandingFixPair519[] = [
+  {
+    before: "피부 재생을 완전히 시켜 줍니다",
+    beforeEm: "완전히 시켜 줍니다",
+    after: "피부 탄력 개선에 도움을 줍니다",
+    note: "기능성 인정 범위 안에서 쓰는 문장으로",
+  },
+  {
+    before: "여드름이 완치되는 크림",
+    beforeEm: "완치되는",
+    after: "여드름성 피부 완화에 도움을 주는 크림",
+    note: "치료·완치 표현을 빼고 도움을 주는 말로",
+  },
+  {
+    before: "사용기한 표기 없음",
+    beforeEm: "표기 없음",
+    after: "개봉 후 사용기간 12개월",
+    note: "빠진 표시사항은 넣을 문구까지 예시로",
+  },
+];
+
+export const LANDING_FIX_STAMP_519 = "고쳐 쓴 문장";
+export const LANDING_FINALE_STEPS_519 = [
+  { no: "01", title: "올리기", body: "PDF · 사진 · 문구 중 하나" },
+  { no: "02", title: "읽은 글자 확인", body: "잘못 읽은 곳은 바로 고치기" },
+  { no: "03", title: "고칠 곳 보기", body: "근거와 고쳐 쓴 문구 예시" },
+] as const;
