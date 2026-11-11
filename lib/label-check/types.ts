@@ -211,6 +211,10 @@ export const NOTICE_OUTLINE_485 =
 export const NOTICE_IMAGE_PDF_497 =
   "글자가 이미지로 들어 있어 읽지 못했습니다. 디자인 프로그램에서 글자를 살린 채(윤곽선 만들기 해제) PDF로 다시 내보내 주세요. 해결: ① 텍스트를 윤곽선으로 바꾸지 말고 보내기 ② 스캔본이면 글자가 있는 원본 시안을 쓰세요.";
 
+/** 524 — 사진형 PDF를 OCR로 넘긴 뒤 확인 화면 안내(한 줄) */
+export const NOTICE_PDF_AS_IMAGE_524 =
+  "글자가 이미지로 들어 있는 PDF라서 사진처럼 읽었어요. 읽은 글자를 확인해 주세요.";
+
 export const NOTICE_US_NON_ENGLISH_497 =
   "영어 라벨이 아닌 것으로 보입니다. 미국 모드에서는 영문 필수 항목 판정을 보류하고 영어 표기만 안내합니다.";
 
