@@ -1,7 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
-import "./styles.css";
+import "./base.css";
+import "./toss-overrides.css";
 
 // PDF.js 공개 경로 — Vite public/ 기준 상대 경로
 (window as Window & { __PAGZLY_PDFJS_BASE__?: string }).__PAGZLY_PDFJS_BASE__ =

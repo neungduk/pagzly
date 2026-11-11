@@ -1,8 +1,9 @@
 import { useMemo, useRef, useState } from "react";
 import { LabPanel } from "./lab/LabPanel";
-import { CheckFlow } from "./check/CheckFlow";
+import { CheckScreen } from "./CheckScreen";
+import { TOSS_SHOW_US_MARKET } from "./config";
 
-/** 실험 화면은 기본으로 숨김. 주소에 lab=1 이 있거나, 제목을 빠르게 5번 누르면 열린다(개발·진단용). */
+/** 실험 화면은 기본 숨김. ?lab=1 또는 제목 3초 안 5회 탭 */
 function labFromQuery(): boolean {
   if (typeof window === "undefined") return false;
   return new URLSearchParams(window.location.search).get("lab") === "1";
@@ -19,16 +20,12 @@ export default function App() {
     if (taps.current.length >= 5) setLabTap(true);
   };
 
+  const labOpen = labQuery || labTap;
+
   return (
-    <div className="app">
-      <header>
-        <h1 onClick={onTitleTap}>팩즐리 라벨 점검</h1>
-        <p className="muted">
-          화장품 라벨 사진이나 PDF를 올리면 고칠 문구와 빠진 표시사항을 알려줘요.
-        </p>
-      </header>
-      {labQuery || labTap ? <LabPanel /> : null}
-      <CheckFlow />
+    <div className="toss-app" data-kr-only={TOSS_SHOW_US_MARKET ? undefined : "1"}>
+      {labOpen ? <LabPanel /> : null}
+      <CheckScreen onTitleTap={onTitleTap} />
     </div>
   );
 }

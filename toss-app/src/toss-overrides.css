@@ -1,0 +1,169 @@
+/* 522 — 토스 폰 보정. 모든 규칙은 .toss-app 아래 */
+
+.toss-app {
+  font-family: "Noto Sans KR", system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+  overflow-x: clip;
+  max-width: 100vw;
+}
+
+.toss-app .lc517-mono {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+.toss-app .lc517 {
+  min-height: 100dvh;
+  padding-top: 18px;
+}
+
+.toss-app .toss-hero h1 {
+  margin: 0;
+  font-size: clamp(26px, 7.4vw, 30px);
+  line-height: 1.25;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+  word-break: keep-all;
+}
+
+.toss-app .toss-hero-sub {
+  margin: 8px 0 0;
+  font-size: 15px;
+  color: #4a4d54;
+  word-break: keep-all;
+}
+
+.toss-app .lc517-drop {
+  min-height: 290px;
+}
+
+.toss-app .lc517-doc {
+  max-width: 100%;
+}
+
+.toss-app .lc517-preview .lc517-pop:first-of-type,
+.toss-app .lc517-preview > .lc517-pop {
+  max-width: calc(100% - 120px);
+}
+
+.toss-app .lc517-preview .lc517-mono {
+  display: inline-block;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.toss-app textarea,
+.toss-app input:not([type="file"]):not([type="checkbox"]):not([type="radio"]) {
+  font-size: 16px !important;
+}
+
+.toss-app .lc517-stage textarea,
+.toss-app textarea {
+  min-height: 220px;
+}
+
+.toss-app .lc517-mobile-bar,
+.toss-app .lc507-bar {
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+}
+
+.toss-app:has(textarea:focus) .lc517-mobile-bar,
+.toss-app:has(textarea:focus) .lc507-bar,
+.toss-app:has(input:focus) .lc517-mobile-bar,
+.toss-app:has(input:focus) .lc507-bar {
+  position: static;
+}
+
+.toss-app .lc517-ocr {
+  display: flex;
+  flex-direction: column;
+}
+
+.toss-app .lc517-ocr .lc517-ocr-actions,
+.toss-app .lc517-ocr-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.toss-app .lc517-ocr .lc517-ocr-actions > button,
+.toss-app .lc517-ocr-actions > button {
+  flex: 1;
+  min-height: 44px;
+}
+
+.toss-app .lc517-summary {
+  grid-template-columns: 1fr;
+}
+
+.toss-app .lc517-source {
+  max-height: 40vh;
+  overflow: auto;
+}
+
+.toss-app .lc517-filters {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  flex-wrap: nowrap;
+  max-width: 100%;
+}
+
+.toss-app .lc518-open {
+  padding-left: 8px !important;
+}
+
+.toss-app button,
+.toss-app .lc517-chip-opt,
+.toss-app .lc517-market,
+.toss-app .lc517-go,
+.toss-app .lc-go,
+.toss-app [role="button"] {
+  min-height: 44px;
+}
+
+.toss-app[data-kr-only="1"] .lc517-panel .lc517-market:last-child {
+  display: none;
+}
+
+.toss-app[data-kr-only="1"] .lc517-panel > div:nth-child(2) > div {
+  grid-template-columns: 1fr;
+}
+
+@media (hover: none) {
+  .toss-app .lc517-chip-opt:hover,
+  .toss-app .lc517-market:hover,
+  .toss-app .lc517-go:hover,
+  .toss-app .lc-go:hover,
+  .toss-app button:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+.toss-app button:active:not(:disabled),
+.toss-app .lc517-chip-opt:active,
+.toss-app .lc517-market:active,
+.toss-app .lc517-go:active,
+.toss-app [role="button"]:active {
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toss-app button:active:not(:disabled),
+  .toss-app .lc517-chip-opt:active,
+  .toss-app .lc517-market:active,
+  .toss-app .lc517-go:active,
+  .toss-app [role="button"]:active {
+    transform: none;
+  }
+
+  .toss-app * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
