@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>점검 결과 v5</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;background:#F3F5FB;font-family:'Noto Sans KR',system-ui,sans-serif;color:#111214;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.row{transition:background .25s,border-color .25s,box-shadow .25s,transform .2s;cursor:pointer}
+.row:hover{transform:translateX(-3px)}
+.tabb{transition:color .15s,border-color .15s}
+.cp{transition:background .15s}
+.cp:hover{opacity:.85}
+.seg{transition:flex-grow .6s}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.rise{animation:rise .45s both}
+@keyframes drift{from{transform:translate(0,0)}to{transform:translate(26px,20px)}}
+.wash{position:absolute;inset:0 0 auto 0;height:600px;overflow:hidden;pointer-events:none}
+.wash i{position:absolute;border-radius:50%;filter:blur(80px);opacity:.7;animation:drift 9s ease-in-out infinite alternate}
+@media (prefers-reduced-motion:reduce){.rise,.wash i{animation:none}.row:hover{transform:none}}
+</style>
+</helmet>
+<div style="position:relative;min-height:1600px;background:#F3F5FB;overflow:hidden">
+<div class="wash"><i style="width:520px;height:520px;left:-100px;top:-80px;background:#D5DEFF"></i><i style="width:460px;height:460px;right:-60px;top:120px;background:#FFDCCB"></i></div>
+
+<header style="position:relative;display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto;padding:20px 24px">
+<a href="LandingV4.dc.html" style="font-weight:900;font-size:20px;letter-spacing:-0.03em">Pagzly</a>
+<a href="CheckV5.dc.html" style="padding:10px 18px;background:#111214;color:#fff;border-radius:999px;font-size:14px;font-weight:700">다시 점검</a>
+</header>
+
+<div style="position:relative;max-width:1200px;margin:0 auto;padding:4px 24px 80px;display:flex;flex-direction:column;gap:20px">
+
+<section class="rise" style="background:#111214;color:#fff;border-radius:28px;padding:34px 36px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:32px;align-items:center;box-shadow:0 30px 70px rgba(17,18,20,.25)">
+<div>
+<div class="mono" style="font-size:12px;color:#9A9DA4;margin-bottom:12px">라벨_뒷면_앰플30ml.pdf · 한국 기준</div>
+<h1 style="margin:0 0 12px;font-size:38px;line-height:1.25;font-weight:900;letter-spacing:-0.04em;text-wrap:balance">고칠 것 <span style="color:#FF7A66">{{cntBad}}개</span>,<br>확인할 것 <span style="color:#FFC857">{{cntWarn}}개</span>가 있어요</h1>
+<p style="margin:0;font-size:14.5px;line-height:1.7;color:#B4B7BE">고친 뒤 다시 올리면 바로 다시 확인해요.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;height:14px;border-radius:7px;overflow:hidden;gap:3px">
+<sc-for list="{{segs}}" as="g" hint-placeholder-count="4">
+<div class="seg" style="flex:{{ g.n }} 1 0;background:{{ g.color }};border-radius:3px"></div>
+</sc-for>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+<sc-for list="{{stats}}" as="st" hint-placeholder-count="4">
+<div><div style="font-size:34px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:{{ st.color }}">{{ st.n }}</div><div style="font-size:12.5px;color:#B4B7BE;margin-top:6px">{{ st.name }}</div></div>
+</sc-for>
+</div>
+<div>
+<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#B4B7BE;margin-bottom:6px"><span>고친 항목</span><span class="mono">{{doneCount}} / {{fixTotal}}</span></div>
+<div style="height:6px;background:#2E3036;border-radius:3px;overflow:hidden"><div style="height:100%;width:{{donePct}}%;background:#5BD6A3;border-radius:3px;transition:width .5s"></div></div>
+</div>
+</div>
+</section>
+
+<div style="display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:20px;align-items:start">
+
+<section class="rise" style="position:sticky;top:16px;background:#fff;border:1px solid #E3E6EE;border-radius:24px;padding:30px;box-shadow:0 20px 50px rgba(40,60,140,.10)">
+<div class="mono" style="font-size:11px;letter-spacing:.08em;color:#8A8D94;margin-bottom:14px">읽은 라벨 · 번호를 누르면 카드가 열려요</div>
+<div style="font-size:22px;font-weight:900;letter-spacing:-0.02em;margin-bottom:4px">비타 브라이트닝 앰플</div>
+<div style="font-size:13px;color:#6A6D74;margin-bottom:18px">내용량 30 ml</div>
+<p style="margin:0 0 16px;font-size:16px;line-height:2.1">
+<span style="{{ h1 }}">피부 주름을 완전히 없애 주는</span><button type="button" onClick="{{ p1 }}" style="{{ b1 }}">1</button> 앰플. 비타민C 함유로
+<span style="{{ h3 }}">피부 재생</span><button type="button" onClick="{{ p3 }}" style="{{ b3 }}">3</button>을 돕고 칙칙함을 개선합니다.</p>
+<div style="font-size:12px;font-weight:700;margin-bottom:4px;color:#4A4D54">전성분</div>
+<p class="mono" style="margin:0 0 16px;font-size:12px;line-height:1.8;color:#4A4D54">정제수, 글리세린, 아스코빅애시드, 부틸렌글라이콜, 나이아신아마이드, 1,2-헥산다이올, 향료, 리모넨</p>
+<div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px;color:#4A4D54">
+<span>사용기한 <span style="{{ h2 }}">찾지 못함</span><button type="button" onClick="{{ p2 }}" style="{{ b2 }}">2</button></span>
+<span>제조번호 LOT 2411A</span>
+</div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:10px">
+<div role="tablist" style="display:flex;gap:18px;border-bottom:1.5px solid #E3E6EE;padding:0 4px 0;margin-bottom:4px;flex-wrap:wrap">
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="5">
+<button type="button" class="tabb" onClick="{{ f.go }}" style="border:0;background:none;padding:10px 0;margin-bottom:-1.5px;border-bottom:3px solid {{ f.bd }};font-size:14.5px;font-weight:700;color:{{ f.fg }};cursor:pointer">{{ f.name }} <span class="mono" style="font-size:12px;opacity:.7">{{ f.n }}</span></button>
+</sc-for>
+</div>
+
+<sc-for list="{{items}}" as="it" hint-placeholder-count="5">
+<article class="row rise" onClick="{{ it.pick }}" style="background:{{ it.bg }};color:{{ it.fg }};border:1.5px solid {{ it.bd }};border-radius:20px;padding:16px 18px;box-shadow:{{ it.sh }};opacity:{{ it.op }}">
+<div style="display:flex;align-items:center;gap:12px">
+<span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:13px;background:{{ it.color }};color:#fff;font-size:12.5px;font-weight:700;flex:none">{{ it.no }}</span>
+<div style="flex:1;min-width:0;font-size:{{ it.tsize }};font-weight:{{ it.tw }};letter-spacing:-0.01em;line-height:1.45">{{ it.title }}</div>
+<span style="flex:none;font-size:11.5px;font-weight:700;color:{{ it.pillFg }};background:{{ it.pillBg }};border-radius:999px;padding:4px 10px">{{ it.label }}</span>
+<span style="flex:none;color:{{ it.sub }};font-size:13px;transform:rotate({{ it.rot }}deg);transition:transform .25s">▾</span>
+</div>
+<div style="display:{{ it.open }};margin-top:14px;padding-left:38px;flex-direction:column;gap:12px">
+<div style="font-size:14px;line-height:1.75;color:{{ it.sub }}">{{ it.why }}</div>
+<div style="display:{{ it.fixDisp }};flex-direction:column;gap:8px">
+<div style="background:{{ it.b1bg }};border-radius:12px;padding:11px 14px"><div class="mono" style="font-size:10.5px;letter-spacing:.08em;color:{{ it.b1lab }};margin-bottom:3px">{{ it.beforeLabel }}</div><div style="font-size:14.5px;line-height:1.65">{{ it.before }}</div></div>
+<div style="background:{{ it.b2bg }};border-radius:12px;padding:11px 14px"><div class="mono" style="font-size:10.5px;letter-spacing:.08em;color:{{ it.b2lab }};margin-bottom:3px">{{ it.afterLabel }}</div><div style="display:flex;gap:10px;align-items:center;justify-content:space-between"><span style="font-size:14.5px;line-height:1.65;font-weight:700">{{ it.after }}</span><button type="button" class="cp" onClick="{{ it.noop }}" style="flex:none;min-height:30px;padding:0 12px;border-radius:8px;border:0;background:{{ it.cpBg }};color:{{ it.cpFg }};font-size:12.5px;font-weight:700;cursor:pointer">복사</button></div></div>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+<span style="display:{{ it.basisDisp }};font-size:12px;color:{{ it.sub }}">기준: {{ it.basis }}</span>
+<button type="button" onClick="{{ it.toggle }}" style="display:{{ it.fixDisp }};min-height:34px;padding:0 14px;border-radius:999px;border:0;background:{{ it.doneBg }};color:{{ it.doneFg }};font-size:13px;font-weight:700;cursor:pointer">{{ it.doneText }}</button>
+</div>
+</div>
+</article>
+</sc-for>
+
+<div style="font-size:12.5px;color:#8A8D94;line-height:1.8;padding:8px 4px">
+법령 확인 기준일: 2026-11-11 · 화장품법·시행령·시행규칙<br>
+참고용 사전 점검이며 법적 판단이 아닙니다. 예시 문구는 제품의 인정 범위에 맞게 고쳐 쓰세요.
+</div>
+</section>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":1600}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { filter: 'all', sel: 1, done: {} };
+  }
+  renderVals() {
+    const s = this.state;
+    const COL = { bad: '#FF5A42', warn: '#E0A12B', manual: '#8A9A94', ok: '#2FB67E' };
+    const NAME = { bad: '고칠 것', warn: '확인할 것', manual: '직접 확인', ok: '문제 없음' };
+    const PILL = { bad: ['#FFE2DC', '#B02E1A'], warn: ['#FFF1CC', '#8A5A12'], manual: ['#E6ECE9', '#4B5C55'], ok: ['#D8F0E6', '#14573C'] };
+    const all = [
+      { id: 1, kind: 'bad', title: '치료·완치를 암시하는 표현이에요', why: '"완전히 없애"처럼 효과를 단정하면 화장품 광고에서 쓸 수 없어요.', beforeLabel: 'BEFORE', before: '피부 주름을 완전히 없애 주는 앰플', afterLabel: 'AFTER', after: '피부 주름 개선에 도움을 주는 앰플 (기능성 인정 제품일 때)', basis: '화장품법 제13조 · 표시·광고 관리 지침' },
+      { id: 2, kind: 'warn', title: '사용기한을 찾지 못했어요', why: '개봉 후 사용기간이나 사용기한이 라벨에서 확인되지 않았어요.', beforeLabel: '라벨에서', before: '사용기한 표기를 찾지 못했어요', afterLabel: '이렇게 넣어 보세요', after: '사용기한: 0000.00.00 (또는 개봉 후 12M)', basis: '화장품법 시행규칙 제19조' },
+      { id: 3, kind: 'warn', title: '"피부 재생" 표현을 확인하세요', why: '기능성 인정 범위와 맞는지 확인이 필요한 표현이에요.', beforeLabel: '걸린 말', before: '피부 재생', afterLabel: '이렇게 확인해 보세요', after: '인정받은 효능 문구와 같은 표현인지 심사 서류와 대조', basis: '화장품법 제14조' },
+      { id: 4, kind: 'manual', title: '기능성 문구 위치는 직접 확인이 필요해요', why: '글자 크기는 읽었지만 "바로 아래" 위치는 사진만으로 확인할 수 없었어요.', before: '', after: '', basis: '' },
+      { id: 5, kind: 'ok', title: '제품명 · 내용량 · 제조번호 · 알레르기 성분', why: '표시가 확인됐어요.', before: '', after: '', basis: '' },
+    ];
+    const kinds = ['bad', 'warn', 'manual', 'ok'];
+    const cnt = (k) => all.filter((a) => a.kind === k).length;
+    const fixables = all.filter((a) => a.after);
+    const doneCount = fixables.filter((a) => s.done[a.id]).length;
+    const fdef = [['all', '전체', all.length]].concat(kinds.map((k) => [k, NAME[k], cnt(k)]));
+    const filters = fdef.map(([k, name, n]) => ({
+      name, n, go: () => this.setState({ filter: k }),
+      bd: s.filter === k ? '#111214' : 'transparent', fg: s.filter === k ? '#111214' : '#8A8D94',
+    }));
+    const shown = all.filter((a) => s.filter === 'all' || a.kind === s.filter);
+    const items = shown.map((a) => {
+      const open = s.sel === a.id;
+      const done = !!s.done[a.id];
+      const hasFix = !!a.after;
+      const dark = open && a.kind === 'bad';
+      const bg = dark ? '#111214' : '#fff';
+      const fg = dark ? '#fff' : '#111214';
+      return {
+        no: a.kind === 'ok' ? '✓' : a.id, color: COL[a.kind], label: NAME[a.kind], title: a.title, why: a.why,
+        beforeLabel: a.beforeLabel, before: a.before, afterLabel: a.afterLabel, after: a.after, basis: a.basis,
+        pillBg: dark ? 'rgba(255,255,255,.12)' : PILL[a.kind][0], pillFg: dark ? '#fff' : PILL[a.kind][1],
+        bg, fg, sub: dark ? '#B4B7BE' : '#6A6D74',
+        bd: open ? (dark ? '#111214' : COL[a.kind]) : '#E3E6EE',
+        sh: open ? '0 18px 40px rgba(17,18,20,.16)' : 'none',
+        op: done ? '.6' : '1',
+        tsize: open ? '17px' : '15px', tw: open ? '900' : '700',
+        open: open ? 'flex' : 'none', rot: open ? 180 : 0,
+        fixDisp: hasFix ? 'flex' : 'none', basisDisp: a.basis ? 'block' : 'none',
+        b1bg: dark ? 'rgba(255,90,66,.16)' : '#F3F5FB', b1lab: dark ? '#FF8A78' : '#8A8D94',
+        b2bg: dark ? 'rgba(127,162,255,.18)' : '#EEF2FF', b2lab: dark ? '#9DB6FF' : '#1D4ED8',
+        cpBg: dark ? '#fff' : '#111214', cpFg: dark ? '#111214' : '#fff',
+        pick: () => this.setState({ sel: open ? 0 : a.id }),
+        noop: (e) => { if (e && e.stopPropagation) e.stopPropagation(); },
+        toggle: (e) => { if (e && e.stopPropagation) e.stopPropagation(); const d = Object.assign({}, s.done); d[a.id] = !d[a.id]; this.setState({ done: d }); },
+        doneText: done ? '고쳤어요 ✓' : '고쳤어요', doneBg: done ? '#2FB67E' : (dark ? 'rgba(255,255,255,.14)' : '#EEF0F6'), doneFg: done ? '#fff' : (dark ? '#fff' : '#4A4D54'),
+      };
+    });
+    const pinStyle = (id, c) => 'display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:10px;border:0;background:' + c + ';color:#fff;font-size:11px;font-weight:700;margin-left:3px;vertical-align:2px;cursor:pointer;font-family:inherit;box-shadow:' + (s.sel === id ? '0 0 0 4px ' + c + '33' : 'none') + ';';
+    const hl = (id, bg, bd) => 'padding:0 2px;border-radius:3px;transition:background .25s;background:' + (s.sel === id ? bg : 'transparent') + ';border-bottom:2px solid ' + bd + ';';
+    return {
+      cntBad: cnt('bad'), cntWarn: cnt('warn'), filters, items,
+      segs: kinds.map((k) => ({ n: Math.max(cnt(k), 0.0001), color: COL[k] })),
+      stats: kinds.map((k) => ({ n: cnt(k), name: NAME[k], color: COL[k] })),
+      doneCount, fixTotal: fixables.length, donePct: fixables.length ? Math.round(doneCount / fixables.length * 100) : 0,
+      h1: hl(1, '#FFD9D2', '#D6402B'), h2: hl(2, '#FFF1CC', '#B7791F'), h3: hl(3, '#FFF1CC', '#B7791F'),
+      b1: pinStyle(1, '#D6402B'), b2: pinStyle(2, '#B7791F'), b3: pinStyle(3, '#B7791F'),
+      p1: () => this.setState({ sel: 1, filter: 'all' }), p2: () => this.setState({ sel: 2, filter: 'all' }), p3: () => this.setState({ sel: 3, filter: 'all' }),
+    };
+  }
+}
+</script>
+</body>
+</html>

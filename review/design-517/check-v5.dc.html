@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>점검 시작 v5</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;background:#F3F5FB;font-family:'Noto Sans KR',system-ui,sans-serif;color:#111214;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button,textarea{font-family:inherit}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.tab{transition:background .15s,color .15s}
+.opt{transition:background .15s,border-color .15s}
+.opt:hover{border-color:#1D4ED8}
+.go{transition:background .15s,transform .15s}
+.go:hover{background:#2A2C30;transform:translateY(-1px)}
+.stage{transition:border-color .2s,background .2s}
+.stage:hover{border-color:#1D4ED8;background:#F7F9FF}
+textarea:focus{outline:2px solid #1D4ED8;outline-offset:1px}
+@keyframes scan{0%{top:0}100%{top:100%}}
+.scan{position:absolute;left:0;right:0;height:2px;background:#1D4ED8;box-shadow:0 0 14px 2px rgba(29,78,216,.4);animation:scan 1.6s ease-in-out infinite alternate}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin .8s linear infinite}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.ov{animation:fade .25s both}
+.wash{position:absolute;inset:0 0 auto 0;height:700px;overflow:hidden;pointer-events:none}
+.wash i{position:absolute;border-radius:50%;filter:blur(80px);opacity:.7}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(17,18,20,.35)}100%{box-shadow:0 0 0 14px rgba(17,18,20,0)}}
+.ready{animation:pulse 1.6s infinite}
+@keyframes pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+.pop{animation:pop .4s both}
+@keyframes bob{from{transform:translateY(0)}to{transform:translateY(-6px)}}
+.bob{animation:bob 2.8s ease-in-out infinite alternate}
+@keyframes drift{from{transform:translate(0,0)}to{transform:translate(26px,20px)}}
+.wash i{animation:drift 9s ease-in-out infinite alternate}
+@media (prefers-reduced-motion:reduce){.scan,.spin,.ov,.ready,.pop,.bob,.wash i{animation:none}}
+</style>
+</helmet>
+<div style="position:relative;min-height:980px;overflow:hidden;background:#F3F5FB">
+<div class="wash"><i style="width:520px;height:520px;left:-100px;top:-60px;background:#D5DEFF"></i><i style="width:480px;height:480px;right:-80px;top:40px;background:#FFDCCB"></i></div>
+
+<header style="position:relative;display:flex;align-items:center;justify-content:space-between;max-width:1160px;margin:0 auto;padding:20px 24px">
+<a href="LandingV4.dc.html" style="font-weight:900;font-size:20px;letter-spacing:-0.03em">Pagzly</a>
+<nav style="display:flex;gap:22px;font-size:14px;color:#4A4D54"><a href="ResultV5.dc.html">내 결과</a><a href="#">로그인</a></nav>
+</header>
+
+<div style="position:relative;max-width:1160px;margin:0 auto;padding:10px 24px 22px">
+<h1 style="margin:0;font-size:40px;line-height:1.25;font-weight:900;letter-spacing:-0.04em;text-wrap:balance">라벨을 올리면, <span style="color:#1D4ED8">바로 읽어서</span> 점검해요</h1>
+<p style="margin:8px 0 0;font-size:16px;color:#4A4D54">파일 하나면 충분해요. 설정은 오른쪽에서 고르세요.</p>
+</div>
+<main style="position:relative;max-width:1160px;margin:0 auto;padding:0 24px 72px;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr);gap:20px;align-items:start">
+
+<section style="background:#fff;border:1px solid #E3E6EE;border-radius:20px;box-shadow:0 20px 50px rgba(40,60,140,.10);overflow:hidden">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #EDEFF5">
+<div role="tablist" style="display:flex;gap:4px;background:#F3F5FB;border-radius:12px;padding:4px">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="2">
+<button type="button" class="tab" onClick="{{ t.go }}" style="border:0;border-radius:9px;padding:9px 18px;font-size:14px;font-weight:700;cursor:pointer;background:{{ t.bg }};color:{{ t.fg }};box-shadow:{{ t.sh }}">{{ t.name }}</button>
+</sc-for>
+</div>
+<span class="mono" style="font-size:12px;color:#8A8D94">PDF 100MB · 사진 10MB</span>
+</div>
+
+<sc-if value="{{isEmpty}}" hint-placeholder-val="{{true}}">
+<label class="stage" onClick="{{ pickFile }}" style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:520px;margin:18px;border:1.5px dashed #BAC2D3;border-radius:14px;background:#FAFBFE;cursor:pointer;text-align:center;overflow:hidden">
+<div style="position:relative;width:170px;height:210px;border:1.5px solid #D5DAE6;border-radius:8px;background:#fff;box-shadow:0 12px 30px rgba(40,60,140,.12);padding:16px 14px;box-sizing:border-box;text-align:left;overflow:hidden">
+<div style="height:8px;width:60%;background:#111214;border-radius:3px;margin-bottom:8px"></div>
+<div style="height:5px;width:90%;background:#E3E6EE;border-radius:3px;margin-bottom:5px"></div>
+<div style="height:5px;width:80%;background:#E3E6EE;border-radius:3px;margin-bottom:5px"></div>
+<div style="height:5px;width:86%;background:#FFD9D2;border-radius:3px;margin-bottom:12px"></div>
+<div style="height:5px;width:92%;background:#E3E6EE;border-radius:3px;margin-bottom:5px"></div>
+<div style="height:5px;width:70%;background:#E3E6EE;border-radius:3px;margin-bottom:5px"></div>
+<div style="height:5px;width:78%;background:#FFF1CC;border-radius:3px;margin-bottom:5px"></div>
+<div style="height:5px;width:88%;background:#E3E6EE;border-radius:3px"></div>
+<div class="scan"></div>
+</div>
+<div style="font-size:19px;font-weight:700;letter-spacing:-0.01em">라벨 PDF나 사진을 여기에 놓으세요</div>
+<div style="font-size:14px;color:#6A6D74;line-height:1.7">또는 눌러서 파일 고르기<br>파일은 점검 후 저장하지 않습니다</div>
+<span class="mono" style="font-size:11px;color:#8A8D94;margin-top:4px">JPG · PNG · WEBP · PDF</span>
+<input type="file" accept=".pdf,image/*" style="position:absolute;width:1px;height:1px;opacity:0" aria-label="파일 선택">
+</label>
+</sc-if>
+
+
+<sc-if value="{{isLoaded}}" hint-placeholder-val="{{false}}">
+<div style="position:relative;margin:18px;min-height:520px;border-radius:14px;background:linear-gradient(180deg,#F3F5FB,#EAEEF9);display:flex;align-items:center;justify-content:center;overflow:hidden">
+<div class="bob" style="position:relative;width:300px;background:#fff;border:1px solid #E3E6EE;border-radius:12px;box-shadow:0 26px 60px rgba(40,60,140,.2);padding:26px 24px;overflow:hidden">
+<div class="scan"></div>
+<div style="font-size:18px;font-weight:900;letter-spacing:-0.02em;margin-bottom:4px">비타 브라이트닝 앰플</div>
+<div style="font-size:12px;color:#6A6D74;margin-bottom:14px">내용량 30 ml</div>
+<div style="height:6px;width:96%;background:#E3E6EE;border-radius:3px;margin-bottom:6px"></div>
+<div style="height:6px;width:84%;background:#E3E6EE;border-radius:3px;margin-bottom:6px"></div>
+<div style="height:6px;width:90%;background:#E3E6EE;border-radius:3px;margin-bottom:14px"></div>
+<div class="mono" style="font-size:10.5px;line-height:1.8;color:#8A8D94">정제수, 글리세린, 아스코빅애시드, 부틸렌글라이콜, 나이아신아마이드 …</div>
+</div>
+<div class="pop" style="position:absolute;left:24px;top:22px;display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E3E6EE;border-radius:12px;padding:9px 14px;box-shadow:0 10px 24px rgba(40,60,140,.12)"><span style="width:8px;height:8px;border-radius:4px;background:#1F7A56"></span><span class="mono" style="font-size:12px">라벨_뒷면_앰플30ml.pdf · 2.4MB</span></div>
+<button type="button" onClick="{{ resetFile }}" style="position:absolute;right:22px;top:22px;min-height:36px;padding:0 14px;border-radius:999px;border:1.5px solid #D5DAE6;background:#fff;font-size:13px;font-weight:700;cursor:pointer">다시 고르기</button>
+<div class="pop" style="position:absolute;left:50%;bottom:22px;transform:translateX(-50%);font-size:13.5px;font-weight:700;color:#111214;background:#fff;border-radius:999px;padding:10px 18px;box-shadow:0 10px 24px rgba(40,60,140,.12)">준비 완료 · 오른쪽에서 점검하기를 누르세요</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isText}}" hint-placeholder-val="{{false}}">
+<div style="margin:18px;display:flex;flex-direction:column;gap:12px">
+<textarea rows="16" onInput="{{ onText }}" placeholder="상세페이지나 라벨의 문구를 붙여 넣으세요" style="width:100%;box-sizing:border-box;min-height:430px;border:1px solid #D5DAE6;border-radius:14px;padding:18px;font-size:15px;line-height:1.8;resize:vertical;background:#FAFBFE"></textarea>
+<div style="display:flex;justify-content:space-between;font-size:13px;color:#6A6D74"><span>광고 문구만 / 라벨 전체 문구 모두 가능</span><span class="mono">{{charCount}}자</span></div>
+</div>
+</sc-if>
+</section>
+
+<aside style="display:flex;flex-direction:column;gap:14px;position:sticky;top:16px">
+<div style="background:#fff;border:1px solid #E3E6EE;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:18px;box-shadow:0 20px 50px rgba(40,60,140,.08)">
+<div style="font-size:17px;font-weight:900;letter-spacing:-0.02em">점검 설정</div>
+
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-size:13px;font-weight:700;color:#4A4D54">판매 국가</span>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+<sc-for list="{{markets}}" as="m" hint-placeholder-count="2">
+<button type="button" class="opt" onClick="{{ m.go }}" style="min-height:48px;border-radius:12px;border:1.5px solid {{ m.bd }};background:{{ m.bg }};color:{{ m.fg }};font-size:14px;font-weight:700;cursor:pointer">{{ m.name }}</button>
+</sc-for>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-size:13px;font-weight:700;color:#4A4D54">해당하는 제품 (선택)</span>
+<div style="display:flex;flex-wrap:wrap;gap:8px">
+<sc-for list="{{kinds}}" as="k" hint-placeholder-count="6">
+<button type="button" class="opt" onClick="{{ k.go }}" style="min-height:40px;padding:0 14px;border-radius:999px;border:1.5px solid {{ k.bd }};background:{{ k.bg }};color:{{ k.fg }};font-size:13.5px;font-weight:500;cursor:pointer">{{ k.name }}</button>
+</sc-for>
+</div>
+<span style="font-size:12.5px;color:#8A8D94;line-height:1.6">고르면 해당하지 않는 항목을 빼서 결과가 더 짧아져요.</span>
+</div>
+
+<button type="button" class="go {{ goCls }}" onClick="{{ start }}" style="min-height:54px;border:0;border-radius:999px;background:{{ goBg }};color:#fff;font-size:16px;font-weight:700;cursor:pointer">{{ goText }}</button>
+<span style="font-size:12.5px;color:#8A8D94;text-align:center">참고용 사전 점검이며 법적 판단이 아닙니다</span>
+</div>
+</aside>
+</main>
+
+<sc-if value="{{busy}}" hint-placeholder-val="{{false}}">
+<div class="ov" style="position:absolute;inset:0;background:rgba(243,245,251,.92);display:flex;align-items:center;justify-content:center;padding:24px;z-index:5">
+<div style="width:100%;max-width:400px;background:#fff;border:1px solid #E3E6EE;border-radius:20px;padding:28px;box-shadow:0 30px 70px rgba(40,60,140,.18);display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;align-items:center;gap:12px"><span class="spin" style="width:20px;height:20px;border-radius:10px;border:3px solid #D5DAE6;border-top-color:#1D4ED8;display:inline-block"></span><span style="font-size:19px;font-weight:700">{{busyTitle}}</span></div>
+<div style="height:6px;background:#E8EBF3;border-radius:3px;overflow:hidden"><div style="height:100%;width:{{pct}}%;background:#1D4ED8;border-radius:3px;transition:width .5s"></div></div>
+<ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px;font-size:14.5px">
+<sc-for list="{{steps}}" as="st" hint-placeholder-count="4">
+<li style="display:flex;gap:10px;color:{{ st.fg }}"><span style="width:16px;font-weight:700;color:#1F7A56">{{ st.mark }}</span>{{ st.text }}</li>
+</sc-for>
+</ul>
+<sc-if value="{{done}}" hint-placeholder-val="{{false}}">
+<a href="ResultV5.dc.html" style="display:flex;align-items:center;justify-content:center;min-height:50px;border-radius:999px;background:#111214;color:#fff;font-size:15px;font-weight:700">결과 보기</a>
+</sc-if>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":980}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: 0, market: 0, chars: 0, kinds: [0, 0, 0, 0, 0, 0], busy: false, step: 0, loaded: false };
+  }
+  componentWillUnmount() { clearInterval(this._t); }
+  renderVals() {
+    const s = this.state;
+    const tabs = ['파일 올리기', '문구 붙여넣기'].map((name, i) => ({
+      name, go: () => this.setState({ tab: i }),
+      bg: s.tab === i ? '#FFFFFF' : 'transparent', fg: s.tab === i ? '#111214' : '#6A6D74',
+      sh: s.tab === i ? '0 1px 3px rgba(17,18,20,.14)' : 'none',
+    }));
+    const markets = ['한국에서 판매', '미국에서 판매'].map((name, i) => ({
+      name, go: () => this.setState({ market: i }),
+      bd: s.market === i ? '#1D4ED8' : '#E3E6EE', bg: s.market === i ? '#EEF2FF' : '#fff', fg: s.market === i ? '#1D4ED8' : '#4A4D54',
+    }));
+    const kinds = ['씻어내는 제품', '기능성화장품', '색조 제품', '세트 상품', '수출 전용', '에어로졸'].map((name, i) => ({
+      name, go: () => { const k = s.kinds.slice(); k[i] = k[i] ? 0 : 1; this.setState({ kinds: k }); },
+      bd: s.kinds[i] ? '#1D4ED8' : '#E3E6EE', bg: s.kinds[i] ? '#EEF2FF' : '#fff', fg: s.kinds[i] ? '#1D4ED8' : '#4A4D54',
+    }));
+    const texts = ['글자를 읽는 중', '필수 표시사항 확인', '광고 문구 확인', '결과 정리'];
+    const cur = s.step;
+    const steps = texts.slice(0, Math.min(cur + 1, 4)).map((text, i) => ({
+      text, fg: i < cur || cur >= 4 ? '#6A6D74' : '#111214', mark: i < cur || cur >= 4 ? '✓' : '·',
+    }));
+    return {
+      tabs, markets, kinds, steps,
+      isEmpty: s.tab === 0 && !s.loaded, isLoaded: s.tab === 0 && s.loaded, isText: s.tab === 1,
+      pickFile: (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ loaded: true }); },
+      resetFile: () => this.setState({ loaded: false }),
+      goCls: (s.loaded || s.chars > 0) ? 'ready' : '',
+      goBg: (s.loaded || s.chars > 0) ? '#111214' : '#9AA0AC',
+      goText: (s.loaded || s.chars > 0) ? '점검하기' : '파일을 올리면 시작할 수 있어요',
+      charCount: s.chars,
+      onText: (e) => this.setState({ chars: (e && e.target && e.target.value ? e.target.value.length : 0) }),
+      busy: s.busy, done: cur >= 4, pct: Math.min(cur, 4) * 25,
+      busyTitle: cur >= 4 ? '점검이 끝났어요' : '점검하는 중',
+      start: () => {
+        clearInterval(this._t);
+        this.setState({ busy: true, step: 0 });
+        this._t = setInterval(() => {
+          const n = this.state.step + 1;
+          this.setState({ step: n });
+          if (n >= 4) clearInterval(this._t);
+        }, 700);
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>
