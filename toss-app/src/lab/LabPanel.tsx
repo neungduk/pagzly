@@ -72,6 +72,7 @@ export function LabPanel() {
   const [diag, setDiag] = useState<FileDiag | null>(null);
   const [pdfLoad, setPdfLoad] = useState<StepState>(IDLE);
   const [pdfExtract, setPdfExtract] = useState<StepState>(IDLE);
+  const [pdfProbe, setPdfProbe] = useState<StepState>(IDLE);
   const [imgPrep, setImgPrep] = useState<StepState>(IDLE);
   const [server, setServer] = useState<StepState>(IDLE);
   const [copyFallback, setCopyFallback] = useState("");
@@ -80,6 +81,7 @@ export function LabPanel() {
     setFile(f);
     setPdfLoad(IDLE);
     setPdfExtract(IDLE);
+    setPdfProbe(IDLE);
     setImgPrep(IDLE);
     if (!f) {
       setDiag(null);
@@ -116,11 +118,12 @@ export function LabPanel() {
       `pdfjs.base=${pdfjsBase521()}`,
       `step.pdfLoad=${statusLabel(pdfLoad.status)} ${pdfLoad.detail}`,
       `step.pdfExtract=${statusLabel(pdfExtract.status)} ${pdfExtract.detail}`,
+      `step.pdfProbe=${statusLabel(pdfProbe.status)} ${pdfProbe.detail}`,
       `step.imgPrep=${statusLabel(imgPrep.status)} ${imgPrep.detail}`,
       `step.server=${statusLabel(server.status)} ${server.detail}`,
     );
     return lines.join("\n");
-  }, [diag, pdfLoad, pdfExtract, imgPrep, server]);
+  }, [diag, pdfLoad, pdfExtract, pdfProbe, imgPrep, server]);
 
   const runPdfLoad = async () => {
     try {
@@ -167,6 +170,26 @@ export function LabPanel() {
       });
     } catch (e) {
       setPdfExtract({
+        status: "fail",
+        detail: e instanceof Error ? e.message : String(e),
+      });
+    }
+  };
+
+  const runPdfProbe = async () => {
+    if (!file) {
+      setPdfProbe({ status: "fail", detail: "no_file" });
+      return;
+    }
+    try {
+      const { probePdfRouteMeta524 } = await import("@/lib/label-check/client-pdf-route-524");
+      const meta = await probePdfRouteMeta524(file);
+      setPdfProbe({
+        status: "ok",
+        detail: `route=${meta.route} chars=${meta.charCount} pages=${meta.pageCount}`,
+      });
+    } catch (e) {
+      setPdfProbe({
         status: "fail",
         detail: e instanceof Error ? e.message : String(e),
       });
@@ -295,6 +318,9 @@ export function LabPanel() {
         <button type="button" onClick={() => void runPdfExtract()} disabled={!file}>
           PDF 글자 추출
         </button>
+        <button type="button" onClick={() => void runPdfProbe()} disabled={!file}>
+          PDF 경로 판단(probe)
+        </button>
         <button type="button" onClick={() => void runImgPrep()} disabled={!file}>
           사진 준비(축소)
         </button>
@@ -312,6 +338,9 @@ export function LabPanel() {
         </li>
         <li className={statusClass(pdfExtract.status)}>
           PDF 추출: {statusLabel(pdfExtract.status)} — {pdfExtract.detail}
+        </li>
+        <li className={statusClass(pdfProbe.status)}>
+          PDF 경로: {statusLabel(pdfProbe.status)} — {pdfProbe.detail}
         </li>
         <li className={statusClass(imgPrep.status)}>
           사진 준비: {statusLabel(imgPrep.status)} — {imgPrep.detail}

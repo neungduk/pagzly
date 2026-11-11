@@ -16,7 +16,11 @@ import type { OcrReviewLine517 } from "@/components/label-check/ui-517";
 import { applyGatingToStaticResult518 } from "@/lib/label-check/sample-gating-518";
 import Link from "next/link";
 import type { LabelCheckInput, LabelCheckResult, LabelMarket } from "@/lib/label-check/types";
-import { SAMPLE_BANNER_486 } from "@/lib/label-check/types";
+import {
+  ERR_TOO_MANY_PAGES_485,
+  NOTICE_PDF_AS_IMAGE_524,
+  SAMPLE_BANNER_486,
+} from "@/lib/label-check/types";
 import {
   assertClientPdfSize,
   submitLabelCheckClient,
@@ -34,6 +38,7 @@ import {
 import { isOcrImageFile508, isHeicFile508 } from "@/lib/label-check/client-ocr-prepare";
 import { ERR_OCR_HEIC_508 } from "@/lib/label-check/ocr/constants";
 import type { OcrProviderId508 } from "@/lib/label-check/ocr/provider";
+import { isPdfFile524, probePdfRoute524 } from "@/lib/label-check/client-pdf-route-524";
 
 function todayKo(): string {
   const d = new Date();
@@ -161,7 +166,7 @@ export default function LabelCheckPage() {
     window.setTimeout(() => pasteRef.current?.focus(), 50);
   }, []);
 
-  const runOcrCore = async () => {
+  const runOcrCore = async (opts?: { pdfAsImage?: boolean }) => {
     if (!file) return;
     setError(null);
     setOcrLimitMsg(null);
@@ -184,6 +189,10 @@ export default function LabelCheckPage() {
     const q = out.review;
     const blocked = Boolean(q.blockForLowQuality);
     setOcrQualityLabel(q.qualityLabel || null);
+    const notices = [...(q.notices || [])];
+    if (opts?.pdfAsImage && !notices.includes(NOTICE_PDF_AS_IMAGE_524)) {
+      notices.unshift(NOTICE_PDF_AS_IMAGE_524);
+    }
     setOcrReview({
       text: out.review.text,
       corrections: out.review.corrections,
@@ -194,7 +203,7 @@ export default function LabelCheckPage() {
           ? "partial"
           : undefined,
       lines: q.lines,
-      notices: q.notices,
+      notices,
       qualityLabel: q.qualityLabel,
       detailPageHint: q.detailPageHint,
       ocrQuality: q.ocrQuality,
@@ -254,6 +263,23 @@ export default function LabelCheckPage() {
         }
         await runOcrCore();
         return;
+      }
+      if (file && isPdfFile524(file) && ocrAvailable) {
+        setProgress(PROGRESS_READ_507);
+        try {
+          const route = await probePdfRoute524(file);
+          if (route === "ocr") {
+            await runOcrCore({ pdfAsImage: true });
+            return;
+          }
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          if (msg === "TOO_MANY_PAGES") {
+            setError(ERR_TOO_MANY_PAGES_485);
+            return;
+          }
+          /* unknown/실패 → 아래 글자 층 경로 */
+        }
       }
       if (file) {
         setProgress(PROGRESS_READ_507);
