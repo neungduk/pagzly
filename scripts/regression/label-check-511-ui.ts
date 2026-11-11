@@ -106,9 +106,11 @@ export async function run(): Promise<string[]> {
   // 6) lib/label-check · DETAIL_PAGE_ENABLED 분기 미변경(이름 기준)
   // 513 이후: 게이팅·run-check 연결 등 후속 차수 파일은 허용
   // 518: OCR 품질·읽기 순서·하드클레임·샘플 게이팅
+  // 520: api-base·CORS·토스 OCR 한도
   const allowLib511 =
-    /gating-513|checks-513|product-type-options-504|addenda-kr|run-check(-us)?\.ts|types\.ts|rules-count-514|sample-gating-518|ad-hard-claims-510|client-ocr|ocr\//;
-  const allowApi511 = /app\/api\/label-check\/ocr\//;
+    /gating-513|checks-513|product-type-options-504|addenda-kr|run-check(-us)?\.ts|types\.ts|rules-count-514|sample-gating-518|ad-hard-claims-510|client-ocr|client-submit|ocr\/|api-base-520|cors-520|toss-ocr-520/;
+  const allowApi511 = /app\/api\/label-check\/(ocr\/)?route\.ts|app\/api\/law-watch\/baseline\//;
+  const allowSupabase511 = /label_toss_daily|20261111130000_label_toss/;
   try {
     const names = execSync("git diff --name-only HEAD", { encoding: "utf8" })
       .split(/\r?\n/)
@@ -120,7 +122,9 @@ export async function run(): Promise<string[]> {
       if (n.startsWith("app/api/") && !allowApi511.test(n)) {
         f.push(`511: app/api 변경 금지 — ${n}`);
       }
-      if (n.startsWith("supabase/")) f.push(`511: supabase 변경 금지 — ${n}`);
+      if (n.startsWith("supabase/") && !allowSupabase511.test(n)) {
+        f.push(`511: supabase 변경 금지 — ${n}`);
+      }
     }
     const pageDiff = execSync("git diff HEAD -- app/page.tsx", { encoding: "utf8" });
     if (/DETAIL_PAGE_ENABLED/.test(pageDiff) && /-\s*.*DETAIL_PAGE_ENABLED/.test(pageDiff)) {
