@@ -1,0 +1,26 @@
+{
+  "name": "pagzly-toss-app",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "predev": "node scripts/copy-label-check-pdfjs.mjs",
+    "dev": "vite",
+    "prebuild": "node scripts/copy-label-check-pdfjs.mjs",
+    "build": "vite build",
+    "ait:build": "ait build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@apps-in-toss/web-framework": "^3.0.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "^5",
+    "vite": "^6.3.5"
+  }
+}
