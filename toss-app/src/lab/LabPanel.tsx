@@ -185,8 +185,8 @@ export function LabPanel() {
         setImgPrep({ status: "fail", detail: prepared.error || "prep_fail" });
         return;
       }
-      const w = prepared.meta.sourceWidth ?? prepared.meta.targetWidth ?? 0;
-      const h = prepared.meta.sourceHeight ?? 0;
+      const w = prepared.meta?.sourceWidth ?? prepared.meta?.targetWidth ?? 0;
+      const h = prepared.meta?.sourceHeight ?? 0;
       setImgPrep({
         status: "ok",
         detail: `size=${w}x${h} tiles=${prepared.tiles.length}`,

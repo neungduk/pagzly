@@ -11,11 +11,9 @@ export default defineConfig({
   webView: {},
   permissions: [],
   webBundleDir: "dist",
-  // 표시 이름·아이콘은 콘솔 등록값과 맞출 것(자리표시자)
+  // 표시 이름·아이콘은 콘솔 등록값을 쓴다(이 설정 타입에는 없음)
   brand: {
-    displayName: "PAGZLY_TOSS_DISPLAY_NAME",
     primaryColor: "#1D4ED8",
-    icon: "PAGZLY_TOSS_ICON_URL",
   },
 });
 
