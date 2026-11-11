@@ -154,6 +154,8 @@ export async function POST(req: Request) {
       conflictFinding: out.conflictFinding ?? null,
       provider: out.providerId,
       fallbackFromClova: Boolean(out.fallbackFromClova),
+      // 518 — 화면용 줄 신뢰도(원문 저장·로그 금지 원칙 유지: 응답만)
+      lines: out.lines ?? [],
     });
   } catch {
     console.warn("[label-ocr] failed");

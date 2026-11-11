@@ -8,6 +8,9 @@ export type OcrWord508 = {
   text: string;
   confidence: number;
   boxHeightPx: number;
+  /** 518 읽기 순서용 x/폭 */
+  x?: number;
+  w?: number;
   y?: number;
 };
 
@@ -16,6 +19,8 @@ export type OcrLine508 = {
   confidence: number;
   words: OcrWord508[];
   y?: number;
+  /** 518: confidence < OCR_LINE_LOW_CONF_518 */
+  lowConfidence?: boolean;
 };
 
 export type OcrTileResult508 = {

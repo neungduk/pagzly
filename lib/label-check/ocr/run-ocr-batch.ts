@@ -17,6 +17,8 @@ import {
   dedupeOverlappingLines508,
   joinLinesText508,
 } from "@/lib/label-check/ocr/merge-lines";
+import { markLowConfidenceLines518 } from "@/lib/label-check/ocr/quality-518";
+import { OCR_LINE_LOW_CONF_518 } from "@/lib/label-check/ocr/constants";
 import {
   normalizeOcrText508,
   NET_CONTENT_CONFLICT_LABEL_508,
@@ -52,6 +54,8 @@ export type OcrBatchOk508 = {
   netContentConflict: boolean;
   providerId: OcrProviderId508;
   fallbackFromClova?: boolean;
+  /** 518 — 줄별 신뢰도(화면용, 원문 저장 금지) */
+  lines?: Array<{ text: string; confidence: number; lowConfidence?: boolean }>;
   conflictFinding?: {
     label: string;
     suggest: string;
@@ -147,7 +151,7 @@ export async function runOcrBatch508(
       input.tileOffsetY && input.tileOffsetY.length === images.length
         ? input.tileOffsetY
         : images.map((_, i) => i * picked.tileHeightPx);
-    const lines = dedupeOverlappingLines508(tiles, offsets);
+    const lines = markLowConfidenceLines518(dedupeOverlappingLines508(tiles, offsets));
     const rawText = joinLinesText508(lines) || tiles.map((t) => t.fullText).filter(Boolean).join("\n");
     const avgConfidence = averageConfidence508(lines);
     const norm = normalizeOcrText508(rawText);
@@ -168,6 +172,11 @@ export async function runOcrBatch508(
       netContentConflict: norm.netContentConflict,
       providerId: picked.id,
       fallbackFromClova: picked.fallbackFromClova,
+      lines: lines.map((l) => ({
+        text: l.text,
+        confidence: l.confidence,
+        lowConfidence: l.lowConfidence ?? l.confidence < OCR_LINE_LOW_CONF_518,
+      })),
       conflictFinding,
     };
   } catch (e) {

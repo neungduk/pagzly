@@ -5,7 +5,6 @@
 import type { OcrLine508, OcrProvider508, OcrTileResult508, OcrWord508 } from "@/lib/label-check/ocr/provider";
 import { OCR_PARALLEL_508 } from "@/lib/label-check/ocr/constants";
 import { wrapFetchWithTimeout509 } from "@/lib/label-check/ocr/fetch-timeout";
-
 export type ClovaFetch508 = typeof fetch;
 
 function boxHeight(vertices?: Array<{ x?: number; y?: number }>): number {
@@ -17,6 +16,17 @@ function boxHeight(vertices?: Array<{ x?: number; y?: number }>): number {
 function boxY(vertices?: Array<{ x?: number; y?: number }>): number {
   if (!vertices?.length) return 0;
   return Math.min(...vertices.map((v) => v.y ?? 0));
+}
+
+function boxX(vertices?: Array<{ x?: number; y?: number }>): number {
+  if (!vertices?.length) return 0;
+  return Math.min(...vertices.map((v) => v.x ?? 0));
+}
+
+function boxW(vertices?: Array<{ x?: number; y?: number }>): number {
+  if (!vertices?.length) return 0;
+  const xs = vertices.map((v) => v.x ?? 0);
+  return Math.max(...xs) - Math.min(...xs);
 }
 
 export function parseClovaResponse508(json: unknown, tileIndex: number): OcrTileResult508 {
@@ -54,18 +64,32 @@ export function parseClovaResponse508(json: unknown, tileIndex: number): OcrTile
     const text = (field.inferText || "").trim();
     if (!text) continue;
     const conf = typeof field.inferConfidence === "number" ? field.inferConfidence : 0;
+    const verts = field.boundingPoly?.vertices;
     curWords.push({
       text,
       confidence: conf,
-      boxHeightPx: boxHeight(field.boundingPoly?.vertices),
-      y: boxY(field.boundingPoly?.vertices),
+      boxHeightPx: boxHeight(verts),
+      x: boxX(verts),
+      w: boxW(verts),
+      y: boxY(verts),
     });
     if (field.lineBreak) flush();
   }
   flush();
-  const fullText = lines.map((l) => l.text).join("\n");
-  const avg = lines.length ? lines.reduce((s, l) => s + l.confidence, 0) / lines.length : 0;
-  return { tileIndex, lines, fullText, avgConfidence: avg };
+  // 518: 줄 안 단어만 x 오름차순(CLOVA lineBreak 줄은 유지). 2단 재구성은 reading-order-518 목업·호출부에서.
+  const ordered = lines.map((line) => {
+    if (!line.words.some((w) => typeof w.x === "number")) return line;
+    const words = [...line.words].sort((a, b) => (a.x ?? 0) - (b.x ?? 0));
+    return {
+      ...line,
+      words,
+      text: words.map((w) => w.text).join(" "),
+      y: words[0]?.y ?? line.y,
+    };
+  });
+  const fullText = ordered.map((l) => l.text).join("\n");
+  const avg = ordered.length ? ordered.reduce((s, l) => s + l.confidence, 0) / ordered.length : 0;
+  return { tileIndex, lines: ordered, fullText, avgConfidence: avg };
 }
 
 export function createClovaProvider508(opts: {
