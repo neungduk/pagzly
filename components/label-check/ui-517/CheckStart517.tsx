@@ -44,6 +44,11 @@ export type CheckStart517Props = UploadCard507Props & {
    * 미전달/거짓은 웹과 동일(회색 막대 항상 표시).
    */
   deferMobileCta?: boolean;
+  /**
+   * 525 — 참이면 점검 설정을 업로드 카드 아래 인라인으로 두고 aside 시트를 그리지 않음.
+   * 미전달/거짓은 웹과 동일(오른쪽/시트 aside).
+   */
+  inlineSettings?: boolean;
 };
 
 /** 517 — 점검 시작 화면(UploadCard507 대체 연결). props·전송 값은 기존과 동일. */
@@ -260,8 +265,16 @@ export function CheckStart517(props: CheckStart517Props) {
             </button>
           ) : null}
         </div>
-        <span style={{ fontSize: 12.5, color: "#8A8D94", lineHeight: 1.6 }}>
-          고르면 해당하지 않는 항목을 빼서 결과가 더 짧아져요.
+        <span
+          style={{
+            fontSize: props.inlineSettings ? 14 : 12.5,
+            color: "#8A8D94",
+            lineHeight: 1.6,
+          }}
+        >
+          {props.inlineSettings
+            ? "고르면 해당하지 않는 항목을 빼서 결과가 더 깔끔해져요."
+            : "고르면 해당하지 않는 항목을 빼서 결과가 더 짧아져요."}
         </span>
       </div>
       {props.showProductName ? (
@@ -298,7 +311,7 @@ export function CheckStart517(props: CheckStart517Props) {
         </div>
       ) : null}
       {props.ocrHint ? <p style={{ margin: 0, fontSize: 13, color: "#6A6D74" }}>{props.ocrHint}</p> : null}
-      {reviewing ? (
+      {props.inlineSettings ? null : reviewing ? (
         <p className="lc517-legal" style={{ margin: 0, fontSize: 13, color: "#6a6d74", lineHeight: 1.6 }}>
           왼쪽에서 읽은 글자를 확인한 뒤 &quot;이 글자로 점검&quot;을 눌러 주세요.
         </p>
@@ -313,14 +326,16 @@ export function CheckStart517(props: CheckStart517Props) {
           {ctaLabel}
         </button>
       )}
-      <span className="lc517-legal" style={{ fontSize: 12.5, color: "#8A8D94", textAlign: "center" }}>
-        {DISCLAIMER_PRINT_485}
-      </span>
+      {props.inlineSettings ? null : (
+        <span className="lc517-legal" style={{ fontSize: 12.5, color: "#8A8D94", textAlign: "center" }}>
+          {DISCLAIMER_PRINT_485}
+        </span>
+      )}
     </div>
   );
 
   return (
-    <div className="lc517-grid">
+    <div className={`lc517-grid${props.inlineSettings ? " lc517-grid--inline-settings" : ""}`}>
       <section className="lc517-stage-card" {...(props.touch ? { "data-tab": tab } : null)}>
         {reviewing ? props.reviewSlot : null}
         {reviewing ? null : (
@@ -561,15 +576,23 @@ export function CheckStart517(props: CheckStart517Props) {
         />
       </section>
 
-      <aside
-        className="lc517-aside"
-        role={props.touch ? "dialog" : undefined}
-        aria-modal={props.touch ? true : undefined}
-        aria-label={props.touch ? "점검 설정" : undefined}
-      >
-        {props.touch ? <div className="lc517-sheet-handle" aria-hidden /> : null}
-        {settingsPanel}
-      </aside>
+      {props.inlineSettings && !reviewing ? (
+        <section className="lc517-settings-inline" aria-label="점검 설정">
+          {settingsPanel}
+        </section>
+      ) : null}
+
+      {props.inlineSettings ? null : (
+        <aside
+          className="lc517-aside"
+          role={props.touch ? "dialog" : undefined}
+          aria-modal={props.touch ? true : undefined}
+          aria-label={props.touch ? "점검 설정" : undefined}
+        >
+          {props.touch ? <div className="lc517-sheet-handle" aria-hidden /> : null}
+          {settingsPanel}
+        </aside>
+      )}
 
       {reviewing || (props.deferMobileCta && !canSubmit) ? null : (
         <div className={`lc517-mobile-bar${props.deferMobileCta ? " lc517-mobile-bar--ready" : ""}`}>
