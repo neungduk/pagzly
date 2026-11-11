@@ -515,6 +515,9 @@ export function CheckScreen({
                   <p style={{ margin: "6px 0 0", color: "#6a6d74", fontSize: 14, lineHeight: 1.55 }}>
                     {/HEIC|heic/.test(error) ? TOSS_COPY.heicBody : "잠시 후 다시 시도해 주세요."}
                   </p>
+                  {/HEIC|heic/.test(error) ? (
+                    <p className="toss-heic-hint">아래에서 JPG·PNG·WEBP 파일을 다시 골라 주세요.</p>
+                  ) : null}
                   {/HEIC|heic/.test(error) ? null : (
                     <button
                       type="button"
@@ -627,9 +630,11 @@ export function CheckScreen({
               </>
             ) : null}
             {ocrLimitMsg ? (
-              <div className="section" style={{ marginTop: 12 }} role="alert">
+              <div className="toss-limit-card" role="alert">
                 <p style={{ margin: 0, fontWeight: 800 }}>{TOSS_COPY.limitTitle}</p>
-                <p style={{ margin: "8px 0 0", color: "#6a6d74" }}>{ocrLimitMsg}</p>
+                <p style={{ margin: "8px 0 0", color: "#6a6d74", fontSize: 14, lineHeight: 1.55 }}>
+                  문구를 붙여넣어 이어서 점검할 수 있어요.
+                </p>
                 <button type="button" className="toss-reset" style={{ marginTop: 12 }} onClick={focusPaste}>
                   {TOSS_COPY.limitCta}
                 </button>
