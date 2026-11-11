@@ -22,7 +22,8 @@
 - 의존성(이 폴더 안에서만): `react`/`react-dom`(루트와 같은 버전), `vite`, `@vitejs/plugin-react`, `typescript`, `@apps-in-toss/web-framework`.
   - `@apps-in-toss/web-framework`는 **공식 문서(https://developers-apps-in-toss.toss.im)의 WebView 튜토리얼을 먼저 읽고** 그 안내대로 설치·설정한다. 요구 SDK 버전(3.x 이상)을 지킨다. 문서와 이 지시서가 다르면 문서를 따르고 보고서에 적는다.
   - 빌드 스크립트는 `ait build`를 쓴다(공식 방식). 일반 웹용 `vite build`도 따로 둔다(결과물 `toss-app/dist`).
-- `granite.config.ts`의 `appName` 등 사람이 정해야 하는 값은 `PAGZLY_TOSS_APP_NAME` 같은 **임시 자리표시자**로 두고 보고서 "사용자가 할 일"에 적는다. 임의로 정하지 않는다.
+- `granite.config.ts`의 `appName`은 **`pagzly`**(사용자가 토스 콘솔에 등록한 이름)로 쓴다. 그 밖에 사람이 정해야 하는 값(아이콘 주소, 표시 이름 등)은 임시 자리표시자로 두고 보고서 "사용자가 할 일"에 적는다. 임의로 정하지 않는다.
+  - 이 이름이면 토스 쪽 Origin은 `https://pagzly.apps.tossmini.com`이라 520차 CORS 정규식에 이미 맞는다.
 - `@/` 별칭은 **저장소 루트**를 가리키게 한다(`vite.config.ts`의 `resolve.alias`, `tsconfig` `paths`). 기존 클라이언트 모듈을 복사하지 말고 **그대로 import해서 재사용**한다.
   - 재사용 대상(클라이언트 전용인 것만): `lib/label-check/client-submit.ts`, `client-ocr-submit.ts`, `client-ocr-prepare.ts`, `client-extract-pdf.ts`, `api-errors.ts`, `types.ts`, `api-base-520.ts`, `ui-status-507.ts` 등.
   - 서버 전용 모듈(`extracted-payload.ts`, `load-rules*.ts`, `extract-pdf.ts`, `run-check*.ts`, `fs`/`node:` 사용 파일)은 import하지 않는다. 빌드에 `fs`가 들어가면 실패로 본다.
@@ -89,7 +90,7 @@
 - `review/521cha-report.md` — 맨 위에 **"확인하지 못한 항목"**을 먼저 적는다(`ait build` 실행 여부, 토스 샌드박스 실측, 개발 서버에서 B-1 화면 동작, 재사용 컴포넌트가 실제로 되는지, 모바일 폭 확인 등).
 - 그 다음 **"사용자가 할 일"** 번호 목록을 쓴다. 비개발자가 따라 할 수 있게 한 줄에 한 동작으로:
   1. 토스 개발자 콘솔 가입·앱 등록(앱 이름 정하기), 샌드박스 앱 설치(토스 앱이 깔린 폰 필요).
-  2. `toss-app/granite.config.ts`의 자리표시자에 들어갈 값.
+  2. `toss-app/granite.config.ts`에 남은 자리표시자(아이콘 등)에 들어갈 값.
   3. Vercel 환경변수 `LABEL_TOSS_ENABLED=1`, `LABEL_CORS_ORIGINS`(필요 시) 추가 후 재배포.
   4. PC에서 개발 서버를 띄우고 폰의 샌드박스 앱으로 접속하는 명령.
   5. 실험 화면에서 `진단 결과 복사` 후 결과를 우리에게 붙여 넣기.
