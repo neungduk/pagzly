@@ -95,8 +95,18 @@ export async function run(): Promise<string[]> {
   }
 
   // 5) 금지어 · console.log 원문 금지 · 고지
+  // 522 — 고지는 재사용 컴포넌트(CheckStart517 DISCLAIMER_PRINT_485 · ResultView517 바닥) 경로로 검사
   {
-    let hasDisclaimer = false;
+    const checkScreen = path.join(ROOT, "toss-app", "src", "CheckScreen.tsx");
+    const checkSrc = fs.existsSync(checkScreen) ? fs.readFileSync(checkScreen, "utf8") : "";
+    const start517 = read("components/label-check/ui-517/CheckStart517.tsx");
+    const result517 = read("components/label-check/ui-517/ResultView517.tsx");
+    const viaReuse =
+      checkSrc.includes("CheckStart517") &&
+      checkSrc.includes("ResultView517") &&
+      start517.includes("DISCLAIMER_PRINT_485") &&
+      result517.includes("법적 판단이 아닙니다");
+    let hasDisclaimer = viaReuse;
     for (const file of tossSrcFiles) {
       const src = fs.readFileSync(file, "utf8");
       const rel = path.relative(ROOT, file);
@@ -108,7 +118,7 @@ export async function run(): Promise<string[]> {
         f.push(`521: console.log in ${rel}`);
       }
     }
-    if (!hasDisclaimer) f.push("521: 법적 판단 고지 없음");
+    if (!hasDisclaimer) f.push("521: 법적 판단 고지 없음(재사용 경로·toss-app 모두 미검출)");
   }
 
   // 7) gitignore pdfjs
