@@ -170,7 +170,9 @@ export async function run(): Promise<string[]> {
       path.join("components", "label-check", "ui-507", "OcrReviewCard.tsx"),
       "utf8",
     );
-    if (!guest.includes("OcrReviewCard508") || !member.includes("OcrReviewCard508")) {
+    // 518: 517 화면은 OcrReview517(구 OcrReviewCard508 은 파일로 유지)
+    const usesReview = (s: string) => s.includes("OcrReviewCard508") || s.includes("OcrReview517");
+    if (!usesReview(guest) || !usesReview(member)) {
       f.push("509: 공용 OcrReviewCard 미사용");
     }
     if (!review.includes("transferNotice") || !review.includes("NOTICE_OCR_LOW_CONF_509")) {

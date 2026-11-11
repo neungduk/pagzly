@@ -102,8 +102,9 @@ export async function run(): Promise<string[]> {
   }
 
   // (f) 512/513/516 유지
-  if (!result.includes("FindingCardBody512")) {
-    fails.push("517f: FindingCardBody512 미사용");
+  // 518: 펼친 본문은 FindingBody518(분류는 classifyFinding512 그대로)
+  if (!result.includes("FindingCardBody512") && !result.includes("FindingBody518")) {
+    fails.push("517f: FindingCardBody512/FindingBody518 미사용");
   }
   if (!result.includes("skippedItems513") || !result.includes("referenceNotes513")) {
     fails.push("517f: 513 구역 없음");

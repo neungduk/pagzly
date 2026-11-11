@@ -16,7 +16,12 @@ export function isHardKrMedicalClaim510(text: string): boolean {
   if (/치료에효과|치료합니다|치료할|치료함/.test(n)) return true;
   if (/완치|치유/.test(n)) return true;
   if (/영구적으로/.test(n)) return true;
+  // 메이크업 지우기는 하드 아님(완전히 없애 패턴보다 먼저)
+  if (/메이크업.{0,12}완전히?지워/.test(n)) return false;
   if (/완전제거/.test(n)) return true;
+  // 518: "주름을 완전히 없애" — 정규화 후 완전제거가 아니라 완전히없애
+  if (/완전히?없애/.test(n)) return true;
+  if (/주름.{0,12}(없애|제거)/.test(n) && !/주름개선|주름을?개선/.test(n)) return true;
   if (/피부재생|피부를?재생/.test(n)) return true;
   if (/재생시켜|재생효과|재생케어|재생크림/.test(n)) return true;
   for (const d of DISEASE_KR_510) {
@@ -31,6 +36,9 @@ const HARD_KR_GAP_PATTERNS_510: Array<{ re: RegExp; label: string; sample: strin
   { re: /치료에\s*효과/g, label: "질병 진단·치료·예방 등 의학적 효능 표현", sample: "치료에 효과" },
   { re: /완치/g, label: "질병 진단·치료·예방 등 의학적 효능 표현", sample: "완치" },
   { re: /완전\s*제거(됨)?/g, label: "피부 관련 의학적 표현(튼살·디톡스·흉터·가려움·홍조 등)", sample: "완전 제거" },
+  { re: /완전히?\s*없애/g, label: "피부 관련 의학적 표현(튼살·디톡스·흉터·가려움·홍조 등)", sample: "완전히 없애" },
+  { re: /주름.{0,12}완전히?\s*없애/g, label: "피부 관련 의학적 표현(튼살·디톡스·흉터·가려움·홍조 등)", sample: "주름을 완전히 없애" },
+  { re: /주름.{0,8}제거/g, label: "피부 관련 의학적 표현(튼살·디톡스·흉터·가려움·홍조 등)", sample: "주름 제거" },
   { re: /영구적으로/g, label: "피부 관련 의학적 표현(튼살·디톡스·흉터·가려움·홍조 등)", sample: "영구적으로" },
 ];
 
@@ -45,6 +53,11 @@ export function scanHardKrMedicalGaps510(text: string, existing: Finding[]): Fin
     const m = text.match(p.re);
     if (!m?.[0]) continue;
     const hit = m[0];
+    // 518: 메이크업 지우기·기능성 주름 개선 도움은 갭 보충 제외
+    if (/메이크업/.test(hit) && /지워/.test(hit)) continue;
+    if (/주름\s*개선에\s*도움|주름개선에도움/.test(text) && /주름/.test(hit) && !/없애|완전\s*제거/.test(hit)) {
+      continue;
+    }
     const nh = normalizeLabelText(hit);
     if (blob.includes(nh)) continue;
     if (existing.some((f) => normalizeLabelText(f.found || "").includes(nh))) continue;
@@ -69,7 +82,8 @@ export function isSoftCosmeticClaim510(text: string): boolean {
   if (/보습|윤기|피부결개선|피부\s*결\s*개선/.test(n) && !isHardKrMedicalClaim510(n)) {
     return true;
   }
-  if (/주름개선|주름\s*개선/.test(n) && !/치료|완치|완전제거|영구/.test(n)) return true;
+  if (/주름개선|주름\s*개선/.test(n) && !/치료|완치|완전제거|완전히?없애|영구/.test(n)) return true;
+  if (/메이크업.{0,8}완전히?지워/.test(n)) return true;
   return false;
 }
 
