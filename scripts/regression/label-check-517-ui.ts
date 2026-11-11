@@ -25,7 +25,9 @@ export async function run(): Promise<string[]> {
   const source = read("components/label-check/ui-517/LabelSourcePanel517.tsx");
   const css = read("components/label-check/ui-517/label-check-517.css");
   const pin = read("components/label-check/ui-517/pin-match-517.ts");
-  const landing = read("components/label-check/ui-511/LandingProofDemo.tsx");
+  const landing =
+    read("components/label-check/ui-511/LandingProofDemo.tsx") +
+    read("components/label-check/ui-519/LandingStage519.tsx");
   const page = read("app/label-check/page.tsx");
   const cta = read("lib/label-check/ui-status-507.ts");
 

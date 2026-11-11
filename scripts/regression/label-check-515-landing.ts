@@ -27,8 +27,11 @@ export async function run(): Promise<string[]> {
   const css = read(path.join("components", "label-check", "ui-511", "label-site-511.css"));
   const landing = read(path.join("components", "label-check", "ui-511", "LabelCheckLanding.tsx"));
   const demo = read(path.join("components", "label-check", "ui-511", "LandingProofDemo.tsx"));
+  const stage = read(path.join("components", "label-check", "ui-519", "LandingStage519.tsx"));
+  const belt = read(path.join("components", "label-check", "ui-519", "LandingBelt515.tsx"));
   const dataPath = path.join("components", "label-check", "ui-511", "landing-demo-514.ts");
   const data = read(dataPath);
+  const stageBlob = stage + belt + demo;
 
   // (a) 번짐 3개·색
   for (const c of ["#D5DEFF", "#FFDCCB", "#CFEFE0", "#d5deff", "#ffdccb", "#cfefe0"]) {
@@ -63,9 +66,13 @@ export async function run(): Promise<string[]> {
     }
   }
 
-  // (c) 칩 숫자 = 데모 카드 개수
+  // (c) 칩 숫자 = 데모 카드 개수 (519: 무대 요약이 카운트 사용)
   const counts = landingDemoChipCounts514();
-  if (!demo.includes("landingDemoChipCounts514") && !demo.includes("chips.fix")) {
+  if (
+    !stageBlob.includes("landingDemoChipCounts514") &&
+    !stageBlob.includes("chips.fix") &&
+    !data.includes("landingDemoChipCounts514")
+  ) {
     fails.push("515c: 칩이 데모 카운트 미사용");
   }
   const fixCards = LANDING_DEMO_CARDS_514.filter((c) => c.kind === "fix").length;
@@ -75,8 +82,11 @@ export async function run(): Promise<string[]> {
   }
   if (counts.fix < 1 || counts.check < 1) fails.push("515c: fix/check 카드 부족");
 
-  // (d) 띠 아래 예시 문구
-  if (!demo.includes("LANDING_BELT_NOTE_515") && !demo.includes("예시 문구입니다")) {
+  // (d) 띠 아래 예시 문구 (519: LandingBelt515)
+  if (
+    !stageBlob.includes("LANDING_BELT_NOTE_515") &&
+    !stageBlob.includes("예시 문구입니다")
+  ) {
     fails.push("515d: 띠 예시 문구 표기 없음");
   }
   if (LANDING_BELT_NOTE_515 !== "예시 문구입니다") {
@@ -120,7 +130,9 @@ export async function run(): Promise<string[]> {
   if (landing.includes("요금") || landing.includes("무료") || landing.includes("1분")) {
     fails.push("515f: 514 금지 문구 재유입");
   }
-  if (!demo.includes("예시 화면입니다")) fails.push("515f: 예시 화면입니다 소실");
+  if (!stageBlob.includes("예시 화면입니다") && !data.includes("예시 화면입니다")) {
+    fails.push("515f: 예시 화면입니다 소실");
+  }
 
   // (g) 점검/결과 선택자(.lc507) 구조 유지 — 파일 존재·주요 클래스
   const result = read(path.join("components", "label-check", "ui-507", "ResultView.tsx"));

@@ -47,11 +47,14 @@ export async function run(): Promise<string[]> {
   const landing = read(path.join("components", "label-check", "ui-511", "LabelCheckLanding.tsx"));
   const header = read(path.join("components", "label-check", "ui-511", "LabelHeader.tsx"));
   const demo = read(path.join("components", "label-check", "ui-511", "LandingProofDemo.tsx"));
+  const stage = read(path.join("components", "label-check", "ui-519", "LandingStage519.tsx"));
+  const belt = read(path.join("components", "label-check", "ui-519", "LandingBelt515.tsx"));
   const demoData = read(path.join("components", "label-check", "ui-511", "landing-demo-514.ts"));
   const footer = read(path.join("components", "label-check", "ui-511", "LabelFooter.tsx"));
   const css = read(path.join("components", "label-check", "ui-511", "label-site-511.css"));
   // UI 카피(+ after 대체 문구). 데모 before/caught는 515에서 걸린 문구 예시로 제외.
-  const uiBlob = landing + header + demo + footer;
+  // 519: 첫 화면은 LandingStage519 + LandingBelt515
+  const uiBlob = landing + header + demo + stage + belt + footer;
   const afterBlob = [
     LANDING_BEFORE_AFTER_514.after,
     LANDING_BEFORE_AFTER_514.note,
@@ -64,7 +67,12 @@ export async function run(): Promise<string[]> {
   for (const w of BANNED_COPY) {
     if (uiBlob.includes(w)) fails.push(`514: 금지 문구 ${w}`);
   }
-  if (!demo.includes("예시 화면입니다") && !landing.includes("예시 화면입니다")) {
+  if (
+    !demo.includes("예시 화면입니다") &&
+    !landing.includes("예시 화면입니다") &&
+    !stage.includes("예시 화면입니다") &&
+    !demoData.includes("예시 화면입니다")
+  ) {
     fails.push("514: '예시 화면입니다' 없음");
   }
   if (!/labelRuleCounts514|counts\.kr/.test(landing)) {
