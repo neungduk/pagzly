@@ -18,6 +18,14 @@ import {
 
 export const PROGRESS_CLIENT_EXTRACT_499 = "내 컴퓨터에서 글자를 읽는 중";
 
+/** 클라 전용 — extracted-payload(서버) import 금지 */
+function pagesTextFromPayloadClient(payload: ExtractedLabelPayload): string {
+  return payload.pages
+    .map((p) => p.items.map((i) => i.text).join(""))
+    .filter((t) => t.trim())
+    .join("\n");
+}
+
 export type ClientSubmitOptions = LabelCheckInput & {
   save?: boolean;
   productName?: string;
@@ -33,6 +41,8 @@ export type ClientSubmitOptions = LabelCheckInput & {
 export type ClientSubmitOk = {
   ok: true;
   result: LabelCheckResult & { savedId?: string | null; saveError?: string | null };
+  /** 517 — 클라가 이미 가진 읽은 글자(화면 핀용). 서버 저장 안 함 */
+  sourceText?: string;
 };
 export type ClientSubmitFail = { ok: false; error: string; status?: number };
 export type ClientSubmitProgress = (msg: string | null) => void;
@@ -100,7 +110,7 @@ export async function submitLabelCheckTextClient(
     savedId?: string | null;
     saveError?: string | null;
   };
-  return { ok: true, result };
+  return { ok: true, result, sourceText: text };
 }
 
 async function postFile(file: File, opts: ClientSubmitOptions): Promise<Response> {
@@ -185,7 +195,8 @@ export async function submitLabelCheckClient(
       savedId?: string | null;
       saveError?: string | null;
     };
-    return { ok: true, result };
+    const sourceText = extracted ? pagesTextFromPayloadClient(extracted) : undefined;
+    return { ok: true, result, sourceText };
   } catch {
     return { ok: false, error: "네트워크 오류로 검수에 실패했습니다." };
   }
