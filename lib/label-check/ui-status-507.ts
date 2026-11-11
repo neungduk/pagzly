@@ -149,6 +149,6 @@ export function sortFindings507(findings: Finding[]): Finding[] {
 export const UPLOAD_TITLE_507 =
   "화장품 라벨·광고 문구, 인쇄 전에 한 번 더 확인하세요";
 
-export const CTA_LABEL_507 = "무료로 점검하기";
+export const CTA_LABEL_507 = "점검하기";
 export const PROGRESS_READ_507 = "글자 읽는 중…";
 export const PROGRESS_RULES_507 = "규칙과 비교하는 중…";
