@@ -3,6 +3,7 @@
  * 518: PDF 글자 레이어 충분 시 OCR 생략, 품질 메타·저신뢰 줄 전달.
  */
 import { readLabelCheckApiFailure } from "@/lib/label-check/api-errors";
+import { labelApiUrl } from "@/lib/label-check/api-base-520";
 import {
   batchOcrTiles508,
   prepareOcrTilesFromFile508,
@@ -76,7 +77,7 @@ export async function fetchOcrAvailable508(
   provider: OcrProviderId508 | null;
 }> {
   try {
-    const res = await fetch(`/api/label-check/ocr?market=${market}`);
+    const res = await fetch(labelApiUrl(`/api/label-check/ocr?market=${market}`));
     if (!res.ok) return { available: false, tileHeightPx: 2400, notice: "", provider: null };
     const j = (await res.json()) as {
       available?: boolean;
@@ -180,7 +181,7 @@ export async function runOcrFromFile508(
       tileOffsetY: batch.map((t) => t.offsetY),
       market,
     });
-    const res = await fetch("/api/label-check/ocr", {
+    const res = await fetch(labelApiUrl("/api/label-check/ocr"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body,

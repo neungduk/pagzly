@@ -3,6 +3,7 @@
  * (client-extract-pdf는 여기서만 동적 import)
  */
 import { readLabelCheckApiFailure } from "@/lib/label-check/api-errors";
+import { labelApiUrl } from "@/lib/label-check/api-base-520";
 import {
   MAX_CLIENT_PDF_BYTES_499,
   MAX_EXTRACTED_JSON_BYTES_499,
@@ -76,7 +77,7 @@ async function postExtracted(
   if (bytes > MAX_EXTRACTED_JSON_BYTES_499) {
     throw Object.assign(new Error("TOO_LARGE"), { code: "TOO_LARGE" });
   }
-  return fetch("/api/label-check", {
+  return fetch(labelApiUrl("/api/label-check"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body,
@@ -97,7 +98,7 @@ export async function submitLabelCheckTextClient(
     ocrFromPhoto: Boolean(opts.ocrFromPhoto),
     avgOcrConfidence: opts.avgOcrConfidence,
   });
-  const res = await fetch("/api/label-check", {
+  const res = await fetch(labelApiUrl("/api/label-check"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body,
@@ -126,7 +127,7 @@ async function postFile(file: File, opts: ClientSubmitOptions): Promise<Response
   fd.set("productTypes", (opts.productTypes || []).join(","));
   fd.set("save", String(Boolean(opts.save)));
   fd.set("productName", opts.productName ?? "");
-  return fetch("/api/label-check", { method: "POST", body: fd });
+  return fetch(labelApiUrl("/api/label-check"), { method: "POST", body: fd });
 }
 
 export function assertClientPdfSize(file: File): string | null {

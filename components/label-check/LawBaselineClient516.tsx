@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { labelApiUrl } from "@/lib/label-check/api-base-520";
 
 /**
  * 516 — 서버에서 기준일을 못 넘긴 클라이언트 화면용.
@@ -18,7 +19,7 @@ export function useLawBaseline516(lawBaseline?: string | null): string | null {
       return;
     }
     let cancelled = false;
-    fetch("/api/law-watch/baseline", { cache: "no-store" })
+    fetch(labelApiUrl("/api/law-watch/baseline"), { cache: "no-store" })
       .then((r) => r.json())
       .then((j: { line?: string | null }) => {
         if (!cancelled && typeof j.line === "string" && j.line.trim()) {
