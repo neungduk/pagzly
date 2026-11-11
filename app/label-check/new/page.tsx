@@ -1,19 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import "@/components/label-check/ui-507/label-check-507.css";
+import "@/components/label-check/ui-517/label-check-517.css";
+import { OcrReviewCard508, OcrLimitBanner509 } from "@/components/label-check/ui-507";
+import { LabelFooter511 } from "@/components/label-check/ui-511";
 import {
-  UploadCard507,
-  ResultView507,
-  OcrReviewCard508,
-  OcrLimitBanner509,
-} from "@/components/label-check/ui-507";
-import {
-  LabelSiteShell511,
-  LabelHeader511,
-  LabelFooter511,
-  CheckBusyOverlay511,
-} from "@/components/label-check/ui-511";
+  CheckStart517,
+  ResultView517,
+  CheckBusyOverlay517,
+} from "@/components/label-check/ui-517";
 import LogoutButton from "@/components/LogoutButton";
 import type { LabelCheckInput, LabelCheckResult, LabelMarket } from "@/lib/label-check/types";
 import {
@@ -48,6 +45,7 @@ export default function LabelCheckNewPage() {
   });
   const [productName, setProductName] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [sourceText, setSourceText] = useState<string | null>(null);
   const [pasteText, setPasteText] = useState("");
   const [textScope, setTextScope] = useState<"ad_only" | "full">("ad_only");
   const [busy, setBusy] = useState(false);
@@ -83,6 +81,7 @@ export default function LabelCheckNewPage() {
     setError(null);
     setOcrLimitMsg(null);
     setResult(null);
+    setSourceText(null);
     setOcrReview(null);
     if (!f) {
       setFile(null);
@@ -173,6 +172,7 @@ export default function LabelCheckNewPage() {
       }
       // unreadable 은 서버에서 저장 안 함 — savedId 없을 수 있음
       setResult(out.result);
+      setSourceText(ocrReview.text);
       setSavedId(out.result.savedId ?? null);
       setCheckedOn(todayKo());
       setOcrReview(null);
@@ -216,6 +216,7 @@ export default function LabelCheckNewPage() {
           return;
         }
         setResult(out.result);
+        setSourceText(out.sourceText ?? null);
         setSavedId(out.result.savedId ?? null);
         setCheckedOn(todayKo());
       } else if (pasteText.trim()) {
@@ -234,6 +235,7 @@ export default function LabelCheckNewPage() {
           return;
         }
         setResult(out.result);
+        setSourceText(out.sourceText ?? pasteText);
         setSavedId(out.result.savedId ?? null);
         setCheckedOn(todayKo());
       } else {
@@ -269,81 +271,120 @@ export default function LabelCheckNewPage() {
         return;
       }
       setResult(out.result);
+      setSourceText(out.sourceText ?? recheckText);
       setCheckedOn(todayKo());
     } finally {
       setBusy(false);
     }
   };
 
-  const showUpload = !result && !ocrReview;
-
   return (
-    <LabelSiteShell511>
-      <LabelHeader511
-        user={{ id: "member" }}
-        logoutSlot={<LogoutButton />}
-      />
-      <CheckBusyOverlay511 busy={busy} />
-      <main className="lc507 min-h-screen">
-      <div className="lc507-wrap">
-        {showUpload ? (
-          <UploadCard507
-            market={market}
-            onMarket={(m) => {
-              setMarket(m);
-              setInput((p) => ({ ...p, market: m }));
-            }}
-            file={file}
-            onFile={onFile}
-            pasteText={pasteText}
-            onPasteText={setPasteText}
-            textScope={textScope}
-            onTextScope={setTextScope}
-            input={{ ...input, market }}
-            onInputPatch={(p) => setInput((prev) => ({ ...prev, ...p }))}
-            showProductName
-            productName={productName}
-            onProductName={setProductName}
-            busy={busy}
-            progress={progress}
-            onSubmit={() => void runCheck()}
-            bothInputsHint={Boolean(file && pasteText.trim())}
-            pasteTextareaRef={pasteRef}
-            acceptImages
-            ocrAvailable={ocrAvailable}
-            onStartOcr={() => void startOcr()}
-            ocrTransferNotice={ocrNotice}
-          />
-        ) : null}
-
-        {ocrReview ? (
-          <OcrReviewCard508
-            text={ocrReview.text}
-            onText={(t) => setOcrReview((p) => (p ? { ...p, text: t } : p))}
-            corrections={ocrReview.corrections}
-            busy={busy}
-            onConfirm={() => void confirmOcr()}
-            onCancel={() => setOcrReview(null)}
-            transferNotice={ocrNotice}
-            avgConfidence={ocrReview.avgConfidence}
-            readStatus={ocrReview.readStatus}
-            onFocusPaste={focusPaste}
-          />
-        ) : null}
-
-        {ocrLimitMsg ? (
-          <OcrLimitBanner509 message={ocrLimitMsg} onFocusPaste={focusPaste} />
-        ) : null}
-
-        {error ? (
-          <p className="lc507-card" role="alert" style={{ borderColor: "var(--lc507-bad)" }}>
-            {error}
-          </p>
-        ) : null}
-
-        {result ? (
+    <div className="lc517">
+      <div className="lc517-wash" aria-hidden>
+        <i className="a" />
+        <i className="b" />
+      </div>
+      <header className="lc517-header">
+        <Link href="/" className="lc517-brand">
+          Pagzly
+        </Link>
+        <nav className="lc517-nav" aria-label="주요">
+          <Link href="/label-check/history">내 결과</Link>
+          <LogoutButton />
+        </nav>
+      </header>
+      <CheckBusyOverlay517 busy={busy} />
+      <main className="lc517-wrap">
+        {!result ? (
           <>
-            <ResultView507
+            <div style={{ padding: "10px 0 22px" }}>
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: 40,
+                  lineHeight: 1.25,
+                  fontWeight: 900,
+                  letterSpacing: "-0.04em",
+                  textWrap: "balance",
+                }}
+              >
+                라벨을 올리면, <span style={{ color: "#1D4ED8" }}>바로 읽어서</span> 점검해요
+              </h1>
+              <p style={{ margin: "8px 0 0", fontSize: 16, color: "#4A4D54" }}>
+                파일 하나면 충분해요. 설정은 오른쪽에서 고르세요.
+              </p>
+            </div>
+            {!ocrReview ? (
+              <CheckStart517
+                market={market}
+                onMarket={(m) => {
+                  setMarket(m);
+                  setInput((p) => ({ ...p, market: m }));
+                }}
+                file={file}
+                onFile={onFile}
+                pasteText={pasteText}
+                onPasteText={setPasteText}
+                textScope={textScope}
+                onTextScope={setTextScope}
+                input={{ ...input, market }}
+                onInputPatch={(p) => setInput((prev) => ({ ...prev, ...p }))}
+                showProductName
+                productName={productName}
+                onProductName={setProductName}
+                busy={busy}
+                progress={progress}
+                onSubmit={() => void runCheck()}
+                bothInputsHint={Boolean(file && pasteText.trim())}
+                pasteTextareaRef={pasteRef}
+                acceptImages
+                ocrAvailable={ocrAvailable}
+                onStartOcr={() => void startOcr()}
+                ocrTransferNotice={ocrNotice}
+              />
+            ) : (
+              <div className="lc517-stage-card" style={{ padding: 18 }}>
+                <OcrReviewCard508
+                  text={ocrReview.text}
+                  onText={(t) => setOcrReview((p) => (p ? { ...p, text: t } : p))}
+                  corrections={ocrReview.corrections}
+                  busy={busy}
+                  onConfirm={() => void confirmOcr()}
+                  onCancel={() => setOcrReview(null)}
+                  transferNotice={ocrNotice}
+                  avgConfidence={ocrReview.avgConfidence}
+                  readStatus={ocrReview.readStatus}
+                  onFocusPaste={focusPaste}
+                />
+              </div>
+            )}
+            {ocrLimitMsg ? <OcrLimitBanner509 message={ocrLimitMsg} onFocusPaste={focusPaste} /> : null}
+            {error ? (
+              <p
+                role="alert"
+                style={{
+                  marginTop: 12,
+                  padding: 16,
+                  borderRadius: 16,
+                  background: "#fff",
+                  border: "1px solid #D6402B",
+                }}
+              >
+                {error}
+              </p>
+            ) : null}
+          </>
+        ) : (
+          <>
+            {error ? (
+              <p
+                role="alert"
+                style={{ padding: 16, borderRadius: 16, border: "1px solid #D6402B", background: "#fff" }}
+              >
+                {error}
+              </p>
+            ) : null}
+            <ResultView517
               result={result}
               productName={productName || null}
               checkedOn={checkedOn ?? undefined}
@@ -356,14 +397,17 @@ export default function LabelCheckNewPage() {
               ocrAvailable={ocrAvailable}
               onStartOcr={() => void startOcr()}
               onFocusPaste={focusPaste}
+              sourceText={sourceText}
+              fileLabel={file?.name}
             />
-            <p className="lc507-fine lc507-print-hide">
+            <p style={{ marginTop: 16, fontSize: 13, color: "#6A6D74" }} className="lc507-print-hide">
               <button
                 type="button"
                 className="underline-offset-2 hover:underline"
                 onClick={() => {
                   setResult(null);
                   setSavedId(null);
+                  setSourceText(null);
                   setOcrReview(null);
                   setOcrLimitMsg(null);
                 }}
@@ -372,10 +416,9 @@ export default function LabelCheckNewPage() {
               </button>
             </p>
           </>
-        ) : null}
-      </div>
+        )}
       </main>
       <LabelFooter511 />
-    </LabelSiteShell511>
+    </div>
   );
 }
