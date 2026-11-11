@@ -5,7 +5,15 @@
 import type { ExtractedLabelPayload } from "@/lib/label-check/extracted-payload-shared";
 import { MAX_PDF_PAGES_485 } from "@/lib/label-check/extracted-payload-shared";
 
-const PDFJS_BASE = "/label-check-pdfjs";
+/** 521 — 토스 번들은 window.__PAGZLY_PDFJS_BASE__ 로 덮어씀. 호출 시점에 읽음. */
+export function pdfjsBase521(): string {
+  if (typeof window !== "undefined") {
+    const w = window as Window & { __PAGZLY_PDFJS_BASE__?: string };
+    const v = w.__PAGZLY_PDFJS_BASE__;
+    if (typeof v === "string" && v.trim()) return v.replace(/\/+$/, "");
+  }
+  return "/label-check-pdfjs";
+}
 
 type PdfjsModule = {
   getDocument: (opts: {
@@ -48,14 +56,14 @@ async function loadPdfjs(): Promise<PdfjsModule> {
   if (typeof window === "undefined") throw new Error("browser_only");
   const w = window as PdfjsWindow;
   if (w.pdfjsLib?.getDocument) {
-    w.pdfjsLib.GlobalWorkerOptions.workerSrc = `${PDFJS_BASE}/pdf.worker.min.js`;
+    w.pdfjsLib.GlobalWorkerOptions.workerSrc = `${pdfjsBase521()}/pdf.worker.min.js`;
     return w.pdfjsLib;
   }
-  await loadScript(`${PDFJS_BASE}/pdf.min.js`);
+  await loadScript(`${pdfjsBase521()}/pdf.min.js`);
   const pdfjs = w.pdfjsLib;
   if (!pdfjs?.getDocument) throw new Error("pdfjs_missing");
   try {
-    pdfjs.GlobalWorkerOptions.workerSrc = `${PDFJS_BASE}/pdf.worker.min.js`;
+    pdfjs.GlobalWorkerOptions.workerSrc = `${pdfjsBase521()}/pdf.worker.min.js`;
   } catch {
     /* ignore */
   }

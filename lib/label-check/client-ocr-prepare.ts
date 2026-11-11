@@ -28,7 +28,15 @@ import {
   pdfRenderScale518,
 } from "@/lib/label-check/ocr/slice-image";
 
-const PDFJS_BASE = "/label-check-pdfjs";
+/** 521 — 토스 번들은 window.__PAGZLY_PDFJS_BASE__ 로 덮어씀. 호출 시점에 읽음(모듈 로드 시 고정 금지). */
+export function pdfjsBase521(): string {
+  if (typeof window !== "undefined") {
+    const w = window as Window & { __PAGZLY_PDFJS_BASE__?: string };
+    const v = w.__PAGZLY_PDFJS_BASE__;
+    if (typeof v === "string" && v.trim()) return v.replace(/\/+$/, "");
+  }
+  return "/label-check-pdfjs";
+}
 
 export type OcrTilePayload508 = {
   base64: string;
@@ -76,7 +84,7 @@ async function loadPdfjs(): Promise<{
   if (!w.pdfjsLib?.getDocument) {
     await new Promise<void>((resolve, reject) => {
       const s = document.createElement("script");
-      s.src = `${PDFJS_BASE}/pdf.min.js`;
+      s.src = `${pdfjsBase521()}/pdf.min.js`;
       s.onload = () => resolve();
       s.onerror = () => reject(new Error("pdfjs"));
       document.head.appendChild(s);
@@ -84,7 +92,7 @@ async function loadPdfjs(): Promise<{
   }
   const pdfjs = w.pdfjsLib;
   if (!pdfjs) throw new Error("pdfjs");
-  pdfjs.GlobalWorkerOptions.workerSrc = `${PDFJS_BASE}/pdf.worker.min.js`;
+  pdfjs.GlobalWorkerOptions.workerSrc = `${pdfjsBase521()}/pdf.worker.min.js`;
   return pdfjs;
 }
 

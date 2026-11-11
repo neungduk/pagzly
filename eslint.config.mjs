@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // 521 — 토스 미니앱 별도 프로젝트
+    "toss-app/**",
   ]),
 ]);
 
