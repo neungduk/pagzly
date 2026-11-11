@@ -894,6 +894,12 @@
   overflow: hidden;
   isolation: isolate;
 }
+.lc-site .lc519-fin-wash {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
 .lc-site .lc519-fin-wash i {
   position: absolute;
   border-radius: 50%;
