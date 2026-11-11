@@ -189,6 +189,7 @@ export function ResultView517({
   const [filter, setFilter] = useState<FilterId517>("all");
   const [openId, setOpenId] = useState<string | null>(() => firstSevereId(rows));
   const [copiedAll, setCopiedAll] = useState(false);
+  const [showPass, setShowPass] = useState(false);
   /** 화면 전용 — 저장·결과 데이터에 섞이지 않음 */
   const [doneMap, setDoneMap] = useState<Record<string, boolean>>({});
   const [doneTick, setDoneTick] = useState(0);
@@ -695,7 +696,20 @@ export function ResultView517({
                 aria-labelledby={`lc517-tab-${filter}`}
                 style={{ display: "flex", flexDirection: "column", gap: 10 }}
               >
-                {visibleRows.map((r, i) => renderRow(r, i))}
+                {(filter === "all" && !showPass ? visibleRows.filter((r) => r.bucket !== "pass" || r.id === openId) : visibleRows).map((r, i) =>
+                  renderRow(r, i),
+                )}
+                {filter === "all" && counts.pass > 0 && visibleRows.some((r) => r.bucket === "pass") ? (
+                  <button
+                    type="button"
+                    className="lc517-pass-toggle"
+                    aria-expanded={showPass}
+                    onClick={() => setShowPass((v) => !v)}
+                  >
+                    <span>문제 없음 {visibleRows.filter((r) => r.bucket === "pass").length}개</span>
+                    <span>{showPass ? "접기" : "펼쳐 보기"}</span>
+                  </button>
+                ) : null}
                 {visibleRows.length === 0 ? <p style={fineStyle}>이 필터에 해당하는 항목이 없어요.</p> : null}
               </div>
 

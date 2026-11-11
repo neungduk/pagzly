@@ -23,7 +23,7 @@
   color: var(--lc517-ink);
   font-family: "Noto Sans KR", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 .lc517-mono {
@@ -625,4 +625,71 @@
   .lc517-land-row:hover {
     transform: none;
   }
+}
+
+/* 517 fix — 하단 복사 바, 푸터, 문제 없음 묶음 */
+.lc517 .lc507-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 40;
+  width: min(680px, calc(100% - 32px));
+  box-sizing: border-box;
+  background: #111214;
+  color: #fff;
+  border-radius: 999px;
+  padding: 8px 8px 8px 22px;
+  box-shadow: 0 18px 40px rgba(17, 18, 20, 0.28);
+}
+.lc517 .lc507-bar-inner {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13.5px;
+}
+.lc517 .lc507-bar button {
+  font: inherit;
+  font-weight: 700;
+  background: #fff;
+  color: #111214;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 18px;
+  min-height: 44px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.lc517 .lc-footer {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 20px 24px 96px;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: #6a6d74;
+  text-align: center;
+}
+.lc517 .lc517-pass-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 18px;
+  border: 1.5px dashed #c9d2e3;
+  border-radius: 16px;
+  background: transparent;
+  color: #1f7a56;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.lc517 .lc517-pass-toggle:hover {
+  background: #fff;
+}
+@media print {
+  .lc517 .lc507-bar { display: none; }
 }
