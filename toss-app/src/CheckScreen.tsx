@@ -31,6 +31,8 @@ import { isOcrImageFile508, isHeicFile508 } from "@/lib/label-check/client-ocr-p
 import { ERR_OCR_HEIC_508 } from "@/lib/label-check/ocr/constants";
 import type { OcrProviderId508 } from "@/lib/label-check/ocr/provider";
 import { TOSS_ACCEPT, TOSS_SHOW_US_MARKET } from "./config";
+import { demoEnabled } from "./demo/enabled";
+import { applyDemo, isDemoName } from "./demo/applyDemo";
 
 type Stage = "start" | "ocr" | "result";
 
@@ -39,7 +41,14 @@ function todayKo(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function CheckScreen({ onTitleTap }: { onTitleTap: () => void }) {
+export function CheckScreen({
+  onTitleTap,
+  demoName,
+}: {
+  onTitleTap: () => void;
+  demoName?: string | null;
+}) {
+  const [demoTextTab, setDemoTextTab] = useState(false);
   const [market, setMarket] = useState<LabelMarket>("KR");
   const [input, setInput] = useState<LabelCheckInput>({
     rinseOff: false,
@@ -123,6 +132,40 @@ export function CheckScreen({ onTitleTap }: { onTitleTap: () => void }) {
       setOcrProvider(r.provider);
     });
   }, [market]);
+
+  useEffect(() => {
+    if (!demoEnabled() || !demoName || !isDemoName(demoName)) return;
+    let cancelled = false;
+    void (async () => {
+      await applyDemo(demoName, {
+        setFile,
+        setPasteText,
+        setBusy,
+        setProgress,
+        setError,
+        setResult,
+        setIsSample,
+        setSourceText,
+        setCheckedOn,
+        setOcrLimitMsg,
+        setOcrReview,
+        setOcrQualityLabel,
+        setTextTab: setDemoTextTab,
+      });
+      if (cancelled) return;
+      if (demoName === "result-open") {
+        window.setTimeout(() => {
+          const btn = document.querySelector<HTMLElement>(
+            '.lc517-row button[aria-expanded="false"], .lc517 button[aria-expanded="false"]',
+          );
+          btn?.click();
+        }, 500);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [demoName]);
 
   const onFile = useCallback((f: File | null) => {
     setResult(null);
@@ -358,6 +401,7 @@ export function CheckScreen({ onTitleTap }: { onTitleTap: () => void }) {
             <CheckStart517
               touch
               accept={TOSS_ACCEPT}
+              initialTab={demoTextTab ? "text" : undefined}
               reviewSlot={
                 ocrReview ? (
                   <OcrReview517

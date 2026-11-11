@@ -1,7 +1,8 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { LabPanel } from "./lab/LabPanel";
 import { CheckScreen } from "./CheckScreen";
 import { TOSS_SHOW_US_MARKET } from "./config";
+import { demoEnabled, readDemoName } from "./demo/enabled";
 
 /** 실험 화면은 기본 숨김. ?lab=1 또는 제목 3초 안 5회 탭 */
 function labFromQuery(): boolean {
@@ -13,6 +14,15 @@ export default function App() {
   const labQuery = useMemo(() => labFromQuery(), []);
   const [labTap, setLabTap] = useState(false);
   const taps = useRef<number[]>([]);
+  const demoName = useMemo(() => readDemoName(), []);
+
+  useEffect(() => {
+    if (!demoEnabled() || !demoName) {
+      document.documentElement.removeAttribute("data-demo");
+      return;
+    }
+    document.documentElement.setAttribute("data-demo", demoName);
+  }, [demoName]);
 
   const onTitleTap = () => {
     const now = Date.now();
@@ -25,7 +35,7 @@ export default function App() {
   return (
     <div className="toss-app" data-kr-only={TOSS_SHOW_US_MARKET ? undefined : "1"}>
       {labOpen ? <LabPanel /> : null}
-      <CheckScreen onTitleTap={onTitleTap} />
+      <CheckScreen onTitleTap={onTitleTap} demoName={demoName} />
     </div>
   );
 }

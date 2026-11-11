@@ -8,6 +8,8 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, "");
   const apiBase = (env.VITE_LABEL_API_BASE || "https://pagzly.com").replace(/\/+$/, "");
 
+  const demoOn = mode === "demo" || env.VITE_DEMO === "1";
+
   return {
     plugins: [react()],
     resolve: {
@@ -21,6 +23,7 @@ export default defineConfig(({ mode }) => {
       "process.env": JSON.stringify({
         NEXT_PUBLIC_LABEL_API_BASE: apiBase,
       }),
+      "import.meta.env.VITE_DEMO": JSON.stringify(demoOn ? "1" : ""),
     },
     server: {
       host: true,

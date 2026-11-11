@@ -37,6 +37,8 @@ export type CheckStart517Props = UploadCard507Props & {
   touch?: boolean;
   /** 522 — 있으면 파일 input accept를 이 값으로(미전달 시 기존 계산) */
   accept?: string;
+  /** 523 — 초기 탭. 미전달 시 file(웹과 동일) */
+  initialTab?: "file" | "text";
 };
 
 /** 517 — 점검 시작 화면(UploadCard507 대체 연결). props·전송 값은 기존과 동일. */
@@ -59,7 +61,10 @@ export function CheckStart517(props: CheckStart517Props) {
   } = props;
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const [tab, setTab] = useState<"file" | "text">("file");
+  const [tab, setTab] = useState<"file" | "text">(props.initialTab ?? "file");
+  useEffect(() => {
+    if (props.initialTab) setTab(props.initialTab);
+  }, [props.initialTab]);
   const [drag, setDrag] = useState(false);
   const [more, setMore] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);

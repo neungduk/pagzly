@@ -8,8 +8,10 @@
     "dev": "vite",
     "prebuild": "node scripts/copy-label-check-pdfjs.mjs",
     "build": "vite build",
+    "build:demo": "vite build --mode demo",
     "ait:build": "node scripts/copy-label-check-pdfjs.mjs && vite build && node scripts/scan-bundle-eval.mjs && ait build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "shots": "node scripts/shots.mjs"
   },
   "dependencies": {
     "@apps-in-toss/web-framework": "^3.0.0",
