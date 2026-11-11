@@ -4,8 +4,8 @@ import { labelRuleCounts514 } from "@/lib/label-check/rules-count-514";
 import { LabelSiteShell511 } from "./LabelSiteShell";
 import { LabelHeader511 } from "./LabelHeader";
 import { LabelFooter511 } from "./LabelFooter";
-import { LandingProofDemo511 } from "./LandingProofDemo";
 import { LANDING_BEFORE_AFTER_514 } from "./landing-demo-514";
+import { LandingBelt515, LandingStage519 } from "@/components/label-check/ui-519";
 
 export function LabelCheckLanding511({
   user,
@@ -41,33 +41,9 @@ export function LabelCheckLanding511({
           }
         />
 
-        <section className="lc514-hero lc515-above">
-          <h1>
-            화장품 라벨, 인쇄 전에
-            <br />
-            <span className="em">틀린 문구</span>부터 잡으세요
-          </h1>
-          <p className="lc514-hero-sub">
-            PDF나 사진을 올리면 필수 표시사항과 광고 문구를 읽고, 무엇이 왜 문제인지, 어떻게 고치면 되는지 문장
-            단위로 알려 드립니다.
-          </p>
-          <div className="lc514-hero-btns">
-            <Link href="/label-check" className="lc-cta lc-cta-solid">
-              내 라벨 점검하기
-            </Link>
-            <a href="#demo" className="lc514-ghost" style={{ borderRadius: 999, padding: "16px 28px", fontSize: 17 }}>
-              결과 예시 보기
-            </a>
-          </div>
-          <div className="lc514-hero-hints">
-            <span>로그인 없이 시작</span>
-            <span>점검 후 파일 저장 안 함</span>
-            <span>한국 · 미국 기준</span>
-          </div>
-        </section>
-
         <div className="lc515-above">
-          <LandingProofDemo511 />
+          <LandingStage519 />
+          <LandingBelt515 />
         </div>
 
         <section id="how" className="lc514-stats">
