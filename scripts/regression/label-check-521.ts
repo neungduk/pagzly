@@ -117,5 +117,16 @@ export async function run(): Promise<string[]> {
     if (!gi.includes("label-check-pdfjs")) f.push("521: .gitignore에 label-check-pdfjs 없음");
   }
 
+  // 8) 521c — 토스 번들 검사는 eval( 을 반려한다. pdfjs 복사본에서 eval·new Function 을 없애는 단계가 있어야 한다.
+  {
+    const cp = read("toss-app/scripts/copy-label-check-pdfjs.mjs");
+    if (!cp.includes("neutralizeEval") || !cp.includes("new Function") || !cp.includes("eval_disabled")) {
+      f.push("521c: pdfjs 복사 스크립트에 eval·new Function 제거 단계 없음");
+    }
+    if (!/process\.exit\(1\)/.test(cp) || !cp.includes("남아 있음")) {
+      f.push("521c: eval 잔존 시 빌드 중단 검사 없음");
+    }
+  }
+
   return f;
 }
