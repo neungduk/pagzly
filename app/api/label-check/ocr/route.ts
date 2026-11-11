@@ -1,6 +1,6 @@
 /**
- * 508 — OCR API. 원본 이미지·응답 원문 로그/저장 금지.
- * 서버리스 일일 limiter는 인스턴스 메모리라 약한 보호 — 월 합계(label_ocr_consume)가 본 보호장치.
+ * 508/520 — OCR API. 원본 이미지·응답 원문 로그/저장 금지.
+ * 520: CORS(LABEL_TOSS_ENABLED) + 토스 Origin 일일 한도.
  */
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -18,6 +18,12 @@ import {
 } from "@/lib/label-check/ocr/provider";
 import { runOcrBatch508 } from "@/lib/label-check/ocr/run-ocr-batch";
 import { labelCheckClientIp } from "@/lib/label-check/safe-upload";
+import { preflight520, withCors520 } from "@/lib/label-check/cors-520";
+import {
+  isTossRequest520,
+  tossOcrPerIpDaily520,
+  tryConsumeTossDaily520,
+} from "@/lib/label-check/toss-ocr-520";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,7 +39,15 @@ const ocrDailyLimiter = new SlidingWindowLimiter([
   { name: "day", windowMs: 24 * 60 * 60 * 1000, max: 30 },
 ]);
 
+export function OPTIONS(req: Request) {
+  return preflight520(req);
+}
+
 export async function GET(req: Request) {
+  return withCors520(req, await getOcrAvailable520(req));
+}
+
+async function getOcrAvailable520(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const market = url.searchParams.get("market")?.toUpperCase() === "US" ? "US" : "KR";
   const picked = pickProvider508(market);
@@ -48,6 +62,10 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  return withCors520(req, await postOcr520(req));
+}
+
+async function postOcr520(req: Request): Promise<Response> {
   try {
     if (!isOcrConfigured508()) {
       return Response.json(
@@ -65,8 +83,10 @@ export async function POST(req: Request) {
       data: { user },
     } = await supabaseUser.auth.getUser();
     const ip = labelCheckClientIp(req.headers);
-    const dailyMax = ocrDailyLimit508(Boolean(user));
-    const dayKey = user ? `ocr-u:${user.id}` : `ocr-ip:${ip}`;
+    const toss = isTossRequest520(req);
+    // 520: 토스 Origin만 별도 IP 일일 한도(기본 5). 웹은 기존 로직.
+    const dailyMax = toss ? tossOcrPerIpDaily520() : ocrDailyLimit508(Boolean(user));
+    const dayKey = user && !toss ? `ocr-u:${user.id}` : `ocr-ip:${ip}`;
     const dayLim = new SlidingWindowLimiter([
       { name: "day", windowMs: 24 * 60 * 60 * 1000, max: dailyMax },
     ]);
@@ -114,6 +134,21 @@ export async function POST(req: Request) {
     } catch {
       console.warn("[label-ocr] service-role-missing");
       return Response.json({ error: ERR_OCR_UNAVAILABLE_508, code: "SERVER" }, { status: 503 });
+    }
+
+    const tileCount = Array.isArray(body.imagesBase64)
+      ? body.imagesBase64.filter((s) => typeof s === "string" && s.length > 0).length
+      : 0;
+    const addUnits = tileCount > 0 ? tileCount : 1;
+
+    if (toss) {
+      const ok = await tryConsumeTossDaily520(service, addUnits);
+      if (!ok) {
+        return Response.json(
+          { error: ERR_OCR_DAILY_LIMIT_509, code: "OCR_LIMIT", limitKind: "daily" },
+          { status: 429 },
+        );
+      }
     }
 
     const out = await runOcrBatch508(

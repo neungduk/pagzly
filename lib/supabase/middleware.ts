@@ -19,6 +19,16 @@ export async function updateSession(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
 
+  // 520 — 토스 CORS OPTIONS: Supabase 세션 갱신 생략
+  if (
+    request.method === "OPTIONS" &&
+    (path === "/api/label-check" ||
+      path === "/api/label-check/ocr" ||
+      path === "/api/law-watch/baseline")
+  ) {
+    return NextResponse.next({ request });
+  }
+
   // /dev/* 는 로컬 시각 검증용 — 프로덕션에서는 404
   if (process.env.NODE_ENV === "production" && path.startsWith("/dev")) {
     return new NextResponse(null, { status: 404 });

@@ -36,11 +36,17 @@ import {
   withExtractTimeout,
 } from "@/lib/label-check/safe-upload";
 import { createClient } from "@/lib/supabase/server";
+import { preflight520, withCors520 } from "@/lib/label-check/cors-520";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 /** 498 — 추출 20s + 여유. Next는 리터럴 export만 허용 */
 export const maxDuration = 30;
+
+/** 520 — 토스 미니앱 프리플라이트 */
+export function OPTIONS(req: Request) {
+  return preflight520(req);
+}
 
 function mapUploadError(message: string) {
   if (message === ERR_TOO_LARGE_485) return labelCheckErrorResponse("TOO_LARGE", 400);
@@ -145,6 +151,10 @@ async function finishResult(
 }
 
 export async function POST(req: Request) {
+  return withCors520(req, await postLabelCheck520(req));
+}
+
+async function postLabelCheck520(req: Request): Promise<Response> {
   try {
     const supabase = await createClient();
     const {
