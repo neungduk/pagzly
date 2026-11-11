@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import "@/components/label-check/ui-507/label-check-507.css";
 import "@/components/label-check/ui-517/label-check-517.css";
-import { OcrLimitBanner509 } from "@/components/label-check/ui-507";
 import {
   CheckStart517,
   ResultView517,
@@ -12,7 +11,6 @@ import {
 import type { OcrReviewLine517 } from "@/components/label-check/ui-517";
 import { applyGatingToStaticResult518 } from "@/lib/label-check/sample-gating-518";
 import type { LabelCheckInput, LabelCheckResult, LabelMarket } from "@/lib/label-check/types";
-import { SAMPLE_BANNER_486 } from "@/lib/label-check/types";
 import {
   assertClientPdfSize,
   submitLabelCheckClient,
@@ -31,8 +29,10 @@ import { isOcrImageFile508, isHeicFile508 } from "@/lib/label-check/client-ocr-p
 import { ERR_OCR_HEIC_508 } from "@/lib/label-check/ocr/constants";
 import type { OcrProviderId508 } from "@/lib/label-check/ocr/provider";
 import { TOSS_ACCEPT, TOSS_SHOW_US_MARKET } from "./config";
+import { TOSS_COPY } from "./copy";
 import { demoEnabled } from "./demo/enabled";
 import { applyDemo, isDemoName } from "./demo/applyDemo";
+import { IconChevronRight } from "./ui/icons";
 
 type Stage = "start" | "ocr" | "result";
 
@@ -49,6 +49,7 @@ export function CheckScreen({
   demoName?: string | null;
 }) {
   const [demoTextTab, setDemoTextTab] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [market, setMarket] = useState<LabelMarket>("KR");
   const [input, setInput] = useState<LabelCheckInput>({
     rinseOff: false,
@@ -106,8 +107,19 @@ export function CheckScreen({
   }, []);
 
   useEffect(() => {
+    const root = document.querySelector(".toss-app");
+    if (!root) return;
+    root.classList.toggle("toss-settings-open", settingsOpen);
+  }, [settingsOpen]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const onPop = () => {
+      if (settingsOpen) {
+        setSettingsOpen(false);
+        if (histDepth.current > 0) histDepth.current -= 1;
+        return;
+      }
       if (result) {
         setResult(null);
         setIsSample(false);
@@ -122,7 +134,34 @@ export function CheckScreen({
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, [result, ocrReview]);
+  }, [result, ocrReview, settingsOpen]);
+
+  const openSettings = () => {
+    setSettingsOpen(true);
+    window.history.pushState({ tossLc: "settings" }, "");
+    histDepth.current += 1;
+  };
+
+  const settingsSummary = [
+    market === "US" ? "미국" : "한국",
+    input.rinseOff ? "씻어내는 제품" : "안 씻어내는 제품",
+    input.functional ? "기능성" : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const resetToStart = () => {
+    setResult(null);
+    setFile(null);
+    setPasteText("");
+    setSourceText(null);
+    setIsSample(false);
+    setOcrReview(null);
+    setError(null);
+    setOcrLimitMsg(null);
+    setRecheckText("");
+    setSettingsOpen(false);
+  };
 
   useEffect(() => {
     void fetchOcrAvailable508(market).then((r) => {
@@ -388,18 +427,40 @@ export function CheckScreen({
         <i className="a" />
         <i className="b" />
       </div>
-      <CheckBusyOverlay517 busy={busy} />
+      <CheckBusyOverlay517 busy={busy} useIcons />
+      {settingsOpen ? (
+        <button
+          type="button"
+          aria-label="설정 닫기"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 36,
+            background: "transparent",
+            border: 0,
+          }}
+          onClick={() => {
+            setSettingsOpen(false);
+            if (histDepth.current > 0) window.history.back();
+          }}
+        />
+      ) : null}
       <main className="lc517-wrap">
         {!result ? (
           <>
-            <div className="toss-hero" style={{ padding: "10px 0 22px" }}>
+            <div className="toss-hero">
               <h1 onClick={onTitleTap}>
-                라벨을 올리면, <span style={{ color: "#1D4ED8" }}>바로 읽어서</span> 점검해요
+                <span className="toss-hero-l1">{TOSS_COPY.heroLine1}</span>
+                <span className="toss-hero-l2">
+                  <span style={{ color: "#1D4ED8" }}>{TOSS_COPY.heroLine2Before}</span>
+                  {TOSS_COPY.heroLine2After}
+                </span>
               </h1>
-              <p className="toss-hero-sub">파일 하나면 충분해요. 설정은 아래에서 골라요.</p>
+              <p className="toss-hero-sub">{TOSS_COPY.heroSub}</p>
             </div>
             <CheckStart517
               touch
+              deferMobileCta
               accept={TOSS_ACCEPT}
               initialTab={demoTextTab ? "text" : undefined}
               reviewSlot={
@@ -451,47 +512,80 @@ export function CheckScreen({
               onStartOcr={() => void startOcr()}
               ocrTransferNotice={ocrNotice}
             />
-            <p style={{ marginTop: 16, fontSize: 13, color: "#6A6D74" }}>
-              <button type="button" className="underline-offset-2 hover:underline" onClick={showSample}>
-                샘플 결과 보기
-              </button>
-              {contactEmail ? (
-                <>
-                  {" · "}
-                  <button
-                    type="button"
-                    className="underline-offset-2 hover:underline"
-                    onClick={() => {
-                      void navigator.clipboard.writeText(contactEmail).then(() => {
-                        setCopied(true);
-                        window.setTimeout(() => setCopied(false), 1500);
-                      });
-                    }}
-                  >
-                    {copied ? "복사됨" : `문의 ${contactEmail}`}
-                  </button>
-                </>
-              ) : null}
-            </p>
-            {ocrLimitMsg ? <OcrLimitBanner509 message={ocrLimitMsg} onFocusPaste={focusPaste} /> : null}
+            {!ocrReview ? (
+              <>
+                <button type="button" className="toss-sample-cta" onClick={showSample}>
+                  <span className="dots" aria-hidden>
+                    <i style={{ background: "#ff5a42" }} />
+                    <i style={{ background: "#e0a12b" }} />
+                    <i style={{ background: "#2fb67e" }} />
+                  </span>
+                  <span className="label">{TOSS_COPY.sampleCtaTitle}</span>
+                  <IconChevronRight size={20} />
+                </button>
+                <button type="button" className="toss-settings-summary" onClick={openSettings}>
+                  <span>{TOSS_COPY.settingsSummary}</span>
+                  <span className="muted">{settingsSummary}</span>
+                  <IconChevronRight size={18} />
+                </button>
+                <p className="toss-foot-note">
+                  {TOSS_COPY.saveNote}
+                  {contactEmail ? (
+                    <>
+                      {" · "}
+                      <button
+                        type="button"
+                        className="underline-offset-2 hover:underline"
+                        onClick={() => {
+                          void navigator.clipboard.writeText(contactEmail).then(() => {
+                            setCopied(true);
+                            window.setTimeout(() => setCopied(false), 1500);
+                          });
+                        }}
+                      >
+                        {copied ? "복사했어요" : `문의 ${contactEmail}`}
+                      </button>
+                    </>
+                  ) : null}
+                </p>
+              </>
+            ) : null}
+            {ocrLimitMsg ? (
+              <div className="section" style={{ marginTop: 12 }} role="alert">
+                <p style={{ margin: 0, fontWeight: 800 }}>{TOSS_COPY.limitTitle}</p>
+                <p style={{ margin: "8px 0 0", color: "#6a6d74" }}>{ocrLimitMsg}</p>
+                <button type="button" className="toss-reset" style={{ marginTop: 12 }} onClick={focusPaste}>
+                  {TOSS_COPY.limitCta}
+                </button>
+              </div>
+            ) : null}
             {error ? (
-              <p
+              <div
                 role="alert"
                 style={{
                   marginTop: 12,
                   padding: 16,
                   borderRadius: 16,
                   background: "#fff",
-                  border: "1px solid #D6402B",
+                  border: "1px solid #e3e6ee",
+                  boxShadow: "0 8px 24px rgba(40,60,140,.06)",
                 }}
               >
-                {error}
-              </p>
+                <p style={{ margin: 0, fontWeight: 800 }}>{TOSS_COPY.errorTitle}</p>
+                <p style={{ margin: "8px 0 0", color: "#6a6d74", fontSize: 14 }}>{error}</p>
+              </div>
             ) : null}
           </>
         ) : (
           <>
-            {isSample ? <p style={{ fontSize: 13, color: "#6A6D74" }}>{SAMPLE_BANNER_486}</p> : null}
+            {isSample ? (
+              <div className="toss-sample-banner">
+                <span>{TOSS_COPY.sampleBanner}</span>
+                <button type="button" onClick={resetToStart}>
+                  {TOSS_COPY.sampleBannerCta}
+                </button>
+              </div>
+            ) : null}
             {error ? (
               <p
                 role="alert"
@@ -517,6 +611,9 @@ export function CheckScreen({
               fileLabel={file?.name ?? (isSample ? "샘플" : null)}
               ocrQualityLabel={ocrQualityLabel}
             />
+            <button type="button" className="toss-reset" onClick={resetToStart}>
+              {TOSS_COPY.resetOther}
+            </button>
           </>
         )}
       </main>

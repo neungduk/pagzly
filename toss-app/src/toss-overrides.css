@@ -1,4 +1,4 @@
-/* 522 — 토스 폰 보정. 모든 규칙은 .toss-app 아래 */
+/* 523 — 토스 폰 보정. 모든 규칙은 .toss-app 아래 */
 
 .toss-app {
   font-family: "Noto Sans KR", system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
@@ -6,6 +6,9 @@
   overscroll-behavior-y: none;
   overflow-x: clip;
   max-width: 100vw;
+  color: #111214;
+  font-variant-numeric: tabular-nums;
+  word-break: keep-all;
 }
 
 .toss-app .lc517-mono {
@@ -14,7 +17,26 @@
 
 .toss-app .lc517 {
   min-height: 100dvh;
-  padding-top: 18px;
+  padding-top: 16px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+.toss-app .lc517-wrap {
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-bottom: 32px;
+}
+
+@media (max-width: 360px) {
+  .toss-app .lc517-wrap {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+/* —— 제목 —— */
+.toss-app .toss-hero {
+  padding: 4px 0 16px;
 }
 
 .toss-app .toss-hero h1 {
@@ -22,53 +44,151 @@
   font-size: clamp(26px, 7.4vw, 30px);
   line-height: 1.25;
   font-weight: 900;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
   text-wrap: balance;
-  word-break: keep-all;
+}
+
+.toss-app .toss-hero-l1,
+.toss-app .toss-hero-l2 {
+  display: block;
 }
 
 .toss-app .toss-hero-sub {
   margin: 8px 0 0;
   font-size: 15px;
-  color: #4a4d54;
-  word-break: keep-all;
+  line-height: 1.55;
+  color: #6a6d74;
 }
 
+/* —— 드롭존 / 미리보기 —— */
 .toss-app .lc517-drop {
-  min-height: 290px;
+  min-height: 210px !important;
+  padding: 16px 12px !important;
 }
 
 .toss-app .lc517-doc {
-  max-width: 100%;
+  transform: scale(0.72);
+  transform-origin: top center;
+  margin-bottom: -12px;
 }
 
-.toss-app .lc517-preview .lc517-pop:first-of-type,
+.toss-app .lc517-preview {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+
+.toss-app .lc517-preview-card {
+  position: relative;
+  max-height: 42vh;
+  overflow: hidden;
+  border-radius: 16px;
+  order: 2;
+}
+
+.toss-app .lc517-preview-card .lc517-scan {
+  max-width: 100%;
+  left: 0;
+  right: 0;
+}
+
+.toss-app .lc517-preview-card img {
+  object-fit: contain;
+  max-height: 42vh;
+  width: 100%;
+  margin: 0 auto;
+}
+
 .toss-app .lc517-preview > .lc517-pop {
-  max-width: calc(100% - 120px);
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  white-space: normal !important;
+  order: 1;
+}
+
+.toss-app .lc517-preview > .lc517-pop:last-of-type {
+  order: 3;
+  text-align: center;
+  font-size: 13px !important;
 }
 
 .toss-app .lc517-preview .lc517-mono {
   display: inline-block;
-  max-width: 160px;
+  max-width: min(100%, 200px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: bottom;
 }
 
+.toss-app .lc517-preview > button {
+  position: static !important;
+  align-self: flex-end;
+  order: 1;
+  min-height: 44px !important;
+  margin: 0;
+}
+
+.toss-app .lc517-preview {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "name again"
+    "card card"
+    "ready ready";
+  gap: 8px 10px;
+}
+
+.toss-app .lc517-preview > .lc517-pop:first-of-type {
+  grid-area: name;
+  width: auto;
+}
+
+.toss-app .lc517-preview > button {
+  grid-area: again;
+}
+
+.toss-app .lc517-preview-card {
+  grid-area: card;
+}
+
+.toss-app .lc517-preview > .lc517-pop:last-of-type {
+  grid-area: ready;
+}
+
+/* —— 입력 16px —— */
 .toss-app textarea,
 .toss-app input:not([type="file"]):not([type="checkbox"]):not([type="radio"]) {
   font-size: 16px !important;
 }
 
-.toss-app .lc517-stage textarea,
 .toss-app textarea {
-  min-height: 220px;
+  min-height: 220px !important;
 }
 
-.toss-app .lc517-mobile-bar,
-.toss-app .lc507-bar {
+/* —— 하단 CTA: 준비 전에는 숨김(deferMobileCta) · 등장 —— */
+.toss-app .lc517-mobile-bar--ready {
+  animation: toss-bar-up 0.25s ease-out;
   padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+}
+
+@keyframes toss-bar-up {
+  from {
+    transform: translateY(110%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .toss-app:has(textarea:focus) .lc517-mobile-bar,
@@ -78,42 +198,273 @@
   position: static;
 }
 
-.toss-app .lc517-ocr {
+.toss-app .lc507-bar-inner > span {
+  display: none;
+}
+
+.toss-app .lc507-bar-inner button {
+  width: 100%;
+  min-height: 56px;
+}
+
+/* —— 설정 접기 → 시트 —— */
+.toss-app .lc517-aside {
+  display: none;
+}
+
+.toss-app.toss-settings-open .lc517-aside {
+  display: block;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  max-height: min(78vh, 640px);
+  overflow: auto;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -12px 40px rgba(20, 30, 60, 0.18);
+  padding: 12px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  animation: toss-sheet-up 0.22s ease-out;
+}
+
+.toss-app.toss-settings-open::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 18, 20, 0.4);
+  z-index: 35;
+}
+
+@keyframes toss-sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.toss-app .toss-settings-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  margin: 12px 0 0;
+  padding: 0 16px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #e3e6ee;
+  box-shadow: 0 8px 24px rgba(40, 60, 140, 0.06);
+  text-align: left;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.toss-app .toss-settings-summary .muted {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6a6d74;
+}
+
+/* —— 예시 CTA —— */
+.toss-app .toss-sample-cta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  min-height: 64px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #e3e6ee;
+  box-shadow: 0 8px 24px rgba(40, 60, 140, 0.06);
+  text-align: left;
+}
+
+.toss-app .toss-sample-cta .dots {
   display: flex;
   flex-direction: column;
+  gap: 5px;
+  flex: none;
 }
 
-.toss-app .lc517-ocr .lc517-ocr-actions,
-.toss-app .lc517-ocr-actions {
-  display: flex;
-  gap: 8px;
+.toss-app .toss-sample-cta .dots i {
+  display: block;
+  width: 28px;
+  height: 6px;
+  border-radius: 3px;
 }
 
-.toss-app .lc517-ocr .lc517-ocr-actions > button,
-.toss-app .lc517-ocr-actions > button {
+.toss-app .toss-sample-cta .label {
   flex: 1;
-  min-height: 44px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
+.toss-app .toss-foot-note {
+  margin: 16px 0 0;
+  font-size: 12.5px;
+  color: #6a6d74;
+  text-align: center;
+}
+
+.toss-app .toss-sample-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: #eef2ff;
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.toss-app .toss-sample-banner button {
+  margin-left: auto;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #1d4ed8;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.toss-app .toss-reset {
+  display: block;
+  width: 100%;
+  min-height: 56px;
+  margin: 16px 0 8px;
+  border-radius: 16px;
+  background: #111214;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* —— 결과 —— */
 .toss-app .lc517-summary {
-  grid-template-columns: 1fr;
+  grid-template-columns: 1fr !important;
+}
+
+.toss-app .lc517-summary > div:first-child h2 {
+  font-size: 26px !important;
+}
+
+.toss-app .lc517-stats {
+  min-height: 0 !important;
+}
+
+.toss-app .lc517-stat {
+  min-height: 84px !important;
+  padding: 12px !important;
 }
 
 .toss-app .lc517-source {
-  max-height: 40vh;
+  max-height: none;
+}
+
+.toss-app .lc517-source > div {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-height: 7.2em;
+}
+
+.toss-app .lc517-source.is-open > div {
+  display: block;
+  -webkit-line-clamp: unset;
+  max-height: 50vh;
   overflow: auto;
 }
 
 .toss-app .lc517-filters {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 8px;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
-  flex-wrap: nowrap;
-  max-width: 100%;
+  scrollbar-width: none;
+  padding: 8px 0;
+  margin: 0 -4px;
+  padding-left: 4px;
+  padding-right: 24px;
+  background: rgba(243, 245, 251, 0.92);
+  backdrop-filter: blur(8px);
+  mask-image: linear-gradient(90deg, #000 85%, transparent);
+}
+
+.toss-app .lc517-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.toss-app .lc517-filters [role="tab"] {
+  flex: none;
+  white-space: nowrap;
+  min-height: 40px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.toss-app .lc517-row {
+  border-radius: 20px !important;
+  margin-bottom: 10px;
+}
+
+.toss-app .lc517-chevron {
+  background: center / 24px 24px no-repeat
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%236A6D74' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
 
 .toss-app .lc518-open {
   padding-left: 8px !important;
+}
+
+.toss-app .lc517-step-ico {
+  border-radius: 50%;
+  background: #e8ebf3;
+}
+
+.toss-app .lc517-step-ico.done {
+  background: center / 14px 14px no-repeat #1f7a56
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E");
+}
+
+.toss-app .lc517-step-ico.active {
+  background: transparent;
+  border: 2px solid #1d4ed8;
+  border-top-color: transparent;
+  animation: toss-spin 0.8s linear infinite;
+}
+
+@keyframes toss-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.toss-app[data-kr-only="1"] .lc517-panel .lc517-market:last-child {
+  display: none;
+}
+
+.toss-app[data-kr-only="1"] .lc517-panel > div:nth-child(2) > div {
+  grid-template-columns: 1fr;
 }
 
 .toss-app button,
@@ -125,12 +476,13 @@
   min-height: 44px;
 }
 
-.toss-app[data-kr-only="1"] .lc517-panel .lc517-market:last-child {
-  display: none;
-}
-
-.toss-app[data-kr-only="1"] .lc517-panel > div:nth-child(2) > div {
-  grid-template-columns: 1fr;
+.toss-app .lc517-go.ready,
+.toss-app .lc517-mobile-bar .lc517-go.ready {
+  background: #111214 !important;
+  color: #fff !important;
+  min-height: 56px;
+  border-radius: 16px;
+  font-weight: 800;
 }
 
 @media (hover: none) {
@@ -157,8 +509,12 @@
   .toss-app .lc517-chip-opt:active,
   .toss-app .lc517-market:active,
   .toss-app .lc517-go:active,
-  .toss-app [role="button"]:active {
-    transform: none;
+  .toss-app [role="button"]:active,
+  .toss-app .lc517-mobile-bar--ready,
+  .toss-app.toss-settings-open .lc517-aside,
+  .toss-app .lc517-step-ico.active {
+    transform: none !important;
+    animation: none !important;
   }
 
   .toss-app * {
@@ -166,4 +522,13 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+.toss-app :focus-visible {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
+.toss-app .lc517-color-muted {
+  color: #6a6d74 !important;
 }

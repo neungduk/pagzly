@@ -129,14 +129,12 @@ export async function run(): Promise<string[]> {
     if (!ov.includes("hover: none") && !ov.includes("(hover: none)")) {
       f.push("522: hover:none 처리 없음");
     }
-    // 줄 단위: 선택자 줄이 { 로 끝나고 .toss-app / @ 로 시작하지 않으면 실패
+    // 줄 단위: 최상위 선택자가 .toss-app / @media / @keyframes 가 아니면 실패
     for (const line of rules.split(/\n/)) {
       const t = line.trim();
-      if (!t || t.startsWith("@") || t.startsWith("}") || t.startsWith("*") || t.includes("{") === false) {
-        continue;
-      }
+      if (!t || t.startsWith("@") || t.startsWith("}") || t.startsWith("*") || !t.includes("{")) continue;
+      if (t === "from {" || t === "to {" || /^[0-9]+% \{/.test(t)) continue; // keyframes
       if (t.includes("{") && !t.includes(".toss-app") && !t.startsWith("@")) {
-        // nested inside @media is ok if previous context — skip lines that are only properties
         if (/^[a-zA-Z.#\[]/.test(t) && !t.includes(".toss-app")) {
           f.push(`522: overrides 범위 밖 규칙: ${t.slice(0, 60)}`);
           break;

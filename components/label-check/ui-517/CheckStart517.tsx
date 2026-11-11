@@ -39,6 +39,11 @@ export type CheckStart517Props = UploadCard507Props & {
   accept?: string;
   /** 523 — 초기 탭. 미전달 시 file(웹과 동일) */
   initialTab?: "file" | "text";
+  /**
+   * 523 — 참이면 준비 전(파일·문구 없음) 하단 고정 CTA 막대를 그리지 않음.
+   * 미전달/거짓은 웹과 동일(회색 막대 항상 표시).
+   */
+  deferMobileCta?: boolean;
 };
 
 /** 517 — 점검 시작 화면(UploadCard507 대체 연결). props·전송 값은 기존과 동일. */
@@ -551,8 +556,8 @@ export function CheckStart517(props: CheckStart517Props) {
 
       <aside className="lc517-aside">{settingsPanel}</aside>
 
-      {reviewing ? null : (
-        <div className="lc517-mobile-bar">
+      {reviewing || (props.deferMobileCta && !canSubmit) ? null : (
+        <div className={`lc517-mobile-bar${props.deferMobileCta ? " lc517-mobile-bar--ready" : ""}`}>
           <button
             type="button"
             className={`lc517-go${canSubmit && !busy ? " ready" : ""}`}

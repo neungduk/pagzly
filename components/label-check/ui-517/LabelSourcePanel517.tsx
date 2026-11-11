@@ -10,6 +10,8 @@ export type LabelSourcePanel517Props = {
   activePinId?: string | null;
   onPinClick?: (pinId: string) => void;
   fileLabel?: string | null;
+  /** 523 — 참이면 "아래 목록", 미전달/거짓은 웹 문구("오른쪽 목록") */
+  listBelow?: boolean;
 };
 
 /**
@@ -65,6 +67,7 @@ export function LabelSourcePanel517({
   activePinId,
   onPinClick,
   fileLabel,
+  listBelow = false,
 }: LabelSourcePanel517Props) {
   const body = useMemo(
     () => renderSourceWithPins517(sourceText, pins, activePinId, onPinClick),
@@ -82,7 +85,9 @@ export function LabelSourcePanel517({
       <p style={{ margin: "6px 0 14px", fontSize: 12.5, color: "#4a4d54" }}>
         {pins.length > 0
           ? "번호를 누르면 해당 항목이 열려요"
-          : "문구 위치를 찾지 못한 항목은 오른쪽 목록에서 확인해 주세요"}
+          : listBelow
+            ? "문구 위치를 찾지 못한 항목은 아래 목록에서 확인해 주세요"
+            : "문구 위치를 찾지 못한 항목은 오른쪽 목록에서 확인해 주세요"}
       </p>
       <div
         style={{

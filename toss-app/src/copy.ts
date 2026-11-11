@@ -1,0 +1,25 @@
+/** 523 — 토스 화면 전용 해요체 문구 (웹 기본 문구는 공용 부품에 유지) */
+
+export const TOSS_COPY = {
+  heroLine1: "라벨을 올리면,",
+  heroLine2Before: "바로 읽어서",
+  heroLine2After: " 점검해요",
+  heroSub: "파일 하나면 충분해요. 설정은 아래에서 골라요.",
+  sampleCtaTitle: "결과가 어떻게 나오는지 먼저 볼까요",
+  sampleBanner: "예시 결과예요 · 가상 브랜드로 만든 화면이에요",
+  sampleBannerCta: "내 라벨 점검하기",
+  settingsSummary: "점검 설정",
+  saveNote: "파일은 점검 후 저장하지 않아요",
+  resetOther: "다른 라벨 점검하기",
+  cleanHeadline: "고칠 것을 찾지 못했어요",
+  cleanNote: "규칙으로 확인한 범위예요. 최종 확인은 직접 해 주세요",
+  errorTitle: "연결이 잠시 끊겼어요",
+  errorRetry: "다시 시도",
+  limitTitle: "오늘 사진 읽기는 여기까지예요",
+  limitCta: "문구를 붙여넣어 점검해요",
+  unreadableRetryPhoto: "다른 사진으로 다시",
+  unreadableRetryPaste: "문구를 붙여넣어 점검",
+  ocrTitle: "이렇게 읽었어요",
+  ocrDesc: "틀린 글자는 고쳐 주세요",
+  checkCta: "점검하기",
+} as const;

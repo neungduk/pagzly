@@ -340,15 +340,14 @@ export function ResultView517({
     }
   };
 
-  const metaLine = [
+  const metaParts = [
     fileLabel || null,
     productName || null,
     result.market === "US" ? "미국 기준" : "한국 기준",
     result.rulesBasis || null,
     checkedOn ? `점검일 ${checkedOn}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  ].filter(Boolean) as string[];
+  const metaLine = metaParts.join(" · ");
 
   const progressText =
     resolved === 0
@@ -420,12 +419,14 @@ export function ResultView517({
           aria-expanded={open}
           aria-controls={bodyId}
           onClick={() => toggleRow(r.id)}
+          className={embedded ? "lc517-row-btn lc517-row-btn--stack" : undefined}
           style={{
             all: "unset",
             boxSizing: "border-box",
             display: "flex",
-            alignItems: "center",
-            gap: 12,
+            alignItems: embedded ? "flex-start" : "center",
+            flexWrap: embedded ? "wrap" : undefined,
+            gap: embedded ? "8px 12px" : 12,
             width: "100%",
             minHeight: 44,
             cursor: "pointer",
@@ -449,21 +450,51 @@ export function ResultView517({
           >
             {r.no}
           </span>
-          <span style={{ flex: 1, minWidth: 0, fontSize: 16, fontWeight: 800, lineHeight: 1.4, wordBreak: "keep-all" }}>
-            {title}
-          </span>
-          <span style={pillStyle(tone, openFix)}>{pillText}</span>
           <span
-            aria-hidden
             style={{
-              flex: "none",
-              fontSize: 14,
-              transition: "transform .2s",
-              transform: open ? "rotate(90deg)" : "none",
+              flex: 1,
+              minWidth: 0,
+              fontSize: embedded ? 17 : 16,
+              fontWeight: 800,
+              lineHeight: 1.4,
+              wordBreak: "keep-all",
+              ...(embedded ? { flexBasis: "calc(100% - 78px)" } : null),
             }}
           >
-            →
+            {title}
           </span>
+          {embedded ? (
+            <>
+              <span
+                aria-hidden
+                className="lc517-chevron"
+                style={{
+                  flex: "none",
+                  width: 24,
+                  height: 24,
+                  marginLeft: "auto",
+                  transition: "transform .2s",
+                  transform: open ? "rotate(180deg)" : "none",
+                }}
+              />
+              <span style={{ ...pillStyle(tone, openFix), marginLeft: 42, flex: "none" }}>{pillText}</span>
+            </>
+          ) : (
+            <>
+              <span style={pillStyle(tone, openFix)}>{pillText}</span>
+              <span
+                aria-hidden
+                style={{
+                  flex: "none",
+                  fontSize: 14,
+                  transition: "transform .2s",
+                  transform: open ? "rotate(90deg)" : "none",
+                }}
+              >
+                →
+              </span>
+            </>
+          )}
         </button>
 
         {open ? (
@@ -502,7 +533,21 @@ export function ResultView517({
         <div className="lc517-summary" style={judged ? undefined : { gridTemplateColumns: "minmax(0, 1fr)" }}>
           <div style={{ minWidth: 0 }}>
             {metaLine ? (
-              <p style={{ margin: 0, fontSize: 13, color: "#b9bcc4", wordBreak: "break-word" }}>{metaLine}</p>
+              embedded ? (
+                <p
+                  className="lc517-meta-parts"
+                  style={{ margin: 0, fontSize: 13, color: "#b9bcc4", display: "flex", flexWrap: "wrap", gap: "2px 0" }}
+                >
+                  {metaParts.map((part, i) => (
+                    <span key={`${part}-${i}`} style={{ whiteSpace: "nowrap" }}>
+                      {i > 0 ? <span aria-hidden> · </span> : null}
+                      {part}
+                    </span>
+                  ))}
+                </p>
+              ) : (
+                <p style={{ margin: 0, fontSize: 13, color: "#b9bcc4", wordBreak: "break-word" }}>{metaLine}</p>
+              )
             ) : null}
             <h2
               ref={verdictRef}
@@ -675,6 +720,7 @@ export function ResultView517({
                 activePinId={openId}
                 onPinClick={onPinClick}
                 fileLabel={fileLabel}
+                listBelow={embedded}
               />
             ) : null}
 
