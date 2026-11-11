@@ -103,3 +103,65 @@ export const LANDING_BELT_CHIPS_515: LandingBeltChip515[] = [
 ];
 
 export const LANDING_BELT_NOTE_515 = "예시 문구입니다";
+
+/** 519 — 무대 태그·결과 줄(UI 카피). caught는 라벨 문구 예시라 금지어 검사 제외. */
+export type LandingStageTag519 = {
+  id: string;
+  /** 라벨에 붙는 걸린 문구 키(표시용 아님) */
+  anchor: "bad" | "warn" | "expiry" | "ingredients";
+  kind: "fix" | "check" | "ok";
+  label: string;
+  /** 결과 카드 줄 제목 */
+  rowTitle: string;
+  rowBody?: string;
+  before?: string;
+  beforeEm?: string;
+  after?: string;
+  afterNote?: string;
+};
+
+export const LANDING_STAGE_TAGS_519: LandingStageTag519[] = [
+  {
+    id: "t1",
+    anchor: "bad",
+    kind: "fix",
+    label: "고칠 것",
+    rowTitle: "치료·완치를 암시하는 표현",
+    before: "피부 주름을 완전히 없애 주는 앰플",
+    beforeEm: "완전히 없애 주는",
+    after: "피부 주름 개선에 도움을 줍니다",
+    afterNote: "(기능성 인정 제품일 때)",
+  },
+  {
+    id: "t2",
+    anchor: "warn",
+    kind: "check",
+    label: "확인할 것",
+    rowTitle: "효능 표현을 한 번 더 보세요",
+    rowBody: "「피부 재생」 등 표현이 기능성 인정 범위와 맞는지 확인하세요.",
+  },
+  {
+    id: "t3",
+    anchor: "expiry",
+    kind: "check",
+    label: "확인할 것 · 사용기한",
+    rowTitle: "사용기한이 보이지 않아요",
+    rowBody: '개봉 후 사용기간 또는 "사용기한: 0000.00.00"을 넣어 주세요.',
+  },
+];
+
+export const LANDING_STAGE_OK_TAG_519: LandingStageTag519 = {
+  id: "t4",
+  anchor: "ingredients",
+  kind: "ok",
+  label: "문제 없음",
+  rowTitle: "전성분 · 제조번호 표시 확인",
+};
+
+export const LANDING_STAGE_FOOT_519 =
+  "예시 화면입니다 · 실제 결과는 올린 파일에 따라 달라집니다";
+
+export const LANDING_STAGE_LEGAL_519 = "법적 판단이 아닌 사전 점검 도구입니다";
+
+export const LANDING_STAGE_LEAD_519 =
+  "화장품 라벨 사진이나 상세페이지 PDF를 올리면, 고칠 문구와 빠진 표시사항을 근거와 함께 보여 드립니다. 고쳐 쓴 문구 예시도 함께 나옵니다.";
