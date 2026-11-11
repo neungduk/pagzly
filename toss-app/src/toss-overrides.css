@@ -89,9 +89,16 @@
 }
 
 .toss-app .lc517-preview-card .lc517-scan {
-  max-width: 100%;
-  left: 0;
-  right: 0;
+  max-width: calc(100% - 16px);
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+}
+
+.toss-app .lc517-result [role="status"] button {
+  min-height: 48px;
+  border-radius: 14px;
+  font-weight: 700;
 }
 
 .toss-app .lc517-preview-card img {
@@ -171,7 +178,12 @@
 }
 
 .toss-app textarea {
-  min-height: 220px !important;
+  min-height: 160px !important;
+}
+
+.toss-app .lc517-stage-card[data-tab="text"] textarea {
+  min-height: 180px !important;
+  max-height: 36vh;
 }
 
 /* —— 하단 CTA: 준비 전에는 숨김(deferMobileCta) · 등장 —— */
@@ -525,10 +537,20 @@
   padding: 8px 0;
   margin: 0 -4px;
   padding-left: 4px;
-  padding-right: 24px;
+  padding-right: 28px;
   background: rgba(243, 245, 251, 0.92);
   backdrop-filter: blur(8px);
-  mask-image: linear-gradient(90deg, #000 85%, transparent);
+}
+
+.toss-app .lc517-filters::after {
+  content: "";
+  position: sticky;
+  right: 0;
+  flex: none;
+  width: 28px;
+  margin-left: -28px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(243, 245, 251, 0.95));
 }
 
 .toss-app .lc517-filters::-webkit-scrollbar {

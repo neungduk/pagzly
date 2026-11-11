@@ -55,11 +55,27 @@ export function demoSampleResult(): LabelCheckResult {
 
 export function demoCleanResult(): LabelCheckResult {
   const base = demoSampleResult();
+  const passFindings = base.findings.filter((x) => x.status === "pass");
+  const findings =
+    passFindings.length > 0
+      ? passFindings
+      : base.findings.slice(0, 11).map((x, i) => ({
+          ...x,
+          status: "pass" as const,
+          checkKey: `demo:clean:pass:${i}`,
+          label: x.label || `문제 없음 ${i + 1}`,
+        }));
   return {
     ...base,
-    findings: [],
+    findings,
     manualItems: [],
-    summary: { possible: 0, attention: 0, unknown: 0, pass: base.summary.pass || 11, manual: 0 },
+    summary: {
+      possible: 0,
+      attention: 0,
+      unknown: 0,
+      pass: findings.length,
+      manual: 0,
+    },
     notice: undefined,
     skipJudgment: false,
     readable: true,

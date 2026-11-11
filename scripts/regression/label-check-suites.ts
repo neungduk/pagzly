@@ -38,6 +38,7 @@ import * as labelCheck520 from "./label-check-520";
 import * as labelCheck521 from "./label-check-521";
 import * as labelCheck522 from "./label-check-522";
 import * as labelCheck523Golden from "./label-check-523-golden";
+import * as labelCheck523 from "./label-check-523";
 
 export type LabelCheckSuite = {
   name: string;
@@ -81,4 +82,5 @@ export const LABEL_CHECK_SUITES: LabelCheckSuite[] = [
   labelCheck521,
   labelCheck522,
   labelCheck523Golden,
+  labelCheck523,
 ];

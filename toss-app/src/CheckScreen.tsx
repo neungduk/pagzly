@@ -98,6 +98,8 @@ export function CheckScreen({
   const pasteRef = useRef<HTMLTextAreaElement | null>(null);
   const contactEmail = labelContactEmail();
   const histDepth = useRef(0);
+  const busyLock = useRef(false);
+  const reqSeq = useRef(0);
 
   const pushStage = useCallback((stage: Stage) => {
     if (typeof window === "undefined") return;
@@ -152,11 +154,17 @@ export function CheckScreen({
       if (result) {
         setResult(null);
         setIsSample(false);
+        reqSeq.current += 1;
+        busyLock.current = false;
+        setBusy(false);
         if (histDepth.current > 0) histDepth.current -= 1;
         return;
       }
       if (ocrReview) {
         setOcrReview(null);
+        reqSeq.current += 1;
+        busyLock.current = false;
+        setBusy(false);
         if (histDepth.current > 0) histDepth.current -= 1;
         return;
       }
@@ -373,6 +381,9 @@ export function CheckScreen({
   };
 
   const runCheck = async () => {
+    if (busyLock.current) return;
+    busyLock.current = true;
+    const myReq = ++reqSeq.current;
     setBusy(true);
     setError(null);
     setIsSample(false);
@@ -392,6 +403,7 @@ export function CheckScreen({
           { ...input, market, save: false },
           (msg) => setProgress(msg || PROGRESS_RULES_507),
         );
+        if (myReq !== reqSeq.current) return;
         if (!out.ok) {
           setError(out.error);
           return;
@@ -408,6 +420,7 @@ export function CheckScreen({
           scope: textScope,
           save: false,
         });
+        if (myReq !== reqSeq.current) return;
         if (!out.ok) {
           setError(out.error);
           return;
@@ -420,8 +433,11 @@ export function CheckScreen({
         setError("PDF·사진을 선택하거나 문구를 붙여넣으세요.");
       }
     } finally {
-      setProgress(null);
-      setBusy(false);
+      if (myReq === reqSeq.current) {
+        setProgress(null);
+        setBusy(false);
+        busyLock.current = false;
+      }
     }
   };
 
